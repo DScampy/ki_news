@@ -5,7 +5,9 @@ import webbrowser
 import os
 from datetime import datetime
 
-NVIDIA_API_KEY = "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"
+config_pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "config.txt")
+with open(config_pfad) as f:
+    NVIDIA_API_KEY = f.read().strip()
 
 KI_KEYWORDS = ["ki", "ai", "künstliche", "model", "llm", "gpt", "claude",
                 "chatgpt", "openai", "google", "meta ai", "agent", "nvidia",
