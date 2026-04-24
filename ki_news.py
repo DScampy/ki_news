@@ -18,9 +18,10 @@ KI_KEYWORDS = ["ki", "ai", "kunstliche", "model", "llm", "gpt", "claude",
 
 FEEDS = [
     ("The Decoder", "https://the-decoder.de/feed/"),
-    ("Heise", "https://www.heise.de/rss/heise-atom.xml"),
+    ("Heise", "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
     ("TechCrunch AI", "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"),
+    ("Golem", "https://www.golem.de/rss/"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
     ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
 ]
