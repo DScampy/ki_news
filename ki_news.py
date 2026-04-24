@@ -63,7 +63,7 @@ POST 3: [Text]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     data = json.dumps({
-        "model": "nvidia/llama-3.1-nemotron-70b-instruct",
+        "model": "meta/llama-3.1-70b-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 600
     }).encode()
