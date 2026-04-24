@@ -63,7 +63,7 @@ POST 3: [Text]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     data = json.dumps({
-        "model": "mistralai/mistral-small-3-1-24b-instruct-2503",
+        "model": "meta/llama-3.1-8b-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 600
     }).encode()
