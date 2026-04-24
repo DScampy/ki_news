@@ -8,7 +8,7 @@ from datetime import datetime
 # API Key laden
 config_pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "config.txt")
 with open(config_pfad) as f:
-    NVIDIA_API_KEY = f.read().strip()
+    NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 
 # Keywords und Quellen
 KI_KEYWORDS = ["ki", "ai", "kunstliche", "model", "llm", "gpt", "claude",

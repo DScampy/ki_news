@@ -1,0 +1,30 @@
+name: KI News Update
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # täglich 7 Uhr deutscher Zeit
+  workflow_dispatch:       # manuell auslösbar
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Python einrichten
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Script ausführen
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+        run: python ki_news.py
+      
+      - name: HTML pushen
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add ki_news.html
+          git commit -m "News Update $(date)" || exit 0
+          git push
