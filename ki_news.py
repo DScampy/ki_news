@@ -26,6 +26,24 @@ FEEDS = [
     ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
 ]
 
+MODELLE = [
+    "meta/llama-3.3-70b-instruct",
+    "meta/llama-3.1-70b-instruct",
+    "meta/llama-3.1-8b-instruct",
+    "mistralai/mistral-7b-instruct-v0.3",
+    "google/gemma-3-27b-it",
+]
+
+SOURCE_COLORS = {
+    "The Decoder": "#1d9bf0",
+    "TechCrunch AI": "#ff6b35",
+    "VentureBeat AI": "#7c3aed",
+    "Ars Technica": "#16a34a",
+    "MIT Tech Review": "#dc2626",
+    "Heise": "#ca8a04",
+    "Golem": "#e11d48",
+}
+
 def fetch_feed(name, url):
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -39,6 +57,7 @@ def fetch_feed(name, url):
                 items.append({"title": title, "link": link, "source": name})
         return items[:3]
     except Exception as e:
+        print(f"[{name}] Fehler: {e}")
         return []
 
 def ask_nvidia(alle_news):
@@ -48,102 +67,143 @@ def ask_nvidia(alle_news):
 News von heute:
 {news_text}
 
-Schreib 3 X-Posts auf Deutsch. Regeln:
-- EXAKT zwischen 180 und 240 Zeichen pro Post
-- Zaehle die Zeichen selbst bevor du antwortest
-- 1-2 passende Emojis pro Post am Anfang oder mittendrin
-- Keine Ausrufezeichen
-- Optional eine kurze echte Frage ans Ende
-- Kurze eigene Einordnung
-- Am Ende Quelle als (via Seitenname)
-- NUR die Posts kein Kommentar danach
+Schreib 3 X-Posts auf Deutsch. Fuer jeden Post auch eine kurze Erklaerung in einfacher Sprache.
 
-1. [Text]
-2. [Text]
-3. [Text]"""
+Regeln fuer Posts:
+- EXAKT zwischen 180 und 240 Zeichen pro Post
+- 1-2 passende Emojis pro Post
+- Kein formelles "Sie" - schreib wie ein Mensch
+- Keine Ausrufezeichen
+- Kurze eigene Einordnung statt generischer Fragen
+- Am Ende Quelle als (via Seitenname)
+- Erfindet KEINE Fakten die nicht in den News stehen
+
+Regeln fuer Erklaerungen:
+- Max 100 Zeichen
+- Einfache Sprache, kein Jargon
+- Was bedeutet das konkret fuer normale Menschen?
+
+Ausgabe exakt in diesem Format:
+POST 1: [Text]
+ERKLAERUNG 1: [Text]
+POST 2: [Text]
+ERKLAERUNG 2: [Text]
+POST 3: [Text]
+ERKLAERUNG 3: [Text]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
-    data = json.dumps({
-        "model": "meta/llama-3.1-8b-instruct",
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 600
-    }).encode()
-    req = urllib.request.Request(url, data=data, headers={
-        "Authorization": f"Bearer {NVIDIA_API_KEY}",
-        "Content-Type": "application/json"
-    })
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read())["choices"][0]["message"]["content"]
 
-def send_telegram(posts):
+    for modell in MODELLE:
+        try:
+            print(f"Versuche Modell: {modell}")
+            data = json.dumps({
+                "model": modell,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 800
+            }).encode()
+            req = urllib.request.Request(url, data=data, headers={
+                "Authorization": f"Bearer {NVIDIA_API_KEY}",
+                "Content-Type": "application/json"
+            })
+            with urllib.request.urlopen(req, timeout=60) as r:
+                antwort = json.loads(r.read())["choices"][0]["message"]["content"]
+                print(f"Erfolg mit: {modell}")
+                return antwort
+        except Exception as e:
+            print(f"Modell {modell} fehlgeschlagen: {e}")
+            continue
+
+    return "Fehler: Kein Modell verfuegbar"
+
+def parse_posts(posts_raw):
+    lines = posts_raw.strip().split("\n")
+    result = []
+    current = {"post": "", "erklaerung": ""}
+
+    for line in lines:
+        line = line.strip()
+        upper = line.upper()
+        if upper.startswith("POST") and ":" in line:
+            if current["post"]:
+                result.append(current)
+                current = {"post": "", "erklaerung": ""}
+            current["post"] = line.split(":", 1)[1].strip()
+        elif upper.startswith("ERKLAERUNG") and ":" in line:
+            current["erklaerung"] = line.split(":", 1)[1].strip()
+        elif current["post"] and not upper.startswith("ERKLAERUNG") and line and not current["erklaerung"]:
+            current["post"] += " " + line
+
+    if current["post"]:
+        result.append(current)
+
+    return result
+
+def send_telegram(posts_raw):
     token = os.environ.get("TELEGRAM_TOKEN", "")
     chat_id = "9096438"
     if not token:
         print("Kein Telegram Token gefunden")
         return
-    nachricht = "KI News fuer @CScampy\n\n" + posts
+    nachricht = "KI News fuer @CScampy\n\n" + posts_raw
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    data = json.dumps({
-        "chat_id": chat_id,
-        "text": nachricht
-    }).encode()
-    req = urllib.request.Request(url, data=data, headers={
-        "Content-Type": "application/json"
-    })
+    data = json.dumps({"chat_id": chat_id, "text": nachricht}).encode()
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     try:
         urllib.request.urlopen(req, timeout=10)
         print("Telegram: Nachricht gesendet")
     except Exception as e:
         print(f"Telegram Fehler: {e}")
 
-def create_html(alle_news, posts):
+def create_html(alle_news, posts_raw):
     datum = datetime.now().strftime("%d.%m.%Y %H:%M")
-
-    source_colors = {
-        "The Decoder": "#1d9bf0",
-        "TechCrunch AI": "#ff6b35",
-        "VentureBeat AI": "#7c3aed",
-        "Ars Technica": "#16a34a",
-        "MIT Tech Review": "#dc2626",
-        "Heise": "#ca8a04",
-    }
+    parsed = parse_posts(posts_raw)
 
     news_html = ""
     for n in alle_news:
-        farbe = source_colors.get(n["source"], "#555")
+        farbe = SOURCE_COLORS.get(n["source"], "#555")
         news_html += f'''
         <div class="news-item">
             <span class="source" style="background:{farbe}">{n["source"]}</span>
             <a href="{n["link"]}" target="_blank">{n["title"]}</a>
         </div>'''
 
-    # Flexibles Parsing
-    raw_lines = posts.strip().split("\n")
-    post_lines = []
-    current_post = ""
-    for line in raw_lines:
-        line = line.strip()
-        if (line.startswith("POST") and ":" in line) or (line[:2] in ["1.", "2.", "3."]):
-            if current_post:
-                post_lines.append(current_post)
-            current_post = line
-        elif current_post and line:
-            current_post += " " + line
-    if current_post:
-        post_lines.append(current_post)
-
     posts_html = ""
-    for i, p in enumerate(post_lines, 1):
-        text = p.split(":", 1)[1].strip() if ":" in p else p
+    for i, p in enumerate(parsed, 1):
+        text = p["post"]
+        erklaerung = p["erklaerung"] or "Keine Erklaerung verfuegbar."
         zeichen = len(text)
-        farbe = "#16a34a" if zeichen <= 240 else "#dc2626"
+        zahl_farbe = "#16a34a" if zeichen <= 240 else "#dc2626"
+
+        # Quelle aus Post-Text extrahieren
+        quelle_name = ""
+        quelle_farbe = "#555"
+        if "(via " in text:
+            quelle_name = text.split("(via ")[-1].rstrip(")").strip()
+            quelle_farbe = next(
+                (v for k, v in SOURCE_COLORS.items() if k.lower() in quelle_name.lower()),
+                "#555"
+            )
+
+        quelle_html = ""
+        if quelle_name:
+            quelle_html = f'''
+            <details class="quelle-details">
+                <summary style="color:{quelle_farbe}">Quelle anzeigen</summary>
+                <span class="quelle-badge" style="background:{quelle_farbe}">{quelle_name}</span>
+            </details>'''
+
         posts_html += f'''
         <div class="post-item">
             <div class="post-header">
                 <span class="post-nr">Post {i}</span>
-                <span class="zeichenzahl" style="color:{farbe}">{zeichen}/280 Zeichen</span>
+                <span class="zeichenzahl" style="color:{zahl_farbe}">{zeichen}/280</span>
             </div>
             <p id="post{i}">{text}</p>
+            <div class="erklaerung-box">
+                <span class="erklaerung-icon">💡</span>
+                <span class="erklaerung-text">{erklaerung}</span>
+                {quelle_html}
+            </div>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('post{i}', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={{}}"
@@ -175,12 +235,22 @@ def create_html(alle_news, posts):
         .post-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
         .post-nr {{ color: #1d9bf0; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }}
         .zeichenzahl {{ font-size: 12px; font-weight: bold; }}
-        .post-item p {{ font-size: 15px; line-height: 1.5; color: #e7e9ea; margin-bottom: 14px; }}
+        .post-item p {{ font-size: 15px; line-height: 1.5; color: #e7e9ea; margin-bottom: 12px; }}
+        .erklaerung-box {{ background: #0d1117; border: 1px solid #2f3336; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; }}
+        .erklaerung-icon {{ font-size: 14px; flex-shrink: 0; margin-top: 1px; }}
+        .erklaerung-text {{ font-size: 13px; color: #8b949e; flex: 1; line-height: 1.4; min-width: 0; }}
+        .quelle-details {{ width: 100%; margin-top: 6px; }}
+        .quelle-details summary {{ font-size: 11px; cursor: pointer; user-select: none; list-style: none; display: inline-flex; align-items: center; gap: 4px; }}
+        .quelle-details summary::-webkit-details-marker {{ display: none; }}
+        .quelle-details summary::before {{ content: '▶'; font-size: 9px; transition: transform 0.2s; }}
+        .quelle-details[open] summary::before {{ transform: rotate(90deg); }}
+        .quelle-details summary:hover {{ opacity: 0.8; }}
+        .quelle-badge {{ display: inline-block; margin-top: 6px; color: white; font-size: 11px; font-weight: bold; padding: 2px 10px; border-radius: 10px; }}
         .post-actions {{ display: flex; gap: 8px; }}
-        .btn-copy, .btn-x {{ padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.2s; }}
-        .btn-copy {{ background: #2f3336; color: #e7e9ea; border: none; }}
+        .btn-copy, .btn-x {{ padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.2s; border: none; }}
+        .btn-copy {{ background: #2f3336; color: #e7e9ea; }}
         .btn-copy:hover {{ opacity: 0.8; }}
-        .btn-x {{ background: #1d9bf0; color: white; border: none; }}
+        .btn-x {{ background: #1d9bf0; color: white; }}
         .btn-x:hover {{ opacity: 0.8; }}
         .stats {{ display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid #2f3336; margin-bottom: 8px; }}
         .stat {{ text-align: center; }}
@@ -194,10 +264,7 @@ def create_html(alle_news, posts):
             navigator.clipboard.writeText(text);
             btn.textContent = 'Kopiert';
             btn.classList.add('copied');
-            setTimeout(() => {{
-                btn.textContent = 'Kopieren';
-                btn.classList.remove('copied');
-            }}, 2000);
+            setTimeout(() => {{ btn.textContent = 'Kopieren'; btn.classList.remove('copied'); }}, 2000);
         }}
     </script>
 </head>
@@ -209,7 +276,7 @@ def create_html(alle_news, posts):
     <div class="container">
         <div class="stats">
             <div class="stat"><div class="stat-zahl">{len(alle_news)}</div><div class="stat-label">News gefunden</div></div>
-            <div class="stat"><div class="stat-zahl">{len(post_lines)}</div><div class="stat-label">Post-Vorschlaege</div></div>
+            <div class="stat"><div class="stat-zahl">{len(parsed)}</div><div class="stat-label">Post-Vorschlaege</div></div>
             <div class="stat"><div class="stat-zahl">{len(set(n['source'] for n in alle_news))}</div><div class="stat-label">Quellen</div></div>
         </div>
         <div class="section-title">Aktuelle KI-News</div>
@@ -240,11 +307,10 @@ for name, url in FEEDS:
 print(f"\n{len(alle_news)} KI-News gefunden")
 print("Post-Vorschlaege werden generiert...")
 
-posts = ask_nvidia(alle_news)
-send_telegram(posts)
+posts_raw = ask_nvidia(alle_news)
+send_telegram(posts_raw)
 
-pfad = create_html(alle_news, posts)
-print("RAW OUTPUT:", repr(posts[:500]))
+pfad = create_html(alle_news, posts_raw)
 print(f"\nFertig! Oeffne: {pfad}")
 
 if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents")):
