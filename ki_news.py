@@ -57,13 +57,13 @@ Schreib 3 X-Posts auf Deutsch. Regeln:
 - Am Ende Quelle als (via Seitenname)
 - NUR die Posts kein Kommentar danach
 
-POST 1: [Text]
-POST 2: [Text]
-POST 3: [Text]"""
+1. [Text]
+2. [Text]
+3. [Text]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     data = json.dumps({
-        "model": "mistralai/mistral-large-3-675b-instruct-2512",
+        "model": "meta/llama-3.1-8b-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 600
     }).encode()
@@ -71,7 +71,7 @@ POST 3: [Text]"""
         "Authorization": f"Bearer {NVIDIA_API_KEY}",
         "Content-Type": "application/json"
     })
-    with urllib.request.urlopen(req, timeout=30) as r:
+    with urllib.request.urlopen(req, timeout=60) as r:
         return json.loads(r.read())["choices"][0]["message"]["content"]
 
 def send_telegram(posts):
@@ -116,8 +116,21 @@ def create_html(alle_news, posts):
             <a href="{n["link"]}" target="_blank">{n["title"]}</a>
         </div>'''
 
-    post_lines = [l.strip() for l in posts.strip().split("\n")
-                  if l.strip().startswith("POST")]
+    # Flexibles Parsing
+    raw_lines = posts.strip().split("\n")
+    post_lines = []
+    current_post = ""
+    for line in raw_lines:
+        line = line.strip()
+        if (line.startswith("POST") and ":" in line) or (line[:2] in ["1.", "2.", "3."]):
+            if current_post:
+                post_lines.append(current_post)
+            current_post = line
+        elif current_post and line:
+            current_post += " " + line
+    if current_post:
+        post_lines.append(current_post)
+
     posts_html = ""
     for i, p in enumerate(post_lines, 1):
         text = p.split(":", 1)[1].strip() if ":" in p else p
@@ -230,6 +243,7 @@ posts = ask_nvidia(alle_news)
 send_telegram(posts)
 
 pfad = create_html(alle_news, posts)
+print("RAW OUTPUT:", repr(posts[:500]))
 print(f"\nFertig! Oeffne: {pfad}")
 
 if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents")):
