@@ -2,8 +2,10 @@ name: KI News Update
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # täglich 7 Uhr deutscher Zeit
-  workflow_dispatch:       # manuell auslösbar
+    - cron: '0 6 * * *'   # 7 Uhr
+    - cron: '0 11 * * *'  # 12 Uhr mittags
+    - cron: '0 16 * * *'  # 17 Uhr abends
+  workflow_dispatch:
 
 jobs:
   update:
