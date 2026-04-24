@@ -116,21 +116,21 @@ def create_html(alle_news, posts):
             <a href="{n["link"]}" target="_blank">{n["title"]}</a>
         </div>'''
 
-# Flexibleres Parsing
-raw_lines = posts.strip().split("\n")
-post_lines = []
-current_post = ""
-for line in raw_lines:
-    line = line.strip()
-    if line.startswith("POST") and ":" in line:
-        if current_post:
-            post_lines.append(current_post)
-        current_post = line
-    elif current_post and line:
-        current_post += " " + line
-if current_post:
-    post_lines.append(current_post)
-    
+    # Flexibles Parsing
+    raw_lines = posts.strip().split("\n")
+    post_lines = []
+    current_post = ""
+    for line in raw_lines:
+        line = line.strip()
+        if line.startswith("POST") and ":" in line:
+            if current_post:
+                post_lines.append(current_post)
+            current_post = line
+        elif current_post and line:
+            current_post += " " + line
+    if current_post:
+        post_lines.append(current_post)
+
     posts_html = ""
     for i, p in enumerate(post_lines, 1):
         text = p.split(":", 1)[1].strip() if ":" in p else p
@@ -240,7 +240,6 @@ print(f"\n{len(alle_news)} KI-News gefunden")
 print("Post-Vorschlaege werden generiert...")
 
 posts = ask_nvidia(alle_news)
-print("MODELL OUTPUT:", posts[:300])
 send_telegram(posts)
 
 pfad = create_html(alle_news, posts)
