@@ -116,8 +116,21 @@ def create_html(alle_news, posts):
             <a href="{n["link"]}" target="_blank">{n["title"]}</a>
         </div>'''
 
-    post_lines = [l.strip() for l in posts.strip().split("\n")
-                  if l.strip().startswith("POST")]
+# Flexibleres Parsing
+raw_lines = posts.strip().split("\n")
+post_lines = []
+current_post = ""
+for line in raw_lines:
+    line = line.strip()
+    if line.startswith("POST") and ":" in line:
+        if current_post:
+            post_lines.append(current_post)
+        current_post = line
+    elif current_post and line:
+        current_post += " " + line
+if current_post:
+    post_lines.append(current_post)
+    
     posts_html = ""
     for i, p in enumerate(post_lines, 1):
         text = p.split(":", 1)[1].strip() if ":" in p else p
