@@ -243,6 +243,7 @@ posts = ask_nvidia(alle_news)
 send_telegram(posts)
 
 pfad = create_html(alle_news, posts)
+print("RAW OUTPUT:", repr(posts[:500]))
 print(f"\nFertig! Oeffne: {pfad}")
 
 if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents")):
