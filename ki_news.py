@@ -5,7 +5,7 @@ import webbrowser
 import os
 from datetime import datetime
 
-# API Key laden - lokal aus config.txt, auf GitHub aus Environment
+# API Key laden
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 if not NVIDIA_API_KEY:
     config_pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "config.txt")
@@ -63,7 +63,7 @@ POST 3: [Text]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     data = json.dumps({
-        "model": "mistralai/mixtral-8x7b-instruct-v0.1",
+        "model": "nvidia/llama-3.1-nemotron-70b-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 600
     }).encode()
@@ -73,6 +73,27 @@ POST 3: [Text]"""
     })
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.loads(r.read())["choices"][0]["message"]["content"]
+
+def send_telegram(posts):
+    token = os.environ.get("TELEGRAM_TOKEN", "")
+    chat_id = "9096438"
+    if not token:
+        print("Kein Telegram Token gefunden")
+        return
+    nachricht = "KI News fuer @CScampy\n\n" + posts
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = json.dumps({
+        "chat_id": chat_id,
+        "text": nachricht
+    }).encode()
+    req = urllib.request.Request(url, data=data, headers={
+        "Content-Type": "application/json"
+    })
+    try:
+        urllib.request.urlopen(req, timeout=10)
+        print("Telegram: Nachricht gesendet")
+    except Exception as e:
+        print(f"Telegram Fehler: {e}")
 
 def create_html(alle_news, posts):
     datum = datetime.now().strftime("%d.%m.%Y %H:%M")
@@ -185,12 +206,11 @@ def create_html(alle_news, posts):
 </body>
 </html>"""
 
-    # Lokal oder GitHub
     if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news")):
         pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "ki_news.html")
     else:
         pfad = "ki_news.html"
-    
+
     with open(pfad, "w", encoding="utf-8") as f:
         f.write(html)
     return pfad
@@ -207,6 +227,7 @@ print(f"\n{len(alle_news)} KI-News gefunden")
 print("Post-Vorschlaege werden generiert...")
 
 posts = ask_nvidia(alle_news)
+send_telegram(posts)
 
 pfad = create_html(alle_news, posts)
 print(f"\nFertig! Oeffne: {pfad}")
