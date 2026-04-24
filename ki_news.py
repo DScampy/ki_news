@@ -227,6 +227,7 @@ print(f"\n{len(alle_news)} KI-News gefunden")
 print("Post-Vorschlaege werden generiert...")
 
 posts = ask_nvidia(alle_news)
+print("MODELL OUTPUT:", posts[:300])
 send_telegram(posts)
 
 pfad = create_html(alle_news, posts)
