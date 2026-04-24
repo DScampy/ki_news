@@ -59,7 +59,7 @@ Schreib 3 X-Posts auf Deutsch. Regeln:
 
 1. [Text]
 2. [Text]
-3. [Text]
+3. [Text]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     data = json.dumps({
