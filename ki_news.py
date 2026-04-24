@@ -63,7 +63,7 @@ POST 3: [Text]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     data = json.dumps({
-        "model": "mistralai/mistral-large-3-675b-instruct-2512",
+        "model": "mistralai/mistral-small-3-1-24b-instruct-2503",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 600
     }).encode()
@@ -71,7 +71,7 @@ POST 3: [Text]"""
         "Authorization": f"Bearer {NVIDIA_API_KEY}",
         "Content-Type": "application/json"
     })
-    with urllib.request.urlopen(req, timeout=30) as r:
+    with urllib.request.urlopen(req, timeout=60) as r:
         return json.loads(r.read())["choices"][0]["message"]["content"]
 
 def send_telegram(posts):
