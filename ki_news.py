@@ -5,14 +5,13 @@ import webbrowser
 import os
 from datetime import datetime
 
-# API Key laden
+# API Key laden - lokal aus config.txt, auf GitHub aus Environment
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 if not NVIDIA_API_KEY:
     config_pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "config.txt")
     with open(config_pfad) as f:
         NVIDIA_API_KEY = f.read().strip()
 
-# Keywords und Quellen
 KI_KEYWORDS = ["ki", "ai", "kunstliche", "model", "llm", "gpt", "claude",
                 "chatgpt", "openai", "google", "meta ai", "agent", "nvidia",
                 "anthropic", "gemini", "mistral", "deepseek"]
@@ -111,14 +110,10 @@ def create_html(alle_news, posts):
             </div>
             <p id="post{i}">{text}</p>
             <div class="post-actions">
-                <button class="btn-copy" onclick="copyPost('post{i}', this)">
-                    Kopieren
-                </button>
+                <button class="btn-copy" onclick="copyPost('post{i}', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={{}}"
                    onclick="this.href='https://x.com/intent/tweet?text='+encodeURIComponent(document.getElementById('post{i}').textContent)"
-                   target="_blank" class="btn-x">
-                    X Direkt posten
-                </a>
+                   target="_blank" class="btn-x">X Direkt posten</a>
             </div>
         </div>'''
 
@@ -190,7 +185,12 @@ def create_html(alle_news, posts):
 </body>
 </html>"""
 
-    pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "ki_news.html")
+    # Lokal oder GitHub
+    if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news")):
+        pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "ki_news.html")
+    else:
+        pfad = "ki_news.html"
+    
     with open(pfad, "w", encoding="utf-8") as f:
         f.write(html)
     return pfad
@@ -207,8 +207,9 @@ print(f"\n{len(alle_news)} KI-News gefunden")
 print("Post-Vorschlaege werden generiert...")
 
 posts = ask_nvidia(alle_news)
-print("DEBUG:", posts[:300])
 
 pfad = create_html(alle_news, posts)
 print(f"\nFertig! Oeffne: {pfad}")
-webbrowser.open(f"file://{pfad}")
+
+if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents")):
+    webbrowser.open(f"file://{pfad}")
