@@ -3,7 +3,9 @@ import xml.etree.ElementTree as ET
 import json
 import webbrowser
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+BERLIN = timezone(timedelta(hours=2))  # Sommer: +2, Winter: +1
+datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
 
 # API Key laden
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
@@ -21,7 +23,6 @@ FEEDS = [
     ("Heise", "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
     ("TechCrunch AI", "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"),
-    ("Golem", "https://www.golem.de/rss/"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
     ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
 ]
@@ -41,7 +42,6 @@ SOURCE_COLORS = {
     "Ars Technica": "#16a34a",
     "MIT Tech Review": "#dc2626",
     "Heise": "#ca8a04",
-    "Golem": "#e11d48",
 }
 
 def fetch_feed(name, url):
@@ -64,32 +64,30 @@ def ask_nvidia(alle_news):
     news_text = chr(10).join([f"- {n['title']} (via {n['source']})" for n in alle_news])
     prompt = f"""Du bist @CScampy, sachlicher KI-Beobachter aus Deutschland.
 
-News von heute:
+News:
 {news_text}
 
-Schreib 3 X-Posts auf Deutsch. Fuer jeden Post auch eine kurze Erklaerung in einfacher Sprache.
+WICHTIG zur Laenge: Ein Post muss MINDESTENS so lang sein wie dieser Beispielsatz hier - 
+"Meta kauft ARM-Chips statt Intel - das klingt technisch, bedeutet aber: weniger Abhaengigkeit von US-Lieferketten und mehr Kontrolle ueber eigene KI-Hardware. (via The Decoder)" 
+Das sind 188 Zeichen. Deine Posts muessen LAENGER sein als dieser Satz.
 
-Regeln fuer Posts:
-- EXAKT zwischen 180 und 240 Zeichen pro Post
-- 1-2 passende Emojis pro Post
-- Kein formelles "Sie" - schreib wie ein Mensch
-- Keine Ausrufezeichen
-- Kurze eigene Einordnung statt generischer Fragen
-- Am Ende Quelle als (via Seitenname)
-- Erfindet KEINE Fakten die nicht in den News stehen
+Regeln:
+- Zwischen 180 und 240 Zeichen (zaehle selbst)
+- 1-2 Emojis
+- Kein "Sie" - direkte Ansprache, schreib wie ein Mensch
+- Keine Ausrufezeichen  
+- Schreib IMMER auf Deutsch, auch wenn die Quelle englisch ist
+- wähle einen sachlichen Ton, einfache Sprache, nicht belehrend, freundlich und neugierig
+- Eigene Einordnung: Was bedeutet das wirklich?
+- Quelle am Ende als (via Seitenname)
+- Keine erfundenen Fakten
 
-Regeln fuer Erklaerungen:
-- Max 100 Zeichen
-- Einfache Sprache, kein Jargon
-- Was bedeutet das konkret fuer normale Menschen?
-
-Ausgabe exakt in diesem Format:
 POST 1: [Text]
-ERKLAERUNG 1: [Text]
+ERKLAERUNG 1: [max 80 Zeichen, einfache Sprache]
 POST 2: [Text]
-ERKLAERUNG 2: [Text]
+ERKLAERUNG 2: [max 80 Zeichen, einfache Sprache]
 POST 3: [Text]
-ERKLAERUNG 3: [Text]"""
+ERKLAERUNG 3: [max 80 Zeichen, einfache Sprache]"""
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
 
