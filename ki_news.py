@@ -57,9 +57,9 @@ Schreib 3 X-Posts auf Deutsch. Regeln:
 - Am Ende Quelle als (via Seitenname)
 - NUR die Posts kein Kommentar danach
 
-POST 1: [Text]
-POST 2: [Text]
-POST 3: [Text]"""
+1. [Text]
+2. [Text]
+3. [Text]
 
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     data = json.dumps({
@@ -122,7 +122,7 @@ def create_html(alle_news, posts):
     current_post = ""
     for line in raw_lines:
         line = line.strip()
-        if line.startswith("POST") and ":" in line:
+        if (line.startswith("POST") and ":" in line) or (line[:2] in ["1.", "2.", "3."]):
             if current_post:
                 post_lines.append(current_post)
             current_post = line
