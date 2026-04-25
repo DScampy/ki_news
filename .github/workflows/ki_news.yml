@@ -1,9 +1,8 @@
 name: KI News
 on:
   schedule:
-    - cron: '0 5,10,15,18 * * *'  # 7/12/17/20 Uhr Berlin (UTC+2)
+    - cron: '0 5,10,15 * * *'  # 7/12/17 Uhr Berlin (UTC+2)
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,7 +12,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -r requirements.txt  # falls nötig
       - run: python ki_news.py
         env:
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
@@ -22,4 +20,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .  # oder wo die HTML liegt
+          publish_dir: .
+ 
