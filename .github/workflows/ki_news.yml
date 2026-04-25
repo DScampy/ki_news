@@ -1,34 +1,25 @@
-name: KI News Update
-
+name: KI News
 on:
   schedule:
-    - cron: '0 5 * * *'   # 7 Uhr
-    - cron: '0 10 * * *'  # 12 Uhr mittags
-    - cron: '0 15 * * *'  # 17 Uhr
-    - cron: '0 18 * * *'  # 21 Uhr abends
+    - cron: '0 5,10,15,18 * * *'  # 7/12/17/20 Uhr Berlin (UTC+2)
   workflow_dispatch:
 
 jobs:
-  update:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Python einrichten
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
-      - name: Script ausführen
+      - run: pip install -r requirements.txt  # falls nötig
+      - run: python ki_news.py
         env:
-          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-        run: python ki_news.py
-      
-      - name: HTML pushen
-        run: |
-          git config user.email "action@github.com"
-          git config user.name "GitHub Action"
-          git add ki_news.html
-          git commit -m "News Update $(date)" || exit 0
-          git push
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .  # oder wo die HTML liegt
