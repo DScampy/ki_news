@@ -353,9 +353,9 @@ def create_html(alle_news, posts_raw, summaries):
 </html>"""
 
     if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news")):
-        pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "ki_news.html")
+        pfad = os.path.join(os.path.expanduser("~"), "Documents", "Projekte", "ki-news", "index.html")
     else:
-        pfad = "ki_news.html"
+        pfad = "index.html"
 
     with open(pfad, "w", encoding="utf-8") as f:
         f.write(html)
