@@ -4,13 +4,8 @@ import json
 import webbrowser
 import os
 from datetime import datetime, timezone, timedelta
-<<<<<<< Updated upstream
-BERLIN = timezone(timedelta(hours=2))  # Sommer: +2, Winter: +1
-datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
-=======
 
 BERLIN = timezone(timedelta(hours=2))  # Sommer: UTC+2 | Winter: UTC+1 anpassen
->>>>>>> Stashed changes
 
 # API Key laden
 OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
@@ -63,37 +58,49 @@ def fetch_feed(name, url):
         print(f"[{name}] Fehler: {e}")
         return []
 
+def summarize_news(alle_news):
+    """Generiert deutsche 2-3-Satz-Zusammenfassungen für alle News in einem Batch-Call."""
+    news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(alle_news)])
+
+    prompt = f"""Fasse jede der folgenden News auf Deutsch zusammen.
+Erkläre sachlich was passiert ist und warum es relevant ist. Kein Marketingsprech.
+Antworte NUR mit einem JSON-Array, kein weiterer Text, keine Backticks:
+[{{"id": 1, "title_de": "Kurzer deutscher Titel", "summary": "2-3 Sätze..."}}, ...]
+
+News:
+{news_text}"""
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
+
+    for modell in MODELLE:
+        try:
+            data = json.dumps({
+                "model": modell,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 1500
+            }).encode()
+            req = urllib.request.Request(url, data=data, headers={
+                "Authorization": f"Bearer {OPENROUTER_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://dscampy.github.io/ki_news/",
+                "X-Title": "KI News Dashboard"
+            })
+            with urllib.request.urlopen(req, timeout=60) as r:
+                antwort = json.loads(r.read())["choices"][0]["message"]["content"].strip()
+                # Backticks entfernen falls das Modell sie trotzdem schreibt
+                antwort = antwort.replace("```json", "").replace("```", "").strip()
+                summaries = json.loads(antwort)
+                print(f"Zusammenfassungen: {len(summaries)} generiert")
+                return {item["id"] - 1: {"title_de": item.get("title_de", ""), "summary": item.get("summary", "")} for item in summaries}
+        except Exception as e:
+            print(f"Zusammenfassung mit {modell} fehlgeschlagen: {e}")
+            continue
+
+    return {}
+
 def ask_llm(alle_news):
     news_text = chr(10).join([f"- {n['title']} (via {n['source']})" for n in alle_news])
 
-<<<<<<< Updated upstream
-News:
-{news_text}
-
-WICHTIG zur Laenge: Ein Post muss MINDESTENS so lang sein wie dieser Beispielsatz hier - 
-"Meta kauft ARM-Chips statt Intel - das klingt technisch, bedeutet aber: weniger Abhaengigkeit von US-Lieferketten und mehr Kontrolle ueber eigene KI-Hardware. (via The Decoder)" 
-Das sind 188 Zeichen. Deine Posts muessen LAENGER sein als dieser Satz.
-
-Regeln:
-- Zwischen 180 und 240 Zeichen (zaehle selbst)
-- 1-2 Emojis
-- Kein "Sie" - direkte Ansprache, schreib wie ein Mensch
-- Keine Ausrufezeichen  
-- Schreib IMMER auf Deutsch, auch wenn die Quelle englisch ist
-- wähle einen sachlichen Ton, einfache Sprache, nicht belehrend, freundlich und neugierig
-- Eigene Einordnung: Was bedeutet das wirklich?
-- Quelle am Ende als (via Seitenname)
-- Keine erfundenen Fakten
-
-POST 1: [Text]
-ERKLAERUNG 1: [max 80 Zeichen, einfache Sprache]
-POST 2: [Text]
-ERKLAERUNG 2: [max 80 Zeichen, einfache Sprache]
-POST 3: [Text]
-ERKLAERUNG 3: [max 80 Zeichen, einfache Sprache]"""
-
-    url = "https://integrate.api.nvidia.com/v1/chat/completions"
-=======
     system = """Du bist @CScampy, ein sachlicher aber neugieriger KI-Beobachter aus Deutschland.
 Dein Stil: direkt, menschlich, keine Floskeln, keine Ausrufezeichen, kein "Sie".
 Du erklärst kurz was eine News wirklich bedeutet - nicht nur was passiert ist, sondern warum es interessant ist.
@@ -123,7 +130,6 @@ POST 3: [Text, zwischen 200 und 240 Zeichen]
 ERKLAERUNG 3: [max 60 Zeichen]"""
 
     url = "https://openrouter.ai/api/v1/chat/completions"
->>>>>>> Stashed changes
 
     for modell in MODELLE:
         try:
@@ -191,17 +197,27 @@ def send_telegram(posts_raw):
     except Exception as e:
         print(f"Telegram Fehler: {e}")
 
-def create_html(alle_news, posts_raw):
+def create_html(alle_news, posts_raw, summaries):
     datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
     parsed = parse_posts(posts_raw)
 
     news_html = ""
-    for n in alle_news:
+    for i, n in enumerate(alle_news):
         farbe = SOURCE_COLORS.get(n["source"], "#555")
+        summary = summaries.get(i, {})
+        title_de = summary.get("title_de", n["title"])
+        summary_text = summary.get("summary", "")
         news_html += f'''
-        <div class="news-item">
-            <span class="source-badge" style="background:{farbe}">{n["source"]}</span>
-            <a href="{n["link"]}" target="_blank">{n["title"]}</a>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:{farbe}">{n["source"]}</span>
+                <span class="news-title">{title_de}</span>
+                <span class="news-arrow">▾</span>
+            </div>
+            <div class="news-expand">
+                {f'<p class="news-summary">{summary_text}</p>' if summary_text else ""}
+                <a href="{n["link"]}" target="_blank" onclick="event.stopPropagation()">→ Artikel lesen</a>
+            </div>
         </div>'''
 
     posts_html = ""
@@ -261,11 +277,24 @@ def create_html(alle_news, posts_raw):
         .panel-left {{ border-right: 1px solid #2f3336; }}
         .panel-title {{ color: #536471; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 12px; border-bottom: 1px solid #2f3336; margin-bottom: 4px; }}
 
-        .news-item {{ padding: 12px 0; border-bottom: 1px solid #1a1a1a; display: flex; align-items: flex-start; gap: 8px; }}
-        .news-item a {{ color: #e7e9ea; text-decoration: none; font-size: 14px; line-height: 1.4; flex: 1; }}
-        .news-item a:hover {{ color: #1d9bf0; }}
+        /* News Items – klappbar */
+        .news-item {{ border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.15s; border-radius: 6px; }}
+        .news-item:hover {{ background: #111; }}
+        .news-item.open {{ background: #111; border: 1px solid #2f3336; margin: 4px 0; }}
+        .news-header {{ padding: 12px 8px; display: flex; align-items: flex-start; gap: 8px; }}
+        .news-title {{ color: #e7e9ea; font-size: 14px; line-height: 1.4; flex: 1; }}
+        .news-arrow {{ color: #536471; font-size: 12px; margin-top: 2px; flex-shrink: 0; transition: transform 0.2s; }}
+        .news-item.open .news-arrow {{ transform: rotate(180deg); color: #1d9bf0; }}
         .source-badge {{ color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }}
 
+        /* Aufklapp-Bereich */
+        .news-expand {{ display: none; padding: 0 8px 14px 8px; }}
+        .news-item.open .news-expand {{ display: block; }}
+        .news-summary {{ font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }}
+        .news-expand a {{ color: #1d9bf0; font-size: 13px; font-weight: 600; text-decoration: none; }}
+        .news-expand a:hover {{ text-decoration: underline; }}
+
+        /* Posts */
         .post-card {{ background: #111; border: 1px solid #2f3336; border-radius: 14px; padding: 16px; margin: 10px 0; transition: border-color 0.2s; }}
         .post-card:hover {{ border-color: #1d9bf0; }}
         .post-meta {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
@@ -288,6 +317,9 @@ def create_html(alle_news, posts_raw):
         }}
     </style>
     <script>
+        function toggleNews(el) {{
+            el.classList.toggle('open');
+        }}
         function copyPost(id, btn) {{
             const text = document.getElementById(id).textContent;
             navigator.clipboard.writeText(text);
@@ -338,12 +370,14 @@ for name, url in FEEDS:
     print(f"[{name}] {len(items)} relevante News")
 
 print(f"\n{len(alle_news)} KI-News gefunden")
-print("Post-Vorschlaege werden generiert...")
+print("Zusammenfassungen werden generiert...")
+summaries = summarize_news(alle_news)
 
+print("Post-Vorschlaege werden generiert...")
 posts_raw = ask_llm(alle_news)
 send_telegram(posts_raw)
 
-pfad = create_html(alle_news, posts_raw)
+pfad = create_html(alle_news, posts_raw, summaries)
 print(f"\nFertig! Oeffne: {pfad}")
 
 if os.path.exists(os.path.join(os.path.expanduser("~"), "Documents")):
