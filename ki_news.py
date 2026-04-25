@@ -59,44 +59,56 @@ def fetch_feed(name, url):
         return []
 
 def summarize_news(alle_news):
-    """Generiert deutsche 2-3-Satz-Zusammenfassungen für alle News in einem Batch-Call."""
-    news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(alle_news)])
+    """Generiert deutsche Titel und Zusammenfassungen. Fallback auf Originaltitel wenn nötig."""
 
-    prompt = f"""Fasse jede der folgenden News auf Deutsch zusammen.
-Erkläre sachlich was passiert ist und warum es relevant ist. Kein Marketingsprech.
-Antworte NUR mit einem JSON-Array, kein weiterer Text, keine Backticks:
-[{{"id": 1, "title_de": "Kurzer deutscher Titel", "summary": "2-3 Sätze..."}}, ...]
+    # Fallback: immer verfügbar, Originaltitel ohne Zusammenfassung
+    result = {i: {"title_de": n["title"], "summary": ""} for i, n in enumerate(alle_news)}
+
+    # 6er-Batches statt alle auf einmal – stabiler bei langen Listen
+    batch_size = 6
+    url = "https://openrouter.ai/api/v1/chat/completions"
+
+    for batch_start in range(0, len(alle_news), batch_size):
+        batch = alle_news[batch_start:batch_start + batch_size]
+        news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(batch)])
+
+        prompt = f"""Fasse jede News auf Deutsch zusammen. Antworte NUR mit JSON, kein weiterer Text, keine Backticks:
+[{{"id": 1, "title_de": "Kurzer deutscher Titel", "summary": "2-3 Sätze was passiert ist und warum relevant"}}, ...]
 
 News:
 {news_text}"""
 
-    url = "https://openrouter.ai/api/v1/chat/completions"
+        for modell in MODELLE:
+            try:
+                data = json.dumps({
+                    "model": modell,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 800
+                }).encode()
+                req = urllib.request.Request(url, data=data, headers={
+                    "Authorization": f"Bearer {OPENROUTER_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://dscampy.github.io/ki_news/",
+                    "X-Title": "KI News Dashboard"
+                })
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    antwort = json.loads(r.read())["choices"][0]["message"]["content"].strip()
+                    antwort = antwort.replace("```json", "").replace("```", "").strip()
+                    summaries = json.loads(antwort)
+                    for item in summaries:
+                        global_index = batch_start + item["id"] - 1
+                        if 0 <= global_index < len(alle_news):
+                            result[global_index] = {
+                                "title_de": item.get("title_de", alle_news[global_index]["title"]),
+                                "summary": item.get("summary", "")
+                            }
+                    print(f"Zusammenfassungen Batch {batch_start//batch_size + 1}: OK")
+                    break
+            except Exception as e:
+                print(f"Batch {batch_start//batch_size + 1} mit {modell} fehlgeschlagen: {e}")
+                continue
 
-    for modell in MODELLE:
-        try:
-            data = json.dumps({
-                "model": modell,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 1500
-            }).encode()
-            req = urllib.request.Request(url, data=data, headers={
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://dscampy.github.io/ki_news/",
-                "X-Title": "KI News Dashboard"
-            })
-            with urllib.request.urlopen(req, timeout=60) as r:
-                antwort = json.loads(r.read())["choices"][0]["message"]["content"].strip()
-                # Backticks entfernen falls das Modell sie trotzdem schreibt
-                antwort = antwort.replace("```json", "").replace("```", "").strip()
-                summaries = json.loads(antwort)
-                print(f"Zusammenfassungen: {len(summaries)} generiert")
-                return {item["id"] - 1: {"title_de": item.get("title_de", ""), "summary": item.get("summary", "")} for item in summaries}
-        except Exception as e:
-            print(f"Zusammenfassung mit {modell} fehlgeschlagen: {e}")
-            continue
-
-    return {}
+    return result
 
 def ask_llm(alle_news):
     news_text = chr(10).join([f"- {n['title']} (via {n['source']})" for n in alle_news])
