@@ -46,7 +46,7 @@ if not OPENROUTER_KEY:
             logger.warning("Fehler beim Lesen config.txt: %s", e)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438").strip()
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip() or "9096438"
 
 # -------------------------
 # Konfiguration
@@ -71,7 +71,6 @@ FEEDS = [
 MAX_LLM_NEWS = 3
 
 MODELLE = [
-    "mistralai/mistral-small-3.2-24b-instruct:free",
     "meta-llama/llama-3.3-70b-instruct",
     "google/gemma-3-27b-it",
     "meta-llama/llama-3.1-8b-instruct",
