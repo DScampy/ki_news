@@ -1,3 +1,4 @@
+import re
 import urllib.request
 import xml.etree.ElementTree as ET
 import json
@@ -80,6 +81,9 @@ SOURCE_COLORS = {
     "Heise": "#ca8a04",
 }
 
+# Labels fuer die 6 Thread-Teile (Tuki-Struktur)
+THREAD_LABELS = ["Hook", "Kontext", "Kaskade", "Gruselig", "Konsequenz", "Fazit"]
+
 # -------------------------
 # Feeds
 # -------------------------
@@ -123,7 +127,7 @@ def fetch_feed(name, url):
     return items[:3]
 
 # -------------------------
-# LLM
+# LLM – Zusammenfassungen
 # -------------------------
 def summarize_news(alle_news):
     """Deutsche Titel + Zusammenfassungen. Fallback auf Originaltitel wenn noetig."""
@@ -175,40 +179,74 @@ News:
                 continue
     return result
 
+# -------------------------
+# LLM – Posts (Tuki-6)
+# -------------------------
 def ask_llm(alle_news):
     if not OPENROUTER_KEY:
-        return ("POST 1: Keine LLM-Verbindung.\nERKLAERUNG 1: Kein Key.\n"
-                "POST 2: Keine LLM-Verbindung.\nERKLAERUNG 2: Kein Key.\n"
-                "POST 3: Keine LLM-Verbindung.\nERKLAERUNG 3: Kein Key.\n")
+        fallback = ""
+        for i in range(1, 4):
+            fallback += f"TEASER {i}: Keine LLM-Verbindung – kein OPENROUTER_KEY gefunden.\n"
+            for j in range(1, 7):
+                fallback += f"THREAD {i}-{j}: Kein Key verfuegbar.\n"
+            fallback += f"ERKLAERUNG {i}: Kein Key.\n"
+        return fallback
 
     news_text = "\n".join([f"- {n['title']} (via {n['source']})" for n in alle_news])
+
     system = """Du bist @CScampy, ein sachlicher aber neugieriger KI-Beobachter aus Deutschland.
 Dein Stil: direkt, menschlich, keine Floskeln, keine Ausrufezeichen, kein "Sie".
 Du erklaerst kurz was eine News wirklich bedeutet - nicht nur was passiert ist, sondern warum es interessant ist.
 Du schreibst immer auf Deutsch, auch wenn die Quelle englisch ist.
 Du erfindest keine Fakten."""
 
-    user = f"""Hier sind Beispiele wie deine Posts aussehen sollen:
+    user = f"""Schreibe fuer jede News einen TEASER (Einzeltweet) und einen 6-teiligen THREAD im Tuki-Stil.
 
-POST: 🤖 Meta kauft ARM statt Intel-Chips - klingt trocken, bedeutet aber weniger Abhaengigkeit von US-Lieferketten und mehr Kontrolle ueber eigene KI-Hardware. Interessant wohin das noch fuehrt (via The Decoder)
-ERKLAERUNG: Meta macht sich unabhaengiger von Intel
+TEASER-Regeln:
+- Hook + Flip in einem Tweet, maximal 265 Zeichen (Emojis zaehlen extra)
+- Beginne mit der Erkenntnis, nicht mit dem Ereignis
+- Kein Ausrufezeichen, kein Promotional Content
+- Am Ende: (via Quellenname)
 
-POST: 📊 DeepSeek V4 ist jetzt das groesste offene KI-Modell und deutlich guenstiger als die Konkurrenz. Gute Nachricht fuer alle die KI nutzen wollen ohne ein Vermoegen auszugeben (via MIT Tech Review)
-ERKLAERUNG: Maechtiges KI-Modell jetzt fuer weniger Geld verfuegbar
+THREAD-Regeln (Tuki-6-Struktur):
+THREAD X-1: Hook – sofort rein, die Erkenntnis zuerst, kein Anlauf
+THREAD X-2: Kontext + Zahlen – historischer Rahmen, konkrete Daten
+THREAD X-3: Kaskade – was das konkret bedeutet, Schritt fuer Schritt
+THREAD X-4: Der gruselige Teil – was daran beunruhigend oder faszinierend ist
+THREAD X-5: Menschliche Konsequenz – was das fuer echte Menschen heute bedeutet
+THREAD X-6: Schlusssatz – ein Gedanke der nachhallt, kein Call-to-Action, keine Frage
+Jeder Thread-Teil: maximal 265 Zeichen.
 
-POST: 🔍 OpenAI-Chefwissenschaftler sagt KI-Entwicklung ist langsamer als viele denken - interessant wenn man bedenkt wie viel Geld gerade in die Branche fliesst. Vielleicht ein Zeichen fuer mehr Realismus (via The Decoder)
-ERKLAERUNG: KI-Fortschritt geht langsamer voran als erwartet
+ERKLAERUNG: max 60 Zeichen, was die News konkret bedeutet.
 
-Jetzt schreib 3 Posts ueber diese News:
-{news_text}
+Format – exakt so, keine Abweichungen, keine Leerzeilen zwischen den Zeilen eines Posts:
+TEASER 1: [Text]
+THREAD 1-1: [Text]
+THREAD 1-2: [Text]
+THREAD 1-3: [Text]
+THREAD 1-4: [Text]
+THREAD 1-5: [Text]
+THREAD 1-6: [Text]
+ERKLAERUNG 1: [Text]
+TEASER 2: [Text]
+THREAD 2-1: [Text]
+THREAD 2-2: [Text]
+THREAD 2-3: [Text]
+THREAD 2-4: [Text]
+THREAD 2-5: [Text]
+THREAD 2-6: [Text]
+ERKLAERUNG 2: [Text]
+TEASER 3: [Text]
+THREAD 3-1: [Text]
+THREAD 3-2: [Text]
+THREAD 3-3: [Text]
+THREAD 3-4: [Text]
+THREAD 3-5: [Text]
+THREAD 3-6: [Text]
+ERKLAERUNG 3: [Text]
 
-Format - jede Zeile einzeln, nichts vermischen:
-POST 1: [Text, zwischen 200 und 240 Zeichen]
-ERKLAERUNG 1: [max 60 Zeichen, was bedeutet das konkret]
-POST 2: [Text, zwischen 200 und 240 Zeichen]
-ERKLAERUNG 2: [max 60 Zeichen]
-POST 3: [Text, zwischen 200 und 240 Zeichen]
-ERKLAERUNG 3: [max 60 Zeichen]"""
+News:
+{news_text}"""
 
     url = "https://openrouter.ai/api/v1/chat/completions"
     for modell in MODELLE:
@@ -219,7 +257,7 @@ ERKLAERUNG 3: [max 60 Zeichen]"""
                     {"role": "system", "content": system},
                     {"role": "user", "content": user}
                 ],
-                "max_tokens": 800
+                "max_tokens": 2400
             }).encode()
             req = urllib.request.Request(url, data=data, headers={
                 "Authorization": f"Bearer {OPENROUTER_KEY}",
@@ -227,7 +265,7 @@ ERKLAERUNG 3: [max 60 Zeichen]"""
                 "HTTP-Referer": "https://dscampy.github.io/ki_news/",
                 "X-Title": "KI News Dashboard"
             })
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=90) as r:
                 antwort = json.loads(r.read())["choices"][0]["message"]["content"]
                 logger.info("Erfolg mit Modell: %s", modell)
                 return antwort
@@ -240,63 +278,114 @@ ERKLAERUNG 3: [max 60 Zeichen]"""
 # Parsing
 # -------------------------
 def parse_posts(posts_raw):
+    """
+    Parsed das neue TEASER + THREAD 1-6 + ERKLAERUNG Format.
+    Gibt eine Liste von Dicts zurueck:
+    [{"teaser": str, "thread": [str x6], "erklaerung": str}, ...]
+    Fallback: bei unvollstaendigem Thread wird trotzdem zurueckgegeben.
+    """
     lines = posts_raw.strip().splitlines()
     result = []
-    current = {"post": "", "erklaerung": ""}
+    current = None
 
     for line in lines:
         line = line.strip()
         if not line:
             continue
         upper = line.upper()
-        if upper.startswith("POST") and ":" in line:
-            if current["post"]:
-                result.append(current)
-                current = {"post": "", "erklaerung": ""}
-            current["post"] = line.split(":", 1)[1].strip()
-        elif upper.startswith("ERKLAERUNG") and ":" in line:
-            current["erklaerung"] = line.split(":", 1)[1].strip()
-        elif current["post"] and not upper.startswith("ERKLAERUNG") and not current["erklaerung"]:
-            current["post"] += " " + line
 
-    if current["post"]:
+        if re.match(r'TEASER\s+\d+\s*:', upper):
+            if current is not None:
+                result.append(current)
+            current = {"teaser": line.split(":", 1)[1].strip(), "thread": [], "erklaerung": ""}
+        elif re.match(r'THREAD\s+\d+-\d+\s*:', upper):
+            if current is not None:
+                current["thread"].append(line.split(":", 1)[1].strip())
+        elif re.match(r'ERKLAERUNG\s+\d+\s*:', upper):
+            if current is not None:
+                current["erklaerung"] = line.split(":", 1)[1].strip()
+
+    if current is not None:
         result.append(current)
+
     return result
 
 # -------------------------
 # Telegram
 # -------------------------
-def send_telegram(posts_raw, max_retries=3, delay=5):
-    if not TELEGRAM_TOKEN:
-        logger.warning("Kein Telegram Token. Ueberspringe Versand.")
-        return False
-
-    nachricht = "KI News fuer @CScampy\n\n" + posts_raw
+def _telegram_send_chunk(text, max_retries=3, delay=5):
+    """Sendet einen einzelnen Text-Block an Telegram."""
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    data = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": nachricht}).encode()
-
+    data = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": text}).encode()
     for attempt in range(1, max_retries + 1):
         try:
             req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
             with urllib.request.urlopen(req, timeout=15) as r:
                 resp = json.loads(r.read())
                 if resp.get("ok"):
-                    logger.info("Telegram: Nachricht gesendet (Versuch %d)", attempt)
+                    logger.info("Telegram: Chunk gesendet (Versuch %d)", attempt)
                     return True
                 logger.warning("Telegram API ok=false: %s", resp)
         except Exception as e:
             logger.warning("Telegram Fehler (Versuch %d): %s", attempt, e)
         sleep(delay)
-    logger.error("Telegram: Alle Versuche fehlgeschlagen.")
     return False
+
+def send_telegram(parsed):
+    """
+    Sendet formatierte Posts an Telegram.
+    Format pro Post: Teaser + Thread-Teile nummeriert.
+    Telegram-Limit: 4096 Zeichen pro Nachricht – wird automatisch gesplittet.
+    """
+    if not TELEGRAM_TOKEN:
+        logger.warning("Kein Telegram Token. Ueberspringe Versand.")
+        return False
+
+    teile = ["KI News fuer @CScampy\n"]
+    for i, p in enumerate(parsed, 1):
+        teile.append(f"--- Post {i} ---")
+        teile.append(p["teaser"])
+        if p.get("erklaerung"):
+            teile.append(f"({p['erklaerung']})")
+        if p.get("thread"):
+            teile.append("")
+            n = len(p["thread"])
+            for j, t in enumerate(p["thread"], 1):
+                label = THREAD_LABELS[j - 1] if j - 1 < len(THREAD_LABELS) else str(j)
+                teile.append(f"{j}/{n} [{label}]\n{t}")
+        teile.append("")
+
+    nachricht = "\n".join(teile).strip()
+
+    # Aufteilen wenn ueber Telegram-Limit (4096 Zeichen)
+    chunks = []
+    if len(nachricht) <= 4000:
+        chunks = [nachricht]
+    else:
+        current_chunk = ""
+        for zeile in teile:
+            candidate = (current_chunk + "\n" + zeile).strip()
+            if len(candidate) > 4000:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                current_chunk = zeile
+            else:
+                current_chunk = candidate
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
+
+    success = all(_telegram_send_chunk(chunk) for chunk in chunks)
+    if not success:
+        logger.error("Telegram: Mindestens ein Chunk fehlgeschlagen.")
+    return success
 
 # -------------------------
 # HTML
 # -------------------------
-def create_html(alle_news, posts_raw, summaries):
+def create_html(alle_news, parsed, summaries):
     datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
-    parsed = parse_posts(posts_raw)
 
+    # News-Panel (links, klappbar)
     news_html = ""
     for i, n in enumerate(alle_news):
         farbe = SOURCE_COLORS.get(n["source"], "#555")
@@ -316,39 +405,68 @@ def create_html(alle_news, posts_raw, summaries):
             </div>
         </div>'''
 
+    # Posts-Panel (rechts): Teaser + ausklappbarer Thread
     posts_html = ""
     for i, p in enumerate(parsed, 1):
-        text = p["post"]
-        erklaerung = p["erklaerung"] or ""
-        zeichen = len(text)
-        zahl_farbe = "#16a34a" if 180 <= zeichen <= 240 else ("#f59e0b" if zeichen < 180 else "#dc2626")
+        teaser = p["teaser"]
+        erklaerung = p.get("erklaerung", "")
+        thread = p.get("thread", [])
+        zeichen = len(teaser)
+        zahl_farbe = "#16a34a" if zeichen <= 265 else "#dc2626"
 
+        # Quellenfarbe aus Teaser
         quelle_name = ""
         quelle_farbe = "#555"
-        if "(via " in text:
+        if "(via " in teaser:
             try:
-                quelle_name = text.split("(via ")[-1].rstrip(")").strip()
+                quelle_name = teaser.split("(via ")[-1].rstrip(")").strip()
                 quelle_farbe = next(
                     (v for k, v in SOURCE_COLORS.items() if k.lower() in quelle_name.lower()), "#555"
                 )
             except Exception:
                 quelle_name = ""
 
+        # Thread-HTML (6 Teile)
+        thread_html = ""
+        if thread:
+            n_parts = len(thread)
+            thread_parts_html = ""
+            for j, t in enumerate(thread, 1):
+                label = THREAD_LABELS[j - 1] if j - 1 < len(THREAD_LABELS) else str(j)
+                t_zeichen = len(t)
+                t_farbe = "#16a34a" if t_zeichen <= 265 else "#dc2626"
+                thread_parts_html += f'''
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">{j}/{n_parts} {label}</span>
+                        <span class="thread-zeichen" style="color:{t_farbe}">{t_zeichen}/265</span>
+                    </div>
+                    <p class="thread-text" id="thread{i}-{j}">{t}</p>
+                    <button class="btn-copy-sm" onclick="copyPost(\'thread{i}-{j}\', this)">Kopieren</button>
+                </div>'''
+
+            thread_html = f'''
+            <div class="thread-toggle" onclick="toggleThread(this)">&#9658; Thread anzeigen ({n_parts} Teile)</div>
+            <div class="thread-section" style="display:none">
+                {thread_parts_html}
+            </div>'''
+
         posts_html += f'''
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post {i}</span>
-                <span class="post-zeichen" style="color:{zahl_farbe}">{zeichen}/280</span>
+                <span class="post-zeichen" style="color:{zahl_farbe}">{zeichen}/265</span>
             </div>
-            <p class="post-text" id="post{i}">{text}</p>
+            <p class="post-text" id="teaser{i}">{teaser}</p>
             {f'<p class="post-erklaerung">{erklaerung}</p>' if erklaerung else ""}
             {f'<span class="post-quelle" style="background:{quelle_farbe}">{quelle_name}</span>' if quelle_name else ""}
             <div class="post-actions">
-                <button class="btn-copy" onclick="copyPost(\'post{i}\', this)">Kopieren</button>
+                <button class="btn-copy" onclick="copyPost(\'teaser{i}\', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={{}}"
-                   onclick="this.href=\'https://x.com/intent/tweet?text=\'+encodeURIComponent(document.getElementById(\'post{i}\').textContent)"
+                   onclick="this.href=\'https://x.com/intent/tweet?text=\'+encodeURIComponent(document.getElementById(\'teaser{i}\').textContent)"
                    target="_blank" class="btn-x">Posten</a>
             </div>
+            {thread_html}
         </div>'''
 
     html = f"""<!DOCTYPE html>
@@ -371,6 +489,7 @@ def create_html(alle_news, posts_raw, summaries):
         .panel {{ padding: 20px; }}
         .panel-left {{ border-right: 1px solid #2f3336; }}
         .panel-title {{ color: #536471; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 12px; border-bottom: 1px solid #2f3336; margin-bottom: 4px; }}
+        /* News */
         .news-item {{ border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.15s; border-radius: 6px; }}
         .news-item:hover {{ background: #111; }}
         .news-item.open {{ background: #111; border: 1px solid #2f3336; margin: 4px 0; }}
@@ -384,6 +503,7 @@ def create_html(alle_news, posts_raw, summaries):
         .news-summary {{ font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }}
         .news-expand a {{ color: #1d9bf0; font-size: 13px; font-weight: 600; text-decoration: none; }}
         .news-expand a:hover {{ text-decoration: underline; }}
+        /* Post-Card */
         .post-card {{ background: #111; border: 1px solid #2f3336; border-radius: 14px; padding: 16px; margin: 10px 0; transition: border-color 0.2s; }}
         .post-card:hover {{ border-color: #1d9bf0; }}
         .post-meta {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
@@ -399,6 +519,17 @@ def create_html(alle_news, posts_raw, summaries):
         .btn-x {{ background: #1d9bf0; color: white; }}
         .btn-x:hover {{ opacity: 0.8; }}
         .copied {{ background: #16a34a !important; }}
+        /* Thread */
+        .thread-toggle {{ color: #536471; font-size: 12px; cursor: pointer; margin-top: 12px; padding: 8px 0 0 0; border-top: 1px solid #1a1a1a; user-select: none; transition: color 0.2s; }}
+        .thread-toggle:hover {{ color: #1d9bf0; }}
+        .thread-section {{ margin-top: 8px; }}
+        .thread-part {{ background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 10px; padding: 10px 12px; margin: 6px 0; }}
+        .thread-meta {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
+        .thread-nr {{ color: #536471; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }}
+        .thread-zeichen {{ font-size: 10px; font-weight: 700; }}
+        .thread-text {{ font-size: 14px; line-height: 1.5; color: #e7e9ea; margin-bottom: 8px; }}
+        .btn-copy-sm {{ padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; background: #1a1a1a; color: #94a3b8; border: 1px solid #2f3336; transition: opacity 0.2s; }}
+        .btn-copy-sm:hover {{ opacity: 0.8; }}
         @media (max-width: 700px) {{
             .layout {{ grid-template-columns: 1fr; }}
             .panel-left {{ border-right: none; border-bottom: 1px solid #2f3336; }}
@@ -406,11 +537,21 @@ def create_html(alle_news, posts_raw, summaries):
     </style>
     <script>
         function toggleNews(el) {{ el.classList.toggle('open'); }}
+        function toggleThread(btn) {{
+            const section = btn.nextElementSibling;
+            const isOpen = section.style.display !== 'none';
+            section.style.display = isOpen ? 'none' : 'block';
+            const n = section.querySelectorAll('.thread-part').length;
+            btn.innerHTML = isOpen
+                ? '&#9658; Thread anzeigen (' + n + ' Teile)'
+                : '&#9660; Thread ausblenden';
+        }}
         function copyPost(id, btn) {{
             navigator.clipboard.writeText(document.getElementById(id).textContent);
+            const orig = btn.textContent;
             btn.textContent = 'Kopiert';
             btn.classList.add('copied');
-            setTimeout(() => {{ btn.textContent = 'Kopieren'; btn.classList.remove('copied'); }}, 2000);
+            setTimeout(() => {{ btn.textContent = orig; btn.classList.remove('copied'); }}, 2000);
         }}
     </script>
 </head>
@@ -477,8 +618,11 @@ def main():
     logger.info("%d KI-News gefunden", len(alle_news))
     summaries = summarize_news(alle_news)
     posts_raw = ask_llm(alle_news)
-    send_telegram(posts_raw)
-    pfad = create_html(alle_news, posts_raw, summaries)
+    parsed = parse_posts(posts_raw)
+    logger.info("%d Posts geparst", len(parsed))
+
+    send_telegram(parsed)
+    pfad = create_html(alle_news, parsed, summaries)
     logger.info("Fertig. HTML: %s", pfad)
 
     try:
