@@ -71,6 +71,7 @@ FEEDS = [
 MAX_LLM_NEWS = 3
 
 MODELLE = [
+    "mistralai/mistral-small-3.1-24b-instruct:free",
     "meta-llama/llama-3.3-70b-instruct",
     "google/gemma-3-27b-it",
     "meta-llama/llama-3.1-8b-instruct",
@@ -563,14 +564,25 @@ def create_html(alle_news, parsed, summaries):
 </html>"""
 
     proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
-    pfad = str(proj_dir / "index.html") if proj_dir.exists() else "index.html"
 
-    try:
-        Path(pfad).write_text(html, encoding="utf-8")
-        logger.info("HTML geschrieben: %s", pfad)
-    except Exception as e:
-        logger.exception("Fehler beim Schreiben HTML: %s", e)
-    return pfad
+    if proj_dir.exists():
+        pfad_index = str(proj_dir / "index.html")
+        pfad_lokal = str(proj_dir / "ki_news.html")
+        try:
+            Path(pfad_index).write_text(html, encoding="utf-8")
+            Path(pfad_lokal).write_text(html, encoding="utf-8")
+            logger.info("HTML geschrieben: index.html + ki_news.html")
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben HTML: %s", e)
+        return pfad_lokal
+    else:
+        pfad = "index.html"
+        try:
+            Path(pfad).write_text(html, encoding="utf-8")
+            logger.info("HTML geschrieben: %s", pfad)
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben HTML: %s", e)
+        return pfad
 
 # -------------------------
 # Main
