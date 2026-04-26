@@ -71,7 +71,7 @@ FEEDS = [
 MAX_LLM_NEWS = 3
 
 MODELLE = [
-    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "mistralai/mistral-small-3.2-24b-instruct:free",
     "meta-llama/llama-3.3-70b-instruct",
     "google/gemma-3-27b-it",
     "meta-llama/llama-3.1-8b-instruct",
@@ -314,7 +314,15 @@ def parse_posts(posts_raw):
 # Telegram – plain text, keine Labels
 # Du teilst den Thread selbst ein beim Posten auf X
 # -------------------------
+def _sanitize_for_telegram(text):
+    """Entfernt Zeichen die Telegram HTTP 400 verursachen."""
+    # Telegram mag keine ungepaarten < > & Zeichen ohne parse_mode
+    # Einfachste Loesung: plain text ohne parse_mode, aber < > & ersetzen
+    text = text.replace("&", "und").replace("<", "(").replace(">", ")")
+    return text
+
 def _telegram_send_chunk(text, max_retries=3, delay=5):
+    text = _sanitize_for_telegram(text)
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     data = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": text}).encode()
     for attempt in range(1, max_retries + 1):
