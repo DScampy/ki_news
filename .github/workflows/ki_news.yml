@@ -3,60 +3,60 @@ name: KI News
 on:
   schedule:
     # Berlin = UTC+2 (Sommerzeit)
-    # 7 / 12 / 17 / 20 Uhr Berlin → 5 / 10 / 15 / 18 UTC
+    # 7 / 12 / 17 / 20 Uhr Berlin = 5 / 10 / 15 / 18 UTC
     - cron: "0 5,10,15,18 * * *"
-  workflow_dispatch:
+  workflow_dispatch:  # Manueller Start per Knopf in GitHub Actions
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Repository auschecken
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Python einrichten
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Run KI News with Auto‑Retry + Logging
+      - name: KI News ausführen
         env:
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           echo "=== KI NEWS START ===" > ki_news.log
           echo "Startzeit: $(date)" >> ki_news.log
-
           MAX_RETRIES=3
           RETRY_DELAY=10
-
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Versuch $i von $MAX_RETRIES" >> ki_news.log
-
-            if python ki_news.py >> ki_news.log 2>&1; then
+            if python3 ki_news.py >> ki_news.log 2>&1; then
               echo "Erfolgreich!" >> ki_news.log
               break
             else
               echo "Fehler im Versuch $i" >> ki_news.log
               if [ $i -lt $MAX_RETRIES ]; then
-                echo "Warte $RETRY_DELAY Sekunden…" >> ki_news.log
+                echo "Warte $RETRY_DELAY Sekunden..." >> ki_news.log
                 sleep $RETRY_DELAY
               fi
             fi
           done
-
           echo "Endzeit: $(date)" >> ki_news.log
           echo "=== KI NEWS ENDE ===" >> ki_news.log
 
-      - name: Upload Logfile
+      - name: Log hochladen
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ki-news-log
           path: ki_news.log
 
-      - name: Deploy to GitHub Pages
+      - name: Auf GitHub Pages deployen
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
+          publish_branch: gh-pages
+          exclude_assets: '.github,*.py,*.md,*.log,*.txt,.gitignore,Obsidian'
