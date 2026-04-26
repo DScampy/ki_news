@@ -45,17 +45,17 @@ jobs:
           echo "Endzeit: $(date)" >> ki_news.log
           echo "=== KI NEWS ENDE ===" >> ki_news.log
 
+      - name: HTML ins Repo committen
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add index.html ki_news.html
+          git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')" || echo "Keine Aenderungen"
+          git push
+
       - name: Log hochladen
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ki-news-log
           path: ki_news.log
-
-      - name: Auf GitHub Pages deployen
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
-          exclude_assets: '.github,*.py,*.md,*.log,*.txt,.gitignore,Obsidian'
