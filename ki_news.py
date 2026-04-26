@@ -66,6 +66,10 @@ FEEDS = [
     ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
 ]
 
+# Nur diese 3 News gehen an den LLM fuer Posts
+# Mehr = generischer Fuelltext weil das Modell ueberfordert ist
+MAX_LLM_NEWS = 3
+
 MODELLE = [
     "meta-llama/llama-3.3-70b-instruct",
     "google/gemma-3-27b-it",
@@ -81,7 +85,6 @@ SOURCE_COLORS = {
     "Heise": "#ca8a04",
 }
 
-# Labels fuer die 6 Thread-Teile (Tuki-Struktur)
 THREAD_LABELS = ["Hook", "Kontext", "Kaskade", "Gruselig", "Konsequenz", "Fazit"]
 
 # -------------------------
@@ -127,10 +130,9 @@ def fetch_feed(name, url):
     return items[:3]
 
 # -------------------------
-# LLM – Zusammenfassungen
+# LLM – Zusammenfassungen (alle News, fuer Dashboard links)
 # -------------------------
 def summarize_news(alle_news):
-    """Deutsche Titel + Zusammenfassungen. Fallback auf Originaltitel wenn noetig."""
     result = {i: {"title_de": n["title"], "summary": ""} for i, n in enumerate(alle_news)}
     if not OPENROUTER_KEY:
         logger.info("Kein OPENROUTER_KEY: Ueberspringe Zusammenfassungen.")
@@ -180,46 +182,49 @@ News:
     return result
 
 # -------------------------
-# LLM – Posts (Tuki-6)
+# LLM – Posts Tuki-6
+# Bekommt nur MAX_LLM_NEWS Items – mehr = Fuelltext
 # -------------------------
-def ask_llm(alle_news):
+def ask_llm(top_news):
     if not OPENROUTER_KEY:
         fallback = ""
         for i in range(1, 4):
-            fallback += f"TEASER {i}: Keine LLM-Verbindung – kein OPENROUTER_KEY gefunden.\n"
+            fallback += f"TEASER {i}: Keine LLM-Verbindung – kein OPENROUTER_KEY.\n"
             for j in range(1, 7):
-                fallback += f"THREAD {i}-{j}: Kein Key verfuegbar.\n"
+                fallback += f"THREAD {i}-{j}: Kein Key.\n"
             fallback += f"ERKLAERUNG {i}: Kein Key.\n"
         return fallback
 
-    news_text = "\n".join([f"- {n['title']} (via {n['source']})" for n in alle_news])
+    news_text = "\n".join([f"- {n['title']} (via {n['source']})" for n in top_news])
 
     system = """Du bist @CScampy, ein sachlicher aber neugieriger KI-Beobachter aus Deutschland.
 Dein Stil: direkt, menschlich, keine Floskeln, keine Ausrufezeichen, kein "Sie".
-Du erklaerst kurz was eine News wirklich bedeutet - nicht nur was passiert ist, sondern warum es interessant ist.
+Du ziehst den Leser rein – jeder Satz endet mit einer kleinen Spannung die zum naechsten zieht.
+Du erklaerst was eine News WIRKLICH bedeutet – die Erkenntnis, nicht das Ereignis.
 Du schreibst immer auf Deutsch, auch wenn die Quelle englisch ist.
 Du erfindest keine Fakten."""
 
-    user = f"""Schreibe fuer jede News einen TEASER (Einzeltweet) und einen 6-teiligen THREAD im Tuki-Stil.
+    user = f"""Schreibe GENAU 3 Posts – einen pro News. Nicht mehr, nicht weniger.
 
 TEASER-Regeln:
-- Hook + Flip in einem Tweet, maximal 265 Zeichen (Emojis zaehlen extra)
 - Beginne mit der Erkenntnis, nicht mit dem Ereignis
+- Hook + Flip: erst die ueberraschende Wahrheit, dann die Konsequenz
+- Maximal 265 Zeichen (Emojis zaehlen als 2)
 - Kein Ausrufezeichen, kein Promotional Content
-- Am Ende: (via Quellenname)
+- Ende: (via Quellenname)
 
-THREAD-Regeln (Tuki-6-Struktur):
-THREAD X-1: Hook – sofort rein, die Erkenntnis zuerst, kein Anlauf
-THREAD X-2: Kontext + Zahlen – historischer Rahmen, konkrete Daten
-THREAD X-3: Kaskade – was das konkret bedeutet, Schritt fuer Schritt
-THREAD X-4: Der gruselige Teil – was daran beunruhigend oder faszinierend ist
-THREAD X-5: Menschliche Konsequenz – was das fuer echte Menschen heute bedeutet
-THREAD X-6: Schlusssatz – ein Gedanke der nachhallt, kein Call-to-Action, keine Frage
+THREAD-Regeln – Tuki-6-Struktur:
+THREAD X-1 Hook: Sofort rein, kein Anlauf, die Erkenntnis als erster Satz
+THREAD X-2 Kontext: Historischer Rahmen + konkrete Zahlen
+THREAD X-3 Kaskade: Was das Schritt fuer Schritt konkret bedeutet
+THREAD X-4 Gruselig: Was daran beunruhigend oder faszinierend ist
+THREAD X-5 Konsequenz: Was das fuer echte Menschen heute bedeutet
+THREAD X-6 Fazit: Ein Gedanke der nachhallt – endet mit einer persoenlichen Frage an den Leser
 Jeder Thread-Teil: maximal 265 Zeichen.
 
 ERKLAERUNG: max 60 Zeichen, was die News konkret bedeutet.
 
-Format – exakt so, keine Abweichungen, keine Leerzeilen zwischen den Zeilen eines Posts:
+Format – EXAKT so, keine Abweichungen:
 TEASER 1: [Text]
 THREAD 1-1: [Text]
 THREAD 1-2: [Text]
@@ -245,7 +250,7 @@ THREAD 3-5: [Text]
 THREAD 3-6: [Text]
 ERKLAERUNG 3: [Text]
 
-News:
+News (genau diese 3, je eine pro Post):
 {news_text}"""
 
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -278,12 +283,6 @@ News:
 # Parsing
 # -------------------------
 def parse_posts(posts_raw):
-    """
-    Parsed das neue TEASER + THREAD 1-6 + ERKLAERUNG Format.
-    Gibt eine Liste von Dicts zurueck:
-    [{"teaser": str, "thread": [str x6], "erklaerung": str}, ...]
-    Fallback: bei unvollstaendigem Thread wird trotzdem zurueckgegeben.
-    """
     lines = posts_raw.strip().splitlines()
     result = []
     current = None
@@ -311,10 +310,10 @@ def parse_posts(posts_raw):
     return result
 
 # -------------------------
-# Telegram
+# Telegram – plain text, keine Labels
+# Du teilst den Thread selbst ein beim Posten auf X
 # -------------------------
 def _telegram_send_chunk(text, max_retries=3, delay=5):
-    """Sendet einen einzelnen Text-Block an Telegram."""
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     data = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": text}).encode()
     for attempt in range(1, max_retries + 1):
@@ -332,11 +331,6 @@ def _telegram_send_chunk(text, max_retries=3, delay=5):
     return False
 
 def send_telegram(parsed):
-    """
-    Sendet formatierte Posts an Telegram.
-    Format pro Post: Teaser + Thread-Teile nummeriert.
-    Telegram-Limit: 4096 Zeichen pro Nachricht – wird automatisch gesplittet.
-    """
     if not TELEGRAM_TOKEN:
         logger.warning("Kein Telegram Token. Ueberspringe Versand.")
         return False
@@ -349,15 +343,12 @@ def send_telegram(parsed):
             teile.append(f"({p['erklaerung']})")
         if p.get("thread"):
             teile.append("")
-            n = len(p["thread"])
-            for j, t in enumerate(p["thread"], 1):
-                label = THREAD_LABELS[j - 1] if j - 1 < len(THREAD_LABELS) else str(j)
-                teile.append(f"{j}/{n} [{label}]\n{t}")
+            for t in p["thread"]:
+                teile.append(t)
         teile.append("")
 
     nachricht = "\n".join(teile).strip()
 
-    # Aufteilen wenn ueber Telegram-Limit (4096 Zeichen)
     chunks = []
     if len(nachricht) <= 4000:
         chunks = [nachricht]
@@ -385,7 +376,6 @@ def send_telegram(parsed):
 def create_html(alle_news, parsed, summaries):
     datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
 
-    # News-Panel (links, klappbar)
     news_html = ""
     for i, n in enumerate(alle_news):
         farbe = SOURCE_COLORS.get(n["source"], "#555")
@@ -405,7 +395,6 @@ def create_html(alle_news, parsed, summaries):
             </div>
         </div>'''
 
-    # Posts-Panel (rechts): Teaser + ausklappbarer Thread
     posts_html = ""
     for i, p in enumerate(parsed, 1):
         teaser = p["teaser"]
@@ -414,7 +403,6 @@ def create_html(alle_news, parsed, summaries):
         zeichen = len(teaser)
         zahl_farbe = "#16a34a" if zeichen <= 265 else "#dc2626"
 
-        # Quellenfarbe aus Teaser
         quelle_name = ""
         quelle_farbe = "#555"
         if "(via " in teaser:
@@ -426,7 +414,6 @@ def create_html(alle_news, parsed, summaries):
             except Exception:
                 quelle_name = ""
 
-        # Thread-HTML (6 Teile)
         thread_html = ""
         if thread:
             n_parts = len(thread)
@@ -489,7 +476,6 @@ def create_html(alle_news, parsed, summaries):
         .panel {{ padding: 20px; }}
         .panel-left {{ border-right: 1px solid #2f3336; }}
         .panel-title {{ color: #536471; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 12px; border-bottom: 1px solid #2f3336; margin-bottom: 4px; }}
-        /* News */
         .news-item {{ border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.15s; border-radius: 6px; }}
         .news-item:hover {{ background: #111; }}
         .news-item.open {{ background: #111; border: 1px solid #2f3336; margin: 4px 0; }}
@@ -503,7 +489,6 @@ def create_html(alle_news, parsed, summaries):
         .news-summary {{ font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }}
         .news-expand a {{ color: #1d9bf0; font-size: 13px; font-weight: 600; text-decoration: none; }}
         .news-expand a:hover {{ text-decoration: underline; }}
-        /* Post-Card */
         .post-card {{ background: #111; border: 1px solid #2f3336; border-radius: 14px; padding: 16px; margin: 10px 0; transition: border-color 0.2s; }}
         .post-card:hover {{ border-color: #1d9bf0; }}
         .post-meta {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
@@ -519,7 +504,6 @@ def create_html(alle_news, parsed, summaries):
         .btn-x {{ background: #1d9bf0; color: white; }}
         .btn-x:hover {{ opacity: 0.8; }}
         .copied {{ background: #16a34a !important; }}
-        /* Thread */
         .thread-toggle {{ color: #536471; font-size: 12px; cursor: pointer; margin-top: 12px; padding: 8px 0 0 0; border-top: 1px solid #1a1a1a; user-select: none; transition: color 0.2s; }}
         .thread-toggle:hover {{ color: #1d9bf0; }}
         .thread-section {{ margin-top: 8px; }}
@@ -602,7 +586,6 @@ def main():
         except Exception as e:
             logger.exception("Fehler beim Feed %s: %s", name, e)
 
-    # Duplikate entfernen
     seen = set()
     unique_news = []
     for n in alle_news:
@@ -615,9 +598,16 @@ def main():
         logger.info("Keine KI-News gefunden.")
         return
 
-    logger.info("%d KI-News gefunden", len(alle_news))
+    logger.info("%d KI-News gefunden (gesamt)", len(alle_news))
+
+    # Zusammenfassungen fuer alle News (Dashboard links)
     summaries = summarize_news(alle_news)
-    posts_raw = ask_llm(alle_news)
+
+    # LLM bekommt nur die 3 besten – verhindert Fuelltext
+    top_news = alle_news[:MAX_LLM_NEWS]
+    logger.info("%d News an LLM uebergeben", len(top_news))
+
+    posts_raw = ask_llm(top_news)
     parsed = parse_posts(posts_raw)
     logger.info("%d Posts geparst", len(parsed))
 
