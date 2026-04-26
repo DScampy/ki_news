@@ -573,23 +573,21 @@ def create_html(alle_news, parsed, summaries):
     proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
 
     if proj_dir.exists():
-        pfad_index = str(proj_dir / "index.html")
-        pfad_lokal = str(proj_dir / "ki_news.html")
-        try:
-            Path(pfad_index).write_text(html, encoding="utf-8")
-            Path(pfad_lokal).write_text(html, encoding="utf-8")
-            logger.info("HTML geschrieben: index.html + ki_news.html")
-        except Exception as e:
-            logger.exception("Fehler beim Schreiben HTML: %s", e)
-        return pfad_lokal
+        # Lokal: beide Dateien im Projektordner
+        pfad_index = proj_dir / "index.html"
+        pfad_lokal = proj_dir / "ki_news.html"
     else:
-        pfad = "index.html"
-        try:
-            Path(pfad).write_text(html, encoding="utf-8")
-            logger.info("HTML geschrieben: %s", pfad)
-        except Exception as e:
-            logger.exception("Fehler beim Schreiben HTML: %s", e)
-        return pfad
+        # GitHub Actions: beide Dateien im Workspace (werden von gh-pages deployed)
+        pfad_index = Path("index.html")
+        pfad_lokal = Path("ki_news.html")
+
+    try:
+        pfad_index.write_text(html, encoding="utf-8")
+        pfad_lokal.write_text(html, encoding="utf-8")
+        logger.info("HTML geschrieben: %s + ki_news.html", pfad_index)
+    except Exception as e:
+        logger.exception("Fehler beim Schreiben HTML: %s", e)
+    return str(pfad_lokal)
 
 # -------------------------
 # Main
