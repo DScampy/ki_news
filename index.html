@@ -559,13 +559,13 @@
       <h3 class="font-headline-xl text-headline-xl text-white" style="font-family:'Space Grotesk',sans-serif">Aktuelle News</h3>
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-        <span class="text-xs font-mono text-gray-500 uppercase tracking-widest">Stand: 26.04.2026</span>
+        <span id="stand-label" class="text-xs font-mono text-gray-500 uppercase tracking-widest">Wird geladen...</span>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter">
+    <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter">
 
-      <!-- 1 -->
+      <!-- Cards werden dynamisch per JS aus news.json geladen -->
       <a href="https://the-decoder.de/openai-schafft-separates-coding-modell-codex-wieder-ab-gpt-5-5-uebernimmt/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#1d9bf0] transition-all group cursor-pointer p-4 flex flex-col h-full">
         <div class="flex items-center justify-between mb-4">
           <span class="bg-[#1d9bf0] text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">KI-Modelle</span>
@@ -787,5 +787,61 @@
   </div>
 </main>
 
+<script>
+(function() {
+  const SOURCE_BORDER = {
+    '#1d9bf0': 'hover:border-[#1d9bf0]',
+    '#ff6b35': 'hover:border-[#ff6b35]',
+    '#7c3aed': 'hover:border-[#a78bfa]',
+    '#dc2626': 'hover:border-[#f87171]',
+  };
+  const SOURCE_TEXT = {
+    '#1d9bf0': 'text-[#1d9bf0]',
+    '#ff6b35': 'text-[#ff6b35]',
+    '#7c3aed': 'text-[#a78bfa]',
+    '#dc2626': 'text-[#f87171]',
+  };
+
+  function renderCard(item) {
+    const borderClass = SOURCE_BORDER[item.color] || 'hover:border-[#1d9bf0]';
+    const textClass = SOURCE_TEXT[item.color] || 'text-[#1d9bf0]';
+    const a = document.createElement('a');
+    a.href = item.link;
+    a.target = '_blank';
+    a.className = `bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] ${borderClass} transition-all group cursor-pointer p-4 flex flex-col h-full`;
+    a.innerHTML = `
+      <div class="flex items-center justify-between mb-4">
+        <span style="background:${item.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.source}</span>
+        <div class="flex items-center gap-1">
+          <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+          <span class="text-[10px] font-mono text-gray-500">NEU</span>
+        </div>
+      </div>
+      <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:${textClass.replace('text-','text-').replace('[','[').replace(']',']')} transition-colors" style="font-family:'Space Grotesk',sans-serif">${item.title}</h4>
+      <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">${item.summary || ''}</p>
+      <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+        <span class="text-[11px] font-mono ${textClass} uppercase">${item.source}</span>
+        <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+      </div>`;
+    return a;
+  }
+
+  fetch('news.json?t=' + Date.now())
+    .then(r => r.json())
+    .then(data => {
+      const grid = document.getElementById('news-grid');
+      const label = document.getElementById('stand-label');
+      if (!grid || !data.news || !data.news.length) return;
+      grid.innerHTML = '';
+      data.news.forEach(item => grid.appendChild(renderCard(item)));
+      if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
+    })
+    .catch(() => {
+      // Fallback: hardcoded cards bleiben, nur Stand-Label updaten
+      const label = document.getElementById('stand-label');
+      if (label) label.textContent = 'Stand: 26.04.2026';
+    });
+})();
+</script>
 </body>
 </html>

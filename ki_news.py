@@ -573,21 +573,44 @@ def create_html(alle_news, parsed, summaries):
     proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
 
     if proj_dir.exists():
-        # Lokal: beide Dateien im Projektordner
-        pfad_index = proj_dir / "index.html"
+        # Lokal: nur ki_news.html – index.html ist die oeffentliche Startseite, wird nicht angefasst
         pfad_lokal = proj_dir / "ki_news.html"
     else:
-        # GitHub Actions: beide Dateien im Workspace (werden von gh-pages deployed)
-        pfad_index = Path("index.html")
+        # GitHub Actions: nur ki_news.html committen
         pfad_lokal = Path("ki_news.html")
 
     try:
-        pfad_index.write_text(html, encoding="utf-8")
         pfad_lokal.write_text(html, encoding="utf-8")
-        logger.info("HTML geschrieben: %s + ki_news.html", pfad_index)
+        logger.info("HTML geschrieben: %s", pfad_lokal)
     except Exception as e:
         logger.exception("Fehler beim Schreiben HTML: %s", e)
     return str(pfad_lokal)
+
+# -------------------------
+# JSON Export fuer index.html
+# -------------------------
+def write_news_json(alle_news, summaries):
+    datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
+    items = []
+    for i, n in enumerate(alle_news):
+        summary = summaries.get(i, {})
+        items.append({
+            "title": summary.get("title_de", n["title"]),
+            "summary": summary.get("summary", ""),
+            "link": n["link"],
+            "source": n["source"],
+            "color": SOURCE_COLORS.get(n["source"], "#555")
+        })
+    payload = {"stand": datum, "news": items}
+
+    proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
+    pfad = (proj_dir / "news.json") if proj_dir.exists() else Path("news.json")
+    try:
+        pfad.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("news.json geschrieben: %d Items", len(items))
+    except Exception as e:
+        logger.exception("Fehler beim Schreiben news.json: %s", e)
+
 
 # -------------------------
 # Main
@@ -629,6 +652,7 @@ def main():
     logger.info("%d Posts geparst", len(parsed))
 
     send_telegram(parsed)
+    write_news_json(alle_news, summaries)
     pfad = create_html(alle_news, parsed, summaries)
     logger.info("Fertig. HTML: %s", pfad)
 
