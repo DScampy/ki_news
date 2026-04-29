@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Archiv – KI News</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+// ── Tweaks Panel (inlined) ───────────────────────────────────────────────────
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    background:rgba(250,249,247,.92);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden;min-height:0}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2}
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+`;
+
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null ? keyOrEdits : { [keyOrEdits]: val };
+    setValues(prev => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
+
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+  const dismiss = () => { setOpen(false); window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); };
+  const onDragStart = (e) => {
+    const panel = dragRef.current; if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right, startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = { x: startRight - (ev.clientX - sx), y: startBottom - (ev.clientY - sy) };
+      panel.style.right = offsetRef.current.x + 'px'; panel.style.bottom = offsetRef.current.y + 'px';
+    };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  };
+  if (!open) return null;
+  return React.createElement(React.Fragment, null,
+    React.createElement('style', null, __TWEAKS_STYLE),
+    React.createElement('div', { ref: dragRef, className: 'twk-panel', style: { right: offsetRef.current.x, bottom: offsetRef.current.y } },
+      React.createElement('div', { className: 'twk-hd', onMouseDown: onDragStart },
+        React.createElement('b', null, title),
+        React.createElement('button', { className: 'twk-x', onMouseDown: e => e.stopPropagation(), onClick: dismiss }, '✕')
+      ),
+      React.createElement('div', { className: 'twk-body' }, children)
+    )
+  );
+}
+
+function TweakSection({ title, children }) {
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', { className: 'twk-sect' }, title),
+    children
+  );
+}
+
+function TweakToggle({ id, label, value, onChange }) {
+  return React.createElement('div', { className: 'twk-row twk-row-h' },
+    React.createElement('div', { className: 'twk-lbl' }, React.createElement('span', null, label)),
+    React.createElement('button', { type: 'button', className: 'twk-toggle', 'data-on': value ? '1' : '0', onClick: () => onChange(!value) },
+      React.createElement('i', null)
+    )
+  );
+}
+
+function TweakRadio({ id, label, options, value, onChange }) {
+  const trackRef = React.useRef(null);
+  const opts = options.map(o => typeof o === 'object' ? o : { value: o, label: o });
+  const idx = Math.max(0, opts.findIndex(o => o.value === value));
+  const n = opts.length;
+  const valueRef = React.useRef(value); valueRef.current = value;
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const i = Math.floor(((clientX - r.left - 2) / (r.width - 4)) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+  const onPointerDown = (e) => {
+    const v0 = segAt(e.clientX); if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => { const v = segAt(ev.clientX); if (v !== valueRef.current) onChange(v); };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  };
+  return React.createElement('div', { className: 'twk-row' },
+    React.createElement('div', { className: 'twk-lbl' }, React.createElement('span', null, label)),
+    React.createElement('div', { ref: trackRef, className: 'twk-seg', onPointerDown },
+      React.createElement('div', { className: 'twk-seg-thumb', style: { left: `calc(2px + ${idx} * (100% - 4px) / ${n})`, width: `calc((100% - 4px) / ${n})` } }),
+      opts.map(o => React.createElement('button', { key: o.value, type: 'button', onClick: () => onChange(o.value) }, o.label))
+    )
+  );
+}
+
+Object.assign(window, { useTweaks, TweaksPanel, TweakSection, TweakToggle, TweakRadio });
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body { font-family: 'Work Sans', sans-serif; min-height: 100vh; transition: background 0.3s, color 0.3s; }
+
+  /* Light theme */
+  body.light {
+    --bg: oklch(98% 0.005 80);
+    --bg-alt: oklch(96% 0.006 80);
+    --bg-card: oklch(100% 0 0);
+    --bg-card-hover: oklch(97% 0.006 80);
+    --border: oklch(90% 0.008 80);
+    --border-strong: oklch(82% 0.01 80);
+    --text-primary: oklch(18% 0.01 240);
+    --text-secondary: oklch(45% 0.01 240);
+    --text-muted: oklch(62% 0.01 240);
+    --accent: oklch(52% 0.18 240);
+    --accent-bg: oklch(95% 0.05 240);
+    --accent-text: oklch(35% 0.18 240);
+    --tag-bg: oklch(94% 0.006 80);
+    --sidebar-bg: oklch(99% 0.004 80);
+    --header-bg: oklch(100% 0 0 / 0.92);
+    --shadow: 0 1px 3px oklch(0% 0 0 / 0.07);
+    --timeline-line: oklch(88% 0.008 80);
+    --active-month-bg: oklch(18% 0.01 240);
+    --active-month-text: oklch(98% 0 0);
+  }
+
+  /* Dark theme */
+  body.dark {
+    --bg: oklch(14% 0.01 240);
+    --bg-alt: oklch(11% 0.01 240);
+    --bg-card: oklch(17% 0.012 240);
+    --bg-card-hover: oklch(20% 0.012 240);
+    --border: oklch(26% 0.015 240);
+    --border-strong: oklch(32% 0.015 240);
+    --text-primary: oklch(90% 0.008 80);
+    --text-secondary: oklch(68% 0.01 240);
+    --text-muted: oklch(48% 0.01 240);
+    --accent: oklch(72% 0.16 220);
+    --accent-bg: oklch(25% 0.06 220);
+    --accent-text: oklch(80% 0.16 220);
+    --tag-bg: oklch(22% 0.015 240);
+    --sidebar-bg: oklch(12% 0.012 240);
+    --header-bg: oklch(14% 0.01 240 / 0.94);
+    --shadow: 0 1px 6px oklch(0% 0 0 / 0.3);
+    --timeline-line: oklch(28% 0.015 240);
+    --active-month-bg: oklch(72% 0.16 220);
+    --active-month-text: oklch(14% 0.01 240);
+  }
+
+  body { background: var(--bg); color: var(--text-primary); }
+
+  /* Sentiment colors */
+  .sent-BULLISH  { --s-bg: oklch(88% 0.12 145 / 0.15); --s-text: oklch(42% 0.18 145); --s-border: oklch(65% 0.18 145 / 0.35); }
+  .sent-CAUTION  { --s-bg: oklch(90% 0.14 75 / 0.15);  --s-text: oklch(52% 0.18 75);  --s-border: oklch(70% 0.18 75 / 0.35); }
+  .sent-THREAT   { --s-bg: oklch(85% 0.14 25 / 0.15);  --s-text: oklch(48% 0.2 25);   --s-border: oklch(60% 0.2 25 / 0.35); }
+  .sent-NEUTRAL  { --s-bg: oklch(94% 0.004 240 / 0.3); --s-text: var(--text-secondary); --s-border: var(--border); }
+  .sent-SYMBOL   { --s-bg: oklch(88% 0.12 280 / 0.15); --s-text: oklch(48% 0.18 280); --s-border: oklch(65% 0.18 280 / 0.35); }
+  .sent-OFFEN    { --s-bg: oklch(90% 0.1 200 / 0.15);  --s-text: oklch(48% 0.16 200); --s-border: oklch(65% 0.14 200 / 0.35); }
+  .sent-VERGLEICH{ --s-bg: oklch(90% 0.1 260 / 0.15);  --s-text: oklch(48% 0.16 260); --s-border: oklch(65% 0.14 260 / 0.35); }
+
+  .dark .sent-BULLISH  { --s-text: oklch(72% 0.18 145); }
+  .dark .sent-CAUTION  { --s-text: oklch(78% 0.18 75); }
+  .dark .sent-THREAT   { --s-text: oklch(72% 0.2 25); }
+  .dark .sent-NEUTRAL  { --s-bg: oklch(22% 0.01 240); --s-text: var(--text-secondary); --s-border: var(--border); }
+  .dark .sent-SYMBOL   { --s-text: oklch(72% 0.18 280); }
+  .dark .sent-OFFEN    { --s-text: oklch(72% 0.16 200); }
+  .dark .sent-VERGLEICH{ --s-text: oklch(72% 0.16 260); }
+
+  a { color: inherit; text-decoration: none; }
+  button { cursor: pointer; border: none; background: none; font-family: inherit; }
+
+  /* Layout */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* Header */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--header-bg);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    height: 56px;
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 24px;
+  }
+  .header-logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 15px;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    display: flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+  }
+  .header-logo span { color: var(--accent); }
+  .header-nav { display: flex; gap: 4px; align-items: center; flex: 1; }
+  .header-nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+    padding: 6px 12px; border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .header-nav a:hover { color: var(--text-primary); background: var(--bg-alt); }
+  .header-nav a.active { color: var(--text-primary); font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  /* Dark mode toggle */
+  .theme-toggle {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-alt); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s; cursor: pointer;
+  }
+  .theme-toggle:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .toggle-track {
+    width: 28px; height: 16px; border-radius: 8px;
+    background: var(--border-strong);
+    position: relative; transition: background 0.25s;
+  }
+  .toggle-track.on { background: var(--accent); }
+  .toggle-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: white; transition: transform 0.25s;
+  }
+  .toggle-track.on .toggle-thumb { transform: translateX(12px); }
+
+  /* Page body */
+  .page-body { display: flex; flex: 1; max-width: 1400px; margin: 0 auto; width: 100%; padding: 0 24px; gap: 32px; padding-top: 32px; padding-bottom: 64px; }
+
+  /* Sidebar */
+  .sidebar { width: 220px; flex-shrink: 0; }
+  .sidebar-section { margin-bottom: 32px; }
+  .sidebar-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  /* Category pills */
+  .cat-list { display: flex; flex-direction: column; gap: 2px; }
+  .cat-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.15s; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .cat-item:hover { background: var(--bg-alt); color: var(--text-primary); }
+  .cat-item.active { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-bg); font-weight: 600; }
+  .cat-count {
+    font-size: 11px; font-weight: 600;
+    background: var(--tag-bg); border-radius: 10px;
+    padding: 1px 7px; color: var(--text-muted);
+  }
+  .cat-item.active .cat-count { background: var(--accent-bg); color: var(--accent-text); opacity: 0.7; }
+
+  /* Month timeline */
+  .month-timeline { display: flex; flex-direction: column; gap: 2px; }
+  .month-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 6px;
+    font-size: 13px; cursor: pointer;
+    color: var(--text-secondary); font-weight: 500;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .month-item:hover { background: var(--bg-alt); color: var(--text-primary); }
+  .month-item.active { background: var(--active-month-bg); color: var(--active-month-text); font-weight: 600; }
+  .month-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border-strong); flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .month-item.active .month-dot { background: var(--active-month-text); opacity: 0.6; }
+  .month-item:hover .month-dot { background: var(--accent); }
+  .month-count { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+
+  /* Main content */
+  .main { flex: 1; min-width: 0; }
+  .main-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+  .main-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.02em; color: var(--text-primary);
+  }
+  .main-subtitle { font-size: 13px; color: var(--text-muted); }
+
+  /* View toggle */
+  .view-toggle { display: flex; gap: 4px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+  .view-btn {
+    padding: 5px 10px; border-radius: 5px;
+    font-size: 12px; font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text-muted); transition: all 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .view-btn:hover { color: var(--text-primary); }
+  .view-btn.active { background: var(--bg-card); color: var(--text-primary); box-shadow: var(--shadow); }
+
+  /* Week recap banner */
+  .week-recap {
+    background: var(--accent-bg); border: 1px solid oklch(from var(--accent) l c h / 0.25);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .recap-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent-text);
+    white-space: nowrap;
+    background: oklch(from var(--accent) l c h / 0.15);
+    border: 1px solid oklch(from var(--accent) l c h / 0.3);
+    border-radius: 4px; padding: 3px 8px;
+  }
+  .recap-stories { display: flex; flex-wrap: wrap; gap: 6px; }
+  .recap-pill {
+    font-size: 12px; font-weight: 500; color: var(--accent-text);
+    background: oklch(from var(--accent) l c h / 0.1);
+    border: 1px solid oklch(from var(--accent) l c h / 0.2);
+    border-radius: 20px; padding: 3px 10px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .recap-pill:hover { background: oklch(from var(--accent) l c h / 0.2); }
+
+  /* Month heading */
+  .month-heading {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; margin-top: 8px;
+  }
+  .month-heading h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .month-heading-line { flex: 1; height: 1px; background: var(--border); }
+  .month-heading-count { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+  /* Grid layout */
+  .news-grid { display: grid; gap: 12px; }
+  .news-grid.layout-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .news-grid.layout-list { grid-template-columns: 1fr; }
+  .news-grid.layout-dense { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+
+  /* News card */
+  .news-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .news-card:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-card-hover);
+    box-shadow: var(--shadow);
+  }
+  .news-card.layout-list { flex-direction: row; align-items: flex-start; gap: 16px; }
+  .news-card.layout-list .card-body { flex: 1; }
+  .news-card.layout-dense { padding: 12px; gap: 8px; }
+
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card-tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  /* Category tag */
+  .tag-cat {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 7px;
+  }
+
+  /* Sentiment tag */
+  .tag-sent {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--s-bg); color: var(--s-text);
+    border: 1px solid var(--s-border);
+    border-radius: 4px; padding: 2px 7px;
+  }
+
+  /* Source tag */
+  .tag-source {
+    font-size: 10px; font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .card-date { font-size: 11px; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
+
+  .card-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px; font-weight: 600; line-height: 1.35;
+    letter-spacing: -0.01em; color: var(--text-primary);
+    transition: color 0.15s;
+  }
+  .news-card:hover .card-title { color: var(--accent); }
+  .layout-dense .card-title { font-size: 13px; line-height: 1.3; }
+  .layout-list .card-title { font-size: 16px; }
+
+  .card-desc { font-size: 13px; line-height: 1.5; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .layout-dense .card-desc { display: none; }
+  .layout-list .card-desc { -webkit-line-clamp: 2; }
+
+  .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  .ext-link {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--accent);
+    opacity: 0.7; transition: opacity 0.15s;
+  }
+  .news-card:hover .ext-link { opacity: 1; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 64px 24px; color: var(--text-muted); }
+  .empty h3 { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+</style>
+</head>
+<body class="light">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+
+// ─── Data ────────────────────────────────────────────────────────────
+const NEWS = [
+  // April 2026 – KW18
+  { id:1,  date:"2026-04-29", cat:"Geopolitik", sent:"CAUTION", src:"The Decoder",  title:"China stoppt Metas $2,5-Mrd.-Deal – Gründer dürfen das Land nicht verlassen", desc:"Peking zieht die Notbremse. Das KI-Know-how bleibt in China.", url:"#", top:true },
+  { id:2,  date:"2026-04-29", cat:"Energie",    sent:"BULLISH", src:"The Decoder",  title:"Meta antwortet: 1.000 Satelliten, 1 Gigawatt Solarstrom aus dem All – ab 2030", desc:"Wer die KI-Energie kontrolliert, kontrolliert das Rennen.", url:"#", top:true },
+  { id:3,  date:"2026-04-26", cat:"Tools",      sent:"VERGLEICH",src:"VentureBeat", title:"Claude Code kostet $200/Monat – Goose macht dasselbe kostenlos", desc:"Open-Source holt auf. Wer zahlt noch für proprietäre Coding-Tools?", url:"https://venturebeat.com/infrastructure/claude-code-costs-up-to-usd200-a-month-goose-does-the-same-thing-for-free", top:true },
+  { id:4,  date:"2026-04-29", cat:"KI-Modelle", sent:"NEUTRAL", src:"The Decoder",  title:"OpenAI schafft Codex ab – GPT-5.5 übernimmt", desc:"Spezialisierung war gestern: OpenAI löst sein Coding-Modell auf. GPT-5.5 übernimmt alle Aufgaben.", url:"https://the-decoder.de/openai-schafft-separates-coding-modell-codex-wieder-ab-gpt-5-5-uebernimmt/" },
+  { id:5,  date:"2026-04-29", cat:"Tools",      sent:"NEUTRAL", src:"The Decoder",  title:"OpenAI: Prompts für GPT-5.5 von Grund auf neu schreiben", desc:"Neues Modell, neue Regeln: OpenAI empfiehlt, alte Prompts wegzuwerfen und neu anzufangen.", url:"https://the-decoder.de/openai-gibt-prompting-tipps-fuer-gpt-5-5-besser-von-grund-auf-neu-starten/" },
+  { id:6,  date:"2026-04-29", cat:"Enterprise",  sent:"CAUTION", src:"The Decoder",  title:"500 Banker: KI-Outputs für Kundenkontakt unbrauchbar", desc:"Massentest im Bankensektor – die Ergebnisse sind eindeutig und ernüchternd.", url:"https://the-decoder.de/500-banker-bewerten-ki-ergebnisse-und-finden-sie-durchweg-unbrauchbar-fuer-den-kundenkontakt/" },
+  { id:7,  date:"2026-04-26", cat:"Investment",  sent:"SYMBOL",  src:"TechCrunch",  title:"Hauskauf in der Bay Area erfordert Anthropic-Anteile", desc:"Tech-Hypeinflation auf die Spitze getrieben: Startup-Equity statt Eigenkapital.", url:"https://techcrunch.com/2026/04/26/to-buy-this-bay-area-home-youll-need-anthropic-equity/" },
+  { id:8,  date:"2026-04-25", cat:"Agents",     sent:"BULLISH", src:"TechCrunch",  title:"Anthropic testet Marktplatz für Agent-on-Agent-Handel", desc:"KI-Agenten handeln miteinander – autonom, ohne menschliche Kontrolle in jedem Schritt.", url:"https://techcrunch.com/2026/04/25/anthropic-created-a-test-marketplace-for-agent-on-agent-commerce/" },
+  { id:9,  date:"2026-04-25", cat:"Infrastruktur",sent:"NEUTRAL",src:"TechCrunch", title:"Maine: Gouverneur legt Veto gegen Rechenzentren-Stopp ein", desc:"Baustopp abgelehnt – der Hunger nach Rechenkapazität schlägt lokalen Widerstand.", url:"https://techcrunch.com/2026/04/25/maines-governor-vetoes-data-center-moratorium/" },
+  { id:10, date:"2026-04-25", cat:"Cloud",      sent:"BULLISH", src:"VentureBeat",  title:"Railway: $100 Mio. für KI-native Cloud gegen AWS", desc:"Nächste Runde im Cloud-Krieg: Railway sammelt Kapital und greift direkt Amazons Kerngeschäft an.", url:"https://venturebeat.com/infrastructure/railway-secures-usd100-million-to-challenge-aws-with-ai-native-cloud" },
+  { id:11, date:"2026-04-26", cat:"Tools",      sent:"VERGLEICH",src:"VentureBeat", title:"Claude Code: $200/Monat – Goose: $0. Gleiches Ergebnis?", desc:"Open-Source holt auf. Wer zahlt noch für proprietäre Coding-Tools, wenn Alternativen kostenlos sind?", url:"https://venturebeat.com/infrastructure/claude-code-costs-up-to-usd200-a-month-goose-does-the-same-thing-for-free" },
+  { id:12, date:"2026-04-25", cat:"Startups",   sent:"BULLISH", src:"VentureBeat",  title:"Listen Labs: $69 Mio. nach viralem Billboard-Trick", desc:"Aufmerksamkeit als Kapital: Creatives Recruiting bringt Millionen-Runde für KI-Kundeninterviews.", url:"https://venturebeat.com/technology/listen-labs-raises-usd69m-after-viral-billboard-hiring-stunt-to-scale-ai" },
+  { id:13, date:"2026-04-24", cat:"KI-Modelle", sent:"BULLISH", src:"MIT Tech Review", title:"Warum DeepSeeks V4 wirklich wichtig ist", desc:"MIT erklärt drei Gründe. Das neue Modell setzt Maßstäbe – nicht nur technisch, auch strategisch.", url:"https://www.technologyreview.com/2026/04/24/1136422/why-deepseeks-v4-matters/" },
+  { id:14, date:"2026-04-24", cat:"Security",   sent:"THREAT",  src:"MIT Tech Review", title:"KI-gestützte Betrugsmaschen nehmen massiv zu", desc:"Smarter, schneller, überzeugender. KI macht Scams gefährlicher – gleichzeitig bleibt KI im Gesundheitswesen umstritten.", url:"https://www.technologyreview.com/2026/04/24/1136400/the-download-supercharged-scams-questionable-ai-healthcare/" },
+  { id:15, date:"2026-04-24", cat:"Healthcare",  sent:"OFFEN",   src:"MIT Tech Review", title:"Gesundheits-KI ist da – aber hilft sie Patienten wirklich?", desc:"KI ist in Kliniken angekommen. Belege für echten Patientennutzen fehlen bisher weitgehend.", url:"https://www.technologyreview.com/2026/04/24/1136352/health-care-ai-dont-know-actually-helps-patients/" },
+  // April – older
+  { id:16, date:"2026-04-20", cat:"KI-Modelle", sent:"BULLISH", src:"The Decoder",  title:"Gemini 2.5 Pro: Google setzt neuen Benchmark in Reasoning", desc:"Googles neuestes Modell übertrifft alle bisherigen Benchmarks für mehrstufiges logisches Schließen.", url:"#" },
+  { id:17, date:"2026-04-18", cat:"Geopolitik", sent:"CAUTION", src:"TechCrunch",  title:"US-Exportkontrolle für KI-Chips verschärft sich", desc:"Die Biden-Regierung verschärft die Exportbeschränkungen für KI-Chips nach China und weiteren Ländern.", url:"#" },
+  { id:18, date:"2026-04-15", cat:"Tools",      sent:"BULLISH", src:"VentureBeat",  title:"Cursor AI erreicht 1 Mrd. Dollar ARR", desc:"Der KI-Code-Editor wächst schneller als jedes andere Developer-Tool in der Geschichte.", url:"#" },
+  { id:19, date:"2026-04-12", cat:"Agents",     sent:"BULLISH", src:"The Decoder",  title:"AutoGPT-Nachfolger: Neuer Ansatz löst Halluzinationsproblem bei langen Tasks", desc:"Neue Architektur mit iterativem Selbst-Check reduziert Fehler bei mehrstündigen Agentenläufen um 80%.", url:"#" },
+  { id:20, date:"2026-04-10", cat:"Investment",  sent:"BULLISH", src:"TechCrunch",  title:"xAI sammelt weitere $6 Mrd. – Musk verdoppelt Einsatz", desc:"Elons KI-Firma erhält erneut Milliarden-Kapital, Bewertung nähert sich 50 Mrd. Dollar an.", url:"#" },
+  { id:21, date:"2026-04-08", cat:"Enterprise",  sent:"NEUTRAL", src:"MIT Tech Review", title:"McKinsey: 30% der Unternehmen planen KI-Stellenabbau bis 2027", desc:"Neue Studie zeigt klaffende Lücke zwischen KI-Begeisterung und tatsächlicher Adoption.", url:"#" },
+  { id:22, date:"2026-04-05", cat:"Security",   sent:"THREAT",  src:"The Decoder",  title:"Prompt-Injection-Angriffe auf Unternehmens-KI nehmen zu", desc:"Sicherheitsforscher dokumentieren ersten erfolgreichen Angriff auf ein RAG-System in Fortune-500-Unternehmen.", url:"#" },
+  // März 2026
+  { id:23, date:"2026-03-28", cat:"KI-Modelle", sent:"BULLISH", src:"The Decoder",  title:"GPT-5 offiziell: OpenAI überrascht mit frühem Release", desc:"OpenAIs neues Flaggschiff-Modell erscheint zwei Monate früher als erwartet.", url:"#" },
+  { id:24, date:"2026-03-25", cat:"Geopolitik", sent:"CAUTION", src:"TechCrunch",  title:"EU KI-Act: Erste Unternehmen erhalten Strafzettel", desc:"Die EU-Behörden verhängen die ersten Bußgelder unter dem neuen KI-Gesetz.", url:"#" },
+  { id:25, date:"2026-03-20", cat:"Tools",      sent:"NEUTRAL", src:"VentureBeat",  title:"GitHub Copilot erhält eigenständige Agenten-Funktion", desc:"Microsoft erweitert seinen populären KI-Assistenten mit autonom handelnden Agenten.", url:"#" },
+  { id:26, date:"2026-03-15", cat:"Healthcare",  sent:"BULLISH", src:"MIT Tech Review", title:"KI diagnostiziert Bauchspeicheldrüsenkrebs früher als Ärzte", desc:"Neues Screening-Modell erreicht 94% Treffsicherheit in großer klinischer Studie.", url:"#" },
+  { id:27, date:"2026-03-10", cat:"Infrastruktur",sent:"BULLISH",src:"TechCrunch", title:"Microsoft baut KI-Supercluster mit 300.000 GPUs", desc:"Größte je angekündigte KI-Infrastruktur-Investition in Europa.", url:"#" },
+  { id:28, date:"2026-03-05", cat:"Agents",     sent:"NEUTRAL", src:"The Decoder",  title:"Manus: Chinas erster autonomer Allzweck-Agent", desc:"Das chinesische Startup zeigt beeindruckende Fähigkeiten beim selbständigen Lösen komplexer Aufgaben.", url:"#" },
+  // Februar 2026
+  { id:29, date:"2026-02-25", cat:"KI-Modelle", sent:"BULLISH", src:"The Decoder",  title:"Claude 3.7 Sonnet: Anthropics bestes Modell", desc:"Der neue Sonnet übertrifft GPT-4o in Coding- und Reasoning-Benchmarks.", url:"#" },
+  { id:30, date:"2026-02-20", cat:"Investment",  sent:"BULLISH", src:"TechCrunch",  title:"Mistral AI bewertet mit 6 Mrd. Euro nach neuer Runde", desc:"Europas stärkstes KI-Labor sichert sich weitere Mittel für Open-Source-Modelle.", url:"#" },
+  { id:31, date:"2026-02-14", cat:"Geopolitik", sent:"CAUTION", src:"MIT Tech Review", title:"China führt Pflicht-Wasserzeichen für KI-generierte Inhalte ein", desc:"Neue Regulierung zwingt alle KI-Dienste zur Kennzeichnung synthetischer Medien.", url:"#" },
+  { id:32, date:"2026-02-08", cat:"Tools",      sent:"BULLISH", src:"VentureBeat",  title:"Replit: KI-Assistent schreibt komplette Apps ohne Vorkenntnisse", desc:"Neue Demo zeigt vollständige Web-App in unter 3 Minuten.", url:"#" },
+];
+
+const MONTHS = [
+  { key:"2026-04", label:"April 2026" },
+  { key:"2026-03", label:"März 2026" },
+  { key:"2026-02", label:"Februar 2026" },
+];
+
+const CATEGORIES = [...new Set(NEWS.map(n => n.cat))].sort();
+
+const SENT_LABELS = { BULLISH:"Bullish", CAUTION:"Vorsicht", THREAT:"Warnung", NEUTRAL:"Neutral", SYMBOL:"Symbolisch", OFFEN:"Offen", VERGLEICH:"Vergleich" };
+
+// ─── Components ──────────────────────────────────────────────────────
+function SentTag({ sent }) {
+  return <span className={`tag-sent sent-${sent}`}>{SENT_LABELS[sent] || sent}</span>;
+}
+
+function NewsCard({ item, layout }) {
+  return (
+    <a href={item.url} target="_blank" rel="noopener" className={`news-card layout-${layout}`} onClick={e => item.url === '#' && e.preventDefault()}>
+      <div className={`card-body`}>
+        <div className="card-top">
+          <div className="card-tags">
+            <span className="tag-cat">{item.cat}</span>
+            <SentTag sent={item.sent} />
+          </div>
+          <span className="card-date">{item.date.slice(5).replace('-','.')}</span>
+        </div>
+        <div className="card-title">{item.title}</div>
+        {layout !== 'dense' && <div className="card-desc">{item.desc}</div>}
+      </div>
+      <div className="card-footer">
+        <span className="tag-source">{item.src}</span>
+        <span className="ext-link">{item.url !== '#' ? 'Lesen →' : '—'}</span>
+      </div>
+    </a>
+  );
+}
+
+function MonthGroup({ monthKey, monthLabel, items, layout }) {
+  if (!items.length) return null;
+  return (
+    <div>
+      <div className="month-heading">
+        <h2>{monthLabel}</h2>
+        <div className="month-heading-line"></div>
+        <span className="month-heading-count">{items.length} Artikel</span>
+      </div>
+      <div className={`news-grid layout-${layout}`}>
+        {items.map(item => <NewsCard key={item.id} item={item} layout={layout} />)}
+      </div>
+    </div>
+  );
+}
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "light",
+  "layout": "grid",
+  "showWeekRecap": true
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  const [activeMonth, setActiveMonth] = useState(null);
+  const [activeCat, setActiveCat] = useState(null);
+
+  // sync theme
+  useEffect(() => {
+    document.body.className = tweaks.theme;
+  }, [tweaks.theme]);
+
+  // counts
+  const catCounts = useMemo(() => {
+    const m = {};
+    NEWS.forEach(n => m[n.cat] = (m[n.cat]||0)+1);
+    return m;
+  }, []);
+
+  const monthCounts = useMemo(() => {
+    const m = {};
+    NEWS.forEach(n => {
+      const mk = n.date.slice(0,7);
+      m[mk] = (m[mk]||0)+1;
+    });
+    return m;
+  }, []);
+
+  // filter
+  const filtered = useMemo(() => {
+    return NEWS.filter(n => {
+      if (activeCat && n.cat !== activeCat) return false;
+      if (activeMonth && !n.date.startsWith(activeMonth)) return false;
+      return true;
+    });
+  }, [activeCat, activeMonth]);
+
+  const topStories = useMemo(() => NEWS.filter(n => n.top), []);
+
+  // group by month
+  const grouped = useMemo(() => {
+    return MONTHS.map(m => ({
+      ...m,
+      items: filtered.filter(n => n.date.startsWith(m.key))
+    }));
+  }, [filtered]);
+
+  const totalCount = filtered.length;
+
+  return (
+    <div className="app">
+      {/* Header */}
+      <header className="header">
+        <a href="http://ki-news.live" className="header-logo">
+          KI <span>NEWS</span>
+        </a>
+        <nav className="header-nav">
+          <a href="http://ki-news.live">Aktuell</a>
+          <a href="#" className="active">Archiv</a>
+          <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt">Podcast</a>
+        </nav>
+        <div className="header-right">
+          <button
+            className="theme-toggle"
+            onClick={() => setTweak('theme', tweaks.theme === 'light' ? 'dark' : 'light')}
+          >
+            {tweaks.theme === 'light' ? '☾' : '☀'}
+            <div className={`toggle-track ${tweaks.theme === 'dark' ? 'on' : ''}`}>
+              <div className="toggle-thumb"></div>
+            </div>
+            {tweaks.theme === 'light' ? 'Hell' : 'Dunkel'}
+          </button>
+        </div>
+      </header>
+
+      <div className="page-body">
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <div className="sidebar-section">
+            <div className="sidebar-title">Kategorien</div>
+            <div className="cat-list">
+              <div className={`cat-item ${!activeCat ? 'active' : ''}`} onClick={() => setActiveCat(null)}>
+                <span>Alle</span>
+                <span className="cat-count">{NEWS.length}</span>
+              </div>
+              {CATEGORIES.map(cat => (
+                <div key={cat} className={`cat-item ${activeCat === cat ? 'active' : ''}`} onClick={() => setActiveCat(activeCat === cat ? null : cat)}>
+                  <span>{cat}</span>
+                  <span className="cat-count">{catCounts[cat] || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="sidebar-section">
+            <div className="sidebar-title">Zeitraum</div>
+            <div className="month-timeline">
+              <div className={`month-item ${!activeMonth ? 'active' : ''}`} onClick={() => setActiveMonth(null)}>
+                <div className="month-dot"></div>
+                <span>Alle Monate</span>
+                <span className="month-count">{NEWS.length}</span>
+              </div>
+              {MONTHS.map(m => (
+                <div key={m.key} className={`month-item ${activeMonth === m.key ? 'active' : ''}`} onClick={() => setActiveMonth(activeMonth === m.key ? null : m.key)}>
+                  <div className="month-dot"></div>
+                  <span>{m.label}</span>
+                  <span className="month-count">{monthCounts[m.key] || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <main className="main">
+          <div className="main-header">
+            <div>
+              <h1 className="main-title">Archiv</h1>
+              <p className="main-subtitle">
+                {totalCount} Artikel{activeCat ? ` · ${activeCat}` : ''}{activeMonth ? ` · ${MONTHS.find(m=>m.key===activeMonth)?.label}` : ''}
+              </p>
+            </div>
+            <div className="view-toggle">
+              {['grid','list','dense'].map(v => (
+                <button key={v} className={`view-btn ${tweaks.layout === v ? 'active' : ''}`} onClick={() => setTweak('layout', v)}>
+                  {v === 'grid' ? 'Grid' : v === 'list' ? 'Liste' : 'Kompakt'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Weekly recap */}
+          {tweaks.showWeekRecap && !activeCat && !activeMonth && (
+            <div className="week-recap">
+              <span className="recap-label">KW18 Top-Stories</span>
+              <div className="recap-stories">
+                {topStories.map(s => (
+                  <a key={s.id} href={s.url} target="_blank" rel="noopener" className="recap-pill">{s.title}</a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Groups */}
+          <div style={{display:'flex', flexDirection:'column', gap:36}}>
+            {grouped.every(g => g.items.length === 0) ? (
+              <div className="empty">
+                <h3>Keine Artikel gefunden</h3>
+                <p>Versuche einen anderen Filter.</p>
+              </div>
+            ) : (
+              grouped.map(g => (
+                <MonthGroup key={g.key} monthKey={g.key} monthLabel={g.label} items={g.items} layout={tweaks.layout} />
+              ))
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* Tweaks */}
+      <TweaksPanel>
+        <TweakSection title="Darstellung">
+          <TweakRadio id="theme" label="Modus" options={[{value:'light',label:'Hell'},{value:'dark',label:'Dunkel'}]} value={tweaks.theme} onChange={v => setTweak('theme', v)} />
+          <TweakRadio id="layout" label="Layout" options={[{value:'grid',label:'Grid'},{value:'list',label:'Liste'},{value:'dense',label:'Kompakt'}]} value={tweaks.layout} onChange={v => setTweak('layout', v)} />
+          <TweakToggle id="showWeekRecap" label="Wochenrückblick anzeigen" value={tweaks.showWeekRecap} onChange={v => setTweak('showWeekRecap', v)} />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

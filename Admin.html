@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin – KI News</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Work Sans', sans-serif;
+  background: oklch(97% 0.005 80);
+  color: oklch(18% 0.01 240);
+  min-height: 100vh;
+}
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }
+
+/* Header */
+.header {
+  background: white; border-bottom: 1px solid oklch(90% 0.008 80);
+  height: 56px; display: flex; align-items: center;
+  padding: 0 24px; gap: 20px; position: sticky; top: 0; z-index: 50;
+}
+.logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; }
+.logo span { color: oklch(52% 0.18 240); }
+.header-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; background: oklch(95% 0.04 60);
+  color: oklch(48% 0.12 60); border: 1px solid oklch(88% 0.06 60);
+  border-radius: 4px; padding: 2px 8px;
+}
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: oklch(75% 0.01 240); }
+.status-dot.ok { background: oklch(62% 0.18 145); }
+.status-dot.err { background: oklch(55% 0.2 25); }
+.status-text { font-size: 12px; color: oklch(50% 0.01 240); }
+
+/* Main layout */
+.layout { display: flex; max-width: 1200px; margin: 0 auto; padding: 32px 24px; gap: 28px; }
+
+/* Sidebar */
+.sidebar { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+
+.card {
+  background: white; border: 1px solid oklch(90% 0.008 80);
+  border-radius: 10px; padding: 18px;
+}
+.card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: oklch(55% 0.01 240);
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid oklch(93% 0.006 80);
+}
+
+/* GitHub connect */
+.gh-form { display: flex; flex-direction: column; gap: 10px; }
+.field-label { font-size: 12px; font-weight: 600; color: oklch(40% 0.01 240); margin-bottom: 4px; }
+.field-hint { font-size: 11px; color: oklch(60% 0.01 240); margin-top: 3px; line-height: 1.4; }
+input[type="text"], input[type="password"], textarea {
+  width: 100%; border: 1px solid oklch(88% 0.008 80);
+  border-radius: 7px; padding: 8px 10px;
+  font: 13px/1.4 'Work Sans', sans-serif;
+  color: oklch(18% 0.01 240); background: oklch(98.5% 0.003 80);
+  outline: none; transition: border-color 0.15s;
+}
+input:focus, textarea:focus { border-color: oklch(52% 0.18 240); background: white; }
+input[type="password"] { font-family: monospace; letter-spacing: 0.1em; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 8px 16px; border-radius: 7px; border: none;
+  font-size: 13px; font-weight: 600; font-family: 'Space Grotesk', sans-serif;
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: oklch(18% 0.01 240); color: white; }
+.btn-primary:hover { background: oklch(28% 0.01 240); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-ghost { background: transparent; border: 1px solid oklch(88% 0.008 80); color: oklch(40% 0.01 240); }
+.btn-ghost:hover { border-color: oklch(75% 0.01 240); color: oklch(18% 0.01 240); }
+.btn-danger { background: oklch(94% 0.04 25); border: 1px solid oklch(85% 0.08 25); color: oklch(45% 0.18 25); }
+.btn-danger:hover { background: oklch(90% 0.06 25); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-full { width: 100%; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-box {
+  background: oklch(97% 0.005 80); border-radius: 8px;
+  padding: 12px; text-align: center;
+}
+.stat-num { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
+.stat-lbl { font-size: 10px; color: oklch(55% 0.01 240); margin-top: 2px; font-weight: 500; }
+
+/* Actions */
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* Main editor */
+.main { flex: 1; min-width: 0; }
+.main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 16px; }
+.main-title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.main-actions { display: flex; gap: 8px; }
+
+/* Search bar */
+.search-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: white; border: 1px solid oklch(88% 0.008 80);
+  border-radius: 8px; padding: 0 14px; margin-bottom: 16px;
+}
+.search-bar input {
+  border: none; background: transparent; padding: 10px 0;
+  font-size: 13px; flex: 1;
+}
+.search-bar input:focus { outline: none; }
+.search-icon { color: oklch(65% 0.01 240); font-size: 15px; }
+
+/* Article cards */
+.article-list { display: flex; flex-direction: column; gap: 12px; }
+
+.article-card {
+  background: white; border: 1px solid oklch(90% 0.008 80);
+  border-radius: 10px; overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.article-card:focus-within { border-color: oklch(75% 0.12 240); box-shadow: 0 0 0 3px oklch(52% 0.18 240 / 0.1); }
+.article-card.modified { border-color: oklch(72% 0.14 75); }
+.article-card.modified .card-indicator { background: oklch(72% 0.14 75); }
+
+.card-indicator { width: 3px; background: transparent; flex-shrink: 0; }
+
+.card-inner { display: flex; }
+.card-content { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.card-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.source-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: 4px; padding: 2px 8px; border: 1px solid;
+}
+.card-num { font-size: 11px; color: oklch(65% 0.01 240); font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+.modified-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  background: oklch(95% 0.06 75); color: oklch(48% 0.14 75);
+  border: 1px solid oklch(85% 0.1 75); border-radius: 4px; padding: 2px 7px;
+}
+
+.field-group { display: flex; flex-direction: column; gap: 4px; }
+.field-group textarea { resize: vertical; min-height: 60px; }
+.field-group.title-field input { font-weight: 600; font-size: 14px; }
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid oklch(95% 0.005 80); }
+.link-preview { font-size: 11px; color: oklch(55% 0.01 240); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+.card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* Toast */
+.toast-wrap { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast {
+  background: oklch(18% 0.01 240); color: white;
+  border-radius: 8px; padding: 10px 18px;
+  font-size: 13px; font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  animation: toastIn 0.25s ease; pointer-events: auto;
+}
+.toast.success { background: oklch(35% 0.18 145); }
+.toast.error { background: oklch(42% 0.2 25); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Empty state */
+.empty { text-align: center; padding: 48px 24px; color: oklch(60% 0.01 240); }
+.empty h3 { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+
+/* Commit modal */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; backdrop-filter: blur(4px);
+}
+.modal {
+  background: white; border-radius: 14px;
+  padding: 28px; width: 480px; max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.diff-preview {
+  background: oklch(97% 0.005 80); border: 1px solid oklch(90% 0.008 80);
+  border-radius: 7px; padding: 12px; font-size: 12px;
+  font-family: monospace; line-height: 1.5; max-height: 200px; overflow-y: auto;
+  margin: 12px 0; color: oklch(35% 0.01 240);
+}
+.diff-line-add { color: oklch(42% 0.18 145); }
+.diff-line-del { color: oklch(48% 0.2 25); }
+
+/* Source colors */
+.src-decoder  { background: oklch(94% 0.04 220); color: oklch(38% 0.18 220); border-color: oklch(82% 0.1 220); }
+.src-techcrunch { background: oklch(95% 0.05 55);  color: oklch(45% 0.18 55);  border-color: oklch(84% 0.1 55); }
+.src-venturebeat { background: oklch(94% 0.04 280); color: oklch(40% 0.18 280); border-color: oklch(82% 0.1 280); }
+.src-mit      { background: oklch(94% 0.04 25);  color: oklch(42% 0.2 25);   border-color: oklch(83% 0.1 25); }
+.src-ars      { background: oklch(94% 0.04 145); color: oklch(38% 0.18 145); border-color: oklch(82% 0.1 145); }
+.src-heise    { background: oklch(94% 0.04 240); color: oklch(40% 0.18 240); border-color: oklch(82% 0.1 240); }
+.src-default  { background: oklch(95% 0.005 80); color: oklch(45% 0.01 240); border-color: oklch(88% 0.008 80); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="http://ki-news.live" class="logo">KI <span>NEWS</span></a>
+  <span class="header-badge">Admin</span>
+  <div class="header-right">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Nicht verbunden</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- GitHub Config -->
+    <div class="card">
+      <div class="card-title">GitHub Verbindung</div>
+      <div class="gh-form">
+        <div>
+          <div class="field-label">Personal Access Token</div>
+          <input type="password" id="ghToken" placeholder="ghp_…" autocomplete="off"/>
+          <div class="field-hint">Benötigt <code>repo</code>-Scope. <a href="https://github.com/settings/tokens/new" target="_blank" style="color:oklch(52% 0.18 240)">Token erstellen →</a></div>
+        </div>
+        <div>
+          <div class="field-label">Repository</div>
+          <input type="text" id="ghRepo" value="DScampy/ki_news" readonly/>
+        </div>
+        <div>
+          <div class="field-label">Branch</div>
+          <input type="text" id="ghBranch" value="main"/>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="loadFromGitHub()">
+          Laden &amp; Verbinden
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card" id="statsCard" style="display:none">
+      <div class="card-title">Übersicht</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-num" id="statTotal">—</div>
+          <div class="stat-lbl">Artikel</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="statModified" style="color:oklch(52% 0.14 75)">0</div>
+          <div class="stat-lbl">Geändert</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:oklch(55% 0.01 240)">
+        Stand: <span id="statStand">—</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card" id="actionsCard" style="display:none">
+      <div class="card-title">Aktionen</div>
+      <div class="action-list">
+        <button class="btn btn-primary btn-full" onclick="openCommitModal()" id="commitBtn" disabled>
+          Änderungen speichern
+        </button>
+        <button class="btn btn-ghost btn-full" onclick="downloadJSON()">
+          JSON herunterladen
+        </button>
+        <button class="btn btn-ghost btn-full" onclick="resetAll()">
+          Änderungen zurücksetzen
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main editor -->
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1 class="main-title">Artikel bearbeiten</h1>
+      </div>
+      <div class="main-actions">
+        <span id="modifiedCount" style="font-size:12px;color:oklch(55% 0.01 240);align-self:center"></span>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar" id="searchBar" style="display:none">
+      <span class="search-icon">⌕</span>
+      <input type="text" placeholder="Artikel suchen…" oninput="filterArticles(this.value)" id="searchInput"/>
+    </div>
+
+    <div id="editorContainer">
+      <div class="empty">
+        <h3>Noch nicht geladen</h3>
+        <p>Token eingeben und "Laden" klicken.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Commit Modal -->
+<div class="overlay" id="commitModal" style="display:none" onclick="if(event.target===this)closeCommitModal()">
+  <div class="modal">
+    <div class="modal-title">Änderungen committen</div>
+    <div>
+      <div class="field-label">Commit-Nachricht</div>
+      <input type="text" id="commitMsg" value="fix: Tippfehler korrigiert in news.json"/>
+    </div>
+    <div class="diff-preview" id="diffPreview"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeCommitModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="commitChanges()" id="commitSubmitBtn">Committen →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let originalData = null;   // raw JSON from GitHub
+let articles = [];          // working copy (objects)
+let fileSha = '';           // GitHub blob SHA (needed for update)
+let searchQuery = '';
+
+// ── Source styling ─────────────────────────────────────────────────────────
+function srcClass(source) {
+  if (!source) return 'src-default';
+  const s = source.toLowerCase();
+  if (s.includes('decoder')) return 'src-decoder';
+  if (s.includes('techcrunch')) return 'src-techcrunch';
+  if (s.includes('venturebeat')) return 'src-venturebeat';
+  if (s.includes('mit')) return 'src-mit';
+  if (s.includes('ars')) return 'src-ars';
+  if (s.includes('heise')) return 'src-heise';
+  return 'src-default';
+}
+
+// ── GitHub API ─────────────────────────────────────────────────────────────
+function ghHeaders() {
+  const token = document.getElementById('ghToken').value.trim();
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+
+async function loadFromGitHub() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { toast('Bitte Token eingeben', 'error'); return; }
+  const repo = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim();
+
+  setStatus('loading');
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/news.json?ref=${branch}`, {
+      headers: ghHeaders()
+    });
+    if (!res.ok) throw new Error(`GitHub: ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    fileSha = data.sha;
+    const decoded = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    originalData = JSON.parse(JSON.stringify(decoded));
+    articles = decoded.news.map((a, i) => ({ ...a, _id: i, _modified: false }));
+    renderEditor();
+    updateStats(decoded);
+    setStatus('ok');
+    toast(`${articles.length} Artikel geladen`, 'success');
+    document.getElementById('statsCard').style.display = '';
+    document.getElementById('actionsCard').style.display = '';
+    document.getElementById('searchBar').style.display = '';
+    try { localStorage.setItem('ki_admin_token', token); } catch(e) {}
+  } catch (e) {
+    setStatus('err');
+    toast('Fehler: ' + e.message, 'error');
+  }
+}
+
+async function commitChanges() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { toast('Token fehlt', 'error'); return; }
+  const repo = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim();
+  const msg = document.getElementById('commitMsg').value.trim() || 'fix: news.json aktualisiert';
+
+  const btn = document.getElementById('commitSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Wird gespeichert…';
+
+  try {
+    const updated = buildJSON();
+    const jsonStr = JSON.stringify(updated, null, 2);
+    // Encode properly for Unicode (German umlauts etc.)
+    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+
+    const body = { message: msg, content, sha: fileSha, branch };
+    console.log('Committing to:', repo, 'sha:', fileSha, 'branch:', branch);
+
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/news.json`, {
+      method: 'PUT',
+      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    console.log('GitHub response:', res.status, result);
+    if (!res.ok) {
+      const hint = res.status === 404
+        ? ' → Token hat wahrscheinlich nur Lesezugriff. Bitte "Contents: Read and write" im Token aktivieren.'
+        : res.status === 401 ? ' → Token ungültig oder abgelaufen.' : '';
+      throw new Error(`${res.status}: ${result.message || res.statusText}${hint}`);
+    }
+    fileSha = result.content.sha;
+    // mark all as unmodified
+    articles.forEach(a => a._modified = false);
+    originalData = JSON.parse(JSON.stringify(updated));
+    renderEditor();
+    updateStats(updated);
+    closeCommitModal();
+    toast('✓ Erfolgreich gespeichert auf GitHub', 'success');
+  } catch (e) {
+    toast('Fehler: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Committen →';
+  }
+}
+
+// ── Build output JSON ───────────────────────────────────────────────────────
+function buildJSON() {
+  return {
+    stand: originalData.stand,
+    news: articles.map(({ _id, _modified, ...rest }) => rest)
+  };
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderEditor() {
+  const container = document.getElementById('editorContainer');
+  const filtered = articles.filter(a => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (a.title||'').toLowerCase().includes(q) ||
+           (a.summary||'').toLowerCase().includes(q) ||
+           (a.source||'').toLowerCase().includes(q);
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty"><h3>Keine Artikel gefunden</h3><p>Suchbegriff anpassen.</p></div>';
+    return;
+  }
+
+  container.innerHTML = '<div class="article-list" id="articleList"></div>';
+  const list = document.getElementById('articleList');
+  filtered.forEach(a => list.appendChild(createCard(a)));
+  updateModifiedCount();
+}
+
+function createCard(article) {
+  const div = document.createElement('div');
+  div.className = `article-card${article._modified ? ' modified' : ''}`;
+  div.id = `card-${article._id}`;
+  div.innerHTML = `
+    <div class="card-inner">
+      <div class="card-indicator"></div>
+      <div class="card-content">
+        <div class="card-meta">
+          <span class="source-badge ${srcClass(article.source)}">${article.source || '—'}</span>
+          <span class="card-num">#${article._id + 1}</span>
+          ${article._modified ? '<span class="modified-badge">Geändert</span>' : ''}
+        </div>
+        <div class="field-group title-field">
+          <label class="field-label">Titel</label>
+          <input type="text" value="${escHtml(article.title || '')}"
+            oninput="updateField(${article._id}, 'title', this.value)"
+            placeholder="Titel…"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Zusammenfassung</label>
+          <textarea rows="3"
+            oninput="updateField(${article._id}, 'summary', this.value)"
+            placeholder="Zusammenfassung…">${escHtml(article.summary || '')}</textarea>
+        </div>
+        <div class="card-footer">
+          <span class="link-preview" title="${escHtml(article.link || '')}">
+            ${article.link ? `<a href="${escHtml(article.link)}" target="_blank" style="color:oklch(52% 0.18 240)">${escHtml(article.link)}</a>` : '—'}
+          </span>
+          <div class="card-actions">
+            ${article._modified ? `<button class="btn btn-ghost btn-sm" onclick="resetArticle(${article._id})">Zurücksetzen</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  return div;
+}
+
+function updateField(id, field, value) {
+  const a = articles.find(x => x._id === id);
+  if (!a) return;
+  a[field] = value;
+  const orig = originalData.news[id];
+  a._modified = orig ? (a.title !== orig.title || a.summary !== orig.summary) : true;
+
+  // update card classes without full re-render
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.className = `article-card${a._modified ? ' modified' : ''}`;
+    // update modified badge
+    const meta = card.querySelector('.card-meta');
+    const existing = meta.querySelector('.modified-badge');
+    if (a._modified && !existing) {
+      const badge = document.createElement('span');
+      badge.className = 'modified-badge'; badge.textContent = 'Geändert';
+      meta.appendChild(badge);
+    } else if (!a._modified && existing) {
+      existing.remove();
+    }
+    // update reset button
+    const actions = card.querySelector('.card-actions');
+    const resetBtn = actions.querySelector('button');
+    if (a._modified && !resetBtn) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-sm';
+      btn.textContent = 'Zurücksetzen';
+      btn.onclick = () => resetArticle(id);
+      actions.appendChild(btn);
+    } else if (!a._modified && resetBtn) {
+      resetBtn.remove();
+    }
+  }
+  updateModifiedCount();
+}
+
+function resetArticle(id) {
+  const a = articles.find(x => x._id === id);
+  const orig = originalData.news[id];
+  if (!a || !orig) return;
+  a.title = orig.title; a.summary = orig.summary; a._modified = false;
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.querySelector('input[type="text"]').value = orig.title || '';
+    card.querySelector('textarea').value = orig.summary || '';
+    card.className = 'article-card';
+    card.querySelector('.card-meta .modified-badge')?.remove();
+    card.querySelector('.card-actions button')?.remove();
+  }
+  updateModifiedCount();
+}
+
+function resetAll() {
+  if (!confirm('Alle Änderungen zurücksetzen?')) return;
+  articles.forEach(a => {
+    const orig = originalData.news[a._id];
+    if (orig) { a.title = orig.title; a.summary = orig.summary; a._modified = false; }
+  });
+  renderEditor();
+  toast('Alle Änderungen zurückgesetzt');
+}
+
+function updateModifiedCount() {
+  const count = articles.filter(a => a._modified).length;
+  document.getElementById('statModified').textContent = count;
+  document.getElementById('modifiedCount').textContent = count > 0 ? `${count} Änderung${count > 1 ? 'en' : ''} ausstehend` : '';
+  document.getElementById('commitBtn').disabled = count === 0;
+}
+
+function filterArticles(q) {
+  searchQuery = q;
+  renderEditor();
+}
+
+// ── Stats ───────────────────────────────────────────────────────────────────
+function updateStats(data) {
+  document.getElementById('statTotal').textContent = data.news?.length || 0;
+  document.getElementById('statStand').textContent = data.stand || '—';
+}
+
+// ── Commit modal ────────────────────────────────────────────────────────────
+function openCommitModal() {
+  const modified = articles.filter(a => a._modified);
+  if (modified.length === 0) return;
+  // build diff preview
+  let diff = '';
+  modified.forEach(a => {
+    const orig = originalData.news[a._id];
+    if (orig && orig.title !== a.title) {
+      diff += `<div class="diff-line-del">- [${orig.source}] Titel: ${escHtml(orig.title)}</div>`;
+      diff += `<div class="diff-line-add">+ [${a.source}] Titel: ${escHtml(a.title)}</div>`;
+    }
+    if (orig && orig.summary !== a.summary) {
+      diff += `<div class="diff-line-del">- Zusammenfassung: ${escHtml(orig.summary?.slice(0,80))}…</div>`;
+      diff += `<div class="diff-line-add">+ Zusammenfassung: ${escHtml(a.summary?.slice(0,80))}…</div>`;
+    }
+  });
+  document.getElementById('diffPreview').innerHTML = diff || '<span style="color:oklch(55% 0.01 240)">Keine Änderungen</span>';
+  document.getElementById('commitModal').style.display = 'flex';
+}
+
+function closeCommitModal() {
+  document.getElementById('commitModal').style.display = 'none';
+}
+
+// ── Download ────────────────────────────────────────────────────────────────
+function downloadJSON() {
+  const data = buildJSON();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'news.json';
+  a.click();
+  toast('JSON heruntergeladen');
+}
+
+// ── Status indicator ────────────────────────────────────────────────────────
+function setStatus(s) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + (s === 'ok' ? 'ok' : s === 'err' ? 'err' : '');
+  txt.textContent = s === 'ok' ? 'Verbunden' : s === 'err' ? 'Fehler' : 'Wird geladen…';
+}
+
+// ── Toast ───────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = `toast${type ? ' ' + type : ''}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Restore token from localStorage ────────────────────────────────────────
+try {
+  const saved = localStorage.getItem('ki_admin_token');
+  if (saved) document.getElementById('ghToken').value = saved;
+} catch(e) { /* sandboxed — ignore */ }
+</script>
+</body>
+</html>
