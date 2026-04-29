@@ -1,441 +1,433 @@
 <!DOCTYPE html>
-<html lang="de">
+<html class="dark" lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KI News Dashboard</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, Arial, sans-serif; background: #0a0a0a; color: #e7e9ea; min-height: 100vh; }
-        .header { background: #000; border-bottom: 1px solid #2f3336; padding: 14px 24px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
-        .header h1 { color: #1d9bf0; font-size: 18px; font-weight: 700; }
-        .header-stats { margin-left: auto; display: flex; gap: 20px; }
-        .stat { text-align: center; }
-        .stat-zahl { font-size: 18px; font-weight: 700; color: #1d9bf0; }
-        .stat-label { font-size: 10px; color: #536471; text-transform: uppercase; letter-spacing: 0.5px; }
-        .datum { color: #536471; font-size: 12px; margin-left: 16px; }
-        .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 0; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 57px); }
-        .panel { padding: 20px; }
-        .panel-left { border-right: 1px solid #2f3336; }
-        .panel-title { color: #536471; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 12px; border-bottom: 1px solid #2f3336; margin-bottom: 4px; }
-        .news-item { border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.15s; border-radius: 6px; }
-        .news-item:hover { background: #111; }
-        .news-item.open { background: #111; border: 1px solid #2f3336; margin: 4px 0; }
-        .news-header { padding: 12px 8px; display: flex; align-items: flex-start; gap: 8px; }
-        .news-title { color: #e7e9ea; font-size: 14px; line-height: 1.4; flex: 1; }
-        .news-arrow { color: #536471; font-size: 12px; margin-top: 2px; flex-shrink: 0; transition: transform 0.2s; }
-        .news-item.open .news-arrow { transform: rotate(180deg); color: #1d9bf0; }
-        .source-badge { color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
-        .news-expand { display: none; padding: 0 8px 14px 8px; }
-        .news-item.open .news-expand { display: block; }
-        .news-summary { font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }
-        .news-expand a { color: #1d9bf0; font-size: 13px; font-weight: 600; text-decoration: none; }
-        .news-expand a:hover { text-decoration: underline; }
-        .post-card { background: #111; border: 1px solid #2f3336; border-radius: 14px; padding: 16px; margin: 10px 0; transition: border-color 0.2s; }
-        .post-card:hover { border-color: #1d9bf0; }
-        .post-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .post-nr { color: #1d9bf0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .post-zeichen { font-size: 11px; font-weight: 700; }
-        .post-text { font-size: 15px; line-height: 1.5; color: #e7e9ea; margin-bottom: 6px; }
-        .post-erklaerung { font-size: 12px; color: #536471; margin-bottom: 8px; font-style: italic; }
-        .post-quelle { display: inline-block; color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-bottom: 10px; }
-        .post-actions { display: flex; gap: 8px; margin-top: 10px; }
-        .btn-copy, .btn-x { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.2s; border: none; }
-        .btn-copy { background: #2f3336; color: #e7e9ea; }
-        .btn-copy:hover { opacity: 0.8; }
-        .btn-x { background: #1d9bf0; color: white; }
-        .btn-x:hover { opacity: 0.8; }
-        .copied { background: #16a34a !important; }
-        .thread-toggle { color: #536471; font-size: 12px; cursor: pointer; margin-top: 12px; padding: 8px 0 0 0; border-top: 1px solid #1a1a1a; user-select: none; transition: color 0.2s; }
-        .thread-toggle:hover { color: #1d9bf0; }
-        .thread-section { margin-top: 8px; }
-        .thread-part { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 10px; padding: 10px 12px; margin: 6px 0; }
-        .thread-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .thread-nr { color: #536471; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .thread-zeichen { font-size: 10px; font-weight: 700; }
-        .thread-text { font-size: 14px; line-height: 1.5; color: #e7e9ea; margin-bottom: 8px; }
-        .btn-copy-sm { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; background: #1a1a1a; color: #94a3b8; border: 1px solid #2f3336; transition: opacity 0.2s; }
-        .btn-copy-sm:hover { opacity: 0.8; }
-        @media (max-width: 700px) {
-            .layout { grid-template-columns: 1fr; }
-            .panel-left { border-right: none; border-bottom: 1px solid #2f3336; }
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KI News – Täglich. Auf Deutsch. Mit Kontext.</title>
+<meta name="description" content="Deutschsprachige KI-News: Englische Quellen kuratiert, eingeordnet, erklärt. Von @CScampy."/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "surface-tint": "#99cbff",
+          "on-surface": "#dfe3ea",
+          "on-surface-variant": "#bfc7d3",
+          "surface-container-low": "#181c21",
+          "surface-container": "#1c2025",
+          "surface-container-high": "#262a30",
+          "outline": "#89919d",
+          "outline-variant": "#3f4851",
+          "primary": "#99cbff",
+          "primary-container": "#1d9bf0",
+          "background": "#000000",
+        },
+        borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+        spacing: { sm: "12px", xl: "64px", gutter: "16px", base: "8px", xs: "4px", lg: "40px", md: "24px", margin: "24px" },
+        fontFamily: {
+          "body-sm": ["Work Sans"],
+          "headline-xl": ["Space Grotesk"],
+          "body-lg": ["Work Sans"],
+          "source-tag": ["Work Sans"],
+          "label-bold": ["Work Sans"],
+          "headline-md": ["Space Grotesk"]
+        },
+        fontSize: {
+          "body-sm": ["14px", { lineHeight: "1.4", fontWeight: "400" }],
+          "headline-xl": ["32px", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "700" }],
+          "body-lg": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+          "source-tag": ["13px", { lineHeight: "1", fontWeight: "600" }],
+          "label-bold": ["12px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "700" }],
+          "headline-md": ["20px", { lineHeight: "1.3", fontWeight: "600" }]
         }
-    </style>
-    <script>
-        function toggleNews(el) { el.classList.toggle('open'); }
-        function toggleThread(btn) {
-            const section = btn.nextElementSibling;
-            const isOpen = section.style.display !== 'none';
-            section.style.display = isOpen ? 'none' : 'block';
-            const n = section.querySelectorAll('.thread-part').length;
-            btn.innerHTML = isOpen
-                ? '&#9658; Thread anzeigen (' + n + ' Teile)'
-                : '&#9660; Thread ausblenden';
-        }
-        function copyPost(id, btn) {
-            navigator.clipboard.writeText(document.getElementById(id).textContent);
-            const orig = btn.textContent;
-            btn.textContent = 'Kopiert';
-            btn.classList.add('copied');
-            setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
-        }
-    </script>
+      }
+    }
+  }
+</script>
+<style>
+  body { background-color: #000; color: #dfe3ea; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #000; }
+  ::-webkit-scrollbar-thumb { background: #2f3336; border-radius: 10px; }
+</style>
 </head>
-<body>
-    <div class="header">
-        <h1>KI News</h1>
-        <div class="header-stats">
-            <div class="stat"><div class="stat-zahl">12</div><div class="stat-label">News</div></div>
-            <div class="stat"><div class="stat-zahl">3</div><div class="stat-label">Posts</div></div>
-            <div class="stat"><div class="stat-zahl">4</div><div class="stat-label">Quellen</div></div>
-        </div>
-        <span class="datum">Stand: 26.04.2026 22:02</span>
+<body class="font-body-lg">
+
+<!-- Top Nav -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black border-b border-[#2f3336]">
+  <div class="flex items-center gap-8">
+    <a href="/" class="flex items-center gap-2">
+      <span class="text-xl font-black tracking-tighter text-[#1d9bf0] uppercase" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
+      <span class="hidden sm:inline text-[10px] font-mono text-gray-500 tracking-widest uppercase border border-[#2f3336] px-1.5 py-0.5">DE</span>
+    </a>
+    <div class="hidden md:flex items-center gap-6">
+      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com" target="_blank">Podcast</a>
     </div>
-    <div class="layout">
-        <div class="panel panel-left">
-            <div class="panel-title">Aktuelle KI-News</div>
-            
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
-                <span class="news-title">OpenAI schafft separates Coding-Modell ab</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">OpenAI hat sein separates Coding-Modell Codex abgeschafft und stattdessen GPT-5.5 übernommen. Dies ändert die Art und Weise, wie Codes generiert werden. Die Entscheidung ist relevant, da sie die Weiterentwicklung von KI-Technologien beeinflusst.</p>
-                <a href="https://the-decoder.de/openai-schafft-separates-coding-modell-codex-wieder-ab-gpt-5-5-uebernimmt/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
-                <span class="news-title">OpenAI gibt Prompting-Tipps für GPT-5.5</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">OpenAI hat Tipps für die Verwendung von GPT-5.5 herausgegeben. Ein wichtiger Tipp ist, von Grund auf neu zu starten, anstatt auf bestehenden Modellen aufzubauen. Dies kann die Effektivität der KI-Anwendungen verbessern.</p>
-                <a href="https://the-decoder.de/openai-gibt-prompting-tipps-fuer-gpt-5-5-besser-von-grund-auf-neu-starten/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
-                <span class="news-title">KI-Ergebnisse unbrauchbar für den Kundenkontakt</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Eine Gruppe von 500 Bankern hat die Ergebnisse von KI-Systemen bewertet und sie als unbrauchbar für den Kundenkontakt befunden. Dies zeigt, dass KI-Systeme noch nicht ausreichend entwickelt sind, um den Anforderungen von Kunden zu entsprechen.</p>
-                <a href="https://the-decoder.de/500-banker-bewerten-ki-ergebnisse-und-finden-sie-durchweg-unbrauchbar-fuer-den-kundenkontakt/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
-                <span class="news-title">Anthropic-Beteiligung erforderlich für Hauskauf</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Um ein bestimmtes Haus in der Bay Area zu kaufen, benötigt man eine Beteiligung an Anthropic. Dies unterstreicht die enge Verbindung zwischen der Immobilienbranche und der Technologieindustrie.</p>
-                <a href="https://techcrunch.com/2026/04/26/to-buy-this-bay-area-home-youll-need-anthropic-equity/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
-                <span class="news-title">Anthropic testet Marktplatz für Agent-on-Agent-Handel</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Anthropic hat einen Testmarktplatz für den Handel zwischen künstlichen Agenten erstellt. Dies ist ein wichtiger Schritt in der Entwicklung von KI-Systemen, die in der Lage sind, miteinander zu interagieren.</p>
-                <a href="https://techcrunch.com/2026/04/25/anthropic-created-a-test-marketplace-for-agent-on-agent-commerce/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
-                <span class="news-title">Gouverneur von Maine stoppt Moratorium für Rechenzentren</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Der Gouverneur von Maine hat ein Moratorium für den Bau von Rechenzentren gestoppt. Dies ermöglicht die weitere Entwicklung von Rechenzentren in der Region und unterstützt die wachsende Nachfrage nach Rechenleistung.</p>
-                <a href="https://techcrunch.com/2026/04/25/maines-governor-vetoes-data-center-moratorium/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
-                <span class="news-title">Bahn securet 100 Millionen Dollar</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Die Bahn hat 100 Millionen Dollar gesichert, um mit einer künstlichen Intelligenz-nativen Cloud-Infrastruktur mit Amazon Web Services (AWS) zu konkurrieren. Dies ist relevant, weil es zeigt, dass sich Unternehmen bemühen, ihre Cloud-Infrastruktur zu verbessern und mit den großen Anbietern wie AWS zu konkurrieren.</p>
-                <a href="https://venturebeat.com/infrastructure/railway-secures-usd100-million-to-challenge-aws-with-ai-native-cloud" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
-                <span class="news-title">Claude Code vs. Goose</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Claude Code kostet bis zu 200 Dollar pro Monat, während Goose dieselben Funktionen kostenlos anbietet. Dies ist relevant, weil es zeigt, dass es auf dem Markt für künstliche Intelligenz-Tools eine starke Konkurrenz gibt und die Preise entsprechend niedrig gehalten werden.</p>
-                <a href="https://venturebeat.com/infrastructure/claude-code-costs-up-to-usd200-a-month-goose-does-the-same-thing-for-free" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
-                <span class="news-title">Listen Labs erhält 69 Millionen Dollar</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Listen Labs hat 69 Millionen Dollar erhalten, nachdem das Unternehmen mit einem viralen billboard-gestützten Einstellungsstunt auf sich aufmerksam gemacht hatte. Das Geld wird verwendet, um künstliche Intelligenz-gestützte Kundeninterviews zu skalieren. Dies ist relevant, weil es zeigt, dass kreative Werbestrategien und innovative Produkte zu Erfolg führen können.</p>
-                <a href="https://venturebeat.com/technology/listen-labs-raises-usd69m-after-viral-billboard-hiring-stunt-to-scale-ai" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#dc2626">MIT Tech Review</span>
-                <span class="news-title">Warum DeepSeeks neues Modell wichtig ist</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">DeepSeeks neues Modell ist wichtig, weil es drei Gründe gibt, warum es relevant ist. Leider sind die genauen Gründe nicht bekannt, aber es ist klar, dass das Modell eine bedeutende Rolle in der künstlichen Intelligenz spielen wird. Dies ist relevant, weil es zeigt, dass neue Modelle und Technologien entwickelt werden, um die künstliche Intelligenz zu verbessern.</p>
-                <a href="https://www.technologyreview.com/2026/04/24/1136422/why-deepseeks-v4-matters/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#dc2626">MIT Tech Review</span>
-                <span class="news-title">Supercharged Scams und künstliche Intelligenz in der Gesundheitsversorgung</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Es gibt supercharged Scams, die durch künstliche Intelligenz ermöglicht werden, und es gibt Studien, die die Anwendung von künstlicher Intelligenz in der Gesundheitsversorgung untersuchen. Dies ist relevant, weil es zeigt, dass die künstliche Intelligenz sowohl positive als auch negative Auswirkungen haben kann und dass es wichtig ist, sie verantwortungsvoll einzusetzen.</p>
-                <a href="https://www.technologyreview.com/2026/04/24/1136400/the-download-supercharged-scams-questionable-ai-healthcare/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#dc2626">MIT Tech Review</span>
-                <span class="news-title">Gesundheits-AI ist da, aber hilft sie den Patienten?</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Die künstliche Intelligenz in der Gesundheitsversorgung ist bereits verfügbar, aber es ist unklar, ob sie den Patienten tatsächlich hilft. Dies ist relevant, weil es zeigt, dass die künstliche Intelligenz in der Gesundheitsversorgung noch nicht ausreichend erforscht ist und dass es weiterer Studien bedarf, um ihre Wirksamkeit zu bewerten.</p>
-                <a href="https://www.technologyreview.com/2026/04/24/1136352/health-care-ai-dont-know-actually-helps-patients/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        </div>
-        <div class="panel panel-right">
-            <div class="panel-title">Post-Vorschlaege fuer @CScampy</div>
-            
-        <div class="post-card">
-            <div class="post-meta">
-                <span class="post-nr">Post 1</span>
-                <span class="post-zeichen" style="color:#16a34a">76/265</span>
-            </div>
-            <p class="post-text" id="teaser1">Effizienz geht vor Spezialisierung, Codex wird abgeschafft (via The Decoder)</p>
-            <p class="post-erklaerung">GPT-5.5 übernimmt Codex, bedingt durch Effizienz</p>
-            <span class="post-quelle" style="background:#1d9bf0">The Decoder</span>
-            <div class="post-actions">
-                <button class="btn-copy" onclick="copyPost('teaser1', this)">Kopieren</button>
-                <a href="https://x.com/intent/tweet?text={}"
-                   onclick="this.href='https://x.com/intent/tweet?text='+encodeURIComponent(document.getElementById('teaser1').textContent)"
-                   target="_blank" class="btn-x">Posten</a>
-            </div>
-            
-            <div class="thread-toggle" onclick="toggleThread(this)">&#9658; Thread anzeigen (6 Teile)</div>
-            <div class="thread-section" style="display:none">
-                
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">84/265</span>
-                    </div>
-                    <p class="thread-text" id="thread1-1">OpenAI priorisiert GPT-5.5, Codex wird abgelöst, denn Spezialisierung hat ausgedient</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread1-1', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">89/265</span>
-                    </div>
-                    <p class="thread-text" id="thread1-2">Historisch gesehen, war Codex ein Versuch, Code zu automatisieren, aber GPT-5.5 übernimmt</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread1-2', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">88/265</span>
-                    </div>
-                    <p class="thread-text" id="thread1-3">Abschaffung von Codex bedeutet, dass GPT-5.5 alle Aufgaben übernimmt, auch die von Codex</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread1-3', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">97/265</span>
-                    </div>
-                    <p class="thread-text" id="thread1-4">Befürchtungen bestehen, dass die allgemeine Leistung abnehmen könnte, wenn ein Modell alles macht</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread1-4', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">99/265</span>
-                    </div>
-                    <p class="thread-text" id="thread1-5">Für Entwickler bedeutet dies, dass sie sich auf GPT-5.5 konzentrieren müssen, um aktuell zu bleiben</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread1-5', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">103/265</span>
-                    </div>
-                    <p class="thread-text" id="thread1-6">Kann ein allgemeines Modell wie GPT-5.5 wirklich alle spezifischen Bedürfnisse abdecken, frage ich mich</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread1-6', this)">Kopieren</button>
-                </div>
-            </div>
-        </div>
-        <div class="post-card">
-            <div class="post-meta">
-                <span class="post-nr">Post 2</span>
-                <span class="post-zeichen" style="color:#16a34a">86/265</span>
-            </div>
-            <p class="post-text" id="teaser2">Neue Richtlinien für bessere Ergebnisse, aber Vorbereitung ist alles (via The Decoder)</p>
-            <p class="post-erklaerung">Bessere Ergebnisse durch neue Richtlinien</p>
-            <span class="post-quelle" style="background:#1d9bf0">The Decoder</span>
-            <div class="post-actions">
-                <button class="btn-copy" onclick="copyPost('teaser2', this)">Kopieren</button>
-                <a href="https://x.com/intent/tweet?text={}"
-                   onclick="this.href='https://x.com/intent/tweet?text='+encodeURIComponent(document.getElementById('teaser2').textContent)"
-                   target="_blank" class="btn-x">Posten</a>
-            </div>
-            
-            <div class="thread-toggle" onclick="toggleThread(this)">&#9658; Thread anzeigen (6 Teile)</div>
-            <div class="thread-section" style="display:none">
-                
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">95/265</span>
-                    </div>
-                    <p class="thread-text" id="thread2-1">OpenAI gibt Tipps für GPT-5.5, um bessere Ergebnisse zu erzielen, jeder muss von vorne beginnen</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread2-1', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">84/265</span>
-                    </div>
-                    <p class="thread-text" id="thread2-2">Historisch haben Nutzer geschwankt, zwischen klaren und unklaren Prompting-Techniken</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread2-2', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">94/265</span>
-                    </div>
-                    <p class="thread-text" id="thread2-3">Die neuen Richtlinien betonen, dass ein Neustart oft der Schlüssel zu besseren Ergebnissen ist</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread2-3', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">94/265</span>
-                    </div>
-                    <p class="thread-text" id="thread2-4">Es ist beunruhigend, wie sehr die Qualität der Ergebnisse von der Qualität der Eingabe abhängt</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread2-4', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">86/265</span>
-                    </div>
-                    <p class="thread-text" id="thread2-5">Für Anwender bedeutet dies, dass sie ihre Herangehensweise an PROJECTS anpassen müssen</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread2-5', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">89/265</span>
-                    </div>
-                    <p class="thread-text" id="thread2-6">Wird die Bedienung von KI-Systemen zu komplex für den Durchschnittsnutzer, frage ich mich</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread2-6', this)">Kopieren</button>
-                </div>
-            </div>
-        </div>
-        <div class="post-card">
-            <div class="post-meta">
-                <span class="post-nr">Post 3</span>
-                <span class="post-zeichen" style="color:#16a34a">83/265</span>
-            </div>
-            <p class="post-text" id="teaser3">KI-Ergebnisse im Bankwesen sind unbrauchbar für Kundenbeziehungen (via The Decoder)</p>
-            <p class="post-erklaerung">KI im Bankwesen noch nicht reif für Kundenbeziehungen</p>
-            <span class="post-quelle" style="background:#1d9bf0">The Decoder</span>
-            <div class="post-actions">
-                <button class="btn-copy" onclick="copyPost('teaser3', this)">Kopieren</button>
-                <a href="https://x.com/intent/tweet?text={}"
-                   onclick="this.href='https://x.com/intent/tweet?text='+encodeURIComponent(document.getElementById('teaser3').textContent)"
-                   target="_blank" class="btn-x">Posten</a>
-            </div>
-            
-            <div class="thread-toggle" onclick="toggleThread(this)">&#9658; Thread anzeigen (6 Teile)</div>
-            <div class="thread-section" style="display:none">
-                
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">103/265</span>
-                    </div>
-                    <p class="thread-text" id="thread3-1">500 Banker bewerten KI-Ergebnisse und finden sie unbrauchbar, was bedeutet, dass KI noch nicht reif ist</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread3-1', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">101/265</span>
-                    </div>
-                    <p class="thread-text" id="thread3-2">Historisch haben Banken in KI investiert, um Kundenbeziehungen zu verbessern, aber bisher ohne Erfolg</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread3-2', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">106/265</span>
-                    </div>
-                    <p class="thread-text" id="thread3-3">Die Ergebnisse bedeuten, dass KI-Systeme noch nicht in der Lage sind, menschliche Bedürfnisse zu verstehen</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread3-3', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">85/265</span>
-                    </div>
-                    <p class="thread-text" id="thread3-4">Es ist beunruhigend, wie sehr KI-Systeme die menschliche Interaktion ersetzen könnten</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread3-4', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">100/265</span>
-                    </div>
-                    <p class="thread-text" id="thread3-5">Für Banken bedeutet dies, dass sie ihre KI-Strategie überdenken müssen, um Kunden zufriedenzustellen</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread3-5', this)">Kopieren</button>
-                </div>
-                <div class="thread-part">
-                    <div class="thread-meta">
-                        <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">90/265</span>
-                    </div>
-                    <p class="thread-text" id="thread3-6">Kann KI jemals die Feinheiten menschlicher Interaktionen wirklich ersetzen, frage ich mich</p>
-                    <button class="btn-copy-sm" onclick="copyPost('thread3-6', this)">Kopieren</button>
-                </div>
-            </div>
-        </div>
-        </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <a href="https://x.com/CScampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span class="hidden sm:inline">@CScampy</span>
+    </a>
+    <a href="https://linkedin.com/in/dscampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-[#0a66c2] transition-colors">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+  </div>
+</nav>
+
+<!-- Sidebar -->
+<aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-6 bg-black border-r border-[#2f3336] hidden lg:flex">
+  <div class="px-5 mb-8">
+    <p class="text-[11px] text-gray-500 font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
+  </div>
+  <div class="flex flex-col gap-1 px-2">
+    <a class="flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
+      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
+    </a>
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com" target="_blank">
+      <span class="material-symbols-outlined text-sm">mic</span>Podcast
+    </a>
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      X / Twitter
+    </a>
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://linkedin.com/in/dscampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      LinkedIn
+    </a>
+  </div>
+  <div class="mt-auto px-5 pb-2">
+    <div class="border border-[#2f3336] p-3">
+      <p class="text-[10px] text-gray-500 font-mono mb-1">QUELLEN</p>
+      <div class="flex flex-wrap gap-1">
+        <span class="text-[10px] bg-[#1d9bf0]/20 text-[#1d9bf0] px-1.5 py-0.5 font-mono">The Decoder</span>
+        <span class="text-[10px] bg-[#ff6b35]/20 text-[#ff6b35] px-1.5 py-0.5 font-mono">TechCrunch</span>
+        <span class="text-[10px] bg-[#7c3aed]/20 text-[#a78bfa] px-1.5 py-0.5 font-mono">VentureBeat</span>
+        <span class="text-[10px] bg-[#dc2626]/20 text-[#f87171] px-1.5 py-0.5 font-mono">MIT Review</span>
+      </div>
     </div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="lg:ml-[240px] pt-14 min-h-screen bg-black">
+  <div class="max-w-[1400px] mx-auto p-gutter">
+
+    <!-- Bento Top Section -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-lg mt-gutter">
+
+      <!-- Aktuellster Podcast -->
+      <div class="md:col-span-7 bg-[#16181c] border border-[#2f3336] p-6 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
+          <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
+        </div>
+        <div class="relative z-10">
+          <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-3 block">🎙 Aktuellster Podcast</span>
+          <h2 class="font-headline-xl text-headline-xl text-white mb-3 leading-tight" style="font-family:'Space Grotesk',sans-serif">Metas Flucht ins All – Chinas KI-Ausreiseverbot</h2>
+          <p class="text-on-surface-variant font-body-sm text-body-sm mb-5 max-w-xl">China blockiert Metas $2,5-Mrd.-Deal mit Manus. Die Gründer bekommen Ausreiseverbot. Metas Antwort: 1.000 Satelliten im Orbit. Ein Deep-Dive in den KI-Krieg zwischen den USA und China.</p>
+          <div class="mt-2">
+            <iframe width="100%" height="100" scrolling="no" frameborder="no" allow="autoplay"
+              src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2311534997&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"
+              style="border-radius:4px;opacity:0.9">
+            </iframe>
+            <div class="mt-3 flex items-center gap-3">
+              <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-4 py-2 text-sm font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
+                <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>
+                Auf SoundCloud öffnen
+              </a>
+              <span class="text-xs text-gray-500 font-mono">KI NEWS #001 · ~20 MIN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Story -->
+      <div class="md:col-span-5 bg-[#16181c] border border-[#2f3336] p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-headline-md text-white" style="font-family:'Space Grotesk',sans-serif">Top Story</h3>
+          <span class="material-symbols-outlined text-[#1d9bf0]">trending_up</span>
+        </div>
+        <div class="space-y-5">
+          <div class="group cursor-pointer">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors" style="font-family:'Space Grotesk',sans-serif">01</span>
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] bg-[#dc2626]/20 text-[#f87171] px-1.5 py-0.5 font-mono uppercase">GEOPOLITIK</span>
+                  <span class="text-[10px] text-gray-500 font-mono">29.04.2026</span>
+                </div>
+                <h4 class="text-sm font-bold text-white leading-snug mb-1 group-hover:text-[#1d9bf0] transition-colors">China stoppt Metas $2,5-Mrd.-Deal – Gründer dürfen das Land nicht verlassen</h4>
+                <p class="text-[12px] text-gray-500">Peking zieht die Notbremse. Das KI-Know-how bleibt in China.</p>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-[#2f3336] pt-4 group cursor-pointer">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors" style="font-family:'Space Grotesk',sans-serif">02</span>
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] bg-[#1d9bf0]/20 text-[#1d9bf0] px-1.5 py-0.5 font-mono uppercase">ENERGIE</span>
+                  <span class="text-[10px] text-gray-500 font-mono">29.04.2026</span>
+                </div>
+                <h4 class="text-sm font-bold text-white leading-snug mb-1 group-hover:text-[#1d9bf0] transition-colors">Meta antwortet: 1.000 Satelliten, 1 Gigawatt Solarstrom aus dem All – ab 2030</h4>
+                <p class="text-[12px] text-gray-500">Wer die KI-Energie kontrolliert, kontrolliert das Rennen.</p>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-[#2f3336] pt-4 group cursor-pointer">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors" style="font-family:'Space Grotesk',sans-serif">03</span>
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] bg-[#7c3aed]/20 text-[#a78bfa] px-1.5 py-0.5 font-mono uppercase">TOOLS</span>
+                  <span class="text-[10px] text-gray-500 font-mono">26.04.2026</span>
+                </div>
+                <h4 class="text-sm font-bold text-white leading-snug group-hover:text-[#1d9bf0] transition-colors">Claude Code kostet $200/Monat – Goose macht dasselbe kostenlos</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- News Grid -->
+    <div class="mb-8 flex items-center justify-between">
+      <h3 class="font-headline-xl text-headline-xl text-white" style="font-family:'Space Grotesk',sans-serif">Aktuelle News</h3>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span class="text-xs font-mono text-gray-500 uppercase tracking-widest">Stand: 26.04.2026</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter">
+
+      <!-- 1 -->
+      <a href="https://the-decoder.de/openai-schafft-separates-coding-modell-codex-wieder-ab-gpt-5-5-uebernimmt/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#1d9bf0] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span class="bg-[#1d9bf0] text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">KI-Modelle</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">NEUTRAL</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#1d9bf0] transition-colors" style="font-family:'Space Grotesk',sans-serif">OpenAI schafft Codex ab – GPT-5.5 übernimmt</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Spezialisierung war gestern: OpenAI löst sein Coding-Modell auf. GPT-5.5 übernimmt alle Aufgaben.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#1d9bf0] uppercase">The Decoder</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 2 -->
+      <a href="https://the-decoder.de/openai-gibt-prompting-tipps-fuer-gpt-5-5-besser-von-grund-auf-neu-starten/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#1d9bf0] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span class="bg-[#1d9bf0] text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Tools</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">NEUTRAL</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#1d9bf0] transition-colors" style="font-family:'Space Grotesk',sans-serif">OpenAI: Prompts für GPT-5.5 von Grund auf neu schreiben</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Neues Modell, neue Regeln: OpenAI empfiehlt, alte Prompts wegzuwerfen und neu anzufangen.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#1d9bf0] uppercase">The Decoder</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 3 -->
+      <a href="https://the-decoder.de/500-banker-bewerten-ki-ergebnisse-und-finden-sie-durchweg-unbrauchbar-fuer-den-kundenkontakt/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#1d9bf0] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span class="bg-[#1d9bf0] text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Enterprise</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">CAUTION</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#1d9bf0] transition-colors" style="font-family:'Space Grotesk',sans-serif">500 Banker: KI-Outputs für Kundenkontakt unbrauchbar</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Massentest im Bankensektor – die Ergebnisse sind eindeutig und ernüchternd.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#1d9bf0] uppercase">The Decoder</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 4 -->
+      <a href="https://techcrunch.com/2026/04/26/to-buy-this-bay-area-home-youll-need-anthropic-equity/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#ff6b35] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#ff6b35" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Investment</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">SYMBOL</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#ff6b35] transition-colors" style="font-family:'Space Grotesk',sans-serif">Hauskauf in der Bay Area erfordert Anthropic-Anteile</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Tech-Hypeinflation auf die Spitze getrieben: Startup-Equity statt Eigenkapital.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#ff6b35] uppercase">TechCrunch</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 5 -->
+      <a href="https://techcrunch.com/2026/04/25/anthropic-created-a-test-marketplace-for-agent-on-agent-commerce/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#ff6b35] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#ff6b35" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Agents</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">BULLISH</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#ff6b35] transition-colors" style="font-family:'Space Grotesk',sans-serif">Anthropic testet Marktplatz für Agent-on-Agent-Handel</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">KI-Agenten handeln miteinander – autonom, ohne menschliche Kontrolle in jedem Schritt.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#ff6b35] uppercase">TechCrunch</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 6 -->
+      <a href="https://techcrunch.com/2026/04/25/maines-governor-vetoes-data-center-moratorium/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#ff6b35] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#ff6b35" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Infrastruktur</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">NEUTRAL</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#ff6b35] transition-colors" style="font-family:'Space Grotesk',sans-serif">Maine: Gouverneur legt Veto gegen Rechenzentren-Stopp ein</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Baustopp abgelehnt – der Hunger nach Rechenkapazität schlägt lokalen Widerstand.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#ff6b35] uppercase">TechCrunch</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 7 -->
+      <a href="https://venturebeat.com/infrastructure/railway-secures-usd100-million-to-challenge-aws-with-ai-native-cloud" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#a78bfa] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#7c3aed" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Cloud</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">BULLISH</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#a78bfa] transition-colors" style="font-family:'Space Grotesk',sans-serif">Railway: $100 Mio. für KI-native Cloud gegen AWS</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Nächste Runde im Cloud-Krieg: Railway sammelt Kapital und greift direkt Amazons Kerngeschäft an.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#a78bfa] uppercase">VentureBeat</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 8 -->
+      <a href="https://venturebeat.com/infrastructure/claude-code-costs-up-to-usd200-a-month-goose-does-the-same-thing-for-free" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#a78bfa] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#7c3aed" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Tools</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">VERGLEICH</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#a78bfa] transition-colors" style="font-family:'Space Grotesk',sans-serif">Claude Code: $200/Monat – Goose: $0. Gleiches Ergebnis?</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Open-Source holt auf. Wer zahlt noch für proprietäre Coding-Tools, wenn Alternativen kostenlos sind?</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#a78bfa] uppercase">VentureBeat</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 9 -->
+      <a href="https://venturebeat.com/technology/listen-labs-raises-usd69m-after-viral-billboard-hiring-stunt-to-scale-ai" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#a78bfa] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#7c3aed" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Startups</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">BULLISH</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#a78bfa] transition-colors" style="font-family:'Space Grotesk',sans-serif">Listen Labs: $69 Mio. nach viralem Billboard-Trick</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Aufmerksamkeit als Kapital: Creatives Recruiting bringt Millionen-Runde für KI-Kundeninterviews.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#a78bfa] uppercase">VentureBeat</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 10 -->
+      <a href="https://www.technologyreview.com/2026/04/24/1136422/why-deepseeks-v4-matters/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#f87171] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#dc2626" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">KI-Modelle</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">BULLISH</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#f87171] transition-colors" style="font-family:'Space Grotesk',sans-serif">Warum DeepSeeks V4 wirklich wichtig ist</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">MIT erklärt drei Gründe. Das neue Modell setzt Maßstäbe – nicht nur technisch, auch strategisch.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#f87171] uppercase">MIT Tech Review</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 11 -->
+      <a href="https://www.technologyreview.com/2026/04/24/1136400/the-download-supercharged-scams-questionable-ai-healthcare/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#f87171] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#dc2626" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Security</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">THREAT</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#f87171] transition-colors" style="font-family:'Space Grotesk',sans-serif">KI-gestützte Betrugsmaschen nehmen massiv zu</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">Smarter, schneller, überzeugender. KI macht Scams gefährlicher – gleichzeitig bleibt KI im Gesundheitswesen umstritten.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#f87171] uppercase">MIT Tech Review</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+      <!-- 12 -->
+      <a href="https://www.technologyreview.com/2026/04/24/1136352/health-care-ai-dont-know-actually-helps-patients/" target="_blank" class="bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-[#f87171] transition-all group cursor-pointer p-4 flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+          <span style="background:#dc2626" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">Healthcare</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+            <span class="text-[10px] font-mono text-gray-500">OFFEN</span>
+          </div>
+        </div>
+        <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[#f87171] transition-colors" style="font-family:'Space Grotesk',sans-serif">Gesundheits-KI ist da – aber hilft sie Patienten wirklich?</h4>
+        <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">KI ist in Kliniken angekommen. Belege für echten Patientennutzen fehlen bisher weitgehend.</p>
+        <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
+          <span class="text-[11px] font-mono text-[#f87171] uppercase">MIT Tech Review</span>
+          <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-12 pb-12 border-t border-[#2f3336] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="text-white font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
+        <p class="text-[11px] text-gray-500 font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/CScampy" target="_blank" class="text-[#1d9bf0] hover:underline">@CScampy</a></p>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://x.com/CScampy" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
+        <a href="https://linkedin.com/in/dscampy" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">LinkedIn</a>
+        <a href="https://soundcloud.com" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">Podcast</a>
+      </div>
+    </div>
+
+  </div>
+</main>
+
 </body>
 </html>
