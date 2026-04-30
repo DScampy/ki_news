@@ -55,19 +55,12 @@
   ::-webkit-scrollbar-track { background: #000; }
   ::-webkit-scrollbar-thumb { background: #2f3336; border-radius: 10px; }
 </style>
-  <style>
-html.light body { background-color: #f8fafc !important; color: #0f172a !important; }
-html.light nav.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
-html.light aside.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
-html.light main { background-color: #f8fafc !important; }
-html.light .bg-\[#16181c\] { background-color: #ffffff !important; }
-html.light .hover\:bg-\[#1d1f23\]:hover { background-color: #f1f5f9 !important; }
-html.light .border-\[#2f3336\] { border-color: #e2e8f0 !important; }
-html.light .text-white { color: #0f172a !important; }
-html.light .text-gray-500 { color: #64748b !important; }
-html.light .text-gray-400 { color: #475569 !important; }
-html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
-  </style>
+ <style>
+html.light body { background-color: #f8fafc; color: #0f172a; }
+html.light nav.fixed { background-color: #fff; border-color: #e2e8f0; }
+html.light aside.fixed { background-color: #fff; border-color: #e2e8f0; }
+html.light main { background-color: #f8fafc; }
+</style>
 </head>
 <body class="font-body-lg">
 
@@ -491,16 +484,38 @@ html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
     });
 })();
 </script>
-  <script>
+<script>
 (function(){
-  const THEMES=['auto','light','dark'],ICONS={auto:'AUTO',light:'☀',dark:'☾'};
+  const THEMES=['auto','light','dark'], ICONS={auto:'AUTO',light:'☀',dark:'☾'};
+  const LIGHT={card:'#ffffff',cardHover:'#f1f5f9',border:'#e2e8f0',
+    textMain:'#0f172a',textMuted:'#64748b',textFaint:'#94a3b8'};
   function getPreferred(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  function patchEl(el,isLight){
+    const c=el.className||''; if(typeof c!=='string') return;
+    if(c.includes('bg-[#16181c]')||c.includes('bg-black')) el.style.backgroundColor=isLight?LIGHT.card:'';
+    if(c.includes('bg-[#1d1f23]')) el.style.backgroundColor=isLight?LIGHT.cardHover:'';
+    if(c.includes('border-[#2f3336]')) el.style.borderColor=isLight?LIGHT.border:'';
+    if(c.includes('text-white')&&!c.includes('text-[#')) el.style.color=isLight?LIGHT.textMain:'';
+    if(c.includes('text-gray-500')) el.style.color=isLight?LIGHT.textMuted:'';
+    if(c.includes('text-gray-400')) el.style.color=isLight?'#475569':'';
+    if(c.includes('text-on-surface')) el.style.color=isLight?'#334155':'';
+  }
+  let obs;
+  function watchDOM(isLight){
+    if(obs) obs.disconnect();
+    if(!isLight) return;
+    obs=new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{
+      if(n.nodeType===1){patchEl(n,true);n.querySelectorAll&&n.querySelectorAll('[class]').forEach(e=>patchEl(e,true));}
+    })));
+    obs.observe(document.body,{childList:true,subtree:true});
+  }
   function applyTheme(t){
-    const r=t==='auto'?getPreferred():t;
+    const r=t==='auto'?getPreferred():t, isLight=r==='light';
     document.documentElement.classList.remove('light','dark');
     document.documentElement.classList.add(r);
+    requestAnimationFrame(()=>{document.querySelectorAll('[class]').forEach(el=>patchEl(el,isLight));watchDOM(isLight);});
     const btn=document.getElementById('themeBtn');
-    if(btn)btn.textContent=ICONS[t];
+    if(btn){btn.textContent=ICONS[t];btn.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
   }
   window.cycleTheme=function(){
     const cur=localStorage.getItem('ki_theme')||'auto';
@@ -509,7 +524,10 @@ html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
     applyTheme(next);
   };
   let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  applyTheme(saved);
+  document.readyState==='loading'?document.addEventListener('DOMContentLoaded',()=>applyTheme(saved)):applyTheme(saved);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){} if(s==='auto')applyTheme('auto');
+  });
 })();
 </script>
 </body>
