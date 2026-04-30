@@ -55,6 +55,19 @@
   ::-webkit-scrollbar-track { background: #000; }
   ::-webkit-scrollbar-thumb { background: #2f3336; border-radius: 10px; }
 </style>
+  <style>
+html.light body { background-color: #f8fafc !important; color: #0f172a !important; }
+html.light nav.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
+html.light aside.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
+html.light main { background-color: #f8fafc !important; }
+html.light .bg-\[#16181c\] { background-color: #ffffff !important; }
+html.light .hover\:bg-\[#1d1f23\]:hover { background-color: #f1f5f9 !important; }
+html.light .border-\[#2f3336\] { border-color: #e2e8f0 !important; }
+html.light .text-white { color: #0f172a !important; }
+html.light .text-gray-500 { color: #64748b !important; }
+html.light .text-gray-400 { color: #475569 !important; }
+html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
+  </style>
 </head>
 <body class="font-body-lg">
 
@@ -415,6 +428,7 @@
       <div class="flex items-center gap-4">
         <a href="https://x.com/CScampy" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
         <a href="https://linkedin.com/in/dscampy" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">LinkedIn</a>
+        <button id="themeBtn" onclick="cycleTheme()" class="text-gray-400 hover:text-white text-[10px] font-mono border border-[#2f3336] px-2 py-1 hover:border-gray-500 transition-colors">AUTO</button>
         <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">Podcast</a>
       </div>
     </div>
@@ -475,6 +489,27 @@
       const label = document.getElementById('stand-label');
       if (label) label.textContent = 'Stand: 26.04.2026';
     });
+})();
+</script>
+  <script>
+(function(){
+  const THEMES=['auto','light','dark'],ICONS={auto:'AUTO',light:'☀',dark:'☾'};
+  function getPreferred(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  function applyTheme(t){
+    const r=t==='auto'?getPreferred():t;
+    document.documentElement.classList.remove('light','dark');
+    document.documentElement.classList.add(r);
+    const btn=document.getElementById('themeBtn');
+    if(btn)btn.textContent=ICONS[t];
+  }
+  window.cycleTheme=function(){
+    const cur=localStorage.getItem('ki_theme')||'auto';
+    const next=THEMES[(THEMES.indexOf(cur)+1)%THEMES.length];
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyTheme(next);
+  };
+  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  applyTheme(saved);
 })();
 </script>
 </body>
