@@ -71,8 +71,6 @@ FEEDS = [
     ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
     ("MIT Tech Review","https://www.technologyreview.com/feed/"),
-    ("The Verge",      "https://www.theverge.com/rss/index.xml"),
-    ("Wired AI",       "https://www.wired.com/feed/tag/artificial-intelligence/rss"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
