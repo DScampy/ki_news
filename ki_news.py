@@ -23,6 +23,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("ki_news")
+logger.propagate = False  # Kein Doppel-Logging durch Root-Handler
 
 # -------------------------
 # Zeitzone
@@ -53,9 +54,10 @@ GROQ_CHAT_KEY = os.environ.get("GROQ_CHAT_KEY", "").strip()
 # Konfiguration
 # -------------------------
 KI_KEYWORDS = [
-    "ki", "ai", "kunstliche", "model", "llm", "gpt", "claude",
+    "ki", "ai", "kunstliche", "künstliche", "intelligenz", "model", "llm", "gpt", "claude",
     "chatgpt", "openai", "google", "meta ai", "agent", "nvidia",
-    "anthropic", "gemini", "mistral", "deepseek"
+    "anthropic", "gemini", "mistral", "deepseek", "roboter", "automation",
+    "sprachmodell", "chatbot", "machine learning", "neural", "generativ"
 ]
 
 FEEDS = [
@@ -72,10 +74,13 @@ FEEDS = [
 MAX_LLM_NEWS = 3
 
 MODELLE = [
-    "mistralai/mistral-small-3.2-24b-instruct:free",
-    "meta-llama/llama-3.3-70b-instruct",
-    "google/gemma-3-27b-it",
-    "meta-llama/llama-3.1-8b-instruct",
+    # Kostenlose Modelle zuerst – Reihenfolge nach Qualität
+    "google/gemma-4-26b-a4b-it-20260403:free",   # Gemma 4 – bewiesen kostenlos
+    "nvidia/nemotron-3-super-120b-a12b:free",     # Nemotron – kostenlos
+    "meta-llama/llama-3.3-70b-instruct:free",     # Llama 70B Free-Tier (falls verfügbar)
+    # Kostenpflichtige Fallbacks – nur wenn alle Free-Modelle fehlschlagen
+    "meta-llama/llama-3.3-70b-instruct",          # ~$0.01/Lauf, zuverlässig
+    "google/gemma-3-27b-it",                       # Letzter Fallback
 ]
 
 SOURCE_COLORS = {
@@ -345,7 +350,7 @@ def send_telegram(parsed):
         logger.warning("Kein Telegram Token. Ueberspringe Versand.")
         return False
 
-    teile = ["KI News fuer @CScampy\n"]
+    teile = ["KI News fuer @ScampyNews24_bot\n"]
     for i, p in enumerate(parsed, 1):
         teile.append(f"--- Post {i} ---")
         teile.append(p["teaser"])
@@ -704,6 +709,72 @@ def main():
         update_archive(proj_dir)
     else:
         update_archive(Path("."))
+
+    # ── hashtags/hashtags.json aktualisieren ──────────────────────────────
+    def update_hashtags(base_dir):
+        """Extrahiert Hashtags aus Quellen + News-Titeln und mergt in hashtags.json."""
+        hashtag_dir = base_dir / "hashtags"
+        hashtag_path = hashtag_dir / "hashtags.json"
+        try:
+            hashtag_dir.mkdir(exist_ok=True)
+            if hashtag_path.exists():
+                existing_data = json.loads(hashtag_path.read_text(encoding="utf-8"))
+                existing_tags = set(existing_data.get("tags", []))
+            else:
+                existing_tags = set()
+        except Exception:
+            existing_tags = set()
+
+        # Basis-Tags aus Quellen
+        source_tags = {
+            "The Decoder": "#TheDecoder",
+            "TechCrunch AI": "#TechCrunch",
+            "VentureBeat AI": "#VentureBeat",
+            "Ars Technica": "#ArsTechnica",
+            "MIT Tech Review": "#MITTechReview",
+            "Heise": "#Heise",
+        }
+        # Keyword-Tags aus Nachrichtentiteln generieren
+        keyword_map = {
+            "openai": "#OpenAI", "chatgpt": "#ChatGPT", "gpt": "#GPT",
+            "claude": "#Claude", "anthropic": "#Anthropic",
+            "gemini": "#Gemini", "google": "#Google",
+            "meta ai": "#MetaAI", "llama": "#Llama",
+            "mistral": "#Mistral", "deepseek": "#DeepSeek",
+            "nvidia": "#Nvidia", "gemma": "#Gemma",
+            "agent": "#AIAgent", "llm": "#LLM",
+            "roboter": "#Robotik", "automation": "#Automation",
+            "sicherheit": "#AISafety", "datenschutz": "#Datenschutz",
+        }
+        new_tags = set()
+        for n in alle_news:
+            title_lower = n["title"].lower()
+            # Quellen-Tag
+            src_tag = source_tags.get(n.get("source", ""))
+            if src_tag:
+                new_tags.add(src_tag)
+            # Keyword-Tags aus Titel
+            for kw, tag in keyword_map.items():
+                if kw in title_lower:
+                    new_tags.add(tag)
+
+        # Immer vorhandene Basis-Tags
+        base_tags = {"#KI", "#AI", "#AINews", "#KünstlicheIntelligenz", "#LLM"}
+        merged = sorted(base_tags | existing_tags | new_tags)
+        try:
+            hashtag_path.write_text(
+                json.dumps({"tags": merged, "updated": datetime.now(BERLIN).strftime("%Y-%m-%d")},
+                           ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+            logger.info("hashtags.json aktualisiert: %d Tags", len(merged))
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben hashtags.json: %s", e)
+
+    if proj_dir.exists():
+        update_hashtags(proj_dir)
+    else:
+        update_hashtags(Path("."))
 
     # ── chat-config.js schreiben (Groq Key fuer Frontend-Chat) ────────────
     if GROQ_CHAT_KEY:

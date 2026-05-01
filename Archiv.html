@@ -104,6 +104,10 @@
   html.light #searchInput::placeholder { color: #94a3b8 !important; }
   html.light #sourceFilters button { background: transparent !important; color: #475569 !important; }
   html.light #sourceFilters button:hover { background: #f1f5f9 !important; color: #0f172a !important; }
+  /* View-Toggle + Mobile-Search ID-Targets (sicherer als Tailwind-Klassen-Override) */
+  html.light #viewToggle { background: #f8fafc !important; border-color: #e2e8f0 !important; }
+  html.light #mobileSearch { background: #f8fafc !important; border-color: #e2e8f0 !important; }
+  html.light #filterChipLabel { background: #f8fafc !important; border-color: #e2e8f0 !important; }
   html.light #src-all { background: #eff6ff !important; color: #1d9bf0 !important; border-color: #1d9bf0 !important; }
   html.light aside .border-t { border-color: #e2e8f0 !important; }
   html.light aside .border { border-color: #e2e8f0 !important; }
@@ -145,6 +149,16 @@
     const next=resolved==='dark'?'light':'dark';
     try{localStorage.setItem('ki_theme',next);}catch(e){}
     apply(next);
+    // Inline-Style-Elemente bei Theme-Wechsel aktualisieren
+    const isLightNow = next === 'light';
+    const vtog = document.getElementById('viewToggle');
+    const msrch = document.getElementById('mobileSearch');
+    const fchip = document.getElementById('filterChipLabel');
+    if(vtog){ vtog.style.background=isLightNow?'#f8fafc':'#16181c'; vtog.style.borderColor=isLightNow?'#e2e8f0':'#2f3336'; }
+    if(msrch){ msrch.style.background=isLightNow?'#f8fafc':'#16181c'; msrch.style.borderColor=isLightNow?'#e2e8f0':'#2f3336'; }
+    if(fchip){ fchip.style.background=isLightNow?'#f8fafc':'#16181c'; fchip.style.borderColor=isLightNow?'#e2e8f0':'#2f3336'; }
+    // Layout-Buttons neu rendern
+    if(typeof setLayout === 'function') setLayout(window._currentLayout || 'grid');
   };
   let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
   apply(saved);
@@ -290,14 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <p class="text-[10px] font-mono text-gray-600 mt-1" id="archiveBadge" style="display:none"></p>
       </div>
       <!-- Mobile search -->
-      <div class="flex lg:hidden items-center gap-2 bg-[#16181c] border border-[#2f3336] px-3 py-2 max-w-xs">
+      <div id="mobileSearch" class="flex lg:hidden items-center gap-2 border px-3 py-2 max-w-xs" style="background:#16181c;border-color:#2f3336">
         <span class="material-symbols-outlined text-gray-500 text-base">search</span>
         <input type="text" placeholder="Suchen…"
           class="bg-transparent border-none outline-none text-xs text-gray-300 placeholder-gray-600 w-full font-mono"
           oninput="handleSearch(this.value)"/>
       </div>
       <!-- View toggle -->
-      <div class="flex items-center gap-2 bg-[#16181c] border border-[#2f3336] p-1">
+      <div id="viewToggle" class="flex items-center gap-2 border p-1" style="background:#16181c;border-color:#2f3336">
         <button onclick="setLayout('grid')" id="btnGrid"
           class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all text-[#1d9bf0] bg-[#1d1f23]">
           <span class="material-symbols-outlined text-sm">grid_view</span> Grid
@@ -312,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- Active filter chip -->
     <div id="filterChip" class="hidden mb-4 flex items-center gap-2">
       <span class="text-xs font-mono text-gray-400">Filter:</span>
-      <span id="filterChipLabel" class="flex items-center gap-2 text-xs font-mono px-3 py-1 bg-[#16181c] border border-[#2f3336]">
+      <span id="filterChipLabel" class="flex items-center gap-2 text-xs font-mono px-3 py-1 border" style="background:#16181c;border-color:#2f3336">
         <span id="filterChipText"></span>
         <button onclick="clearFilter()" class="text-gray-500 hover:text-white">
           <span class="material-symbols-outlined text-sm">close</span>
@@ -580,17 +594,22 @@ function clearSearch() {
 
 function setLayout(l) {
   layout = l;
+  window._currentLayout = l;
+  const isLight = document.documentElement.classList.contains('light');
+  const activeBg = isLight ? '#e2e8f0' : '#1d1f23';
+  const activeColor = '#1d9bf0';
   const grid = document.getElementById('newsGrid');
   const btnGrid = document.getElementById('btnGrid');
   const btnList = document.getElementById('btnList');
+  const baseClass = 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all';
   if (l === 'grid') {
     grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter';
-    btnGrid.className = 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all text-[#1d9bf0] bg-[#1d1f23]';
-    btnList.className = 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all text-gray-500 hover:text-white';
+    btnGrid.className = baseClass; btnGrid.style.background = activeBg; btnGrid.style.color = activeColor;
+    btnList.className = baseClass; btnList.style.background = ''; btnList.style.color = isLight ? '#64748b' : '#6b7280';
   } else {
     grid.className = 'grid grid-cols-1 gap-3';
-    btnList.className = 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all text-[#1d9bf0] bg-[#1d1f23]';
-    btnGrid.className = 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all text-gray-500 hover:text-white';
+    btnList.className = baseClass; btnList.style.background = activeBg; btnList.style.color = activeColor;
+    btnGrid.className = baseClass; btnGrid.style.background = ''; btnGrid.style.color = isLight ? '#64748b' : '#6b7280';
   }
   render();
 }
