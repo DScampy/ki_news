@@ -1,623 +1,474 @@
 <!DOCTYPE html>
-<html class="dark" lang="de">
+<html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>KI News – Täglich. Auf Deutsch. Mit Kontext.</title>
-<meta name="description" content="Deutschsprachige KI-News: Englische Quellen kuratiert, eingeordnet, erklärt. Von @CScampy."/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-  tailwind.config = {
-    darkMode:"class",
-    theme:{extend:{
-      colors:{"surface-tint":"#99cbff","on-surface":"#dfe3ea","on-surface-variant":"#bfc7d3","surface-container-low":"#181c21","surface-container":"#1c2025","surface-container-high":"#262a30","outline":"#89919d","outline-variant":"#3f4851","primary":"#99cbff","primary-container":"#1d9bf0","background":"#000000"},
-      borderRadius:{DEFAULT:"0.125rem",lg:"0.25rem",xl:"0.5rem",full:"0.75rem"},
-      spacing:{sm:"12px",xl:"64px",gutter:"16px",base:"8px",xs:"4px",lg:"40px",md:"24px",margin:"24px"},
-      fontFamily:{"body-sm":["Work Sans"],"headline-xl":["Space Grotesk"],"body-lg":["Work Sans"],"source-tag":["Work Sans"],"label-bold":["Work Sans"],"headline-md":["Space Grotesk"]},
-      fontSize:{"body-sm":["14px",{lineHeight:"1.4",fontWeight:"400"}],"headline-xl":["32px",{lineHeight:"1.2",letterSpacing:"-0.02em",fontWeight:"700"}],"body-lg":["16px",{lineHeight:"1.5",fontWeight:"400"}],"source-tag":["13px",{lineHeight:"1",fontWeight:"600"}],"label-bold":["12px",{lineHeight:"1",letterSpacing:"0.05em",fontWeight:"700"}],"headline-md":["20px",{lineHeight:"1.3",fontWeight:"600"}]}
-    }}
-  }
-</script>
-<style>
-body{background:#000;color:#dfe3ea;}
-.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
-::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
-
-/* ── Theme Toggle Slider (Heise-Stil) ── */
-.theme-slider-wrap{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
-.theme-slider-label{font-size:10px;font-family:monospace;letter-spacing:0.06em;color:#536471;transition:color 0.2s;}
-.theme-slider-label.active{color:#1d9bf0;}
-html.light .theme-slider-label.active{color:#0f172a;}
-.theme-slider-track{width:40px;height:20px;border-radius:10px;background:#2f3336;position:relative;transition:background 0.25s;flex-shrink:0;border:1px solid #3f4851;}
-html.light .theme-slider-track{background:#e2e8f0;border-color:#cbd5e1;}
-.theme-slider-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#536471;transition:all 0.25s;display:flex;align-items:center;justify-content:center;font-size:8px;}
-html.light .theme-slider-knob{background:#64748b;}
-.theme-dark .theme-slider-knob{left:22px;background:#1d9bf0;}
-html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
-
-/* ── Sidebar ── */
-#sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;}
-#sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
-#main-content{transition:margin-left 0.25s ease;margin-left:240px;}
-#main-content.sidebar-closed{margin-left:0;}
-@media(max-width:1023px){#main-content{margin-left:0!important;}}
-#sidebar-toggle{position:fixed;left:240px;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s ease;border-radius:0 4px 4px 0;}
-#sidebar-toggle.visible{display:flex;}
-#sidebar-toggle.closed{left:0;}
-html.light #sidebar-toggle{background:#1d9bf0;}
-
-/* ── Light Mode ── */
-html.light body{background:#f0f4f8!important;color:#0f172a!important;}
-html.light nav.fixed{background:#fff!important;border-color:#e2e8f0!important;}
-html.light #sidebar{background:#fff!important;border-color:#e2e8f0!important;}
-html.light #main-content{background:#f0f4f8!important;}
-html.light .ki-card{background:#fff!important;border-color:#e2e8f0!important;}
-html.light .ki-card:hover{background:#f8fafc!important;}
-html.light .ki-sidebar-active{background:#eff6ff!important;}
-html.light .ki-muted{color:#64748b!important;}
-html.light .ki-faint{color:#94a3b8!important;}
-html.light .ki-main{color:#0f172a!important;}
-html.light .ki-border{border-color:#e2e8f0!important;}
-html.light .ki-bg-dark{background:#f1f5f9!important;}
-html.light ::-webkit-scrollbar-thumb{background:#cbd5e1!important;}
-
-/* ── Sidebar-Hover Fix (Tailwind-Klassen greifen nicht zuverlässig) ── */
-html.light #sidebar a:hover{background:#f1f5f9!important;color:#0f172a!important;}
-html.light #sidebar a:hover .material-symbols-outlined{color:#0f172a!important;}
-html.light .video-wrap{border-color:#e2e8f0!important;}
-
-/* ── Video ── */
-.video-wrap{background:#000;border:1px solid #2f3336;overflow:hidden;position:relative;}
-.video-wrap video{width:100%;display:block;max-height:200px;object-fit:contain;background:#000;}
-.video-label{position:absolute;top:8px;left:8px;background:#1d9bf0;color:white;font-size:9px;font-weight:700;letter-spacing:0.08em;padding:2px 7px;font-family:'Space Grotesk',sans-serif;z-index:2;}
-
-/* ── Hashtag ── */
-.hashtag-chip{display:inline-flex;align-items:center;background:rgba(29,155,240,0.12);border:1px solid rgba(29,155,240,0.3);color:#1d9bf0;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;font-family:monospace;cursor:pointer;transition:all 0.15s;}
-.hashtag-chip:hover{background:#1d9bf0;color:white;}
-.hashtag-chip.copied{background:#16a34a!important;color:white!important;border-color:#16a34a!important;}
-.hashtag-input{background:#0f0f0f;border:1px solid #2f3336;border-radius:6px;padding:8px 12px;color:#dfe3ea;font-size:13px;font-family:'Work Sans',sans-serif;outline:none;width:100%;transition:border-color 0.15s;}
-html.light .hashtag-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
-.hashtag-input:focus{border-color:#1d9bf0;}
-
-/* ── Chat ── */
-#chat-widget{position:fixed;bottom:24px;right:24px;z-index:1000;font-family:'Work Sans',sans-serif;}
-#chat-fab{width:52px;height:52px;border-radius:50%;background:#1d9bf0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(29,155,240,0.4);transition:all 0.2s;color:white;}
-#chat-fab:hover{transform:scale(1.08);}
-#chat-panel{position:absolute;bottom:64px;right:0;width:340px;background:#0f0f0f;border:1px solid #2f3336;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:none;flex-direction:column;max-height:480px;animation:chatIn 0.2s ease;}
-html.light #chat-panel{background:#fff;border-color:#e2e8f0;}
-@keyframes chatIn{from{opacity:0;transform:translateY(10px) scale(0.97)}to{opacity:1;transform:none}}
-#chat-panel.open{display:flex;}
-.chat-header{padding:14px 16px;background:#1d9bf0;display:flex;align-items:center;justify-content:space-between;}
-.chat-header h4{color:white;font-size:13px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin:0;}
-.chat-header span{font-size:10px;color:rgba(255,255,255,0.7);}
-.chat-close{background:none;border:none;color:white;cursor:pointer;font-size:18px;line-height:1;padding:0;opacity:0.8;}
-#chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:280px;}
-.msg{display:flex;flex-direction:column;gap:2px;}
-.msg.user{align-items:flex-end;} .msg.bot{align-items:flex-start;}
-.msg-bubble{max-width:82%;padding:8px 12px;font-size:13px;line-height:1.45;border-radius:10px;}
-.msg.user .msg-bubble{background:#1d9bf0;color:white;border-radius:10px 10px 2px 10px;}
-.msg.bot .msg-bubble{background:#1d1f23;color:#dfe3ea;border-radius:10px 10px 10px 2px;}
-html.light .msg.bot .msg-bubble{background:#f1f5f9;color:#0f172a;}
-.msg-time{font-size:10px;color:#4a5568;font-family:monospace;}
-.typing-dots{display:flex;gap:4px;padding:6px 4px;}
-.typing-dots span{width:6px;height:6px;border-radius:50%;background:#1d9bf0;animation:dot 1.2s infinite;}
-.typing-dots span:nth-child(2){animation-delay:0.2s;} .typing-dots span:nth-child(3){animation-delay:0.4s;}
-@keyframes dot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
-.chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid #2f3336;}
-html.light .chat-input-row{border-color:#e2e8f0;}
-#chat-input{flex:1;background:#1d1f23;border:1px solid #2f3336;border-radius:8px;padding:8px 12px;font-size:13px;color:#dfe3ea;outline:none;font-family:'Work Sans',sans-serif;resize:none;max-height:80px;min-height:36px;transition:border-color 0.15s;}
-html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
-#chat-input:focus{border-color:#1d9bf0;}
-#chat-input::placeholder{color:#4a5568;}
-#chat-send{width:36px;height:36px;border-radius:8px;background:#1d9bf0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;}
-#chat-send:disabled{opacity:0.4;cursor:not-allowed;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KI News Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, Arial, sans-serif; background: #0a0a0a; color: #e7e9ea; min-height: 100vh; }
+        .header { background: #000; border-bottom: 1px solid #2f3336; padding: 14px 24px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
+        .header h1 { color: #1d9bf0; font-size: 18px; font-weight: 700; }
+        .header-stats { margin-left: auto; display: flex; gap: 20px; }
+        .stat { text-align: center; }
+        .stat-zahl { font-size: 18px; font-weight: 700; color: #1d9bf0; }
+        .stat-label { font-size: 10px; color: #536471; text-transform: uppercase; letter-spacing: 0.5px; }
+        .datum { color: #536471; font-size: 12px; margin-left: 16px; }
+        .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 0; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 57px); }
+        .panel { padding: 20px; }
+        .panel-left { border-right: 1px solid #2f3336; }
+        .panel-title { color: #536471; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 12px; border-bottom: 1px solid #2f3336; margin-bottom: 4px; }
+        .news-item { border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.15s; border-radius: 6px; }
+        .news-item:hover { background: #111; }
+        .news-item.open { background: #111; border: 1px solid #2f3336; margin: 4px 0; }
+        .news-header { padding: 12px 8px; display: flex; align-items: flex-start; gap: 8px; }
+        .news-title { color: #e7e9ea; font-size: 14px; line-height: 1.4; flex: 1; }
+        .news-arrow { color: #536471; font-size: 12px; margin-top: 2px; flex-shrink: 0; transition: transform 0.2s; }
+        .news-item.open .news-arrow { transform: rotate(180deg); color: #1d9bf0; }
+        .source-badge { color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
+        .news-expand { display: none; padding: 0 8px 14px 8px; }
+        .news-item.open .news-expand { display: block; }
+        .news-summary { font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }
+        .news-expand a { color: #1d9bf0; font-size: 13px; font-weight: 600; text-decoration: none; }
+        .news-expand a:hover { text-decoration: underline; }
+        .post-card { background: #111; border: 1px solid #2f3336; border-radius: 14px; padding: 16px; margin: 10px 0; transition: border-color 0.2s; }
+        .post-card:hover { border-color: #1d9bf0; }
+        .post-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .post-nr { color: #1d9bf0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .post-zeichen { font-size: 11px; font-weight: 700; }
+        .post-text { font-size: 15px; line-height: 1.5; color: #e7e9ea; margin-bottom: 6px; }
+        .post-erklaerung { font-size: 12px; color: #536471; margin-bottom: 8px; font-style: italic; }
+        .post-quelle { display: inline-block; color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-bottom: 10px; }
+        .post-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-copy, .btn-x { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.2s; border: none; }
+        .btn-copy { background: #2f3336; color: #e7e9ea; }
+        .btn-copy:hover { opacity: 0.8; }
+        .btn-x { background: #1d9bf0; color: white; }
+        .btn-x:hover { opacity: 0.8; }
+        .copied { background: #16a34a !important; }
+        .thread-toggle { color: #536471; font-size: 12px; cursor: pointer; margin-top: 12px; padding: 8px 0 0 0; border-top: 1px solid #1a1a1a; user-select: none; transition: color 0.2s; }
+        .thread-toggle:hover { color: #1d9bf0; }
+        .thread-section { margin-top: 8px; }
+        .thread-part { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 10px; padding: 10px 12px; margin: 6px 0; }
+        .thread-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .thread-nr { color: #536471; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .thread-zeichen { font-size: 10px; font-weight: 700; }
+        .thread-text { font-size: 14px; line-height: 1.5; color: #e7e9ea; margin-bottom: 8px; }
+        .btn-copy-sm { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; background: #1a1a1a; color: #94a3b8; border: 1px solid #2f3336; transition: opacity 0.2s; }
+        .btn-copy-sm:hover { opacity: 0.8; }
+        @media (max-width: 700px) {
+            .layout { grid-template-columns: 1fr; }
+            .panel-left { border-right: none; border-bottom: 1px solid #2f3336; }
+        }
+    </style>
+    <script>
+        function toggleNews(el) { el.classList.toggle('open'); }
+        function toggleThread(btn) {
+            const section = btn.nextElementSibling;
+            const isOpen = section.style.display !== 'none';
+            section.style.display = isOpen ? 'none' : 'block';
+            const n = section.querySelectorAll('.thread-part').length;
+            btn.innerHTML = isOpen
+                ? '&#9658; Thread anzeigen (' + n + ' Teile)'
+                : '&#9660; Thread ausblenden';
+        }
+        function copyPost(id, btn) {
+            navigator.clipboard.writeText(document.getElementById(id).textContent);
+            const orig = btn.textContent;
+            btn.textContent = 'Kopiert';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+        }
+    </script>
 </head>
-<body class="font-body-lg">
-
-<!-- Theme Script -->
-<script>
-(function(){
-  function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-  function apply(t){
-    const r=t==='auto'?pref():t;
-    document.documentElement.classList.remove('light','dark','theme-light','theme-dark','theme-auto');
-    document.documentElement.classList.add(r,'theme-'+t);
-    updateSlider(t);
-  }
-  function updateSlider(t){
-    const sl=document.getElementById('themeSlider');
-    const lbls=document.querySelectorAll('.theme-slider-label');
-    if(!sl) return;
-    // knob position: left=light, right=dark
-    const resolved=t==='auto'?pref():t;
-    const track=sl.querySelector('.theme-slider-track');
-    if(track){track.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
-    lbls.forEach(l=>{
-      l.classList.toggle('active', l.dataset.theme===t || (t==='auto' && l.dataset.theme==='auto'));
-    });
-  }
-  window.setTheme=function(t){
-    try{localStorage.setItem('ki_theme',t);}catch(e){}
-    apply(t);
-  };
-  window.cycleTheme=function(){
-    const T=['light','dark'];
-    const cur=localStorage.getItem('ki_theme')||'auto';
-    const resolved=cur==='auto'?pref():cur;
-    window.setTheme(resolved==='dark'?'light':'dark');
-  };
-  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  apply(saved);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-    if(s==='auto')apply('auto');
-  });
-})();
-</script>
-
-<!-- Top Nav -->
-<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black ki-border border-b">
-  <div class="flex items-center gap-8">
-    <a href="/" class="flex items-center gap-2">
-      <span class="text-xl font-black tracking-tighter text-[#1d9bf0] uppercase" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
-      <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
-    </a>
-    <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">Podcast</a>
-    </div>
-  </div>
-  <div class="flex items-center gap-4">
-    <a href="https://x.com/CScampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span class="hidden sm:inline">@CScampy</span>
-    </a>
-    <!-- Heise-Stil Theme Slider -->
-    <div id="themeSlider" class="theme-slider-wrap" onclick="cycleTheme()" title="Hell/Dunkel wechseln">
-      <span class="theme-slider-label" data-theme="light" style="font-size:12px">☀</span>
-      <div class="theme-slider-track">
-        <div class="theme-slider-knob"></div>
-      </div>
-      <span class="theme-slider-label" data-theme="dark" style="font-size:12px">☾</span>
-    </div>
-  </div>
-</nav>
-
-<!-- Sidebar Toggle -->
-<button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
-  <span class="material-symbols-outlined" style="font-size:12px" id="toggle-icon">chevron_left</span>
-</button>
-
-<!-- Sidebar -->
-<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col py-6 bg-black ki-border border-r hidden lg:flex overflow-hidden">
-  <div class="px-5 mb-6">
-    <p class="text-[11px] ki-muted font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
-  </div>
-  <div class="flex flex-col gap-1 px-2">
-    <a class="ki-sidebar-active flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
-      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
-    </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">
-      <span class="material-symbols-outlined text-sm">archive</span>Archiv
-    </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
-      <span class="material-symbols-outlined text-sm">mic</span>Podcast
-    </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      X / Twitter
-    </a>
-  </div>
-  <div class="mt-auto px-5 pb-2">
-    <div class="ki-border border p-3">
-      <p class="text-[10px] ki-muted font-mono mb-1">QUELLEN</p>
-      <div class="flex flex-wrap gap-1">
-        <span class="text-[10px] bg-[#1d9bf0]/20 text-[#1d9bf0] px-1.5 py-0.5 font-mono">The Decoder</span>
-        <span class="text-[10px] bg-[#ff6b35]/20 text-[#ff6b35] px-1.5 py-0.5 font-mono">TechCrunch</span>
-        <span class="text-[10px] bg-[#7c3aed]/20 text-[#a78bfa] px-1.5 py-0.5 font-mono">VentureBeat</span>
-        <span class="text-[10px] bg-[#dc2626]/20 text-[#f87171] px-1.5 py-0.5 font-mono">MIT Review</span>
-      </div>
-    </div>
-  </div>
-</aside>
-
-<!-- Main Content -->
-<main id="main-content" class="pt-14 min-h-screen bg-black">
-  <div class="max-w-[1400px] mx-auto p-gutter">
-
-    <!-- TOP: Podcast + Video nebeneinander -->
-    <div class="grid grid-cols-2 gap-gutter mt-gutter mb-gutter">
-
-      <!-- Podcast -->
-      <div class="ki-card ki-border border p-5 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
-          <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
+<body>
+    <div class="header">
+        <h1>KI News</h1>
+        <div class="header-stats">
+            <div class="stat"><div class="stat-zahl">15</div><div class="stat-label">News</div></div>
+            <div class="stat"><div class="stat-zahl">3</div><div class="stat-label">Posts</div></div>
+            <div class="stat"><div class="stat-zahl">7</div><div class="stat-label">Quellen</div></div>
         </div>
-        <div class="relative z-10">
-          <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span>
-          <h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:'Space Grotesk',sans-serif;font-size:18px">Metas Flucht ins All – Chinas KI-Ausreiseverbot</h2>
-          <p class="ki-muted text-[13px] mb-3">China blockiert Metas $2,5-Mrd.-Deal. Metas Antwort: 1.000 Satelliten im Orbit.</p>
-          <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
-            src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2311534997&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"
-            style="border-radius:4px;opacity:0.9"></iframe>
-          <div class="mt-2 flex items-center gap-3">
-            <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank"
-              class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
-              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>SoundCloud
-            </a>
-            <span class="text-xs ki-muted font-mono">KI NEWS #001 · ~20 MIN</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Video -->
-      <div class="ki-card ki-border border overflow-hidden flex flex-col">
-        <div class="video-wrap flex-shrink-0">
-          <div class="video-label">VIDEO</div>
-          <video controls preload="metadata" style="max-height:185px">
-            <source src="uploads/Metas_Solar-Plan_im_All.mp4" type="video/mp4"/>
-          </video>
-        </div>
-        <div class="p-4 flex-1">
-          <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">Metas Solar-Plan im All</h4>
-          <p class="text-[12px] ki-muted">1.000 Satelliten, 1 Gigawatt Solarstrom aus dem Orbit.</p>
-        </div>
-      </div>
+        <span class="datum">Stand: 01.05.2026 16:55</span>
     </div>
-
-    <!-- Top Stories – unter Podcast/Video, volle Breite -->
-    <div class="ki-card ki-border border p-5 mb-lg">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-3">
-          <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:18px">Top Stories</h3>
-          <span class="material-symbols-outlined text-[#1d9bf0]">trending_up</span>
+    <div class="layout">
+        <div class="panel panel-left">
+            <div class="panel-title">Aktuelle KI-News</div>
+            
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
+                <span class="news-title">Kurzer deutscher Titel</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Google, Amazon, Microsoft und Meta planen 725 Milliarden Dollar an KI-Investitionen für dieses Jahr, was eine bedeutende Steigerung im Bereich der künstlichen Intelligenz darstellt und zeigt, wie wichtig KI für die Tech-Giganten geworden ist.</p>
+                <a href="https://the-decoder.de/google-amazon-microsoft-und-meta-planen-725-milliarden-dollar-an-ki-investitionen-fuer-dieses-jahr/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
         </div>
-        <a href="https://t.me/ScampyNews24_bot" target="_blank" class="flex items-center gap-1.5 text-[11px] font-mono text-[#1d9bf0] hover:underline">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          Täglich via Telegram
-        </a>
-      </div>
-      <div id="top-stories-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Skeleton -->
-        <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-3/4"></div><div class="h-2 bg-[#2f3336] rounded w-1/2"></div></div>
-        <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-4/5"></div><div class="h-2 bg-[#2f3336] rounded w-1/3"></div></div>
-        <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-2/3"></div></div>
-      </div>
-    </div>
-
-    <!-- News + Sidebar -->
-    <div class="flex flex-col xl:flex-row gap-gutter items-start">
-      <div class="flex-1 min-w-0">
-        <div class="mb-6 flex items-center justify-between">
-          <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:24px">Aktuelle News</h3>
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Wird geladen...</span>
-          </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
+                <span class="news-title">Goblins in ChatGPT</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Die Entwicklung von ChatGPT hat interessante Aspekte aufgezeigt, wie zum Beispiel die Nutzung von Goblins im KI-Training, was Forscher und Entwickler dazu bringt, neue Wege in der KI-Forschung zu erkunden.</p>
+                <a href="https://the-decoder.de/was-goblins-in-chatgpt-mit-ki-training-zu-tun-haben/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
         </div>
-        <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
-          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
-          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
+                <span class="news-title">KI-Agenten in Word</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Microsoft integriert KI-Agenten direkt in Word, um Vertragsarbeit zu unterstützen, wodurch Benutzer Klauseln, Risiken und Änderungen effizienter verwalten können, was den Arbeitsablauf verbessert.</p>
+                <a href="https://the-decoder.de/microsoft-bringt-ki-agenten-fuer-vertragsarbeit-direkt-in-word-klauseln-risiken-und-aenderungen-auf-einen-blick/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
         </div>
-      </div>
-
-      <!-- Rechte Sidebar -->
-      <div class="xl:w-[280px] xl:flex-shrink-0 xl:sticky xl:top-20 w-full flex flex-col gap-4">
-        <!-- Twitter -->
-        <div class="ki-card ki-border border p-4">
-          <div class="flex items-center gap-2 mb-3">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-            <span class="text-[10px] font-mono ki-muted uppercase tracking-widest">Highlight Post</span>
-          </div>
-          <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-lang="de" data-width="250">
-            <a href="https://x.com/CScampy/status/2049045655587287473"></a>
-          </blockquote>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#ca8a04">Heise</span>
+                <span class="news-title">Spam-E-Mail-Quiz</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Das Quiz #TGIQF dreht sich um das Thema Spam-E-Mails und fordert die Teilnehmer heraus, ihr Wissen über diese unerwünschten Nachrichten zu unter Beweis zu stellen.</p>
+                <a href="https://www.heise.de/news/TGIQF-Das-Quiz-rund-um-Spam-E-Mails-11279196.html?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
         </div>
-        <a href="https://x.com/CScampy" target="_blank"
-          class="flex items-center justify-center gap-2 w-full py-2.5 ki-card ki-border border text-[#1d9bf0] hover:bg-[#1d9bf0] hover:text-white transition-all text-[11px] font-bold font-mono tracking-wider">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          @CSCAMPY FOLGEN
-        </a>
-        <!-- Hashtags -->
-        <div class="ki-card ki-border border p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-[10px] font-mono ki-muted uppercase tracking-widest"># Hashtags</span>
-            <span class="text-[9px] font-mono text-[#1d9bf0] border border-[#1d9bf0]/40 px-1.5 py-0.5">Community</span>
-          </div>
-          <p class="text-[11px] ki-muted mb-3">Schlage Hashtags vor – Klick zum Kopieren:</p>
-          <div id="hashtag-chips" class="flex flex-wrap gap-1.5 mb-3"></div>
-          <div class="flex gap-2">
-            <input id="hashtag-new" type="text" class="hashtag-input" placeholder="# Vorschlag…"
-              onkeydown="if(event.key==='Enter'){submitHashtag();}"/>
-            <button onclick="submitHashtag()" class="px-3 py-2 bg-[#1d9bf0] text-white text-[11px] font-bold hover:bg-[#1a8cd8] transition-all flex-shrink-0">+</button>
-          </div>
-          <p id="hashtag-status" class="text-[10px] ki-faint mt-1 font-mono"></p>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Golem</span>
+                <span class="news-title">Energiewende und negative Strompreise</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Am 1. Mai wurden negative Strompreise auf ein Rekordhoch getrieben, was ein bedeutendes Zeichen für den Erfolg der Energiewende ist und zeigt, dass die Umstellung auf erneuerbare Energien erfolgreich verläuft.</p>
+                <a href="https://www.golem.de/news/energiewende-negative-strompreise-am-1-mai-auf-rekordjagd-2605-208225.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="mt-12 pb-12 ki-border border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div>
-        <span class="ki-main font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
-        <p class="text-[11px] ki-muted font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/CScampy" target="_blank" class="text-[#1d9bf0] hover:underline">@CScampy</a></p>
-      </div>
-      <div class="flex items-center gap-4">
-        <a href="Archiv.html" class="ki-muted hover:text-white transition-colors text-xs font-mono">Archiv</a>
-        <a href="https://x.com/CScampy" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
-        <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">Podcast</a>
-      </div>
-    </div>
-  </div>
-</main>
-
-<!-- KI-Chat Widget -->
-<div id="chat-widget">
-  <div id="chat-panel">
-    <div class="chat-header">
-      <div><h4>KI-News Assistent</h4><span>Powered by OpenRouter</span></div>
-      <button class="chat-close" onclick="closeChat()">×</button>
-    </div>
-    <div id="chat-messages">
-      <div class="msg bot">
-        <div class="msg-bubble">Hallo! Ich bin der KI-News Assistent. Stell mir Fragen zu den aktuellen KI-News! 🤖</div>
-        <div class="msg-time">Jetzt</div>
-      </div>
-    </div>
-    <div class="chat-input-row">
-      <textarea id="chat-input" placeholder="Frage stellen…" rows="1"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
-      <button id="chat-send" onclick="sendChat()">
-        <span class="material-symbols-outlined" style="font-size:18px">send</span>
-      </button>
-    </div>
-  </div>
-  <button id="chat-fab" onclick="toggleChat()">
-    <span class="material-symbols-outlined" style="font-size:22px;font-variation-settings:'FILL' 1">smart_toy</span>
-  </button>
-</div>
-
-<script src="chat-config.js" onerror="console.log('chat-config.js nicht gefunden')"></script>
-<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-<script>
-// ── Sidebar ────────────────────────────────────────────────────────────
-let sidebarOpen = true;
-function toggleSidebar() {
-  sidebarOpen = !sidebarOpen;
-  const sidebar = document.getElementById('sidebar');
-  const main = document.getElementById('main-content');
-  const toggle = document.getElementById('sidebar-toggle');
-  const icon = document.getElementById('toggle-icon');
-  if (sidebarOpen) {
-    sidebar.classList.remove('collapsed');
-    main.style.marginLeft = '240px';
-    toggle.style.left = '240px';
-    icon.textContent = 'chevron_left';
-  } else {
-    sidebar.classList.add('collapsed');
-    main.style.marginLeft = '0';
-    toggle.style.left = '0';
-    icon.textContent = 'chevron_right';
-  }
-}
-// Init sidebar toggle visibility on desktop
-document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('sidebar-toggle');
-  if (window.innerWidth >= 1024) toggle.style.display = 'flex';
-});
-
-// ── Theme slider update ────────────────────────────────────────────────
-function updateSlider(t) {
-  const knob = document.querySelector('.theme-slider-knob');
-  const labels = document.querySelectorAll('.theme-slider-label');
-  if (!knob) return;
-  const resolved = t === 'auto'
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : t;
-  knob.style.left = resolved === 'dark' ? '22px' : '2px';
-  knob.style.background = resolved === 'dark' ? '#1d9bf0' : '#f59e0b';
-  labels.forEach(l => l.classList.toggle('active', l.dataset.theme === t || (t === 'auto' && l.dataset.theme === resolved)));
-}
-// Apply initial slider state after DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  let s = 'auto'; try { s = localStorage.getItem('ki_theme') || 'auto'; } catch(e) {}
-  updateSlider(s);
-});
-
-// ── Source colors ──────────────────────────────────────────────────────
-const SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393'};
-function srcColor(s){ return SRC[s] || '#1d9bf0'; }
-
-// ── News card ──────────────────────────────────────────────────────────
-function renderCard(item) {
-  const c = item.color || srcColor(item.source);
-  const a = document.createElement('a');
-  a.href = item.link || '#';
-  if (item.link) a.target = '_blank';
-  a.className = 'ki-card ki-border border p-4 flex flex-col h-full transition-all group cursor-pointer';
-  a.onmouseenter = () => a.style.borderColor = c;
-  a.onmouseleave = () => a.style.borderColor = '';
-  a.innerHTML = `
-    <div class="flex items-center justify-between mb-4">
-      <span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:${c}">${item.source}</span>
-      <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-green-500"></div><span class="text-[10px] font-mono ki-muted">NEU</span></div>
-    </div>
-    <h4 class="font-headline-md ki-main mb-2 leading-snug transition-colors" style="font-family:'Space Grotesk',sans-serif">${item.title}</h4>
-    <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">${item.summary||''}</p>
-    <div class="pt-4 ki-border border-t flex items-center justify-between">
-      <span class="text-[11px] font-mono uppercase" style="color:${c}">${item.source}</span>
-      <span class="material-symbols-outlined ki-muted text-sm">open_in_new</span>
-    </div>`;
-  return a;
-}
-
-// ── Top Stories ────────────────────────────────────────────────────────
-let topStoryLinks = [];
-function renderTopStories(news, posts) {
-  const container = document.getElementById('top-stories-list');
-  if (!container) return;
-  const top = news.slice(0, 3);
-  topStoryLinks = top.map(n => n.link).filter(Boolean);
-  container.innerHTML = '';
-  top.forEach((item, i) => {
-    const c = item.color || srcColor(item.source);
-    const post = posts && posts[i] ? posts[i] : null;
-    const teaser = post && post.teaser ? post.teaser : '';
-    const div = document.createElement('div');
-    div.className = 'cursor-pointer group';
-    div.innerHTML = `
-      <div class="flex items-start gap-3 p-2 rounded hover:bg-[rgba(29,155,240,0.06)] transition-all ki-border border">
-        <span class="text-2xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors flex-shrink-0" style="font-family:'Space Grotesk',sans-serif;line-height:1.1">${String(i+1).padStart(2,'0')}</span>
-        <div class="flex-1 min-w-0">
-          <span class="text-[10px] px-1.5 py-0.5 font-mono uppercase inline-block mb-1" style="background:${c}22;color:${c};border:1px solid ${c}44">${item.source}</span>
-          <h4 class="text-sm font-bold ki-main leading-snug group-hover:text-[#1d9bf0] transition-colors mb-1">${item.title}</h4>
-          ${teaser ? `<p class="text-[12px] ki-muted leading-snug mt-1 italic">${teaser}</p>` : item.summary ? `<p class="text-[11px] ki-muted">${item.summary}</p>` : ''}
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Golem</span>
+                <span class="news-title">Microsoft 365 Copilot im Test</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Der Test des Microsoft 365 Copilot Agents zeigt eine Mischung aus beeindruckenden Fähigkeiten in Excel und einigen Herausforderungen in PowerPoint, was bedeutet, dass der Agent noch Verbesserungspotential hat, aber bereits jetzt nützlich sein kann.</p>
+                <a href="https://www.golem.de/news/microsoft-365-copilot-agent-im-test-zwischen-excel-magie-und-powerpoint-frust-2605-208152.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
         </div>
-        <span class="material-symbols-outlined ki-faint text-sm flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
-      </div>`;
-    if (item.link) div.onclick = () => window.open(item.link, '_blank');
-    container.appendChild(div);
-  });
-}
-
-// ── Fetch news ─────────────────────────────────────────────────────────
-let currentNewsContext = '';
-fetch('news.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    const grid = document.getElementById('news-grid');
-    const label = document.getElementById('stand-label');
-    if (!grid || !data.news || !data.news.length) return;
-    renderTopStories(data.news, data.posts || []);
-    // News Grid: Top-3 rausfiltern
-    const filtered = data.news.filter(n => !topStoryLinks.includes(n.link));
-    grid.innerHTML = '';
-    filtered.forEach(item => grid.appendChild(renderCard(item)));
-    if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
-    currentNewsContext = 'Aktuelle KI-News (Stand ' + (data.stand||'') + '):\n' +
-      data.news.map((n,i) => `${i+1}. "${n.title}" (${n.source}): ${n.summary||''}`).join('\n');
-  })
-  .catch(() => { const l = document.getElementById('stand-label'); if(l) l.textContent = 'Stand: offline'; });
-
-// ── Hashtags ───────────────────────────────────────────────────────────
-let hashtags = ['#KI','#ArtificialIntelligence','#Meta','#OpenAI','#Technologie','#AINews','#DeepSeek'];
-function renderHashtags() {
-  const c = document.getElementById('hashtag-chips');
-  c.innerHTML = '';
-  hashtags.forEach(tag => {
-    const chip = document.createElement('span');
-    chip.className = 'hashtag-chip';
-    chip.textContent = tag;
-    chip.onclick = () => {
-      navigator.clipboard.writeText(tag).catch(()=>{});
-      chip.classList.add('copied');
-      setTimeout(() => chip.classList.remove('copied'), 1200);
-    };
-    c.appendChild(chip);
-  });
-}
-fetch('hashtags/hashtags.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => { if (data.tags && data.tags.length) { hashtags = data.tags; renderHashtags(); } })
-  .catch(() => renderHashtags());
-renderHashtags();
-
-function submitHashtag() {
-  const input = document.getElementById('hashtag-new');
-  const status = document.getElementById('hashtag-status');
-  let val = input.value.trim().replace(/^#+/, '');
-  if (!val) return;
-  const tag = '#' + val;
-  if (hashtags.includes(tag)) { status.textContent = 'Bereits vorhanden!'; return; }
-  hashtags.push(tag);
-  renderHashtags();
-  input.value = '';
-  status.textContent = '✓ Hinzugefügt (Admin speichert ins Repo)';
-  setTimeout(() => status.textContent = '', 3000);
-}
-
-// ── Chat (OpenRouter) ──────────────────────────────────────────────────
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-// Kein API-Key im Frontend – stattdessen claude helper wenn verfügbar
-let chatOpen = false;
-function toggleChat() { chatOpen ? closeChat() : openChat(); }
-function openChat() { chatOpen = true; document.getElementById('chat-panel').classList.add('open'); document.getElementById('chat-input').focus(); }
-function closeChat() { chatOpen = false; document.getElementById('chat-panel').classList.remove('open'); }
-function timeStr() { return new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}); }
-function addMsg(role, text) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
-  div.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${timeStr()}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-function addTyping() {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'msg bot'; div.id = 'typing-indicator';
-  div.innerHTML = '<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
-}
-function removeTyping() { const el = document.getElementById('typing-indicator'); if(el) el.remove(); }
-
-async function sendChat() {
-  const input = document.getElementById('chat-input');
-  const btn = document.getElementById('chat-send');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = ''; input.style.height = 'auto';
-  addMsg('user', text);
-  btn.disabled = true; addTyping();
-
-  const apiKey = window.GROQ_CHAT_KEY || '';
-  const model = window.GROQ_MODEL || 'llama-3.3-70b-versatile';
-  const systemPrompt = `Du bist KI-News Assistent auf ki-news.live. Antworte auf Deutsch, kurz und präzise (max. 3 Sätze).\n\nAktuelle News:\n${currentNewsContext}`;
-
-  if (!apiKey) {
-    removeTyping();
-    addMsg('bot', 'Chat-Key noch nicht konfiguriert – bitte ki_news.py einmal lokal ausführen oder GitHub Actions starten. 🤖');
-    btn.disabled = false; input.focus();
-    return;
-  }
-
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 300,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
-        ]
-      })
-    });
-    if (!response.ok) throw new Error('API ' + response.status);
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || 'Keine Antwort.';
-    removeTyping(); addMsg('bot', reply);
-  } catch(e) {
-    removeTyping();
-    addMsg('bot', 'Fehler beim Abrufen: ' + e.message);
-  } finally {
-    btn.disabled = false; input.focus();
-  }
-}
-document.getElementById('chat-input').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
-});
-</script>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Caschy Blog</span>
+                <span class="news-title">Umfrage: E-Autos</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Eine aktuelle Umfrage im Mai 2026 untersucht die Einstellung und Erfahrungen von Menschen mit E-Autos. Die Ergebnisse zeigen interessante Trends und Herausforderungen im Bereich der Elektrifizierung des Verkehrs.</p>
+                <a href="https://stadt-bremerhaven.de/umfrage-mai-2026-wie-sieht-es-bei-euch-in-sachen-e-auto-aus/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Caschy Blog</span>
+                <span class="news-title">Google Fotos: Neues Design</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Google Fotos hat ein neues Design für KI-Vorlagen und die Integration von Remix-Funktionen erhalten. Diese Änderungen zielen darauf ab, die Benutzerfreundlichkeit und Kreativität der App zu verbessern.</p>
+                <a href="https://stadt-bremerhaven.de/google-fotos-redesign-fuer-ki-vorlagen-und-remix-integration/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
+                <span class="news-title">ChatGPT Images 2.0</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">ChatGPT Images 2.0 erzielt in Indien großen Erfolg, aber in anderen Ländern noch nicht. Diese KI-gesteuerte Bilderkennungstechnologie zeigt vielversprechende Ergebnisse in Bezug auf ihre Akzeptanz und Nutzung.</p>
+                <a href="https://techcrunch.com/2026/04/30/chatgpt-images-2-0-is-a-hit-in-india-but-not-a-big-winner-elsewhere-yet/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
+                <span class="news-title">Anthropic-Bewertung</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Ein potenzieller Börsengang von Anthropic könnte in zwei Wochen mit einer Bewertung von über 900 Milliarden Dollar stattfinden. Dies unterstreicht das wachsende Interesse und die Investitionen in KI-Technologien und -Anwendungen.</p>
+                <a href="https://techcrunch.com/2026/04/30/anthropic-potential-900b-valuation-round-could-happen-within-two-weeks/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
+                <span class="news-title">Apple und KI</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Apple wurde von der hohen Nachfrage nach Macs aufgrund von KI-Anwendungen überrascht. Dies zeigt, wie sich die zunehmende Integration von KI in verschiedene Branchen auf die Verkaufszahlen und Strategien von Technologieunternehmen auswirkt.</p>
+                <a href="https://techcrunch.com/2026/04/30/apple-was-surprised-by-ai-driven-demand-for-macs/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#16a34a">Ars Technica</span>
+                <span class="news-title">Cyberangriff auf Sicherheitsfirmen</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Ein jüngster Angriff auf die Sicherheitsfirmen Checkmarx und Bitwarden zeigt, dass Angreifer gezielt Unternehmen mit wichtigen Sicherheitsrolle ins Visier nehmen. Dies unterstreicht die Bedrohungslage im Cyberraum und die Notwendigkeit starker Sicherheitsmaßnahmen.</p>
+                <a href="https://arstechnica.com/information-technology/2026/04/why-a-recent-supply-chain-attack-singled-out-security-firms-checkmarx-and-bitwarden/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
+                <span class="news-title">Eisenbahnunternehmen sichert 100 Millionen Dollar</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Das Eisenbahnunternehmen Railway hat 100 Millionen Dollar gesichert, um AWS mit Hilfe seiner künstlichen Intelligenz-basierten Cloud-Infrastruktur herauszufordern. Dies ist relevant, weil es zeigt, dass sich das Unternehmen auf den Markt für Cloud-Dienstleistungen stürzt und mit großen Anbietern wie AWS konkurrieren möchte.</p>
+                <a href="https://venturebeat.com/infrastructure/railway-secures-usd100-million-to-challenge-aws-with-ai-native-cloud" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
+                <span class="news-title">Kostenloses KI-Tool gegen teures Alternativprodukt</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Ein Unternehmen bietet ein KI-Tool namens Goose an, das kostenlos ist und die gleichen Funktionen wie das teure Produkt Claude Code bietet, das bis zu 200 Dollar im Monat kostet. Dies ist relevant, weil es zeigt, dass es kostenlose Alternativen zu teuren Produkten gibt.</p>
+                <a href="https://venturebeat.com/infrastructure/claude-code-costs-up-to-usd200-a-month-goose-does-the-same-thing-for-free" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
+                <span class="news-title">Listen Labs erhält 69 Millionen Dollar</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Listen Labs hat 69 Millionen Dollar erhalten, nachdem das Unternehmen mit einem unkonventionellen Bewerbungsstunt für einen Job auf einer viralen Billboard-Werbung auf sich aufmerksam gemacht hat. Das Unternehmen möchte das Geld nutzen, um künstliche Intelligenz-basierte Kundeninterviews zu skalieren. Dies ist relevant, weil es zeigt, dass kreative Marketingstrategien zu großen Erfolgen führen können.</p>
+                <a href="https://venturebeat.com/technology/listen-labs-raises-usd69m-after-viral-billboard-hiring-stunt-to-scale-ai" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        </div>
+        <div class="panel panel-right">
+            <div class="panel-title">Post-Vorschlaege fuer @CScampy</div>
+            
+        <div class="post-card">
+            <div class="post-meta">
+                <span class="post-nr">Post 1</span>
+                <span class="post-zeichen" style="color:#16a34a">47/265</span>
+            </div>
+            <p class="post-text" id="teaser1">KI-Investitionen von Technikriesen schlagen ein</p>
+            <p class="post-erklaerung">KI-Investitionen bedeuten Veränderung</p>
+            
+            <div class="post-actions">
+                <button class="btn-copy" onclick="copyPost('teaser1', this)">Kopieren</button>
+                <a href="https://x.com/intent/tweet?text={}"
+                   onclick="this.href='https://x.com/intent/tweet?text='+encodeURIComponent(document.getElementById('teaser1').textContent)"
+                   target="_blank" class="btn-x">Posten</a>
+            </div>
+            
+            <div class="thread-toggle" onclick="toggleThread(this)">&#9658; Thread anzeigen (6 Teile)</div>
+            <div class="thread-section" style="display:none">
+                
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">1/6 Hook</span>
+                        <span class="thread-zeichen" style="color:#16a34a">50/265</span>
+                    </div>
+                    <p class="thread-text" id="thread1-1">725 Milliarden Dollar für KI-Investitionen geplant</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread1-1', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">2/6 Kontext</span>
+                        <span class="thread-zeichen" style="color:#16a34a">53/265</span>
+                    </div>
+                    <p class="thread-text" id="thread1-2">Google, Amazon, Microsoft und Meta investieren massiv</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread1-2', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">3/6 Kaskade</span>
+                        <span class="thread-zeichen" style="color:#16a34a">54/265</span>
+                    </div>
+                    <p class="thread-text" id="thread1-3">KI-Technologie soll in alle Bereiche integriert werden</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread1-3', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">4/6 Gruselig</span>
+                        <span class="thread-zeichen" style="color:#16a34a">53/265</span>
+                    </div>
+                    <p class="thread-text" id="thread1-4">Was bedeutet das für die Arbeitswelt und Privatsphäre</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread1-4', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">5/6 Konsequenz</span>
+                        <span class="thread-zeichen" style="color:#16a34a">38/265</span>
+                    </div>
+                    <p class="thread-text" id="thread1-5">KI könnte Jobs verändern oder ersetzen</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread1-5', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">6/6 Fazit</span>
+                        <span class="thread-zeichen" style="color:#16a34a">34/265</span>
+                    </div>
+                    <p class="thread-text" id="thread1-6">Wie sieht deine Zukunft mit KI aus</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread1-6', this)">Kopieren</button>
+                </div>
+            </div>
+        </div>
+        <div class="post-card">
+            <div class="post-meta">
+                <span class="post-nr">Post 2</span>
+                <span class="post-zeichen" style="color:#16a34a">42/265</span>
+            </div>
+            <p class="post-text" id="teaser2">Goblins in ChatGPT offenbaren KI-Schwächen</p>
+            <p class="post-erklaerung">Goblins gefährden KI-Genauigkeit</p>
+            
+            <div class="post-actions">
+                <button class="btn-copy" onclick="copyPost('teaser2', this)">Kopieren</button>
+                <a href="https://x.com/intent/tweet?text={}"
+                   onclick="this.href='https://x.com/intent/tweet?text='+encodeURIComponent(document.getElementById('teaser2').textContent)"
+                   target="_blank" class="btn-x">Posten</a>
+            </div>
+            
+            <div class="thread-toggle" onclick="toggleThread(this)">&#9658; Thread anzeigen (6 Teile)</div>
+            <div class="thread-section" style="display:none">
+                
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">1/6 Hook</span>
+                        <span class="thread-zeichen" style="color:#16a34a">39/265</span>
+                    </div>
+                    <p class="thread-text" id="thread2-1">Goblins sind ein Problem im KI-Training</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread2-1', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">2/6 Kontext</span>
+                        <span class="thread-zeichen" style="color:#16a34a">48/265</span>
+                    </div>
+                    <p class="thread-text" id="thread2-2">Sie beeinflussen die Genauigkeit von KI-Systemen</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread2-2', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">3/6 Kaskade</span>
+                        <span class="thread-zeichen" style="color:#16a34a">46/265</span>
+                    </div>
+                    <p class="thread-text" id="thread2-3">KI-Training mit Goblins kann zu Fehlern führen</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread2-3', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">4/6 Gruselig</span>
+                        <span class="thread-zeichen" style="color:#16a34a">47/265</span>
+                    </div>
+                    <p class="thread-text" id="thread2-4">Was bedeuten Goblins für die Entwicklung von KI</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread2-4', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">5/6 Konsequenz</span>
+                        <span class="thread-zeichen" style="color:#16a34a">35/265</span>
+                    </div>
+                    <p class="thread-text" id="thread2-5">KI-Systeme müssen verbessert werden</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread2-5', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">6/6 Fazit</span>
+                        <span class="thread-zeichen" style="color:#16a34a">45/265</span>
+                    </div>
+                    <p class="thread-text" id="thread2-6">Wie können KI-Systeme sicherer gemacht werden</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread2-6', this)">Kopieren</button>
+                </div>
+            </div>
+        </div>
+        <div class="post-card">
+            <div class="post-meta">
+                <span class="post-nr">Post 3</span>
+                <span class="post-zeichen" style="color:#16a34a">49/265</span>
+            </div>
+            <p class="post-text" id="teaser3">KI-Agenten in Word revolutionieren Vertragsarbeit</p>
+            <p class="post-erklaerung">KI-Agenten verbessern Vertragsarbeit (via The Decoder)</p>
+            
+            <div class="post-actions">
+                <button class="btn-copy" onclick="copyPost('teaser3', this)">Kopieren</button>
+                <a href="https://x.com/intent/tweet?text={}"
+                   onclick="this.href='https://x.com/intent/tweet?text='+encodeURIComponent(document.getElementById('teaser3').textContent)"
+                   target="_blank" class="btn-x">Posten</a>
+            </div>
+            
+            <div class="thread-toggle" onclick="toggleThread(this)">&#9658; Thread anzeigen (6 Teile)</div>
+            <div class="thread-section" style="display:none">
+                
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">1/6 Hook</span>
+                        <span class="thread-zeichen" style="color:#16a34a">39/265</span>
+                    </div>
+                    <p class="thread-text" id="thread3-1">Microsoft integriert KI-Agenten in Word</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread3-1', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">2/6 Kontext</span>
+                        <span class="thread-zeichen" style="color:#16a34a">44/265</span>
+                    </div>
+                    <p class="thread-text" id="thread3-2">KI-Agenten analysieren Verträge und Klauseln</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread3-2', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">3/6 Kaskade</span>
+                        <span class="thread-zeichen" style="color:#16a34a">49/265</span>
+                    </div>
+                    <p class="thread-text" id="thread3-3">Risiken und Änderungen werden automatisch erkannt</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread3-3', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">4/6 Gruselig</span>
+                        <span class="thread-zeichen" style="color:#16a34a">51/265</span>
+                    </div>
+                    <p class="thread-text" id="thread3-4">Was bedeutet das für die Zukunft der Vertragsarbeit</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread3-4', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">5/6 Konsequenz</span>
+                        <span class="thread-zeichen" style="color:#16a34a">34/265</span>
+                    </div>
+                    <p class="thread-text" id="thread3-5">KI-Agenten können Fehler vermeiden</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread3-5', this)">Kopieren</button>
+                </div>
+                <div class="thread-part">
+                    <div class="thread-meta">
+                        <span class="thread-nr">6/6 Fazit</span>
+                        <span class="thread-zeichen" style="color:#16a34a">46/265</span>
+                    </div>
+                    <p class="thread-text" id="thread3-6">Wie wird die Vertragsarbeit durch KI verändert</p>
+                    <button class="btn-copy-sm" onclick="copyPost('thread3-6', this)">Kopieren</button>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
 </body>
 </html>
