@@ -121,7 +121,7 @@ def http_get_with_retry(url, headers=None, timeout=10, retries=3, backoff=2):
     return None
 
 def fetch_feed(name, url):
-    raw = http_get_with_retry(url, timeout=15, retries=3, backoff=3)
+    raw = http_get_with_retry(url, timeout=8, retries=2, backoff=2)
     if not raw:
         logger.error("[%s] Kein Inhalt erhalten.", name)
         return []
