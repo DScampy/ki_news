@@ -63,7 +63,7 @@ KI_KEYWORDS = [
 FEEDS = [
     # Deutsch
     ("The Decoder", "https://the-decoder.de/feed/"),
-    ("Heise",       "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
+    ("Heise",       "https://www.heise.de/newsticker/heise.rdf"),
     ("Golem",       "https://rss.golem.de/rss.php?feed=RSS2.0"),
     ("Caschy Blog", "https://stadt-bremerhaven.de/feed/"),
     # Englisch
