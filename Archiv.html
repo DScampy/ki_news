@@ -77,9 +77,56 @@
   .card-hover:hover h4 { color: var(--accent-color, #1d9bf0); }
   .search-clear { display: none; }
   .has-search .search-clear { display: flex; }
+
+  /* ── Light Mode ── */
+  html.light body { background: #f0f4f8 !important; color: #0f172a !important; }
+  html.light nav.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light aside.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light main { background: #f0f4f8 !important; }
+  html.light .bg-black { background: #ffffff !important; }
+  html.light .bg-\[#16181c\] { background: #ffffff !important; }
+  html.light .bg-\[#1d1f23\] { background: #f1f5f9 !important; }
+  html.light .hover\:bg-\[#16181c\]:hover { background: #f1f5f9 !important; }
+  html.light .border-\[#2f3336\] { border-color: #e2e8f0 !important; }
+  html.light .text-white { color: #0f172a !important; }
+  html.light .text-gray-500 { color: #64748b !important; }
+  html.light .text-gray-400 { color: #475569 !important; }
+  html.light .text-gray-600 { color: #94a3b8 !important; }
+  html.light .text-gray-300 { color: #475569 !important; }
+  html.light .text-on-surface-variant { color: #475569 !important; }
+  html.light .text-on-surface { color: #334155 !important; }
+  html.light .placeholder-gray-600::placeholder { color: #94a3b8 !important; }
+  html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
 </style>
 </head>
 <body class="font-body-lg">
+
+<!-- ── Theme Script – muss ganz oben sein ── -->
+<script>
+(function(){
+  const THEMES=['auto','light','dark'], ICONS={auto:'AUTO',light:'☀',dark:'☾'};
+  function getPreferred(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  function applyTheme(t){
+    const r=t==='auto'?getPreferred():t;
+    document.documentElement.classList.remove('light','dark');
+    document.documentElement.classList.add(r);
+    const btn=document.getElementById('themeBtn');
+    if(btn){btn.textContent=ICONS[t];btn.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
+  }
+  window.cycleTheme=function(){
+    const cur=localStorage.getItem('ki_theme')||'auto';
+    const next=THEMES[(THEMES.indexOf(cur)+1)%THEMES.length];
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyTheme(next);
+  };
+  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  applyTheme(saved);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+    if(s==='auto')applyTheme('auto');
+  });
+})();
+</script>
 
 <!-- Top Nav -->
 <nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black border-b border-[#2f3336]">
@@ -107,14 +154,34 @@
   </div>
 </nav>
 
-<!-- Sidebar -->
+<!-- Sidebar – gleiche Struktur wie Dashboard -->
 <aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-6 bg-black border-r border-[#2f3336] hidden lg:flex overflow-hidden">
-  <div class="px-5 mb-6">
+  <div class="px-5 mb-4">
     <p class="text-[11px] text-gray-500 font-mono leading-relaxed">Alle News im Archiv. Täglich kuratiert von @CScampy.</p>
   </div>
 
-  <!-- Search in sidebar -->
-  <div class="px-3 mb-4">
+  <!-- Navigation -->
+  <div class="flex flex-col gap-1 px-2 mb-4">
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="/">
+      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
+    </a>
+    <a class="flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
+      <span class="material-symbols-outlined text-sm">archive</span>Archiv
+    </a>
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
+      <span class="material-symbols-outlined text-sm">mic</span>Podcast
+    </a>
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      X / Twitter
+    </a>
+  </div>
+
+  <!-- Trennlinie -->
+  <div class="px-5 mb-3"><div class="border-t border-[#2f3336]"></div></div>
+
+  <!-- Search -->
+  <div class="px-3 mb-3">
     <div id="searchWrap" class="flex items-center gap-2 bg-[#16181c] border border-[#2f3336] px-3 py-2">
       <span class="material-symbols-outlined text-gray-500 text-base">search</span>
       <input id="searchInput" type="text" placeholder="Suchen…"
@@ -127,13 +194,13 @@
   </div>
 
   <!-- Source filters -->
-  <div class="px-5 mb-4">
-    <p class="text-[10px] text-gray-600 font-mono uppercase tracking-widest mb-3">Quellen</p>
+  <div class="px-5 mb-4 overflow-y-auto flex-1">
+    <p class="text-[10px] text-gray-600 font-mono uppercase tracking-widest mb-2">Quellen</p>
     <div class="flex flex-col gap-1" id="sourceFilters"></div>
   </div>
 
-  <div class="mt-auto px-5 pb-2">
-    <div id="standInfo" class="border border-[#2f3336] p-3">
+  <div class="px-5 pb-2">
+    <div class="border border-[#2f3336] p-3">
       <p class="text-[10px] text-gray-500 font-mono mb-1">LETZTES UPDATE</p>
       <p class="text-[11px] text-gray-400 font-mono" id="standLabel">—</p>
     </div>
@@ -466,32 +533,6 @@ function createCard(item) {
   return a;
 }
 </script>
-<script>
-(function(){
-  const THEMES=['auto','light','dark'], ICONS={auto:'AUTO',light:'☀',dark:'☾'};
-  function getPreferred(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-  function applyTheme(t){
-    const r=t==='auto'?getPreferred():t;
-    document.documentElement.classList.remove('light','dark');
-    document.documentElement.classList.add(r);
-    const btn=document.getElementById('themeBtn');
-    if(btn){btn.textContent=ICONS[t];btn.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
-  }
-  window.cycleTheme=function(){
-    const cur=localStorage.getItem('ki_theme')||'auto';
-    const next=THEMES[(THEMES.indexOf(cur)+1)%THEMES.length];
-    try{localStorage.setItem('ki_theme',next);}catch(e){}
-    applyTheme(next);
-  };
-  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  document.readyState==='loading'
-    ?document.addEventListener('DOMContentLoaded',()=>applyTheme(saved))
-    :applyTheme(saved);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-    if(s==='auto')applyTheme('auto');
-  });
-})();
-</script>
+
 </body>
 </html>
