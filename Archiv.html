@@ -348,6 +348,12 @@ function toggleSources() {
   if (icon) icon.textContent = sourcesExpanded ? 'expand_less' : 'expand_more';
 }
 
+// Re-render wenn Theme wechselt (damit Kartenfarben korrekt sind)
+const _themeObserver = new MutationObserver(() => {
+  if (allNews.length > 0) render();
+});
+_themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
 // ── Source config ────────────────────────────────────────────────────────────
 const SOURCE_CONFIG = {
   'The Decoder':    { color: '#1d9bf0', textClass: 'text-[#1d9bf0]' },
@@ -363,9 +369,16 @@ function srcConf(source) {
 
 // ── localStorage Persistenz ───────────────────────────────────────────────────
 const ARCHIVE_KEY = 'ki_news_archive';
+const ARCHIVE_VERSION = 'v2'; // erhöhen wenn localStorage geflusht werden soll
 
 function loadArchive() {
   try {
+    // Cache-Version prüfen – bei Mismatch alten Cache löschen (behebt Encoding-Fehler)
+    if (localStorage.getItem('ki_archive_ver') !== ARCHIVE_VERSION) {
+      localStorage.removeItem(ARCHIVE_KEY);
+      localStorage.setItem('ki_archive_ver', ARCHIVE_VERSION);
+      return [];
+    }
     const raw = localStorage.getItem(ARCHIVE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch(e) { return []; }
