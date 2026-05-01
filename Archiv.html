@@ -8,6 +8,26 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  /* ── Light mode overrides ─────────────────────────────── */
+  html.light body { background-color: #f8fafc !important; color: #0f172a !important; }
+  html.light nav.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light aside.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light main { background-color: #f8fafc !important; }
+  html.light .bg-black { background-color: #ffffff !important; }
+  html.light .bg-\[#16181c\] { background-color: #ffffff !important; }
+  html.light .bg-\[#1d1f23\] { background-color: #f1f5f9 !important; }
+  html.light .hover\:bg-\[#1d1f23\]:hover { background-color: #f1f5f9 !important; }
+  html.light .hover\:bg-\[#16181c\]:hover { background-color: #f1f5f9 !important; }
+  html.light .border-\[#2f3336\] { border-color: #e2e8f0 !important; }
+  html.light .text-white { color: #0f172a !important; }
+  html.light .text-gray-500 { color: #64748b !important; }
+  html.light .text-gray-400 { color: #475569 !important; }
+  html.light .text-gray-600 { color: #94a3b8 !important; }
+  html.light .text-on-surface-variant { color: #475569 !important; }
+  html.light .text-on-surface { color: #334155 !important; }
+  html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
+</style>
 <script id="tailwind-config">
   tailwind.config = {
     darkMode: "class",
@@ -79,6 +99,11 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span class="hidden sm:inline">@CScampy</span>
     </a>
+    <a href="https://linkedin.com/in/dscampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-[#0a66c2] transition-colors">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+    <button id="themeBtn" onclick="cycleTheme()" title="Design wechseln"
+      class="text-gray-400 hover:text-white transition-colors text-[10px] font-mono border border-[#2f3336] px-2 py-1 hover:border-gray-500 tracking-widest">AUTO</button>
   </div>
 </nav>
 
@@ -124,6 +149,7 @@
       <div>
         <h1 class="font-headline-xl text-headline-xl text-white mb-1" style="font-family:'Space Grotesk',sans-serif">Archiv</h1>
         <p class="text-gray-500 text-sm font-mono" id="countLabel">Wird geladen…</p>
+        <p class="text-[10px] font-mono text-gray-600 mt-1" id="archiveBadge" style="display:none"></p>
       </div>
       <!-- Mobile search -->
       <div class="flex lg:hidden items-center gap-2 bg-[#16181c] border border-[#2f3336] px-3 py-2 max-w-xs">
@@ -209,23 +235,76 @@ function srcConf(source) {
   return SOURCE_CONFIG[source] || { color: '#1d9bf0', textClass: 'text-[#1d9bf0]' };
 }
 
+// ── localStorage Persistenz ───────────────────────────────────────────────────
+const ARCHIVE_KEY = 'ki_news_archive';
+
+function loadArchive() {
+  try {
+    const raw = localStorage.getItem(ARCHIVE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function saveArchive(newsArray) {
+  try {
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(newsArray));
+  } catch(e) {
+    // localStorage voll – älteste 20 entfernen und nochmal versuchen
+    try {
+      const trimmed = newsArray.slice(-200);
+      localStorage.setItem(ARCHIVE_KEY, JSON.stringify(trimmed));
+    } catch(e2) {}
+  }
+}
+
+function mergeNews(existing, incoming) {
+  // Deduplizierung per Link
+  const seen = new Set(existing.map(n => n.link));
+  const newOnes = incoming.filter(n => n.link && !seen.has(n.link));
+  // Neue vorne, alte hinten – max 500 Einträge gesamt
+  return [...incoming, ...existing.filter(n => !incoming.find(i => i.link === n.link))].slice(0, 500);
+}
+
 // ── Load ─────────────────────────────────────────────────────────────────────
+// 1. Sofort aus localStorage laden (blitzschnell)
+const archived = loadArchive();
+if (archived.length > 0) {
+  allNews = archived;
+  buildSourceFilters();
+  render();
+  document.getElementById('skeleton').classList.add('hidden');
+  document.getElementById('newsGrid').classList.remove('hidden');
+}
+
+// 2. Dann aktuell von news.json nachladen und mergen
 fetch('news.json?t=' + Date.now())
   .then(r => r.json())
   .then(data => {
-    allNews = data.news || [];
+    const fresh = data.news || [];
     if (data.stand) {
       document.getElementById('standLabel').textContent = data.stand;
     }
+    allNews = mergeNews(archived, fresh);
+    saveArchive(allNews);
     buildSourceFilters();
     render();
     document.getElementById('skeleton').classList.add('hidden');
     document.getElementById('newsGrid').classList.remove('hidden');
+
+    // Info-Badge: wie viele Artikel insgesamt im Archiv
+    const archiveBadge = document.getElementById('archiveBadge');
+    if (archiveBadge) {
+      archiveBadge.textContent = allNews.length + ' Artikel gespeichert';
+      archiveBadge.style.display = '';
+    }
   })
   .catch(() => {
-    document.getElementById('skeleton').classList.add('hidden');
-    document.getElementById('countLabel').textContent = 'Fehler beim Laden.';
-    document.getElementById('emptyState').classList.remove('hidden');
+    if (archived.length === 0) {
+      document.getElementById('skeleton').classList.add('hidden');
+      document.getElementById('countLabel').textContent = 'Fehler beim Laden.';
+      document.getElementById('emptyState').classList.remove('hidden');
+    }
+    // Falls offline aber Archive vorhanden – weiter mit alten Daten
   });
 
 // ── Source filters ────────────────────────────────────────────────────────────
@@ -386,6 +465,33 @@ function createCard(item) {
   }
   return a;
 }
+</script>
+<script>
+(function(){
+  const THEMES=['auto','light','dark'], ICONS={auto:'AUTO',light:'☀',dark:'☾'};
+  function getPreferred(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  function applyTheme(t){
+    const r=t==='auto'?getPreferred():t;
+    document.documentElement.classList.remove('light','dark');
+    document.documentElement.classList.add(r);
+    const btn=document.getElementById('themeBtn');
+    if(btn){btn.textContent=ICONS[t];btn.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
+  }
+  window.cycleTheme=function(){
+    const cur=localStorage.getItem('ki_theme')||'auto';
+    const next=THEMES[(THEMES.indexOf(cur)+1)%THEMES.length];
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyTheme(next);
+  };
+  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  document.readyState==='loading'
+    ?document.addEventListener('DOMContentLoaded',()=>applyTheme(saved))
+    :applyTheme(saved);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+    if(s==='auto')applyTheme('auto');
+  });
+})();
 </script>
 </body>
 </html>
