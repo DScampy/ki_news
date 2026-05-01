@@ -504,12 +504,22 @@ function render() {
 function createCard(item) {
   const conf = srcConf(item.source);
   const isList = layout === 'list';
+  const isLight = document.documentElement.classList.contains('light');
   const a = document.createElement('a');
   a.href = item.link || '#';
   if (item.link) a.target = '_blank';
   a.style.setProperty('--accent-color', conf.color);
-  a.className = `card-hover bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-opacity-80 transition-all group cursor-pointer flex ${isList ? 'flex-row items-start gap-4 p-4' : 'flex-col p-4 h-full'}`;
-  a.style.borderHoverColor = conf.color;
+  // Use semantic classes that respond to light/dark CSS
+  a.className = `card-hover border transition-all group cursor-pointer flex ${isList ? 'flex-row items-start gap-4 p-4' : 'flex-col p-4 h-full'}`;
+  a.style.background = isLight ? '#ffffff' : '#16181c';
+  a.style.borderColor = isLight ? '#e2e8f0' : '#2f3336';
+  a.onmouseenter = () => { a.style.borderColor = conf.color; a.style.background = isLight ? '#f8fafc' : '#1d1f23'; };
+  a.onmouseleave = () => { a.style.borderColor = isLight ? '#e2e8f0' : '#2f3336'; a.style.background = isLight ? '#ffffff' : '#16181c'; };
+
+  const titleColor = isLight ? '#0f172a' : '#dfe3ea';
+  const mutedColor = isLight ? '#64748b' : '#bfc7d3';
+  const borderColor = isLight ? '#e2e8f0' : '#2f3336';
+  const iconColor = isLight ? '#94a3b8' : '#4b5563';
 
   if (isList) {
     a.innerHTML = `
@@ -517,18 +527,18 @@ function createCard(item) {
         <div class="flex items-center gap-2 mb-2 flex-wrap">
           <span style="background:${conf.color}" class="text-white px-2 py-0.5 text-[10px] font-mono rounded-sm uppercase flex-shrink-0">${item.source || '—'}</span>
         </div>
-        <h4 class="font-headline-md text-white leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif">${item.title || ''}</h4>
-        <p class="text-on-surface-variant font-body-sm text-body-sm line-clamp-2">${item.summary || ''}</p>
+        <h4 class="font-headline-md leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
+        <p class="font-body-sm text-body-sm line-clamp-2" style="color:${mutedColor}">${item.summary || ''}</p>
       </div>
-      <span class="material-symbols-outlined text-gray-600 text-sm flex-shrink-0 mt-1">open_in_new</span>`;
+      <span class="material-symbols-outlined text-sm flex-shrink-0 mt-1" style="color:${iconColor}">open_in_new</span>`;
   } else {
     a.innerHTML = `
       <div class="flex items-center justify-between mb-4">
         <span style="background:${conf.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.source || '—'}</span>
-        <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        <span class="material-symbols-outlined text-sm" style="color:${iconColor}">open_in_new</span>
       </div>
-      <h4 class="font-headline-md text-white mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif">${item.title || ''}</h4>
-      <p class="text-on-surface-variant font-body-sm text-body-sm mt-auto pt-3 border-t border-[#2f3336] line-clamp-2">${item.summary || ''}</p>`;
+      <h4 class="font-headline-md mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
+      <p class="font-body-sm text-body-sm mt-auto pt-3 line-clamp-2" style="border-top:1px solid ${borderColor};color:${mutedColor}">${item.summary || ''}</p>`;
   }
   return a;
 }
