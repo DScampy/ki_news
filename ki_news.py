@@ -600,17 +600,17 @@ def create_html(alle_news, parsed, summaries):
     proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
 
     if proj_dir.exists():
-        pfad_index = str(proj_dir / "index.html")
+        # Lokal: nur ki_news.html schreiben – index.html ist die Tailwind-Seite, nie überschreiben
         pfad_lokal = str(proj_dir / "ki_news.html")
         try:
-            Path(pfad_index).write_text(html, encoding="utf-8")
             Path(pfad_lokal).write_text(html, encoding="utf-8")
-            logger.info("HTML geschrieben: index.html + ki_news.html")
+            logger.info("HTML geschrieben: ki_news.html")
         except Exception as e:
             logger.exception("Fehler beim Schreiben HTML: %s", e)
         return pfad_lokal
     else:
-        pfad = "index.html"
+        # GitHub Actions: Posts-HTML als ki_news.html, index.html (Tailwind-Dashboard) NICHT anfassen
+        pfad = "ki_news.html"
         try:
             Path(pfad).write_text(html, encoding="utf-8")
             logger.info("HTML geschrieben: %s", pfad)
