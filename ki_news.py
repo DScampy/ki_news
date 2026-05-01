@@ -63,6 +63,7 @@ KI_KEYWORDS = [
 FEEDS = [
     # Deutsch
     ("The Decoder", "https://the-decoder.de/feed/"),
+<<<<<<< HEAD
     ("Heise",       "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
     ("Golem",       "https://rss.golem.de/rss.php?feed=RSS2.0"),
     ("Caschy Blog", "https://stadt-bremerhaven.de/feed/"),
@@ -73,6 +74,16 @@ FEEDS = [
     ("MIT Tech Review","https://www.technologyreview.com/feed/"),
     ("The Verge",      "https://www.theverge.com/rss/index.xml"),
     ("Wired AI",       "https://www.wired.com/feed/tag/artificial-intelligence/rss"),
+=======
+    ("Heise", "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
+    ("TechCrunch AI", "https://www.heise.de/newsticker/heise.rdf"),
+    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"),
+    ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
+    ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
+    ("Caschy´s Blog", "https://stadt-bremerhaven.de/feed/"),
+    ("Golem", "https://rss.golem.de/rss.php?feed=RSS2.0"),
+    ("PC Welt", "https://www.pcwelt.de/feed?story_types=n.."),
+>>>>>>> 91cbb409401e2e804ec27a809a4bfa823ce7b33b
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
