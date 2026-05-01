@@ -62,10 +62,6 @@ html.light .ki-main{color:#0f172a!important;}
 html.light .ki-border{border-color:#e2e8f0!important;}
 html.light .ki-bg-dark{background:#f1f5f9!important;}
 html.light ::-webkit-scrollbar-thumb{background:#cbd5e1!important;}
-
-/* ── Sidebar-Hover Fix (Tailwind-Klassen greifen nicht zuverlässig) ── */
-html.light #sidebar a:hover{background:#f1f5f9!important;color:#0f172a!important;}
-html.light #sidebar a:hover .material-symbols-outlined{color:#0f172a!important;}
 html.light .video-wrap{border-color:#e2e8f0!important;}
 
 /* ── Video ── */
@@ -230,7 +226,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
   <div class="max-w-[1400px] mx-auto p-gutter">
 
     <!-- TOP: Podcast + Video nebeneinander -->
-    <div class="grid grid-cols-2 gap-gutter mt-gutter mb-gutter">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mt-gutter mb-gutter">
 
       <!-- Podcast -->
       <div class="ki-card ki-border border p-5 relative overflow-hidden">
@@ -382,7 +378,6 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
   </button>
 </div>
 
-<script src="chat-config.js" onerror="console.log('chat-config.js nicht gefunden')"></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 <script>
@@ -459,7 +454,7 @@ function renderCard(item) {
 
 // ── Top Stories ────────────────────────────────────────────────────────
 let topStoryLinks = [];
-function renderTopStories(news, posts) {
+function renderTopStories(news) {
   const container = document.getElementById('top-stories-list');
   if (!container) return;
   const top = news.slice(0, 3);
@@ -467,8 +462,6 @@ function renderTopStories(news, posts) {
   container.innerHTML = '';
   top.forEach((item, i) => {
     const c = item.color || srcColor(item.source);
-    const post = posts && posts[i] ? posts[i] : null;
-    const teaser = post && post.teaser ? post.teaser : '';
     const div = document.createElement('div');
     div.className = 'cursor-pointer group';
     div.innerHTML = `
@@ -477,7 +470,7 @@ function renderTopStories(news, posts) {
         <div class="flex-1 min-w-0">
           <span class="text-[10px] px-1.5 py-0.5 font-mono uppercase inline-block mb-1" style="background:${c}22;color:${c};border:1px solid ${c}44">${item.source}</span>
           <h4 class="text-sm font-bold ki-main leading-snug group-hover:text-[#1d9bf0] transition-colors mb-1">${item.title}</h4>
-          ${teaser ? `<p class="text-[12px] ki-muted leading-snug mt-1 line-clamp-3 italic">${teaser}</p>` : item.summary ? `<p class="text-[11px] ki-muted line-clamp-2">${item.summary}</p>` : ''}
+          ${item.summary ? `<p class="text-[11px] ki-muted line-clamp-2">${item.summary}</p>` : ''}
         </div>
         <span class="material-symbols-outlined ki-faint text-sm flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
       </div>`;
@@ -494,7 +487,7 @@ fetch('news.json?t=' + Date.now())
     const grid = document.getElementById('news-grid');
     const label = document.getElementById('stand-label');
     if (!grid || !data.news || !data.news.length) return;
-    renderTopStories(data.news, data.posts || []);
+    renderTopStories(data.news);
     // News Grid: Top-3 rausfiltern
     const filtered = data.news.filter(n => !topStoryLinks.includes(n.link));
     grid.innerHTML = '';
@@ -575,41 +568,20 @@ async function sendChat() {
   input.value = ''; input.style.height = 'auto';
   addMsg('user', text);
   btn.disabled = true; addTyping();
-
-  const apiKey = window.GROQ_CHAT_KEY || '';
-  const model = window.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const systemPrompt = `Du bist KI-News Assistent auf ki-news.live. Antworte auf Deutsch, kurz und präzise (max. 3 Sätze).\n\nAktuelle News:\n${currentNewsContext}`;
-
-  if (!apiKey) {
-    removeTyping();
-    addMsg('bot', 'Chat-Key noch nicht konfiguriert – bitte ki_news.py einmal lokal ausführen oder GitHub Actions starten. 🤖');
-    btn.disabled = false; input.focus();
-    return;
-  }
-
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 300,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
-        ]
-      })
-    });
-    if (!response.ok) throw new Error('API ' + response.status);
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || 'Keine Antwort.';
-    removeTyping(); addMsg('bot', reply);
+    // Versuche claude helper (Preview), dann OpenRouter (Live)
+    if (typeof window.claude !== 'undefined' && window.claude.complete) {
+      const reply = await window.claude.complete({ messages: [{ role: 'user', content: systemPrompt + '\n\nFrage: ' + text }] });
+      removeTyping(); addMsg('bot', reply || 'Keine Antwort.');
+    } else {
+      // OpenRouter direkt – kein Key im Frontend, daher Hinweis
+      removeTyping();
+      addMsg('bot', 'Der KI-Assistent ist auf der Live-Seite verfügbar sobald der OpenRouter-Key im Backend konfiguriert ist. Hier in der Vorschau funktioniert er bereits! 🤖');
+    }
   } catch(e) {
     removeTyping();
-    addMsg('bot', 'Fehler beim Abrufen: ' + e.message);
+    addMsg('bot', 'Entschuldigung, ein Fehler ist aufgetreten: ' + e.message);
   } finally {
     btn.disabled = false; input.focus();
   }
