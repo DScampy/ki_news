@@ -97,8 +97,21 @@
   html.light .text-on-surface { color: #334155 !important; }
   html.light .placeholder-gray-600::placeholder { color: #94a3b8 !important; }
   html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
-</style>
-</head>
+
+  /* ── Direkte Element-Fixes (JS-generierte Sidebar-Elemente) ── */
+  html.light #searchWrap { background: #f1f5f9 !important; border-color: #e2e8f0 !important; }
+  html.light #searchInput { color: #0f172a !important; }
+  html.light #searchInput::placeholder { color: #94a3b8 !important; }
+  html.light #sourceFilters button { background: transparent !important; color: #475569 !important; }
+  html.light #sourceFilters button:hover { background: #f1f5f9 !important; color: #0f172a !important; }
+  html.light #src-all { background: #eff6ff !important; color: #1d9bf0 !important; border-color: #1d9bf0 !important; }
+  html.light aside .border-t { border-color: #e2e8f0 !important; }
+  html.light aside .border { border-color: #e2e8f0 !important; }
+  html.light #standLabel { color: #475569 !important; }
+  html.light #sourcesToggleBtn * { color: #94a3b8 !important; }
+  html.light .search-clear { color: #94a3b8 !important; }
+  html.light aside .text-\[10px\] { color: #94a3b8 !important; }
+
 <body class="font-body-lg">
 
 <!-- ── Theme + Sidebar Script ── -->
@@ -369,7 +382,7 @@ function srcConf(source) {
 
 // ── localStorage Persistenz ───────────────────────────────────────────────────
 const ARCHIVE_KEY = 'ki_news_archive';
-const ARCHIVE_VERSION = 'v2'; // erhöhen wenn localStorage geflusht werden soll
+const ARCHIVE_VERSION = 'v3'; // erhöhen wenn localStorage geflusht werden soll
 
 function loadArchive() {
   try {
@@ -461,13 +474,18 @@ fetch('news.json?t=' + Date.now())
 
 // ── Source filters ────────────────────────────────────────────────────────────
 function buildSourceFilters() {
+  const isLight = document.documentElement.classList.contains('light');
   const sources = [...new Set(allNews.map(n => n.source).filter(Boolean))];
   const container = document.getElementById('sourceFilters');
-  // All option
+  container.innerHTML = '';
+
   const allBtn = document.createElement('button');
   allBtn.id = 'src-all';
-  allBtn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all bg-[#1d1f23] text-[#1d9bf0] border-l-2 border-[#1d9bf0]';
-  allBtn.innerHTML = `<span>Alle</span><span class="text-gray-600">${allNews.length}</span>`;
+  allBtn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all border-l-2';
+  allBtn.style.background = isLight ? '#eff6ff' : '#1d1f23';
+  allBtn.style.color = '#1d9bf0';
+  allBtn.style.borderLeftColor = '#1d9bf0';
+  allBtn.innerHTML = `<span>Alle</span><span style="color:#6b7280">${allNews.length}</span>`;
   allBtn.onclick = () => { clearFilter(); };
   container.appendChild(allBtn);
 
@@ -476,34 +494,42 @@ function buildSourceFilters() {
     const count = allNews.filter(n => n.source === src).length;
     const btn = document.createElement('button');
     btn.id = 'src-' + src.replace(/\s/g, '-');
-    btn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all text-gray-400 hover:text-white hover:bg-[#16181c]';
-    btn.innerHTML = `<span>${src}</span><span class="text-gray-600">${count}</span>`;
+    btn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all border-l-2';
+    btn.style.background = 'transparent';
+    btn.style.color = isLight ? '#475569' : '#9ca3af';
+    btn.style.borderLeftColor = 'transparent';
+    btn.innerHTML = `<span>${src}</span><span style="color:#6b7280">${count}</span>`;
+    btn.onmouseenter = () => { btn.style.background = isLight ? '#f1f5f9' : '#16181c'; btn.style.color = isLight ? '#0f172a' : '#fff'; };
+    btn.onmouseleave = () => { if (activeSource !== src) { btn.style.background = 'transparent'; btn.style.color = isLight ? '#475569' : '#9ca3af'; } };
     btn.onclick = () => setFilter(src);
     container.appendChild(btn);
   });
 }
 
 function updateSourceFilterUI() {
+  const isLight = document.documentElement.classList.contains('light');
+  const activeBg = isLight ? '#eff6ff' : '#1d1f23';
   const sources = [...new Set(allNews.map(n => n.source).filter(Boolean))];
   const allBtn = document.getElementById('src-all');
   if (allBtn) {
-    allBtn.className = !activeSource
-      ? 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all bg-[#1d1f23] text-[#1d9bf0] border-l-2 border-[#1d9bf0]'
-      : 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all text-gray-400 hover:text-white hover:bg-[#16181c]';
+    allBtn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all border-l-2';
+    allBtn.style.background = !activeSource ? activeBg : 'transparent';
+    allBtn.style.color = '#1d9bf0';
+    allBtn.style.borderLeftColor = !activeSource ? '#1d9bf0' : 'transparent';
   }
   sources.forEach(src => {
     const btn = document.getElementById('src-' + src.replace(/\s/g, '-'));
     if (btn) {
       const conf = srcConf(src);
-      btn.className = activeSource === src
-        ? `flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all bg-[#1d1f23] border-l-2 text-white`
-        : 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all text-gray-400 hover:text-white hover:bg-[#16181c]';
+      btn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all border-l-2';
       if (activeSource === src) {
+        btn.style.background = activeBg;
         btn.style.borderLeftColor = conf.color;
         btn.style.color = conf.color;
       } else {
-        btn.style.borderLeftColor = '';
-        btn.style.color = '';
+        btn.style.background = 'transparent';
+        btn.style.borderLeftColor = 'transparent';
+        btn.style.color = isLight ? '#475569' : '#9ca3af';
       }
     }
   });
