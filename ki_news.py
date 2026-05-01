@@ -17,12 +17,9 @@ LOG_PATH = Path("ki_news.log")
 _fmt = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
 _fh = logging.FileHandler(LOG_PATH, encoding="utf-8")
 _fh.setFormatter(_fmt)
-_sh = logging.StreamHandler()
-_sh.setFormatter(_fmt)
 logger = logging.getLogger("ki_news")
 logger.setLevel(logging.INFO)
 logger.addHandler(_fh)
-logger.addHandler(_sh)
 logger.propagate = False  # Kein Doppel-Logging durch Root-Logger
 
 # -------------------------
@@ -81,7 +78,6 @@ MODELLE = [
     "meta-llama/llama-3.3-70b-instruct:free",         # Llama 3.3 70B – bestes Free-Modell
     "nousresearch/hermes-3-llama-3.1-405b:free",      # 405B – höchste Qualität
     "google/gemma-4-31b-it:free",                      # Gemma 4 31B – gut für Deutsch
-    "tencent/hy3-preview:free",                        # Hy3 Preview
     "google/gemma-4-26b-a4b-it:free",                  # Gemma 4 26B (korrigierter Slug)
     # Kostenpflichtige Fallbacks (~$0.008/Lauf) – nur wenn alle Free-Modelle 429
     "meta-llama/llama-3.3-70b-instruct",               # Anker – immer verfügbar
@@ -293,6 +289,9 @@ News (genau diese 3, je eine pro Post):
             })
             with urllib.request.urlopen(req, timeout=90) as r:
                 antwort = json.loads(r.read())["choices"][0]["message"]["content"]
+                if not antwort:
+                    logger.warning("Posts: %s liefert leeren Content – naechstes Modell", modell)
+                    continue
                 logger.info("Posts OK mit Modell: %s", modell)
                 return antwort
         except HTTPError as e:
@@ -798,7 +797,7 @@ def main():
         update_hashtags(Path("."))
 
     # ── HTML generieren ───────────────────────────────────────────────────────
-    pfad = generate_html(alle_news, parsed)
+    pfad = create_html(alle_news, parsed, summaries)
 
     logger.info("KI News Lauf abgeschlossen.")
 
