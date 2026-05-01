@@ -101,7 +101,6 @@
 </head>
 <body class="font-body-lg">
 
-<<<<<<< HEAD
 <!-- ── Theme + Sidebar Script ── -->
 <script>
 (function(){
@@ -162,33 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btn) btn.style.display = 'flex';
 });
 
-=======
-<!-- ── Theme Script – muss ganz oben sein ── -->
-<script>
-(function(){
-  const THEMES=['auto','light','dark'], ICONS={auto:'AUTO',light:'☀',dark:'☾'};
-  function getPreferred(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-  function applyTheme(t){
-    const r=t==='auto'?getPreferred():t;
-    document.documentElement.classList.remove('light','dark');
-    document.documentElement.classList.add(r);
-    const btn=document.getElementById('themeBtn');
-    if(btn){btn.textContent=ICONS[t];btn.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
-  }
-  window.cycleTheme=function(){
-    const cur=localStorage.getItem('ki_theme')||'auto';
-    const next=THEMES[(THEMES.indexOf(cur)+1)%THEMES.length];
-    try{localStorage.setItem('ki_theme',next);}catch(e){}
-    applyTheme(next);
-  };
-  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  applyTheme(saved);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-    if(s==='auto')applyTheme('auto');
-  });
-})();
->>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
 </script>
 
 <!-- Top Nav -->
@@ -223,15 +195,12 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </nav>
 
-<<<<<<< HEAD
 <!-- Sidebar Toggle Button -->
 <button id="archiv-sidebar-toggle" onclick="toggleArchivSidebar()" title="Sidebar ein-/ausklappen"
   style="position:fixed;left:240px;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s;border-radius:0 4px 4px 0;">
   <span class="material-symbols-outlined" style="font-size:12px" id="archiv-toggle-icon">chevron_left</span>
 </button>
 
-=======
->>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
 <!-- Sidebar – gleiche Struktur wie Dashboard -->
 <aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-6 bg-black border-r border-[#2f3336] hidden lg:flex overflow-hidden">
   <div class="px-5 mb-4">
@@ -273,14 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- Source filters -->
   <div class="px-5 mb-4 overflow-y-auto flex-1">
-<<<<<<< HEAD
     <button onclick="toggleSources()" class="flex items-center justify-between w-full mb-2 group" id="sourcesToggleBtn">
       <p class="text-[10px] text-gray-600 font-mono uppercase tracking-widest">Quellen</p>
       <span class="material-symbols-outlined text-gray-600 group-hover:text-gray-400 transition-colors" style="font-size:14px" id="sourcesToggleIcon">expand_less</span>
     </button>
-=======
-    <p class="text-[10px] text-gray-600 font-mono uppercase tracking-widest mb-2">Quellen</p>
->>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
     <div class="flex flex-col gap-1" id="sourceFilters"></div>
   </div>
 
