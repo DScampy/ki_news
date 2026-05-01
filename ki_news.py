@@ -46,7 +46,7 @@ if not OPENROUTER_KEY:
             logger.warning("Fehler beim Lesen config.txt: %s", e)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip() or "9096438"
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438").strip()
 
 # -------------------------
 # Konfiguration
@@ -71,6 +71,7 @@ FEEDS = [
 MAX_LLM_NEWS = 3
 
 MODELLE = [
+    "mistralai/mistral-small-3.2-24b-instruct:free",
     "meta-llama/llama-3.3-70b-instruct",
     "google/gemma-3-27b-it",
     "meta-llama/llama-3.1-8b-instruct",
@@ -573,44 +574,23 @@ def create_html(alle_news, parsed, summaries):
     proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
 
     if proj_dir.exists():
-        # Lokal: nur ki_news.html – index.html ist die oeffentliche Startseite, wird nicht angefasst
-        pfad_lokal = proj_dir / "ki_news.html"
+        pfad_index = str(proj_dir / "index.html")
+        pfad_lokal = str(proj_dir / "ki_news.html")
+        try:
+            Path(pfad_index).write_text(html, encoding="utf-8")
+            Path(pfad_lokal).write_text(html, encoding="utf-8")
+            logger.info("HTML geschrieben: index.html + ki_news.html")
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben HTML: %s", e)
+        return pfad_lokal
     else:
-        # GitHub Actions: nur ki_news.html committen
-        pfad_lokal = Path("ki_news.html")
-
-    try:
-        pfad_lokal.write_text(html, encoding="utf-8")
-        logger.info("HTML geschrieben: %s", pfad_lokal)
-    except Exception as e:
-        logger.exception("Fehler beim Schreiben HTML: %s", e)
-    return str(pfad_lokal)
-
-# -------------------------
-# JSON Export fuer index.html
-# -------------------------
-def write_news_json(alle_news, summaries):
-    datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
-    items = []
-    for i, n in enumerate(alle_news):
-        summary = summaries.get(i, {})
-        items.append({
-            "title": summary.get("title_de", n["title"]),
-            "summary": summary.get("summary", ""),
-            "link": n["link"],
-            "source": n["source"],
-            "color": SOURCE_COLORS.get(n["source"], "#555")
-        })
-    payload = {"stand": datum, "news": items}
-
-    proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
-    pfad = (proj_dir / "news.json") if proj_dir.exists() else Path("news.json")
-    try:
-        pfad.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        logger.info("news.json geschrieben: %d Items", len(items))
-    except Exception as e:
-        logger.exception("Fehler beim Schreiben news.json: %s", e)
-
+        pfad = "index.html"
+        try:
+            Path(pfad).write_text(html, encoding="utf-8")
+            logger.info("HTML geschrieben: %s", pfad)
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben HTML: %s", e)
+        return pfad
 
 # -------------------------
 # Main
@@ -652,7 +632,78 @@ def main():
     logger.info("%d Posts geparst", len(parsed))
 
     send_telegram(parsed)
-    write_news_json(alle_news, summaries)
+
+    # ── news.json schreiben (fuer Dashboard + Archiv) ──────────────────────
+    def write_json_file(path_obj, data):
+        try:
+            path_obj.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            logger.info("JSON geschrieben: %s", path_obj)
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben %s: %s", path_obj, e)
+
+    datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
+
+    # News-Liste mit deutschen Titeln + Zusammenfassungen aufbauen
+    news_list = []
+    for i, n in enumerate(alle_news):
+        s = summaries.get(i, {})
+        entry = {
+            "title":   s.get("title_de", n["title"]),
+            "summary": s.get("summary", ""),
+            "link":    n.get("link", ""),
+            "source":  n.get("source", ""),
+            "color":   SOURCE_COLORS.get(n.get("source", ""), "#555"),
+        }
+        news_list.append(entry)
+
+    # Posts (Teasers) den Top-3-News zuordnen
+    posts_list = []
+    for i, p in enumerate(parsed):
+        posts_list.append({
+            "teaser":     p.get("teaser", ""),
+            "erklaerung": p.get("erklaerung", ""),
+            "thread":     p.get("thread", []),
+        })
+
+    news_json_data = {
+        "stand": datum,
+        "news":  news_list,
+        "posts": posts_list,
+    }
+
+    proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
+    if proj_dir.exists():
+        write_json_file(proj_dir / "news.json", news_json_data)
+    else:
+        write_json_file(Path("news.json"), news_json_data)
+
+    # ── archive.json kumulativ schreiben ──────────────────────────────────
+    def update_archive(base_dir):
+        archive_path = base_dir / "archive.json"
+        try:
+            if archive_path.exists():
+                existing = json.loads(archive_path.read_text(encoding="utf-8"))
+            else:
+                existing = []
+        except Exception:
+            existing = []
+
+        seen_links = {n["link"] for n in existing if n.get("link")}
+        new_entries = [n for n in news_list if n.get("link") and n["link"] not in seen_links]
+        # Neuestes vorne, max 2000 Eintraege
+        merged = new_entries + existing
+        merged = merged[:2000]
+        try:
+            archive_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
+            logger.info("archive.json aktualisiert: %d Eintraege gesamt", len(merged))
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben archive.json: %s", e)
+
+    if proj_dir.exists():
+        update_archive(proj_dir)
+    else:
+        update_archive(Path("."))
+
     pfad = create_html(alle_news, parsed, summaries)
     logger.info("Fertig. HTML: %s", pfad)
 

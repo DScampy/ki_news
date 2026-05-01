@@ -77,9 +77,91 @@
   .card-hover:hover h4 { color: var(--accent-color, #1d9bf0); }
   .search-clear { display: none; }
   .has-search .search-clear { display: flex; }
+
+  /* ── Light Mode ── */
+  html.light body { background: #f0f4f8 !important; color: #0f172a !important; }
+  html.light nav.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light aside.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light main { background: #f0f4f8 !important; }
+  html.light .bg-black { background: #ffffff !important; }
+  html.light .bg-\[#16181c\] { background: #ffffff !important; }
+  html.light .bg-\[#1d1f23\] { background: #f1f5f9 !important; }
+  html.light .hover\:bg-\[#16181c\]:hover { background: #f1f5f9 !important; }
+  html.light .border-\[#2f3336\] { border-color: #e2e8f0 !important; }
+  html.light .text-white { color: #0f172a !important; }
+  html.light .text-gray-500 { color: #64748b !important; }
+  html.light .text-gray-400 { color: #475569 !important; }
+  html.light .text-gray-600 { color: #94a3b8 !important; }
+  html.light .text-gray-300 { color: #475569 !important; }
+  html.light .text-on-surface-variant { color: #475569 !important; }
+  html.light .text-on-surface { color: #334155 !important; }
+  html.light .placeholder-gray-600::placeholder { color: #94a3b8 !important; }
+  html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
 </style>
 </head>
 <body class="font-body-lg">
+
+<!-- ── Theme + Sidebar Script ── -->
+<script>
+(function(){
+  function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  function apply(t){
+    const r=t==='auto'?pref():t;
+    document.documentElement.classList.remove('light','dark');
+    document.documentElement.classList.add(r);
+    updateSlider(t);
+  }
+  function updateSlider(t){
+    const knob=document.querySelector('.theme-slider-knob');
+    if(!knob) return;
+    const resolved=t==='auto'?pref():t;
+    knob.style.left=resolved==='dark'?'22px':'2px';
+    knob.style.background=resolved==='dark'?'#1d9bf0':'#f59e0b';
+  }
+  window.cycleTheme=function(){
+    const cur=localStorage.getItem('ki_theme')||'auto';
+    const resolved=cur==='auto'?pref():cur;
+    const next=resolved==='dark'?'light':'dark';
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    apply(next);
+  };
+  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  apply(saved);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+    if(s==='auto')apply('auto');
+  });
+  document.addEventListener('DOMContentLoaded',()=>updateSlider(localStorage.getItem('ki_theme')||'auto'));
+})();
+
+// ── Sidebar Toggle ──────────────────────────────────────────────────────
+let archivSidebarOpen = true;
+function toggleArchivSidebar() {
+  const sidebar = document.querySelector('aside.fixed');
+  const main = document.querySelector('main');
+  const btn = document.getElementById('archiv-sidebar-toggle');
+  const icon = document.getElementById('archiv-toggle-icon');
+  archivSidebarOpen = !archivSidebarOpen;
+  if (sidebar) {
+    sidebar.style.transform = archivSidebarOpen ? 'translateX(0)' : 'translateX(-240px)';
+    sidebar.style.transition = 'transform 0.25s ease';
+  }
+  if (main) {
+    main.style.marginLeft = archivSidebarOpen ? '240px' : '0';
+    main.style.transition = 'margin-left 0.25s ease';
+  }
+  if (btn) {
+    btn.style.left = archivSidebarOpen ? '240px' : '0';
+    btn.style.display = 'flex';
+  }
+  if (icon) icon.textContent = archivSidebarOpen ? 'chevron_left' : 'chevron_right';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('archiv-sidebar-toggle');
+  if (btn) btn.style.display = 'flex';
+});
+
+</script>
 
 <!-- Top Nav -->
 <nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black border-b border-[#2f3336]">
@@ -102,19 +184,51 @@
     <a href="https://linkedin.com/in/dscampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-[#0a66c2] transition-colors">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
     </a>
-    <button id="themeBtn" onclick="cycleTheme()" title="Design wechseln"
-      class="text-gray-400 hover:text-white transition-colors text-[10px] font-mono border border-[#2f3336] px-2 py-1 hover:border-gray-500 tracking-widest">AUTO</button>
+    <!-- Theme Slider -->
+    <div class="theme-slider-wrap" onclick="cycleTheme()" title="Hell/Dunkel wechseln" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <span style="font-size:12px;color:#536471">☀</span>
+      <div class="theme-slider-track" style="width:40px;height:20px;border-radius:10px;background:#2f3336;position:relative;border:1px solid #3f4851;transition:background 0.25s;">
+        <div class="theme-slider-knob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#536471;transition:all 0.25s;"></div>
+      </div>
+      <span style="font-size:12px;color:#536471">☾</span>
+    </div>
   </div>
 </nav>
 
-<!-- Sidebar -->
+<!-- Sidebar Toggle Button -->
+<button id="archiv-sidebar-toggle" onclick="toggleArchivSidebar()" title="Sidebar ein-/ausklappen"
+  style="position:fixed;left:240px;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s;border-radius:0 4px 4px 0;">
+  <span class="material-symbols-outlined" style="font-size:12px" id="archiv-toggle-icon">chevron_left</span>
+</button>
+
+<!-- Sidebar – gleiche Struktur wie Dashboard -->
 <aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-6 bg-black border-r border-[#2f3336] hidden lg:flex overflow-hidden">
-  <div class="px-5 mb-6">
+  <div class="px-5 mb-4">
     <p class="text-[11px] text-gray-500 font-mono leading-relaxed">Alle News im Archiv. Täglich kuratiert von @CScampy.</p>
   </div>
 
-  <!-- Search in sidebar -->
-  <div class="px-3 mb-4">
+  <!-- Navigation -->
+  <div class="flex flex-col gap-1 px-2 mb-4">
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="/">
+      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
+    </a>
+    <a class="flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
+      <span class="material-symbols-outlined text-sm">archive</span>Archiv
+    </a>
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
+      <span class="material-symbols-outlined text-sm">mic</span>Podcast
+    </a>
+    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      X / Twitter
+    </a>
+  </div>
+
+  <!-- Trennlinie -->
+  <div class="px-5 mb-3"><div class="border-t border-[#2f3336]"></div></div>
+
+  <!-- Search -->
+  <div class="px-3 mb-3">
     <div id="searchWrap" class="flex items-center gap-2 bg-[#16181c] border border-[#2f3336] px-3 py-2">
       <span class="material-symbols-outlined text-gray-500 text-base">search</span>
       <input id="searchInput" type="text" placeholder="Suchen…"
@@ -127,13 +241,16 @@
   </div>
 
   <!-- Source filters -->
-  <div class="px-5 mb-4">
-    <p class="text-[10px] text-gray-600 font-mono uppercase tracking-widest mb-3">Quellen</p>
+  <div class="px-5 mb-4 overflow-y-auto flex-1">
+    <button onclick="toggleSources()" class="flex items-center justify-between w-full mb-2 group" id="sourcesToggleBtn">
+      <p class="text-[10px] text-gray-600 font-mono uppercase tracking-widest">Quellen</p>
+      <span class="material-symbols-outlined text-gray-600 group-hover:text-gray-400 transition-colors" style="font-size:14px" id="sourcesToggleIcon">expand_less</span>
+    </button>
     <div class="flex flex-col gap-1" id="sourceFilters"></div>
   </div>
 
-  <div class="mt-auto px-5 pb-2">
-    <div id="standInfo" class="border border-[#2f3336] p-3">
+  <div class="px-5 pb-2">
+    <div class="border border-[#2f3336] p-3">
       <p class="text-[10px] text-gray-500 font-mono mb-1">LETZTES UPDATE</p>
       <p class="text-[11px] text-gray-400 font-mono" id="standLabel">—</p>
     </div>
@@ -221,6 +338,15 @@ let allNews = [];
 let activeSource = null;
 let searchQuery = '';
 let layout = 'grid';
+let sourcesExpanded = true;
+
+function toggleSources() {
+  sourcesExpanded = !sourcesExpanded;
+  const el = document.getElementById('sourceFilters');
+  const icon = document.getElementById('sourcesToggleIcon');
+  if (el) el.style.display = sourcesExpanded ? '' : 'none';
+  if (icon) icon.textContent = sourcesExpanded ? 'expand_less' : 'expand_more';
+}
 
 // ── Source config ────────────────────────────────────────────────────────────
 const SOURCE_CONFIG = {
@@ -290,6 +416,19 @@ fetch('news.json?t=' + Date.now())
     render();
     document.getElementById('skeleton').classList.add('hidden');
     document.getElementById('newsGrid').classList.remove('hidden');
+
+    // Versuche auch archive.json zu laden (kumulatives Server-Archiv)
+    fetch('archive.json?t=' + Date.now())
+      .then(r => r.json())
+      .then(serverArchive => {
+        if (serverArchive && serverArchive.length > allNews.length) {
+          allNews = mergeNews(allNews, serverArchive);
+          saveArchive(allNews);
+          buildSourceFilters();
+          render();
+        }
+      })
+      .catch(() => {}); // archive.json optional
 
     // Info-Badge: wie viele Artikel insgesamt im Archiv
     const archiveBadge = document.getElementById('archiveBadge');
@@ -437,12 +576,22 @@ function render() {
 function createCard(item) {
   const conf = srcConf(item.source);
   const isList = layout === 'list';
+  const isLight = document.documentElement.classList.contains('light');
   const a = document.createElement('a');
   a.href = item.link || '#';
   if (item.link) a.target = '_blank';
   a.style.setProperty('--accent-color', conf.color);
-  a.className = `card-hover bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] hover:border-opacity-80 transition-all group cursor-pointer flex ${isList ? 'flex-row items-start gap-4 p-4' : 'flex-col p-4 h-full'}`;
-  a.style.borderHoverColor = conf.color;
+  // Use semantic classes that respond to light/dark CSS
+  a.className = `card-hover border transition-all group cursor-pointer flex ${isList ? 'flex-row items-start gap-4 p-4' : 'flex-col p-4 h-full'}`;
+  a.style.background = isLight ? '#ffffff' : '#16181c';
+  a.style.borderColor = isLight ? '#e2e8f0' : '#2f3336';
+  a.onmouseenter = () => { a.style.borderColor = conf.color; a.style.background = isLight ? '#f8fafc' : '#1d1f23'; };
+  a.onmouseleave = () => { a.style.borderColor = isLight ? '#e2e8f0' : '#2f3336'; a.style.background = isLight ? '#ffffff' : '#16181c'; };
+
+  const titleColor = isLight ? '#0f172a' : '#dfe3ea';
+  const mutedColor = isLight ? '#64748b' : '#bfc7d3';
+  const borderColor = isLight ? '#e2e8f0' : '#2f3336';
+  const iconColor = isLight ? '#94a3b8' : '#4b5563';
 
   if (isList) {
     a.innerHTML = `
@@ -450,48 +599,22 @@ function createCard(item) {
         <div class="flex items-center gap-2 mb-2 flex-wrap">
           <span style="background:${conf.color}" class="text-white px-2 py-0.5 text-[10px] font-mono rounded-sm uppercase flex-shrink-0">${item.source || '—'}</span>
         </div>
-        <h4 class="font-headline-md text-white leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif">${item.title || ''}</h4>
-        <p class="text-on-surface-variant font-body-sm text-body-sm line-clamp-2">${item.summary || ''}</p>
+        <h4 class="font-headline-md leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
+        <p class="font-body-sm text-body-sm line-clamp-2" style="color:${mutedColor}">${item.summary || ''}</p>
       </div>
-      <span class="material-symbols-outlined text-gray-600 text-sm flex-shrink-0 mt-1">open_in_new</span>`;
+      <span class="material-symbols-outlined text-sm flex-shrink-0 mt-1" style="color:${iconColor}">open_in_new</span>`;
   } else {
     a.innerHTML = `
       <div class="flex items-center justify-between mb-4">
         <span style="background:${conf.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.source || '—'}</span>
-        <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
+        <span class="material-symbols-outlined text-sm" style="color:${iconColor}">open_in_new</span>
       </div>
-      <h4 class="font-headline-md text-white mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif">${item.title || ''}</h4>
-      <p class="text-on-surface-variant font-body-sm text-body-sm mt-auto pt-3 border-t border-[#2f3336] line-clamp-2">${item.summary || ''}</p>`;
+      <h4 class="font-headline-md mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
+      <p class="font-body-sm text-body-sm mt-auto pt-3 line-clamp-2" style="border-top:1px solid ${borderColor};color:${mutedColor}">${item.summary || ''}</p>`;
   }
   return a;
 }
 </script>
-<script>
-(function(){
-  const THEMES=['auto','light','dark'], ICONS={auto:'AUTO',light:'☀',dark:'☾'};
-  function getPreferred(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-  function applyTheme(t){
-    const r=t==='auto'?getPreferred():t;
-    document.documentElement.classList.remove('light','dark');
-    document.documentElement.classList.add(r);
-    const btn=document.getElementById('themeBtn');
-    if(btn){btn.textContent=ICONS[t];btn.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
-  }
-  window.cycleTheme=function(){
-    const cur=localStorage.getItem('ki_theme')||'auto';
-    const next=THEMES[(THEMES.indexOf(cur)+1)%THEMES.length];
-    try{localStorage.setItem('ki_theme',next);}catch(e){}
-    applyTheme(next);
-  };
-  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  document.readyState==='loading'
-    ?document.addEventListener('DOMContentLoaded',()=>applyTheme(saved))
-    :applyTheme(saved);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-    if(s==='auto')applyTheme('auto');
-  });
-})();
-</script>
+
 </body>
 </html>
