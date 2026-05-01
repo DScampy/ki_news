@@ -47,6 +47,7 @@ if not OPENROUTER_KEY:
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438").strip()
+GROQ_CHAT_KEY = os.environ.get("GROQ_CHAT_KEY", "").strip()
 
 # -------------------------
 # Konfiguration
@@ -703,6 +704,16 @@ def main():
         update_archive(proj_dir)
     else:
         update_archive(Path("."))
+
+    # ── chat-config.js schreiben (Groq Key fuer Frontend-Chat) ────────────
+    if GROQ_CHAT_KEY:
+        chat_config = f'window.GROQ_CHAT_KEY="{GROQ_CHAT_KEY}";window.GROQ_MODEL="llama-3.3-70b-versatile";\n'
+        chat_config_path = proj_dir / "chat-config.js" if proj_dir.exists() else Path("chat-config.js")
+        try:
+            chat_config_path.write_text(chat_config, encoding="utf-8")
+            logger.info("chat-config.js geschrieben")
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben chat-config.js: %s", e)
 
     pfad = create_html(alle_news, parsed, summaries)
     logger.info("Fertig. HTML: %s", pfad)
