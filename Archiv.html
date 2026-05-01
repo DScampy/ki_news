@@ -113,6 +113,7 @@
   html.light aside .border { border-color: #e2e8f0 !important; }
   html.light #standLabel { color: #475569 !important; }
   html.light #sourcesToggleBtn * { color: #94a3b8 !important; }
+  html.light #navActiveArchiv { background: #eff6ff !important; color: #1d9bf0 !important; }
   html.light .search-clear { color: #94a3b8 !important; }
   html.light aside .text-\[10px\] { color: #94a3b8 !important; }
 
@@ -247,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="/">
       <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
     </a>
-    <a class="flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
+    <a id="navActiveArchiv" class="flex items-center gap-3 border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:#1d1f23;color:#1d9bf0" href="#">
       <span class="material-symbols-outlined text-sm">archive</span>Archiv
     </a>
     <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
@@ -657,30 +658,4 @@ function createCard(item) {
   const titleColor = isLight ? '#0f172a' : '#dfe3ea';
   const mutedColor = isLight ? '#64748b' : '#bfc7d3';
   const borderColor = isLight ? '#e2e8f0' : '#2f3336';
-  const iconColor = isLight ? '#94a3b8' : '#4b5563';
-
-  if (isList) {
-    a.innerHTML = `
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 mb-2 flex-wrap">
-          <span style="background:${conf.color}" class="text-white px-2 py-0.5 text-[10px] font-mono rounded-sm uppercase flex-shrink-0">${item.source || '—'}</span>
-        </div>
-        <h4 class="font-headline-md leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
-        <p class="font-body-sm text-body-sm line-clamp-2" style="color:${mutedColor}">${item.summary || ''}</p>
-      </div>
-      <span class="material-symbols-outlined text-sm flex-shrink-0 mt-1" style="color:${iconColor}">open_in_new</span>`;
-  } else {
-    a.innerHTML = `
-      <div class="flex items-center justify-between mb-4">
-        <span style="background:${conf.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.source || '—'}</span>
-        <span class="material-symbols-outlined text-sm" style="color:${iconColor}">open_in_new</span>
-      </div>
-      <h4 class="font-headline-md mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
-      <p class="font-body-sm text-body-sm mt-auto pt-3 line-clamp-2" style="border-top:1px solid ${borderColor};color:${mutedColor}">${item.summary || ''}</p>`;
-  }
-  return a;
-}
-</script>
-
-</body>
-</html>
+  const iconColor = 

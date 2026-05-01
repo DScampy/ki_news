@@ -63,7 +63,6 @@ KI_KEYWORDS = [
 FEEDS = [
     # Deutsch
     ("The Decoder", "https://the-decoder.de/feed/"),
-<<<<<<< HEAD
     ("Heise",       "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
     ("Golem",       "https://rss.golem.de/rss.php?feed=RSS2.0"),
     ("Caschy Blog", "https://stadt-bremerhaven.de/feed/"),
@@ -74,16 +73,6 @@ FEEDS = [
     ("MIT Tech Review","https://www.technologyreview.com/feed/"),
     ("The Verge",      "https://www.theverge.com/rss/index.xml"),
     ("Wired AI",       "https://www.wired.com/feed/tag/artificial-intelligence/rss"),
-=======
-    ("Heise", "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
-    ("TechCrunch AI", "https://www.heise.de/newsticker/heise.rdf"),
-    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"),
-    ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
-    ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
-    ("Caschy´s Blog", "https://stadt-bremerhaven.de/feed/"),
-    ("Golem", "https://rss.golem.de/rss.php?feed=RSS2.0"),
-    ("PC Welt", "https://www.pcwelt.de/feed?story_types=n.."),
->>>>>>> 91cbb409401e2e804ec27a809a4bfa823ce7b33b
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
@@ -796,40 +785,3 @@ def main():
         # Immer vorhandene Basis-Tags
         base_tags = {"#KI", "#AI", "#AINews", "#KünstlicheIntelligenz", "#LLM"}
         merged = sorted(base_tags | existing_tags | new_tags)
-        try:
-            hashtag_path.write_text(
-                json.dumps({"tags": merged, "updated": datetime.now(BERLIN).strftime("%Y-%m-%d")},
-                           ensure_ascii=False, indent=2),
-                encoding="utf-8"
-            )
-            logger.info("hashtags.json aktualisiert: %d Tags", len(merged))
-        except Exception as e:
-            logger.exception("Fehler beim Schreiben hashtags.json: %s", e)
-
-    if proj_dir.exists():
-        update_hashtags(proj_dir)
-    else:
-        update_hashtags(Path("."))
-
-    # ── chat-config.js schreiben (Groq Key fuer Frontend-Chat) ────────────
-    if GROQ_CHAT_KEY:
-        chat_config = f'window.GROQ_CHAT_KEY="{GROQ_CHAT_KEY}";window.GROQ_MODEL="llama-3.3-70b-versatile";\n'
-        chat_config_path = proj_dir / "chat-config.js" if proj_dir.exists() else Path("chat-config.js")
-        try:
-            chat_config_path.write_text(chat_config, encoding="utf-8")
-            logger.info("chat-config.js geschrieben")
-        except Exception as e:
-            logger.exception("Fehler beim Schreiben chat-config.js: %s", e)
-
-    pfad = create_html(alle_news, parsed, summaries)
-    logger.info("Fertig. HTML: %s", pfad)
-
-    try:
-        p = Path(pfad)
-        if p.exists():
-            webbrowser.open(p.resolve().as_uri())
-    except Exception:
-        pass
-
-if __name__ == "__main__":
-    main()
