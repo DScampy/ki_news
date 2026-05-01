@@ -14,35 +14,22 @@
     theme: {
       extend: {
         colors: {
-          "surface-tint": "#99cbff",
-          "on-surface": "#dfe3ea",
-          "on-surface-variant": "#bfc7d3",
-          "surface-container-low": "#181c21",
-          "surface-container": "#1c2025",
-          "surface-container-high": "#262a30",
-          "outline": "#89919d",
-          "outline-variant": "#3f4851",
-          "primary": "#99cbff",
-          "primary-container": "#1d9bf0",
-          "background": "#000000",
+          "surface-tint": "#99cbff", "on-surface": "#dfe3ea",
+          "on-surface-variant": "#bfc7d3", "surface-container-low": "#181c21",
+          "surface-container": "#1c2025", "surface-container-high": "#262a30",
+          "outline": "#89919d", "outline-variant": "#3f4851",
+          "primary": "#99cbff", "primary-container": "#1d9bf0", "background": "#000000",
         },
         borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
         spacing: { sm: "12px", xl: "64px", gutter: "16px", base: "8px", xs: "4px", lg: "40px", md: "24px", margin: "24px" },
-        fontFamily: {
-          "body-sm": ["Work Sans"],
-          "headline-xl": ["Space Grotesk"],
-          "body-lg": ["Work Sans"],
-          "source-tag": ["Work Sans"],
-          "label-bold": ["Work Sans"],
-          "headline-md": ["Space Grotesk"]
-        },
+        fontFamily: { "body-sm":["Work Sans"],"headline-xl":["Space Grotesk"],"body-lg":["Work Sans"],"source-tag":["Work Sans"],"label-bold":["Work Sans"],"headline-md":["Space Grotesk"] },
         fontSize: {
-          "body-sm": ["14px", { lineHeight: "1.4", fontWeight: "400" }],
-          "headline-xl": ["32px", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "700" }],
-          "body-lg": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
-          "source-tag": ["13px", { lineHeight: "1", fontWeight: "600" }],
-          "label-bold": ["12px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "700" }],
-          "headline-md": ["20px", { lineHeight: "1.3", fontWeight: "600" }]
+          "body-sm":["14px",{lineHeight:"1.4",fontWeight:"400"}],
+          "headline-xl":["32px",{lineHeight:"1.2",letterSpacing:"-0.02em",fontWeight:"700"}],
+          "body-lg":["16px",{lineHeight:"1.5",fontWeight:"400"}],
+          "source-tag":["13px",{lineHeight:"1",fontWeight:"600"}],
+          "label-bold":["12px",{lineHeight:"1",letterSpacing:"0.05em",fontWeight:"700"}],
+          "headline-md":["20px",{lineHeight:"1.3",fontWeight:"600"}]
         }
       }
     }
@@ -55,411 +42,80 @@
   ::-webkit-scrollbar-track { background: #000; }
   ::-webkit-scrollbar-thumb { background: #2f3336; border-radius: 10px; }
 
-  /* ── Light mode overrides ─────────────────────────────── */
-  html.light body { background-color: #f8fafc !important; color: #0f172a !important; }
-  html.light nav.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
-  html.light aside.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
-  html.light main { background-color: #f8fafc !important; }
-  html.light .bg-black { background-color: #ffffff !important; }
-  html.light .bg-\[#16181c\] { background-color: #ffffff !important; }
-  html.light .bg-\[#1d1f23\] { background-color: #f1f5f9 !important; }
-  html.light .hover\:bg-\[#1d1f23\]:hover { background-color: #f1f5f9 !important; }
-  html.light .hover\:bg-\[#16181c\]:hover { background-color: #f1f5f9 !important; }
-  html.light .border-\[#2f3336\] { border-color: #e2e8f0 !important; }
-  html.light .text-white { color: #0f172a !important; }
-  html.light .text-gray-500 { color: #64748b !important; }
-  html.light .text-gray-400 { color: #475569 !important; }
-  html.light .text-gray-600 { color: #94a3b8 !important; }
-  html.light .text-on-surface-variant { color: #475569 !important; }
+  /* ── Light Mode (CSS-Klassen-basiert, kein JS-Patching) ── */
+  html.light body { background: #f0f4f8 !important; color: #0f172a !important; }
+  html.light nav.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light aside.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light main { background: #f0f4f8 !important; }
+  html.light .ki-card { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light .ki-card:hover { background: #f8fafc !important; }
+  html.light .ki-dark { background: #ffffff !important; }
+  html.light .ki-border { border-color: #e2e8f0 !important; }
+  html.light .ki-text-main { color: #0f172a !important; }
+  html.light .ki-text-muted { color: #64748b !important; }
+  html.light .ki-text-faint { color: #94a3b8 !important; }
   html.light ::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
+  html.light .source-badge-wrap { opacity: 0.85; }
 
-  /* ── Chat Widget ──────────────────────────────────────── */
+  /* ── Video Player ── */
+  .video-section { margin-top: 0; }
+  .video-player-wrap { position: relative; background: #000; border: 1px solid #2f3336; overflow: hidden; }
+  html.light .video-player-wrap { border-color: #e2e8f0; }
+  .video-player-wrap video { width: 100%; display: block; max-height: 400px; object-fit: contain; background: #000; }
+  .video-overlay-label { position: absolute; top: 12px; left: 12px; background: #1d9bf0; color: white; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 8px; font-family: 'Space Grotesk', sans-serif; }
+
+  /* ── Hashtag Widget ── */
+  .hashtag-section { background: #16181c; border: 1px solid #2f3336; padding: 16px; }
+  html.light .hashtag-section { background: #ffffff; border-color: #e2e8f0; }
+  .hashtag-input { background: #0f0f0f; border: 1px solid #2f3336; border-radius: 6px; padding: 8px 12px; color: #dfe3ea; font-size: 13px; font-family: 'Work Sans', sans-serif; outline: none; width: 100%; transition: border-color 0.15s; }
+  html.light .hashtag-input { background: #f8fafc; border-color: #e2e8f0; color: #0f172a; }
+  .hashtag-input:focus { border-color: #1d9bf0; }
+  .hashtag-chip { display: inline-flex; align-items: center; gap: 4px; background: #1d9bf0/20; border: 1px solid #1d9bf0/40; color: #1d9bf0; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 3px; font-family: monospace; cursor: pointer; transition: all 0.15s; }
+  .hashtag-chip:hover { background: #1d9bf0; color: white; }
+
+  /* ── Chat Widget ── */
   #chat-widget { position: fixed; bottom: 24px; right: 24px; z-index: 1000; font-family: 'Work Sans', sans-serif; }
-  #chat-fab {
-    width: 52px; height: 52px; border-radius: 50%; background: #1d9bf0;
-    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 20px rgba(29,155,240,0.4); transition: all 0.2s; color: white;
-  }
+  #chat-fab { width: 52px; height: 52px; border-radius: 50%; background: #1d9bf0; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(29,155,240,0.4); transition: all 0.2s; color: white; }
   #chat-fab:hover { transform: scale(1.08); background: #1a8cd8; }
-  #chat-fab .badge {
-    position: absolute; top: -4px; right: -4px;
-    width: 16px; height: 16px; background: #ff6b35; border-radius: 50%;
-    font-size: 9px; font-weight: 700; color: white;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #chat-panel {
-    position: absolute; bottom: 64px; right: 0;
-    width: 340px; background: #0f0f0f; border: 1px solid #2f3336;
-    border-radius: 12px; overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    display: none; flex-direction: column; max-height: 480px;
-    animation: chatIn 0.2s ease;
-  }
-  html.light #chat-panel { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  #chat-panel { position: absolute; bottom: 64px; right: 0; width: 340px; background: #0f0f0f; border: 1px solid #2f3336; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: none; flex-direction: column; max-height: 480px; animation: chatIn 0.2s ease; }
+  html.light #chat-panel { background: #ffffff; border-color: #e2e8f0; }
   @keyframes chatIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
   #chat-panel.open { display: flex; }
-  .chat-header {
-    padding: 14px 16px; background: #1d9bf0;
-    display: flex; align-items: center; justify-content: space-between;
-  }
+  .chat-header { padding: 14px 16px; background: #1d9bf0; display: flex; align-items: center; justify-content: space-between; }
   .chat-header h4 { color: white; font-size: 13px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin: 0; }
   .chat-header span { font-size: 10px; color: rgba(255,255,255,0.7); }
-  .chat-close { background: none; border: none; color: white; cursor: pointer; opacity: 0.8; font-size: 18px; line-height: 1; padding: 0; }
+  .chat-close { background: none; border: none; color: white; cursor: pointer; font-size: 18px; line-height: 1; padding: 0; opacity: 0.8; }
   .chat-close:hover { opacity: 1; }
-  #chat-messages {
-    flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px;
-    min-height: 200px; max-height: 280px;
-  }
-  #chat-messages::-webkit-scrollbar { width: 3px; }
-  #chat-messages::-webkit-scrollbar-thumb { background: #2f3336; }
+  #chat-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 200px; max-height: 280px; }
   .msg { display: flex; flex-direction: column; gap: 2px; }
   .msg.user { align-items: flex-end; }
   .msg.bot { align-items: flex-start; }
-  .msg-bubble {
-    max-width: 82%; padding: 8px 12px; font-size: 13px; line-height: 1.45;
-    border-radius: 10px;
-  }
+  .msg-bubble { max-width: 82%; padding: 8px 12px; font-size: 13px; line-height: 1.45; border-radius: 10px; }
   .msg.user .msg-bubble { background: #1d9bf0; color: white; border-radius: 10px 10px 2px 10px; }
   .msg.bot .msg-bubble { background: #1d1f23; color: #dfe3ea; border-radius: 10px 10px 10px 2px; }
   html.light .msg.bot .msg-bubble { background: #f1f5f9; color: #0f172a; }
   .msg-time { font-size: 10px; color: #4a5568; font-family: monospace; }
   .typing-dots { display: flex; gap: 4px; padding: 6px 4px; }
-  .typing-dots span {
-    width: 6px; height: 6px; border-radius: 50%; background: #1d9bf0;
-    animation: dot 1.2s infinite;
-  }
+  .typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: #1d9bf0; animation: dot 1.2s infinite; }
   .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
   .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes dot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
-  .chat-input-row {
-    display: flex; gap: 8px; padding: 12px;
-    border-top: 1px solid #2f3336;
-  }
+  .chat-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #2f3336; }
   html.light .chat-input-row { border-color: #e2e8f0; }
-  #chat-input {
-    flex: 1; background: #1d1f23; border: 1px solid #2f3336; border-radius: 8px;
-    padding: 8px 12px; font-size: 13px; color: #dfe3ea; outline: none;
-    font-family: 'Work Sans', sans-serif; resize: none; max-height: 80px; min-height: 36px;
-    transition: border-color 0.15s;
-  }
+  #chat-input { flex: 1; background: #1d1f23; border: 1px solid #2f3336; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #dfe3ea; outline: none; font-family: 'Work Sans', sans-serif; resize: none; max-height: 80px; min-height: 36px; transition: border-color 0.15s; }
   html.light #chat-input { background: #f8fafc; border-color: #e2e8f0; color: #0f172a; }
   #chat-input:focus { border-color: #1d9bf0; }
   #chat-input::placeholder { color: #4a5568; }
-  #chat-send {
-    width: 36px; height: 36px; border-radius: 8px; background: #1d9bf0;
-    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: white; flex-shrink: 0; transition: background 0.15s;
-  }
+  #chat-send { width: 36px; height: 36px; border-radius: 8px; background: #1d9bf0; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; transition: background 0.15s; }
   #chat-send:hover { background: #1a8cd8; }
   #chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  /* ── Top Story hover ─────────────────────────────────── */
-  .top-story-item { transition: all 0.15s; border-radius: 4px; }
-  .top-story-item:hover { background: rgba(29,155,240,0.06); }
+  .top-story-item { transition: all 0.15s; padding: 4px; border-radius: 4px; }
+  .top-story-item:hover { background: rgba(29,155,240,0.06); cursor: pointer; }
 </style>
 </head>
 <body class="font-body-lg">
 
-<!-- Top Nav -->
-<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black border-b border-[#2f3336]">
-  <div class="flex items-center gap-8">
-    <a href="/" class="flex items-center gap-2">
-      <span class="text-xl font-black tracking-tighter text-[#1d9bf0] uppercase" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
-      <span class="hidden sm:inline text-[10px] font-mono text-gray-500 tracking-widest uppercase border border-[#2f3336] px-1.5 py-0.5">DE</span>
-    </a>
-    <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">Podcast</a>
-    </div>
-  </div>
-  <div class="flex items-center gap-3">
-    <a href="https://x.com/CScampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span class="hidden sm:inline">@CScampy</span>
-    </a>
-    <a href="https://linkedin.com/in/dscampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-[#0a66c2] transition-colors">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-    </a>
-    <!-- Theme Toggle -->
-    <button id="themeBtn" onclick="cycleTheme()" title="Design wechseln"
-      class="text-gray-400 hover:text-white transition-colors text-[10px] font-mono border border-[#2f3336] px-2 py-1 hover:border-gray-500 tracking-widest">AUTO</button>
-  </div>
-</nav>
-
-<!-- Sidebar -->
-<aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-6 bg-black border-r border-[#2f3336] hidden lg:flex overflow-hidden">
-  <div class="px-5 mb-8">
-    <p class="text-[11px] text-gray-500 font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
-  </div>
-  <div class="flex flex-col gap-1 px-2">
-    <a class="flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
-      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
-    </a>
-    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">
-      <span class="material-symbols-outlined text-sm">archive</span>Archiv
-    </a>
-    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
-      <span class="material-symbols-outlined text-sm">mic</span>Podcast
-    </a>
-    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      X / Twitter
-    </a>
-    <a class="flex items-center gap-3 text-gray-400 px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://linkedin.com/in/dscampy" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-      LinkedIn
-    </a>
-  </div>
-  <div class="mt-auto px-5 pb-2">
-    <div class="border border-[#2f3336] p-3">
-      <p class="text-[10px] text-gray-500 font-mono mb-1">QUELLEN</p>
-      <div class="flex flex-wrap gap-1">
-        <span class="text-[10px] bg-[#1d9bf0]/20 text-[#1d9bf0] px-1.5 py-0.5 font-mono">The Decoder</span>
-        <span class="text-[10px] bg-[#ff6b35]/20 text-[#ff6b35] px-1.5 py-0.5 font-mono">TechCrunch</span>
-        <span class="text-[10px] bg-[#7c3aed]/20 text-[#a78bfa] px-1.5 py-0.5 font-mono">VentureBeat</span>
-        <span class="text-[10px] bg-[#dc2626]/20 text-[#f87171] px-1.5 py-0.5 font-mono">MIT Review</span>
-      </div>
-    </div>
-  </div>
-</aside>
-
-<!-- Main Content -->
-<main class="lg:ml-[240px] pt-14 min-h-screen bg-black">
-  <div class="max-w-[1400px] mx-auto p-gutter">
-
-    <!-- Bento Top Section -->
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-lg mt-gutter">
-
-      <!-- Aktuellster Podcast -->
-      <div class="md:col-span-7 bg-[#16181c] border border-[#2f3336] p-6 relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
-          <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
-        </div>
-        <div class="relative z-10">
-          <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-3 block">🎙 Aktuellster Podcast</span>
-          <h2 class="font-headline-xl text-headline-xl text-white mb-3 leading-tight" style="font-family:'Space Grotesk',sans-serif">Metas Flucht ins All – Chinas KI-Ausreiseverbot</h2>
-          <p class="text-on-surface-variant font-body-sm text-body-sm mb-5 max-w-xl">China blockiert Metas $2,5-Mrd.-Deal mit Manus. Die Gründer bekommen Ausreiseverbot. Metas Antwort: 1.000 Satelliten im Orbit. Ein Deep-Dive in den KI-Krieg zwischen den USA und China.</p>
-          <div class="mt-2">
-            <iframe width="100%" height="100" scrolling="no" frameborder="no" allow="autoplay"
-              src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2311534997&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"
-              style="border-radius:4px;opacity:0.9">
-            </iframe>
-            <div class="mt-3 flex items-center gap-3">
-              <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-4 py-2 text-sm font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
-                <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>
-                Auf SoundCloud öffnen
-              </a>
-              <span class="text-xs text-gray-500 font-mono">KI NEWS #001 · ~20 MIN</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Top Stories – dynamisch aus news.json -->
-      <div class="md:col-span-5 bg-[#16181c] border border-[#2f3336] p-6">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="font-headline-md text-white" style="font-family:'Space Grotesk',sans-serif">Top Stories</h3>
-          <span class="material-symbols-outlined text-[#1d9bf0]">trending_up</span>
-        </div>
-        <div id="top-stories-list" class="space-y-0">
-          <div class="animate-pulse flex gap-3 py-3">
-            <div class="w-8 h-6 bg-[#2f3336] rounded"></div>
-            <div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-3/4"></div><div class="h-2 bg-[#2f3336] rounded w-1/2"></div></div>
-          </div>
-          <div class="animate-pulse flex gap-3 py-3 border-t border-[#2f3336]">
-            <div class="w-8 h-6 bg-[#2f3336] rounded"></div>
-            <div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-4/5"></div><div class="h-2 bg-[#2f3336] rounded w-1/3"></div></div>
-          </div>
-          <div class="animate-pulse flex gap-3 py-3 border-t border-[#2f3336]">
-            <div class="w-8 h-6 bg-[#2f3336] rounded"></div>
-            <div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-2/3"></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- News + Twitter Sidebar Layout -->
-    <div class="flex flex-col xl:flex-row gap-gutter items-start">
-
-      <!-- News Grid (nimmt den Hauptraum) -->
-      <div class="flex-1 min-w-0">
-        <div class="mb-6 flex items-center justify-between">
-          <h3 class="font-headline-xl text-headline-xl text-white" style="font-family:'Space Grotesk',sans-serif">Aktuelle News</h3>
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span id="stand-label" class="text-xs font-mono text-gray-500 uppercase tracking-widest">Wird geladen...</span>
-          </div>
-        </div>
-        <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          <div class="bg-[#16181c] border border-[#2f3336] p-4 h-48 animate-pulse"></div>
-          <div class="bg-[#16181c] border border-[#2f3336] p-4 h-48 animate-pulse"></div>
-          <div class="bg-[#16181c] border border-[#2f3336] p-4 h-48 animate-pulse"></div>
-        </div>
-      </div>
-
-      <!-- X/Twitter Highlight Widget – sticky Sidebar -->
-      <div class="xl:w-[300px] xl:flex-shrink-0 xl:sticky xl:top-20 w-full">
-        <div class="border border-[#2f3336] bg-[#16181c] p-4 mb-3">
-          <div class="flex items-center gap-2 mb-3">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-            <span class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Highlight Post</span>
-          </div>
-          <!-- Twitter embed – dark theme -->
-          <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-lang="de" data-width="268">
-            <a href="https://x.com/CScampy/status/2049045655587287473"></a>
-          </blockquote>
-        </div>
-        <a href="https://x.com/CScampy" target="_blank"
-          class="flex items-center justify-center gap-2 w-full py-2.5 border border-[#2f3336] bg-[#16181c] text-[#1d9bf0] hover:bg-[#1d9bf0] hover:text-white transition-all text-[11px] font-bold font-mono tracking-wider">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          @CSCAMPY FOLGEN
-        </a>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="mt-12 pb-12 border-t border-[#2f3336] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div>
-        <span class="text-white font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
-        <p class="text-[11px] text-gray-500 font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/CScampy" target="_blank" class="text-[#1d9bf0] hover:underline">@CScampy</a></p>
-      </div>
-      <div class="flex items-center gap-4">
-        <a href="Archiv.html" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">Archiv</a>
-        <a href="https://x.com/CScampy" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
-        <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">Podcast</a>
-      </div>
-    </div>
-
-  </div>
-</main>
-
-<!-- ── KI-Chat Widget ─────────────────────────────────────────────────── -->
-<div id="chat-widget">
-  <div id="chat-panel">
-    <div class="chat-header">
-      <div>
-        <h4>KI-News Assistent</h4>
-        <span>Frag mich zu den aktuellen News</span>
-      </div>
-      <button class="chat-close" onclick="closeChat()" title="Schließen">×</button>
-    </div>
-    <div id="chat-messages">
-      <div class="msg bot">
-        <div class="msg-bubble">Hallo! Ich bin der KI-News Assistent. Frag mich zu den aktuellen KI-News oder zu Themen rund um Künstliche Intelligenz. 🤖</div>
-        <div class="msg-time">Jetzt</div>
-      </div>
-    </div>
-    <div class="chat-input-row">
-      <textarea id="chat-input" placeholder="Frage stellen…" rows="1"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
-      <button id="chat-send" onclick="sendChat()" title="Senden">
-        <span class="material-symbols-outlined" style="font-size:18px">send</span>
-      </button>
-    </div>
-  </div>
-  <button id="chat-fab" onclick="toggleChat()" title="KI-Assistent öffnen">
-    <span class="material-symbols-outlined" style="font-size:22px;font-variation-settings:'FILL' 1">smart_toy</span>
-  </button>
-</div>
-
-<!-- ── Scripts ────────────────────────────────────────────────────────── -->
-<script>
-// ── Source config ───────────────────────────────────────────────────────
-const SOURCE_COLORS = {
-  'The Decoder':     { bg: '#1d9bf0', text: '#1d9bf0', border: '#1d9bf0' },
-  'TechCrunch AI':   { bg: '#ff6b35', text: '#ff6b35', border: '#ff6b35' },
-  'VentureBeat AI':  { bg: '#7c3aed', text: '#a78bfa', border: '#a78bfa' },
-  'MIT Tech Review': { bg: '#dc2626', text: '#f87171', border: '#f87171' },
-  'Ars Technica':    { bg: '#16a34a', text: '#4ade80', border: '#4ade80' },
-  'Heise':           { bg: '#2563eb', text: '#60a5fa', border: '#60a5fa' },
-};
-function srcConf(source) {
-  return SOURCE_COLORS[source] || { bg: '#1d9bf0', text: '#1d9bf0', border: '#1d9bf0' };
-}
-
-// ── Render news card ────────────────────────────────────────────────────
-function renderCard(item) {
-  const conf = srcConf(item.source);
-  const a = document.createElement('a');
-  a.href = item.link || '#';
-  if (item.link) a.target = '_blank';
-  a.className = 'bg-[#16181c] border border-[#2f3336] hover:bg-[#1d1f23] transition-all group cursor-pointer p-4 flex flex-col h-full';
-  a.style.cssText = '--hover-border:' + conf.border;
-  a.onmouseenter = () => a.style.borderColor = conf.border;
-  a.onmouseleave = () => a.style.borderColor = '';
-  a.innerHTML = `
-    <div class="flex items-center justify-between mb-4">
-      <span style="background:${conf.bg}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.tag || item.source}</span>
-      <div class="flex items-center gap-1">
-        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-        <span class="text-[10px] font-mono text-gray-500">NEU</span>
-      </div>
-    </div>
-    <h4 class="font-headline-md text-white mb-2 leading-snug group-hover:text-[${conf.text}] transition-colors" style="font-family:'Space Grotesk',sans-serif">${item.title}</h4>
-    <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">${item.summary || ''}</p>
-    <div class="pt-4 border-t border-[#2f3336] flex items-center justify-between">
-      <span class="text-[11px] font-mono uppercase" style="color:${conf.text}">${item.source}</span>
-      <span class="material-symbols-outlined text-gray-600 text-sm">open_in_new</span>
-    </div>`;
-  return a;
-}
-
-// ── Render Top Stories ──────────────────────────────────────────────────
-function renderTopStories(newsItems) {
-  const container = document.getElementById('top-stories-list');
-  if (!container) return;
-  // Nimm die ersten 3 Artikel als Top Stories
-  const top = newsItems.slice(0, 3);
-  container.innerHTML = '';
-  const labels = ['01', '02', '03'];
-  top.forEach((item, i) => {
-    const conf = srcConf(item.source);
-    const div = document.createElement('div');
-    div.className = (i > 0 ? 'border-t border-[#2f3336] pt-4 ' : '') + 'top-story-item group cursor-pointer pb-3 px-1';
-    div.innerHTML = `
-      <div class="flex items-start gap-3">
-        <span class="text-2xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors flex-shrink-0" style="font-family:'Space Grotesk',sans-serif;line-height:1.1">${labels[i]}</span>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="text-[10px] px-1.5 py-0.5 font-mono uppercase" style="background:${conf.bg}22;color:${conf.text};border:1px solid ${conf.bg}44">${item.source}</span>
-          </div>
-          <h4 class="text-sm font-bold text-white leading-snug group-hover:text-[#1d9bf0] transition-colors">${item.title}</h4>
-          ${item.summary ? `<p class="text-[11px] text-gray-500 mt-0.5 line-clamp-1">${item.summary}</p>` : ''}
-        </div>
-        <span class="material-symbols-outlined text-gray-600 text-sm flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
-      </div>`;
-    if (item.link) {
-      div.onclick = () => window.open(item.link, '_blank');
-    }
-    container.appendChild(div);
-  });
-}
-
-// ── Fetch & render ──────────────────────────────────────────────────────
-let currentNewsContext = '';
-
-fetch('news.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    const grid = document.getElementById('news-grid');
-    const label = document.getElementById('stand-label');
-    if (!grid || !data.news || !data.news.length) return;
-    grid.innerHTML = '';
-    data.news.forEach(item => grid.appendChild(renderCard(item)));
-    if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
-    renderTopStories(data.news);
-    // Kontext für Chat aufbauen
-    currentNewsContext = 'Aktuelle KI-News (Stand ' + (data.stand || '') + '):\n' +
-      data.news.map((n, i) => `${i+1}. "${n.title}" (${n.source}): ${n.summary || ''}`).join('\n');
-  })
-  .catch(() => {
-    const label = document.getElementById('stand-label');
-    if (label) label.textContent = 'Stand: offline';
-  });
-</script>
-
-<!-- ── Theme Toggle ───────────────────────────────────────────────────── -->
+<!-- ── Theme Script – muss ganz oben sein ── -->
 <script>
 (function(){
   const THEMES=['auto','light','dark'], ICONS={auto:'AUTO',light:'☀',dark:'☾'};
@@ -478,9 +134,7 @@ fetch('news.json?t=' + Date.now())
     applyTheme(next);
   };
   let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  document.readyState==='loading'
-    ?document.addEventListener('DOMContentLoaded',()=>applyTheme(saved))
-    :applyTheme(saved);
+  applyTheme(saved);
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
     let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
     if(s==='auto')applyTheme('auto');
@@ -488,102 +142,385 @@ fetch('news.json?t=' + Date.now())
 })();
 </script>
 
-<!-- ── KI-Chat Logic ──────────────────────────────────────────────────── -->
-<script>
-let chatOpen = false;
-let chatHistory = [];
+<!-- Top Nav -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black ki-border border-b">
+  <div class="flex items-center gap-8">
+    <a href="/" class="flex items-center gap-2">
+      <span class="text-xl font-black tracking-tighter text-[#1d9bf0] uppercase" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
+      <span class="hidden sm:inline text-[10px] font-mono text-gray-500 tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
+    </a>
+    <div class="hidden md:flex items-center gap-6">
+      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
+      <a class="text-sm font-medium ki-text-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
+      <a class="text-sm font-medium ki-text-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">Podcast</a>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <a href="https://x.com/CScampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span class="hidden sm:inline">@CScampy</span>
+    </a>
+    <a href="https://linkedin.com/in/dscampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-[#0a66c2] transition-colors">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+    <button id="themeBtn" onclick="cycleTheme()" title="Design wechseln"
+      class="text-gray-400 hover:text-white transition-colors text-[10px] font-mono ki-border border px-2 py-1 hover:border-gray-500 tracking-widest">AUTO</button>
+  </div>
+</nav>
 
-function toggleChat() {
-  chatOpen ? closeChat() : openChat();
-}
-function openChat() {
-  chatOpen = true;
-  document.getElementById('chat-panel').classList.add('open');
-  document.getElementById('chat-input').focus();
-}
-function closeChat() {
-  chatOpen = false;
-  document.getElementById('chat-panel').classList.remove('open');
-  window.parent && window.parent.postMessage({type:'__edit_mode_dismissed'},'*');
-}
+<!-- Sidebar -->
+<aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-6 bg-black ki-border border-r hidden lg:flex overflow-hidden">
+  <div class="px-5 mb-8">
+    <p class="text-[11px] ki-text-muted font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
+  </div>
+  <div class="flex flex-col gap-1 px-2">
+    <a class="flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
+      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
+    </a>
+    <a class="flex items-center gap-3 ki-text-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">
+      <span class="material-symbols-outlined text-sm">archive</span>Archiv
+    </a>
+    <a class="flex items-center gap-3 ki-text-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
+      <span class="material-symbols-outlined text-sm">mic</span>Podcast
+    </a>
+    <a class="flex items-center gap-3 ki-text-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      X / Twitter
+    </a>
+    <a class="flex items-center gap-3 ki-text-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://linkedin.com/in/dscampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      LinkedIn
+    </a>
+  </div>
+  <div class="mt-auto px-5 pb-2">
+    <div class="ki-border border p-3">
+      <p class="text-[10px] ki-text-muted font-mono mb-1">QUELLEN</p>
+      <div class="flex flex-wrap gap-1">
+        <span class="text-[10px] bg-[#1d9bf0]/20 text-[#1d9bf0] px-1.5 py-0.5 font-mono">The Decoder</span>
+        <span class="text-[10px] bg-[#ff6b35]/20 text-[#ff6b35] px-1.5 py-0.5 font-mono">TechCrunch</span>
+        <span class="text-[10px] bg-[#7c3aed]/20 text-[#a78bfa] px-1.5 py-0.5 font-mono">VentureBeat</span>
+        <span class="text-[10px] bg-[#dc2626]/20 text-[#f87171] px-1.5 py-0.5 font-mono">MIT Review</span>
+      </div>
+    </div>
+  </div>
+</aside>
 
-function timeStr() {
-  return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-}
+<!-- Main Content -->
+<main class="lg:ml-[240px] pt-14 min-h-screen bg-black">
+  <div class="max-w-[1400px] mx-auto p-gutter">
 
-function addMsg(role, text) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
-  div.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${timeStr()}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
+    <!-- Bento Top Section -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-lg mt-gutter">
 
-function addTyping() {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'msg bot';
-  div.id = 'typing-indicator';
-  div.innerHTML = '<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
+      <!-- Podcast -->
+      <div class="md:col-span-7 ki-card ki-border border p-6 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
+          <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
+        </div>
+        <div class="relative z-10">
+          <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-3 block">🎙 Aktuellster Podcast</span>
+          <h2 class="font-headline-xl text-headline-xl ki-text-main mb-3 leading-tight" style="font-family:'Space Grotesk',sans-serif">Metas Flucht ins All – Chinas KI-Ausreiseverbot</h2>
+          <p class="text-on-surface-variant font-body-sm text-body-sm mb-5 max-w-xl">China blockiert Metas $2,5-Mrd.-Deal mit Manus. Die Gründer bekommen Ausreiseverbot. Metas Antwort: 1.000 Satelliten im Orbit.</p>
+          <div class="mt-2">
+            <iframe width="100%" height="100" scrolling="no" frameborder="no" allow="autoplay"
+              src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2311534997&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"
+              style="border-radius:4px;opacity:0.9"></iframe>
+            <div class="mt-3 flex items-center gap-3">
+              <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank"
+                class="flex items-center gap-2 bg-[#1d9bf0] text-white px-4 py-2 text-sm font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
+                <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>
+                Auf SoundCloud öffnen
+              </a>
+              <span class="text-xs ki-text-muted font-mono">KI NEWS #001 · ~20 MIN</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-function removeTyping() {
-  const el = document.getElementById('typing-indicator');
-  if (el) el.remove();
-}
+      <!-- Top Stories -->
+      <div class="md:col-span-5 ki-card ki-border border p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-headline-md ki-text-main" style="font-family:'Space Grotesk',sans-serif">Top Stories</h3>
+          <span class="material-symbols-outlined text-[#1d9bf0]">trending_up</span>
+        </div>
+        <div id="top-stories-list">
+          <div class="animate-pulse flex gap-3 py-3"><div class="w-8 h-6 bg-[#2f3336] rounded"></div><div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-3/4"></div><div class="h-2 bg-[#2f3336] rounded w-1/2"></div></div></div>
+          <div class="animate-pulse flex gap-3 py-3 border-t border-[#2f3336]"><div class="w-8 h-6 bg-[#2f3336] rounded"></div><div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-4/5"></div></div></div>
+          <div class="animate-pulse flex gap-3 py-3 border-t border-[#2f3336]"><div class="w-8 h-6 bg-[#2f3336] rounded"></div><div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-2/3"></div></div></div>
+        </div>
+      </div>
+    </div>
 
-async function sendChat() {
-  const input = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('chat-send');
-  const text = input.value.trim();
-  if (!text) return;
+    <!-- Video Sektion -->
+    <div class="video-section mb-lg">
+      <div class="mb-4 flex items-center gap-3">
+        <h3 class="font-headline-xl text-headline-xl ki-text-main" style="font-family:'Space Grotesk',sans-serif">Video</h3>
+        <span class="text-[10px] font-mono ki-text-muted uppercase tracking-widest">Exklusiv</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+        <div class="video-player-wrap">
+          <div class="video-overlay-label">NEU</div>
+          <video controls preload="metadata" poster="">
+            <source src="uploads/Metas_Solar-Plan_im_All.mp4" type="video/mp4"/>
+            Dein Browser unterstützt kein HTML5-Video.
+          </video>
+          <div class="p-4 ki-card ki-border border-t-0">
+            <h4 class="font-headline-md ki-text-main mb-1" style="font-family:'Space Grotesk',sans-serif">Metas Solar-Plan im All</h4>
+            <p class="text-[13px] ki-text-muted">1.000 Satelliten, 1 Gigawatt Solarstrom aus dem Orbit – Metas Antwort auf Chinas KI-Ausreiseverbot.</p>
+          </div>
+        </div>
+        <!-- Placeholder für weiteres Video -->
+        <div class="ki-card ki-border border flex flex-col items-center justify-center p-8 text-center min-h-[220px]">
+          <span class="material-symbols-outlined text-[#2f3336] text-5xl mb-3">video_library</span>
+          <p class="text-[12px] ki-text-muted font-mono">Weiteres Video folgt</p>
+        </div>
+      </div>
+    </div>
 
-  input.value = '';
-  input.style.height = 'auto';
-  addMsg('user', text);
-  chatHistory.push({ role: 'user', content: text });
+    <!-- News + Sidebar -->
+    <div class="flex flex-col xl:flex-row gap-gutter items-start">
+      <div class="flex-1 min-w-0">
+        <div class="mb-6 flex items-center justify-between">
+          <h3 class="font-headline-xl text-headline-xl ki-text-main" style="font-family:'Space Grotesk',sans-serif">Aktuelle News</h3>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span id="stand-label" class="text-xs font-mono ki-text-muted uppercase tracking-widest">Wird geladen...</span>
+          </div>
+        </div>
+        <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
+          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
+          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
+          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
+        </div>
+      </div>
 
-  sendBtn.disabled = true;
-  addTyping();
+      <!-- Sidebar: Twitter + Hashtags -->
+      <div class="xl:w-[300px] xl:flex-shrink-0 xl:sticky xl:top-20 w-full flex flex-col gap-4">
 
-  try {
-    const systemPrompt = `Du bist ein hilfreicher KI-News-Assistent für die Seite ki-news.live.
-Du beantwortest Fragen zu KI-Neuigkeiten auf Deutsch, präzise und verständlich.
-Hier sind die aktuellen News:\n\n${currentNewsContext}\n\nBeziehe dich wenn möglich auf diese News. Halte Antworten kurz (max. 3 Sätze), es sei denn eine ausführlichere Erklärung wird gewünscht.`;
+        <!-- Twitter Widget -->
+        <div class="ki-card ki-border border p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            <span class="text-[10px] font-mono ki-text-muted uppercase tracking-widest">Highlight Post</span>
+          </div>
+          <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-lang="de" data-width="268">
+            <a href="https://x.com/CScampy/status/2049045655587287473"></a>
+          </blockquote>
+        </div>
+        <a href="https://x.com/CScampy" target="_blank"
+          class="flex items-center justify-center gap-2 w-full py-2.5 ki-card ki-border border text-[#1d9bf0] hover:bg-[#1d9bf0] hover:text-white transition-all text-[11px] font-bold font-mono tracking-wider">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          @CSCAMPY FOLGEN
+        </a>
 
-    const response = await window.claude.complete({
-      messages: [
-        { role: 'user', content: systemPrompt + '\n\nNutzeranfrage: ' + text }
-      ]
-    });
+        <!-- Hashtag Widget -->
+        <div class="hashtag-section">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-[10px] font-mono ki-text-muted uppercase tracking-widest"># Hashtags</span>
+            <span class="text-[9px] font-mono text-[#1d9bf0] border border-[#1d9bf0]/30 px-1.5 py-0.5">Vorschlag</span>
+          </div>
+          <p class="text-[11px] ki-text-muted mb-3 leading-relaxed">Dir fehlt noch etwas? Schlage Hashtags vor die zu diesem Thema passen:</p>
+          <div id="hashtag-chips" class="flex flex-wrap gap-1.5 mb-3">
+            <span class="hashtag-chip">#KI</span>
+            <span class="hashtag-chip">#ArtificialIntelligence</span>
+            <span class="hashtag-chip">#Meta</span>
+            <span class="hashtag-chip">#OpenAI</span>
+            <span class="hashtag-chip">#Technologie</span>
+          </div>
+          <div class="flex gap-2">
+            <input id="hashtag-new" type="text" class="hashtag-input" placeholder="# Neuer Hashtag…"
+              onkeydown="if(event.key==='Enter'){addHashtag();}"/>
+            <button onclick="addHashtag()"
+              class="px-3 py-2 bg-[#1d9bf0] text-white text-[11px] font-bold font-mono hover:bg-[#1a8cd8] transition-all flex-shrink-0">+</button>
+          </div>
+          <p class="text-[10px] ki-text-faint mt-2 font-mono">Klick auf Hashtag zum Kopieren</p>
+        </div>
+      </div>
+    </div>
 
-    removeTyping();
-    const reply = response || 'Entschuldigung, ich konnte keine Antwort generieren.';
-    chatHistory.push({ role: 'assistant', content: reply });
-    addMsg('bot', reply);
-  } catch(e) {
-    removeTyping();
-    addMsg('bot', 'Entschuldigung, es gab einen Fehler. Bitte versuche es erneut.');
-    console.error('Chat error:', e);
-  } finally {
-    sendBtn.disabled = false;
-    input.focus();
-  }
-}
+    <!-- Footer -->
+    <div class="mt-12 pb-12 ki-border border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="ki-text-main font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
+        <p class="text-[11px] ki-text-muted font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/CScampy" target="_blank" class="text-[#1d9bf0] hover:underline">@CScampy</a></p>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="Archiv.html" class="ki-text-muted hover:text-white transition-colors text-xs font-mono">Archiv</a>
+        <a href="https://x.com/CScampy" target="_blank" class="ki-text-muted hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
+        <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank" class="ki-text-muted hover:text-white transition-colors text-xs font-mono">Podcast</a>
+      </div>
+    </div>
+  </div>
+</main>
 
-// Auto-resize textarea
-document.getElementById('chat-input').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
-});
-</script>
+<!-- KI-Chat Widget -->
+<div id="chat-widget">
+  <div id="chat-panel">
+    <div class="chat-header">
+      <div><h4>KI-News Assistent</h4><span>Frag mich zu den aktuellen News</span></div>
+      <button class="chat-close" onclick="closeChat()">×</button>
+    </div>
+    <div id="chat-messages">
+      <div class="msg bot">
+        <div class="msg-bubble">Hallo! Ich bin der KI-News Assistent. Stell mir Fragen zu den aktuellen KI-News! 🤖</div>
+        <div class="msg-time">Jetzt</div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <textarea id="chat-input" placeholder="Frage stellen…" rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+      <button id="chat-send" onclick="sendChat()">
+        <span class="material-symbols-outlined" style="font-size:18px">send</span>
+      </button>
+    </div>
+  </div>
+  <button id="chat-fab" onclick="toggleChat()">
+    <span class="material-symbols-outlined" style="font-size:22px;font-variation-settings:'FILL' 1">smart_toy</span>
+  </button>
+</div>
 
-<!-- ── Twitter Widget Script ──────────────────────────────────────────── -->
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
+<script>
+// ── Source config ──────────────────────────────────────────────────────
+const SRC = {
+  'The Decoder':     '#1d9bf0',
+  'TechCrunch AI':   '#ff6b35',
+  'VentureBeat AI':  '#7c3aed',
+  'MIT Tech Review': '#dc2626',
+  'Ars Technica':    '#16a34a',
+  'Heise':           '#2563eb',
+};
+function srcColor(s){ return SRC[s]||'#1d9bf0'; }
+
+// ── News cards ─────────────────────────────────────────────────────────
+function renderCard(item){
+  const c = item.color || srcColor(item.source);
+  const a = document.createElement('a');
+  a.href = item.link||'#';
+  if(item.link) a.target='_blank';
+  a.className='ki-card ki-border border p-4 flex flex-col h-full transition-all group cursor-pointer';
+  a.onmouseenter=()=>{ a.style.borderColor=c; };
+  a.onmouseleave=()=>{ a.style.borderColor=''; };
+  a.innerHTML=`
+    <div class="flex items-center justify-between mb-4">
+      <span class="source-badge-wrap text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:${c}">${item.source}</span>
+      <div class="flex items-center gap-1">
+        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+        <span class="text-[10px] font-mono ki-text-muted">NEU</span>
+      </div>
+    </div>
+    <h4 class="font-headline-md ki-text-main mb-2 leading-snug transition-colors" style="font-family:'Space Grotesk',sans-serif">${item.title}</h4>
+    <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">${item.summary||''}</p>
+    <div class="pt-4 ki-border border-t flex items-center justify-between">
+      <span class="text-[11px] font-mono uppercase" style="color:${c}">${item.source}</span>
+      <span class="material-symbols-outlined ki-text-muted text-sm">open_in_new</span>
+    </div>`;
+  return a;
+}
+
+// ── Top Stories ────────────────────────────────────────────────────────
+function renderTopStories(news){
+  const container=document.getElementById('top-stories-list');
+  if(!container) return;
+  const top=news.slice(0,3);
+  container.innerHTML='';
+  top.forEach((item,i)=>{
+    const c=item.color||srcColor(item.source);
+    const div=document.createElement('div');
+    div.className=(i>0?'border-t border-[#2f3336] pt-3 ':'')+'top-story-item pb-2';
+    div.innerHTML=`
+      <div class="flex items-start gap-3">
+        <span class="text-2xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors flex-shrink-0" style="font-family:'Space Grotesk',sans-serif;line-height:1.1">${String(i+1).padStart(2,'0')}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-[10px] px-1.5 py-0.5 font-mono uppercase" style="background:${c}22;color:${c};border:1px solid ${c}44">${item.source}</span>
+          </div>
+          <h4 class="text-sm font-bold ki-text-main leading-snug hover:text-[#1d9bf0] transition-colors">${item.title}</h4>
+        </div>
+        <span class="material-symbols-outlined ki-text-faint text-sm flex-shrink-0 mt-0.5">open_in_new</span>
+      </div>`;
+    if(item.link) div.onclick=()=>window.open(item.link,'_blank');
+    container.appendChild(div);
+  });
+}
+
+// ── Fetch news ─────────────────────────────────────────────────────────
+let currentNewsContext='';
+fetch('news.json?t='+Date.now())
+  .then(r=>r.json())
+  .then(data=>{
+    const grid=document.getElementById('news-grid');
+    const label=document.getElementById('stand-label');
+    if(!grid||!data.news||!data.news.length) return;
+    grid.innerHTML='';
+    data.news.forEach(item=>grid.appendChild(renderCard(item)));
+    if(label&&data.stand) label.textContent='Stand: '+data.stand;
+    renderTopStories(data.news);
+    currentNewsContext='Aktuelle KI-News (Stand '+(data.stand||'')+'):\n'+
+      data.news.map((n,i)=>`${i+1}. "${n.title}" (${n.source}): ${n.summary||''}`).join('\n');
+  })
+  .catch(()=>{
+    const label=document.getElementById('stand-label');
+    if(label) label.textContent='Stand: offline';
+  });
+
+// ── Hashtag Widget ─────────────────────────────────────────────────────
+function addHashtag(){
+  const input=document.getElementById('hashtag-new');
+  let val=input.value.trim().replace(/^#+/,'');
+  if(!val) return;
+  const chip=document.createElement('span');
+  chip.className='hashtag-chip';
+  chip.textContent='#'+val;
+  chip.onclick=()=>{ navigator.clipboard.writeText('#'+val).catch(()=>{}); chip.style.background='#16a34a'; chip.style.color='white'; setTimeout(()=>{ chip.style.background=''; chip.style.color=''; },1000); };
+  document.getElementById('hashtag-chips').appendChild(chip);
+  input.value='';
+}
+// Klick auf bestehende Chips = kopieren
+document.getElementById('hashtag-chips').querySelectorAll('.hashtag-chip').forEach(chip=>{
+  chip.onclick=()=>{ const t=chip.textContent; navigator.clipboard.writeText(t).catch(()=>{}); chip.style.background='#16a34a'; chip.style.color='white'; setTimeout(()=>{ chip.style.background=''; chip.style.color=''; },1000); };
+});
+
+// ── Chat ───────────────────────────────────────────────────────────────
+let chatOpen=false;
+function toggleChat(){ chatOpen?closeChat():openChat(); }
+function openChat(){ chatOpen=true; document.getElementById('chat-panel').classList.add('open'); document.getElementById('chat-input').focus(); }
+function closeChat(){ chatOpen=false; document.getElementById('chat-panel').classList.remove('open'); }
+function timeStr(){ return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); }
+function addMsg(role,text){
+  const msgs=document.getElementById('chat-messages');
+  const div=document.createElement('div');
+  div.className='msg '+(role==='user'?'user':'bot');
+  div.innerHTML=`<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${timeStr()}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function addTyping(){
+  const msgs=document.getElementById('chat-messages');
+  const div=document.createElement('div');
+  div.className='msg bot'; div.id='typing-indicator';
+  div.innerHTML='<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTyping(){ const el=document.getElementById('typing-indicator'); if(el) el.remove(); }
+async function sendChat(){
+  const input=document.getElementById('chat-input');
+  const btn=document.getElementById('chat-send');
+  const text=input.value.trim();
+  if(!text) return;
+  input.value=''; input.style.height='auto';
+  addMsg('user',text);
+  btn.disabled=true; addTyping();
+  try {
+    const reply=await window.claude.complete({
+      messages:[{role:'user',content:`Du bist KI-News Assistent auf ki-news.live. Antworte auf Deutsch, kurz und präzise (max. 3 Sätze).\n\nAktuelle News:\n${currentNewsContext}\n\nFrage: ${text}`}]
+    });
+    removeTyping(); addMsg('bot',reply||'Keine Antwort erhalten.');
+  } catch(e){ removeTyping(); addMsg('bot','Entschuldigung, ein Fehler ist aufgetreten.'); }
+  finally{ btn.disabled=false; input.focus(); }
+}
+document.getElementById('chat-input').addEventListener('input',function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,80)+'px'; });
+</script>
 </body>
 </html>
