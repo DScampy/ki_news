@@ -14,16 +14,16 @@ from urllib.error import URLError, HTTPError
 # Logging
 # -------------------------
 LOG_PATH = Path("ki_news.log")
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s: %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_PATH, encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
+_fmt = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
+_fh = logging.FileHandler(LOG_PATH, encoding="utf-8")
+_fh.setFormatter(_fmt)
+_sh = logging.StreamHandler()
+_sh.setFormatter(_fmt)
 logger = logging.getLogger("ki_news")
-logger.propagate = False  # Kein Doppel-Logging durch Root-Handler
+logger.setLevel(logging.INFO)
+logger.addHandler(_fh)
+logger.addHandler(_sh)
+logger.propagate = False  # Kein Doppel-Logging durch Root-Logger
 
 # -------------------------
 # Zeitzone
@@ -70,7 +70,6 @@ FEEDS = [
     ("TechCrunch AI",  "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
-    ("MIT Tech Review","https://www.technologyreview.com/feed/"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
