@@ -61,12 +61,18 @@ KI_KEYWORDS = [
 ]
 
 FEEDS = [
+    # Deutsch
     ("The Decoder", "https://the-decoder.de/feed/"),
-    ("Heise", "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
-    ("TechCrunch AI", "https://techcrunch.com/category/artificial-intelligence/feed/"),
-    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"),
+    ("Heise",       "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
+    ("Golem",       "https://rss.golem.de/rss.php?feed=RSS2.0"),
+    ("Caschy Blog", "https://stadt-bremerhaven.de/feed/"),
+    # Englisch
+    ("TechCrunch AI",  "https://techcrunch.com/category/artificial-intelligence/feed/"),
+    ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
-    ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
+    ("MIT Tech Review","https://www.technologyreview.com/feed/"),
+    ("The Verge",      "https://www.theverge.com/rss/index.xml"),
+    ("Wired AI",       "https://www.wired.com/feed/tag/artificial-intelligence/rss"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
@@ -74,13 +80,15 @@ FEEDS = [
 MAX_LLM_NEWS = 3
 
 MODELLE = [
-    # Kostenlose Modelle zuerst – Reihenfolge nach Qualität
-    "google/gemma-4-26b-a4b-it-20260403:free",   # Gemma 4 – bewiesen kostenlos
-    "nvidia/nemotron-3-super-120b-a12b:free",     # Nemotron – kostenlos
-    "meta-llama/llama-3.3-70b-instruct:free",     # Llama 70B Free-Tier (falls verfügbar)
-    # Kostenpflichtige Fallbacks – nur wenn alle Free-Modelle fehlschlagen
-    "meta-llama/llama-3.3-70b-instruct",          # ~$0.01/Lauf, zuverlässig
-    "google/gemma-3-27b-it",                       # Letzter Fallback
+    # Free-Modelle – bei 429 sofort nächstes, kein Retry
+    "meta-llama/llama-3.3-70b-instruct:free",         # Llama 3.3 70B – bestes Free-Modell
+    "nousresearch/hermes-3-llama-3.1-405b:free",      # 405B – höchste Qualität
+    "google/gemma-4-31b-it:free",                      # Gemma 4 31B – gut für Deutsch
+    "tencent/hy3-preview:free",                        # Hy3 Preview
+    "google/gemma-4-26b-a4b-it:free",                  # Gemma 4 26B (korrigierter Slug)
+    # Kostenpflichtige Fallbacks (~$0.008/Lauf) – nur wenn alle Free-Modelle 429
+    "meta-llama/llama-3.3-70b-instruct",               # Anker – immer verfügbar
+    "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
 
 SOURCE_COLORS = {
@@ -181,10 +189,19 @@ News:
                                 "title_de": item.get("title_de", alle_news[global_index]["title"]),
                                 "summary": item.get("summary", "")
                             }
-                    logger.info("Zusammenfassungen Batch %d: OK", batch_start // batch_size + 1)
+                    logger.info("Zusammenfassungen Batch %d OK mit %s", batch_start // batch_size + 1, modell)
                     break
+            except HTTPError as e:
+                if e.code == 429:
+                    logger.warning("Batch %d: %s Rate-Limit (429) – naechstes Modell",
+                                   batch_start // batch_size + 1, modell)
+                else:
+                    logger.warning("Batch %d mit %s fehlgeschlagen: HTTP %s",
+                                   batch_start // batch_size + 1, modell, e.code)
+                continue
             except Exception as e:
-                logger.warning("Batch %d mit %s fehlgeschlagen: %s", batch_start // batch_size + 1, modell, e)
+                logger.warning("Batch %d mit %s fehlgeschlagen: %s",
+                               batch_start // batch_size + 1, modell, e)
                 continue
     return result
 
@@ -279,11 +296,18 @@ News (genau diese 3, je eine pro Post):
             })
             with urllib.request.urlopen(req, timeout=90) as r:
                 antwort = json.loads(r.read())["choices"][0]["message"]["content"]
-                logger.info("Erfolg mit Modell: %s", modell)
+                logger.info("Posts OK mit Modell: %s", modell)
                 return antwort
-        except Exception as e:
-            logger.warning("Modell %s fehlgeschlagen: %s", modell, e)
+        except HTTPError as e:
+            if e.code == 429:
+                logger.warning("Posts: %s Rate-Limit (429) – naechstes Modell", modell)
+            else:
+                logger.warning("Posts: %s fehlgeschlagen: HTTP %s", modell, e.code)
             continue
+        except Exception as e:
+            logger.warning("Posts: %s fehlgeschlagen: %s", modell, e)
+            continue
+    logger.error("Posts: Kein Modell verfuegbar – alle Fallbacks erschoepft")
     return "Fehler: Kein Modell verfuegbar"
 
 # -------------------------
