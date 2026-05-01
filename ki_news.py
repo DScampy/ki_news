@@ -785,3 +785,29 @@ def main():
         # Immer vorhandene Basis-Tags
         base_tags = {"#KI", "#AI", "#AINews", "#KünstlicheIntelligenz", "#LLM"}
         merged = sorted(base_tags | existing_tags | new_tags)
+
+        try:
+            hashtag_path.write_text(
+                json.dumps({"tags": merged}, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+            logger.info("hashtags.json aktualisiert: %d Tags", len(merged))
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben hashtags.json: %s", e)
+
+    if proj_dir.exists():
+        update_hashtags(proj_dir)
+    else:
+        update_hashtags(Path("."))
+
+    # ── HTML generieren ───────────────────────────────────────────────────────
+    pfad = generate_html(alle_news, parsed)
+
+    logger.info("KI News Lauf abgeschlossen.")
+
+
+# -------------------------
+# Entry Point
+# -------------------------
+if __name__ == "__main__":
+    main()
