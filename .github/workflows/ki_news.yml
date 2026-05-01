@@ -57,4 +57,9 @@ jobs:
           git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')" || echo "Keine Aenderungen"
           git push
 
-      
+      - name: Log hochladen
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ki-news-log
+          path: ki_news.log

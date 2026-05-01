@@ -1,112 +1,76 @@
-# 🤖 KI News Dashboard – @CScampy
+# KI News Dashboard · @CScampy
 
-Automatisches KI-News-Dashboard das täglich aktuelle KI-News sammelt, Post-Vorschläge für X generiert und per Telegram verschickt.
+Automatisches KI-News-Dashboard. Sammelt täglich News aus 10 Quellen, generiert fertige X-Posts im Tuki-6-Stil und schickt sie per Telegram.
+
+**Live:** https://dscampy.github.io/ki_news/
 
 ---
 
 ## Was das System macht
 
-1. Holt automatisch KI-relevante News aus 6 Quellen
-2. Filtert nur Artikel mit KI-Bezug heraus
-3. Generiert 3 fertige X-Post-Vorschläge via NVIDIA API
-4. Schickt die Posts per Telegram ans Handy
-5. Aktualisiert eine öffentliche HTML-Seite auf GitHub Pages
-
-**Live-Seite:** https://dscampy.github.io/ki_news/ki_news.html
+1. Holt KI-relevante News aus 10 Quellen (4 deutsch, 6 englisch)
+2. Filtert nach KI-Keywords, dedupliziert per URL
+3. Übersetzt & fasst alle News auf Deutsch zusammen (via LLM)
+4. Generiert 3 fertige X-Posts im **Tuki-6-Format** (Teaser + 6-teiliger Thread + Erklärung)
+5. Schickt die Posts per Telegram an [@ScampyNews24_bot](https://t.me/ScampyNews24_bot)
+6. Aktualisiert `news.json`, `archive.json`, `hashtags/hashtags.json` und `index.html`
+7. Committet alles automatisch zurück ins Repo via GitHub Actions
 
 ---
 
-## Automatischer Zeitplan
+## Zeitplan
 
-Das System läuft täglich automatisch via GitHub Actions – ohne dass der Rechner an sein muss:
+Läuft 4× täglich automatisch via GitHub Actions – kein Rechner nötig:
 
-- **7:00 Uhr** (UTC 6:00)
-- **12:00 Uhr** (UTC 11:00)
-- **17:00 Uhr** (UTC 16:00)
+| Berliner Zeit | UTC |
+|---|---|
+| 07:00 | 05:00 |
+| 12:00 | 10:00 |
+| 17:00 | 15:00 |
+| 20:00 | 18:00 |
 
 ---
 
 ## News-Quellen
 
-| Quelle | URL | Sprache |
-|--------|-----|---------|
+| Quelle | Feed | Sprache |
+|--------|------|---------|
 | The Decoder | the-decoder.de/feed/ | Deutsch |
-| Heise | heise.de/rss/heise-atom.xml | Deutsch |
+| Heise | heise.de/rss/heise-Rubrik-IT-atom.xml | Deutsch |
+| Golem | rss.golem.de/rss.php?feed=RSS2.0 | Deutsch |
+| Caschy Blog | stadt-bremerhaven.de/feed/ | Deutsch |
 | TechCrunch AI | techcrunch.com/category/artificial-intelligence/feed/ | Englisch |
 | Ars Technica | feeds.arstechnica.com/arstechnica/technology-lab | Englisch |
 | VentureBeat AI | venturebeat.com/category/ai/feed/ | Englisch |
 | MIT Tech Review | technologyreview.com/feed/ | Englisch |
+| The Verge | theverge.com/rss/index.xml | Englisch |
+| Wired AI | wired.com/feed/tag/artificial-intelligence/rss | Englisch |
 
 ---
 
-## Voraussetzungen
+## LLM-Modelle (OpenRouter)
 
-- Python 3.11+
-- NVIDIA API Key (kostenlos auf build.nvidia.com)
-- Telegram Bot Token (@BotFather)
-- GitHub Account
+Das Script probiert Modelle der Reihe nach. Bei 429 (Rate Limit) sofort weiter zum nächsten.
 
----
-
-## Lokale Einrichtung
-
-### 1. Repository klonen
-
-```bash
-git clone https://github.com/DScampy/ki_news.git
-cd ki_news
-```
-
-### 2. Config-Datei anlegen
-
-Erstelle die Datei `Documents/Projekte/ki-news/config.txt` mit deinem NVIDIA API Key:
-
-```
-nvapi-DEIN-KEY-HIER
-```
-
-Diese Datei wird durch `.gitignore` nie auf GitHub hochgeladen.
-
-### 3. Script lokal ausführen
-
-```bash
-python ki_news.py
-```
-
-Der Browser öffnet sich automatisch mit dem Dashboard.
+| Priorität | Modell | Kosten |
+|---|---|---|
+| 1 | meta-llama/llama-3.3-70b-instruct:free | kostenlos |
+| 2 | nousresearch/hermes-3-llama-3.1-405b:free | kostenlos |
+| 3 | google/gemma-4-31b-it:free | kostenlos |
+| 4 | tencent/hy3-preview:free | kostenlos |
+| 5 | google/gemma-4-26b-a4b-it:free | kostenlos |
+| 6 | meta-llama/llama-3.3-70b-instruct | ~$0.008/Lauf |
+| 7 | google/gemma-3-27b-it | Fallback |
 
 ---
 
-## GitHub Actions Einrichtung
+## GitHub Secrets
 
-### Secrets hinterlegen
-
-Geh auf GitHub → Repository → Settings → Secrets and variables → Actions:
-
-| Name | Wert |
-|------|------|
-| `NVIDIA_API_KEY` | Dein NVIDIA API Key |
-| `TELEGRAM_TOKEN` | Dein Telegram Bot Token |
-
-### GitHub Pages aktivieren
-
-Settings → Pages → Branch: main → Save
-
-### Workflow manuell auslösen
-
-Actions → KI-Nachrichten-Update → Run workflow
-
----
-
-## Telegram Bot Einrichtung
-
-1. Schreib `@BotFather` auf Telegram
-2. `/newbot` → Name vergeben → Token kopieren
-3. Token als GitHub Secret `TELEGRAM_TOKEN` hinterlegen
-4. Dem Bot einmal eine Nachricht schicken (Pflicht damit er dir schreiben kann)
-5. Deine Chat-ID über `@userinfobot` herausfinden
-
-Die Chat-ID ist im Script fest eingetragen (`9096438`).
+| Name | Beschreibung |
+|------|-------------|
+| `OPENROUTER_KEY` | OpenRouter API Key (LLM + Zusammenfassungen) |
+| `TELEGRAM_TOKEN` | Token des Telegram-Bots (@ScampyNews24_bot) |
+| `GROQ_CHAT_KEY` | Groq API Key (Frontend-Chat auf der Website) |
 
 ---
 
@@ -114,50 +78,46 @@ Die Chat-ID ist im Script fest eingetragen (`9096438`).
 
 ```
 ki_news/
-├── ki_news.py              # Hauptscript
-├── ki_news.html            # Generiertes Dashboard (wird automatisch aktualisiert)
-├── .gitignore              # config.txt wird nicht hochgeladen
+├── ki_news.py                  # Hauptscript
+├── index.html                  # Dashboard (automatisch generiert)
+├── Archiv.html                 # Archiv-Seite (statisch, manuell gepflegt)
+├── news.json                   # Aktuelle News + Posts (automatisch)
+├── archive.json                # Kumulatives Archiv, max. 2000 Einträge (automatisch)
+├── hashtags/
+│   └── hashtags.json           # Auto-generierte Hashtag-Liste (automatisch)
+├── .gitignore
 └── .github/
     └── workflows/
-        └── ki_news.yml     # GitHub Actions Workflow
+        └── ki_news.yml         # GitHub Actions Workflow
 ```
 
 ---
 
-## KI-Modell
+## Tuki-6 Post-Format
 
-Aktuell wird `meta/llama-3.1-8b-instruct` über die kostenlose NVIDIA NIM API verwendet.
+Jeder Post besteht aus:
 
-Das Modell kann in `ki_news.py` Zeile 67 geändert werden:
+- **Teaser** – max. 265 Zeichen, Hook + Flip, endet mit Quellenangabe
+- **Thread 1–6** – je max. 265 Zeichen: Hook → Kontext → Kaskade → Gruselig → Konsequenz → Fazit
+- **Erklärung** – max. 60 Zeichen, was die News konkret bedeutet
 
-```python
-"model": "meta/llama-3.1-8b-instruct",
+---
+
+## Lokale Einrichtung
+
+```bash
+git clone https://github.com/DScampy/ki_news.git
+cd ki_news
 ```
 
-Verfügbare kostenlose Modelle: https://build.nvidia.com
+OpenRouter-Key in `~/Documents/Projekte/ki-news/config.txt` speichern (wird nie commitet).
 
----
-
-## Dashboard Features
-
-- Dunkles X-ähnliches Design
-- Farbkodierte Quellen-Labels
-- Zeichenzähler pro Post (grün = OK, rot = zu lang)
-- Kopieren-Button mit Bestätigung
-- "X Direkt posten" Button
-- Automatischer Timestamp
-
----
-
-## Nächste geplante Schritte
-
-- [ ] Tuki-Stil Prompts ("Verstehst du was passiert?")
-- [ ] Mehr Quellen einbauen (Import AI, Hugging Face Blog)
-- [ ] Kurze Einordnung pro News-Artikel
-- [ ] Obsidian Integration für persistentes Gedächtnis
+```bash
+python ki_news.py
+```
 
 ---
 
 ## Erstellt von
 
-D. Scampy (@CScampy) · April 2026 · erstellt mit Claude
+D. Scampy ([@CScampy](https://x.com/CScampy)) · 2026 · erstellt mit Claude
