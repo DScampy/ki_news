@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
   tailwind.config = {
+<<<<<<< HEAD
     darkMode:"class",
     theme:{extend:{
       colors:{"surface-tint":"#99cbff","on-surface":"#dfe3ea","on-surface-variant":"#bfc7d3","surface-container-low":"#181c21","surface-container":"#1c2025","surface-container-high":"#262a30","outline":"#89919d","outline-variant":"#3f4851","primary":"#99cbff","primary-container":"#1d9bf0","background":"#000000"},
@@ -109,10 +110,113 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 #chat-input::placeholder{color:#4a5568;}
 #chat-send{width:36px;height:36px;border-radius:8px;background:#1d9bf0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;}
 #chat-send:disabled{opacity:0.4;cursor:not-allowed;}
+=======
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "surface-tint":"#99cbff","on-surface":"#dfe3ea","on-surface-variant":"#bfc7d3",
+          "surface-container-low":"#181c21","surface-container":"#1c2025","surface-container-high":"#262a30",
+          "outline":"#89919d","outline-variant":"#3f4851","primary":"#99cbff","primary-container":"#1d9bf0","background":"#000000"
+        },
+        borderRadius:{DEFAULT:"0.125rem",lg:"0.25rem",xl:"0.5rem",full:"0.75rem"},
+        spacing:{sm:"12px",xl:"64px",gutter:"16px",base:"8px",xs:"4px",lg:"40px",md:"24px",margin:"24px"},
+        fontFamily:{"body-sm":["Work Sans"],"headline-xl":["Space Grotesk"],"body-lg":["Work Sans"],"source-tag":["Work Sans"],"label-bold":["Work Sans"],"headline-md":["Space Grotesk"]},
+        fontSize:{
+          "body-sm":["14px",{lineHeight:"1.4",fontWeight:"400"}],
+          "headline-xl":["32px",{lineHeight:"1.2",letterSpacing:"-0.02em",fontWeight:"700"}],
+          "body-lg":["16px",{lineHeight:"1.5",fontWeight:"400"}],
+          "source-tag":["13px",{lineHeight:"1",fontWeight:"600"}],
+          "label-bold":["12px",{lineHeight:"1",letterSpacing:"0.05em",fontWeight:"700"}],
+          "headline-md":["20px",{lineHeight:"1.3",fontWeight:"600"}]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body{background:#000;color:#dfe3ea;}
+  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+  ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
+
+  /* ── Sidebar collapse ── */
+  #sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;}
+  #sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
+  #main-content{transition:margin-left 0.25s ease;}
+  #main-content.sidebar-open{margin-left:240px;}
+  #main-content.sidebar-closed{margin-left:0;}
+  #sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:16px;height:48px;display:flex;align-items:center;justify-content:center;color:white;transition:left 0.25s ease;border-radius:0 4px 4px 0;}
+  #sidebar-toggle.open{left:240px;}
+  #sidebar-toggle.closed{left:0;}
+
+  /* ── Light Mode ── */
+  html.light body{background:#f0f4f8!important;color:#0f172a!important;}
+  html.light nav.fixed{background:#fff!important;border-color:#e2e8f0!important;}
+  html.light #sidebar{background:#fff!important;border-color:#e2e8f0!important;}
+  html.light #main-content{background:#f0f4f8!important;}
+  /* Cards: alle dark-bg Klassen überschreiben */
+  html.light .ki-card{background:#fff!important;border-color:#e2e8f0!important;}
+  html.light .ki-card:hover{background:#f8fafc!important;}
+  html.light .ki-sidebar-item:hover{background:#f1f5f9!important;}
+  html.light .ki-muted{color:#64748b!important;}
+  html.light .ki-faint{color:#94a3b8!important;}
+  html.light .ki-main{color:#0f172a!important;}
+  html.light .ki-border{border-color:#e2e8f0!important;}
+  html.light .ki-bg-subtle{background:#f1f5f9!important;}
+  html.light ::-webkit-scrollbar-thumb{background:#cbd5e1!important;}
+
+  /* ── Chat ── */
+  #chat-widget{position:fixed;bottom:24px;right:24px;z-index:1000;font-family:'Work Sans',sans-serif;}
+  #chat-fab{width:52px;height:52px;border-radius:50%;background:#1d9bf0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(29,155,240,0.4);transition:all 0.2s;color:white;}
+  #chat-fab:hover{transform:scale(1.08);background:#1a8cd8;}
+  #chat-panel{position:absolute;bottom:64px;right:0;width:340px;background:#0f0f0f;border:1px solid #2f3336;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:none;flex-direction:column;max-height:480px;animation:chatIn 0.2s ease;}
+  html.light #chat-panel{background:#fff;border-color:#e2e8f0;}
+  @keyframes chatIn{from{opacity:0;transform:translateY(10px) scale(0.97)}to{opacity:1;transform:none}}
+  #chat-panel.open{display:flex;}
+  .chat-header{padding:14px 16px;background:#1d9bf0;display:flex;align-items:center;justify-content:space-between;}
+  .chat-header h4{color:white;font-size:13px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin:0;}
+  .chat-header span{font-size:10px;color:rgba(255,255,255,0.7);}
+  .chat-close{background:none;border:none;color:white;cursor:pointer;font-size:18px;line-height:1;padding:0;opacity:0.8;}
+  #chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:280px;}
+  .msg{display:flex;flex-direction:column;gap:2px;}
+  .msg.user{align-items:flex-end;} .msg.bot{align-items:flex-start;}
+  .msg-bubble{max-width:82%;padding:8px 12px;font-size:13px;line-height:1.45;border-radius:10px;}
+  .msg.user .msg-bubble{background:#1d9bf0;color:white;border-radius:10px 10px 2px 10px;}
+  .msg.bot .msg-bubble{background:#1d1f23;color:#dfe3ea;border-radius:10px 10px 10px 2px;}
+  html.light .msg.bot .msg-bubble{background:#f1f5f9;color:#0f172a;}
+  .msg-time{font-size:10px;color:#4a5568;font-family:monospace;}
+  .typing-dots{display:flex;gap:4px;padding:6px 4px;}
+  .typing-dots span{width:6px;height:6px;border-radius:50%;background:#1d9bf0;animation:dot 1.2s infinite;}
+  .typing-dots span:nth-child(2){animation-delay:0.2s;} .typing-dots span:nth-child(3){animation-delay:0.4s;}
+  @keyframes dot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
+  .chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid #2f3336;}
+  html.light .chat-input-row{border-color:#e2e8f0;}
+  #chat-input{flex:1;background:#1d1f23;border:1px solid #2f3336;border-radius:8px;padding:8px 12px;font-size:13px;color:#dfe3ea;outline:none;font-family:'Work Sans',sans-serif;resize:none;max-height:80px;min-height:36px;transition:border-color 0.15s;}
+  html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
+  #chat-input:focus{border-color:#1d9bf0;}
+  #chat-input::placeholder{color:#4a5568;}
+  #chat-send{width:36px;height:36px;border-radius:8px;background:#1d9bf0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;transition:background 0.15s;}
+  #chat-send:hover{background:#1a8cd8;} #chat-send:disabled{opacity:0.4;cursor:not-allowed;}
+
+  /* ── Hashtag ── */
+  .hashtag-input{background:#0f0f0f;border:1px solid #2f3336;border-radius:6px;padding:8px 12px;color:#dfe3ea;font-size:13px;font-family:'Work Sans',sans-serif;outline:none;width:100%;transition:border-color 0.15s;}
+  html.light .hashtag-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
+  .hashtag-input:focus{border-color:#1d9bf0;}
+  .hashtag-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(29,155,240,0.15);border:1px solid rgba(29,155,240,0.3);color:#1d9bf0;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;font-family:monospace;cursor:pointer;transition:all 0.15s;}
+  .hashtag-chip:hover{background:#1d9bf0;color:white;}
+  .hashtag-chip.copied{background:#16a34a!important;color:white!important;border-color:#16a34a!important;}
+
+  /* ── Video ── */
+  .video-wrap{background:#000;border:1px solid #2f3336;overflow:hidden;position:relative;}
+  html.light .video-wrap{border-color:#e2e8f0;}
+  .video-wrap video{width:100%;display:block;max-height:260px;object-fit:contain;background:#000;}
+  .video-label{position:absolute;top:8px;left:8px;background:#1d9bf0;color:white;font-size:9px;font-weight:700;letter-spacing:0.08em;padding:2px 7px;font-family:'Space Grotesk',sans-serif;}
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
 </style>
 </head>
 <body class="font-body-lg">
 
+<<<<<<< HEAD
 <!-- Theme Script -->
 <script>
 (function(){
@@ -147,6 +251,28 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
   };
   let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
   apply(saved);
+=======
+<!-- Theme Script (früh laden) -->
+<script>
+(function(){
+  const T=['auto','light','dark'],I={auto:'AUTO',light:'☀',dark:'☾'};
+  function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  function apply(t){
+    const r=t==='auto'?pref():t;
+    document.documentElement.classList.remove('light','dark');
+    document.documentElement.classList.add(r);
+    const b=document.getElementById('themeBtn');
+    if(b){b.textContent=I[t];b.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
+  }
+  window.cycleTheme=function(){
+    const c=localStorage.getItem('ki_theme')||'auto';
+    const n=T[(T.indexOf(c)+1)%T.length];
+    try{localStorage.setItem('ki_theme',n);}catch(e){}
+    apply(n);
+  };
+  let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  apply(s);
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
     let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
     if(s==='auto')apply('auto');
@@ -172,6 +298,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span class="hidden sm:inline">@CScampy</span>
     </a>
+<<<<<<< HEAD
     <!-- Heise-Stil Theme Slider -->
     <div id="themeSlider" class="theme-slider-wrap" onclick="cycleTheme()" title="Hell/Dunkel wechseln">
       <span class="theme-slider-label" data-theme="light" style="font-size:12px">☀</span>
@@ -186,10 +313,24 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 <!-- Sidebar Toggle -->
 <button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
   <span class="material-symbols-outlined" style="font-size:12px" id="toggle-icon">chevron_left</span>
+=======
+    <a href="https://linkedin.com/in/dscampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-[#0a66c2] transition-colors">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+    <button id="themeBtn" onclick="cycleTheme()" title="Design wechseln"
+      class="text-gray-400 hover:text-white transition-colors text-[10px] font-mono ki-border border px-2 py-1 hover:border-gray-500 tracking-widest">AUTO</button>
+  </div>
+</nav>
+
+<!-- Sidebar Toggle Button -->
+<button id="sidebar-toggle" class="open" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
+  <span class="material-symbols-outlined" style="font-size:14px" id="toggle-icon">chevron_left</span>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
 </button>
 
 <!-- Sidebar -->
 <aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col py-6 bg-black ki-border border-r hidden lg:flex overflow-hidden">
+<<<<<<< HEAD
   <div class="px-5 mb-6">
     <p class="text-[11px] ki-muted font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
   </div>
@@ -207,6 +348,29 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       X / Twitter
     </a>
+=======
+  <div class="px-5 mb-8">
+    <p class="text-[11px] ki-muted font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
+  </div>
+  <div class="flex flex-col gap-1 px-2">
+    <a class="ki-sidebar-item flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
+      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
+    </a>
+    <a class="ki-sidebar-item flex items-center gap-3 ki-muted px-4 py-3 hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">
+      <span class="material-symbols-outlined text-sm">archive</span>Archiv
+    </a>
+    <a class="ki-sidebar-item flex items-center gap-3 ki-muted px-4 py-3 hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
+      <span class="material-symbols-outlined text-sm">mic</span>Podcast
+    </a>
+    <a class="ki-sidebar-item flex items-center gap-3 ki-muted px-4 py-3 hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      X / Twitter
+    </a>
+    <a class="ki-sidebar-item flex items-center gap-3 ki-muted px-4 py-3 hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://linkedin.com/in/dscampy" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      LinkedIn
+    </a>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
   </div>
   <div class="mt-auto px-5 pb-2">
     <div class="ki-border border p-3">
@@ -222,6 +386,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 </aside>
 
 <!-- Main Content -->
+<<<<<<< HEAD
 <main id="main-content" class="pt-14 min-h-screen bg-black">
   <div class="max-w-[1400px] mx-auto p-gutter">
 
@@ -246,10 +411,55 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
               <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>SoundCloud
             </a>
             <span class="text-xs ki-muted font-mono">KI NEWS #001 · ~20 MIN</span>
+=======
+<main id="main-content" class="sidebar-open pt-14 min-h-screen bg-black">
+  <div class="max-w-[1400px] mx-auto p-gutter">
+
+    <!-- Bento: Podcast + Video | Top Stories -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-lg mt-gutter">
+
+      <!-- Linke Spalte: Podcast + Video -->
+      <div class="md:col-span-7 flex flex-col gap-gutter">
+        <!-- Podcast -->
+        <div class="ki-card ki-border border p-5 relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
+            <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
+          </div>
+          <div class="relative z-10">
+            <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span>
+            <h2 class="font-headline-xl text-headline-xl ki-main mb-2 leading-tight" style="font-family:'Space Grotesk',sans-serif;font-size:22px">Metas Flucht ins All – Chinas KI-Ausreiseverbot</h2>
+            <p class="ki-muted font-body-sm text-body-sm mb-3 max-w-xl">China blockiert Metas $2,5-Mrd.-Deal mit Manus. Metas Antwort: 1.000 Satelliten im Orbit.</p>
+            <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
+              src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2311534997&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"
+              style="border-radius:4px;opacity:0.9"></iframe>
+            <div class="mt-2 flex items-center gap-3">
+              <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank"
+                class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
+                <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>
+                SoundCloud
+              </a>
+              <span class="text-xs ki-muted font-mono">KI NEWS #001 · ~20 MIN</span>
+            </div>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
+          </div>
+        </div>
+
+        <!-- Video -->
+        <div class="ki-card ki-border border overflow-hidden">
+          <div class="video-wrap">
+            <div class="video-label">VIDEO</div>
+            <video controls preload="metadata">
+              <source src="uploads/Metas_Solar-Plan_im_All.mp4" type="video/mp4"/>
+            </video>
+          </div>
+          <div class="p-4">
+            <h4 class="font-headline-md ki-main mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">Metas Solar-Plan im All</h4>
+            <p class="text-[12px] ki-muted">1.000 Satelliten, 1 Gigawatt Solarstrom aus dem Orbit – Metas Antwort auf Chinas Ausreiseverbot.</p>
           </div>
         </div>
       </div>
 
+<<<<<<< HEAD
       <!-- Video -->
       <div class="ki-card ki-border border overflow-hidden flex flex-col">
         <div class="video-wrap flex-shrink-0">
@@ -261,10 +471,32 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
         <div class="p-4 flex-1">
           <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">Metas Solar-Plan im All</h4>
           <p class="text-[12px] ki-muted">1.000 Satelliten, 1 Gigawatt Solarstrom aus dem Orbit.</p>
+=======
+      <!-- Rechte Spalte: Top Stories -->
+      <div class="md:col-span-5 ki-card ki-border border p-6 flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-headline-md ki-main" style="font-family:'Space Grotesk',sans-serif">Top Stories</h3>
+          <span class="material-symbols-outlined text-[#1d9bf0]">trending_up</span>
+        </div>
+        <div id="top-stories-list" class="flex-1">
+          <div class="animate-pulse flex gap-3 py-3"><div class="w-8 h-6 bg-[#2f3336] rounded"></div><div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-3/4"></div><div class="h-2 bg-[#2f3336] rounded w-1/2"></div></div></div>
+          <div class="animate-pulse flex gap-3 py-3 border-t border-[#2f3336]"><div class="w-8 h-6 bg-[#2f3336] rounded"></div><div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-4/5"></div></div></div>
+          <div class="animate-pulse flex gap-3 py-3 border-t border-[#2f3336]"><div class="w-8 h-6 bg-[#2f3336] rounded"></div><div class="flex-1 space-y-2"><div class="h-3 bg-[#2f3336] rounded w-2/3"></div></div></div>
+        </div>
+        <!-- Telegram CTA -->
+        <div class="mt-4 pt-4 ki-border border-t">
+          <p class="text-[11px] ki-muted font-mono mb-2 uppercase tracking-widest">Täglich via Telegram</p>
+          <a href="https://t.me/CScampy" target="_blank"
+            class="flex items-center gap-2 text-[#1d9bf0] hover:underline text-xs font-mono">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            Die Top 3 Stories kommen täglich via Telegram →
+          </a>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
         </div>
       </div>
     </div>
 
+<<<<<<< HEAD
     <!-- Top Stories – unter Podcast/Video, volle Breite -->
     <div class="ki-card ki-border border p-5 mb-lg">
       <div class="flex items-center justify-between mb-4">
@@ -285,11 +517,17 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
       </div>
     </div>
 
+=======
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
     <!-- News + Sidebar -->
     <div class="flex flex-col xl:flex-row gap-gutter items-start">
       <div class="flex-1 min-w-0">
         <div class="mb-6 flex items-center justify-between">
+<<<<<<< HEAD
           <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:24px">Aktuelle News</h3>
+=======
+          <h3 class="font-headline-xl text-headline-xl ki-main" style="font-family:'Space Grotesk',sans-serif">Aktuelle News</h3>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Wird geladen...</span>
@@ -302,15 +540,24 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
         </div>
       </div>
 
+<<<<<<< HEAD
       <!-- Rechte Sidebar -->
       <div class="xl:w-[280px] xl:flex-shrink-0 xl:sticky xl:top-20 w-full flex flex-col gap-4">
+=======
+      <!-- Rechte Sidebar: Twitter + Hashtags -->
+      <div class="xl:w-[300px] xl:flex-shrink-0 xl:sticky xl:top-20 w-full flex flex-col gap-4">
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
         <!-- Twitter -->
         <div class="ki-card ki-border border p-4">
           <div class="flex items-center gap-2 mb-3">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             <span class="text-[10px] font-mono ki-muted uppercase tracking-widest">Highlight Post</span>
           </div>
+<<<<<<< HEAD
           <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-lang="de" data-width="250">
+=======
+          <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-lang="de" data-width="268">
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
             <a href="https://x.com/CScampy/status/2049045655587287473"></a>
           </blockquote>
         </div>
@@ -319,12 +566,18 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           @CSCAMPY FOLGEN
         </a>
+<<<<<<< HEAD
         <!-- Hashtags -->
+=======
+
+        <!-- Hashtag Widget -->
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
         <div class="ki-card ki-border border p-4">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-[10px] font-mono ki-muted uppercase tracking-widest"># Hashtags</span>
             <span class="text-[9px] font-mono text-[#1d9bf0] border border-[#1d9bf0]/40 px-1.5 py-0.5">Community</span>
           </div>
+<<<<<<< HEAD
           <p class="text-[11px] ki-muted mb-3">Schlage Hashtags vor – Klick zum Kopieren:</p>
           <div id="hashtag-chips" class="flex flex-wrap gap-1.5 mb-3"></div>
           <div class="flex gap-2">
@@ -333,6 +586,17 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
             <button onclick="submitHashtag()" class="px-3 py-2 bg-[#1d9bf0] text-white text-[11px] font-bold hover:bg-[#1a8cd8] transition-all flex-shrink-0">+</button>
           </div>
           <p id="hashtag-status" class="text-[10px] ki-faint mt-1 font-mono"></p>
+=======
+          <p class="text-[11px] ki-muted mb-3 leading-relaxed">Schlage Hashtags vor – sie werden im Repo gespeichert:</p>
+          <div id="hashtag-chips" class="flex flex-wrap gap-1.5 mb-3"></div>
+          <div class="flex gap-2">
+            <input id="hashtag-new" type="text" class="hashtag-input" placeholder="# Hashtag vorschlagen…"
+              onkeydown="if(event.key==='Enter'){submitHashtag();}"/>
+            <button onclick="submitHashtag()"
+              class="px-3 py-2 bg-[#1d9bf0] text-white text-[11px] font-bold font-mono hover:bg-[#1a8cd8] transition-all flex-shrink-0">+</button>
+          </div>
+          <p id="hashtag-status" class="text-[10px] ki-faint mt-2 font-mono"></p>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
         </div>
       </div>
     </div>
@@ -356,12 +620,20 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 <div id="chat-widget">
   <div id="chat-panel">
     <div class="chat-header">
+<<<<<<< HEAD
       <div><h4>KI-News Assistent</h4><span>Powered by OpenRouter</span></div>
+=======
+      <div><h4>KI-News Assistent</h4><span>Frag mich zu den aktuellen News</span></div>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
       <button class="chat-close" onclick="closeChat()">×</button>
     </div>
     <div id="chat-messages">
       <div class="msg bot">
+<<<<<<< HEAD
         <div class="msg-bubble">Hallo! Ich bin der KI-News Assistent. Stell mir Fragen zu den aktuellen KI-News! 🤖</div>
+=======
+        <div class="msg-bubble">Hallo! Frag mich zu den aktuellen KI-News! 🤖</div>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
         <div class="msg-time">Jetzt</div>
       </div>
     </div>
@@ -379,6 +651,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 </div>
 
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<<<<<<< HEAD
 
 <script>
 // ── Sidebar ────────────────────────────────────────────────────────────
@@ -442,6 +715,65 @@ function renderCard(item) {
     <div class="flex items-center justify-between mb-4">
       <span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:${c}">${item.source}</span>
       <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-green-500"></div><span class="text-[10px] font-mono ki-muted">NEU</span></div>
+=======
+
+<script>
+// ── Sidebar Toggle ─────────────────────────────────────────────────────
+let sidebarOpen = true;
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main-content');
+  const toggle = document.getElementById('sidebar-toggle');
+  const icon = document.getElementById('toggle-icon');
+  if (sidebarOpen) {
+    sidebar.classList.remove('collapsed');
+    main.classList.remove('sidebar-closed'); main.classList.add('sidebar-open');
+    toggle.classList.remove('closed'); toggle.classList.add('open');
+    icon.textContent = 'chevron_left';
+  } else {
+    sidebar.classList.add('collapsed');
+    main.classList.remove('sidebar-open'); main.classList.add('sidebar-closed');
+    toggle.classList.remove('open'); toggle.classList.add('closed');
+    icon.textContent = 'chevron_right';
+  }
+}
+// Auf mobil: sidebar standardmäßig geschlossen
+if (window.innerWidth < 1024) {
+  sidebarOpen = false;
+  document.getElementById('sidebar').classList.add('collapsed');
+  document.getElementById('main-content').classList.remove('sidebar-open');
+  document.getElementById('main-content').classList.add('sidebar-closed');
+  document.getElementById('sidebar-toggle').classList.remove('open');
+  document.getElementById('sidebar-toggle').classList.add('closed');
+  document.getElementById('toggle-icon').textContent = 'chevron_right';
+}
+
+// ── Source config ──────────────────────────────────────────────────────
+const SRC_COLORS = {
+  'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35',
+  'VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626',
+  'Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393',
+};
+function srcColor(s){ return SRC_COLORS[s]||'#1d9bf0'; }
+
+// ── Render card ────────────────────────────────────────────────────────
+function renderCard(item) {
+  const c = item.color || srcColor(item.source);
+  const a = document.createElement('a');
+  a.href = item.link||'#';
+  if(item.link) a.target='_blank';
+  a.className='ki-card ki-border border p-4 flex flex-col h-full transition-all group cursor-pointer';
+  a.onmouseenter=()=>{a.style.borderColor=c;};
+  a.onmouseleave=()=>{a.style.borderColor='';};
+  a.innerHTML=`
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:${c}">${item.source}</span>
+      <div class="flex items-center gap-1">
+        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+        <span class="text-[10px] font-mono ki-muted">NEU</span>
+      </div>
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
     </div>
     <h4 class="font-headline-md ki-main mb-2 leading-snug transition-colors" style="font-family:'Space Grotesk',sans-serif">${item.title}</h4>
     <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">${item.summary||''}</p>
@@ -452,6 +784,7 @@ function renderCard(item) {
   return a;
 }
 
+<<<<<<< HEAD
 // ── Top Stories ────────────────────────────────────────────────────────
 let topStoryLinks = [];
 function renderTopStories(news, posts) {
@@ -477,12 +810,35 @@ function renderTopStories(news, posts) {
         <span class="material-symbols-outlined ki-faint text-sm flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
       </div>`;
     if (item.link) div.onclick = () => window.open(item.link, '_blank');
+=======
+// ── Render Top Stories ─────────────────────────────────────────────────
+function renderTopStories(news) {
+  const container = document.getElementById('top-stories-list');
+  if(!container) return;
+  const top = news.slice(0,3);
+  container.innerHTML='';
+  top.forEach((item,i)=>{
+    const c = item.color||srcColor(item.source);
+    const div = document.createElement('div');
+    div.className=(i>0?'border-t border-[#2f3336] pt-3 ':'')+'pb-2 cursor-pointer group';
+    div.innerHTML=`
+      <div class="flex items-start gap-3 p-1 rounded hover:bg-[rgba(29,155,240,0.06)] transition-all">
+        <span class="text-xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors flex-shrink-0" style="font-family:'Space Grotesk',sans-serif;line-height:1.2">${String(i+1).padStart(2,'0')}</span>
+        <div class="flex-1 min-w-0">
+          <span class="text-[10px] px-1.5 py-0.5 font-mono uppercase inline-block mb-1" style="background:${c}22;color:${c};border:1px solid ${c}44">${item.source}</span>
+          <h4 class="text-sm font-bold ki-main leading-snug group-hover:text-[#1d9bf0] transition-colors">${item.title}</h4>
+        </div>
+        <span class="material-symbols-outlined ki-faint text-sm flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+      </div>`;
+    if(item.link) div.onclick=()=>window.open(item.link,'_blank');
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
     container.appendChild(div);
   });
 }
 
 // ── Fetch news ─────────────────────────────────────────────────────────
 let currentNewsContext = '';
+<<<<<<< HEAD
 fetch('news.json?t=' + Date.now())
   .then(r => r.json())
   .then(data => {
@@ -597,6 +953,112 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
+=======
+fetch('news.json?t='+Date.now())
+  .then(r=>r.json())
+  .then(data=>{
+    const grid=document.getElementById('news-grid');
+    const label=document.getElementById('stand-label');
+    if(!grid||!data.news||!data.news.length) return;
+    grid.innerHTML='';
+    data.news.forEach(item=>grid.appendChild(renderCard(item)));
+    if(label&&data.stand) label.textContent='Stand: '+data.stand;
+    renderTopStories(data.news);
+    currentNewsContext='Aktuelle KI-News (Stand '+(data.stand||'')+'):\n'+
+      data.news.map((n,i)=>`${i+1}. "${n.title}" (${n.source}): ${n.summary||''}`).join('\n');
+  })
+  .catch(()=>{
+    const label=document.getElementById('stand-label');
+    if(label) label.textContent='Stand: offline';
+  });
+
+// ── Hashtag Widget ─────────────────────────────────────────────────────
+const DEFAULT_HASHTAGS = ['#KI','#ArtificialIntelligence','#Meta','#OpenAI','#Technologie','#AINews','#DeepSeek'];
+let hashtags = [...DEFAULT_HASHTAGS];
+
+function renderHashtags() {
+  const container = document.getElementById('hashtag-chips');
+  container.innerHTML='';
+  hashtags.forEach(tag=>{
+    const chip = document.createElement('span');
+    chip.className='hashtag-chip';
+    chip.textContent=tag;
+    chip.onclick=()=>{
+      navigator.clipboard.writeText(tag).catch(()=>{});
+      chip.classList.add('copied');
+      setTimeout(()=>chip.classList.remove('copied'),1200);
+    };
+    container.appendChild(chip);
+  });
+}
+
+// Hashtags von GitHub laden
+fetch('hashtags/hashtags.json?t='+Date.now())
+  .then(r=>r.json())
+  .then(data=>{ if(data.tags&&data.tags.length){ hashtags=data.tags; renderHashtags(); } })
+  .catch(()=>renderHashtags());
+
+async function submitHashtag() {
+  const input = document.getElementById('hashtag-new');
+  const status = document.getElementById('hashtag-status');
+  let val = input.value.trim().replace(/^#+/,'');
+  if(!val) return;
+  const tag = '#'+val;
+  if(hashtags.includes(tag)){ status.textContent='Bereits vorhanden!'; return; }
+  hashtags.push(tag);
+  renderHashtags();
+  input.value='';
+  status.textContent='✓ Gespeichert';
+  setTimeout(()=>status.textContent='',2000);
+  // Auf GitHub speichern
+  try {
+    const TOKEN = '';  // Kein Token im Frontend – read-only; Admin speichert
+    // Für jetzt: nur lokal anzeigen
+  } catch(e) {}
+}
+
+renderHashtags();
+
+// ── Chat ───────────────────────────────────────────────────────────────
+let chatOpen=false;
+function toggleChat(){chatOpen?closeChat():openChat();}
+function openChat(){chatOpen=true;document.getElementById('chat-panel').classList.add('open');document.getElementById('chat-input').focus();}
+function closeChat(){chatOpen=false;document.getElementById('chat-panel').classList.remove('open');}
+function timeStr(){return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
+function addMsg(role,text){
+  const msgs=document.getElementById('chat-messages');
+  const div=document.createElement('div');
+  div.className='msg '+(role==='user'?'user':'bot');
+  div.innerHTML=`<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${timeStr()}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function addTyping(){
+  const msgs=document.getElementById('chat-messages');
+  const div=document.createElement('div');
+  div.className='msg bot';div.id='typing-indicator';
+  div.innerHTML='<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTyping(){const el=document.getElementById('typing-indicator');if(el)el.remove();}
+async function sendChat(){
+  const input=document.getElementById('chat-input');
+  const btn=document.getElementById('chat-send');
+  const text=input.value.trim();
+  if(!text) return;
+  input.value='';input.style.height='auto';
+  addMsg('user',text);
+  btn.disabled=true;addTyping();
+  try{
+    const reply=await window.claude.complete({
+      messages:[{role:'user',content:`Du bist KI-News Assistent auf ki-news.live. Antworte auf Deutsch, kurz (max. 3 Sätze).\n\nAktuelle News:\n${currentNewsContext}\n\nFrage: ${text}`}]
+    });
+    removeTyping();addMsg('bot',reply||'Keine Antwort erhalten.');
+  }catch(e){removeTyping();addMsg('bot','Entschuldigung, ein Fehler ist aufgetreten.');}
+  finally{btn.disabled=false;input.focus();}
+}
+document.getElementById('chat-input').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';});
+>>>>>>> b143e5e0855c6817e78bf68eaaa2d25044e872a0
 </script>
 </body>
 </html>

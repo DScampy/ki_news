@@ -59,11 +59,13 @@ KI_KEYWORDS = [
 
 FEEDS = [
     ("The Decoder", "https://the-decoder.de/feed/"),
-    ("Heise", "https://www.heise.de/rss/heise-Rubrik-IT-atom.xml"),
+    ("Heise", "https://www.heise.de/newsticker/heise.rdf"),
     ("TechCrunch AI", "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
     ("MIT Tech Review", "https://www.technologyreview.com/feed/"),
+    ("Golem", "https://rss.golem.de/rss.php?feed=RSS2.0"),
+    ("Caschy´s Blog", "https://stadt-bremerhaven.de/newsticker/"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
