@@ -197,13 +197,13 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
     <a class="ki-sidebar-active flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
       <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">
+    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#1d2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">
       <span class="material-symbols-outlined text-sm">archive</span>Archiv
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
+    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#1d2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank">
       <span class="material-symbols-outlined text-sm">mic</span>Podcast
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#16181c] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
+    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#1d2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       X / Twitter
     </a>
@@ -265,6 +265,9 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
       </div>
     </div>
 
+    <!-- Editorial Banner – aus news.json, nur sichtbar wenn gefüllt -->
+    <div id="editorial-banner" style="display:none;background:linear-gradient(135deg,#0d1a2e,#111827);border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:4px;gap:14px;align-items:flex-start"></div>
+
     <!-- Top Stories – unter Podcast/Video, volle Breite -->
     <div class="ki-card ki-border border p-5 mb-lg">
       <div class="flex items-center justify-between mb-4">
@@ -277,7 +280,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
           Täglich via Telegram
         </a>
       </div>
-      <div id="top-stories-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div id="top-stories-list" style="position:relative">
         <!-- Skeleton -->
         <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-3/4"></div><div class="h-2 bg-[#2f3336] rounded w-1/2"></div></div>
         <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-4/5"></div><div class="h-2 bg-[#2f3336] rounded w-1/3"></div></div>
@@ -382,7 +385,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 
 <script>
 // ── Sidebar ────────────────────────────────────────────────────────────
-let sidebarOpen = true;
+let sidebarOpen = false; // Standard: eingeklappt
 function toggleSidebar() {
   sidebarOpen = !sidebarOpen;
   const sidebar = document.getElementById('sidebar');
@@ -401,10 +404,19 @@ function toggleSidebar() {
     icon.textContent = 'chevron_right';
   }
 }
-// Init sidebar toggle visibility on desktop
+// Init: Sidebar beim Laden eingeklappt
 document.addEventListener('DOMContentLoaded', () => {
   const toggle = document.getElementById('sidebar-toggle');
-  if (window.innerWidth >= 1024) toggle.style.display = 'flex';
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main-content');
+  if (window.innerWidth >= 1024) {
+    toggle.style.display = 'flex';
+    // Sofort in collapsed-Zustand
+    sidebar.classList.add('collapsed');
+    main.style.marginLeft = '0';
+    toggle.style.left = '0';
+    document.getElementById('toggle-icon').textContent = 'chevron_right';
+  }
 });
 
 // ── Theme slider update ────────────────────────────────────────────────
@@ -426,8 +438,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Source colors ──────────────────────────────────────────────────────
-const SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393'};
+const SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393','AlignedNews':'#f59e0b'};
 function srcColor(s){ return SRC[s] || '#1d9bf0'; }
+
+// ── Score-Label Badge ──────────────────────────────────────────────────
+function scoreBadge(label, score) {
+  if (!label || !score) return '';
+  const colors = {'🔥 episch':'#dc2626','⚡ wichtig':'#f59e0b','📰 normal':'#536471'};
+  const bg = colors[label] || '#536471';
+  const scoreNum = score >= 40 ? '🔥' : score >= 25 ? '⚡' : '';
+  return `<span style="background:${bg}22;color:${bg};border:1px solid ${bg}44;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;font-family:monospace;white-space:nowrap">${scoreNum} ${label.replace(/🔥 |⚡ |📰 /,'')}</span>`;
+}
 
 // ── News card ──────────────────────────────────────────────────────────
 function renderCard(item) {
@@ -438,10 +459,11 @@ function renderCard(item) {
   a.className = 'ki-card ki-border border p-4 flex flex-col h-full transition-all group cursor-pointer';
   a.onmouseenter = () => a.style.borderColor = c;
   a.onmouseleave = () => a.style.borderColor = '';
+  const badge = item.label ? scoreBadge(item.label, item.score) : '';
   a.innerHTML = `
     <div class="flex items-center justify-between mb-4">
       <span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:${c}">${item.source}</span>
-      <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-green-500"></div><span class="text-[10px] font-mono ki-muted">NEU</span></div>
+      <div class="flex items-center gap-1.5">${badge}<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div></div>
     </div>
     <h4 class="font-headline-md ki-main mb-2 leading-snug transition-colors" style="font-family:'Space Grotesk',sans-serif">${item.title}</h4>
     <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">${item.summary||''}</p>
@@ -452,32 +474,96 @@ function renderCard(item) {
   return a;
 }
 
-// ── Top Stories ────────────────────────────────────────────────────────
+// ── Top Stories (Carousel) ─────────────────────────────────────────────
 let topStoryLinks = [];
+let carouselIndex = 0;
+let carouselItems = [];
+let carouselTimer = null;
+
 function renderTopStories(news) {
   const container = document.getElementById('top-stories-list');
   if (!container) return;
-  const top = news.slice(0, 3);
+  // Top-3 nach Score wählen (höchster Score zuerst – news.json ist bereits sortiert)
+  const top = news.filter(n => n.score > 0).slice(0, 3);
+  if (!top.length) { top.push(...news.slice(0, 3)); }
   topStoryLinks = top.map(n => n.link).filter(Boolean);
+  carouselItems = top;
+
+  // Carousel-Wrapper aufbauen
   container.innerHTML = '';
+  container.style.position = 'relative';
+  container.style.overflow = 'hidden';
+  container.style.minHeight = '180px';
+
+  const track = document.createElement('div');
+  track.id = 'carousel-track';
+  track.style.cssText = 'display:flex;transition:transform 0.55s cubic-bezier(.4,0,.2,1);width:' + (top.length * 100) + '%;gap:0';
+  container.appendChild(track);
+
   top.forEach((item, i) => {
     const c = item.color || srcColor(item.source);
-    const div = document.createElement('div');
-    div.className = 'cursor-pointer group';
-    div.innerHTML = `
-      <div class="flex items-start gap-3 p-2 rounded hover:bg-[rgba(29,155,240,0.06)] transition-all ki-border border">
-        <span class="text-2xl font-black text-[#2f3336] group-hover:text-[#1d9bf0] transition-colors flex-shrink-0" style="font-family:'Space Grotesk',sans-serif;line-height:1.1">${String(i+1).padStart(2,'0')}</span>
-        <div class="flex-1 min-w-0">
-          <span class="text-[10px] px-1.5 py-0.5 font-mono uppercase inline-block mb-1" style="background:${c}22;color:${c};border:1px solid ${c}44">${item.source}</span>
-          <h4 class="text-sm font-bold ki-main leading-snug group-hover:text-[#1d9bf0] transition-colors mb-1">${item.title}</h4>
-          ${item.summary ? `<p class="text-[11px] ki-muted line-clamp-2">${item.summary}</p>` : ''}
+    const badge = item.label ? scoreBadge(item.label, item.score) : '';
+    const slide = document.createElement('div');
+    slide.style.cssText = 'flex:0 0 ' + (100 / top.length) + '%;padding:0 6px;box-sizing:border-box;cursor:pointer';
+    slide.innerHTML = `
+      <div class="ki-border border p-5 h-full transition-all group" style="background:#0d1117;border-radius:6px;display:flex;flex-direction:column;gap:10px;min-height:160px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+          <span style="background:${c};color:white;font-size:9px;font-weight:700;padding:2px 8px;font-family:monospace;letter-spacing:0.06em;border-radius:3px;text-transform:uppercase">${item.source}</span>
+          <div style="display:flex;align-items:center;gap:6px">${badge}<span style="color:#2f3336;font-size:22px;font-weight:900;font-family:'Space Grotesk',sans-serif;line-height:1">${String(i+1).padStart(2,'0')}</span></div>
         </div>
-        <span class="material-symbols-outlined ki-faint text-sm flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+        <h4 style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:#e7e9ea;line-height:1.3;flex:1">${item.title}</h4>
+        ${item.summary ? `<p style="font-size:12px;color:#94a3b8;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${item.summary}</p>` : ''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          <span style="color:${c};font-size:10px;font-family:monospace">${item.score ? `Score: ${item.score}` : ''}</span>
+          <span class="material-symbols-outlined" style="color:#536471;font-size:14px">open_in_new</span>
+        </div>
       </div>`;
-    if (item.link) div.onclick = () => window.open(item.link, '_blank');
-    container.appendChild(div);
+    if (item.link) slide.onclick = () => window.open(item.link, '_blank');
+    track.appendChild(slide);
   });
+
+  // Dots
+  if (top.length > 1) {
+    const dots = document.createElement('div');
+    dots.id = 'carousel-dots';
+    dots.style.cssText = 'display:flex;justify-content:center;gap:6px;margin-top:10px';
+    top.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.style.cssText = `width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;transition:all 0.2s;background:${i===0?'#1d9bf0':'#2f3336'}`;
+      dot.onclick = (e) => { e.stopPropagation(); goToSlide(i); };
+      dots.appendChild(dot);
+    });
+    container.appendChild(dots);
+
+    // Auto-advance
+    startCarousel();
+  }
 }
+
+function goToSlide(idx) {
+  carouselIndex = idx;
+  const track = document.getElementById('carousel-track');
+  const dots = document.querySelectorAll('#carousel-dots button');
+  if (track) track.style.transform = `translateX(-${idx * (100 / carouselItems.length)}%)`;
+  dots.forEach((d, i) => d.style.background = i === idx ? '#1d9bf0' : '#2f3336');
+}
+
+function startCarousel() {
+  if (carouselTimer) clearInterval(carouselTimer);
+  carouselTimer = setInterval(() => {
+    const next = (carouselIndex + 1) % carouselItems.length;
+    goToSlide(next);
+  }, 5000);
+}
+
+// Hover → Carousel pausieren
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('top-stories-list');
+  if (el) {
+    el.onmouseenter = () => { if (carouselTimer) clearInterval(carouselTimer); };
+    el.onmouseleave = () => startCarousel();
+  }
+});
 
 // ── Fetch news ─────────────────────────────────────────────────────────
 let currentNewsContext = '';
@@ -487,6 +573,27 @@ fetch('news.json?t=' + Date.now())
     const grid = document.getElementById('news-grid');
     const label = document.getElementById('stand-label');
     if (!grid || !data.news || !data.news.length) return;
+
+    // Editorial-Banner aus news.json einblenden
+    if (data.editorial) {
+      const banner = document.getElementById('editorial-banner');
+      if (banner) {
+        const zeichen = data.editorial.length;
+        const farbe = zeichen > 265 ? '#dc2626' : '#536471';
+        banner.innerHTML = `
+          <span style="font-size:18px;flex-shrink:0">🗞</span>
+          <div style="flex:1">
+            <div style="color:#1d9bf0;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-family:monospace">Tagesüberblick</div>
+            <div style="color:#e7e9ea;font-size:14px;line-height:1.5" id="editorial-text">${data.editorial}</div>
+            <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+              <button onclick="navigator.clipboard.writeText(document.getElementById('editorial-text').textContent).then(()=>{this.textContent='Kopiert';setTimeout(()=>this.textContent='Kopieren',2000)})" style="background:#2f3336;color:#e7e9ea;border:none;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer">Kopieren</button>
+              <span style="font-size:10px;color:${farbe};font-family:monospace">${zeichen}/265</span>
+            </div>
+          </div>`;
+        banner.style.display = 'flex';
+      }
+    }
+
     renderTopStories(data.news);
     // News Grid: Top-3 rausfiltern
     const filtered = data.news.filter(n => !topStoryLinks.includes(n.link));
