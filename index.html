@@ -79,6 +79,12 @@ html.light .ts-num{color:#cbd5e1!important;}
 /* ── Editorial Banner – theme-aware ── */
 .ed-banner{background:linear-gradient(135deg,#0d1a2e,#111827);}
 html.light .ed-banner{background:linear-gradient(135deg,#eff6ff,#f0f9ff)!important;}
+.ed-text{color:#e7e9ea;}
+html.light .ed-text{color:#0f172a!important;}
+.ed-zeichen{font-size:10px;font-family:monospace;}
+
+/* ── Sidebar Link Hover – light mode ── */
+html.light #sidebar a:hover{background:#eff6ff!important;color:#0f172a!important;}
 
 /* ── Video ── */
 .video-wrap{background:#000;border:1px solid #2f3336;overflow:hidden;position:relative;}
@@ -602,10 +608,9 @@ fetch('news.json?t=' + Date.now())
           <span style="font-size:18px;flex-shrink:0">🗞</span>
           <div style="flex:1">
             <div style="color:#1d9bf0;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-family:monospace">Tagesüberblick</div>
-            <div style="color:#e7e9ea;font-size:14px;line-height:1.5" id="editorial-text">${data.editorial}</div>
-            <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
-              <button onclick="navigator.clipboard.writeText(document.getElementById('editorial-text').textContent).then(()=>{this.textContent='Kopiert';setTimeout(()=>this.textContent='Kopieren',2000)})" style="background:#2f3336;color:#e7e9ea;border:none;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer">Kopieren</button>
-              <span style="font-size:10px;color:${farbe};font-family:monospace">${zeichen}/265</span>
+            <div class="ed-text" style="font-size:14px;line-height:1.5">${data.editorial}</div>
+            <div style="margin-top:4px">
+              <span class="ed-zeichen" style="color:${farbe}">${zeichen}/265</span>
             </div>
           </div>`;
         banner.style.display = 'flex';
