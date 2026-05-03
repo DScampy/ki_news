@@ -67,12 +67,6 @@ FEEDS = [
     ("TechCrunch AI",  "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
-    ("Wired", "https://wired.com/feed/rss"),
-    ("Bloomberg", "https://feeds.bloomberg.com/technology/news.rss"),
-    ("The Verge", "https://theverge.com/rss/index.xml"),
-    ("SiliconAngle", "https://siliconangle.com/feed"),
-    ("TechRepublic", "https://www.techrepublic.com/rssfeeds/articles/"),
-    ("Gizmodo", "https://gizmodo.com/feed"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
@@ -90,6 +84,47 @@ MODELLE = [
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
 
+# NEU: Separate Modellliste für Post-Generierung
+# Gemma-4-31b schreibt bessere deutsche Posts als Llama – empirisch aus Logs bestätigt.
+# Reihenfolge bewusst anders als MODELLE: Gemma zuerst, Llama als Fallback.
+MODELLE_POSTS = [
+    "google/gemma-4-31b-it:free",                      # Beste Posts-Qualität (DE-Format, Tuki-6)
+    "google/gemma-4-26b-a4b-it:free",                  # Gemma-Fallback
+    "meta-llama/llama-3.3-70b-instruct:free",          # Llama Free
+    "nousresearch/hermes-3-llama-3.1-405b:free",       # Hermes Free
+    "meta-llama/llama-3.3-70b-instruct",               # Paid-Anker
+    "google/gemma-3-27b-it",                            # Letzter Fallback
+]
+
+# NEU: Ollama – lokaler Provider (wird automatisch erkannt, GitHub Actions ignoriert das)
+# Setup: https://ollama.ai → `ollama pull gemma3:27b` oder `ollama pull gemma2:27b`
+# Wenn OLLAMA_HOST gesetzt ist UND ein Server antwortet, werden Ollama-Modelle
+# an ERSTER Stelle in MODELLE_POSTS eingefügt (kein Rate-Limit, kostenlos).
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODELS_POSTS = [
+    "ollama/gemma3:27b",    # Beste Qualität lokal
+    "ollama/gemma2:27b",    # Fallback
+    "ollama/llama3.3:70b",  # Llama lokal
+]
+
+def _detect_ollama_models():
+    """Prüft welche Ollama-Modelle lokal verfügbar sind. Gibt [] zurück wenn kein Server."""
+    try:
+        req = urllib.request.Request(f"{OLLAMA_HOST}/api/tags")
+        with urllib.request.urlopen(req, timeout=2) as r:
+            data = json.loads(r.read())
+            available = {m["name"].split(":")[0] for m in data.get("models", [])}
+            matched = []
+            for om in OLLAMA_MODELS_POSTS:
+                name = om.replace("ollama/", "").split(":")[0]
+                if name in available:
+                    matched.append(om)
+            if matched:
+                logger.info("Ollama verfügbar – %d Modelle: %s", len(matched), matched)
+            return matched
+    except Exception:
+        return []  # Kein Ollama-Server – kein Problem
+
 SOURCE_COLORS = {
     "The Decoder": "#1d9bf0",
     "TechCrunch AI": "#ff6b35",
@@ -100,6 +135,139 @@ SOURCE_COLORS = {
 }
 
 THREAD_LABELS = ["Hook", "Kontext", "Kaskade", "Gruselig", "Konsequenz", "Fazit"]
+
+# -------------------------
+# NEU: Story-Scoring & Clustering
+# -------------------------
+
+# Quellen-Prestige: höhere Zahl = glaubwürdiger / reichweitenstärker
+SOURCE_PRESTIGE = {
+    "Bloomberg":      10,
+    "The Decoder":    9,
+    "TechCrunch AI":  8,
+    "Heise":          8,
+    "VentureBeat AI": 7,
+    "Ars Technica":   7,
+    "Wired":          7,
+    "The Verge":      6,
+    "Golem":          6,
+    "SiliconAngle":   5,
+    "TechRepublic":   5,
+    "Caschy Blog":    4,
+    "Gizmodo":        4,
+}
+
+# Wichtigkeits-Keywords → Punktebonus
+# Tuple: (keyword, punkte)
+IMPORTANCE_KEYWORDS = [
+    # Mega-Events (15 Punkte) – echte Nachricht, nicht nur ein Update
+    ("ban", 15), ("banned", 15), ("verboten", 15), ("lawsuit", 15), ("klage", 15),
+    ("billion", 15), ("milliard", 15), ("fired", 15), ("entlassen", 15),
+    ("merger", 15), ("acqui", 15), ("übernimmt", 15), ("shutdown", 15),
+    ("regulation", 15), ("gesetz", 15), ("verbot", 15),
+    # Wichtige Ereignisse (10 Punkte)
+    ("launch", 10), ("release", 10), ("veröffentlicht", 10),
+    ("breakthrough", 10), ("durchbruch", 10), ("funding", 10), ("investment", 10),
+    ("raises", 10), ("million", 10), ("opens", 10), ("patent", 10),
+    # Interessante Entwicklungen (5 Punkte)
+    ("study", 5), ("studie", 5), ("research", 5), ("warnt", 5),
+    ("kritik", 5), ("beats", 5), ("übertrifft", 5), ("first", 5), ("erstmals", 5),
+    ("open source", 5), ("open-source", 5), ("kostenlos", 5),
+]
+
+# Score-Labels für Telegram-Log und news.json
+SCORE_LABELS = [
+    (40, "🔥 episch"),
+    (25, "⚡ wichtig"),
+    (0,  "📰 normal"),
+]
+
+def _title_keywords(title):
+    """Extrahiert bedeutsame Wörter aus einem Titel (min. 4 Zeichen, keine Stopwörter)."""
+    STOPWORDS = {
+        "die", "der", "das", "ein", "eine", "und", "oder", "mit", "von", "für",
+        "auf", "in", "an", "bei", "zu", "ist", "sind", "hat", "wird", "nach",
+        "the", "a", "an", "of", "in", "to", "for", "on", "with", "and", "or",
+        "is", "are", "new", "its", "their", "by", "as", "at", "from", "that",
+        "this", "was", "has", "have", "will", "über", "nach", "beim", "auch",
+    }
+    words = re.findall(r'\b\w{4,}\b', title.lower())
+    return {w for w in words if w not in STOPWORDS}
+
+def cluster_news(alle_news):
+    """
+    Gruppiert ähnliche Artikel: 2+ gemeinsame Schlüsselwörter im Titel = gleiche Story.
+    Gibt Liste von Clusters zurück (jeder Cluster = Liste von Artikeln).
+    """
+    clusters = []
+    for item in alle_news:
+        kw = _title_keywords(item["title"])
+        merged = False
+        for cluster in clusters:
+            cluster_kw = _title_keywords(cluster[0]["title"])
+            if len(kw & cluster_kw) >= 2:
+                cluster.append(item)
+                merged = True
+                break
+        if not merged:
+            clusters.append([item])
+    return clusters
+
+def score_cluster(cluster):
+    """
+    Berechnet Relevanz-Score für einen Story-Cluster.
+    Formel: Multi-Quellen-Bonus + Prestige-Bonus + Wichtigkeits-Keywords
+    """
+    unique_sources = len({item["source"] for item in cluster})
+    # Mehrere Quellen = wichtige Story (Kern-Signal)
+    source_score = unique_sources * 15
+
+    # Höchstes Prestige im Cluster zählt
+    prestige_score = max(SOURCE_PRESTIGE.get(item["source"], 3) for item in cluster)
+
+    # Keywords aus allen Titeln im Cluster prüfen
+    all_titles = " ".join(item["title"].lower() for item in cluster)
+    kw_score = sum(pts for kw, pts in IMPORTANCE_KEYWORDS if kw in all_titles)
+
+    total = source_score + prestige_score + kw_score
+    label = next(lbl for threshold, lbl in SCORE_LABELS if total >= threshold)
+    return total, label
+
+def pick_top_news(alle_news, n=3):
+    """
+    Wählt die n wichtigsten Artikel nach Clustering + Scoring.
+    Statt blindem [:3] aus der Feed-Reihenfolge.
+    Gibt je einen repräsentativen Artikel pro Top-Cluster zurück.
+    """
+    clusters = cluster_news(alle_news)
+
+    # Jeden Cluster bewerten
+    scored = []
+    for cluster in clusters:
+        score, label = score_cluster(cluster)
+        # Repräsentant = Artikel aus der prestigiösten Quelle im Cluster
+        rep = max(cluster, key=lambda x: SOURCE_PRESTIGE.get(x["source"], 0))
+        scored.append({
+            "rep": rep,
+            "score": score,
+            "label": label,
+            "sources_count": len({i["source"] for i in cluster}),
+        })
+
+    # Nach Score absteigend sortieren
+    scored.sort(key=lambda x: x["score"], reverse=True)
+
+    top = scored[:n]
+    for item in top:
+        logger.info(
+            "[Scoring] %s | %s | Score: %d | Quellen: %d",
+            item["label"], item["rep"]["title"][:60], item["score"], item["sources_count"]
+        )
+
+    return [item["rep"] for item in top], {
+        item["rep"]["link"]: {"score": item["score"], "label": item["label"]}
+        for item in scored
+    }
 
 # -------------------------
 # Feeds
@@ -205,6 +373,40 @@ News:
     return result
 
 # -------------------------
+# NEU: Einheitlicher LLM-Aufruf (OpenRouter + Ollama)
+# -------------------------
+def _call_llm_api(model, messages, max_tokens, timeout=90):
+    """
+    Ruft OpenRouter oder einen lokalen Ollama-Server auf.
+    Modell-Prefix 'ollama/' → Ollama, alles andere → OpenRouter.
+    Wirft HTTPError(429) bei Rate-Limit, Exception bei anderen Fehlern.
+    """
+    if model.startswith("ollama/"):
+        ollama_model = model[7:]  # "ollama/gemma3:27b" → "gemma3:27b"
+        url = f"{OLLAMA_HOST}/v1/chat/completions"
+        headers = {"Content-Type": "application/json"}
+    else:
+        if not OPENROUTER_KEY:
+            raise ValueError("Kein OPENROUTER_KEY gesetzt")
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://dscampy.github.io/ki_news/",
+            "X-Title": "KI News Dashboard",
+        }
+        ollama_model = model
+
+    data = json.dumps({
+        "model": ollama_model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+    }).encode()
+    req = urllib.request.Request(url, data=data, headers=headers)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read())["choices"][0]["message"]["content"]
+
+# -------------------------
 # LLM – Posts Tuki-6
 # Bekommt nur MAX_LLM_NEWS Items – mehr = Fuelltext
 # -------------------------
@@ -276,30 +478,22 @@ ERKLAERUNG 3: [Text]
 News (genau diese 3, je eine pro Post):
 {news_text}"""
 
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    for modell in MODELLE:
+    # NEU: Ollama-Modelle an erster Stelle wenn lokal verfügbar
+    ollama_available = _detect_ollama_models()
+    modell_liste = ollama_available + MODELLE_POSTS
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+    for modell in modell_liste:
         try:
-            data = json.dumps({
-                "model": modell,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user}
-                ],
-                "max_tokens": 2400
-            }).encode()
-            req = urllib.request.Request(url, data=data, headers={
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://dscampy.github.io/ki_news/",
-                "X-Title": "KI News Dashboard"
-            })
-            with urllib.request.urlopen(req, timeout=90) as r:
-                antwort = json.loads(r.read())["choices"][0]["message"]["content"]
-                if not antwort:
-                    logger.warning("Posts: %s liefert leeren Content – naechstes Modell", modell)
-                    continue
-                logger.info("Posts OK mit Modell: %s", modell)
-                return antwort
+            antwort = _call_llm_api(modell, messages, max_tokens=2400, timeout=90)
+            if not antwort:
+                logger.warning("Posts: %s liefert leeren Content – naechstes Modell", modell)
+                continue
+            logger.info("Posts OK mit Modell: %s", modell)
+            return antwort
         except HTTPError as e:
             if e.code == 429:
                 logger.warning("Posts: %s Rate-Limit (429) – naechstes Modell", modell)
@@ -655,9 +849,9 @@ def main():
     # Zusammenfassungen fuer alle News (Dashboard links)
     summaries = summarize_news(alle_news)
 
-    # LLM bekommt nur die 3 besten – verhindert Fuelltext
-    top_news = alle_news[:MAX_LLM_NEWS]
-    logger.info("%d News an LLM uebergeben", len(top_news))
+    # NEU: Top-3 nach Scoring wählen statt blindem [:3]
+    top_news, score_map = pick_top_news(alle_news, n=MAX_LLM_NEWS)
+    logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
 
     posts_raw = ask_llm(top_news)
     parsed = parse_posts(posts_raw)
@@ -676,15 +870,19 @@ def main():
     datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
 
     # News-Liste mit deutschen Titeln + Zusammenfassungen aufbauen
+    # NEU: score + label aus score_map ergänzen
     news_list = []
     for i, n in enumerate(alle_news):
         s = summaries.get(i, {})
+        scoring = score_map.get(n.get("link", ""), {})
         entry = {
             "title":   s.get("title_de", n["title"]),
             "summary": s.get("summary", ""),
             "link":    n.get("link", ""),
             "source":  n.get("source", ""),
             "color":   SOURCE_COLORS.get(n.get("source", ""), "#555"),
+            "score":   scoring.get("score", 0),        # NEU: Relevanz-Score
+            "label":   scoring.get("label", "📰 normal"),  # NEU: episch/wichtig/normal
         }
         news_list.append(entry)
 
