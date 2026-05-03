@@ -231,11 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </nav>
 
-<!-- Sidebar Toggle Button -->
+<!-- Sidebar Toggle Button – nur Desktop -->
 <button id="archiv-sidebar-toggle" onclick="toggleArchivSidebar()" title="Sidebar ein-/ausklappen"
   style="position:fixed;left:240px;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s;border-radius:0 4px 4px 0;">
   <span class="material-symbols-outlined" style="font-size:12px" id="archiv-toggle-icon">chevron_left</span>
 </button>
+<style>@media(max-width:1023px){#archiv-sidebar-toggle{display:none!important;}}</style>
 
 <!-- Sidebar – gleiche Struktur wie Dashboard -->
 <aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-6 bg-black border-r border-[#2f3336] hidden lg:flex overflow-hidden">
@@ -333,6 +334,22 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="material-symbols-outlined text-sm">close</span>
         </button>
       </span>
+    </div>
+
+    <!-- Hashtag Panel ─────────────────────────────────────────────────── -->
+    <div id="hashtags" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
+      <button onclick="toggleHashtagPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#1d9bf0] text-base">tag</span>
+          <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest"># Hashtags</span>
+          <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="hashtag-count"></span>
+        </div>
+        <span class="material-symbols-outlined text-gray-600 text-sm" id="hashtag-panel-icon">expand_more</span>
+      </button>
+      <div id="hashtag-panel-body" style="display:none;padding:0 20px 16px">
+        <p class="text-[11px] text-gray-500 font-mono mb-3">Klick zum Kopieren · Filter nach Tag:</p>
+        <div id="hashtag-chips-archiv" class="flex flex-wrap gap-1.5"></div>
+      </div>
     </div>
 
     <!-- Loading skeleton -->
@@ -680,6 +697,73 @@ function createCard(item) {
       <p class="font-body-sm text-body-sm mt-auto pt-3 line-clamp-2" style="border-top:1px solid ${borderColor};color:${mutedColor}">${item.summary || ''}</p>`;
   }
   return a;
+}
+
+// ── Hashtag Panel ─────────────────────────────────────────────────────────────
+let hashtagPanelOpen = false;
+function toggleHashtagPanel() {
+  hashtagPanelOpen = !hashtagPanelOpen;
+  const body = document.getElementById('hashtag-panel-body');
+  const icon = document.getElementById('hashtag-panel-icon');
+  if (body) body.style.display = hashtagPanelOpen ? '' : 'none';
+  if (icon) icon.textContent = hashtagPanelOpen ? 'expand_less' : 'expand_more';
+}
+
+function renderHashtagChips(tags) {
+  const container = document.getElementById('hashtag-chips-archiv');
+  const countEl = document.getElementById('hashtag-count');
+  if (!container) return;
+  container.innerHTML = '';
+  if (countEl) countEl.textContent = tags.length + ' Tags';
+  tags.forEach(tag => {
+    const chip = document.createElement('span');
+    chip.style.cssText = 'display:inline-flex;align-items:center;background:rgba(29,155,240,0.12);border:1px solid rgba(29,155,240,0.3);color:#1d9bf0;font-size:11px;font-weight:700;padding:2px 10px;border-radius:3px;font-family:monospace;cursor:pointer;transition:all 0.15s';
+    chip.textContent = tag;
+    chip.title = 'Klick: kopieren  |  Doppelklick: Archiv filtern';
+    chip.onclick = () => {
+      navigator.clipboard.writeText(tag).catch(()=>{});
+      chip.style.background = '#16a34a';
+      chip.style.color = '#fff';
+      chip.style.borderColor = '#16a34a';
+      setTimeout(() => {
+        chip.style.background = 'rgba(29,155,240,0.12)';
+        chip.style.color = '#1d9bf0';
+        chip.style.borderColor = 'rgba(29,155,240,0.3)';
+      }, 1200);
+    };
+    chip.ondblclick = (e) => {
+      e.preventDefault();
+      // Archiv nach diesem Hashtag-Begriff filtern
+      const kw = tag.replace(/^#/, '').toLowerCase();
+      document.querySelectorAll('.hashtag-chips-archiv span').forEach(c => c.style.background = 'rgba(29,155,240,0.12)');
+      chip.style.background = '#1d9bf0';
+      chip.style.color = '#fff';
+      searchQuery = kw;
+      handleSearch(kw);
+      const searchEl = document.getElementById('searchInput');
+      if (searchEl) searchEl.value = kw;
+    };
+    container.appendChild(chip);
+  });
+}
+
+// Hashtags aus hashtags.json laden
+fetch('hashtags/hashtags.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    if (data.tags && data.tags.length) renderHashtagChips(data.tags);
+  })
+  .catch(() => {
+    const fallback = ['#KI','#AI','#LLM','#OpenAI','#Anthropic','#Gemini','#Mistral','#AINews'];
+    renderHashtagChips(fallback);
+  });
+
+// Wenn die URL #hashtags enthält → Panel direkt öffnen
+if (window.location.hash === '#hashtags') {
+  document.addEventListener('DOMContentLoaded', () => {
+    toggleHashtagPanel();
+    document.getElementById('hashtags')?.scrollIntoView({ behavior: 'smooth' });
+  });
 }
 </script>
 

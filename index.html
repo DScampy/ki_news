@@ -40,12 +40,12 @@ html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
 /* ── Sidebar ── */
 #sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;}
 #sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
-#main-content{transition:margin-left 0.25s ease;margin-left:240px;}
+#main-content{transition:margin-left 0.25s ease;margin-left:0;}
 #main-content.sidebar-closed{margin-left:0;}
 @media(max-width:1023px){#main-content{margin-left:0!important;}}
-#sidebar-toggle{position:fixed;left:240px;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s ease;border-radius:0 4px 4px 0;}
-#sidebar-toggle.visible{display:flex;}
-#sidebar-toggle.closed{left:0;}
+/* Toggle-Button: NUR auf Desktop (>=1024px) sichtbar */
+#sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s ease;border-radius:0 4px 4px 0;}
+@media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
 html.light #sidebar-toggle{background:#1d9bf0;}
 
 /* ── Light Mode ── */
@@ -322,21 +322,14 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           @CSCAMPY FOLGEN
         </a>
-        <!-- Hashtags -->
-        <div class="ki-card ki-border border p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-[10px] font-mono ki-muted uppercase tracking-widest"># Hashtags</span>
-            <span class="text-[9px] font-mono text-[#1d9bf0] border border-[#1d9bf0]/40 px-1.5 py-0.5">Community</span>
+        <!-- Hashtags → jetzt im Archiv -->
+        <a href="Archiv.html#hashtags" class="ki-card ki-border border p-4 flex items-center gap-3 hover:border-[#1d9bf0] transition-all cursor-pointer" style="text-decoration:none">
+          <span class="material-symbols-outlined text-[#1d9bf0]" style="font-size:18px">tag</span>
+          <div>
+            <div class="text-[11px] font-mono text-[#1d9bf0] font-bold"># Hashtags</div>
+            <div class="text-[10px] ki-muted mt-0.5">Im Archiv browsen →</div>
           </div>
-          <p class="text-[11px] ki-muted mb-3">Schlage Hashtags vor – Klick zum Kopieren:</p>
-          <div id="hashtag-chips" class="flex flex-wrap gap-1.5 mb-3"></div>
-          <div class="flex gap-2">
-            <input id="hashtag-new" type="text" class="hashtag-input" placeholder="# Vorschlag…"
-              onkeydown="if(event.key==='Enter'){submitHashtag();}"/>
-            <button onclick="submitHashtag()" class="px-3 py-2 bg-[#1d9bf0] text-white text-[11px] font-bold hover:bg-[#1a8cd8] transition-all flex-shrink-0">+</button>
-          </div>
-          <p id="hashtag-status" class="text-[10px] ki-faint mt-1 font-mono"></p>
-        </div>
+        </a>
       </div>
     </div>
 
@@ -441,13 +434,16 @@ document.addEventListener('DOMContentLoaded', () => {
 const SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393','AlignedNews':'#f59e0b'};
 function srcColor(s){ return SRC[s] || '#1d9bf0'; }
 
-// ── Score-Label Badge ──────────────────────────────────────────────────
+// ── Score-Label Badge (nur für episch + wichtig, nicht für normal) ─────
 function scoreBadge(label, score) {
   if (!label || !score) return '';
-  const colors = {'🔥 episch':'#dc2626','⚡ wichtig':'#f59e0b','📰 normal':'#536471'};
-  const bg = colors[label] || '#536471';
-  const scoreNum = score >= 40 ? '🔥' : score >= 25 ? '⚡' : '';
-  return `<span style="background:${bg}22;color:${bg};border:1px solid ${bg}44;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;font-family:monospace;white-space:nowrap">${scoreNum} ${label.replace(/🔥 |⚡ |📰 /,'')}</span>`;
+  // "normal" hat keinen sichtbaren Badge – zu viele News, kein Signal
+  if (label.includes('normal') || score < 25) return '';
+  const isEpic = score >= 40;
+  const bg    = isEpic ? '#dc2626' : '#d97706';  // rot vs. amber
+  const emoji = isEpic ? '🔥' : '⚡';
+  const text  = isEpic ? 'episch' : 'wichtig';
+  return `<span style="background:${bg};color:#fff;font-size:9px;font-weight:700;padding:1px 7px;border-radius:3px;font-family:monospace;white-space:nowrap;letter-spacing:0.04em">${emoji} ${text}</span>`;
 }
 
 // ── News card ──────────────────────────────────────────────────────────
@@ -480,11 +476,11 @@ let carouselIndex = 0;
 let carouselItems = [];
 let carouselTimer = null;
 
-function renderTopStories(news) {
+function renderTopStories(news, posts) {
   const container = document.getElementById('top-stories-list');
   if (!container) return;
-  // Top-3 nach Score wählen (höchster Score zuerst – news.json ist bereits sortiert)
-  const top = news.filter(n => n.score > 0).slice(0, 3);
+  // Nach Score sortieren – gleiche Reihenfolge wie posts[] in news.json
+  const top = [...news].sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 3);
   if (!top.length) { top.push(...news.slice(0, 3)); }
   topStoryLinks = top.map(n => n.link).filter(Boolean);
   carouselItems = top;
@@ -503,22 +499,29 @@ function renderTopStories(news) {
   top.forEach((item, i) => {
     const c = item.color || srcColor(item.source);
     const badge = item.label ? scoreBadge(item.label, item.score) : '';
+    const post = (posts && posts[i]) ? posts[i] : null;
+    // Teaser-Text hat Vorrang – ist der generierte Telegram-Post
+    const mainText = post ? post.teaser : (item.summary || '');
+    const hasThread = post && post.thread && post.thread.length > 0;
+    const threadPreview = hasThread
+      ? post.thread.slice(0, 3).map((t,j) => `<div style="border-left:2px solid ${c}44;padding-left:8px;margin-bottom:5px;color:#94a3b8;font-size:12px;line-height:1.4">${t}</div>`).join('')
+      : '';
     const slide = document.createElement('div');
-    slide.style.cssText = 'flex:0 0 ' + (100 / top.length) + '%;padding:0 6px;box-sizing:border-box;cursor:pointer';
+    slide.style.cssText = 'flex:0 0 ' + (100 / top.length) + '%;padding:0 6px;box-sizing:border-box;';
     slide.innerHTML = `
-      <div class="ki-border border p-5 h-full transition-all group" style="background:#0d1117;border-radius:6px;display:flex;flex-direction:column;gap:10px;min-height:160px">
+      <div class="ki-border border p-5 transition-all" style="background:#0d1117;border-radius:6px;display:flex;flex-direction:column;gap:10px;min-height:220px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
           <span style="background:${c};color:white;font-size:9px;font-weight:700;padding:2px 8px;font-family:monospace;letter-spacing:0.06em;border-radius:3px;text-transform:uppercase">${item.source}</span>
-          <div style="display:flex;align-items:center;gap:6px">${badge}<span style="color:#2f3336;font-size:22px;font-weight:900;font-family:'Space Grotesk',sans-serif;line-height:1">${String(i+1).padStart(2,'0')}</span></div>
+          <div style="display:flex;align-items:center;gap:6px">${badge}<span style="color:#3f4851;font-size:20px;font-weight:900;font-family:'Space Grotesk',sans-serif;line-height:1">${String(i+1).padStart(2,'0')}</span></div>
         </div>
-        <h4 style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:#e7e9ea;line-height:1.3;flex:1">${item.title}</h4>
-        ${item.summary ? `<p style="font-size:12px;color:#94a3b8;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${item.summary}</p>` : ''}
+        <h4 style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#e7e9ea;line-height:1.3">${item.title}</h4>
+        ${mainText ? `<p style="font-size:13px;color:#c9d1d9;line-height:1.55;flex:1">${mainText}</p>` : ''}
+        ${threadPreview ? `<div style="margin-top:6px;padding-top:8px;border-top:1px solid #1a1a1a">${threadPreview}</div>` : ''}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-          <span style="color:${c};font-size:10px;font-family:monospace">${item.score ? `Score: ${item.score}` : ''}</span>
+          <span style="color:${c};font-size:10px;font-family:monospace;cursor:pointer" onclick="event.stopPropagation();window.open('${item.link}','_blank')">→ Artikel lesen</span>
           <span class="material-symbols-outlined" style="color:#536471;font-size:14px">open_in_new</span>
         </div>
       </div>`;
-    if (item.link) slide.onclick = () => window.open(item.link, '_blank');
     track.appendChild(slide);
   });
 
@@ -594,7 +597,7 @@ fetch('news.json?t=' + Date.now())
       }
     }
 
-    renderTopStories(data.news);
+    renderTopStories(data.news, data.posts || []);
     // News Grid: Top-3 rausfiltern
     const filtered = data.news.filter(n => !topStoryLinks.includes(n.link));
     grid.innerHTML = '';
@@ -605,42 +608,7 @@ fetch('news.json?t=' + Date.now())
   })
   .catch(() => { const l = document.getElementById('stand-label'); if(l) l.textContent = 'Stand: offline'; });
 
-// ── Hashtags ───────────────────────────────────────────────────────────
-let hashtags = ['#KI','#ArtificialIntelligence','#Meta','#OpenAI','#Technologie','#AINews','#DeepSeek'];
-function renderHashtags() {
-  const c = document.getElementById('hashtag-chips');
-  c.innerHTML = '';
-  hashtags.forEach(tag => {
-    const chip = document.createElement('span');
-    chip.className = 'hashtag-chip';
-    chip.textContent = tag;
-    chip.onclick = () => {
-      navigator.clipboard.writeText(tag).catch(()=>{});
-      chip.classList.add('copied');
-      setTimeout(() => chip.classList.remove('copied'), 1200);
-    };
-    c.appendChild(chip);
-  });
-}
-fetch('hashtags/hashtags.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => { if (data.tags && data.tags.length) { hashtags = data.tags; renderHashtags(); } })
-  .catch(() => renderHashtags());
-renderHashtags();
-
-function submitHashtag() {
-  const input = document.getElementById('hashtag-new');
-  const status = document.getElementById('hashtag-status');
-  let val = input.value.trim().replace(/^#+/, '');
-  if (!val) return;
-  const tag = '#' + val;
-  if (hashtags.includes(tag)) { status.textContent = 'Bereits vorhanden!'; return; }
-  hashtags.push(tag);
-  renderHashtags();
-  input.value = '';
-  status.textContent = '✓ Hinzugefügt (Admin speichert ins Repo)';
-  setTimeout(() => status.textContent = '', 3000);
-}
+// Hashtags sind jetzt in Archiv.html
 
 // ── Chat (OpenRouter) ──────────────────────────────────────────────────
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
