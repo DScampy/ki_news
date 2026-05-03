@@ -69,6 +69,10 @@ FEEDS = [
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
     ("Wired", "https://wired.com/feed/rss"),
     ("Bloomberg", "https://feeds.bloomberg.com/technology/news.rss"),
+    ("The Verge", "https://theverge.com/rss/index.xml"),
+    ("SiliconAngle", "https://siliconangle.com/feed"),
+    ("TechRepublic", "https://www.techrepublic.com/rssfeeds/articles/"),
+    ("Gizmodo", "https://gizmodo.com/feed"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
