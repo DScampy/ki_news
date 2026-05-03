@@ -56,9 +56,17 @@
         .thread-text { font-size: 14px; line-height: 1.5; color: #e7e9ea; margin-bottom: 8px; }
         .btn-copy-sm { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; background: #1a1a1a; color: #94a3b8; border: 1px solid #2f3336; transition: opacity 0.2s; }
         .btn-copy-sm:hover { opacity: 0.8; }
+        .editorial-banner { background: linear-gradient(135deg, #0d1a2e 0%, #111827 100%); border-bottom: 1px solid #1d9bf0; padding: 14px 24px; max-width: 1200px; margin: 0 auto; display: flex; align-items: flex-start; gap: 14px; }
+        .editorial-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+        .editorial-body { flex: 1; }
+        .editorial-label { color: #1d9bf0; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+        .editorial-text { color: #e7e9ea; font-size: 14px; line-height: 1.5; }
+        .editorial-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+        .editorial-zeichen { font-size: 10px; color: #536471; }
         @media (max-width: 700px) {
             .layout { grid-template-columns: 1fr; }
             .panel-left { border-right: none; border-bottom: 1px solid #2f3336; }
+            .editorial-banner { padding: 12px 16px; }
         }
     </style>
     <script>
@@ -85,12 +93,13 @@
     <div class="header">
         <h1>KI News</h1>
         <div class="header-stats">
-            <div class="stat"><div class="stat-zahl">15</div><div class="stat-label">News</div></div>
+            <div class="stat"><div class="stat-zahl">18</div><div class="stat-label">News</div></div>
             <div class="stat"><div class="stat-zahl">3</div><div class="stat-label">Posts</div></div>
-            <div class="stat"><div class="stat-zahl">5</div><div class="stat-label">Quellen</div></div>
+            <div class="stat"><div class="stat-zahl">6</div><div class="stat-label">Quellen</div></div>
         </div>
-        <span class="datum">Stand: 03.05.2026 21:20</span>
+        <span class="datum">Stand: 03.05.2026 21:53</span>
     </div>
+    <div class="editorial-banner"><div class="editorial-icon">🗞</div><div class="editorial-body"><div class="editorial-label">Tagesüberblick</div><div class="editorial-text" id="editorial-text">Die Grenzen der KI-Entwicklung werden immer weiter ausgedehnt, größere Modelle verbessern sich durch Skalierungsgesetze, während gleichzeitig der Schutz geistigen Eigentums wie der Claude Code zunehmend prekär wird</div><div class="editorial-actions"><button class="btn-copy-sm" onclick="copyPost('editorial-text', this)">Kopieren</button><span class="editorial-zeichen">214/265</span></div></div></div>
     <div class="layout">
         <div class="panel panel-left">
             <div class="panel-title">Aktuelle KI-News</div>
@@ -98,11 +107,11 @@
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
-                <span class="news-title">Größere KI-Modelle werden besser</span>
+                <span class="news-title">Kurzer deutscher Titel</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Eine Studie des MIT hat herausgefunden, dass größere KI-Modelle aufgrund von Skalierungsgesetzen und Superposition besser werden. Dies könnte zu bedeutenden Fortschritten in der KI-Entwicklung führen.</p>
+                <p class="news-summary">Eine Studie der MIT hat herausgefunden, dass größere KI-Modelle aufgrund der sogenannten Superposition besser werden. Dies bedeutet, dass die Leistung der Modelle mit zunehmender Größe steigt. Dies ist relevant, da es uns hilft, die Entwicklung von KI-Modellen besser zu verstehen.</p>
                 <a href="https://the-decoder.de/warum-groessere-ki-modelle-besser-werden-mit-studie-fuehrt-skalierungsgesetze-auf-superposition-zurueck/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
@@ -113,62 +122,62 @@
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Eine US-Behörde behauptet, dass die USA einen wachsenden Vorsprung im Bereich der KI-Entwicklung vor China haben. Dies könnte zu einer Veränderung der globalen Machtverhältnisse im Technologiebereich führen.</p>
+                <p class="news-summary">Die US-Behörde behauptet, dass sie einen wachsenden Vorsprung bei der KI-Entwicklung vor China hat. Dies ist relevant, da es um die globale Konkurrenz bei der KI-Entwicklung geht und die USA ihre Führungsposition behaupten wollen.</p>
                 <a href="https://the-decoder.de/us-behoerde-behauptet-wachsenden-ki-vorsprung-vor-china/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
-                <span class="news-title">Xiaomis neues Open-Weight-Modell</span>
+                <span class="news-title">Xiaomis neues KI-Modell</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Xiaomi hat ein neues Open-Weight-Modell namens MiMo-V2.5-Pro vorgestellt, das stundenlang autonom an Aufgaben arbeiten kann. Dies könnte zu neuen Anwendungsmöglichkeiten im Bereich der KI führen.</p>
+                <p class="news-summary">Xiaomi hat ein neues Open-Weight-Modell namens MiMo-V2.5-Pro vorgestellt, das stundenlang autonom an Aufgaben arbeiten kann. Dies ist relevant, da es um die Entwicklung von KI-Modellen mit verbesserter Leistung und Autonomie geht.</p>
                 <a href="https://the-decoder.de/xiaomis-neues-open-weight-modell-mimo-v2-5-pro-soll-stundenlang-autonom-an-aufgaben-arbeiten/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#ca8a04">Heise</span>
-                <span class="news-title">OpenAI trackt Nutzer in den USA</span>
+                <span class="news-title">OpenAI und Cookies</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">OpenAI verwendet Cookies, um Nutzer in den USA für personalisierte Werbung zu tracken. Dies wirft Fragen zur Datenschutzpolitik des Unternehmens auf.</p>
+                <p class="news-summary">OpenAI verwendet Cookies in den USA, um personalisierte Werbung zu tracken. Dies ist relevant, da es um die Verwendung von Nutzerdaten und Datenschutz geht.</p>
                 <a href="https://www.heise.de/news/OpenAI-trackt-in-den-USA-per-Cookies-fuer-personalisierte-Werbung-11279629.html?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#ca8a04">Heise</span>
-                <span class="news-title">Leak von Claude Code</span>
+                <span class="news-title">Anthropics und Claude Code</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Anthropics kämpft gegen den Leak des Quellcodes von Claude, was zu einer unsicheren Zukunft für das Unternehmen führen könnte. Die Folgen des Leaks sind noch unklar.</p>
+                <p class="news-summary">Anthropics kämpft gegen den Leak von Claude Code, was als aussichtslos gilt. Dies ist relevant, da es um die Sicherheit von KI-Code und die Verhinderung vonUnauthorized-Zugriff geht.</p>
                 <a href="https://www.heise.de/news/Claude-Code-Leck-8100-Loeschantraege-und-die-Geburtsstunde-von-Claw-Code-11279601.html?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#ca8a04">Heise</span>
-                <span class="news-title">Tesla gibt Hardware-Schwäche zu</span>
+                <span class="news-title">Tesla und autonomes Fahren</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Tesla hat zugegeben, dass die Hardware alter Modelle nicht für vollautonomes Fahren ausreicht. Dies könnte zu einer Anpassung der Strategie des Unternehmens im Bereich der Autonomie führen.</p>
+                <p class="news-summary">Tesla hat zugegeben, dass die Hardware alter Modelle nicht für vollautonomes Fahren ausreicht. Dies ist relevant, da es um die Entwicklung von autonomem Fahren und die Notwendigkeit von Hardware-Upgrades geht.</p>
                 <a href="https://www.heise.de/news/Tesla-gibt-zu-Hardware-alter-Modelle-reicht-nicht-fuer-vollautonomes-Fahren-11279583.html?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#555">Golem</span>
-                <span class="news-title">Huawei überholt Nvidia im chinesischen KI-Markt</span>
+                <span class="news-title">Huawei verdrängt Nvidia vom chinesischen KI-Markt</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Huawei hat Nvidia im chinesischen KI-Markt überholt und ist nun Marktführer. Dies ist relevant, weil es zeigt, dass chinesische Unternehmen im Bereich Künstlicher Intelligenz zunehmend dominant werden.</p>
+                <p class="news-summary">Huawei hat Nvidia vom chinesischen KI-Markt verdrängt. Dies ist relevant, da es zeigt, dass Huawei seine Position im chinesischen Markt weiter ausbaut. Dies kann Auswirkungen auf die globale KI-Industrie haben.</p>
                 <a href="https://www.golem.de/news/marktdominanz-huawei-verdraengt-nvidia-vom-chinesischen-ki-markt-2605-208245.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
@@ -179,85 +188,118 @@
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Elon Musks KI-Firma xAI hat das Modell Grok mit Daten von ChatGPT trainiert. Dies ist relevant, weil es die Entwicklung von KI-Modellen vorantreibt und neue Möglichkeiten für die Verwendung von KI-Daten eröffnet.</p>
+                <p class="news-summary">Elon Musks xAI hat das KI-Modell Grok mit Daten von ChatGPT trainiert. Dies ist relevant, da es zeigt, wie schnell die Entwicklung von KI-Modellen voranschreitet und wie wichtig die Verfügbarkeit von Trainingsdaten ist.</p>
                 <a href="https://www.golem.de/news/elon-musk-xai-hat-grok-mit-daten-von-chatgpt-trainiert-2605-208242.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#555">Golem</span>
-                <span class="news-title">GANs: Synthetische Daten verbessern KI-Modelle</span>
+                <span class="news-title">GANs: Von echten Daten zu besseren Modellen</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Generative adversarische Netzwerke (GANs) können synthetische Daten generieren, die die Entwicklung von KI-Modellen verbessern. Dies ist relevant, weil es die Entwicklung von KI-Modellen beschleunigen und verbessern kann.</p>
+                <p class="news-summary">Generative Adversarial Networks (GANs) ermöglichen es, synthetische Daten zu erzeugen, die besser als reale Daten für die Trainierung von KI-Modellen geeignet sind. Dies kann zu besseren Modellen und verbesserten Ergebnissen in der KI-Forschung führen.</p>
                 <a href="https://www.golem.de/news/gans-synthetik-als-schluessel-von-echten-daten-zu-besseren-modellen-2605-208206.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
-                <span class="news-title">KI besser als menschliche Ärzte bei Notfall-Diagnosen</span>
+                <span class="news-title">KI übertrifft menschliche Ärzte in der Notaufnahme</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Eine Studie der Harvard-Universität hat gezeigt, dass KI-Systeme bessere Diagnosen in Notfällen stellen können als menschliche Ärzte. Dies ist relevant, weil es die Entwicklung von KI-Systemen im Gesundheitswesen vorantreibt und möglicherweise die Patientenversorgung verbessern kann.</p>
+                <p class="news-summary">Eine Studie in Harvard hat gezeigt, dass KI-Systeme genaue Diagnosen in der Notaufnahme stellen können, die sogar besser sind als die von zwei menschlichen Ärzten. Dies kann zu verbesserten Behandlungsergebnissen und einer Entlastung der medizinischen Fachkräfte führen.</p>
                 <a href="https://techcrunch.com/2026/05/03/in-harvard-study-ai-offered-more-accurate-diagnoses-than-emergency-room-doctors/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
-                <span class="news-title">KI-generierte Schauspieler und Drehbücher nicht mehr für Oscars zugelassen</span>
+                <span class="news-title">KI-generierte Schauspieler und Drehbücher nicht mehr Oscar-tauglich</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Die Academy of Motion Picture Arts and Sciences hat entschieden, dass KI-generierte Schauspieler und Drehbücher nicht mehr für Oscars zugelassen sind. Dies ist relevant, weil es die Entwicklung von KI-Systemen im Bereich der Unterhaltung und Kreativität berührt.</p>
+                <p class="news-summary">Die Academy of Motion Picture Arts and Sciences hat entschieden, dass KI-generierte Schauspieler und Drehbücher nicht mehr für einen Oscar номiniert werden können. Dies soll die Einzigartigkeit und den kreativen Wert menschlicher Arbeit in der Filmindustrie schützen.</p>
                 <a href="https://techcrunch.com/2026/05/02/ai-generated-actors-and-scripts-are-now-ineligible-for-oscars/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#ff6b35">TechCrunch AI</span>
-                <span class="news-title">Die besten Diktat-Apps mit KI-Unterstützung</span>
+                <span class="news-title">Die besten Diktier-Apps mit KI</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">TechCrunch hat die besten Diktat-Apps mit KI-Unterstützung getestet und bewertet. Dies ist relevant, weil es die Entwicklung von KI-Systemen im Bereich der Produktivität und Kommunikation vorantreibt und den Nutzern hilft, die beste App für ihre Bedürfnisse zu finden.</p>
+                <p class="news-summary">Eine Testreihe hat die besten Diktier-Apps mit KI-Unterstützung verglichen und bewertet. Die Ergebnisse können Nutzern helfen, die beste App für ihre Bedürfnisse zu finden und ihre Produktivität zu steigern.</p>
                 <a href="https://techcrunch.com/2026/05/02/the-best-ai-powered-dictation-apps-of-2025/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
-                <span class="news-title">Railway sichert 100 Millionen Dollar</span>
+                <span class="news-title">Bahn sichert 100 Millionen Dollar, um AWS mit künstlicher Intelligenz zu herausfordern</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Das Unternehmen Railway hat 100 Millionen Dollar gesichert, um mit seiner AI-nativen Cloud-Infrastruktur gegen Amazon Web Services (AWS) anzutreten. Dies ist relevant, weil es zeigt, dass Railway eine ernsthafte Herausforderung für die etablierten Cloud-Anbieter darstellt.</p>
+                <p class="news-summary">Die Eisenbahnbranche hat 100 Millionen Dollar gesichert, um eine künstliche Intelligenz-Infrastruktur zu entwickeln, die mit Amazon Web Services (AWS) konkurrieren kann. Dies ist relevant, da es zeigt, dass die Branche in die Entwicklung von künstlicher Intelligenz investiert, um ihre Konkurrenzfähigkeit zu verbessern.</p>
                 <a href="https://venturebeat.com/infrastructure/railway-secures-usd100-million-to-challenge-aws-with-ai-native-cloud" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
-                <span class="news-title">Claude Code ist teuer</span>
+                <span class="news-title">Claude Code kostet bis zu 200 Dollar im Monat, während Goose ähnliche Funktionen kostenlos anbietet</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Claude Code kostet bis zu 200 Dollar im Monat, während das Unternehmen Goose ähnliche Funktionen kostenlos anbietet. Dies ist relevant, weil es zeigt, dass es auf dem Markt für KI-gestützte Tools eine große Preisspanne gibt.</p>
+                <p class="news-summary">Das Unternehmen Claude Code bietet seine Dienstleistungen für bis zu 200 Dollar im Monat an, während das Unternehmen Goose ähnliche Funktionen kostenlos anbietet. Dies ist relevant, da es zeigt, dass es eine Alternative zu teuren Dienstleistungen gibt.</p>
                 <a href="https://venturebeat.com/infrastructure/claude-code-costs-up-to-usd200-a-month-goose-does-the-same-thing-for-free" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#7c3aed">VentureBeat AI</span>
-                <span class="news-title">Listen Labs erhält 69 Millionen Dollar</span>
+                <span class="news-title">Listen Labs sichert 69 Millionen Dollar, um künstliche Intelligenz-basierte Kundeninterviews zu skalieren</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Listen Labs hat 69 Millionen Dollar erhalten, nachdem das Unternehmen mit einem viralem Stelleninserent auf einer Werbetafel auf sich aufmerksam gemacht hatte. Das Geld soll verwendet werden, um Kundeninterviews mit KI zu skalieren. Dies ist relevant, weil es zeigt, dass innovative Personalmarketing-Strategien erfolgreich sein können.</p>
+                <p class="news-summary">Listen Labs hat 69 Millionen Dollar gesichert, um seine künstliche Intelligenz-basierten Kundeninterviews zu skalieren. Dies ist relevant, da es zeigt, dass das Unternehmen in die Entwicklung von künstlicher Intelligenz investiert, um seine Kundeninterviews zu verbessern.</p>
                 <a href="https://venturebeat.com/technology/listen-labs-raises-usd69m-after-viral-billboard-hiring-stunt-to-scale-ai" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">AlignedNews</span>
+                <span class="news-title">Frankreich migriert alle Regierungsministerien zu Linux</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Die französische Regierung migriert alle ihre Ministerien zu Linux, um von den Vorteilen einer Open-Source-Plattform zu profitieren. Dies ist relevant, da es zeigt, dass die Regierung in die Entwicklung von Open-Source-Technologien investiert, um ihre Effizienz zu verbessern.</p>
+                <a href="https://x.com/github/status/2050997675651117326" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">AlignedNews</span>
+                <span class="news-title">Fünf unkompatible künstliche Intelligenz-Plattformen für Arzneimittelentdeckung in zwei Wochen gestartet</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">In den letzten zwei Wochen wurden fünf neue künstliche Intelligenz-Plattformen für die Arzneimittelentdeckung gestartet, die jedoch nicht kompatibel miteinander sind. Dies ist relevant, da es zeigt, dass die Branche in die Entwicklung von künstlicher Intelligenz investiert, um die Arzneimittelentdeckung zu verbessern, aber auch Probleme bei der Kompatibilität auftritt.</p>
+                <a href="https://x.com/VanRijmenam/status/2049696638378352813" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">AlignedNews</span>
+                <span class="news-title">Starlink-Umsatz steigt auf 11,4 Milliarden Dollar - fast verdreifacht</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Der Umsatz von Starlink ist auf 11,4 Milliarden Dollar gestiegen, was einem fast verdreifachten Umsatz im Vergleich zum Vorjahr entspricht. Dies ist relevant, da es zeigt, dass das Unternehmen sehr erfolgreich ist und seine Dienstleistungen immer beliebter werden.</p>
+                <a href="https://x.com/theinformation/status/2051013952092475552" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         </div>
@@ -267,10 +309,10 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 1</span>
-                <span class="post-zeichen" style="color:#16a34a">97/265</span>
+                <span class="post-zeichen" style="color:#16a34a">72/265</span>
             </div>
-            <p class="post-text" id="teaser1">Größere KI-Modelle sind leistungsfähiger, weil ihre Komponenten sich überlappen (via The Decoder)</p>
-            <p class="post-erklaerung">KI-Modelle werden leistungsfähiger durch Overlapping</p>
+            <p class="post-text" id="teaser1">Größere KI-Modelle werden durch "Superposition" besser (via The Decoder)</p>
+            <p class="post-erklaerung">Bessere Leistung durch Skalierung</p>
             <span class="post-quelle" style="background:#1d9bf0">The Decoder</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser1', this)">Kopieren</button>
@@ -285,49 +327,49 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">44/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">53/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-1">Skalierungsgesetze machen KI-Modelle stärker</p>
+                    <p class="thread-text" id="thread1-1">Skalierungsgesetze erklären den Erfolg großer Modelle</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">66/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">48/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-2">MIT-Studie analysiert den Zusammenhang zwischen Größe und Leistung</p>
+                    <p class="thread-text" id="thread1-2">Historisch gesehen waren kleine Modelle begrenzt</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">47/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">40/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-3">Superposition führt zu komplexeren Verbindungen</p>
+                    <p class="thread-text" id="thread1-3">Jede Erweiterung bringt neue Fähigkeiten</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">36/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">51/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-4">Dies birgt Risiken für die Kontrolle</p>
+                    <p class="thread-text" id="thread1-4">Doch was passiert, wenn die Kontrolle verloren geht</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">42/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">51/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-5">Forscher müssen die Auswirkungen verstehen</p>
+                    <p class="thread-text" id="thread1-5">Sicherheit und Verantwortung werden immer wichtiger</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">82/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">69/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-6">Können wir die Macht von KI kontrollieren, bevor sie uns überrollt, fragst du dich</p>
+                    <p class="thread-text" id="thread1-6">Wie werden wir die Risiken großer KI-Modelle meistern, fragst du dich</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-6', this)">Kopieren</button>
                 </div>
             </div>
@@ -335,10 +377,10 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 2</span>
-                <span class="post-zeichen" style="color:#16a34a">67/265</span>
+                <span class="post-zeichen" style="color:#16a34a">45/265</span>
             </div>
-            <p class="post-text" id="teaser2">Claude Code-Leak bedroht die Sicherheit von KI-Systemen (via Heise)</p>
-            <p class="post-erklaerung">Code-Leaks gefährden KI-Sicherheit</p>
+            <p class="post-text" id="teaser2">KI-Code-Leak ist kaum aufzuhalten (via Heise)</p>
+            <p class="post-erklaerung">Unkontrollierter KI-Code-Leak</p>
             <span class="post-quelle" style="background:#ca8a04">Heise</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser2', this)">Kopieren</button>
@@ -353,49 +395,49 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">45/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">57/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-1">Anthropics kämpft vergeblich gegen Code-Leaks</p>
+                    <p class="thread-text" id="thread2-1">Der Kampf gegen den Leak von Claude Code ist aussichtslos</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">44/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">45/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-2">Die Sicherheit von KI-Systemen ist gefährdet</p>
+                    <p class="thread-text" id="thread2-2">Anthropics versucht, den Schaden zu begrenzen</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">42/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">45/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-3">Unbekannte Angreifer nutzen die Lücken aus</p>
+                    <p class="thread-text" id="thread2-3">Doch die Informationen sind bereits im Umlauf</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">36/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">54/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-4">Die Konsequenzen sind unüberschaubar</p>
+                    <p class="thread-text" id="thread2-4">Was bedeutet das für die Sicherheit von KI-Anwendungen</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">43/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">36/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-5">Unternehmen sollten ihre Systeme überprüfen</p>
+                    <p class="thread-text" id="thread2-5">Die Folgen sind schwer vorherzusagen</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">65/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">56/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-6">Wie sicher bist du, dass deine Daten geschützt sind, überlegst du</p>
+                    <p class="thread-text" id="thread2-6">Wie wichtig ist es, solche Leaks zu vermeiden, denkst du</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-6', this)">Kopieren</button>
                 </div>
             </div>
@@ -403,11 +445,11 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 3</span>
-                <span class="post-zeichen" style="color:#16a34a">72/265</span>
+                <span class="post-zeichen" style="color:#16a34a">68/265</span>
             </div>
-            <p class="post-text" id="teaser3">Railway will AWS mit KI-Infrastruktur herausfordern (via VentureBeat AI)</p>
-            <p class="post-erklaerung">KI-Infrastruktur wird die Cloud verändern</p>
-            <span class="post-quelle" style="background:#7c3aed">VentureBeat AI</span>
+            <p class="post-text" id="teaser3">Fünf neue KI-Plattformen für Medikamentenforschung (via AlignedNews)</p>
+            <p class="post-erklaerung">Schnellere Medikamentenforschung</p>
+            <span class="post-quelle" style="background:#555">AlignedNews</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser3', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={}"
@@ -421,17 +463,17 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">63/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">51/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-1">Railway sichert 100 Millionen Dollar für KI-Cloud-Infrastruktur</p>
+                    <p class="thread-text" id="thread3-1">In zwei Wochen wurden fünf KI-Plattformen gestartet</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">50/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">57/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-2">Die Cloud-Infrastruktur wird künftig KI-nativ sein</p>
+                    <p class="thread-text" id="thread3-2">Ziel ist die Beschleunigung von Medikamentenentwicklungen</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
@@ -439,23 +481,23 @@
                         <span class="thread-nr">3/6 Kaskade</span>
                         <span class="thread-zeichen" style="color:#16a34a">47/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-3">Dies birgt Chancen für Unternehmen und Forscher</p>
+                    <p class="thread-text" id="thread3-3">Jede Plattform hat eigene Stärken und Schwächen</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">43/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">50/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-4">Die Konkurrenz zum Marktführer AWS nimmt zu</p>
+                    <p class="thread-text" id="thread3-4">Die Zusammenarbeit zwischen ihnen ist entscheidend</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">55/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">44/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-5">Die Zukunft der Cloud-Infrastruktur wird von KI geprägt</p>
+                    <p class="thread-text" id="thread3-5">Was bedeutet das für die Zukunft der Medizin</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
@@ -463,7 +505,7 @@
                         <span class="thread-nr">6/6 Fazit</span>
                         <span class="thread-zeichen" style="color:#16a34a">63/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-6">Wird KI die Cloud-Infrastruktur revolutionieren, fragst du dich</p>
+                    <p class="thread-text" id="thread3-6">Wie wird sich das auf unsere Gesundheit auswirken, überlegst du</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-6', this)">Kopieren</button>
                 </div>
             </div>
