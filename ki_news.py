@@ -67,6 +67,8 @@ FEEDS = [
     ("TechCrunch AI",  "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
+    ("Wired", "https://wired.com/feed/rss"),
+    ("Bloomberg", "https://feeds.bloomberg.com/technology/news.rss"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
