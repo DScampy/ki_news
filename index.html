@@ -64,6 +64,22 @@ html.light .ki-bg-dark{background:#f1f5f9!important;}
 html.light ::-webkit-scrollbar-thumb{background:#cbd5e1!important;}
 html.light .video-wrap{border-color:#e2e8f0!important;}
 
+/* ── Top Stories Carousel – theme-aware ── */
+.ts-card-inner{background:#0d1117;}
+html.light .ts-card-inner{background:#fff!important;}
+.ts-main-text{font-size:13px;color:#c9d1d9;line-height:1.55;flex:1}
+html.light .ts-main-text{color:#334155!important;}
+.ts-thread-item{padding-left:8px;margin-bottom:5px;font-size:12px;line-height:1.4;color:#94a3b8;}
+html.light .ts-thread-item{color:#64748b!important;}
+.ts-thread-sep{margin-top:6px;padding-top:8px;border-top:1px solid #1a1a1a;}
+html.light .ts-thread-sep{border-top-color:#e2e8f0!important;}
+.ts-num{color:#3f4851;font-size:20px;font-weight:900;font-family:'Space Grotesk',sans-serif;line-height:1}
+html.light .ts-num{color:#cbd5e1!important;}
+
+/* ── Editorial Banner – theme-aware ── */
+.ed-banner{background:linear-gradient(135deg,#0d1a2e,#111827);}
+html.light .ed-banner{background:linear-gradient(135deg,#eff6ff,#f0f9ff)!important;}
+
 /* ── Video ── */
 .video-wrap{background:#000;border:1px solid #2f3336;overflow:hidden;position:relative;}
 .video-wrap video{width:100%;display:block;max-height:200px;object-fit:contain;background:#000;}
@@ -266,7 +282,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
     </div>
 
     <!-- Editorial Banner – aus news.json, nur sichtbar wenn gefüllt -->
-    <div id="editorial-banner" style="display:none;background:linear-gradient(135deg,#0d1a2e,#111827);border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:4px;gap:14px;align-items:flex-start"></div>
+    <div id="editorial-banner" class="ed-banner" style="display:none;border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:4px;gap:14px;align-items:flex-start"></div>
 
     <!-- Top Stories – unter Podcast/Video, volle Breite -->
     <div class="ki-card ki-border border p-5 mb-lg">
@@ -504,19 +520,18 @@ function renderTopStories(news, posts) {
     const mainText = post ? post.teaser : (item.summary || '');
     const hasThread = post && post.thread && post.thread.length > 0;
     const threadPreview = hasThread
-      ? post.thread.slice(0, 3).map((t,j) => `<div style="border-left:2px solid ${c}44;padding-left:8px;margin-bottom:5px;color:#94a3b8;font-size:12px;line-height:1.4">${t}</div>`).join('')
+      ? post.thread.slice(0, 3).map((t,j) => `<div class="ts-thread-item" style="border-left:2px solid ${c}55">${t}</div>`).join('')
       : '';
     const slide = document.createElement('div');
     slide.style.cssText = 'flex:0 0 ' + (100 / top.length) + '%;padding:0 6px;box-sizing:border-box;';
     slide.innerHTML = `
-      <div class="ki-border border p-5 transition-all" style="background:#0d1117;border-radius:6px;display:flex;flex-direction:column;gap:10px;min-height:220px">
+      <div class="ki-border border p-5 transition-all ts-card-inner" style="border-radius:6px;display:flex;flex-direction:column;gap:10px;min-height:200px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
           <span style="background:${c};color:white;font-size:9px;font-weight:700;padding:2px 8px;font-family:monospace;letter-spacing:0.06em;border-radius:3px;text-transform:uppercase">${item.source}</span>
-          <div style="display:flex;align-items:center;gap:6px">${badge}<span style="color:#3f4851;font-size:20px;font-weight:900;font-family:'Space Grotesk',sans-serif;line-height:1">${String(i+1).padStart(2,'0')}</span></div>
+          <div style="display:flex;align-items:center;gap:6px">${badge}<span class="ts-num">${String(i+1).padStart(2,'0')}</span></div>
         </div>
-        <h4 style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#e7e9ea;line-height:1.3">${item.title}</h4>
-        ${mainText ? `<p style="font-size:13px;color:#c9d1d9;line-height:1.55;flex:1">${mainText}</p>` : ''}
-        ${threadPreview ? `<div style="margin-top:6px;padding-top:8px;border-top:1px solid #1a1a1a">${threadPreview}</div>` : ''}
+        ${mainText ? `<p class="ts-main-text">${mainText}</p>` : `<p class="ts-main-text" style="color:#536471;font-style:italic">Kein Teaser verfügbar</p>`}
+        ${threadPreview ? `<div class="ts-thread-sep">${threadPreview}</div>` : ''}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
           <span style="color:${c};font-size:10px;font-family:monospace;cursor:pointer" onclick="event.stopPropagation();window.open('${item.link}','_blank')">→ Artikel lesen</span>
           <span class="material-symbols-outlined" style="color:#536471;font-size:14px">open_in_new</span>
