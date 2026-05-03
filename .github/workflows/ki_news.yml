@@ -55,6 +55,8 @@ jobs:
           git add chat-config.js 2>/dev/null || true
           git add hashtags/hashtags.json 2>/dev/null || true
           git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')" || echo "Keine Aenderungen"
+          # Rebase vor Push – verhindert "rejected: fetch first" wenn Actions-Runs sich überlappen
+          git pull --rebase origin main || true
           git push
 
       - name: Log hochladen
