@@ -50,12 +50,30 @@ GROQ_CHAT_KEY = os.environ.get("GROQ_CHAT_KEY", "").strip()
 # -------------------------
 # Konfiguration
 # -------------------------
-KI_KEYWORDS = [
-    "ki", "ai", "kunstliche", "künstliche", "intelligenz", "model", "llm", "gpt", "claude",
+# Kurzwörter (ki, ai, llm, gpt) brauchen Wort-Grenzen – sonst matched "Kinostart", "marketing" etc.
+# Längere Begriffe (openai, chatgpt, anthropic...) sind sicher als Substring.
+KI_KEYWORDS_WORD = {
+    # Nur als ganzes Wort matchen (Regex \b...\b)
+    "ki", "ai", "llm", "gpt",
+}
+KI_KEYWORDS_SUBSTR = {
+    # Substring-Match ok – lang genug um keine Fehlalarme zu erzeugen
+    "kunstliche", "künstliche", "intelligenz", "model", "claude",
     "chatgpt", "openai", "google", "meta ai", "agent", "nvidia",
     "anthropic", "gemini", "mistral", "deepseek", "roboter", "automation",
-    "sprachmodell", "chatbot", "machine learning", "neural", "generativ"
-]
+    "sprachmodell", "chatbot", "machine learning", "neural", "generativ",
+}
+
+def _is_ki_relevant(title: str) -> bool:
+    """Prüft ob ein Titel KI-relevant ist – mit Wortgrenzen für Kurzkürzel."""
+    t = title.lower()
+    # Substr-Check (unkritische, lange Keywords)
+    if any(k in t for k in KI_KEYWORDS_SUBSTR):
+        return True
+    # Wort-Grenze-Check für ki / ai / llm / gpt
+    if any(re.search(r'\b' + re.escape(k) + r'\b', t) for k in KI_KEYWORDS_WORD):
+        return True
+    return False
 
 FEEDS = [
     # Deutsch
@@ -307,7 +325,7 @@ def fetch_feed(name, url):
             link_elem = item.find("link")
             if link_elem is not None:
                 link = link_elem.get("href", "").strip()
-        if title and any(k in title.lower() for k in KI_KEYWORDS):
+        if title and _is_ki_relevant(title):
             items.append({"title": title, "link": link, "source": name})
     return items[:3]
 
