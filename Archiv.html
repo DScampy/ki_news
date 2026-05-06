@@ -341,36 +341,19 @@ document.addEventListener('DOMContentLoaded', () => {
       </span>
     </div>
 
-    <!-- Podcast Archiv ───────────────────────────────────────────────── -->
+    <!-- Podcast + Video Archiv (dynamisch aus media.json) ───────────────── -->
     <div class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
       <button onclick="togglePodcastPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[#1d9bf0] text-base">mic</span>
-          <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🎙 Podcast Archiv</span>
+          <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🎙 Podcast &amp; Video Archiv</span>
+          <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="podcast-count"></span>
         </div>
         <span class="material-symbols-outlined text-gray-600 text-sm" id="podcast-panel-icon">expand_more</span>
       </button>
       <div id="podcast-panel-body" style="display:none;padding:0 20px 20px">
-        <p class="text-[11px] text-gray-500 font-mono mb-4">Alle bisherigen Folgen von Scampy's Podcast</p>
-
-        <!-- Folge #001 -->
-        <div class="border border-[#2f3336] p-4 mb-3" style="border-radius:4px;background:#16181c">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-[9px] font-mono font-bold text-[#1d9bf0] uppercase tracking-widest">KI NEWS #001</span>
-            <span class="text-[9px] font-mono text-gray-600">~20 MIN</span>
-          </div>
-          <h4 class="text-white font-bold mb-1 text-sm" style="font-family:'Space Grotesk',sans-serif">Metas Flucht ins All – Chinas KI-Ausreiseverbot</h4>
-          <p class="text-gray-500 text-[12px] mb-3">China blockiert Metas $2,5-Mrd.-Deal. Metas Antwort: 1.000 Satelliten im Orbit.</p>
-          <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
-            src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2311534997&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"
-            style="border-radius:4px;opacity:0.9"></iframe>
-          <div class="mt-2">
-            <a href="https://soundcloud.com/dscampy/scampy-s-podcast-china-stoppt" target="_blank"
-              class="flex items-center gap-2 text-[#1d9bf0] hover:underline text-xs font-mono">
-              <span class="material-symbols-outlined text-sm">open_in_new</span>Auf SoundCloud anhören
-            </a>
-          </div>
-        </div>
+        <p class="text-[11px] text-gray-500 font-mono mb-4">Alle bisherigen Folgen – Podcast &amp; Lehrvideos von Scampy's KI-News</p>
+        <div id="podcast-archive-list"></div>
       </div>
     </div>
 
@@ -784,7 +767,7 @@ fetch('hashtags/hashtags.json?t=' + Date.now())
     renderHashtagChips(fallback);
   });
 
-// ── Podcast Panel ────────────────────────────────────────────────────────────
+// ── Podcast + Video Archiv aus media.json ────────────────────────────────────
 let podcastPanelOpen = false;
 function togglePodcastPanel() {
   podcastPanelOpen = !podcastPanelOpen;
@@ -793,6 +776,82 @@ function togglePodcastPanel() {
   if (body) body.style.display = podcastPanelOpen ? '' : 'none';
   if (icon) icon.textContent = podcastPanelOpen ? 'expand_less' : 'expand_more';
 }
+
+function buildArchiveVideoThumb(video) {
+  if (!video || video.type === 'none' || !video.src) return '';
+  if (video.type === 'local') {
+    return `<div style="margin-top:10px;border:1px solid #2f3336;border-radius:4px;overflow:hidden;background:#000">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#1d9bf0;color:white;text-transform:uppercase">${video.label||'VIDEO'}</div>
+      <video controls preload="metadata" style="width:100%;max-height:140px;display:block;object-fit:contain;background:#000">
+        <source src="${video.src}" type="video/mp4"/>
+      </video>
+      ${video.title ? `<p style="font-size:11px;color:#bfc7d3;padding:6px 8px;font-family:'Space Grotesk',sans-serif;font-weight:600">${video.title}</p>` : ''}
+    </div>`;
+  }
+  if (video.type === 'youtube') {
+    const ytId = video.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || video.src;
+    return `<div style="margin-top:10px;border:1px solid #2f3336;border-radius:4px;overflow:hidden">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#dc2626;color:white;text-transform:uppercase">${video.label||'VIDEO'}</div>
+      <div style="position:relative;padding-top:56.25%">
+        <iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+      </div>
+      ${video.title ? `<p style="font-size:11px;color:#bfc7d3;padding:6px 8px;font-family:'Space Grotesk',sans-serif;font-weight:600">${video.title}</p>` : ''}
+    </div>`;
+  }
+  if (video.type === 'vimeo') {
+    const vmId = video.src.match(/vimeo\.com\/(\d+)/)?.[1] || video.src;
+    return `<div style="margin-top:10px;border:1px solid #2f3336;border-radius:4px;overflow:hidden">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#1ab7ea;color:white;text-transform:uppercase">${video.label||'VIDEO'}</div>
+      <div style="position:relative;padding-top:56.25%">
+        <iframe src="https://player.vimeo.com/video/${vmId}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
+          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+      </div>
+      ${video.title ? `<p style="font-size:11px;color:#bfc7d3;padding:6px 8px;font-family:'Space Grotesk',sans-serif;font-weight:600">${video.title}</p>` : ''}
+    </div>`;
+  }
+  return '';
+}
+
+fetch('media.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    const episodes = data.episodes || [];
+    // Alle außer der ersten (die ist auf der Startseite "aktuell")
+    const archived = episodes.slice(1);
+    const countEl = document.getElementById('podcast-count');
+    const listEl = document.getElementById('podcast-archive-list');
+    if (countEl) countEl.textContent = archived.length + ' Folgen';
+    if (!listEl) return;
+    if (!archived.length) {
+      listEl.innerHTML = '<p style="font-size:11px;color:#536471;font-family:monospace">Noch keine archivierten Folgen.</p>';
+      return;
+    }
+    listEl.innerHTML = archived.map(ep => {
+      const scUrl = `https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${ep.podcast.track_id}&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`;
+      return `<div style="border:1px solid #2f3336;border-radius:4px;background:#16181c;padding:16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:9px;font-family:monospace;font-weight:700;color:#1d9bf0;text-transform:uppercase;letter-spacing:0.1em">KI NEWS #${ep.id}</span>
+          ${ep.podcast.duration ? `<span style="font-size:9px;font-family:monospace;color:#536471">${ep.podcast.duration}</span>` : ''}
+        </div>
+        <h4 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#dfe3ea;margin-bottom:4px">${ep.title}</h4>
+        <p style="font-size:12px;color:#536471;margin-bottom:10px">${ep.description}</p>
+        <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
+          src="${scUrl}" style="border-radius:4px;opacity:0.9"></iframe>
+        <div style="margin-top:8px">
+          <a href="${ep.podcast.soundcloud_url}" target="_blank"
+            style="display:inline-flex;align-items:center;gap:6px;color:#1d9bf0;font-size:11px;font-family:monospace;text-decoration:none">
+            <span class="material-symbols-outlined" style="font-size:14px">open_in_new</span>Auf SoundCloud anhören
+          </a>
+        </div>
+        ${buildArchiveVideoThumb(ep.video)}
+      </div>`;
+    }).join('');
+  })
+  .catch(() => {
+    const listEl = document.getElementById('podcast-archive-list');
+    if (listEl) listEl.innerHTML = '<p style="font-size:11px;color:#536471;font-family:monospace">Archiv konnte nicht geladen werden.</p>';
+  });
 
 // Wenn die URL #hashtags enthält → Panel direkt öffnen
 if (window.location.hash === '#hashtags') {

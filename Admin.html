@@ -199,6 +199,61 @@ input[type="password"] { font-family: monospace; letter-spacing: 0.1em; }
 .src-ars      { background: oklch(94% 0.04 145); color: oklch(38% 0.18 145); border-color: oklch(82% 0.1 145); }
 .src-heise    { background: oklch(94% 0.04 240); color: oklch(40% 0.18 240); border-color: oklch(82% 0.1 240); }
 .src-default  { background: oklch(95% 0.005 80); color: oklch(45% 0.01 240); border-color: oklch(88% 0.008 80); }
+
+/* ── Tabs ── */
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid oklch(90% 0.008 80); margin-bottom: 24px; }
+.tab-btn {
+  padding: 10px 20px; font-size: 13px; font-weight: 600; font-family: 'Space Grotesk', sans-serif;
+  border: none; background: transparent; cursor: pointer; color: oklch(55% 0.01 240);
+  border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s;
+}
+.tab-btn.active { color: oklch(18% 0.01 240); border-bottom-color: oklch(52% 0.18 240); }
+.tab-btn:hover:not(.active) { color: oklch(30% 0.01 240); background: oklch(97% 0.005 80); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Media Manager ── */
+.ep-list { display: flex; flex-direction: column; gap: 10px; }
+.ep-card {
+  background: white; border: 1px solid oklch(90% 0.008 80); border-radius: 10px;
+  overflow: hidden; transition: box-shadow 0.15s;
+}
+.ep-card.dragging { opacity: 0.4; box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
+.ep-card.drag-over { border-color: oklch(52% 0.18 240); box-shadow: 0 0 0 3px oklch(52% 0.18 240 / 0.15); }
+.ep-header {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  background: oklch(98% 0.003 80); border-bottom: 1px solid oklch(93% 0.006 80);
+  cursor: grab;
+}
+.ep-header:active { cursor: grabbing; }
+.ep-drag-handle { color: oklch(70% 0.01 240); font-size: 16px; flex-shrink: 0; }
+.ep-badge-current {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  background: oklch(52% 0.18 240); color: white; border-radius: 4px; padding: 2px 8px;
+}
+.ep-badge-archive {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  background: oklch(94% 0.006 80); color: oklch(55% 0.01 240);
+  border: 1px solid oklch(88% 0.008 80); border-radius: 4px; padding: 2px 8px;
+}
+.ep-num { font-size: 11px; color: oklch(60% 0.01 240); font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+.ep-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ep-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ep-section-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: oklch(55% 0.01 240); padding: 8px 0 4px; border-top: 1px solid oklch(93% 0.006 80);
+  display: flex; align-items: center; gap: 6px;
+}
+.ep-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 4px; }
+.media-top-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.help-hint { font-size: 11px; color: oklch(60% 0.01 240); display: flex; align-items: center; gap: 4px; }
+select {
+  width: 100%; border: 1px solid oklch(88% 0.008 80); border-radius: 7px;
+  padding: 8px 10px; font: 13px/1.4 'Work Sans', sans-serif;
+  color: oklch(18% 0.01 240); background: oklch(98.5% 0.003 80);
+  outline: none; transition: border-color 0.15s; cursor: pointer;
+}
+select:focus { border-color: oklch(52% 0.18 240); }
 </style>
 </head>
 <body>
@@ -277,27 +332,54 @@ input[type="password"] { font-family: monospace; letter-spacing: 0.1em; }
 
   <!-- Main editor -->
   <main class="main">
-    <div class="main-header">
-      <div>
-        <h1 class="main-title">Artikel bearbeiten</h1>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-news-btn" onclick="switchTab('news')">📰 Artikel</button>
+      <button class="tab-btn" id="tab-media-btn" onclick="switchTab('media')">🎙 Media Manager</button>
+    </div>
+
+    <!-- Tab: Artikel -->
+    <div class="tab-panel active" id="tab-news">
+      <div class="main-header">
+        <div>
+          <h1 class="main-title">Artikel bearbeiten</h1>
+        </div>
+        <div class="main-actions">
+          <span id="modifiedCount" style="font-size:12px;color:oklch(55% 0.01 240);align-self:center"></span>
+        </div>
       </div>
-      <div class="main-actions">
-        <span id="modifiedCount" style="font-size:12px;color:oklch(55% 0.01 240);align-self:center"></span>
+      <div class="search-bar" id="searchBar" style="display:none">
+        <span class="search-icon">⌕</span>
+        <input type="text" placeholder="Artikel suchen…" oninput="filterArticles(this.value)" id="searchInput"/>
+      </div>
+      <div id="editorContainer">
+        <div class="empty">
+          <h3>Noch nicht geladen</h3>
+          <p>Token eingeben und "Laden" klicken.</p>
+        </div>
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="search-bar" id="searchBar" style="display:none">
-      <span class="search-icon">⌕</span>
-      <input type="text" placeholder="Artikel suchen…" oninput="filterArticles(this.value)" id="searchInput"/>
-    </div>
-
-    <div id="editorContainer">
-      <div class="empty">
-        <h3>Noch nicht geladen</h3>
-        <p>Token eingeben und "Laden" klicken.</p>
+    <!-- Tab: Media Manager -->
+    <div class="tab-panel" id="tab-media">
+      <div class="main-header">
+        <h1 class="main-title">Media Manager</h1>
+      </div>
+      <div class="media-top-actions">
+        <span class="help-hint">☰ Ziehen zum Sortieren · Oben = Aktuell auf der Startseite</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="loadMediaFromGitHub()">↓ Laden</button>
+          <button class="btn btn-primary" onclick="saveMediaToGitHub()" id="mediaCommitBtn" disabled>Speichern →</button>
+          <button class="btn btn-ghost btn-sm" onclick="addEpisode()" style="background:oklch(94% 0.04 145);border-color:oklch(80% 0.1 145);color:oklch(35% 0.18 145)">+ Neue Episode</button>
+        </div>
+      </div>
+      <div id="mediaStatus" style="font-size:12px;color:oklch(55% 0.01 240);margin-bottom:12px"></div>
+      <div class="ep-list" id="epList">
+        <div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben, dann "Laden" klicken.</p></div>
       </div>
     </div>
+
   </main>
 </div>
 
@@ -641,6 +723,313 @@ try {
   const saved = localStorage.getItem('ki_admin_token');
   if (saved) document.getElementById('ghToken').value = saved;
 } catch(e) { /* sandboxed — ignore */ }
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name + '-btn').classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── Media Manager State ──────────────────────────────────────────────────────
+let mediaEpisodes = [];   // working copy
+let mediaFileSha = '';
+let mediaModified = false;
+let dragSrcIdx = null;
+
+// ── Load media.json from GitHub ──────────────────────────────────────────────
+async function loadMediaFromGitHub() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { toast('Bitte Token eingeben', 'error'); return; }
+  const repo = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim();
+  setMediaStatus('Lade media.json…');
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/media.json?ref=${branch}`, { headers: ghHeaders() });
+    if (!res.ok) throw new Error(`GitHub: ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    mediaFileSha = data.sha;
+    const decoded = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    mediaEpisodes = decoded.episodes || [];
+    mediaModified = false;
+    renderEpList();
+    setMediaStatus(`${mediaEpisodes.length} Episode(n) geladen`);
+    document.getElementById('mediaCommitBtn').disabled = true;
+    toast('media.json geladen', 'success');
+  } catch(e) {
+    setMediaStatus('Fehler: ' + e.message);
+    toast('Fehler: ' + e.message, 'error');
+  }
+}
+
+// ── Save media.json to GitHub ────────────────────────────────────────────────
+async function saveMediaToGitHub() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { toast('Token fehlt', 'error'); return; }
+  const repo = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim();
+  const btn = document.getElementById('mediaCommitBtn');
+  btn.disabled = true; btn.textContent = 'Wird gespeichert…';
+  try {
+    const payload = { episodes: mediaEpisodes };
+    const jsonStr = JSON.stringify(payload, null, 2);
+    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+    const body = { message: 'media: Episoden aktualisiert', content, sha: mediaFileSha, branch };
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/media.json`, {
+      method: 'PUT', headers: { ...ghHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(`${res.status}: ${result.message}`);
+    mediaFileSha = result.content.sha;
+    mediaModified = false;
+    setMediaStatus('✓ Gespeichert');
+    toast('✓ media.json gespeichert', 'success');
+    renderEpList();
+  } catch(e) {
+    toast('Fehler: ' + e.message, 'error');
+  } finally {
+    btn.textContent = 'Speichern →';
+    btn.disabled = !mediaModified;
+  }
+}
+
+// ── Add new empty episode ────────────────────────────────────────────────────
+function addEpisode() {
+  const nextId = String(mediaEpisodes.length + 1).padStart(3, '0');
+  mediaEpisodes.unshift({
+    id: nextId, title: '', description: '', date: new Date().toISOString().slice(0,10),
+    podcast: { soundcloud_url: '', track_id: '', duration: '' },
+    video: { type: 'none', src: '', title: '', label: 'VIDEO' }
+  });
+  markMediaModified();
+  renderEpList();
+  // Scroll to top of list
+  document.getElementById('epList').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Delete episode ───────────────────────────────────────────────────────────
+function deleteEpisode(idx) {
+  if (!confirm(`Episode #${mediaEpisodes[idx].id} "${mediaEpisodes[idx].title || '(leer)'}" wirklich löschen?`)) return;
+  mediaEpisodes.splice(idx, 1);
+  markMediaModified();
+  renderEpList();
+}
+
+// ── Update field ─────────────────────────────────────────────────────────────
+function updateEpField(idx, path, value) {
+  const keys = path.split('.');
+  let obj = mediaEpisodes[idx];
+  for (let i = 0; i < keys.length - 1; i++) obj = obj[keys[i]];
+  obj[keys[keys.length - 1]] = value;
+  // Auto-extract SoundCloud track_id from URL
+  if (path === 'podcast.soundcloud_url') {
+    const match = value.match(/soundcloud\.com\/[^/]+\/([^?&]+)/);
+    if (match) {
+      // Try to extract numeric track id from embed src (not possible from URL alone)
+      // Just save URL; user must fill track_id manually or paste embed code
+    }
+  }
+  markMediaModified();
+}
+
+function extractTrackId(url) {
+  // Extract from embed src format
+  const m = url.match(/tracks%253Atracks%253A(\d+)/);
+  if (m) return m[1];
+  const m2 = url.match(/tracks\/(\d+)/);
+  if (m2) return m2[1];
+  return '';
+}
+
+function parseEmbedCode(idx, embedCode) {
+  if (!embedCode.trim()) return;
+  const trackIdMatch = embedCode.match(/tracks%253Atracks%253A(\d+)/);
+  const urlMatch = embedCode.match(/href="(https:\/\/soundcloud\.com\/[^"]+)"/);
+  if (trackIdMatch) {
+    mediaEpisodes[idx].podcast.track_id = trackIdMatch[1];
+    document.getElementById(`ep-track-id-${idx}`).value = trackIdMatch[1];
+  }
+  if (urlMatch) {
+    mediaEpisodes[idx].podcast.soundcloud_url = urlMatch[1];
+    document.getElementById(`ep-sc-url-${idx}`).value = urlMatch[1];
+  }
+  if (trackIdMatch || urlMatch) {
+    toast('Track-ID + URL extrahiert ✓', 'success');
+    markMediaModified();
+  } else {
+    toast('Kein SoundCloud-Embed erkannt', 'error');
+  }
+}
+
+// ── Drag & Drop ──────────────────────────────────────────────────────────────
+function onDragStart(e, idx) {
+  dragSrcIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.closest('.ep-card').classList.add('dragging'), 0);
+}
+function onDragEnd(e) {
+  e.target.closest('.ep-card').classList.remove('dragging');
+  document.querySelectorAll('.ep-card').forEach(c => c.classList.remove('drag-over'));
+}
+function onDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.ep-card').forEach(c => c.classList.remove('drag-over'));
+  if (idx !== dragSrcIdx) e.currentTarget.classList.add('drag-over');
+}
+function onDrop(e, idx) {
+  e.preventDefault();
+  if (dragSrcIdx === null || dragSrcIdx === idx) return;
+  const moved = mediaEpisodes.splice(dragSrcIdx, 1)[0];
+  mediaEpisodes.splice(idx, 0, moved);
+  dragSrcIdx = null;
+  markMediaModified();
+  renderEpList();
+}
+
+// ── Render episode list ───────────────────────────────────────────────────────
+function renderEpList() {
+  const list = document.getElementById('epList');
+  if (!mediaEpisodes.length) {
+    list.innerHTML = '<div class="empty"><h3>Keine Episoden</h3><p>Klick auf "+ Neue Episode".</p></div>';
+    return;
+  }
+  list.innerHTML = '';
+  mediaEpisodes.forEach((ep, idx) => {
+    const card = document.createElement('div');
+    card.className = 'ep-card';
+    card.draggable = true;
+    card.addEventListener('dragstart', e => onDragStart(e, idx));
+    card.addEventListener('dragend', onDragEnd);
+    card.addEventListener('dragover', e => onDragOver(e, idx));
+    card.addEventListener('drop', e => onDrop(e, idx));
+    const badge = idx === 0
+      ? '<span class="ep-badge-current">▶ Aktuell</span>'
+      : '<span class="ep-badge-archive">Archiv</span>';
+    card.innerHTML = `
+      <div class="ep-header">
+        <span class="ep-drag-handle">⠿</span>
+        ${badge}
+        <span class="ep-num">Episode #${ep.id || idx+1}</span>
+        <span style="font-size:13px;font-weight:600;color:oklch(30% 0.01 240);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ep.title || '<em style="color:oklch(65% 0.01 240)">Kein Titel</em>'}</span>
+        <span style="font-size:11px;color:oklch(65% 0.01 240);font-family:monospace">${ep.date || ''}</span>
+      </div>
+      <div class="ep-body">
+
+        <!-- Basis-Info -->
+        <div class="ep-row">
+          <div>
+            <div class="field-label">Episode-ID</div>
+            <input type="text" value="${escHtml(ep.id||'')}" placeholder="001"
+              oninput="updateEpField(${idx},'id',this.value)"/>
+          </div>
+          <div>
+            <div class="field-label">Datum</div>
+            <input type="date" value="${ep.date||''}"
+              oninput="updateEpField(${idx},'date',this.value)"/>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Titel</div>
+          <input type="text" value="${escHtml(ep.title||'')}" placeholder="Episodentitel…"
+            oninput="updateEpField(${idx},'title',this.value)"/>
+        </div>
+        <div>
+          <div class="field-label">Beschreibung</div>
+          <textarea rows="2" placeholder="Kurze Beschreibung…"
+            oninput="updateEpField(${idx},'description',this.value)">${escHtml(ep.description||'')}</textarea>
+        </div>
+
+        <!-- Podcast -->
+        <div class="ep-section-label">🎙 Podcast</div>
+        <div>
+          <div class="field-label">SoundCloud Embed-Code einfügen → auto-ausfüllen</div>
+          <div style="display:flex;gap:8px">
+            <textarea rows="2" placeholder='<iframe … src="https://w.soundcloud.com/…"></iframe>' id="ep-embed-${idx}"
+              style="font-size:11px;font-family:monospace"></textarea>
+            <button class="btn btn-ghost btn-sm" style="align-self:flex-end;white-space:nowrap"
+              onclick="parseEmbedCode(${idx}, document.getElementById('ep-embed-${idx}').value)">
+              Extrahieren
+            </button>
+          </div>
+        </div>
+        <div class="ep-row">
+          <div>
+            <div class="field-label">SoundCloud URL</div>
+            <input id="ep-sc-url-${idx}" type="text" value="${escHtml(ep.podcast?.soundcloud_url||'')}"
+              placeholder="https://soundcloud.com/…"
+              oninput="updateEpField(${idx},'podcast.soundcloud_url',this.value)"/>
+          </div>
+          <div>
+            <div class="field-label">Track-ID <span style="color:oklch(60% 0.01 240);font-weight:400">(aus Embed)</span></div>
+            <input id="ep-track-id-${idx}" type="text" value="${escHtml(ep.podcast?.track_id||'')}"
+              placeholder="2315736341"
+              oninput="updateEpField(${idx},'podcast.track_id',this.value)"/>
+          </div>
+        </div>
+        <div style="max-width:200px">
+          <div class="field-label">Dauer (optional)</div>
+          <input type="text" value="${escHtml(ep.podcast?.duration||'')}" placeholder="~20 MIN"
+            oninput="updateEpField(${idx},'podcast.duration',this.value)"/>
+        </div>
+
+        <!-- Video -->
+        <div class="ep-section-label">🎬 Video</div>
+        <div class="ep-row">
+          <div>
+            <div class="field-label">Video-Typ</div>
+            <select onchange="updateEpField(${idx},'video.type',this.value);renderEpList()">
+              <option value="none" ${ep.video?.type==='none'?'selected':''}>Kein Video</option>
+              <option value="local" ${ep.video?.type==='local'?'selected':''}>Lokale MP4-Datei</option>
+              <option value="youtube" ${ep.video?.type==='youtube'?'selected':''}>YouTube</option>
+              <option value="vimeo" ${ep.video?.type==='vimeo'?'selected':''}>Vimeo</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-label">Video-Label</div>
+            <input type="text" value="${escHtml(ep.video?.label||'VIDEO')}" placeholder="VIDEO"
+              oninput="updateEpField(${idx},'video.label',this.value)"/>
+          </div>
+        </div>
+        ${ep.video?.type !== 'none' ? `
+        <div class="ep-row">
+          <div>
+            <div class="field-label">${ep.video?.type==='local' ? 'Pfad (z.B. uploads/video.mp4)' : 'URL (YouTube/Vimeo)'}</div>
+            <input type="text" value="${escHtml(ep.video?.src||'')}"
+              placeholder="${ep.video?.type==='local' ? 'uploads/mein-video.mp4' : 'https://…'}"
+              oninput="updateEpField(${idx},'video.src',this.value)"/>
+          </div>
+          <div>
+            <div class="field-label">Video-Titel</div>
+            <input type="text" value="${escHtml(ep.video?.title||'')}" placeholder="Videotitel…"
+              oninput="updateEpField(${idx},'video.title',this.value)"/>
+          </div>
+        </div>` : ''}
+
+        <div class="ep-actions">
+          <button class="btn btn-danger btn-sm" onclick="deleteEpisode(${idx})">✕ Löschen</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function markMediaModified() {
+  mediaModified = true;
+  document.getElementById('mediaCommitBtn').disabled = false;
+}
+function setMediaStatus(msg) {
+  document.getElementById('mediaStatus').textContent = msg;
+}
+
+// Auto-load media when tab is opened if token exists
+document.getElementById('tab-media-btn').addEventListener('click', () => {
+  if (!mediaEpisodes.length && document.getElementById('ghToken').value.trim()) {
+    loadMediaFromGitHub();
+  }
+});
 </script>
 </body>
 </html>

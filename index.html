@@ -247,44 +247,11 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 <main id="main-content" class="pt-14 min-h-screen bg-black">
   <div class="max-w-[1400px] mx-auto p-gutter">
 
-    <!-- TOP: Podcast + Video nebeneinander -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mt-gutter mb-gutter">
-
-      <!-- Podcast -->
-      <div class="ki-card ki-border border p-5 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
-          <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
-        </div>
-        <div class="relative z-10">
-          <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span>
-          <h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:'Space Grotesk',sans-serif;font-size:18px">Ausweispflicht & VPN-Sperren – Europa reagiert</h2>
-          <p class="ki-muted text-[13px] mb-3">Europa plant Ausweispflicht für VPN-Nutzer. Was das bedeutet – und warum es dich betrifft.</p>
-          <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
-            src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2315736341&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"
-            style="border-radius:4px;opacity:0.9"></iframe>
-          <div class="mt-2 flex items-center gap-3">
-            <a href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank"
-              class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
-              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>SoundCloud
-            </a>
-            <span class="text-xs ki-muted font-mono">KI NEWS #002</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Video -->
-      <div class="ki-card ki-border border overflow-hidden flex flex-col">
-        <div class="video-wrap flex-shrink-0">
-          <div class="video-label">VIDEO</div>
-          <video controls preload="metadata" style="max-height:185px">
-            <source src="uploads/Metas_Solar-Plan_im_All.mp4" type="video/mp4"/>
-          </video>
-        </div>
-        <div class="p-4 flex-1">
-          <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">Metas Solar-Plan im All</h4>
-          <p class="text-[12px] ki-muted">1.000 Satelliten, 1 Gigawatt Solarstrom aus dem Orbit.</p>
-        </div>
-      </div>
+    <!-- TOP: Podcast + Video nebeneinander (dynamisch aus media.json) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mt-gutter mb-gutter" id="media-top-grid">
+      <!-- Wird per JS aus media.json befüllt -->
+      <div class="ki-card ki-border border p-5 animate-pulse h-48"></div>
+      <div class="ki-card ki-border border p-5 animate-pulse h-48"></div>
     </div>
 
     <!-- Editorial Banner – aus news.json, nur sichtbar wenn gefüllt -->
@@ -685,6 +652,98 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
+
+// ── Media: Podcast + Video aus media.json ──────────────────────────────────
+function buildVideoBlock(video) {
+  if (!video || video.type === 'none' || !video.src) {
+    return `<div class="ki-card ki-border border flex items-center justify-center text-center p-8">
+      <div>
+        <span class="material-symbols-outlined ki-muted" style="font-size:40px">videocam_off</span>
+        <p class="ki-muted text-[12px] mt-2 font-mono">Kein Video für diese Episode</p>
+      </div>
+    </div>`;
+  }
+  if (video.type === 'local') {
+    return `<div class="ki-card ki-border border overflow-hidden flex flex-col">
+      <div class="video-wrap flex-shrink-0">
+        <div class="video-label">${video.label || 'VIDEO'}</div>
+        <video controls preload="metadata" style="max-height:185px">
+          <source src="${video.src}" type="video/mp4"/>
+        </video>
+      </div>
+      <div class="p-4 flex-1">
+        <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">${video.title || ''}</h4>
+      </div>
+    </div>`;
+  }
+  if (video.type === 'youtube') {
+    const ytId = video.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || video.src;
+    return `<div class="ki-card ki-border border overflow-hidden flex flex-col">
+      <div class="video-wrap flex-shrink-0" style="padding-top:56.25%;position:relative">
+        <div class="video-label">${video.label || 'VIDEO'}</div>
+        <iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+      </div>
+      <div class="p-4 flex-1">
+        <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">${video.title || ''}</h4>
+      </div>
+    </div>`;
+  }
+  if (video.type === 'vimeo') {
+    const vmId = video.src.match(/vimeo\.com\/(\d+)/)?.[1] || video.src;
+    return `<div class="ki-card ki-border border overflow-hidden flex flex-col">
+      <div class="video-wrap flex-shrink-0" style="padding-top:56.25%;position:relative">
+        <div class="video-label">${video.label || 'VIDEO'}</div>
+        <iframe src="https://player.vimeo.com/video/${vmId}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
+          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+      </div>
+      <div class="p-4 flex-1">
+        <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">${video.title || ''}</h4>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+fetch('media.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    const episodes = data.episodes || [];
+    if (!episodes.length) return;
+    const current = episodes[0];
+    const grid = document.getElementById('media-top-grid');
+    if (!grid) return;
+
+    // Podcast-Card
+    const scUrl = `https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${current.podcast.track_id}&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`;
+    const podcastCard = `
+      <div class="ki-card ki-border border p-5 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
+          <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
+        </div>
+        <div class="relative z-10">
+          <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span>
+          <h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:'Space Grotesk',sans-serif;font-size:18px">${current.title}</h2>
+          <p class="ki-muted text-[13px] mb-3">${current.description}</p>
+          <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
+            src="${scUrl}" style="border-radius:4px;opacity:0.9"></iframe>
+          <div class="mt-2 flex items-center gap-3">
+            <a href="${current.podcast.soundcloud_url}" target="_blank"
+              class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
+              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>SoundCloud
+            </a>
+            <span class="text-xs ki-muted font-mono">KI NEWS #${current.id}${current.podcast.duration ? ' · ' + current.podcast.duration : ''}</span>
+          </div>
+        </div>
+      </div>`;
+
+    grid.innerHTML = podcastCard + buildVideoBlock(current.video);
+  })
+  .catch(() => {
+    // Fallback: leerer Block, kein Crash
+    const grid = document.getElementById('media-top-grid');
+    if (grid) grid.innerHTML = '';
+  });
 </script>
 </body>
 </html>
