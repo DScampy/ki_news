@@ -6,6 +6,7 @@
 <title>KI News – Täglich. Auf Deutsch. Mit Kontext.</title>
 <meta name="description" content="Deutschsprachige KI-News: Englische Quellen kuratiert, eingeordnet, erklärt. Von @CScampy."/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
@@ -22,6 +23,7 @@
 </script>
 <style>
 body{background:#000;color:#dfe3ea;}
+canvas#ambient-creature{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.55;}
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
 ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
 
@@ -744,6 +746,67 @@ fetch('media.json?t=' + Date.now())
     const grid = document.getElementById('media-top-grid');
     if (grid) grid.innerHTML = '';
   });
+</script>
+
+<!-- ── Ambient Creature ─────────────────────────────────────────── -->
+<script>
+(function(){
+  const P={dx:35,dy:6,r:65,vs:50,tw:20,tr:0.055,particles:4000,t:0};
+  function breath(t){return{A:9+3.5*Math.sin(t*0.48),R:P.r+14*Math.sin(t*0.33),W:2+1.2*Math.sin(t*0.39+1.1)};}
+  const SPEED=1.1,MAX_TURN=0.009,EDGE=150;
+  let cx,cy,heading=Math.PI*0.3,formAngle=0;
+  new p5(function(p){
+    p.setup=function(){
+      const c=p.createCanvas(p.windowWidth,p.windowHeight);
+      c.id('ambient-creature');
+      p.colorMode(p.HSB,360,100,100,1);
+      p.frameRate(60);
+      cx=p.width/2; cy=p.height/2;
+    };
+    p.draw=function(){
+      P.t+=p.PI/240; const t=P.t;
+      let tx=p.width*0.5+p.sin(t*0.11)*p.width*0.38;
+      let ty=p.height*0.5+p.sin(t*0.07)*p.height*0.36;
+      if(cx<EDGE||cx>p.width-EDGE||cy<EDGE||cy>p.height-EDGE){tx=p.width/2;ty=p.height/2;}
+      const desH=p.atan2(ty-cy,tx-cx);
+      let dH=desH-heading;
+      while(dH>p.PI)dH-=p.TWO_PI; while(dH<-p.PI)dH+=p.TWO_PI;
+      heading+=p.constrain(dH,-MAX_TURN,MAX_TURN);
+      const vx=p.cos(heading)*SPEED, vy=p.sin(heading)*SPEED;
+      cx+=vx; cy+=vy;
+      const tA=heading+p.PI/2;
+      let aD=tA-formAngle;
+      while(aD>p.PI)aD-=p.TWO_PI; while(aD<-p.PI)aD+=p.TWO_PI;
+      formAngle+=aD*0.04;
+      const sf=p.min(p.width,p.height)/500*1.15;
+      const avgE=(P.particles/235/2)/P.dy-20;
+      const oY=Math.abs(avgE)*P.vs-475;
+      const{A,R,W}=breath(t);
+      const baseH=(t*8)%360;
+      p.background(5,0,3,P.tr);
+      p.noStroke();
+      p.push();
+      p.translate(cx,cy);
+      p.rotate(formAngle);
+      p.scale(sf*(1+SPEED*0.012),sf);
+      p.translate(-200,-oY);
+      for(let i=P.particles;i>0;i--){
+        const x=i,y=i/235;
+        const k=4*p.cos(x/P.dx);
+        const e=y/P.dy-20;
+        const d=p.mag(k,e);
+        const q=3*p.sin(k*2)+0.3/k+p.sin(y/19)*k*(A+W*p.sin(e*P.tw-d*3+t*2));
+        const c2=d-t;
+        const px2=q+R*p.cos(c2)+200;
+        const py2=q*p.sin(c2)+d*P.vs-475;
+        if(i%60===0){const h=(baseH+(i/P.particles)*55)%360;p.fill(h,75,90,0.38);}
+        p.circle(px2,py2,k*k>15?2:1);
+      }
+      p.pop();
+    };
+    p.windowResized=function(){p.resizeCanvas(p.windowWidth,p.windowHeight);};
+  });
+})();
 </script>
 </body>
 </html>
