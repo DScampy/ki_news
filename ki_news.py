@@ -81,22 +81,18 @@ FEEDS = [
     ("Heise",       "https://www.heise.de/newsticker/heise.rdf"),
     ("Golem",       "https://rss.golem.de/rss.php?feed=RSS2.0"),
     ("Caschy Blog", "https://stadt-bremerhaven.de/feed/"),
-    # Englisch
+    # Englisch – AI-spezifische Feeds bevorzugt
     ("TechCrunch AI",  "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
-    ("Wired AI",       "https://wired.com/feed/rss"),
-    ("The Verge", "https://theverge.com/rss/index.xml"),
-    ("SiliconAngle", "https://siliconangle.com/feed"),
-    ("TechRepublic", "https://www.techrepublic.com/rssfeeds/articles/"),
+    ("Wired",          "https://wired.com/feed/rss"),
+    ("The Verge",      "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"),
+    ("SiliconAngle",   "https://siliconangle.com/feed"),
+    ("TechRepublic",   "https://www.techrepublic.com/rssfeeds/articles/"),
     ("Bloomberg", "https://feeds.bloomberg.com/news.json?ageHours=120&token=glassdoor%3Agd4bloomberg&tickers=NTRS%3AUS&callback=jQuery21306832818930041152_1513149004387"),
     # Kuratiert – bereits AI-spezifisch, kein KI-Filter nötig
-    # Pre-analysed items: description enthält 2-3 Satz-Analyse, category = funding/models/breaking/etc.
     ("AlignedNews",    "https://alignednews.com/feed"),
 ]
-
-# Quellen die bereits vollständig kuratiert sind → _is_ki_relevant()-Filter überspringen
-CURATED_SOURCES = {"AlignedNews"}
 
 # Nur diese 3 News gehen an den LLM fuer Posts
 # Mehr = generischer Fuelltext weil das Modell ueberfordert ist
@@ -173,7 +169,6 @@ THREAD_LABELS = ["Hook", "Kontext", "Kaskade", "Gruselig", "Konsequenz", "Fazit"
 SOURCE_PRESTIGE = {
     "Bloomberg":      10,
     "The Decoder":    9,
-    "AlignedNews":    9,   # NEU: kuratierte KI-Analyse, hohe Signaldichte
     "TechCrunch AI":  8,
     "Heise":          8,
     "VentureBeat AI": 7,
@@ -184,7 +179,7 @@ SOURCE_PRESTIGE = {
     "SiliconAngle":   5,
     "TechRepublic":   5,
     "Caschy Blog":    4,
-    "Gizmodo":        4,
+    # Gizmodo entfernt (blockiert GitHub Actions)
 }
 
 # Wichtigkeits-Keywords → Punktebonus
@@ -260,12 +255,6 @@ def score_cluster(cluster):
     kw_score = sum(pts for kw, pts in IMPORTANCE_KEYWORDS if kw in all_titles)
 
     total = source_score + prestige_score + kw_score
-
-    # Bonus für explizit als "breaking" markierte Items (z.B. AlignedNews-Kategorie)
-    if any(item.get("category", "").lower() == "breaking" for item in cluster):
-        total += 20
-        logger.debug("[Scoring] Breaking-Bonus +20 für Cluster")
-
     label = next(lbl for threshold, lbl in SCORE_LABELS if total >= threshold)
     return total, label
 
@@ -309,13 +298,26 @@ def pick_top_news(alle_news, n=3):
 # Feeds
 # -------------------------
 def http_get_with_retry(url, headers=None, timeout=10, retries=3, backoff=2):
-    headers = headers or {"User-Agent": "Mozilla/5.0"}
+    # Realistischer Browser-UA – reduziert 403/Throttling bei Medien-Seiten
+    default_ua = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    )
+    headers = headers or {
+        "User-Agent": default_ua,
+        "Accept": "application/rss+xml,application/xml,*/*"
+    }
     for attempt in range(1, retries + 1):
         try:
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.read()
         except (HTTPError, URLError) as e:
+            if hasattr(e, 'code') and e.code == 403:
+                # 403 = Feed blockiert GitHub Actions IPs → kein Retry, sofort aufgeben
+                logger.warning("HTTP Fehler %s: %s (Versuch %d/%d) – Feed blockiert, überspringe", url, e, attempt, retries)
+                break
             logger.warning("HTTP Fehler %s: %s (Versuch %d/%d)", url, e, attempt, retries)
             sleep(backoff * attempt)
         except Exception as e:
@@ -324,7 +326,9 @@ def http_get_with_retry(url, headers=None, timeout=10, retries=3, backoff=2):
     return None
 
 def fetch_feed(name, url):
-    raw = http_get_with_retry(url, timeout=8, retries=2, backoff=2)
+    # The Decoder braucht mehr Zeit – Server langsam für GitHub Actions IPs
+    timeout = 20 if "the-decoder" in url else 12
+    raw = http_get_with_retry(url, timeout=timeout, retries=2, backoff=3)
     if not raw:
         logger.error("[%s] Kein Inhalt erhalten.", name)
         return []
@@ -343,24 +347,8 @@ def fetch_feed(name, url):
             link_elem = item.find("link")
             if link_elem is not None:
                 link = link_elem.get("href", "").strip()
-
-        # Beschreibung extrahieren – AlignedNews liefert bereits 2-3-Satz-Analysen
-        desc_raw = (item.findtext("description") or "").strip()
-        # HTML-Tags + CDATA-Wrapper entfernen
-        desc = re.sub(r'<[^>]+>', '', desc_raw).strip() if desc_raw else ""
-
-        # Kategorie (AlignedNews: funding | models | products | breaking | zehn Dinge)
-        category = (item.findtext("category") or "").strip().lower()
-
-        # KI-Filter: kuratierte Quellen immer nehmen, sonst Relevanz prüfen
-        if title and (name in CURATED_SOURCES or _is_ki_relevant(title)):
-            items.append({
-                "title":       title,
-                "link":        link,
-                "source":      name,
-                "description": desc,      # NEU: pre-analysed content wenn vorhanden
-                "category":    category,  # NEU: z.B. "breaking" für Score-Bonus
-            })
+        if title and _is_ki_relevant(title):
+            items.append({"title": title, "link": link, "source": name})
     return items[:3]
 
 # -------------------------
@@ -383,24 +371,22 @@ def summarize_news(alle_news):
     }
     def _is_placeholder(title: str) -> bool:
         t = title.lower().strip()
-        if len(t) < 8:
-            return True
-        return any(p in t for p in PLACEHOLDER_PATTERNS)
+        return len(t) < 8 or any(p in t for p in PLACEHOLDER_PATTERNS)
 
     for batch_start in range(0, len(alle_news), batch_size):
         batch = alle_news[batch_start:batch_start + batch_size]
         news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(batch)])
         prompt = f"""Du bist ein deutschsprachiger KI-News-Redakteur.
 Uebersetze und fasse JEDE der folgenden News auf Deutsch zusammen.
-Antworte AUSSCHLIESSLICH mit einem JSON-Array – kein erklaerende Text, keine Backticks, kein Markdown.
+Antworte AUSSCHLIESSLICH mit einem JSON-Array – kein Text davor oder danach, keine Backticks, kein Markdown.
 
-Format (ersetze den Inhalt mit echten Werten fuer jede News):
-[{{"id": 1, "title_de": "Echter deutscher Titel der News", "summary": "2-3 Saetze: was ist passiert und warum ist es fuer KI-Interessierte relevant."}}, ...]
+Format (ersetze Inhalt mit echten Werten fuer jede News):
+[{{"id": 1, "title_de": "Echter deutscher Titel der News", "summary": "2-3 Saetze: was ist passiert und warum relevant fuer KI-Interessierte."}}, ...]
 
 Wichtig:
-- title_de MUSS eine echte Uebersetzung des Originaltitels sein, kein Platzhalterwert
+- title_de MUSS eine echte Uebersetzung des Originaltitels sein
 - Jede id muss vorkommen (1 bis {len(batch)})
-- Nur JSON zurueckgeben, sonst nichts
+- Nur das JSON-Array zurueckgeben, sonst nichts
 
 News:
 {news_text}"""
@@ -426,7 +412,7 @@ News:
                         global_index = batch_start + item["id"] - 1
                         if 0 <= global_index < len(alle_news):
                             raw_title = item.get("title_de", "")
-                            # Placeholder-Schutz: falls LLM Beispieltext zurueckgibt → Original behalten
+                            # Placeholder-Schutz: falls LLM Beispieltext zurückgibt → Original behalten
                             title_de = raw_title if raw_title and not _is_placeholder(raw_title) \
                                        else alle_news[global_index]["title"]
                             result[global_index] = {
@@ -584,70 +570,6 @@ News (genau diese 3, je eine pro Post):
     return "Fehler: Kein Modell verfuegbar"
 
 # -------------------------
-# Editorial-Synthese
-# Ein einziger narrativer Tweet der alle Top-Stories verbindet
-# -------------------------
-def generate_editorial(top_news, score_map):
-    """
-    Erzeugt einen redaktionellen Synthese-Tweet: Was verbindet die Top-Stories heute?
-    Kein Aufzählen – ein fließender Gedanke, der den übergeordneten Trend benennt.
-    Max. 265 Zeichen. Nutzt dieselbe Modell-Liste wie Posts (Gemma zuerst).
-    """
-    if not top_news:
-        return ""
-    if not OPENROUTER_KEY:
-        ollama_available = _detect_ollama_models()
-        if not ollama_available:
-            return ""
-
-    lines = []
-    for n in top_news:
-        scoring = score_map.get(n.get("link", ""), {})
-        label = scoring.get("label", "")
-        lines.append(f"- {n['title']} [{label}] (via {n['source']})")
-    news_text = "\n".join(lines)
-
-    messages = [{
-        "role": "user",
-        "content": f"""Du bist @CScampy, KI-Beobachter aus Deutschland.
-
-Schreibe einen einzigen, packenden deutschen Tweet (maximal 265 Zeichen, Emojis zählen als 2):
-- Verbinde alle Stories zu EINEM fließenden Gedanken – keine Aufzählung, keine Bullet Points
-- Zeige den übergeordneten Trend oder die Spannung die diese Meldungen gemeinsam haben
-- Beginne stark – mit der Erkenntnis, nicht mit "Heute" oder "Die KI-Welt"
-- Kein Ausrufezeichen. Kein "Als KI-Beobachter". Direkte, menschliche Sprache.
-
-Top-Stories heute:
-{news_text}
-
-Antworte NUR mit dem Tweet-Text. Keine Anführungszeichen drum herum."""
-    }]
-
-    ollama_available = _detect_ollama_models()
-    modell_liste = ollama_available + MODELLE_POSTS
-
-    for modell in modell_liste:
-        try:
-            antwort = _call_llm_api(modell, messages, max_tokens=150, timeout=60)
-            if not antwort:
-                continue
-            antwort = antwort.strip().strip('"').strip("'").strip()
-            logger.info("Editorial OK mit %s (%d Zeichen): %s", modell, len(antwort), antwort[:60])
-            return antwort
-        except HTTPError as e:
-            if e.code == 429:
-                logger.warning("Editorial: %s Rate-Limit (429) – nächstes Modell", modell)
-            else:
-                logger.warning("Editorial: %s HTTP %s – nächstes Modell", modell, e.code)
-            continue
-        except Exception as e:
-            logger.warning("Editorial: %s Fehler: %s", modell, e)
-            continue
-
-    logger.warning("Editorial: Kein Modell verfügbar – Editorial wird übersprungen")
-    return ""
-
-# -------------------------
 # Parsing
 # -------------------------
 def parse_posts(posts_raw):
@@ -706,15 +628,10 @@ def _telegram_send_chunk(text, max_retries=3, delay=5):
         sleep(delay)
     return False
 
-def send_telegram(parsed, editorial=""):
+def send_telegram(parsed):
     if not TELEGRAM_TOKEN:
         logger.warning("Kein Telegram Token. Ueberspringe Versand.")
         return False
-
-    # Editorial als erste separate Nachricht – kurz, prägnant, Überblick
-    if editorial:
-        _telegram_send_chunk(f"🗞 Was bewegt die KI-Welt:\n\n{editorial}")
-        sleep(1)
 
     teile = ["KI News fuer @ScampyNews24_bot\n"]
     for i, p in enumerate(parsed, 1):
@@ -754,7 +671,7 @@ def send_telegram(parsed, editorial=""):
 # -------------------------
 # HTML
 # -------------------------
-def create_html(alle_news, parsed, summaries, editorial=""):
+def create_html(alle_news, parsed, summaries):
     datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
 
     news_html = ""
@@ -837,24 +754,6 @@ def create_html(alle_news, parsed, summaries, editorial=""):
             {thread_html}
         </div>'''
 
-    # Editorial-Block vorab berechnen (kein Backslash in f-string-Ausdruck erlaubt)
-    if editorial:
-        ed_zeichen = len(editorial)
-        ed_onclick = "copyPost('editorial-text', this)"
-        editorial_html = (
-            '<div class="editorial-banner">'
-            '<div class="editorial-icon">\U0001F5DE</div>'
-            '<div class="editorial-body">'
-            '<div class="editorial-label">Tages\xfcberblick</div>'
-            f'<div class="editorial-text" id="editorial-text">{editorial}</div>'
-            '<div class="editorial-actions">'
-            f'<button class="btn-copy-sm" onclick="{ed_onclick}">Kopieren</button>'
-            f'<span class="editorial-zeichen">{ed_zeichen}/265</span>'
-            '</div></div></div>'
-        )
-    else:
-        editorial_html = ""
-
     html = f"""<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -913,17 +812,9 @@ def create_html(alle_news, parsed, summaries, editorial=""):
         .thread-text {{ font-size: 14px; line-height: 1.5; color: #e7e9ea; margin-bottom: 8px; }}
         .btn-copy-sm {{ padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; background: #1a1a1a; color: #94a3b8; border: 1px solid #2f3336; transition: opacity 0.2s; }}
         .btn-copy-sm:hover {{ opacity: 0.8; }}
-        .editorial-banner {{ background: linear-gradient(135deg, #0d1a2e 0%, #111827 100%); border-bottom: 1px solid #1d9bf0; padding: 14px 24px; max-width: 1200px; margin: 0 auto; display: flex; align-items: flex-start; gap: 14px; }}
-        .editorial-icon {{ font-size: 20px; flex-shrink: 0; margin-top: 1px; }}
-        .editorial-body {{ flex: 1; }}
-        .editorial-label {{ color: #1d9bf0; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }}
-        .editorial-text {{ color: #e7e9ea; font-size: 14px; line-height: 1.5; }}
-        .editorial-actions {{ display: flex; align-items: center; gap: 10px; margin-top: 8px; }}
-        .editorial-zeichen {{ font-size: 10px; color: #536471; }}
         @media (max-width: 700px) {{
             .layout {{ grid-template-columns: 1fr; }}
             .panel-left {{ border-right: none; border-bottom: 1px solid #2f3336; }}
-            .editorial-banner {{ padding: 12px 16px; }}
         }}
     </style>
     <script>
@@ -956,7 +847,6 @@ def create_html(alle_news, parsed, summaries, editorial=""):
         </div>
         <span class="datum">Stand: {datum}</span>
     </div>
-    {editorial_html}
     <div class="layout">
         <div class="panel panel-left">
             <div class="panel-title">Aktuelle KI-News</div>
@@ -1022,15 +912,6 @@ def main():
     # Zusammenfassungen fuer alle News (Dashboard links)
     summaries = summarize_news(alle_news)
 
-    # Pre-fill: Items mit vorhandener description (z.B. AlignedNews) direkt übernehmen
-    # → spart einen LLM-Call und nutzt die bereits vorhandene Analyse
-    for i, n in enumerate(alle_news):
-        if n.get("description") and not summaries.get(i, {}).get("summary"):
-            summaries[i] = {
-                "title_de": summaries.get(i, {}).get("title_de", n["title"]),
-                "summary":  n["description"],
-            }
-
     # NEU: Top-3 nach Scoring wählen statt blindem [:3]
     top_news, score_map = pick_top_news(alle_news, n=MAX_LLM_NEWS)
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
@@ -1039,10 +920,7 @@ def main():
     parsed = parse_posts(posts_raw)
     logger.info("%d Posts geparst", len(parsed))
 
-    # NEU: Editorial-Synthese – ein Narrativ das alle Top-Stories verbindet
-    editorial = generate_editorial(top_news, score_map)
-
-    send_telegram(parsed, editorial=editorial)
+    send_telegram(parsed)
 
     # ── news.json schreiben (fuer Dashboard + Archiv) ──────────────────────
     def write_json_file(path_obj, data):
@@ -1081,10 +959,9 @@ def main():
         })
 
     news_json_data = {
-        "stand":    datum,
-        "news":     news_list,
-        "posts":    posts_list,
-        "editorial": editorial,   # NEU: Synthese-Tweet für Dashboard + externe Nutzung
+        "stand": datum,
+        "news":  news_list,
+        "posts": posts_list,
     }
 
     proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
@@ -1187,7 +1064,74 @@ def main():
         update_hashtags(Path("."))
 
     # ── HTML generieren ───────────────────────────────────────────────────────
-    pfad = create_html(alle_news, parsed, summaries, editorial=editorial)
+    pfad = create_html(alle_news, parsed, summaries)
+
+    logger.info("KI News Lauf abgeschlossen.")
+
+
+# -------------------------
+# Entry Point
+# -------------------------
+if __name__ == "__main__":
+    main()
+            else:
+                existing_tags = set()
+        except Exception:
+            existing_tags = set()
+
+        # Basis-Tags aus Quellen
+        source_tags = {
+            "The Decoder": "#TheDecoder",
+            "TechCrunch AI": "#TechCrunch",
+            "VentureBeat AI": "#VentureBeat",
+            "Ars Technica": "#ArsTechnica",
+            "MIT Tech Review": "#MITTechReview",
+            "Heise": "#Heise",
+        }
+        # Keyword-Tags aus Nachrichtentiteln generieren
+        keyword_map = {
+            "openai": "#OpenAI", "chatgpt": "#ChatGPT", "gpt": "#GPT",
+            "claude": "#Claude", "anthropic": "#Anthropic",
+            "gemini": "#Gemini", "google": "#Google",
+            "meta ai": "#MetaAI", "llama": "#Llama",
+            "mistral": "#Mistral", "deepseek": "#DeepSeek",
+            "nvidia": "#Nvidia", "gemma": "#Gemma",
+            "agent": "#AIAgent", "llm": "#LLM",
+            "roboter": "#Robotik", "automation": "#Automation",
+            "sicherheit": "#AISafety", "datenschutz": "#Datenschutz",
+        }
+        new_tags = set()
+        for n in alle_news:
+            title_lower = n["title"].lower()
+            # Quellen-Tag
+            src_tag = source_tags.get(n.get("source", ""))
+            if src_tag:
+                new_tags.add(src_tag)
+            # Keyword-Tags aus Titel
+            for kw, tag in keyword_map.items():
+                if kw in title_lower:
+                    new_tags.add(tag)
+
+        # Immer vorhandene Basis-Tags
+        base_tags = {"#KI", "#AI", "#AINews", "#KünstlicheIntelligenz", "#LLM"}
+        merged = sorted(base_tags | existing_tags | new_tags)
+
+        try:
+            hashtag_path.write_text(
+                json.dumps({"tags": merged}, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+            logger.info("hashtags.json aktualisiert: %d Tags", len(merged))
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben hashtags.json: %s", e)
+
+    if proj_dir.exists():
+        update_hashtags(proj_dir)
+    else:
+        update_hashtags(Path("."))
+
+    # ── HTML generieren ───────────────────────────────────────────────────────
+    pfad = create_html(alle_news, parsed, summaries)
 
     logger.info("KI News Lauf abgeschlossen.")
 
