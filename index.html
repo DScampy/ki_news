@@ -77,13 +77,15 @@ html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
 #sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
 #main-content{transition:margin-left 0.25s ease;margin-left:0;}
 @media(max-width:1023px){#main-content{margin-left:0!important;}}
-#sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s ease;border-radius:0 4px 4px 0;}
+#sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:#00d4ff;border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease,box-shadow 0.2s;border-radius:0 6px 6px 0;box-shadow:0 0 12px rgba(0,212,255,0.5);}
+#sidebar-toggle:hover{box-shadow:0 0 20px rgba(0,212,255,0.8);background:#22dfff;}
 @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
 
 /* ── Light Mode ── */
 html.light body{background:#f0f4f8!important;color:#0f172a!important;}
 html.light nav.fixed{background:rgba(255,255,255,0.88)!important;border-color:#e2e8f0!important;}
-html.light #sidebar{background:#fff!important;border-color:#e2e8f0!important;}
+html.light #sidebar{background:#e8edf4!important;border-color:#d1d9e6!important;}
+#sidebar{background:#0c1220!important;}
 html.light #main-content{background:#f0f4f8!important;}
 html.light .ki-card{background:#fff!important;}
 html.light .ki-card:hover{background:#f8fafc!important;}
@@ -164,8 +166,13 @@ html.light .carousel-arrow{background:rgba(255,255,255,0.82);color:#0f172a;}
   background:rgba(8,12,20,0.85);border:1px solid rgba(0,212,255,0.32);
   backdrop-filter:blur(16px);padding:26px 30px 22px;border-radius:16px;
   display:flex;flex-direction:column;justify-content:space-between;
-  position:relative;transition:opacity 0.35s ease;
+  position:relative;overflow:hidden;
+  transition:opacity 0.35s ease,box-shadow 0.3s ease,border-color 0.3s ease;
   box-shadow:0 0 0 1px rgba(0,212,255,0.10),0 0 22px rgba(0,212,255,0.18),0 0 44px rgba(0,212,255,0.07);
+}
+#carousel-featured:hover{
+  border-color:rgba(0,212,255,0.58) !important;
+  box-shadow:0 0 0 1px rgba(0,212,255,0.25),0 0 30px rgba(0,212,255,0.32),0 0 60px rgba(0,212,255,0.10);
 }
 html.light #carousel-featured{background:rgba(255,255,255,0.93);}
 #progress-bar{position:absolute;bottom:0;left:0;height:2px;background:#00d4ff;border-radius:0 0 0 16px;transition:width 0.1s linear;width:0%;}
@@ -278,39 +285,59 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
 
 <!-- Sidebar Toggle -->
 <button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
-  <span class="material-symbols-outlined" style="font-size:12px" id="toggle-icon">chevron_right</span>
+  <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
 </button>
 
 <!-- Sidebar -->
-<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col py-6 bg-black ki-border border-r hidden lg:flex overflow-hidden collapsed">
-  <div class="px-5 mb-6">
-    <p class="text-[11px] ki-muted font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
+<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col ki-border border-r hidden lg:flex overflow-hidden collapsed" style="border-color:rgba(0,212,255,0.18);">
+
+  <!-- S-Logo Header -->
+  <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(0,212,255,0.12);">
+    <img src="s-logo.png" alt="ScampyKI" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(0,212,255,0.5));"/>
+    <div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:#00d4ff;letter-spacing:-0.02em;">ScampyKI</div>
+      <div style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">KI-NEWS.LIVE</div>
+    </div>
   </div>
-  <div class="flex flex-col gap-1 px-2">
-    <a class="ki-sidebar-active flex items-center gap-3 bg-[#1d1f23] text-[#1d9bf0] border-l-4 border-[#1d9bf0] px-4 py-3 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="#">
+
+  <!-- Nav -->
+  <div class="flex flex-col gap-0.5 px-2 pt-3 flex-1 overflow-y-auto">
+    <a class="ki-sidebar-active flex items-center gap-3 text-[#00d4ff] border-l-2 border-[#00d4ff] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(0,212,255,0.08);" href="#">
       <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#1d2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">
+    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="Archiv.html">
       <span class="material-symbols-outlined text-sm">archive</span>Archiv
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#1d2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">
+    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">
       <span class="material-symbols-outlined text-sm">mic</span>Podcast
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-3 hover:bg-[#1d2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif" href="https://x.com/CScampy" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      X / Twitter
+    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://youtube.com/@ScampyKI" target="_blank">
+      <span class="material-symbols-outlined text-sm">play_circle</span>YouTube
+    </a>
+    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="creature-lab.html">
+      <span style="font-size:14px;flex-shrink:0">🐉</span>Kreatur Lab
+    </a>
+
+    <!-- Divider -->
+    <div style="margin:8px 16px;height:1px;background:rgba(0,212,255,0.10);"></div>
+
+    <!-- Social Links -->
+    <div style="padding:4px 16px 4px;font-size:9px;font-family:monospace;color:rgba(0,212,255,0.5);letter-spacing:0.12em;text-transform:uppercase;">Kontakt & Social</div>
+    <a class="flex items-center gap-3 ki-muted px-4 py-2 hover:bg-[#1a2535] hover:text-white text-xs font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://x.com/ScampyKI" target="_blank">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      @ScampyKI
+    </a>
+    <a class="flex items-center gap-3 ki-muted px-4 py-2 hover:bg-[#1a2535] hover:text-white text-xs font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://instagram.com/KIScampy" target="_blank">
+      <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
+    </a>
+    <a class="flex items-center gap-3 ki-muted px-4 py-2 hover:bg-[#1a2535] hover:text-white text-xs font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://linkedin.com/in/dscampy" target="_blank">
+      <span class="material-symbols-outlined text-sm">work</span>dscampy
     </a>
   </div>
-  <div class="mt-auto px-5 pb-2">
-    <div class="ki-card ki-border border p-3">
-      <p class="text-[10px] ki-muted font-mono mb-1">QUELLEN</p>
-      <div class="flex flex-wrap gap-1">
-        <span class="text-[10px] bg-[#1d9bf0]/20 text-[#1d9bf0] px-1.5 py-0.5 font-mono">The Decoder</span>
-        <span class="text-[10px] bg-[#ff6b35]/20 text-[#ff6b35] px-1.5 py-0.5 font-mono">TechCrunch</span>
-        <span class="text-[10px] bg-[#7c3aed]/20 text-[#a78bfa] px-1.5 py-0.5 font-mono">VentureBeat</span>
-        <span class="text-[10px] bg-[#dc2626]/20 text-[#f87171] px-1.5 py-0.5 font-mono">MIT Review</span>
-      </div>
-    </div>
+
+  <!-- Footer -->
+  <div style="padding:12px 20px;border-top:1px solid rgba(0,212,255,0.10);">
+    <p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.22);line-height:1.5;">KI-News täglich auf Deutsch.<br>Kuratiert · Eingeordnet · Erklärt.</p>
   </div>
 </aside>
 
@@ -365,43 +392,18 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
 
     <div id="editorial-banner" class="ed-banner" style="display:none;border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:12px;gap:14px;align-items:flex-start"></div>
 
-    <div class="flex flex-col xl:flex-row gap-gutter items-start">
-      <div class="flex-1 min-w-0">
-        <div class="mb-6 flex items-center justify-between">
-          <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:24px">Aktuelle News</h3>
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Wird geladen...</span>
-          </div>
-        </div>
-        <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
-          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
-          <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
+    <div>
+      <div class="mb-6 flex items-center justify-between">
+        <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:24px">Aktuelle News</h3>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Wird geladen...</span>
         </div>
       </div>
-
-      <div class="xl:w-[280px] xl:flex-shrink-0 xl:sticky xl:top-20 w-full flex flex-col gap-4">
-        <div class="ki-card ki-border border p-4">
-          <div class="flex items-center gap-2 mb-3">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-            <span class="text-[10px] font-mono ki-muted uppercase tracking-widest">Highlight Post</span>
-          </div>
-          <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-lang="de" data-width="250">
-            <a href="https://x.com/CScampy/status/2049045655587287473"></a>
-          </blockquote>
-        </div>
-        <a href="https://x.com/CScampy" target="_blank" class="flex items-center justify-center gap-2 w-full py-2.5 ki-card ki-border border text-[#1d9bf0] hover:bg-[#1d9bf0] hover:text-white transition-all text-[11px] font-bold font-mono tracking-wider">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          @CSCAMPY FOLGEN
-        </a>
-        <a href="Archiv.html#hashtags" class="ki-card ki-border border p-4 flex items-center gap-3 transition-all cursor-pointer" style="text-decoration:none">
-          <span class="material-symbols-outlined text-[#1d9bf0]" style="font-size:18px">tag</span>
-          <div>
-            <div class="text-[11px] font-mono text-[#1d9bf0] font-bold"># Hashtags</div>
-            <div class="text-[10px] ki-muted mt-0.5">Im Archiv browsen →</div>
-          </div>
-        </a>
+      <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
+        <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
+        <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
+        <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
       </div>
     </div>
 
@@ -445,7 +447,6 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
   </button>
 </div>
 
-<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 <script>
 // ── Sidebar ────────────────────────────────────────────────────────────
