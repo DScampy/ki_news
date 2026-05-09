@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KI News – Prototyp v2</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;900&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #000;
+  --surface: rgba(8,12,20,0.82);
+  --card:    rgba(10,14,22,0.88);
+  --border:  rgba(255,255,255,0.07);
+  --text:    #e5e7eb;
+  --muted:   rgba(255,255,255,0.38);
+  --accent:  #1d9bf0;
+  --neon:    #00d4ff;
+  --neon-glow: rgba(0,212,255,0.22);
+  --neon-glow-strong: rgba(0,212,255,0.45);
+  --overlay-hero:   rgba(0,0,0,0.18);
+  --overlay-bottom: rgba(0,0,0,0.82);
+  --blur: blur(16px);
+  --card-blur: blur(8px);
+}
+html.light {
+  --bg:      #f8fafc;
+  --surface: rgba(255,255,255,0.88);
+  --card:    rgba(255,255,255,0.95);
+  --border:  rgba(0,0,0,0.08);
+  --text:    #0f172a;
+  --muted:   #64748b;
+  --overlay-hero:   rgba(248,250,252,0.10);
+  --overlay-bottom: rgba(248,250,252,0.93);
+}
+body { background: var(--bg); color: var(--text); font-family: 'Work Sans', sans-serif; overflow-x: hidden; transition: background 0.3s; }
+
+/* ── Genesis Layer ───────────────────────────────────────── */
+#genesis-wrap {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  transition: opacity 0.6s;
+}
+/* Transparent canvas always — fog color handles dark/light blend */
+#bg-overlay {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--overlay-hero) 0%,
+    rgba(0,0,0,0.25) 38%,
+    var(--overlay-bottom) 68%,
+    var(--overlay-bottom) 100%
+  );
+  transition: background 0.3s;
+}
+html.light #bg-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(248,250,252,0.06) 0%,
+    rgba(248,250,252,0.15) 38%,
+    rgba(248,250,252,0.90) 68%,
+    rgba(248,250,252,0.98) 100%
+  );
+}
+
+/* ── NAV ─────────────────────────────────────────────────── */
+nav {
+  position: fixed; inset: 0 0 auto; height: 56px; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: rgba(0,0,0,0.72);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(14px);
+}
+html.light nav { background: rgba(255,255,255,0.88); border-bottom-color: rgba(0,0,0,0.08); }
+.logo { font-family:'Space Grotesk',sans-serif; font-weight:900; font-size:18px;
+  letter-spacing:-0.04em; color:#1d9bf0; text-transform:uppercase; }
+.nav-link { font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:600;
+  color:var(--muted); text-decoration:none; text-transform:uppercase; letter-spacing:0.06em; transition:color 0.15s; }
+.nav-link:hover { color:var(--text); }
+.nav-link.active { color:#1d9bf0; border-bottom:2px solid #1d9bf0; padding-bottom:2px; }
+#theme-btn { font-size:14px; cursor:pointer; background:none; border:none;
+  color:var(--muted); padding:4px; transition:color 0.2s; }
+#theme-btn:hover { color:var(--text); }
+
+/* ── HERO ────────────────────────────────────────────────── */
+#hero {
+  position: relative; z-index: 10;
+  min-height: 100vh; padding-top: 56px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+
+/* ── CAROUSEL (2/3 + 1/3) ────────────────────────────────── */
+#carousel-wrap {
+  width: 100%; max-width: 1100px; padding: 0 52px;
+  position: relative;
+}
+.carousel-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 5; width: 36px; height: 36px;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(0,212,255,0.25);
+  backdrop-filter: blur(8px); color: #fff; font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s; user-select: none;
+  box-shadow: 0 0 8px rgba(0,212,255,0.12);
+}
+.carousel-arrow:hover {
+  background: rgba(0,212,255,0.18);
+  border-color: rgba(0,212,255,0.6);
+  box-shadow: 0 0 14px rgba(0,212,255,0.35);
+}
+.carousel-arrow.prev { left: 6px; }
+.carousel-arrow.next { right: 6px; }
+html.light .carousel-arrow { background: rgba(255,255,255,0.75); color: #0f172a; border-color: rgba(0,0,0,0.12); }
+
+#carousel-grid {
+  display: grid; grid-template-columns: 2fr 1fr; gap: 14px;
+}
+
+/* ── Featured card ───────────────────────────────────────── */
+#carousel-featured {
+  background: var(--surface);
+  border: 1px solid rgba(0,212,255,0.28);
+  backdrop-filter: var(--blur);
+  padding: 26px 30px 22px;
+  border-radius: 16px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative;
+  transition: opacity 0.35s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 0 1px rgba(0,212,255,0.12),
+              0 0 18px rgba(0,212,255,0.18),
+              0 0 40px rgba(0,212,255,0.07);
+}
+#progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 2px; background: #1d9bf0;
+  transition: width 0.1s linear; width: 0%;
+}
+
+/* Counter row */
+.c-counter-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.c-counter {
+  font-family:'Space Grotesk',sans-serif; font-size:10px; font-weight:700;
+  color:#1d9bf0; letter-spacing:0.14em; text-transform:uppercase;
+  display:flex; align-items:center; gap:8px;
+}
+.c-counter::after { content:''; width:40px; height:1px; background:rgba(29,155,240,0.25); }
+
+/* Priority indicator */
+.c-priority {
+  display: flex; align-items: center; gap: 7px;
+}
+.priority-bars {
+  display: flex; gap: 3px;
+}
+.pbar {
+  width: 10px; height: 8px; border-radius: 1px;
+  background: var(--border);
+}
+.pbar.filled { }
+.priority-label {
+  font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+
+/* Badge row */
+.c-badge-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.c-badge {
+  display:inline-block; font-family:'Space Grotesk',sans-serif; font-size:9px;
+  font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  padding:2px 8px; color:#fff;
+}
+
+/* Title + thumbnail */
+.c-content-row {
+  display: flex; gap: 16px; align-items: flex-start; margin-bottom: 10px;
+}
+.c-text { flex: 1; min-width: 0; }
+#carousel-featured h2 {
+  font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700;
+  color:var(--text); line-height:1.35; margin-bottom:10px;
+}
+#carousel-featured p { font-size:13px; color:var(--muted); line-height:1.65; }
+
+/* Thumbnail placeholder (future) */
+.c-thumb {
+  width: 110px; flex-shrink: 0; height: 80px;
+  background: var(--border);
+  border: 1px dashed rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-family: monospace; color: var(--muted);
+  text-align: center; line-height: 1.4;
+  letter-spacing: 0.05em; flex-direction: column; gap: 4px;
+}
+html.light .c-thumb { border-color: rgba(0,0,0,0.10); }
+
+/* Actions */
+.c-actions {
+  display:flex; align-items:center; gap:14px; margin-top:16px; flex-wrap:wrap;
+}
+.c-read-link {
+  font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:600;
+  color:#1d9bf0; text-decoration:none; display:inline-flex; align-items:center; gap:4px;
+}
+.c-read-link:hover { text-decoration:underline; }
+.c-telegram-btn {
+  font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700;
+  color:var(--muted); text-decoration:none; letter-spacing:0.1em; text-transform:uppercase;
+  padding:4px 10px; border:1px solid var(--border); transition:all 0.15s;
+}
+.c-telegram-btn:hover { color:var(--text); border-color:rgba(29,155,240,0.4); }
+
+/* ── Side cards ──────────────────────────────────────────── */
+#carousel-side { display:flex; flex-direction:column; gap:10px; }
+.side-card {
+  background:var(--card); border:1px solid rgba(0,212,255,0.18);
+  backdrop-filter:var(--card-blur); padding:14px 16px;
+  border-radius: 12px;
+  flex:1; cursor:pointer;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  display:flex; flex-direction:column;
+  box-shadow: 0 0 10px rgba(0,212,255,0.08);
+}
+.side-card:hover {
+  border-color: rgba(0,212,255,0.5);
+  box-shadow: 0 0 16px rgba(0,212,255,0.25), 0 0 32px rgba(0,212,255,0.10);
+}
+.side-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.side-card-badge {
+  display:inline-block; font-family:'Space Grotesk',sans-serif; font-size:8px;
+  font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  padding:2px 6px; color:#fff;
+}
+.side-priority { display:flex; gap:2px; }
+.sp { width:7px; height:6px; border-radius:1px; background:var(--border); }
+.sp.filled { }
+.side-card-title {
+  font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700;
+  color:var(--text); line-height:1.4; flex:1;
+}
+.side-card-label {
+  font-size:9px; font-family:monospace; color:var(--muted);
+  margin-top:10px; letter-spacing:0.05em;
+}
+
+/* ── Dots ────────────────────────────────────────────────── */
+#carousel-dots { display:flex; gap:6px; justify-content:center; margin-top:14px; }
+.dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); cursor:pointer; transition:all 0.2s; }
+.dot.active { background:#1d9bf0; transform:scale(1.3); }
+html.light .dot { background:rgba(0,0,0,0.15); }
+html.light .dot.active { background:#1d9bf0; }
+
+/* ── DIVIDER ─────────────────────────────────────────────── */
+.hero-fade {
+  height:80px; position:relative; z-index:10;
+  background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, var(--overlay-bottom) 100%);
+}
+html.light .hero-fade { background:linear-gradient(to bottom, rgba(248,250,252,0) 0%, rgba(248,250,252,0.93) 100%); }
+
+/* ── MAIN ────────────────────────────────────────────────── */
+main { position:relative; z-index:10; background:var(--overlay-bottom); padding:28px 20px 64px; }
+html.light main { background:rgba(248,250,252,0.97); }
+.wrap { max-width:1400px; margin:0 auto; }
+.sh { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.sh h2 { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:var(--text); }
+.live { display:flex; align-items:center; gap:6px; font-size:10px; font-family:monospace;
+  color:var(--muted); letter-spacing:0.1em; }
+.live::before { content:''; width:6px; height:6px; border-radius:50%; background:#22c55e;
+  display:block; animation:blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+.media-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+@media(max-width:768px){.media-row{grid-template-columns:1fr;}}
+.media-card {
+  background:var(--card); border:1px solid rgba(0,212,255,0.18);
+  backdrop-filter:var(--card-blur); padding:18px;
+  border-radius: 12px;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 10px rgba(0,212,255,0.07);
+}
+.media-card:hover {
+  border-color: rgba(0,212,255,0.45);
+  box-shadow: 0 0 16px rgba(0,212,255,0.22), 0 0 30px rgba(0,212,255,0.09);
+}
+.media-label { font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:#1d9bf0; margin-bottom:8px; }
+.media-card h3 { font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px; line-height:1.3; }
+.media-card p { font-size:12px; color:var(--muted); line-height:1.5; }
+.podcast-inner { display:flex; flex-direction:column; gap:10px; }
+.podcast-player { padding:10px; background:rgba(29,155,240,0.08); border:1px solid rgba(29,155,240,0.2); font-size:11px; color:#1d9bf0; font-family:monospace; }
+html.light .podcast-player { background:rgba(29,155,240,0.06); }
+.video-thumb { height:130px; background:#0a0a0a; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.12); font-size:11px; margin:-18px -18px 14px; }
+html.light .video-thumb { background:#e2e8f0; color:rgba(0,0,0,0.2); }
+
+.news-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+@media(max-width:1024px){.news-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:640px){.news-grid{grid-template-columns:1fr;}}
+.news-card {
+  background:var(--card); border:1px solid rgba(0,212,255,0.15);
+  backdrop-filter:var(--card-blur); padding:16px;
+  border-radius: 12px;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  cursor:pointer;
+  box-shadow: 0 0 8px rgba(0,212,255,0.06);
+}
+.news-card:hover {
+  border-color: rgba(0,212,255,0.45);
+  box-shadow: 0 0 14px rgba(0,212,255,0.22), 0 0 28px rgba(0,212,255,0.09);
+}
+.badge { display:inline-block; font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:2px 7px; margin-bottom:10px; color:#fff; }
+.b-blue{background:#1d9bf0} .b-amber{background:#ca8a04} .b-purple{background:#7c3aed} .b-red{background:#dc2626}
+.news-card h4 { font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; color:var(--text); line-height:1.4; margin-bottom:8px; }
+.news-card p { font-size:12px; color:var(--muted); line-height:1.55; margin-bottom:12px; }
+.card-meta { font-size:10px; font-family:monospace; color:var(--muted); display:flex; align-items:center; justify-content:space-between; opacity:0.7; }
+.card-source { font-size:9px; font-family:'Space Grotesk',sans-serif; font-weight:700; letter-spacing:0.07em; }
+.sidebar-hint { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-family:monospace; color:var(--muted); padding:4px 10px; border:1px solid var(--border); cursor:pointer; transition:all 0.15s; margin-bottom:24px; }
+.sidebar-hint:hover { color:var(--text); border-color:rgba(29,155,240,0.4); }
+
+@media(max-width:720px){
+  #carousel-grid { grid-template-columns:1fr; }
+  #carousel-side { flex-direction:row; }
+  .side-card { flex:1; }
+}
+</style>
+</head>
+<body>
+
+<div id="genesis-wrap"></div>
+<div id="bg-overlay"></div>
+
+<!-- NAV -->
+<nav>
+  <div style="display:flex;align-items:center;gap:28px">
+    <span class="logo">KI NEWS</span>
+    <div style="display:flex;gap:18px">
+      <a href="#" class="nav-link active">Aktuell</a>
+      <a href="#" class="nav-link">Archiv</a>
+      <a href="#" class="nav-link">Podcast</a>
+      <a href="#" class="nav-link" style="opacity:0.3" title="Kreatur-Lab">🐉</a>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <a href="https://x.com/ScampyKI" target="_blank" style="font-size:11px;color:var(--muted);font-family:monospace;text-decoration:none;">@ScampyKI</a>
+    <button id="theme-btn" onclick="toggleTheme()" title="Hell / Dunkel">☀</button>
+  </div>
+</nav>
+
+<!-- HERO + CAROUSEL -->
+<section id="hero">
+  <div id="carousel-wrap">
+    <button class="carousel-arrow prev" onclick="carouselMove(-1)">&#8592;</button>
+    <button class="carousel-arrow next" onclick="carouselMove(1)">&#8594;</button>
+
+    <div id="carousel-grid">
+
+      <!-- Featured (2/3) -->
+      <div id="carousel-featured">
+        <div id="progress-bar"></div>
+
+        <div>
+          <!-- Counter + Priority -->
+          <div class="c-counter-row">
+            <div class="c-counter">TOP STORY · <span id="c-num">1 / 3</span></div>
+            <div class="c-priority">
+              <div class="priority-bars" id="c-pbars"></div>
+              <span class="priority-label" id="c-plabel"></span>
+            </div>
+          </div>
+
+          <!-- Badge -->
+          <div class="c-badge-row">
+            <span class="c-badge" id="c-badge">VENTUREBEAT AI</span>
+          </div>
+
+          <!-- Text + Thumb -->
+          <div class="c-content-row">
+            <div class="c-text">
+              <h2 id="c-title">Listen Labs sammelt 69 Mio. Dollar für KI-gestützte Kundeninterviews</h2>
+              <p id="c-desc">KI-gestützte Interviews sollen Unternehmen helfen, ihre Kunden besser zu verstehen. Die neuen Investitionen ermöglichen es Listen Labs, seine Technologie weiter zu skalieren und neue Märkte zu erschließen.</p>
+            </div>
+            <div class="c-thumb" id="c-thumb">
+              <span style="font-size:16px;opacity:0.3">🖼</span>
+              <span>THUMBNAIL<br>COMING SOON</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="c-actions">
+          <a href="#" id="c-link" class="c-read-link">Artikel lesen →</a>
+          <a href="https://t.me/kinews_live" target="_blank" class="c-telegram-btn">📬 Telegram</a>
+        </div>
+      </div>
+
+      <!-- Side (1/3) -->
+      <div id="carousel-side">
+        <div class="side-card" id="side-card-a"></div>
+        <div class="side-card" id="side-card-b"></div>
+      </div>
+
+    </div>
+
+    <div id="carousel-dots">
+      <div class="dot active" onclick="carouselGo(0)"></div>
+      <div class="dot" onclick="carouselGo(1)"></div>
+      <div class="dot" onclick="carouselGo(2)"></div>
+    </div>
+  </div>
+</section>
+
+<div class="hero-fade"></div>
+
+<!-- MAIN -->
+<main>
+  <div class="wrap">
+    <div class="sidebar-hint" onclick="alert('Sidebar würde hier aufklappen')">
+      ☰ &nbsp;Sidebar · Quellen & Navigation
+    </div>
+
+    <div class="media-row" style="margin-bottom:28px">
+      <div class="media-card">
+        <div class="podcast-inner">
+          <div>
+            <div class="media-label">🎙 Aktuellster Podcast</div>
+            <h3>Ausweispflicht & VPN-Sperren – Europa reagiert</h3>
+            <p style="margin-top:6px">Europa plant Ausweispflicht für VPN-Nutzer. Was das bedeutet und warum es dich betrifft.</p>
+          </div>
+          <div class="podcast-player">▶ KI NEWS #002 · 48:12 Min · SoundCloud</div>
+        </div>
+      </div>
+      <div class="media-card" style="padding:0;overflow:hidden">
+        <div class="video-thumb">▶ VIDEO VORSCHAU</div>
+        <div style="padding:16px">
+          <div class="media-label">📺 Aktuellstes Video</div>
+          <h3>Moderne Gesetze – Der Kollateralschaden</h3>
+          <p style="margin-top:6px">Was passiert wenn Regulierung schneller kommt als Verständnis.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sh">
+      <h2>Aktuelle News</h2>
+      <span class="live">LIVE UPDATES</span>
+    </div>
+    <div class="news-grid">
+      <div class="news-card">
+        <span class="badge b-blue">HEISE</span>
+        <h4>Airseekers Tron im Test – KI-Rasenmäher mit starker Leistung</h4>
+        <p>Multi-Sensor-System und spezieller Motor für effiziente Rasenpflege ohne Begrenzungsdraht.</p>
+        <div class="card-meta"><span class="card-source" style="color:#1d9bf0">HEISE</span><span>vor 12 Min</span></div>
+      </div>
+      <div class="news-card">
+        <span class="badge b-blue">HEISE</span>
+        <h4>Open-Source-Alternative zu Google Fotos wurde veröffentlicht</h4>
+        <p>Die Alternative steht kostenlos für Nutzer bereit, die ihre Privatsphäre schützen wollen.</p>
+        <div class="card-meta"><span class="card-source" style="color:#1d9bf0">HEISE</span><span>vor 45 Min</span></div>
+      </div>
+      <div class="news-card">
+        <span class="badge b-amber">GOLEM</span>
+        <h4>KI-Update: Arbeitstempo als Belastung – neue Studie zeigt Auswirkungen</h4>
+        <p>KI-gestützte Beschleunigung wird immer häufiger als Stressfaktor empfunden.</p>
+        <div class="card-meta"><span class="card-source" style="color:#ca8a04">GOLEM</span><span>vor 1 Std</span></div>
+      </div>
+      <div class="news-card">
+        <span class="badge b-amber">GOLEM</span>
+        <h4>Alibaba und illegale Nvidia-Chips – Hinweise auf Verstöße</h4>
+        <p>Rechtliche Konsequenzen für das Unternehmen und Fragen zur Sicherheit der Chiplieferketten.</p>
+        <div class="card-meta"><span class="card-source" style="color:#ca8a04">GOLEM</span><span>vor 2 Std</span></div>
+      </div>
+      <div class="news-card">
+        <span class="badge b-purple">ALIGNEDNEWS</span>
+        <h4>Goose als kostenlose Alternative zu Claude Code</h4>
+        <p>Ähnliche Funktionen wie Claude Code bis zu 200 Dollar im Monat – jetzt kostenlos verfügbar.</p>
+        <div class="card-meta"><span class="card-source" style="color:#7c3aed">ALIGNEDNEWS</span><span>vor 5 Std</span></div>
+      </div>
+      <div class="news-card">
+        <span class="badge b-blue">TECHCRUNCH AI</span>
+        <h4>OpenAI führt Schutzfunktion gegen Selbstschädigung ein</h4>
+        <p>Nutzer können einen vertrauenswürdigen Notfallkontakt in ihrem Account hinterlegen.</p>
+        <div class="card-meta"><span class="card-source" style="color:#1d9bf0">TECHCRUNCH</span><span>vor 6 Std</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ── CAROUSEL JS ────────────────────────────────────────────────── -->
+<script>
+// Priority config: 1=INFO, 2=AKTUELL, 3=WICHTIG, 4=TOP, 5=BREAKING
+var PRIO = {
+  1: { label:'INFO',     color:'rgba(148,163,184,0.6)' },
+  2: { label:'AKTUELL',  color:'#1d9bf0' },
+  3: { label:'WICHTIG',  color:'#ca8a04' },
+  4: { label:'TOP',      color:'#ea580c' },
+  5: { label:'BREAKING', color:'#dc2626' }
+};
+
+var STORIES = [
+  { badge:'VENTUREBEAT AI', bcolor:'#7c3aed', priority:4,
+    title:'Listen Labs sammelt 69 Mio. Dollar für KI-gestützte Kundeninterviews',
+    desc:'KI-gestützte Interviews sollen Unternehmen helfen, ihre Kunden besser zu verstehen. Die neuen Investitionen ermöglichen es Listen Labs, seine Technologie weiter zu skalieren und neue Märkte zu erschließen.',
+    link:'#' },
+  { badge:'HEISE', bcolor:'#1d9bf0', priority:2,
+    title:'Airseekers Tron im Test – KI-gesteuerter Rasenmähroboter überzeugt',
+    desc:'Der Mähroboter nutzt ein Multi-Sensor-System und einen speziellen Motor für effiziente Rasenpflege ohne Begrenzungsdraht. Multi-Sensor-Fusion ermöglicht präzise Navigation.',
+    link:'#' },
+  { badge:'TECHCRUNCH AI', bcolor:'#dc2626', priority:5,
+    title:'OpenAI führt Schutzfunktion gegen mögliche Selbstschädigung ein',
+    desc:'Die neue Funktion ermöglicht es Nutzern, einen vertrauenswürdigen Kontakt zu hinterlegen, der im Notfall kontaktiert werden kann. Ein wichtiger Schritt in Sachen KI-Sicherheit.',
+    link:'#' },
+];
+
+var cur = 0, timer, progTimer, prog = 0;
+var INTERVAL = 10000;
+
+function buildPriorityBars(container, n, color) {
+  container.innerHTML = '';
+  for (var i = 0; i < 5; i++) {
+    var b = document.createElement('div');
+    b.className = 'pbar' + (i < n ? ' filled' : '');
+    if (i < n) b.style.background = color;
+    container.appendChild(b);
+  }
+}
+
+function buildSidePriorityBars(container, n, color) {
+  container.innerHTML = '';
+  for (var i = 0; i < 5; i++) {
+    var b = document.createElement('div');
+    b.className = 'sp' + (i < n ? ' filled' : '');
+    if (i < n) b.style.background = color;
+    container.appendChild(b);
+  }
+}
+
+function renderSideCard(el, idx) {
+  var s = STORIES[idx];
+  var p = PRIO[s.priority];
+  el.onclick = function() { cur = idx; carouselRender(true); startAuto(); };
+  el.innerHTML =
+    '<div class="side-top">' +
+      '<span class="side-card-badge" style="background:' + s.bcolor + '">' + s.badge + '</span>' +
+      '<div class="side-priority" id="sp-' + idx + '"></div>' +
+    '</div>' +
+    '<div class="side-card-title">' + s.title + '</div>' +
+    '<div class="side-card-label">Top Story ' + (idx+1) + ' &middot; ' + p.label + '</div>';
+  buildSidePriorityBars(document.getElementById('sp-' + idx), s.priority, p.color);
+}
+
+function carouselRender(animate) {
+  var featured = document.getElementById('carousel-featured');
+  if (animate) featured.style.opacity = '0';
+  setTimeout(function() {
+    var s = STORIES[cur];
+    var p = PRIO[s.priority];
+
+    document.getElementById('c-num').textContent   = (cur+1) + ' / ' + STORIES.length;
+    document.getElementById('c-badge').textContent = s.badge;
+    document.getElementById('c-badge').style.background = s.bcolor;
+    document.getElementById('c-title').textContent = s.title;
+    document.getElementById('c-desc').textContent  = s.desc;
+    document.getElementById('c-link').href         = s.link;
+
+    // Priority
+    document.getElementById('c-plabel').textContent  = p.label;
+    document.getElementById('c-plabel').style.color  = p.color;
+    buildPriorityBars(document.getElementById('c-pbars'), s.priority, p.color);
+
+    // Dots
+    document.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('active', i===cur); });
+
+    // Side cards
+    var others = STORIES.map(function(_,i){return i;}).filter(function(i){return i!==cur;});
+    renderSideCard(document.getElementById('side-card-a'), others[0]);
+    renderSideCard(document.getElementById('side-card-b'), others[1]);
+
+    featured.style.opacity = '1';
+  }, animate ? 200 : 0);
+}
+
+function startProgress() {
+  clearInterval(progTimer); prog = 0;
+  document.getElementById('progress-bar').style.width = '0%';
+  progTimer = setInterval(function() {
+    prog += 100 / (INTERVAL / 80);
+    document.getElementById('progress-bar').style.width = Math.min(prog,100) + '%';
+  }, 80);
+}
+
+function startAuto() {
+  clearInterval(timer); startProgress();
+  timer = setInterval(function(){
+    cur = (cur+1) % STORIES.length; carouselRender(true); startProgress();
+  }, INTERVAL);
+}
+
+function carouselMove(dir) {
+  cur = (cur + dir + STORIES.length) % STORIES.length;
+  carouselRender(true); startAuto();
+}
+function carouselGo(i) { cur = i; carouselRender(true); startAuto(); }
+
+carouselRender(false);
+startAuto();
+
+// ── Theme toggle ─────────────────────────────────────────────────────
+function toggleTheme() {
+  var isLight = document.documentElement.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☾' : '☀';
+}
+</script>
+
+<!-- ── GENESIS THREE.js ──────────────────────────────────────────── -->
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const COUNT=14000, SCALE=45, SPEED=0.8, COMPLEXITY=1.5;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000, 0.007);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(0, 0, 120);
+
+// ALWAYS transparent canvas — fog color handles the background blend
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, powerPreference:'high-performance'});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0); // transparent always
+document.getElementById('genesis-wrap').appendChild(renderer.domElement);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 1.2, 0.5, 0);
+composer.addPass(bloom);
+
+const group = new THREE.Group();
+group.position.set(-8, 5, 0);
+scene.add(group);
+
+const geo = new THREE.TetrahedronGeometry(0.22);
+const mat = new THREE.MeshBasicMaterial({color:0xffffff});
+const mesh = new THREE.InstancedMesh(geo, mat, COUNT);
+mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+group.add(mesh);
+
+const positions = Array.from({length:COUNT}, () =>
+  new THREE.Vector3((Math.random()-.5)*100, (Math.random()-.5)*100, (Math.random()-.5)*100)
+);
+const dummy = new THREE.Object3D();
+const color  = new THREE.Color();
+const target = new THREE.Vector3();
+const clock  = new THREE.Clock();
+let rotY = 0;
+
+// ── Light/dark mode reactivity ─────────────────────────────────────
+// Key insight: keep canvas transparent always.
+// In light mode: fog fades to WHITE (particles fade into white bg)
+//               particles are DARK (visible on light background)
+//               bloom reduced to avoid washout
+// In dark mode:  fog fades to BLACK
+//               particles are LIGHT/GLOWING
+//               bloom at full strength
+let isLight = document.documentElement.classList.contains('light');
+
+function applyTheme() {
+  if (isLight) {
+    scene.fog.color.set(0xffffff);
+    scene.fog.density = 0.006;
+    bloom.strength = 0.2;
+    bloom.threshold = 0.5;
+  } else {
+    scene.fog.color.set(0x000000);
+    scene.fog.density = 0.007;
+    bloom.strength = 1.2;
+    bloom.threshold = 0.0;
+  }
+}
+applyTheme();
+
+new MutationObserver(() => {
+  isLight = document.documentElement.classList.contains('light');
+  applyTheme();
+}).observe(document.documentElement, {attributes:true, attributeFilter:['class']});
+
+function animate() {
+  requestAnimationFrame(animate);
+  const time = clock.getElapsedTime();
+  rotY += 0.0015;
+  group.rotation.y = rotY;
+
+  const t = time * SPEED;
+  const coreCount = Math.floor(COUNT * 0.25);
+
+  for (let i = 0; i < COUNT; i++) {
+    const isCore = i < coreCount;
+    let x=0, y=0, z=0, h=0, s=0, l=0;
+
+    if (isCore) {
+      const cn = i / coreCount;
+      const phi   = Math.acos(1 - 2 * cn);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+      const sp = Math.sin(t*3 + phi*5 + theta*3) * COMPLEXITY;
+      const r  = SCALE * 0.4 + sp;
+      x = Math.sin(phi) * Math.cos(theta) * r;
+      y = Math.sin(phi) * Math.sin(theta) * r;
+      z = Math.cos(phi) * r;
+      if (isLight) {
+        // Deep red — visible on white, fades to white at distance via fog
+        h = 0.0; s = 0.90; l = 0.30 + sp * 0.03;
+      } else {
+        h = 0.78 + Math.sin(t + cn*10) * 0.05; s = 0.7; l = 0.2 + sp * 0.04;
+      }
+    } else {
+      const si  = i - coreCount;
+      const ppc = 25;
+      const tc  = Math.max(1, Math.floor((COUNT - coreCount) / ppc));
+      const cid = Math.floor(si / ppc);
+      const pid = si % ppc;
+      const pn  = pid / ppc;
+      const cn2 = cid / tc;
+      const cp  = Math.acos(1 - 2 * cn2);
+      const ct  = Math.PI * (1 + Math.sqrt(5)) * cid;
+      const dx  = Math.sin(cp) * Math.cos(ct);
+      const dy  = Math.sin(cp) * Math.sin(ct);
+      const dz  = Math.cos(cp);
+      const cph = t * 3 + cid * 10;
+      const lt  = Math.abs((cid * 78.9 + t * 20) % 200);
+      const dfc = 200 - lt;
+      const ap  = Math.max(SCALE * 0.4, dfc);
+      const u   = Math.sin(cph*5 - pn*15) * (pn * 3);
+      const wx  = Math.sin(cph + pn*2) * u * COMPLEXITY;
+      const wy  = Math.cos(cph + pn*2) * u * COMPLEXITY;
+      const wz  = Math.sin(cph*.5 + pn*2) * u * COMPLEXITY;
+      const tl  = SCALE * 0.3;
+      x = dx*(ap + pn*tl) + wx;
+      y = dy*(ap + pn*tl) + wy;
+      z = dz*(ap + pn*tl) + wz;
+      if (isLight) {
+        // Dark orange → visible on white, futuristic
+        h = 0.07 + pn * 0.02; s = 0.88; l = 0.40 - pn * 0.22;
+      } else {
+        h = 0.55 + pn * 0.08; s = 0.7; l = (0.55 - pn * 0.4) * 0.7;
+      }
+    }
+
+    target.set(x, y, z);
+    color.setHSL(h, s, l);
+    positions[i].lerp(target, 0.1);
+    dummy.position.copy(positions[i]);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+    mesh.setColorAt(i, color);
+  }
+
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  composer.render();
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
