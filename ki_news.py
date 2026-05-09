@@ -89,7 +89,7 @@ FEEDS = [
     ("The Verge", "https://theverge.com/rss/index.xml"),
     ("SiliconAngle", "https://siliconangle.com/feed"),
     ("TechRepublic", "https://www.techrepublic.com/rssfeeds/articles/"),
-    ("Gizmodo", "https://gizmodo.com/feed"),
+    ("Bloomberg", "https://feeds.bloomberg.com/news.json?ageHours=120&token=glassdoor%3Agd4bloomberg&tickers=NTRS%3AUS&callback=jQuery21306832818930041152_1513149004387"),
     # Kuratiert – bereits AI-spezifisch, kein KI-Filter nötig
     # Pre-analysed items: description enthält 2-3 Satz-Analyse, category = funding/models/breaking/etc.
     ("AlignedNews",    "https://alignednews.com/feed"),
