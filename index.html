@@ -6,9 +6,11 @@
 <title>KI News – Täglich. Auf Deutsch. Mit Kontext.</title>
 <meta name="description" content="Deutschsprachige KI-News: Englische Quellen kuratiert, eingeordnet, erklärt. Von @CScampy."/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
 <script id="tailwind-config">
   tailwind.config = {
     darkMode:"class",
@@ -22,19 +24,50 @@
   }
 </script>
 <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:#000;color:#dfe3ea;}
-canvas#ambient-creature{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.55;}
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
 ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
 
-/* ── Theme Toggle Slider (Heise-Stil) ── */
+/* ── Genesis Background ── */
+#genesis-wrap{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#bg-overlay{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.22) 40%,rgba(0,0,0,0.88) 68%,rgba(0,0,0,0.94) 100%);
+  transition:background 0.3s;
+}
+html.light #bg-overlay{
+  background:linear-gradient(to bottom,rgba(248,250,252,0.06) 0%,rgba(248,250,252,0.18) 40%,rgba(248,250,252,0.93) 68%,rgba(248,250,252,0.99) 100%);
+}
+
+/* ── Neon glow – dark mode: bright border visible on dark cards ── */
+.ki-card{
+  border-radius:12px !important;
+  border-color:rgba(0,212,255,0.40) !important;
+  box-shadow:0 0 0 1px rgba(0,212,255,0.10),0 0 14px rgba(0,212,255,0.20);
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.ki-card:hover{
+  border-color:rgba(0,212,255,0.70) !important;
+  box-shadow:0 0 0 1px rgba(0,212,255,0.22),0 0 22px rgba(0,212,255,0.38) !important;
+}
+html.light .ki-card{
+  border-color:rgba(0,212,255,0.24) !important;
+  box-shadow:0 0 10px rgba(0,212,255,0.14) !important;
+}
+html.light .ki-card:hover{
+  border-color:rgba(0,212,255,0.55) !important;
+  box-shadow:0 0 18px rgba(0,212,255,0.30) !important;
+}
+
+/* ── Theme Toggle Slider ── */
 .theme-slider-wrap{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
 .theme-slider-label{font-size:10px;font-family:monospace;letter-spacing:0.06em;color:#536471;transition:color 0.2s;}
 .theme-slider-label.active{color:#1d9bf0;}
 html.light .theme-slider-label.active{color:#0f172a;}
 .theme-slider-track{width:40px;height:20px;border-radius:10px;background:#2f3336;position:relative;transition:background 0.25s;flex-shrink:0;border:1px solid #3f4851;}
 html.light .theme-slider-track{background:#e2e8f0;border-color:#cbd5e1;}
-.theme-slider-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#536471;transition:all 0.25s;display:flex;align-items:center;justify-content:center;font-size:8px;}
+.theme-slider-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#536471;transition:all 0.25s;}
 html.light .theme-slider-knob{background:#64748b;}
 .theme-dark .theme-slider-knob{left:22px;background:#1d9bf0;}
 html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
@@ -43,63 +76,37 @@ html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
 #sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;}
 #sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
 #main-content{transition:margin-left 0.25s ease;margin-left:0;}
-#main-content.sidebar-closed{margin-left:0;}
 @media(max-width:1023px){#main-content{margin-left:0!important;}}
-/* Toggle-Button: NUR auf Desktop (>=1024px) sichtbar */
 #sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:#1d9bf0;border:none;cursor:pointer;width:14px;height:44px;display:none;align-items:center;justify-content:center;color:white;transition:left 0.25s ease;border-radius:0 4px 4px 0;}
 @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
-html.light #sidebar-toggle{background:#1d9bf0;}
 
 /* ── Light Mode ── */
 html.light body{background:#f0f4f8!important;color:#0f172a!important;}
-html.light nav.fixed{background:#fff!important;border-color:#e2e8f0!important;}
+html.light nav.fixed{background:rgba(255,255,255,0.88)!important;border-color:#e2e8f0!important;}
 html.light #sidebar{background:#fff!important;border-color:#e2e8f0!important;}
 html.light #main-content{background:#f0f4f8!important;}
-html.light .ki-card{background:#fff!important;border-color:#e2e8f0!important;}
+html.light .ki-card{background:#fff!important;}
 html.light .ki-card:hover{background:#f8fafc!important;}
 html.light .ki-sidebar-active{background:#eff6ff!important;}
 html.light .ki-muted{color:#64748b!important;}
 html.light .ki-faint{color:#94a3b8!important;}
 html.light .ki-main{color:#0f172a!important;}
 html.light .ki-border{border-color:#e2e8f0!important;}
-html.light .ki-bg-dark{background:#f1f5f9!important;}
 html.light ::-webkit-scrollbar-thumb{background:#cbd5e1!important;}
 html.light .video-wrap{border-color:#e2e8f0!important;}
+html.light #sidebar a:hover{background:#eff6ff!important;color:#0f172a!important;}
 
-/* ── Top Stories Carousel – theme-aware ── */
-.ts-card-inner{background:#0d1117;}
-html.light .ts-card-inner{background:#fff!important;}
-.ts-main-text{font-size:13px;color:#c9d1d9;line-height:1.55;flex:1}
-html.light .ts-main-text{color:#334155!important;}
-.ts-thread-item{padding-left:8px;margin-bottom:5px;font-size:12px;line-height:1.4;color:#94a3b8;}
-html.light .ts-thread-item{color:#64748b!important;}
-.ts-thread-sep{margin-top:6px;padding-top:8px;border-top:1px solid #1a1a1a;}
-html.light .ts-thread-sep{border-top-color:#e2e8f0!important;}
-.ts-num{color:#3f4851;font-size:20px;font-weight:900;font-family:'Space Grotesk',sans-serif;line-height:1}
-html.light .ts-num{color:#cbd5e1!important;}
-
-/* ── Editorial Banner – theme-aware ── */
+/* ── Editorial Banner ── */
 .ed-banner{background:linear-gradient(135deg,#0d1a2e,#111827);}
 html.light .ed-banner{background:linear-gradient(135deg,#eff6ff,#f0f9ff)!important;}
 .ed-text{color:#e7e9ea;}
 html.light .ed-text{color:#0f172a!important;}
 .ed-zeichen{font-size:10px;font-family:monospace;}
 
-/* ── Sidebar Link Hover – light mode ── */
-html.light #sidebar a:hover{background:#eff6ff!important;color:#0f172a!important;}
-
 /* ── Video ── */
 .video-wrap{background:#000;border:1px solid #2f3336;overflow:hidden;position:relative;}
 .video-wrap video{width:100%;display:block;max-height:200px;object-fit:contain;background:#000;}
 .video-label{position:absolute;top:8px;left:8px;background:#1d9bf0;color:white;font-size:9px;font-weight:700;letter-spacing:0.08em;padding:2px 7px;font-family:'Space Grotesk',sans-serif;z-index:2;}
-
-/* ── Hashtag ── */
-.hashtag-chip{display:inline-flex;align-items:center;background:rgba(29,155,240,0.12);border:1px solid rgba(29,155,240,0.3);color:#1d9bf0;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;font-family:monospace;cursor:pointer;transition:all 0.15s;}
-.hashtag-chip:hover{background:#1d9bf0;color:white;}
-.hashtag-chip.copied{background:#16a34a!important;color:white!important;border-color:#16a34a!important;}
-.hashtag-input{background:#0f0f0f;border:1px solid #2f3336;border-radius:6px;padding:8px 12px;color:#dfe3ea;font-size:13px;font-family:'Work Sans',sans-serif;outline:none;width:100%;transition:border-color 0.15s;}
-html.light .hashtag-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
-.hashtag-input:focus{border-color:#1d9bf0;}
 
 /* ── Chat ── */
 #chat-widget{position:fixed;bottom:24px;right:24px;z-index:1000;font-family:'Work Sans',sans-serif;}
@@ -115,7 +122,7 @@ html.light #chat-panel{background:#fff;border-color:#e2e8f0;}
 .chat-close{background:none;border:none;color:white;cursor:pointer;font-size:18px;line-height:1;padding:0;opacity:0.8;}
 #chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:280px;}
 .msg{display:flex;flex-direction:column;gap:2px;}
-.msg.user{align-items:flex-end;} .msg.bot{align-items:flex-start;}
+.msg.user{align-items:flex-end;}.msg.bot{align-items:flex-start;}
 .msg-bubble{max-width:82%;padding:8px 12px;font-size:13px;line-height:1.45;border-radius:10px;}
 .msg.user .msg-bubble{background:#1d9bf0;color:white;border-radius:10px 10px 2px 10px;}
 .msg.bot .msg-bubble{background:#1d1f23;color:#dfe3ea;border-radius:10px 10px 10px 2px;}
@@ -123,7 +130,7 @@ html.light .msg.bot .msg-bubble{background:#f1f5f9;color:#0f172a;}
 .msg-time{font-size:10px;color:#4a5568;font-family:monospace;}
 .typing-dots{display:flex;gap:4px;padding:6px 4px;}
 .typing-dots span{width:6px;height:6px;border-radius:50%;background:#1d9bf0;animation:dot 1.2s infinite;}
-.typing-dots span:nth-child(2){animation-delay:0.2s;} .typing-dots span:nth-child(3){animation-delay:0.4s;}
+.typing-dots span:nth-child(2){animation-delay:0.2s;}.typing-dots span:nth-child(3){animation-delay:0.4s;}
 @keyframes dot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
 .chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid #2f3336;}
 html.light .chat-input-row{border-color:#e2e8f0;}
@@ -133,6 +140,83 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 #chat-input::placeholder{color:#4a5568;}
 #chat-send{width:36px;height:36px;border-radius:8px;background:#1d9bf0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;}
 #chat-send:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* ── Hero Section ── */
+#hero{position:relative;z-index:10;min-height:100vh;padding-top:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#carousel-wrap{width:100%;max-width:1100px;padding:0 52px;position:relative;}
+.carousel-arrow{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+  width:36px;height:36px;background:rgba(0,0,0,0.55);
+  border:1px solid rgba(0,212,255,0.30);backdrop-filter:blur(8px);
+  color:#fff;font-size:16px;border-radius:8px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;user-select:none;
+  box-shadow:0 0 8px rgba(0,212,255,0.15);
+}
+.carousel-arrow:hover{background:rgba(0,212,255,0.18);border-color:rgba(0,212,255,0.65);box-shadow:0 0 16px rgba(0,212,255,0.38);}
+.carousel-arrow.prev{left:6px;}.carousel-arrow.next{right:6px;}
+html.light .carousel-arrow{background:rgba(255,255,255,0.82);color:#0f172a;}
+
+#carousel-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;}
+@media(max-width:720px){#carousel-grid{grid-template-columns:1fr;}}
+
+#carousel-featured{
+  background:rgba(8,12,20,0.85);border:1px solid rgba(0,212,255,0.32);
+  backdrop-filter:blur(16px);padding:26px 30px 22px;border-radius:16px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  position:relative;transition:opacity 0.35s ease;
+  box-shadow:0 0 0 1px rgba(0,212,255,0.10),0 0 22px rgba(0,212,255,0.18),0 0 44px rgba(0,212,255,0.07);
+}
+html.light #carousel-featured{background:rgba(255,255,255,0.93);}
+#progress-bar{position:absolute;bottom:0;left:0;height:2px;background:#00d4ff;border-radius:0 0 0 16px;transition:width 0.1s linear;width:0%;}
+.c-counter-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.c-counter{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#00d4ff;letter-spacing:0.14em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.c-counter::after{content:'';width:40px;height:1px;background:rgba(0,212,255,0.25);}
+.c-priority{display:flex;align-items:center;gap:7px;}
+.priority-bars{display:flex;gap:3px;}
+.pbar{width:10px;height:8px;border-radius:2px;background:rgba(255,255,255,0.10);}
+.priority-label{font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;}
+.c-badge-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.c-badge{display:inline-block;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 8px;color:#fff;border-radius:3px;}
+.c-content-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:10px;}
+.c-text{flex:1;min-width:0;}
+#carousel-featured h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:#e5e7eb;line-height:1.35;margin-bottom:10px;}
+html.light #carousel-featured h2{color:#0f172a;}
+#carousel-featured p{font-size:13px;color:rgba(255,255,255,0.52);line-height:1.65;}
+html.light #carousel-featured p{color:#64748b;}
+.c-actions{display:flex;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap;}
+.c-read-link{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:#00d4ff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.c-read-link:hover{text-decoration:underline;}
+.c-telegram-btn{font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;color:rgba(255,255,255,0.42);text-decoration:none;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:4px;transition:all 0.15s;}
+.c-telegram-btn:hover{color:#fff;border-color:rgba(0,212,255,0.45);}
+html.light .c-telegram-btn{color:#64748b;border-color:rgba(0,0,0,0.12);}
+
+#carousel-side{display:flex;flex-direction:column;gap:10px;}
+.side-card{
+  background:rgba(10,14,22,0.88);border:1px solid rgba(0,212,255,0.22);
+  backdrop-filter:blur(8px);padding:14px 16px;border-radius:12px;
+  flex:1;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;
+  box-shadow:0 0 10px rgba(0,212,255,0.08);
+}
+.side-card:hover{border-color:rgba(0,212,255,0.58);box-shadow:0 0 18px rgba(0,212,255,0.28);}
+html.light .side-card{background:rgba(255,255,255,0.93);}
+.side-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.side-card-badge{display:inline-block;font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 6px;color:#fff;border-radius:2px;}
+.side-priority{display:flex;gap:2px;}
+.sp{width:7px;height:6px;border-radius:1px;background:rgba(255,255,255,0.10);}
+.side-card-title{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:#e5e7eb;line-height:1.4;flex:1;}
+html.light .side-card-title{color:#0f172a;}
+.side-card-label{font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);margin-top:10px;letter-spacing:0.05em;}
+html.light .side-card-label{color:#64748b;}
+
+#carousel-dots{display:flex;gap:6px;justify-content:center;margin-top:14px;}
+.c-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;border:none;padding:0;}
+.c-dot.active{background:#00d4ff;transform:scale(1.3);}
+html.light .c-dot{background:rgba(0,0,0,0.15);}
+html.light .c-dot.active{background:#00d4ff;}
+
+.hero-fade{height:80px;position:relative;z-index:10;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,0.88) 100%);}
+html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(248,250,252,0.97) 100%);}
 </style>
 </head>
 <body class="font-body-lg">
@@ -142,44 +226,31 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 (function(){
   function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
   function apply(t){
-    const r=t==='auto'?pref():t;
+    var r=t==='auto'?pref():t;
     document.documentElement.classList.remove('light','dark','theme-light','theme-dark','theme-auto');
     document.documentElement.classList.add(r,'theme-'+t);
-    updateSlider(t);
   }
-  function updateSlider(t){
-    const sl=document.getElementById('themeSlider');
-    const lbls=document.querySelectorAll('.theme-slider-label');
-    if(!sl) return;
-    // knob position: left=light, right=dark
-    const resolved=t==='auto'?pref():t;
-    const track=sl.querySelector('.theme-slider-track');
-    if(track){track.title=t==='auto'?'Automatisch':t==='light'?'Hell':'Dunkel';}
-    lbls.forEach(l=>{
-      l.classList.toggle('active', l.dataset.theme===t || (t==='auto' && l.dataset.theme==='auto'));
-    });
-  }
-  window.setTheme=function(t){
-    try{localStorage.setItem('ki_theme',t);}catch(e){}
-    apply(t);
-  };
+  window.setTheme=function(t){try{localStorage.setItem('ki_theme',t);}catch(e){}apply(t);};
   window.cycleTheme=function(){
-    const T=['light','dark'];
-    const cur=localStorage.getItem('ki_theme')||'auto';
-    const resolved=cur==='auto'?pref():cur;
+    var cur=localStorage.getItem('ki_theme')||'auto';
+    var resolved=cur==='auto'?pref():cur;
     window.setTheme(resolved==='dark'?'light':'dark');
   };
-  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  var saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
   apply(saved);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){
+    var s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
     if(s==='auto')apply('auto');
   });
 })();
 </script>
 
-<!-- Top Nav -->
-<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black ki-border border-b">
+<!-- Genesis Background -->
+<div id="genesis-wrap"></div>
+<div id="bg-overlay"></div>
+
+<!-- Nav -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);">
   <div class="flex items-center gap-8">
     <a href="/" class="flex items-center gap-2">
       <span class="text-xl font-black tracking-tighter text-[#1d9bf0] uppercase" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
@@ -189,6 +260,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
       <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">Podcast</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif;opacity:0.45;" href="creature-lab.html" title="Kreatur-Lab">🐉</a>
     </div>
   </div>
   <div class="flex items-center gap-4">
@@ -196,12 +268,9 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span class="hidden sm:inline">@CScampy</span>
     </a>
-    <!-- Heise-Stil Theme Slider -->
-    <div id="themeSlider" class="theme-slider-wrap" onclick="cycleTheme()" title="Hell/Dunkel wechseln">
+    <div id="themeSlider" class="theme-slider-wrap" onclick="cycleTheme()" title="Hell/Dunkel">
       <span class="theme-slider-label" data-theme="light" style="font-size:12px">☀</span>
-      <div class="theme-slider-track">
-        <div class="theme-slider-knob"></div>
-      </div>
+      <div class="theme-slider-track"><div class="theme-slider-knob"></div></div>
       <span class="theme-slider-label" data-theme="dark" style="font-size:12px">☾</span>
     </div>
   </div>
@@ -209,11 +278,11 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 
 <!-- Sidebar Toggle -->
 <button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
-  <span class="material-symbols-outlined" style="font-size:12px" id="toggle-icon">chevron_left</span>
+  <span class="material-symbols-outlined" style="font-size:12px" id="toggle-icon">chevron_right</span>
 </button>
 
 <!-- Sidebar -->
-<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col py-6 bg-black ki-border border-r hidden lg:flex overflow-hidden">
+<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col py-6 bg-black ki-border border-r hidden lg:flex overflow-hidden collapsed">
   <div class="px-5 mb-6">
     <p class="text-[11px] ki-muted font-mono leading-relaxed">KI-News täglich auf Deutsch. Englische Quellen kuratiert, eingeordnet, erklärt.</p>
   </div>
@@ -233,7 +302,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
     </a>
   </div>
   <div class="mt-auto px-5 pb-2">
-    <div class="ki-border border p-3">
+    <div class="ki-card ki-border border p-3">
       <p class="text-[10px] ki-muted font-mono mb-1">QUELLEN</p>
       <div class="flex flex-wrap gap-1">
         <span class="text-[10px] bg-[#1d9bf0]/20 text-[#1d9bf0] px-1.5 py-0.5 font-mono">The Decoder</span>
@@ -245,41 +314,57 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
   </div>
 </aside>
 
-<!-- Main Content -->
-<main id="main-content" class="pt-14 min-h-screen bg-black">
+<!-- HERO + Genesis Carousel -->
+<section id="hero">
+  <div id="carousel-wrap">
+    <button class="carousel-arrow prev" onclick="heroMove(-1)">&#8592;</button>
+    <button class="carousel-arrow next" onclick="heroMove(1)">&#8594;</button>
+    <div id="carousel-grid">
+      <div id="carousel-featured">
+        <div id="progress-bar"></div>
+        <div>
+          <div class="c-counter-row">
+            <div class="c-counter">TOP STORY · <span id="c-num">– / –</span></div>
+            <div class="c-priority">
+              <div class="priority-bars" id="c-pbars"></div>
+              <span class="priority-label" id="c-plabel"></span>
+            </div>
+          </div>
+          <div class="c-badge-row"><span class="c-badge" id="c-badge">…</span></div>
+          <div class="c-content-row">
+            <div class="c-text">
+              <h2 id="c-title">Wird geladen…</h2>
+              <p id="c-desc"></p>
+            </div>
+          </div>
+        </div>
+        <div class="c-actions">
+          <a href="#" id="c-link" class="c-read-link">Artikel lesen →</a>
+          <a href="https://t.me/CScampy" target="_blank" class="c-telegram-btn">📬 Telegram</a>
+        </div>
+      </div>
+      <div id="carousel-side">
+        <div class="side-card" id="side-card-a"></div>
+        <div class="side-card" id="side-card-b"></div>
+      </div>
+    </div>
+    <div id="carousel-dots"></div>
+  </div>
+</section>
+
+<div class="hero-fade"></div>
+
+<!-- Main -->
+<main id="main-content" class="pt-0 min-h-screen" style="position:relative;z-index:10;background:rgba(0,0,0,0.92);">
   <div class="max-w-[1400px] mx-auto p-gutter">
 
-    <!-- TOP: Podcast + Video nebeneinander (dynamisch aus media.json) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mt-gutter mb-gutter" id="media-top-grid">
-      <!-- Wird per JS aus media.json befüllt -->
       <div class="ki-card ki-border border p-5 animate-pulse h-48"></div>
       <div class="ki-card ki-border border p-5 animate-pulse h-48"></div>
     </div>
 
-    <!-- Editorial Banner – aus news.json, nur sichtbar wenn gefüllt -->
-    <div id="editorial-banner" class="ed-banner" style="display:none;border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:4px;gap:14px;align-items:flex-start"></div>
+    <div id="editorial-banner" class="ed-banner" style="display:none;border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:12px;gap:14px;align-items:flex-start"></div>
 
-    <!-- Top Stories – unter Podcast/Video, volle Breite -->
-    <div class="ki-card ki-border border p-5 mb-lg">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-3">
-          <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:18px">Top Stories</h3>
-          <span class="material-symbols-outlined text-[#1d9bf0]">trending_up</span>
-        </div>
-        <a href="https://t.me/CScampy" target="_blank" class="flex items-center gap-1.5 text-[11px] font-mono text-[#1d9bf0] hover:underline">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          Täglich via Telegram
-        </a>
-      </div>
-      <div id="top-stories-list" style="position:relative">
-        <!-- Skeleton -->
-        <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-3/4"></div><div class="h-2 bg-[#2f3336] rounded w-1/2"></div></div>
-        <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-4/5"></div><div class="h-2 bg-[#2f3336] rounded w-1/3"></div></div>
-        <div class="animate-pulse space-y-2"><div class="h-3 bg-[#2f3336] rounded w-2/3"></div></div>
-      </div>
-    </div>
-
-    <!-- News + Sidebar -->
     <div class="flex flex-col xl:flex-row gap-gutter items-start">
       <div class="flex-1 min-w-0">
         <div class="mb-6 flex items-center justify-between">
@@ -296,9 +381,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
         </div>
       </div>
 
-      <!-- Rechte Sidebar -->
       <div class="xl:w-[280px] xl:flex-shrink-0 xl:sticky xl:top-20 w-full flex flex-col gap-4">
-        <!-- Twitter -->
         <div class="ki-card ki-border border p-4">
           <div class="flex items-center gap-2 mb-3">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -308,13 +391,11 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
             <a href="https://x.com/CScampy/status/2049045655587287473"></a>
           </blockquote>
         </div>
-        <a href="https://x.com/CScampy" target="_blank"
-          class="flex items-center justify-center gap-2 w-full py-2.5 ki-card ki-border border text-[#1d9bf0] hover:bg-[#1d9bf0] hover:text-white transition-all text-[11px] font-bold font-mono tracking-wider">
+        <a href="https://x.com/CScampy" target="_blank" class="flex items-center justify-center gap-2 w-full py-2.5 ki-card ki-border border text-[#1d9bf0] hover:bg-[#1d9bf0] hover:text-white transition-all text-[11px] font-bold font-mono tracking-wider">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           @CSCAMPY FOLGEN
         </a>
-        <!-- Hashtags → jetzt im Archiv -->
-        <a href="Archiv.html#hashtags" class="ki-card ki-border border p-4 flex items-center gap-3 hover:border-[#1d9bf0] transition-all cursor-pointer" style="text-decoration:none">
+        <a href="Archiv.html#hashtags" class="ki-card ki-border border p-4 flex items-center gap-3 transition-all cursor-pointer" style="text-decoration:none">
           <span class="material-symbols-outlined text-[#1d9bf0]" style="font-size:18px">tag</span>
           <div>
             <div class="text-[11px] font-mono text-[#1d9bf0] font-bold"># Hashtags</div>
@@ -324,7 +405,6 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
       </div>
     </div>
 
-    <!-- Footer -->
     <div class="mt-12 pb-12 ki-border border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div>
         <span class="ki-main font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
@@ -339,7 +419,7 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
   </div>
 </main>
 
-<!-- KI-Chat Widget -->
+<!-- Chat Widget -->
 <div id="chat-widget">
   <div id="chat-panel">
     <div class="chat-header">
@@ -369,444 +449,325 @@ html.light #chat-input{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
 
 <script>
 // ── Sidebar ────────────────────────────────────────────────────────────
-let sidebarOpen = false; // Standard: eingeklappt
+var sidebarOpen = false;
 function toggleSidebar() {
   sidebarOpen = !sidebarOpen;
-  const sidebar = document.getElementById('sidebar');
-  const main = document.getElementById('main-content');
-  const toggle = document.getElementById('sidebar-toggle');
-  const icon = document.getElementById('toggle-icon');
+  var sidebar = document.getElementById('sidebar');
+  var main    = document.getElementById('main-content');
+  var toggle  = document.getElementById('sidebar-toggle');
+  var icon    = document.getElementById('toggle-icon');
   if (sidebarOpen) {
     sidebar.classList.remove('collapsed');
-    main.style.marginLeft = '240px';
-    toggle.style.left = '240px';
-    icon.textContent = 'chevron_left';
+    main.style.marginLeft = '240px'; toggle.style.left = '240px'; icon.textContent = 'chevron_left';
   } else {
     sidebar.classList.add('collapsed');
-    main.style.marginLeft = '0';
-    toggle.style.left = '0';
-    icon.textContent = 'chevron_right';
+    main.style.marginLeft = '0'; toggle.style.left = '0'; icon.textContent = 'chevron_right';
   }
 }
-// Init: Sidebar beim Laden eingeklappt
-document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('sidebar-toggle');
-  const sidebar = document.getElementById('sidebar');
-  const main = document.getElementById('main-content');
-  if (window.innerWidth >= 1024) {
-    toggle.style.display = 'flex';
-    // Sofort in collapsed-Zustand
-    sidebar.classList.add('collapsed');
-    main.style.marginLeft = '0';
-    toggle.style.left = '0';
-    document.getElementById('toggle-icon').textContent = 'chevron_right';
+document.addEventListener('DOMContentLoaded', function() {
+  var toggle = document.getElementById('sidebar-toggle');
+  if (window.innerWidth >= 1024) toggle.style.display = 'flex';
+  // Theme slider knob init
+  var s = 'auto'; try { s = localStorage.getItem('ki_theme') || 'auto'; } catch(e) {}
+  var knob = document.querySelector('.theme-slider-knob');
+  if (knob) {
+    var isDark = s === 'dark' || (s === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    knob.style.left = isDark ? '22px' : '2px';
+    knob.style.background = isDark ? '#1d9bf0' : '#f59e0b';
   }
 });
 
-// ── Theme slider update ────────────────────────────────────────────────
-function updateSlider(t) {
-  const knob = document.querySelector('.theme-slider-knob');
-  const labels = document.querySelectorAll('.theme-slider-label');
-  if (!knob) return;
-  const resolved = t === 'auto'
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : t;
-  knob.style.left = resolved === 'dark' ? '22px' : '2px';
-  knob.style.background = resolved === 'dark' ? '#1d9bf0' : '#f59e0b';
-  labels.forEach(l => l.classList.toggle('active', l.dataset.theme === t || (t === 'auto' && l.dataset.theme === resolved)));
+// Patch cycleTheme to also update knob
+var _baseCycle = window.cycleTheme;
+window.cycleTheme = function() {
+  _baseCycle();
+  setTimeout(function() {
+    var knob = document.querySelector('.theme-slider-knob');
+    if (!knob) return;
+    var isDark = document.documentElement.classList.contains('dark');
+    knob.style.left = isDark ? '22px' : '2px';
+    knob.style.background = isDark ? '#1d9bf0' : '#f59e0b';
+  }, 50);
+};
+
+// ── Source colors ────────────────────────────────────────────────────────
+var SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393','AlignedNews':'#f59e0b'};
+function srcColor(s) { return SRC[s] || '#1d9bf0'; }
+
+// ── Priority ─────────────────────────────────────────────────────────────
+var PRIO = {
+  1:{label:'INFO',    color:'rgba(148,163,184,0.7)'},
+  2:{label:'AKTUELL', color:'#1d9bf0'},
+  3:{label:'WICHTIG', color:'#ca8a04'},
+  4:{label:'TOP',     color:'#ea580c'},
+  5:{label:'BREAKING',color:'#dc2626'}
+};
+function scoreToLevel(score) {
+  if (score >= 40) return 5; if (score >= 30) return 4;
+  if (score >= 20) return 3; if (score >= 10) return 2; return 1;
 }
-// Apply initial slider state after DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  let s = 'auto'; try { s = localStorage.getItem('ki_theme') || 'auto'; } catch(e) {}
-  updateSlider(s);
-});
-
-// ── Source colors ──────────────────────────────────────────────────────
-const SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393','AlignedNews':'#f59e0b'};
-function srcColor(s){ return SRC[s] || '#1d9bf0'; }
-
-// ── Score-Label Badge (nur für episch + wichtig, nicht für normal) ─────
 function scoreBadge(label, score) {
-  if (!label || !score) return '';
-  // "normal" hat keinen sichtbaren Badge – zu viele News, kein Signal
-  if (label.includes('normal') || score < 25) return '';
-  const isEpic = score >= 40;
-  const bg    = isEpic ? '#dc2626' : '#d97706';  // rot vs. amber
-  const emoji = isEpic ? '🔥' : '⚡';
-  const text  = isEpic ? 'episch' : 'wichtig';
-  return `<span style="background:${bg};color:#fff;font-size:9px;font-weight:700;padding:1px 7px;border-radius:3px;font-family:monospace;white-space:nowrap;letter-spacing:0.04em">${emoji} ${text}</span>`;
+  if (!label || !score || label.indexOf('normal') > -1 || score < 25) return '';
+  var epic = score >= 40;
+  return '<span style="background:' + (epic?'#dc2626':'#d97706') + ';color:#fff;font-size:9px;font-weight:700;padding:1px 7px;border-radius:3px;font-family:monospace">' + (epic?'🔥 episch':'⚡ wichtig') + '</span>';
 }
 
-// ── News card ──────────────────────────────────────────────────────────
+// ── News card ────────────────────────────────────────────────────────────
 function renderCard(item) {
-  const c = item.color || srcColor(item.source);
-  const a = document.createElement('a');
+  var c = item.color || srcColor(item.source);
+  var a = document.createElement('a');
   a.href = item.link || '#';
   if (item.link) a.target = '_blank';
   a.className = 'ki-card ki-border border p-4 flex flex-col h-full transition-all group cursor-pointer';
-  a.onmouseenter = () => a.style.borderColor = c;
-  a.onmouseleave = () => a.style.borderColor = '';
-  const badge = item.label ? scoreBadge(item.label, item.score) : '';
-  a.innerHTML = `
-    <div class="flex items-center justify-between mb-4">
-      <span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:${c}">${item.source}</span>
-      <div class="flex items-center gap-1.5">${badge}<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div></div>
-    </div>
-    <h4 class="font-headline-md ki-main mb-2 leading-snug transition-colors" style="font-family:'Space Grotesk',sans-serif">${item.title}</h4>
-    <p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">${item.summary||''}</p>
-    <div class="pt-4 ki-border border-t flex items-center justify-between">
-      <span class="text-[11px] font-mono uppercase" style="color:${c}">${item.source}</span>
-      <span class="material-symbols-outlined ki-muted text-sm">open_in_new</span>
-    </div>`;
+  a.onmouseenter = function() { a.style.borderColor = c; };
+  a.onmouseleave = function() { a.style.borderColor = ''; };
+  var badge = item.label ? scoreBadge(item.label, item.score) : '';
+  a.innerHTML =
+    '<div class="flex items-center justify-between mb-4">' +
+      '<span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:' + c + '">' + item.source + '</span>' +
+      '<div class="flex items-center gap-1.5">' + badge + '<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div></div>' +
+    '</div>' +
+    '<h4 class="font-headline-md ki-main mb-2 leading-snug" style="font-family:\'Space Grotesk\',sans-serif">' + item.title + '</h4>' +
+    '<p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">' + (item.summary||'') + '</p>' +
+    '<div class="pt-4 ki-border border-t flex items-center justify-between">' +
+      '<span class="text-[11px] font-mono uppercase" style="color:' + c + '">' + item.source + '</span>' +
+      '<span class="material-symbols-outlined ki-muted text-sm">open_in_new</span>' +
+    '</div>';
   return a;
 }
 
-// ── Top Stories (Carousel) ─────────────────────────────────────────────
-let topStoryLinks = [];
-let carouselIndex = 0;
-let carouselItems = [];
-let carouselTimer = null;
+// ── Hero Carousel ─────────────────────────────────────────────────────────
+var heroCur = 0, heroTimer, heroProgTimer, heroProg = 0;
+var HERO_INTERVAL = 10000;
+var heroStories = [];
 
-function renderTopStories(news, posts) {
-  const container = document.getElementById('top-stories-list');
-  if (!container) return;
-  // Nach Score sortieren – gleiche Reihenfolge wie posts[] in news.json
-  const top = [...news].sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 3);
-  if (!top.length) { top.push(...news.slice(0, 3)); }
-  topStoryLinks = top.map(n => n.link).filter(Boolean);
-  carouselItems = top;
-
-  // Carousel-Wrapper aufbauen
-  container.innerHTML = '';
-  container.style.position = 'relative';
-  container.style.overflow = 'hidden';
-  container.style.minHeight = '180px';
-
-  const track = document.createElement('div');
-  track.id = 'carousel-track';
-  track.style.cssText = 'display:flex;transition:transform 0.55s cubic-bezier(.4,0,.2,1);width:' + (top.length * 100) + '%;gap:0';
-  container.appendChild(track);
-
-  top.forEach((item, i) => {
-    const c = item.color || srcColor(item.source);
-    const badge = item.label ? scoreBadge(item.label, item.score) : '';
-    const post = (posts && posts[i]) ? posts[i] : null;
-    // Teaser-Text hat Vorrang – ist der generierte Telegram-Post
-    const mainText = post ? post.teaser : (item.summary || '');
-    const hasThread = post && post.thread && post.thread.length > 0;
-    const threadPreview = hasThread
-      ? post.thread.slice(0, 3).map((t,j) => `<div class="ts-thread-item" style="border-left:2px solid ${c}55">${t}</div>`).join('')
-      : '';
-    const slide = document.createElement('div');
-    slide.style.cssText = 'flex:0 0 ' + (100 / top.length) + '%;padding:0 6px;box-sizing:border-box;';
-    slide.innerHTML = `
-      <div class="ki-border border p-5 transition-all ts-card-inner" style="border-radius:6px;display:flex;flex-direction:column;gap:10px;min-height:200px">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-          <span style="background:${c};color:white;font-size:9px;font-weight:700;padding:2px 8px;font-family:monospace;letter-spacing:0.06em;border-radius:3px;text-transform:uppercase">${item.source}</span>
-          <div style="display:flex;align-items:center;gap:6px">${badge}<span class="ts-num">${String(i+1).padStart(2,'0')}</span></div>
-        </div>
-        ${mainText ? `<p class="ts-main-text">${mainText}</p>` : `<p class="ts-main-text" style="color:#536471;font-style:italic">Kein Teaser verfügbar</p>`}
-        ${threadPreview ? `<div class="ts-thread-sep">${threadPreview}</div>` : ''}
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-          <span style="color:${c};font-size:10px;font-family:monospace;cursor:pointer" onclick="event.stopPropagation();window.open('${item.link}','_blank')">→ Artikel lesen</span>
-          <span class="material-symbols-outlined" style="color:#536471;font-size:14px">open_in_new</span>
-        </div>
-      </div>`;
-    track.appendChild(slide);
+function buildPBars(el, n, color) {
+  el.innerHTML = '';
+  for (var i = 0; i < 5; i++) {
+    var b = document.createElement('div'); b.className = 'pbar';
+    if (i < n) b.style.background = color;
+    el.appendChild(b);
+  }
+}
+function buildSPBars(el, n, color) {
+  el.innerHTML = '';
+  for (var i = 0; i < 5; i++) {
+    var b = document.createElement('div'); b.className = 'sp';
+    if (i < n) b.style.background = color;
+    el.appendChild(b);
+  }
+}
+function renderSideCard(el, idx) {
+  var s = heroStories[idx], level = scoreToLevel(s.score||0), p = PRIO[level], c = s.color||srcColor(s.source);
+  el.onclick = function() { heroCur = idx; heroRender(true); heroStartAuto(); };
+  el.innerHTML =
+    '<div class="side-top"><span class="side-card-badge" style="background:' + c + '">' + s.source + '</span><div class="side-priority" id="hsp-' + idx + '"></div></div>' +
+    '<div class="side-card-title">' + s.title + '</div>' +
+    '<div class="side-card-label">Top Story ' + (idx+1) + ' · ' + p.label + '</div>';
+  var spEl = document.getElementById('hsp-' + idx);
+  if (spEl) buildSPBars(spEl, level, p.color);
+}
+function heroRender(animate) {
+  var feat = document.getElementById('carousel-featured');
+  if (animate) feat.style.opacity = '0';
+  setTimeout(function() {
+    if (!heroStories.length) return;
+    var s = heroStories[heroCur], level = scoreToLevel(s.score||0), p = PRIO[level], c = s.color||srcColor(s.source);
+    document.getElementById('c-num').textContent   = (heroCur+1) + ' / ' + heroStories.length;
+    document.getElementById('c-badge').textContent = s.source;
+    document.getElementById('c-badge').style.background = c;
+    document.getElementById('c-title').textContent = s.title;
+    document.getElementById('c-desc').textContent  = s.summary || '';
+    document.getElementById('c-link').href         = s.link || '#';
+    document.getElementById('c-plabel').textContent = p.label;
+    document.getElementById('c-plabel').style.color  = p.color;
+    buildPBars(document.getElementById('c-pbars'), level, p.color);
+    document.querySelectorAll('.c-dot').forEach(function(d,i){ d.classList.toggle('active', i===heroCur); });
+    var others = heroStories.map(function(_,i){return i;}).filter(function(i){return i!==heroCur;});
+    if (others[0]!==undefined) renderSideCard(document.getElementById('side-card-a'), others[0]);
+    if (others[1]!==undefined) renderSideCard(document.getElementById('side-card-b'), others[1]);
+    feat.style.opacity = '1';
+  }, animate ? 200 : 0);
+}
+function heroStartProgress() {
+  clearInterval(heroProgTimer); heroProg = 0;
+  document.getElementById('progress-bar').style.width = '0%';
+  heroProgTimer = setInterval(function() {
+    heroProg += 100/(HERO_INTERVAL/80);
+    document.getElementById('progress-bar').style.width = Math.min(heroProg,100) + '%';
+  }, 80);
+}
+function heroStartAuto() {
+  clearInterval(heroTimer); heroStartProgress();
+  heroTimer = setInterval(function() {
+    heroCur = (heroCur+1) % heroStories.length; heroRender(true); heroStartProgress();
+  }, HERO_INTERVAL);
+}
+function heroMove(dir) { heroCur=(heroCur+dir+heroStories.length)%heroStories.length; heroRender(true); heroStartAuto(); }
+function initHero(stories) {
+  heroStories = stories; heroCur = 0;
+  var dotsEl = document.getElementById('carousel-dots'); dotsEl.innerHTML = '';
+  stories.forEach(function(_,i) {
+    var d = document.createElement('button');
+    d.className = 'c-dot' + (i===0?' active':'');
+    (function(idx){ d.onclick = function(){ heroCur=idx; heroRender(true); heroStartAuto(); }; })(i);
+    dotsEl.appendChild(d);
   });
-
-  // Dots
-  if (top.length > 1) {
-    const dots = document.createElement('div');
-    dots.id = 'carousel-dots';
-    dots.style.cssText = 'display:flex;justify-content:center;gap:6px;margin-top:10px';
-    top.forEach((_, i) => {
-      const dot = document.createElement('button');
-      dot.style.cssText = `width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;transition:all 0.2s;background:${i===0?'#1d9bf0':'#2f3336'}`;
-      dot.onclick = (e) => { e.stopPropagation(); goToSlide(i); };
-      dots.appendChild(dot);
-    });
-    container.appendChild(dots);
-
-    // Auto-advance
-    startCarousel();
-  }
+  heroRender(false); heroStartAuto();
 }
 
-function goToSlide(idx) {
-  carouselIndex = idx;
-  const track = document.getElementById('carousel-track');
-  const dots = document.querySelectorAll('#carousel-dots button');
-  if (track) track.style.transform = `translateX(-${idx * (100 / carouselItems.length)}%)`;
-  dots.forEach((d, i) => d.style.background = i === idx ? '#1d9bf0' : '#2f3336');
-}
-
-function startCarousel() {
-  if (carouselTimer) clearInterval(carouselTimer);
-  carouselTimer = setInterval(() => {
-    const next = (carouselIndex + 1) % carouselItems.length;
-    goToSlide(next);
-  }, 5000);
-}
-
-// Hover → Carousel pausieren
-document.addEventListener('DOMContentLoaded', () => {
-  const el = document.getElementById('top-stories-list');
-  if (el) {
-    el.onmouseenter = () => { if (carouselTimer) clearInterval(carouselTimer); };
-    el.onmouseleave = () => startCarousel();
-  }
-});
-
-// ── Fetch news ─────────────────────────────────────────────────────────
-let currentNewsContext = '';
+// ── Data fetch ────────────────────────────────────────────────────────────
+var topLinks = [], currentNewsContext = '';
 fetch('news.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    const grid = document.getElementById('news-grid');
-    const label = document.getElementById('stand-label');
-    if (!grid || !data.news || !data.news.length) return;
-
-    // Editorial-Banner aus news.json einblenden
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    var grid = document.getElementById('news-grid'), label = document.getElementById('stand-label');
+    if (!data.news || !data.news.length) return;
     if (data.editorial) {
-      const banner = document.getElementById('editorial-banner');
+      var banner = document.getElementById('editorial-banner');
       if (banner) {
-        const zeichen = data.editorial.length;
-        const farbe = zeichen > 265 ? '#dc2626' : '#536471';
-        banner.innerHTML = `
-          <span style="font-size:18px;flex-shrink:0">🗞</span>
-          <div style="flex:1">
-            <div style="color:#1d9bf0;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-family:monospace">Tagesüberblick</div>
-            <div class="ed-text" style="font-size:14px;line-height:1.5">${data.editorial}</div>
-            <div style="margin-top:4px">
-              <span class="ed-zeichen" style="color:${farbe}">${zeichen}/265</span>
-            </div>
-          </div>`;
+        var z = data.editorial.length;
+        banner.innerHTML = '<span style="font-size:18px;flex-shrink:0">🗞</span><div style="flex:1"><div style="color:#1d9bf0;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-family:monospace">Tagesüberblick</div><div class="ed-text" style="font-size:14px;line-height:1.5">' + data.editorial + '</div><div style="margin-top:4px"><span class="ed-zeichen" style="color:' + (z>265?'#dc2626':'#536471') + '">' + z + '/265</span></div></div>';
         banner.style.display = 'flex';
       }
     }
-
-    renderTopStories(data.news, data.posts || []);
-    // News Grid: Top-3 rausfiltern
-    const filtered = data.news.filter(n => !topStoryLinks.includes(n.link));
+    var top = data.news.slice().sort(function(a,b){return(b.score||0)-(a.score||0);}).slice(0,3);
+    topLinks = top.map(function(n){return n.link;}).filter(Boolean);
+    initHero(top);
+    var filtered = data.news.filter(function(n){return topLinks.indexOf(n.link)===-1;});
     grid.innerHTML = '';
-    filtered.forEach(item => grid.appendChild(renderCard(item)));
+    filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
     if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
     currentNewsContext = 'Aktuelle KI-News (Stand ' + (data.stand||'') + '):\n' +
-      data.news.map((n,i) => `${i+1}. "${n.title}" (${n.source}): ${n.summary||''}`).join('\n');
+      data.news.map(function(n,i){return (i+1)+'. "'+n.title+'" ('+n.source+'): '+(n.summary||'');}).join('\n');
   })
-  .catch(() => { const l = document.getElementById('stand-label'); if(l) l.textContent = 'Stand: offline'; });
+  .catch(function(){ var l=document.getElementById('stand-label'); if(l) l.textContent='Stand: offline'; });
 
-// Hashtags sind jetzt in Archiv.html
-
-// ── Chat (OpenRouter) ──────────────────────────────────────────────────
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-// Kein API-Key im Frontend – stattdessen claude helper wenn verfügbar
-let chatOpen = false;
-function toggleChat() { chatOpen ? closeChat() : openChat(); }
-function openChat() { chatOpen = true; document.getElementById('chat-panel').classList.add('open'); document.getElementById('chat-input').focus(); }
-function closeChat() { chatOpen = false; document.getElementById('chat-panel').classList.remove('open'); }
-function timeStr() { return new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}); }
-function addMsg(role, text) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
-  div.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${timeStr()}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-function addTyping() {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'msg bot'; div.id = 'typing-indicator';
-  div.innerHTML = '<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
-}
-function removeTyping() { const el = document.getElementById('typing-indicator'); if(el) el.remove(); }
-
-async function sendChat() {
-  const input = document.getElementById('chat-input');
-  const btn = document.getElementById('chat-send');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = ''; input.style.height = 'auto';
-  addMsg('user', text);
-  btn.disabled = true; addTyping();
-  const systemPrompt = `Du bist KI-News Assistent auf ki-news.live. Antworte auf Deutsch, kurz und präzise (max. 3 Sätze).\n\nAktuelle News:\n${currentNewsContext}`;
-  try {
-    // Versuche claude helper (Preview), dann OpenRouter (Live)
-    if (typeof window.claude !== 'undefined' && window.claude.complete) {
-      const reply = await window.claude.complete({ messages: [{ role: 'user', content: systemPrompt + '\n\nFrage: ' + text }] });
-      removeTyping(); addMsg('bot', reply || 'Keine Antwort.');
-    } else {
-      // OpenRouter direkt – kein Key im Frontend, daher Hinweis
-      removeTyping();
-      addMsg('bot', 'Der KI-Assistent ist auf der Live-Seite verfügbar sobald der OpenRouter-Key im Backend konfiguriert ist. Hier in der Vorschau funktioniert er bereits! 🤖');
-    }
-  } catch(e) {
-    removeTyping();
-    addMsg('bot', 'Entschuldigung, ein Fehler ist aufgetreten: ' + e.message);
-  } finally {
-    btn.disabled = false; input.focus();
-  }
-}
-document.getElementById('chat-input').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
-});
-
-// ── Media: Podcast + Video aus media.json ──────────────────────────────────
+// ── Media ─────────────────────────────────────────────────────────────────
 function buildVideoBlock(video) {
-  if (!video || video.type === 'none' || !video.src) {
-    return `<div class="ki-card ki-border border flex items-center justify-center text-center p-8">
-      <div>
-        <span class="material-symbols-outlined ki-muted" style="font-size:40px">videocam_off</span>
-        <p class="ki-muted text-[12px] mt-2 font-mono">Kein Video für diese Episode</p>
-      </div>
-    </div>`;
-  }
-  if (video.type === 'local') {
-    return `<div class="ki-card ki-border border overflow-hidden flex flex-col">
-      <div class="video-wrap flex-shrink-0">
-        <div class="video-label">${video.label || 'VIDEO'}</div>
-        <video controls preload="metadata" style="max-height:185px">
-          <source src="${video.src}" type="video/mp4"/>
-        </video>
-      </div>
-      <div class="p-4 flex-1">
-        <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">${video.title || ''}</h4>
-      </div>
-    </div>`;
-  }
-  if (video.type === 'youtube') {
-    const ytId = video.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || video.src;
-    return `<div class="ki-card ki-border border overflow-hidden flex flex-col">
-      <div class="video-wrap flex-shrink-0" style="padding-top:56.25%;position:relative">
-        <div class="video-label">${video.label || 'VIDEO'}</div>
-        <iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
-          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
-      </div>
-      <div class="p-4 flex-1">
-        <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">${video.title || ''}</h4>
-      </div>
-    </div>`;
-  }
-  if (video.type === 'vimeo') {
-    const vmId = video.src.match(/vimeo\.com\/(\d+)/)?.[1] || video.src;
-    return `<div class="ki-card ki-border border overflow-hidden flex flex-col">
-      <div class="video-wrap flex-shrink-0" style="padding-top:56.25%;position:relative">
-        <div class="video-label">${video.label || 'VIDEO'}</div>
-        <iframe src="https://player.vimeo.com/video/${vmId}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
-          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
-      </div>
-      <div class="p-4 flex-1">
-        <h4 class="ki-main font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;font-size:15px">${video.title || ''}</h4>
-      </div>
-    </div>`;
+  if (!video||video.type==='none'||!video.src)
+    return '<div class="ki-card ki-border border flex items-center justify-center text-center p-8"><div><span class="material-symbols-outlined ki-muted" style="font-size:40px">videocam_off</span><p class="ki-muted text-[12px] mt-2 font-mono">Kein Video für diese Episode</p></div></div>';
+  if (video.type==='local')
+    return '<div class="ki-card ki-border border overflow-hidden flex flex-col"><div class="video-wrap flex-shrink-0"><div class="video-label">'+(video.label||'VIDEO')+'</div><video controls preload="metadata" style="max-height:185px"><source src="'+video.src+'" type="video/mp4"/></video></div><div class="p-4 flex-1"><h4 class="ki-main font-bold mb-1" style="font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+(video.title||'')+'</h4></div></div>';
+  if (video.type==='youtube') {
+    var ytId=(video.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)||[])[1]||video.src;
+    return '<div class="ki-card ki-border border overflow-hidden flex flex-col"><div class="video-wrap flex-shrink-0" style="padding-top:56.25%;position:relative"><div class="video-label">'+(video.label||'VIDEO')+'</div><iframe src="https://www.youtube.com/embed/'+ytId+'" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div><div class="p-4 flex-1"><h4 class="ki-main font-bold mb-1" style="font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+(video.title||'')+'</h4></div></div>';
   }
   return '';
 }
-
 fetch('media.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    const episodes = data.episodes || [];
-    if (!episodes.length) return;
-    const current = episodes[0];
-    const grid = document.getElementById('media-top-grid');
-    if (!grid) return;
-
-    // Podcast-Card
-    const scUrl = `https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${current.podcast.track_id}&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`;
-    const podcastCard = `
-      <div class="ki-card ki-border border p-5 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none">
-          <div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div>
-        </div>
-        <div class="relative z-10">
-          <span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span>
-          <h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:'Space Grotesk',sans-serif;font-size:18px">${current.title}</h2>
-          <p class="ki-muted text-[13px] mb-3">${current.description}</p>
-          <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
-            src="${scUrl}" style="border-radius:4px;opacity:0.9"></iframe>
-          <div class="mt-2 flex items-center gap-3">
-            <a href="${current.podcast.soundcloud_url}" target="_blank"
-              class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:'Space Grotesk',sans-serif">
-              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">open_in_new</span>SoundCloud
-            </a>
-            <span class="text-xs ki-muted font-mono">KI NEWS #${current.id}${current.podcast.duration ? ' · ' + current.podcast.duration : ''}</span>
-          </div>
-        </div>
-      </div>`;
-
-    grid.innerHTML = podcastCard + buildVideoBlock(current.video);
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    var eps=data.episodes||[]; if (!eps.length) return;
+    var cur=eps[0], grid=document.getElementById('media-top-grid'); if (!grid) return;
+    var scUrl='https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A'+cur.podcast.track_id+'&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false';
+    grid.innerHTML =
+      '<div class="ki-card ki-border border p-5 relative overflow-hidden"><div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none"><div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div></div><div class="relative z-10"><span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span><h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px">'+cur.title+'</h2><p class="ki-muted text-[13px] mb-3">'+cur.description+'</p><iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay" src="'+scUrl+'" style="border-radius:4px;opacity:0.9"></iframe><div class="mt-2 flex items-center gap-3"><a href="'+cur.podcast.soundcloud_url+'" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:\'Space Grotesk\',sans-serif"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">open_in_new</span>SoundCloud</a><span class="text-xs ki-muted font-mono">KI NEWS #'+cur.id+(cur.podcast.duration?' · '+cur.podcast.duration:'')+'</span></div></div></div>' +
+      buildVideoBlock(cur.video);
   })
-  .catch(() => {
-    // Fallback: leerer Block, kein Crash
-    const grid = document.getElementById('media-top-grid');
-    if (grid) grid.innerHTML = '';
-  });
+  .catch(function(){ var g=document.getElementById('media-top-grid'); if(g) g.innerHTML=''; });
+
+// ── Chat ──────────────────────────────────────────────────────────────────
+var chatOpen=false;
+function toggleChat(){chatOpen?closeChat():openChat();}
+function openChat(){chatOpen=true;document.getElementById('chat-panel').classList.add('open');document.getElementById('chat-input').focus();}
+function closeChat(){chatOpen=false;document.getElementById('chat-panel').classList.remove('open');}
+function timeStr(){return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
+function addMsg(role,text){var msgs=document.getElementById('chat-messages'),div=document.createElement('div');div.className='msg '+(role==='user'?'user':'bot');div.innerHTML='<div class="msg-bubble">'+text.replace(/\n/g,'<br>')+'</div><div class="msg-time">'+timeStr()+'</div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
+function addTyping(){var msgs=document.getElementById('chat-messages'),div=document.createElement('div');div.className='msg bot';div.id='typing-indicator';div.innerHTML='<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
+function removeTyping(){var el=document.getElementById('typing-indicator');if(el)el.remove();}
+async function sendChat(){
+  var input=document.getElementById('chat-input'),btn=document.getElementById('chat-send'),text=input.value.trim();
+  if(!text)return; input.value=''; input.style.height='auto';
+  addMsg('user',text); btn.disabled=true; addTyping();
+  try{
+    if(typeof window.claude!=='undefined'&&window.claude.complete){
+      var reply=await window.claude.complete({messages:[{role:'user',content:'Du bist KI-News Assistent auf ki-news.live. Antworte auf Deutsch, kurz (max. 3 Sätze).\n\nNews:\n'+currentNewsContext+'\n\nFrage: '+text}]});
+      removeTyping();addMsg('bot',reply||'Keine Antwort.');
+    }else{removeTyping();addMsg('bot','KI-Assistent ist live verfügbar sobald der OpenRouter-Key konfiguriert ist. 🤖');}
+  }catch(e){removeTyping();addMsg('bot','Fehler: '+e.message);}
+  finally{btn.disabled=false;input.focus();}
+}
+document.getElementById('chat-input').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';});
 </script>
 
-<!-- ── Ambient Creature ─────────────────────────────────────────── -->
-<script>
-(function(){
-  const P={dx:35,dy:6,r:65,vs:50,tw:20,tr:0.055,particles:4000,t:0};
-  function breath(t){return{A:9+3.5*Math.sin(t*0.48),R:P.r+14*Math.sin(t*0.33),W:2+1.2*Math.sin(t*0.39+1.1)};}
-  const SPEED=1.1,MAX_TURN=0.009,EDGE=150;
-  let cx,cy,heading=Math.PI*0.3,formAngle=0;
-  new p5(function(p){
-    p.setup=function(){
-      const c=p.createCanvas(p.windowWidth,p.windowHeight);
-      c.id('ambient-creature');
-      p.colorMode(p.HSB,360,100,100,1);
-      p.frameRate(60);
-      cx=p.width/2; cy=p.height/2;
-    };
-    p.draw=function(){
-      P.t+=p.PI/240; const t=P.t;
-      let tx=p.width*0.5+p.sin(t*0.11)*p.width*0.38;
-      let ty=p.height*0.5+p.sin(t*0.07)*p.height*0.36;
-      if(cx<EDGE||cx>p.width-EDGE||cy<EDGE||cy>p.height-EDGE){tx=p.width/2;ty=p.height/2;}
-      const desH=p.atan2(ty-cy,tx-cx);
-      let dH=desH-heading;
-      while(dH>p.PI)dH-=p.TWO_PI; while(dH<-p.PI)dH+=p.TWO_PI;
-      heading+=p.constrain(dH,-MAX_TURN,MAX_TURN);
-      const vx=p.cos(heading)*SPEED, vy=p.sin(heading)*SPEED;
-      cx+=vx; cy+=vy;
-      const tA=heading+p.PI/2;
-      let aD=tA-formAngle;
-      while(aD>p.PI)aD-=p.TWO_PI; while(aD<-p.PI)aD+=p.TWO_PI;
-      formAngle+=aD*0.04;
-      const sf=p.min(p.width,p.height)/500*1.15;
-      const avgE=(P.particles/235/2)/P.dy-20;
-      const oY=Math.abs(avgE)*P.vs-475;
-      const{A,R,W}=breath(t);
-      const baseH=(t*8)%360;
-      p.background(5,0,3,P.tr);
-      p.noStroke();
-      p.push();
-      p.translate(cx,cy);
-      p.rotate(formAngle);
-      p.scale(sf*(1+SPEED*0.012),sf);
-      p.translate(-200,-oY);
-      for(let i=P.particles;i>0;i--){
-        const x=i,y=i/235;
-        const k=4*p.cos(x/P.dx);
-        const e=y/P.dy-20;
-        const d=p.mag(k,e);
-        const q=3*p.sin(k*2)+0.3/k+p.sin(y/19)*k*(A+W*p.sin(e*P.tw-d*3+t*2));
-        const c2=d-t;
-        const px2=q+R*p.cos(c2)+200;
-        const py2=q*p.sin(c2)+d*P.vs-475;
-        if(i%60===0){const h=(baseH+(i/P.particles)*55)%360;p.fill(h,75,90,0.38);}
-        p.circle(px2,py2,k*k>15?2:1);
-      }
-      p.pop();
-    };
-    p.windowResized=function(){p.resizeCanvas(p.windowWidth,p.windowHeight);};
-  });
-})();
+<!-- ── Genesis Three.js ────────────────────────────────────────────────── -->
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const COUNT=14000,SCALE=45,SPEED=0.8,COMPLEXITY=1.5;
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x000000,0.007);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,2000);
+camera.position.set(0,0,120);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000,0);
+document.getElementById('genesis-wrap').appendChild(renderer.domElement);
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.2,0.5,0);
+composer.addPass(bloom);
+const group=new THREE.Group();
+group.position.set(-8,5,0);
+scene.add(group);
+const geo=new THREE.TetrahedronGeometry(0.22);
+const mat=new THREE.MeshBasicMaterial({color:0xffffff});
+const mesh=new THREE.InstancedMesh(geo,mat,COUNT);
+mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+group.add(mesh);
+const positions=Array.from({length:COUNT},()=>new THREE.Vector3((Math.random()-.5)*100,(Math.random()-.5)*100,(Math.random()-.5)*100));
+const dummy=new THREE.Object3D(),color=new THREE.Color(),target=new THREE.Vector3(),clock=new THREE.Clock();
+let rotY=0;
+let isLight=document.documentElement.classList.contains('light');
+function applyTheme(){
+  if(isLight){scene.fog.color.set(0xffffff);scene.fog.density=0.006;bloom.strength=0.2;bloom.threshold=0.5;}
+  else{scene.fog.color.set(0x000000);scene.fog.density=0.007;bloom.strength=1.2;bloom.threshold=0.0;}
+}
+applyTheme();
+new MutationObserver(()=>{isLight=document.documentElement.classList.contains('light');applyTheme();})
+  .observe(document.documentElement,{attributes:true,attributeFilter:['class']});
+function animate(){
+  requestAnimationFrame(animate);
+  const time=clock.getElapsedTime();
+  rotY+=0.0015;group.rotation.y=rotY;
+  const t=time*SPEED,coreCount=Math.floor(COUNT*0.25);
+  for(let i=0;i<COUNT;i++){
+    const isCore=i<coreCount;let x=0,y=0,z=0,h=0,s=0,l=0;
+    if(isCore){
+      const cn=i/coreCount,phi=Math.acos(1-2*cn),theta=Math.PI*(1+Math.sqrt(5))*i;
+      const sp=Math.sin(t*3+phi*5+theta*3)*COMPLEXITY,r=SCALE*0.4+sp;
+      x=Math.sin(phi)*Math.cos(theta)*r;y=Math.sin(phi)*Math.sin(theta)*r;z=Math.cos(phi)*r;
+      if(isLight){h=0.0;s=0.90;l=0.30+sp*0.03;}else{h=0.78+Math.sin(t+cn*10)*0.05;s=0.7;l=0.2+sp*0.04;}
+    }else{
+      const si=i-coreCount,ppc=25,tc=Math.max(1,Math.floor((COUNT-coreCount)/ppc));
+      const cid=Math.floor(si/ppc),pid=si%ppc,pn=pid/ppc,cn2=cid/tc;
+      const cp=Math.acos(1-2*cn2),ct=Math.PI*(1+Math.sqrt(5))*cid;
+      const dx=Math.sin(cp)*Math.cos(ct),dy=Math.sin(cp)*Math.sin(ct),dz=Math.cos(cp);
+      const cph=t*3+cid*10,lt=Math.abs((cid*78.9+t*20)%200),dfc=200-lt,ap=Math.max(SCALE*0.4,dfc);
+      const u=Math.sin(cph*5-pn*15)*(pn*3);
+      const wx=Math.sin(cph+pn*2)*u*COMPLEXITY,wy=Math.cos(cph+pn*2)*u*COMPLEXITY,wz=Math.sin(cph*.5+pn*2)*u*COMPLEXITY;
+      const tl=SCALE*0.3;
+      x=dx*(ap+pn*tl)+wx;y=dy*(ap+pn*tl)+wy;z=dz*(ap+pn*tl)+wz;
+      if(isLight){h=0.07+pn*0.02;s=0.88;l=0.40-pn*0.22;}else{h=0.55+pn*0.08;s=0.7;l=(0.55-pn*0.4)*0.7;}
+    }
+    target.set(x,y,z);color.setHSL(h,s,l);
+    positions[i].lerp(target,0.1);dummy.position.copy(positions[i]);
+    dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);mesh.setColorAt(i,color);
+  }
+  mesh.instanceMatrix.needsUpdate=true;
+  if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+  composer.render();
+}
+animate();
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);
+});
 </script>
 </body>
 </html>
