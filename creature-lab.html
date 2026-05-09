@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ki-news.live – Kreatur-Lab 🐉</title>
+  <title>Kreatur-Lab – KI News</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #040404;
+      background: #040c14;
       color: #e5e7eb;
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
       overflow: hidden;
       height: 100vh;
       display: flex;
@@ -21,27 +22,42 @@
     /* Header */
     #header {
       position: relative; z-index: 10;
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 20px;
-      background: rgba(4,4,4,0.85);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      backdrop-filter: blur(8px);
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px;
+      height: 52px;
+      background: rgba(4,12,20,0.90);
+      border-bottom: 1px solid rgba(0,212,255,0.15);
+      backdrop-filter: blur(10px);
     }
-    #header a {
-      font-size: 12px; color: rgba(255,255,255,0.3);
+    #header .back-link {
+      display: flex; align-items: center; gap-6px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(0,212,255,0.45);
       text-decoration: none; transition: color 0.2s;
     }
-    #header a:hover { color: rgba(0,200,255,0.8); }
-    #header h1 { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.7); }
-    #status { font-size: 11px; color: rgba(255,255,255,0.2); font-family: monospace; margin-left: auto; }
+    #header .back-link:hover { color: #00d4ff; }
+    #header .divider { width: 1px; height: 20px; background: rgba(0,212,255,0.15); }
+    #header h1 {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.85);
+    }
+    #header h1 span { color: #00d4ff; }
+    #status {
+      font-size: 10px; font-family: monospace; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(0,212,255,0.4);
+      margin-left: auto;
+      border: 1px solid rgba(0,212,255,0.15);
+      padding: 2px 8px; border-radius: 4px;
+    }
 
     /* Controls panel */
     #panel {
       position: fixed; z-index: 10;
       bottom: 0; left: 0; right: 0;
-      background: rgba(4,4,4,0.9);
-      border-top: 1px solid rgba(255,255,255,0.06);
-      backdrop-filter: blur(10px);
+      background: rgba(4,12,20,0.94);
+      border-top: 1px solid rgba(0,212,255,0.15);
+      backdrop-filter: blur(12px);
       padding: 10px 20px 14px;
     }
 
@@ -55,34 +71,47 @@
 
     .slider-row label {
       display: flex; justify-content: space-between;
-      font-size: 10px; color: rgba(255,255,255,0.35); margin-bottom: 3px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.30); margin-bottom: 3px;
     }
-    .slider-row label span { color: rgba(0,200,255,0.8); }
-    .slider-row input[type=range] { width: 100%; accent-color: #00c8ff; }
+    .slider-row label span { color: #00d4ff; }
+    .slider-row input[type=range] { width: 100%; accent-color: #00d4ff; }
 
     .presets {
       display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
     }
     .presets button {
-      font-size: 11px; padding: 3px 10px;
-      background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 4px; cursor: pointer; transition: all 0.15s;
+      font-size: 11px; font-weight: 600; padding: 4px 12px;
+      background: rgba(0,212,255,0.04);
+      color: rgba(255,255,255,0.45);
+      border: 1px solid rgba(0,212,255,0.12);
+      border-radius: 6px; cursor: pointer; transition: all 0.15s;
+      font-family: 'Space Grotesk', sans-serif;
     }
-    .presets button:hover { background: rgba(0,200,255,0.12); color: rgba(0,200,255,0.9); border-color: rgba(0,200,255,0.3); }
-    .presets button.active { background: rgba(0,200,255,0.15); color: rgba(0,200,255,1); border-color: rgba(0,200,255,0.5); }
+    .presets button:hover {
+      background: rgba(0,212,255,0.10); color: #00d4ff;
+      border-color: rgba(0,212,255,0.35);
+      box-shadow: 0 0 8px rgba(0,212,255,0.15);
+    }
+    .presets button.active {
+      background: rgba(0,212,255,0.14); color: #00d4ff;
+      border-color: rgba(0,212,255,0.50);
+      box-shadow: 0 0 12px rgba(0,212,255,0.20);
+    }
 
     #hunt-btn { margin-left: auto; }
-    #rainbow-toggle { }
   </style>
 </head>
 <body>
 
   <div id="header">
-    <a href="/">← ki-news.live</a>
-    <h1>🐉 Kreatur-Lab</h1>
-    <span id="status">wandern...</span>
+    <a href="/" class="back-link">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      KI News
+    </a>
+    <div class="divider"></div>
+    <h1><span>🐉</span> Kreatur-Lab</h1>
+    <span id="status">wandern…</span>
   </div>
 
   <div id="panel">
