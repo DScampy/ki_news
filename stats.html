@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Statistik – KI News</title>
+<meta name="description" content="Content-Statistiken von ki-news.live – Quellen, Scores, Themen."/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: { extend: {
+      fontFamily: { headline: ["Space Grotesk"], body: ["Work Sans"] },
+      spacing: { gutter: "16px" }
+    }}
+  }
+</script>
+<style>
+  :root { --neon: #00d4ff; }
+  body { background:#000; color:#dfe3ea; font-family:'Work Sans',sans-serif; }
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:#000; }
+  ::-webkit-scrollbar-thumb { background:#2f3336; border-radius:10px; }
+
+  /* ── Light Mode ── */
+  html.light body { background:#f0f4f8!important; color:#0f172a!important; }
+  html.light nav.fixed { background:#ffffff!important; border-color:#e2e8f0!important; }
+  html.light aside.fixed { background:#e8edf4!important; border-color:rgba(0,212,255,0.25)!important; }
+  html.light main { background:#f0f4f8!important; }
+  html.light .stat-card { background:#ffffff!important; border-color:rgba(0,212,255,0.22)!important; }
+  html.light .chart-card { background:#ffffff!important; border-color:rgba(0,212,255,0.18)!important; }
+  html.light .text-white { color:#0f172a!important; }
+  html.light .text-gray-400 { color:#475569!important; }
+  html.light .text-gray-500 { color:#64748b!important; }
+  html.light .border-\[#2f3336\] { border-color:#e2e8f0!important; }
+  html.light ::-webkit-scrollbar-thumb { background:#cbd5e1!important; }
+  html.light .top-article-row { background:#f8fafc!important; border-color:rgba(0,212,255,0.15)!important; }
+  html.light .top-article-row:hover { background:#eff6ff!important; }
+  html.light .section-title { color:#0f172a!important; }
+  html.light .meta-text { color:#64748b!important; }
+
+  /* ── Cards ── */
+  .stat-card {
+    background:#111827;
+    border:1px solid rgba(0,212,255,0.30);
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 0 0 1px rgba(0,212,255,0.06),0 0 16px rgba(0,212,255,0.10);
+    transition:all 0.2s;
+  }
+  .stat-card:hover {
+    border-color:rgba(0,212,255,0.55);
+    box-shadow:0 0 0 1px rgba(0,212,255,0.12),0 0 24px rgba(0,212,255,0.18);
+  }
+  .chart-card {
+    background:#0d1520;
+    border:1px solid rgba(0,212,255,0.18);
+    border-radius:12px;
+    padding:24px;
+    box-shadow:0 0 0 1px rgba(0,212,255,0.05),0 0 14px rgba(0,212,255,0.08);
+  }
+  .section-title {
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700; font-size:18px;
+    color:#dfe3ea; margin-bottom:6px;
+  }
+  .meta-text { font-size:12px; color:#6b7280; font-family:monospace; }
+
+  /* ── Score badges ── */
+  .badge { display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:800;letter-spacing:0.06em;font-family:monospace; }
+  .badge-breaking { background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3); }
+  .badge-top      { background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3); }
+  .badge-wichtig  { background:rgba(234,179,8,0.15);color:#eab308;border:1px solid rgba(234,179,8,0.3); }
+  .badge-aktuell  { background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.3); }
+  .badge-info     { background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.25); }
+
+  /* ── Top articles ── */
+  .top-article-row {
+    display:flex;align-items:center;gap:12px;
+    padding:12px 16px;border-radius:8px;
+    border:1px solid rgba(0,212,255,0.12);
+    background:#111827;margin-bottom:8px;
+    text-decoration:none;transition:all 0.15s;
+  }
+  .top-article-row:hover {
+    border-color:rgba(0,212,255,0.35);
+    background:#1a2235;
+  }
+  .rank-num {
+    font-family:'Space Grotesk',sans-serif;font-weight:900;
+    font-size:20px;color:rgba(0,212,255,0.25);
+    width:28px;flex-shrink:0;text-align:center;line-height:1;
+  }
+  .rank-num.gold   { color:#f59e0b; }
+  .rank-num.silver { color:#94a3b8; }
+  .rank-num.bronze { color:#cd7c36; }
+
+  /* ── Sidebar toggle ── */
+  #stats-sidebar-toggle {
+    position:fixed;left:240px;top:50%;transform:translateY(-50%);
+    z-index:45;background:#00d4ff;border:none;cursor:pointer;
+    width:18px;height:60px;display:none;align-items:center;justify-content:center;
+    color:#000;transition:left 0.25s;border-radius:0 6px 6px 0;
+    box-shadow:0 0 12px rgba(0,212,255,0.5);
+  }
+  @media(max-width:1023px){#stats-sidebar-toggle{display:none!important;}}
+</style>
+</head>
+<body>
+
+<!-- ── Theme Script ── -->
+<script>
+(function(){
+  function pref(){return window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
+  function apply(t){
+    const r=t==='auto'?pref():t;
+    document.documentElement.classList.remove('light','dark');
+    document.documentElement.classList.add(r);
+    updateSlider(t);
+  }
+  function updateSlider(t){
+    const knob=document.querySelector('.theme-slider-knob');
+    if(!knob) return;
+    const r=t==='auto'?pref():t;
+    knob.style.left=r==='dark'?'22px':'2px';
+    knob.style.background=r==='dark'?'#00d4ff':'#f59e0b';
+  }
+  window.cycleTheme=function(){
+    const cur=localStorage.getItem('ki_theme')||'auto';
+    const r=cur==='auto'?pref():cur;
+    const next=r==='dark'?'light':'dark';
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    apply(next);
+    if(window._charts) window._charts.forEach(c=>updateChartTheme(c));
+  };
+  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  apply(saved);
+  document.addEventListener('DOMContentLoaded',()=>updateSlider(localStorage.getItem('ki_theme')||'auto'));
+})();
+
+let statsSidebarOpen=true;
+function toggleStatsSidebar(){
+  const sb=document.querySelector('aside.fixed');
+  const main=document.querySelector('main');
+  const btn=document.getElementById('stats-sidebar-toggle');
+  const icon=document.getElementById('stats-toggle-icon');
+  statsSidebarOpen=!statsSidebarOpen;
+  if(sb){sb.style.transform=statsSidebarOpen?'translateX(0)':'translateX(-240px)';sb.style.transition='transform 0.25s';}
+  if(main){main.style.marginLeft=statsSidebarOpen?'240px':'0';main.style.transition='margin-left 0.25s';}
+  if(btn){btn.style.left=statsSidebarOpen?'240px':'0';btn.style.display='flex';}
+  if(icon)icon.textContent=statsSidebarOpen?'chevron_left':'chevron_right';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const btn=document.getElementById('stats-sidebar-toggle');
+  if(btn)btn.style.display='flex';
+});
+</script>
+
+<!-- ── Top Nav ── -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black border-b border-[#2f3336]">
+  <div class="flex items-center gap-8">
+    <a href="/" class="flex items-center gap-2">
+      <span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff">KI NEWS</span>
+      <span class="hidden sm:inline text-[10px] font-mono text-gray-500 tracking-widest uppercase border border-[#2f3336] px-1.5 py-0.5">DE</span>
+    </a>
+    <div class="hidden md:flex items-center gap-6">
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">Podcast</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="creature-lab.html">Kreatur Lab</a>
+      <a class="text-sm font-medium border-b-2 pb-1" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff;border-color:#00d4ff" href="#">Statistik</a>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <a href="https://x.com/CScampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span class="hidden sm:inline">@CScampy</span>
+    </a>
+    <div onclick="cycleTheme()" title="Hell/Dunkel" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <span style="font-size:12px;color:#536471">☀</span>
+      <div style="width:40px;height:20px;border-radius:10px;background:#2f3336;position:relative;border:1px solid #3f4851">
+        <div class="theme-slider-knob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#536471;transition:all 0.25s"></div>
+      </div>
+      <span style="font-size:12px;color:#536471">☾</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Sidebar Toggle ── -->
+<button id="stats-sidebar-toggle" onclick="toggleStatsSidebar()">
+  <span class="material-symbols-outlined" style="font-size:13px;font-weight:700" id="stats-toggle-icon">chevron_left</span>
+</button>
+
+<!-- ── Sidebar ── -->
+<aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-0 hidden lg:flex overflow-hidden"
+  style="background:#0c1220;border-right:1px solid rgba(0,212,255,0.15)">
+
+  <div class="flex items-center gap-3 px-5 py-4" style="border-bottom:1px solid rgba(0,212,255,0.12);flex-shrink:0">
+    <img src="s-logo.png" style="width:36px;height:36px;filter:drop-shadow(0 0 6px rgba(0,212,255,0.5));flex-shrink:0" onerror="this.style.display='none'"/>
+    <div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:900;letter-spacing:-0.03em;font-size:15px;color:#00d4ff;line-height:1">KI NEWS</div>
+      <div style="font-size:9px;font-family:monospace;color:rgba(0,212,255,0.45);margin-top:2px">ki-news.live</div>
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-0.5 px-2 py-3" style="flex-shrink:0">
+    <a href="/" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(0,212,255,0.07)';this.style.color='rgba(0,212,255,0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">bolt</span>Aktuell
+    </a>
+    <a href="Archiv.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(0,212,255,0.07)';this.style.color='rgba(0,212,255,0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">archive</span>Archiv
+    </a>
+    <a href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(0,212,255,0.07)';this.style.color='rgba(0,212,255,0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">mic</span>Podcast
+    </a>
+    <a href="https://youtube.com/@ScampyKI" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(0,212,255,0.07)';this.style.color='rgba(0,212,255,0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">play_circle</span>YouTube
+    </a>
+    <a href="creature-lab.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(0,212,255,0.07)';this.style.color='rgba(0,212,255,0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">science</span>Kreatur Lab
+    </a>
+    <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all"
+      style="font-family:'Space Grotesk',sans-serif;background:rgba(0,212,255,0.10);color:#00d4ff;border-radius:6px;border-left:3px solid #00d4ff">
+      <span class="material-symbols-outlined" style="font-size:16px">bar_chart</span>Statistik
+    </a>
+  </div>
+
+  <div class="px-5 mb-3" style="flex-shrink:0"><div style="border-top:1px solid rgba(0,212,255,0.10)"></div></div>
+
+  <!-- Live Metriken in Sidebar -->
+  <div class="px-4 flex flex-col gap-2 overflow-y-auto flex-1">
+    <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(0,212,255,0.4)">Live Metriken</p>
+    <div style="border:1px solid rgba(0,212,255,0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
+      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(0,212,255,0.4)">ARTIKEL GESAMT</p>
+      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff" id="sb-total">—</p>
+    </div>
+    <div style="border:1px solid rgba(0,212,255,0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
+      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(0,212,255,0.4)">QUELLEN</p>
+      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff" id="sb-sources">—</p>
+    </div>
+    <div style="border:1px solid rgba(0,212,255,0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
+      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(0,212,255,0.4)">Ø SCORE</p>
+      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff" id="sb-avgscore">—</p>
+    </div>
+    <div style="border:1px solid rgba(0,212,255,0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
+      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(0,212,255,0.4)">TOP SCORE</p>
+      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:#f97316" id="sb-topscore">—</p>
+    </div>
+  </div>
+
+  <div class="px-5 py-3 flex items-center gap-4" style="border-top:1px solid rgba(0,212,255,0.08);flex-shrink:0">
+    <a href="https://x.com/CScampy" target="_blank" style="color:rgba(0,212,255,0.35);transition:color 0.2s" onmouseenter="this.style.color='#00d4ff'" onmouseleave="this.style.color='rgba(0,212,255,0.35)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <a href="https://instagram.com/KIScampy" target="_blank" style="color:rgba(0,212,255,0.35);transition:color 0.2s" onmouseenter="this.style.color='#00d4ff'" onmouseleave="this.style.color='rgba(0,212,255,0.35)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+    </a>
+    <a href="https://linkedin.com/in/dscampy" target="_blank" style="color:rgba(0,212,255,0.35);transition:color 0.2s" onmouseenter="this.style.color='#00d4ff'" onmouseleave="this.style.color='rgba(0,212,255,0.35)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="lg:ml-[240px] pt-14 min-h-screen" style="background:#000">
+  <div class="max-w-[1400px] mx-auto p-6">
+
+    <!-- Header -->
+    <div class="mt-6 mb-8">
+      <h1 class="font-black text-3xl tracking-tight text-white mb-1" style="font-family:'Space Grotesk',sans-serif">
+        Statistik <span style="color:#00d4ff">↗</span>
+      </h1>
+      <p class="text-gray-500 text-sm font-mono" id="stats-subtitle">Wird geladen…</p>
+    </div>
+
+    <!-- ── Hero Metriken ── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="stat-card">
+        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(0,212,255,0.5)">Artikel gesamt</p>
+        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff" id="m-total">—</p>
+        <p class="text-[11px] text-gray-500 font-mono">news.json + archive.json</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(0,212,255,0.5)">Quellen aktiv</p>
+        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff" id="m-sources">—</p>
+        <p class="text-[11px] text-gray-500 font-mono" id="m-sources-names">—</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(0,212,255,0.5)">Ø Score gesamt</p>
+        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:#00d4ff" id="m-avgscore">—</p>
+        <p class="text-[11px] text-gray-500 font-mono">Relevanz-Durchschnitt</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(0,212,255,0.5)">Höchster Score</p>
+        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:#f97316" id="m-topscore">—</p>
+        <p class="text-[11px] text-gray-500 font-mono truncate" id="m-topscore-title">—</p>
+      </div>
+    </div>
+
+    <!-- ── Row 1: Quellen + Score-Verteilung ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+      <!-- Quellen-Chart (2/3) -->
+      <div class="chart-card lg:col-span-2">
+        <div class="flex items-center justify-between mb-1">
+          <p class="section-title">Quellen-Analyse</p>
+          <div class="flex gap-2">
+            <button onclick="toggleSourceMetric('count')" id="btn-count"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:rgba(0,212,255,0.15);color:#00d4ff;border:1px solid rgba(0,212,255,0.3)">
+              Artikel
+            </button>
+            <button onclick="toggleSourceMetric('score')" id="btn-score"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
+              Ø Score
+            </button>
+          </div>
+        </div>
+        <p class="meta-text mb-4">Artikel-Anzahl und Durchschnitts-Score je Quelle</p>
+        <div style="position:relative;height:260px">
+          <canvas id="chart-sources"></canvas>
+        </div>
+      </div>
+
+      <!-- Score-Verteilung Donut (1/3) -->
+      <div class="chart-card">
+        <p class="section-title mb-1">Score-Verteilung</p>
+        <p class="meta-text mb-4">Alle Artikel nach Relevanz-Level</p>
+        <div style="position:relative;height:200px;margin-bottom:16px">
+          <canvas id="chart-scores"></canvas>
+        </div>
+        <div class="flex flex-col gap-2" id="score-legend"></div>
+      </div>
+    </div>
+
+    <!-- ── Row 2: Themen-Radar ── -->
+    <div class="chart-card mb-6">
+      <p class="section-title mb-1">Themen-Radar</p>
+      <p class="meta-text mb-4">Wie oft werden KI-Player und Themen in Artikeln erwähnt</p>
+      <div style="position:relative;height:220px">
+        <canvas id="chart-topics"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Row 3: Creator Dashboard ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+      <!-- Top Artikel -->
+      <div class="chart-card">
+        <p class="section-title mb-1">🏆 Top Artikel nach Score</p>
+        <p class="meta-text mb-4">Die relevantesten Stories aus dem gesamten Archiv</p>
+        <div id="top-articles-list"></div>
+      </div>
+
+      <!-- Aktuelle Top-News + Insight -->
+      <div class="chart-card">
+        <p class="section-title mb-1">⚡ Creator Radar</p>
+        <p class="meta-text mb-4">Aktuelle News-Session – was ist gerade relevant</p>
+        <div id="current-top-list"></div>
+
+        <!-- Tip -->
+        <div class="mt-5 p-4 rounded-lg" style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15)">
+          <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(0,212,255,0.5)">💡 Tipp: Besucher-Daten</p>
+          <p class="text-[12px] text-gray-400 leading-relaxed">Diese Statistik zeigt deine <strong style="color:#dfe3ea">Content-Daten</strong>. Für echte Besucher-Zahlen (Seitenaufrufe, Klicks, Herkunft) ist <strong style="color:#00d4ff">Cloudflare Web Analytics</strong> kostenlos – ein Script-Tag reicht, kein Server nötig.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 pb-12 border-t border-[#2f3336] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="text-white font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
+        <p class="text-[11px] text-gray-500 font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/CScampy" target="_blank" style="color:#00d4ff">@CScampy</a></p>
+      </div>
+      <p class="text-[11px] text-gray-600 font-mono" id="stats-footer-stand">—</p>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ── Konfiguration ───────────────────────────────────────────────────────────
+const SOURCE_COLORS = {
+  'The Decoder':    '#1d9bf0',
+  'TechCrunch AI':  '#ff6b35',
+  'VentureBeat AI': '#a78bfa',
+  'MIT Tech Review':'#f87171',
+  'Ars Technica':   '#4ade80',
+  'Heise':          '#60a5fa',
+  'Golem':          '#34d399',
+  'Caschy Blog':    '#fb923c',
+  'AlignedNews':    '#c084fc',
+  'Bloomberg':      '#f59e0b',
+  'SiliconAngle':   '#e879f9',
+  'TechRepublic':   '#38bdf8',
+  'Wired':          '#a3e635',
+};
+function srcColor(s){ return SOURCE_COLORS[s] || '#00d4ff'; }
+
+const SCORE_LEVELS = [
+  { label:'BREAKING', min:40, color:'#ef4444', bg:'rgba(239,68,68,0.15)',   badge:'badge-breaking' },
+  { label:'TOP',      min:30, color:'#f97316', bg:'rgba(249,115,22,0.15)',  badge:'badge-top'      },
+  { label:'WICHTIG',  min:20, color:'#eab308', bg:'rgba(234,179,8,0.15)',   badge:'badge-wichtig'  },
+  { label:'AKTUELL',  min:10, color:'#00d4ff', bg:'rgba(0,212,255,0.12)',   badge:'badge-aktuell'  },
+  { label:'INFO',     min:0,  color:'#6b7280', bg:'rgba(107,114,128,0.15)', badge:'badge-info'     },
+];
+function scoreLevel(s){
+  for(const l of SCORE_LEVELS) if(s>=l.min) return l;
+  return SCORE_LEVELS[4];
+}
+
+const KEY_TERMS = [
+  'OpenAI','Google','Anthropic','Meta','Microsoft','Apple','Nvidia','DeepMind','xAI','Mistral','Cohere','Perplexity',
+  'GPT','Claude','Gemini','Llama','Grok','Copilot','ChatGPT','Sora','Midjourney',
+  'AGI','LLM','Roboter','Deepfake','Datenschutz','Regulierung','Open Source','Chip','GPU',
+  'China','EU','Gesetz','Recht','Klage','Sicherheit',
+];
+
+// ── Chart.js Defaults ────────────────────────────────────────────────────────
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'Work Sans', sans-serif";
+Chart.defaults.font.size = 12;
+
+window._charts = [];
+let allArticles = [];
+let sourceMetric = 'count';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function isDark(){ return document.documentElement.classList.contains('dark'); }
+function gridColor(){ return isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'; }
+function labelColor(){ return isDark() ? '#6b7280' : '#64748b'; }
+
+// ── Load Data ────────────────────────────────────────────────────────────────
+async function loadData(){
+  let current = [], archive = [];
+  try {
+    const r = await fetch('news.json?t='+Date.now());
+    const d = await r.json();
+    current = d.news || [];
+    const stand = d.stand || '';
+    document.getElementById('stats-footer-stand').textContent = 'Stand: ' + stand;
+  } catch(e){}
+
+  try {
+    const r = await fetch('archive.json?t='+Date.now());
+    archive = await r.json();
+    if(!Array.isArray(archive)) archive = [];
+  } catch(e){}
+
+  // Deduplizieren per Link
+  const seen = new Set(current.map(a=>a.link));
+  const merged = [...current, ...archive.filter(a=>!seen.has(a.link))];
+  allArticles = merged;
+
+  renderAll(current, merged);
+}
+
+function renderAll(current, all){
+  const isDarkMode = isDark();
+
+  // ── Hero Metriken ──────────────────────────────────────────────────────────
+  const sources = [...new Set(all.map(a=>a.source).filter(Boolean))];
+  const scores  = all.map(a=>a.score||0);
+  const avgScore = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
+  const topArt  = [...all].sort((a,b)=>(b.score||0)-(a.score||0))[0];
+
+  document.getElementById('m-total').textContent      = all.length;
+  document.getElementById('m-sources').textContent    = sources.length;
+  document.getElementById('m-sources-names').textContent = sources.slice(0,3).join(', ') + (sources.length>3 ? ' …' : '');
+  document.getElementById('m-avgscore').textContent   = avgScore;
+  document.getElementById('m-topscore').textContent   = topArt?.score || '—';
+  document.getElementById('m-topscore-title').textContent = topArt?.title?.slice(0,40)+'…' || '—';
+  document.getElementById('stats-subtitle').textContent = `${all.length} Artikel · ${sources.length} Quellen · Stand: ${document.getElementById('stats-footer-stand').textContent.replace('Stand: ','')}`;
+
+  // Sidebar Metriken
+  document.getElementById('sb-total').textContent    = all.length;
+  document.getElementById('sb-sources').textContent  = sources.length;
+  document.getElementById('sb-avgscore').textContent = avgScore;
+  document.getElementById('sb-topscore').textContent = topArt?.score || '—';
+
+  // ── Quellen Chart ──────────────────────────────────────────────────────────
+  const srcData = {};
+  all.forEach(a=>{
+    const s = a.source||'Unbekannt';
+    if(!srcData[s]) srcData[s]={count:0,scoreSum:0};
+    srcData[s].count++;
+    srcData[s].scoreSum += (a.score||0);
+  });
+  const srcSorted = Object.entries(srcData).sort((a,b)=>b[1].count-a[1].count);
+  window._srcSorted = srcSorted;
+
+  const srcLabels = srcSorted.map(([s])=>s);
+  const srcCounts = srcSorted.map(([,v])=>v.count);
+  const srcAvgs   = srcSorted.map(([,v])=>+(v.scoreSum/v.count).toFixed(1));
+  const srcColors = srcLabels.map(s=>srcColor(s));
+
+  const ctxS = document.getElementById('chart-sources').getContext('2d');
+  const chartSrc = new Chart(ctxS, {
+    type:'bar',
+    data:{
+      labels: srcLabels,
+      datasets:[{
+        label:'Artikel',
+        data: srcCounts,
+        backgroundColor: srcColors.map(c=>c+'bb'),
+        borderColor: srcColors,
+        borderWidth:1,
+        borderRadius:4,
+        borderSkipped:false,
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{
+        callbacks:{ label: ctx => ` ${ctx.parsed.x} Artikel · Ø ${srcAvgs[ctx.dataIndex]} Score` }
+      }},
+      scales:{
+        x:{ grid:{color:gridColor()}, ticks:{color:labelColor()} },
+        y:{ grid:{display:false}, ticks:{color:labelColor(), font:{size:11}} }
+      }
+    }
+  });
+  window._srcChartData = { srcLabels, srcCounts, srcAvgs, srcColors };
+  window._chartSrc = chartSrc;
+  window._charts.push(chartSrc);
+
+  // ── Score Donut ────────────────────────────────────────────────────────────
+  const levelCounts = SCORE_LEVELS.map(l=>{
+    const next = SCORE_LEVELS[SCORE_LEVELS.indexOf(l)-1];
+    return all.filter(a=>{
+      const s=a.score||0;
+      return s>=l.min && (next?s<next.min:true);
+    }).length;
+  });
+
+  const ctxD = document.getElementById('chart-scores').getContext('2d');
+  const chartDoughnut = new Chart(ctxD,{
+    type:'doughnut',
+    data:{
+      labels: SCORE_LEVELS.map(l=>l.label),
+      datasets:[{
+        data: levelCounts,
+        backgroundColor: SCORE_LEVELS.map(l=>l.bg.replace('0.15','0.7')),
+        borderColor: SCORE_LEVELS.map(l=>l.color),
+        borderWidth:1.5,
+        hoverOffset:6,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      cutout:'68%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=((ctx.parsed/all.length)*100).toFixed(1);
+          return ` ${ctx.parsed} Artikel (${pct}%)`;
+        }}}
+      }
+    }
+  });
+  window._charts.push(chartDoughnut);
+
+  // Score Legend
+  const leg = document.getElementById('score-legend');
+  SCORE_LEVELS.forEach((l,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px';
+    row.innerHTML=`
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:10px;height:10px;border-radius:2px;background:${l.color};flex-shrink:0"></div>
+        <span style="font-size:11px;font-family:monospace;color:${l.color};font-weight:700">${l.label}</span>
+        <span style="font-size:10px;color:#6b7280">≥${l.min}</span>
+      </div>
+      <span style="font-size:11px;font-family:monospace;color:#9ca3af">${levelCounts[i]}</span>`;
+    leg.appendChild(row);
+  });
+
+  // ── Themen Radar ───────────────────────────────────────────────────────────
+  const termCounts = KEY_TERMS.map(t=>{
+    const re=new RegExp(t,'i');
+    return { term:t, count: all.filter(a=>(a.title||'').match(re)||(a.summary||'').match(re)).length };
+  }).filter(t=>t.count>0).sort((a,b)=>b.count-a.count).slice(0,16);
+
+  const ctxT = document.getElementById('chart-topics').getContext('2d');
+  const barColors = termCounts.map((_,i)=>{
+    const hue = 180 + (i/termCounts.length)*120;
+    return `hsla(${hue},80%,60%,0.75)`;
+  });
+  const chartTopics = new Chart(ctxT,{
+    type:'bar',
+    data:{
+      labels: termCounts.map(t=>t.term),
+      datasets:[{
+        label:'Erwähnungen',
+        data: termCounts.map(t=>t.count),
+        backgroundColor: barColors,
+        borderColor: barColors.map(c=>c.replace('0.75','1')),
+        borderWidth:1,
+        borderRadius:4,
+        borderSkipped:false,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y}× erwähnt`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:labelColor(),font:{size:11}}},
+        y:{grid:{color:gridColor()},ticks:{color:labelColor(),stepSize:1}}
+      }
+    }
+  });
+  window._charts.push(chartTopics);
+
+  // ── Top Artikel ────────────────────────────────────────────────────────────
+  const top10 = [...all].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,8);
+  const topList = document.getElementById('top-articles-list');
+  top10.forEach((art,i)=>{
+    const lv = scoreLevel(art.score||0);
+    const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const a=document.createElement('a');
+    a.href=art.link||'#';
+    if(art.link) a.target='_blank';
+    a.className='top-article-row';
+    a.innerHTML=`
+      <span class="rank-num ${rankClass}">${i+1}</span>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:#dfe3ea;line-height:1.3;margin-bottom:3px" class="line-clamp-2">${art.title||'—'}</p>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:9px;font-family:monospace;color:${srcColor(art.source)};font-weight:700">${art.source||'—'}</span>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <span class="badge ${lv.badge}">${lv.label}</span>
+        <p style="font-size:16px;font-weight:900;font-family:'Space Grotesk',sans-serif;color:${lv.color};margin-top:2px">${art.score||0}</p>
+      </div>`;
+    topList.appendChild(a);
+  });
+
+  // ── Creator Radar (aktuelle Session) ──────────────────────────────────────
+  const curList = document.getElementById('current-top-list');
+  const cur5 = [...current].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
+  if(cur5.length===0){
+    curList.innerHTML='<p style="font-size:12px;color:#6b7280;font-family:monospace">Keine aktuellen Artikel geladen.</p>';
+  } else {
+    cur5.forEach((art,i)=>{
+      const lv=scoreLevel(art.score||0);
+      const a=document.createElement('a');
+      a.href=art.link||'#'; if(art.link)a.target='_blank';
+      a.className='top-article-row';
+      a.innerHTML=`
+        <span class="rank-num ${i===0?'gold':''}">${i+1}</span>
+        <div style="flex:1;min-width:0">
+          <p style="font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:#dfe3ea;line-height:1.3;margin-bottom:3px" class="line-clamp-2">${art.title||'—'}</p>
+          <span style="font-size:9px;font-family:monospace;color:${srcColor(art.source)};font-weight:700">${art.source||'—'}</span>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <span class="badge ${lv.badge}">${lv.label}</span>
+          <p style="font-size:16px;font-weight:900;font-family:'Space Grotesk',sans-serif;color:${lv.color};margin-top:2px">${art.score||0}</p>
+        </div>`;
+      curList.appendChild(a);
+    });
+  }
+}
+
+// ── Source Metric Toggle ─────────────────────────────────────────────────────
+function toggleSourceMetric(metric){
+  sourceMetric = metric;
+  const { srcLabels, srcCounts, srcAvgs } = window._srcSortedData || {};
+  if(!window._chartSrc || !window._srcChartData) return;
+  const { srcCounts:c, srcAvgs:a } = window._srcChartData;
+  const chart = window._chartSrc;
+  const isCount = metric==='count';
+
+  chart.data.datasets[0].data = isCount ? c : a;
+  chart.data.datasets[0].label = isCount ? 'Artikel' : 'Ø Score';
+  chart.update();
+
+  const btnCount=document.getElementById('btn-count');
+  const btnScore=document.getElementById('btn-score');
+  if(isCount){
+    btnCount.style.background='rgba(0,212,255,0.15)'; btnCount.style.color='#00d4ff'; btnCount.style.borderColor='rgba(0,212,255,0.3)';
+    btnScore.style.background='transparent'; btnScore.style.color='#6b7280'; btnScore.style.borderColor='rgba(107,114,128,0.2)';
+  } else {
+    btnScore.style.background='rgba(0,212,255,0.15)'; btnScore.style.color='#00d4ff'; btnScore.style.borderColor='rgba(0,212,255,0.3)';
+    btnCount.style.background='transparent'; btnCount.style.color='#6b7280'; btnCount.style.borderColor='rgba(107,114,128,0.2)';
+  }
+}
+
+// ── Chart Theme Update ────────────────────────────────────────────────────────
+function updateChartTheme(chart){
+  if(!chart?.options?.scales) return;
+  Object.values(chart.options.scales).forEach(s=>{
+    if(s.grid) s.grid.color = gridColor();
+    if(s.ticks) s.ticks.color = labelColor();
+  });
+  chart.update();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadData();
+</script>
+
+</body>
+</html>
