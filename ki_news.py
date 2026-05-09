@@ -85,6 +85,11 @@ FEEDS = [
     ("TechCrunch AI",  "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
+    ("Wired AI",       "https://wired.com/feed/rss"),
+    ("The Verge", "https://theverge.com/rss/index.xml"),
+    ("SiliconAngle", "https://siliconangle.com/feed"),
+    ("TechRepublic", "https://www.techrepublic.com/rssfeeds/articles/"),
+    ("Gizmodo", "https://gizmodo.com/feed"),
     # Kuratiert – bereits AI-spezifisch, kein KI-Filter nötig
     # Pre-analysed items: description enthält 2-3 Satz-Analyse, category = funding/models/breaking/etc.
     ("AlignedNews",    "https://alignednews.com/feed"),
@@ -370,11 +375,32 @@ def summarize_news(alle_news):
     batch_size = 6
     url = "https://openrouter.ai/api/v1/chat/completions"
 
+    # Placeholder-Erkennung: LLMs kopieren manchmal den Beispieltext aus dem Prompt
+    PLACEHOLDER_PATTERNS = {
+        "kurzer deutscher titel", "kurznews", "kurze meldung", "titel auf deutsch",
+        "deutsche zusammenfassung", "news zusammenfassung", "hier der titel",
+        "zusammenfassung hier", "titel hier", "schlagzeile", "beispieltitel",
+    }
+    def _is_placeholder(title: str) -> bool:
+        t = title.lower().strip()
+        if len(t) < 8:
+            return True
+        return any(p in t for p in PLACEHOLDER_PATTERNS)
+
     for batch_start in range(0, len(alle_news), batch_size):
         batch = alle_news[batch_start:batch_start + batch_size]
         news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(batch)])
-        prompt = f"""Fasse jede News auf Deutsch zusammen. Antworte NUR mit JSON, kein weiterer Text, keine Backticks:
-[{{"id": 1, "title_de": "Kurzer deutscher Titel", "summary": "2-3 Saetze was passiert ist und warum relevant"}}, ...]
+        prompt = f"""Du bist ein deutschsprachiger KI-News-Redakteur.
+Uebersetze und fasse JEDE der folgenden News auf Deutsch zusammen.
+Antworte AUSSCHLIESSLICH mit einem JSON-Array – kein erklaerende Text, keine Backticks, kein Markdown.
+
+Format (ersetze den Inhalt mit echten Werten fuer jede News):
+[{{"id": 1, "title_de": "Echter deutscher Titel der News", "summary": "2-3 Saetze: was ist passiert und warum ist es fuer KI-Interessierte relevant."}}, ...]
+
+Wichtig:
+- title_de MUSS eine echte Uebersetzung des Originaltitels sein, kein Platzhalterwert
+- Jede id muss vorkommen (1 bis {len(batch)})
+- Nur JSON zurueckgeben, sonst nichts
 
 News:
 {news_text}"""
@@ -384,7 +410,7 @@ News:
                 data = json.dumps({
                     "model": modell,
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 800
+                    "max_tokens": 900
                 }).encode()
                 req = urllib.request.Request(url, data=data, headers={
                     "Authorization": f"Bearer {OPENROUTER_KEY}",
@@ -399,8 +425,12 @@ News:
                     for item in summaries:
                         global_index = batch_start + item["id"] - 1
                         if 0 <= global_index < len(alle_news):
+                            raw_title = item.get("title_de", "")
+                            # Placeholder-Schutz: falls LLM Beispieltext zurueckgibt → Original behalten
+                            title_de = raw_title if raw_title and not _is_placeholder(raw_title) \
+                                       else alle_news[global_index]["title"]
                             result[global_index] = {
-                                "title_de": item.get("title_de", alle_news[global_index]["title"]),
+                                "title_de": title_de,
                                 "summary": item.get("summary", "")
                             }
                     logger.info("Zusammenfassungen Batch %d OK mit %s", batch_start // batch_size + 1, modell)
