@@ -117,11 +117,16 @@
   html.light #navActiveArchiv { background: rgba(0,212,255,0.12) !important; color: #0099bb !important; }
   html.light .search-clear { color: #94a3b8 !important; }
   html.light #btnGrid, html.light #btnList { background: transparent !important; }
-  /* ── Hashtag Panel ── */
-  html.light #hashtags { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  /* ── Panels mit bg-[#0d1117] (Podcast, Hashtag) ── */
+  html.light .bg-\[#0d1117\] { background: #f8fafc !important; }
+  html.light #hashtags { background: #f8fafc !important; border-color: rgba(0,212,255,0.20) !important; }
   html.light #hashtags button:hover { background: rgba(0,212,255,0.06) !important; }
-  html.light #hashtag-panel-body { background: #ffffff !important; }
+  html.light #hashtag-panel-body { background: #f8fafc !important; }
   html.light #hashtag-count { border-color: #e2e8f0 !important; color: #94a3b8 !important; }
+  /* Podcast Panel (kein ID, über Klasse) */
+  html.light #podcast-panel { background: #f8fafc !important; border-color: rgba(0,212,255,0.20) !important; }
+  html.light #podcast-panel-body { background: #f8fafc !important; }
+  html.light #podcast-archive-list > div { background: #ffffff !important; border-color: #e2e8f0 !important; }
 </style>
 </head>
 <body class="font-body-lg">
@@ -376,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <!-- Podcast + Video Archiv (dynamisch aus media.json) ───────────────── -->
-    <div class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
+    <div id="podcast-panel" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
       <button onclick="togglePodcastPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[#1d9bf0] text-base">mic</span>
