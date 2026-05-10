@@ -255,6 +255,21 @@ select {
   outline: none; transition: border-color 0.15s; cursor: pointer;
 }
 select:focus { border-color: oklch(52% 0.18 240); }
+
+/* ── Media section headers ── */
+.media-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0 10px; border-bottom: 2px solid oklch(93% 0.006 80);
+  margin-bottom: 14px;
+}
+.media-section-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+  color: oklch(25% 0.01 240);
+}
+.media-section-count {
+  font-size: 11px; color: oklch(60% 0.01 240);
+  font-family: monospace; margin-left: 8px;
+}
 </style>
 </head>
 <body>
@@ -366,17 +381,41 @@ select:focus { border-color: oklch(52% 0.18 240); }
     <div class="tab-panel" id="tab-media">
       <div class="main-header">
         <h1 class="main-title">Media Manager</h1>
-      </div>
-      <div class="media-top-actions">
-        <span class="help-hint">☰ Ziehen zum Sortieren · Oben = Aktuell auf der Startseite</span>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="help-hint">☰ Ziehen = Reihenfolge</span>
           <button class="btn btn-ghost" onclick="loadMediaFromGitHub()">↓ Laden</button>
           <button class="btn btn-primary" onclick="saveMediaToGitHub()" id="mediaCommitBtn" disabled>Speichern →</button>
-          <button class="btn btn-ghost btn-sm" onclick="addEpisode()" style="background:oklch(94% 0.04 145);border-color:oklch(80% 0.1 145);color:oklch(35% 0.18 145)">+ Neue Episode</button>
         </div>
       </div>
-      <div id="mediaStatus" style="font-size:12px;color:oklch(55% 0.01 240);margin-bottom:12px"></div>
-      <div class="ep-list" id="epList">
+      <div id="mediaStatus" style="font-size:12px;color:oklch(55% 0.01 240);margin-bottom:16px"></div>
+
+      <!-- 🎙 Podcast-Episoden -->
+      <div class="media-section-header">
+        <div>
+          <span class="media-section-title">🎙 Podcast-Episoden</span>
+          <span class="media-section-count" id="podcastCount"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addPodcast()"
+          style="background:oklch(94% 0.04 145);border-color:oklch(80% 0.1 145);color:oklch(35% 0.18 145)">
+          + Neue Episode
+        </button>
+      </div>
+      <div class="ep-list" id="podcastList" style="margin-bottom:32px">
+        <div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben, dann "Laden" klicken.</p></div>
+      </div>
+
+      <!-- 🎬 Videos -->
+      <div class="media-section-header">
+        <div>
+          <span class="media-section-title">🎬 Videos</span>
+          <span class="media-section-count" id="videoCount"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addVideo()"
+          style="background:oklch(94% 0.04 25);border-color:oklch(80% 0.1 25);color:oklch(35% 0.18 25)">
+          + Neues Video
+        </button>
+      </div>
+      <div class="ep-list" id="videoList">
         <div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben, dann "Laden" klicken.</p></div>
       </div>
     </div>
@@ -740,10 +779,12 @@ function switchTab(name) {
 }
 
 // ── Media Manager State ──────────────────────────────────────────────────────
-let mediaEpisodes = [];   // working copy
+let mediaPodcasts = [];
+let mediaVideos = [];
 let mediaFileSha = '';
 let mediaModified = false;
-let dragSrcIdx = null;
+let podcastDragSrc = null;
+let videoDragSrc = null;
 
 // ── Load media.json from GitHub ──────────────────────────────────────────────
 async function loadMediaFromGitHub() {
@@ -758,10 +799,12 @@ async function loadMediaFromGitHub() {
     const data = await res.json();
     mediaFileSha = data.sha;
     const decoded = JSON.parse(decodeBase64UTF8(data.content));
-    mediaEpisodes = decoded.episodes || [];
+    mediaPodcasts = decoded.podcasts || [];
+    mediaVideos = decoded.videos || [];
     mediaModified = false;
-    renderEpList();
-    setMediaStatus(`${mediaEpisodes.length} Episode(n) geladen`);
+    renderPodcastList();
+    renderVideoList();
+    setMediaStatus(`${mediaPodcasts.length} Podcast(s) · ${mediaVideos.length} Video(s) geladen`);
     document.getElementById('mediaCommitBtn').disabled = true;
     toast('media.json geladen', 'success');
   } catch(e) {
@@ -779,10 +822,10 @@ async function saveMediaToGitHub() {
   const btn = document.getElementById('mediaCommitBtn');
   btn.disabled = true; btn.textContent = 'Wird gespeichert…';
   try {
-    const payload = { episodes: mediaEpisodes };
+    const payload = { podcasts: mediaPodcasts, videos: mediaVideos };
     const jsonStr = JSON.stringify(payload, null, 2);
     const content = btoa(unescape(encodeURIComponent(jsonStr)));
-    const body = { message: 'media: Episoden aktualisiert', content, sha: mediaFileSha, branch };
+    const body = { message: 'media: Podcasts & Videos aktualisiert', content, sha: mediaFileSha, branch };
     const res = await fetch(`https://api.github.com/repos/${repo}/contents/media.json`, {
       method: 'PUT', headers: { ...ghHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
@@ -792,7 +835,6 @@ async function saveMediaToGitHub() {
     mediaModified = false;
     setMediaStatus('✓ Gespeichert');
     toast('✓ media.json gespeichert', 'success');
-    renderEpList();
   } catch(e) {
     toast('Fehler: ' + e.message, 'error');
   } finally {
@@ -801,42 +843,54 @@ async function saveMediaToGitHub() {
   }
 }
 
-// ── Add new empty episode ────────────────────────────────────────────────────
-function addEpisode() {
-  const nextId = String(mediaEpisodes.length + 1).padStart(3, '0');
-  mediaEpisodes.unshift({
-    id: nextId, title: '', description: '', date: new Date().toISOString().slice(0,10),
-    podcast: { soundcloud_url: '', track_id: '', duration: '' },
-    video: { type: 'none', src: '', title: '', label: 'VIDEO' }
+// ── Add ─────────────────────────────────────────────────────────────────────
+function addPodcast() {
+  const nextId = String(mediaPodcasts.length + 1).padStart(3, '0');
+  mediaPodcasts.unshift({
+    id: nextId, title: '', description: '',
+    date: new Date().toISOString().slice(0,10),
+    soundcloud_url: '', track_id: '', duration: ''
   });
   markMediaModified();
-  renderEpList();
-  // Scroll to top of list
-  document.getElementById('epList').scrollIntoView({ behavior: 'smooth' });
+  renderPodcastList();
+  document.getElementById('podcastList').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── Delete episode ───────────────────────────────────────────────────────────
-function deleteEpisode(idx) {
-  if (!confirm(`Episode #${mediaEpisodes[idx].id} "${mediaEpisodes[idx].title || '(leer)'}" wirklich löschen?`)) return;
-  mediaEpisodes.splice(idx, 1);
+function addVideo() {
+  const nextId = 'v' + String(mediaVideos.length + 1).padStart(3, '0');
+  mediaVideos.unshift({
+    id: nextId, title: '',
+    date: new Date().toISOString().slice(0,10),
+    type: 'youtube', src: '', label: 'VIDEO'
+  });
   markMediaModified();
-  renderEpList();
+  renderVideoList();
+  document.getElementById('videoList').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── Update field ─────────────────────────────────────────────────────────────
-function updateEpField(idx, path, value) {
-  const keys = path.split('.');
-  let obj = mediaEpisodes[idx];
-  for (let i = 0; i < keys.length - 1; i++) obj = obj[keys[i]];
-  obj[keys[keys.length - 1]] = value;
-  // Auto-extract SoundCloud track_id from URL
-  if (path === 'podcast.soundcloud_url') {
-    const match = value.match(/soundcloud\.com\/[^/]+\/([^?&]+)/);
-    if (match) {
-      // Try to extract numeric track id from embed src (not possible from URL alone)
-      // Just save URL; user must fill track_id manually or paste embed code
-    }
-  }
+// ── Delete ───────────────────────────────────────────────────────────────────
+function deletePodcast(idx) {
+  if (!confirm(`Episode #${mediaPodcasts[idx].id} "${mediaPodcasts[idx].title || '(leer)'}" wirklich löschen?`)) return;
+  mediaPodcasts.splice(idx, 1);
+  markMediaModified();
+  renderPodcastList();
+}
+
+function deleteVideo(idx) {
+  if (!confirm(`Video #${mediaVideos[idx].id} "${mediaVideos[idx].title || '(leer)'}" wirklich löschen?`)) return;
+  mediaVideos.splice(idx, 1);
+  markMediaModified();
+  renderVideoList();
+}
+
+// ── Update fields ─────────────────────────────────────────────────────────────
+function updatePodcastField(idx, key, value) {
+  mediaPodcasts[idx][key] = value;
+  markMediaModified();
+}
+
+function updateVideoField(idx, key, value) {
+  mediaVideos[idx][key] = value;
   markMediaModified();
 }
 
@@ -868,12 +922,12 @@ function parseEmbedCode(idx, embedCode) {
 
   let changed = false;
   if (trackIdMatch) {
-    mediaEpisodes[idx].podcast.track_id = trackIdMatch[1];
+    mediaPodcasts[idx].track_id = trackIdMatch[1];
     document.getElementById(`ep-track-id-${idx}`).value = trackIdMatch[1];
     changed = true;
   }
   if (scUrl) {
-    mediaEpisodes[idx].podcast.soundcloud_url = scUrl;
+    mediaPodcasts[idx].soundcloud_url = scUrl;
     document.getElementById(`ep-sc-url-${idx}`).value = scUrl;
     changed = true;
   }
@@ -897,109 +951,129 @@ async function autoFillFromUrl(idx) {
     const res = await fetch(`https://soundcloud.com/oembed?url=${encodeURIComponent(scUrl)}&format=json`);
     if (!res.ok) throw new Error(`oEmbed: ${res.status}`);
     const data = await res.json();
-    // Track-ID aus dem embed-HTML extrahieren
     const trackMatch = (data.html || '').match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
     if (trackMatch) {
-      mediaEpisodes[idx].podcast.track_id = trackMatch[1];
+      mediaPodcasts[idx].track_id = trackMatch[1];
       document.getElementById(`ep-track-id-${idx}`).value = trackMatch[1];
     }
-    // Titel nur befüllen wenn noch leer
-    if (!mediaEpisodes[idx].title && data.title) {
-      mediaEpisodes[idx].title = data.title;
+    if (!mediaPodcasts[idx].title && data.title) {
+      mediaPodcasts[idx].title = data.title;
     }
     markMediaModified();
-    renderEpList();
+    renderPodcastList();
     toast(trackMatch ? `✓ Track-ID: ${trackMatch[1]}` : 'URL gespeichert – Track-ID nicht gefunden', trackMatch ? 'success' : '');
   } catch(e) {
     toast('Fehler beim Laden: ' + e.message, 'error');
   }
 }
 
-// ── Drag & Drop ──────────────────────────────────────────────────────────────
-function onDragStart(e, idx) {
-  dragSrcIdx = idx;
+// ── Drag & Drop – Podcasts ────────────────────────────────────────────────────
+function onPodcastDragStart(e, idx) {
+  podcastDragSrc = idx;
   e.dataTransfer.effectAllowed = 'move';
   setTimeout(() => e.target.closest('.ep-card').classList.add('dragging'), 0);
 }
-function onDragEnd(e) {
+function onPodcastDragEnd(e) {
   e.target.closest('.ep-card').classList.remove('dragging');
-  document.querySelectorAll('.ep-card').forEach(c => c.classList.remove('drag-over'));
+  document.querySelectorAll('#podcastList .ep-card').forEach(c => c.classList.remove('drag-over'));
 }
-function onDragOver(e, idx) {
+function onPodcastDragOver(e, idx) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('.ep-card').forEach(c => c.classList.remove('drag-over'));
-  if (idx !== dragSrcIdx) e.currentTarget.classList.add('drag-over');
+  document.querySelectorAll('#podcastList .ep-card').forEach(c => c.classList.remove('drag-over'));
+  if (idx !== podcastDragSrc) e.currentTarget.classList.add('drag-over');
 }
-function onDrop(e, idx) {
+function onPodcastDrop(e, idx) {
   e.preventDefault();
-  if (dragSrcIdx === null || dragSrcIdx === idx) return;
-  const moved = mediaEpisodes.splice(dragSrcIdx, 1)[0];
-  mediaEpisodes.splice(idx, 0, moved);
-  dragSrcIdx = null;
+  if (podcastDragSrc === null || podcastDragSrc === idx) return;
+  const moved = mediaPodcasts.splice(podcastDragSrc, 1)[0];
+  mediaPodcasts.splice(idx, 0, moved);
+  podcastDragSrc = null;
   markMediaModified();
-  renderEpList();
+  renderPodcastList();
 }
 
-// ── Render episode list ───────────────────────────────────────────────────────
-function renderEpList() {
-  const list = document.getElementById('epList');
-  if (!mediaEpisodes.length) {
+// ── Drag & Drop – Videos ──────────────────────────────────────────────────────
+function onVideoDragStart(e, idx) {
+  videoDragSrc = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.closest('.ep-card').classList.add('dragging'), 0);
+}
+function onVideoDragEnd(e) {
+  e.target.closest('.ep-card').classList.remove('dragging');
+  document.querySelectorAll('#videoList .ep-card').forEach(c => c.classList.remove('drag-over'));
+}
+function onVideoDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('#videoList .ep-card').forEach(c => c.classList.remove('drag-over'));
+  if (idx !== videoDragSrc) e.currentTarget.classList.add('drag-over');
+}
+function onVideoDrop(e, idx) {
+  e.preventDefault();
+  if (videoDragSrc === null || videoDragSrc === idx) return;
+  const moved = mediaVideos.splice(videoDragSrc, 1)[0];
+  mediaVideos.splice(idx, 0, moved);
+  videoDragSrc = null;
+  markMediaModified();
+  renderVideoList();
+}
+
+// ── Render – Podcasts ─────────────────────────────────────────────────────────
+function renderPodcastList() {
+  const list = document.getElementById('podcastList');
+  const countEl = document.getElementById('podcastCount');
+  if (countEl) countEl.textContent = `(${mediaPodcasts.length})`;
+  if (!mediaPodcasts.length) {
     list.innerHTML = '<div class="empty"><h3>Keine Episoden</h3><p>Klick auf "+ Neue Episode".</p></div>';
     return;
   }
   list.innerHTML = '';
-  mediaEpisodes.forEach((ep, idx) => {
+  mediaPodcasts.forEach((ep, idx) => {
     const card = document.createElement('div');
     card.className = 'ep-card';
     card.draggable = true;
-    card.addEventListener('dragstart', e => onDragStart(e, idx));
-    card.addEventListener('dragend', onDragEnd);
-    card.addEventListener('dragover', e => onDragOver(e, idx));
-    card.addEventListener('drop', e => onDrop(e, idx));
-    const badge = idx === 0
-      ? '<span class="ep-badge-current">▶ Aktuell</span>'
-      : '<span class="ep-badge-archive">Archiv</span>';
+    card.addEventListener('dragstart', e => onPodcastDragStart(e, idx));
+    card.addEventListener('dragend', onPodcastDragEnd);
+    card.addEventListener('dragover', e => onPodcastDragOver(e, idx));
+    card.addEventListener('drop', e => onPodcastDrop(e, idx));
+    const badge = idx === 0 ? '<span class="ep-badge-current">▶ Aktuell</span>' : '<span class="ep-badge-archive">Archiv</span>';
     card.innerHTML = `
       <div class="ep-header">
         <span class="ep-drag-handle">⠿</span>
         ${badge}
-        <span class="ep-num">Episode #${ep.id || idx+1}</span>
-        <span style="font-size:13px;font-weight:600;color:oklch(30% 0.01 240);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ep.title || '<em style="color:oklch(65% 0.01 240)">Kein Titel</em>'}</span>
-        <span style="font-size:11px;color:oklch(65% 0.01 240);font-family:monospace">${ep.date || ''}</span>
+        <span class="ep-num">Episode #${ep.id||idx+1}</span>
+        <span style="font-size:13px;font-weight:600;color:oklch(30% 0.01 240);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ep.title||'<em style="color:oklch(65% 0.01 240)">Kein Titel</em>'}</span>
+        <span style="font-size:11px;color:oklch(65% 0.01 240);font-family:monospace">${ep.date||''}</span>
       </div>
       <div class="ep-body">
-
-        <!-- Basis-Info -->
         <div class="ep-row">
           <div>
             <div class="field-label">Episode-ID</div>
             <input type="text" value="${escHtml(ep.id||'')}" placeholder="001"
-              oninput="updateEpField(${idx},'id',this.value)"/>
+              oninput="updatePodcastField(${idx},'id',this.value)"/>
           </div>
           <div>
             <div class="field-label">Datum</div>
             <input type="date" value="${ep.date||''}"
-              oninput="updateEpField(${idx},'date',this.value)"/>
+              oninput="updatePodcastField(${idx},'date',this.value)"/>
           </div>
         </div>
         <div>
           <div class="field-label">Titel</div>
           <input type="text" value="${escHtml(ep.title||'')}" placeholder="Episodentitel…"
-            oninput="updateEpField(${idx},'title',this.value)"/>
+            oninput="updatePodcastField(${idx},'title',this.value)"/>
         </div>
         <div>
           <div class="field-label">Beschreibung</div>
           <textarea rows="2" placeholder="Kurze Beschreibung…"
-            oninput="updateEpField(${idx},'description',this.value)">${escHtml(ep.description||'')}</textarea>
+            oninput="updatePodcastField(${idx},'description',this.value)">${escHtml(ep.description||'')}</textarea>
         </div>
-
-        <!-- Podcast -->
-        <div class="ep-section-label">🎙 Podcast</div>
+        <div class="ep-section-label">🎙 SoundCloud</div>
         <div>
-          <div class="field-label">SoundCloud Embed-Code einfügen → auto-ausfüllen</div>
+          <div class="field-label">Embed-Code einfügen → auto-ausfüllen</div>
           <div style="display:flex;gap:8px">
-            <textarea rows="2" placeholder='<iframe … src="https://w.soundcloud.com/…"></iframe>' id="ep-embed-${idx}"
+            <textarea rows="2" placeholder='&lt;iframe … src="https://w.soundcloud.com/…"&gt;&lt;/iframe&gt;' id="ep-embed-${idx}"
               style="font-size:11px;font-family:monospace"></textarea>
             <button class="btn btn-ghost btn-sm" style="align-self:flex-end;white-space:nowrap"
               onclick="parseEmbedCode(${idx}, document.getElementById('ep-embed-${idx}').value)">
@@ -1011,63 +1085,102 @@ function renderEpList() {
           <div>
             <div class="field-label">SoundCloud URL</div>
             <div style="display:flex;gap:6px;align-items:center">
-              <input id="ep-sc-url-${idx}" type="text" value="${escHtml(ep.podcast?.soundcloud_url||'')}"
+              <input id="ep-sc-url-${idx}" type="text" value="${escHtml(ep.soundcloud_url||'')}"
                 placeholder="https://soundcloud.com/…"
-                oninput="updateEpField(${idx},'podcast.soundcloud_url',this.value)" style="flex:1"/>
+                oninput="updatePodcastField(${idx},'soundcloud_url',this.value)" style="flex:1"/>
               <button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0"
-                onclick="autoFillFromUrl(${idx})" title="Track-ID automatisch per oEmbed laden">
-                🔍 Auto
-              </button>
+                onclick="autoFillFromUrl(${idx})" title="Track-ID per oEmbed laden">🔍 Auto</button>
             </div>
           </div>
           <div>
-            <div class="field-label">Track-ID <span style="color:oklch(60% 0.01 240);font-weight:400">(aus Embed oder Auto)</span></div>
-            <input id="ep-track-id-${idx}" type="text" value="${escHtml(ep.podcast?.track_id||'')}"
+            <div class="field-label">Track-ID</div>
+            <input id="ep-track-id-${idx}" type="text" value="${escHtml(ep.track_id||'')}"
               placeholder="2315736341"
-              oninput="updateEpField(${idx},'podcast.track_id',this.value)"/>
+              oninput="updatePodcastField(${idx},'track_id',this.value)"/>
           </div>
         </div>
         <div style="max-width:200px">
           <div class="field-label">Dauer (optional)</div>
-          <input type="text" value="${escHtml(ep.podcast?.duration||'')}" placeholder="~20 MIN"
-            oninput="updateEpField(${idx},'podcast.duration',this.value)"/>
+          <input type="text" value="${escHtml(ep.duration||'')}" placeholder="~20 MIN"
+            oninput="updatePodcastField(${idx},'duration',this.value)"/>
         </div>
+        <div class="ep-actions">
+          <button class="btn btn-danger btn-sm" onclick="deletePodcast(${idx})">✕ Löschen</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
 
-        <!-- Video -->
-        <div class="ep-section-label">🎬 Video</div>
+// ── Render – Videos ───────────────────────────────────────────────────────────
+function renderVideoList() {
+  const list = document.getElementById('videoList');
+  const countEl = document.getElementById('videoCount');
+  if (countEl) countEl.textContent = `(${mediaVideos.length})`;
+  if (!mediaVideos.length) {
+    list.innerHTML = '<div class="empty"><h3>Keine Videos</h3><p>Klick auf "+ Neues Video".</p></div>';
+    return;
+  }
+  list.innerHTML = '';
+  mediaVideos.forEach((v, idx) => {
+    const card = document.createElement('div');
+    card.className = 'ep-card';
+    card.draggable = true;
+    card.addEventListener('dragstart', e => onVideoDragStart(e, idx));
+    card.addEventListener('dragend', onVideoDragEnd);
+    card.addEventListener('dragover', e => onVideoDragOver(e, idx));
+    card.addEventListener('drop', e => onVideoDrop(e, idx));
+    const badge = idx === 0 ? '<span class="ep-badge-current">▶ Aktuell</span>' : '<span class="ep-badge-archive">Archiv</span>';
+    card.innerHTML = `
+      <div class="ep-header">
+        <span class="ep-drag-handle">⠿</span>
+        ${badge}
+        <span class="ep-num">Video #${v.id||idx+1}</span>
+        <span style="font-size:13px;font-weight:600;color:oklch(30% 0.01 240);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title||'<em style="color:oklch(65% 0.01 240)">Kein Titel</em>'}</span>
+        <span style="font-size:11px;color:oklch(65% 0.01 240);font-family:monospace">${v.date||''}</span>
+      </div>
+      <div class="ep-body">
+        <div class="ep-row">
+          <div>
+            <div class="field-label">Video-ID</div>
+            <input type="text" value="${escHtml(v.id||'')}" placeholder="v001"
+              oninput="updateVideoField(${idx},'id',this.value)"/>
+          </div>
+          <div>
+            <div class="field-label">Datum</div>
+            <input type="date" value="${v.date||''}"
+              oninput="updateVideoField(${idx},'date',this.value)"/>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Titel</div>
+          <input type="text" value="${escHtml(v.title||'')}" placeholder="Videotitel…"
+            oninput="updateVideoField(${idx},'title',this.value)"/>
+        </div>
         <div class="ep-row">
           <div>
             <div class="field-label">Video-Typ</div>
-            <select onchange="updateEpField(${idx},'video.type',this.value);renderEpList()">
-              <option value="none" ${ep.video?.type==='none'?'selected':''}>Kein Video</option>
-              <option value="local" ${ep.video?.type==='local'?'selected':''}>Lokale MP4-Datei</option>
-              <option value="youtube" ${ep.video?.type==='youtube'?'selected':''}>YouTube</option>
-              <option value="vimeo" ${ep.video?.type==='vimeo'?'selected':''}>Vimeo</option>
+            <select onchange="updateVideoField(${idx},'type',this.value);renderVideoList()">
+              <option value="youtube" ${v.type==='youtube'?'selected':''}>YouTube</option>
+              <option value="vimeo"   ${v.type==='vimeo'?'selected':''}>Vimeo</option>
+              <option value="local"   ${v.type==='local'?'selected':''}>Lokale MP4-Datei</option>
+              <option value="none"    ${v.type==='none'?'selected':''}>Kein Video</option>
             </select>
           </div>
           <div>
             <div class="field-label">Video-Label</div>
-            <input type="text" value="${escHtml(ep.video?.label||'VIDEO')}" placeholder="VIDEO"
-              oninput="updateEpField(${idx},'video.label',this.value)"/>
+            <input type="text" value="${escHtml(v.label||'VIDEO')}" placeholder="VIDEO"
+              oninput="updateVideoField(${idx},'label',this.value)"/>
           </div>
         </div>
-        ${ep.video?.type !== 'none' ? `
-        <div class="ep-row">
-          <div>
-            <div class="field-label">${ep.video?.type==='local' ? 'Pfad (z.B. uploads/video.mp4)' : 'URL (YouTube/Vimeo)'}</div>
-            <input type="text" value="${escHtml(ep.video?.src||'')}"
-              placeholder="${ep.video?.type==='local' ? 'uploads/mein-video.mp4' : 'https://…'}"
-              oninput="updateEpField(${idx},'video.src',this.value)"/>
-          </div>
-          <div>
-            <div class="field-label">Video-Titel</div>
-            <input type="text" value="${escHtml(ep.video?.title||'')}" placeholder="Videotitel…"
-              oninput="updateEpField(${idx},'video.title',this.value)"/>
-          </div>
-        </div>` : ''}
-
+        <div>
+          <div class="field-label">${v.type==='local' ? 'Pfad (z.B. uploads/video.mp4)' : 'URL (YouTube / Vimeo)'}</div>
+          <input type="text" value="${escHtml(v.src||'')}"
+            placeholder="${v.type==='local' ? 'uploads/mein-video.mp4' : 'https://youtu.be/…'}"
+            oninput="updateVideoField(${idx},'src',this.value)"/>
+        </div>
         <div class="ep-actions">
-          <button class="btn btn-danger btn-sm" onclick="deleteEpisode(${idx})">✕ Löschen</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteVideo(${idx})">✕ Löschen</button>
         </div>
       </div>`;
     list.appendChild(card);
@@ -1085,7 +1198,7 @@ function setMediaStatus(msg) {
 
 // Auto-load media when tab is opened if token exists
 document.getElementById('tab-media-btn').addEventListener('click', () => {
-  if (!mediaEpisodes.length && document.getElementById('ghToken').value.trim()) {
+  if (!mediaPodcasts.length && !mediaVideos.length && document.getElementById('ghToken').value.trim()) {
     loadMediaFromGitHub();
   }
 });
