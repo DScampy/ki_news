@@ -447,7 +447,7 @@ async function loadFromGitHub() {
     if (!res.ok) throw new Error(`GitHub: ${res.status} ${res.statusText}`);
     const data = await res.json();
     fileSha = data.sha;
-    const decoded = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    const decoded = JSON.parse(decodeBase64UTF8(data.content));
     originalData = JSON.parse(JSON.stringify(decoded));
     articles = decoded.news.map((a, i) => ({ ...a, _id: i, _modified: false }));
     renderEditor();
@@ -715,6 +715,12 @@ function toast(msg, type = '') {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+// UTF-8-sicheres Base64-Decode (atob() allein bricht bei Umlauten)
+function decodeBase64UTF8(b64) {
+  const bytes = Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -751,7 +757,7 @@ async function loadMediaFromGitHub() {
     if (!res.ok) throw new Error(`GitHub: ${res.status} ${res.statusText}`);
     const data = await res.json();
     mediaFileSha = data.sha;
-    const decoded = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    const decoded = JSON.parse(decodeBase64UTF8(data.content));
     mediaEpisodes = decoded.episodes || [];
     mediaModified = false;
     renderEpList();
@@ -834,32 +840,78 @@ function updateEpField(idx, path, value) {
   markMediaModified();
 }
 
-function extractTrackId(url) {
-  // Extract from embed src format
-  const m = url.match(/tracks%253Atracks%253A(\d+)/);
-  if (m) return m[1];
-  const m2 = url.match(/tracks\/(\d+)/);
+function extractTrackId(embedOrUrl) {
+  // Moderne SoundCloud-Embed-src: …url=https%3A//api.soundcloud.com/tracks/2315736341&…
+  const m1 = embedOrUrl.match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
+  if (m1) return m1[1];
+  // Fallback: direkt im URL-String
+  const m2 = embedOrUrl.match(/tracks\/(\d+)/);
   if (m2) return m2[1];
   return '';
 }
 
 function parseEmbedCode(idx, embedCode) {
-  if (!embedCode.trim()) return;
-  const trackIdMatch = embedCode.match(/tracks%253Atracks%253A(\d+)/);
-  const urlMatch = embedCode.match(/href="(https:\/\/soundcloud\.com\/[^"]+)"/);
+  if (!embedCode.trim()) { toast('Embed-Code ist leer', 'error'); return; }
+
+  // Track-ID aus src-URL-Parameter (modernes Format)
+  const trackIdMatch = embedCode.match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
+
+  // SC-URL aus href (Untertext im Embed) oder aus dem url=-Param im src
+  const hrefMatch = embedCode.match(/href="(https:\/\/soundcloud\.com\/[^"]+)"/);
+  const srcUrlRaw = embedCode.match(/[?&]url=(https?[^&"]+soundcloud\.com[^&"]+)/i);
+  let scUrl = '';
+  if (hrefMatch) {
+    scUrl = hrefMatch[1];
+  } else if (srcUrlRaw) {
+    try { scUrl = decodeURIComponent(srcUrlRaw[1]); } catch(e) { scUrl = srcUrlRaw[1]; }
+  }
+
+  let changed = false;
   if (trackIdMatch) {
     mediaEpisodes[idx].podcast.track_id = trackIdMatch[1];
     document.getElementById(`ep-track-id-${idx}`).value = trackIdMatch[1];
+    changed = true;
   }
-  if (urlMatch) {
-    mediaEpisodes[idx].podcast.soundcloud_url = urlMatch[1];
-    document.getElementById(`ep-sc-url-${idx}`).value = urlMatch[1];
+  if (scUrl) {
+    mediaEpisodes[idx].podcast.soundcloud_url = scUrl;
+    document.getElementById(`ep-sc-url-${idx}`).value = scUrl;
+    changed = true;
   }
-  if (trackIdMatch || urlMatch) {
+
+  if (changed) {
     toast('Track-ID + URL extrahiert ✓', 'success');
     markMediaModified();
   } else {
-    toast('Kein SoundCloud-Embed erkannt', 'error');
+    toast('Kein SoundCloud-Embed erkannt – prüfe den Code', 'error');
+  }
+}
+
+// ── SoundCloud oEmbed Auto-Fill ──────────────────────────────────────────────
+async function autoFillFromUrl(idx) {
+  const urlField = document.getElementById(`ep-sc-url-${idx}`);
+  const scUrl = urlField.value.trim();
+  if (!scUrl) { toast('Bitte erst SC-URL eingeben', 'error'); return; }
+  if (!scUrl.includes('soundcloud.com')) { toast('Keine SoundCloud-URL', 'error'); return; }
+  try {
+    toast('Lade Track-Daten…');
+    const res = await fetch(`https://soundcloud.com/oembed?url=${encodeURIComponent(scUrl)}&format=json`);
+    if (!res.ok) throw new Error(`oEmbed: ${res.status}`);
+    const data = await res.json();
+    // Track-ID aus dem embed-HTML extrahieren
+    const trackMatch = (data.html || '').match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
+    if (trackMatch) {
+      mediaEpisodes[idx].podcast.track_id = trackMatch[1];
+      document.getElementById(`ep-track-id-${idx}`).value = trackMatch[1];
+    }
+    // Titel nur befüllen wenn noch leer
+    if (!mediaEpisodes[idx].title && data.title) {
+      mediaEpisodes[idx].title = data.title;
+    }
+    markMediaModified();
+    renderEpList();
+    toast(trackMatch ? `✓ Track-ID: ${trackMatch[1]}` : 'URL gespeichert – Track-ID nicht gefunden', trackMatch ? 'success' : '');
+  } catch(e) {
+    toast('Fehler beim Laden: ' + e.message, 'error');
   }
 }
 
@@ -958,12 +1010,18 @@ function renderEpList() {
         <div class="ep-row">
           <div>
             <div class="field-label">SoundCloud URL</div>
-            <input id="ep-sc-url-${idx}" type="text" value="${escHtml(ep.podcast?.soundcloud_url||'')}"
-              placeholder="https://soundcloud.com/…"
-              oninput="updateEpField(${idx},'podcast.soundcloud_url',this.value)"/>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input id="ep-sc-url-${idx}" type="text" value="${escHtml(ep.podcast?.soundcloud_url||'')}"
+                placeholder="https://soundcloud.com/…"
+                oninput="updateEpField(${idx},'podcast.soundcloud_url',this.value)" style="flex:1"/>
+              <button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0"
+                onclick="autoFillFromUrl(${idx})" title="Track-ID automatisch per oEmbed laden">
+                🔍 Auto
+              </button>
+            </div>
           </div>
           <div>
-            <div class="field-label">Track-ID <span style="color:oklch(60% 0.01 240);font-weight:400">(aus Embed)</span></div>
+            <div class="field-label">Track-ID <span style="color:oklch(60% 0.01 240);font-weight:400">(aus Embed oder Auto)</span></div>
             <input id="ep-track-id-${idx}" type="text" value="${escHtml(ep.podcast?.track_id||'')}"
               placeholder="2315736341"
               oninput="updateEpField(${idx},'podcast.track_id',this.value)"/>
