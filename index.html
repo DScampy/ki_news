@@ -662,12 +662,16 @@ function buildVideoBlock(video) {
 fetch('media.json?t=' + Date.now())
   .then(function(r){ return r.json(); })
   .then(function(data) {
-    var eps=data.episodes||[]; if (!eps.length) return;
-    var cur=eps[0], grid=document.getElementById('media-top-grid'); if (!grid) return;
-    var scUrl='https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A'+cur.podcast.track_id+'&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false';
-    grid.innerHTML =
-      '<div class="ki-card ki-border border p-5 relative overflow-hidden"><div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none"><div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div></div><div class="relative z-10"><span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span><h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px">'+cur.title+'</h2><p class="ki-muted text-[13px] mb-3">'+cur.description+'</p><iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay" src="'+scUrl+'" style="border-radius:4px;opacity:0.9"></iframe><div class="mt-2 flex items-center gap-3"><a href="'+cur.podcast.soundcloud_url+'" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:\'Space Grotesk\',sans-serif"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">open_in_new</span>SoundCloud</a><span class="text-xs ki-muted font-mono">KI NEWS #'+cur.id+(cur.podcast.duration?' · '+cur.podcast.duration:'')+'</span></div></div></div>' +
-      buildVideoBlock(cur.video);
+    var podcasts=data.podcasts||[], videos=data.videos||[];
+    var grid=document.getElementById('media-top-grid'); if (!grid) return;
+    var html='';
+    if (podcasts.length) {
+      var p=podcasts[0];
+      var scUrl=p.track_id ? 'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/'+p.track_id+'&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false' : '';
+      html += '<div class="ki-card ki-border border p-5 relative overflow-hidden"><div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none"><div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div></div><div class="relative z-10"><span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span><h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px">'+p.title+'</h2><p class="ki-muted text-[13px] mb-3">'+p.description+'</p>'+(scUrl?'<iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay" src="'+scUrl+'" style="border-radius:4px;opacity:0.9"></iframe>':'<p class="ki-muted text-xs font-mono" style="padding:12px 0">Podcast wird bald verfügbar…</p>')+'<div class="mt-2 flex items-center gap-3"><a href="'+p.soundcloud_url+'" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:\'Space Grotesk\',sans-serif"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">open_in_new</span>SoundCloud</a><span class="text-xs ki-muted font-mono">KI NEWS #'+p.id+(p.duration?' · '+p.duration:'')+'</span></div></div></div>';
+    }
+    if (videos.length) html += buildVideoBlock(videos[0]);
+    grid.innerHTML = html;
   })
   .catch(function(){ var g=document.getElementById('media-top-grid'); if(g) g.innerHTML=''; });
 

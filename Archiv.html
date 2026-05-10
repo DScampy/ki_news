@@ -386,19 +386,35 @@ document.addEventListener('DOMContentLoaded', () => {
       </span>
     </div>
 
-    <!-- Podcast + Video Archiv (dynamisch aus media.json) ───────────────── -->
-    <div id="podcast-panel" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
+    <!-- 🎙 Podcast Archiv (dynamisch aus media.json) ───────────────────── -->
+    <div id="podcast-panel" class="mb-4 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
       <button onclick="togglePodcastPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[#1d9bf0] text-base">mic</span>
-          <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🎙 Podcast &amp; Video Archiv</span>
+          <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🎙 Podcast-Episoden</span>
           <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="podcast-count"></span>
         </div>
         <span class="material-symbols-outlined text-gray-600 text-sm" id="podcast-panel-icon">expand_more</span>
       </button>
       <div id="podcast-panel-body" style="display:none;padding:0 20px 20px">
-        <p class="text-[11px] text-gray-500 font-mono mb-4">Alle bisherigen Folgen – Podcast &amp; Lehrvideos von Scampy's KI-News</p>
+        <p class="text-[11px] text-gray-500 font-mono mb-4">Alle Folgen – Podcast von Scampy's KI-News</p>
         <div id="podcast-archive-list"></div>
+      </div>
+    </div>
+
+    <!-- 🎬 Video Archiv (dynamisch aus media.json) ──────────────────────── -->
+    <div id="video-panel" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
+      <button onclick="toggleVideoPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#dc2626] text-base">play_circle</span>
+          <span class="text-[11px] font-mono text-[#dc2626] font-bold uppercase tracking-widest">🎬 Videos</span>
+          <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="video-count"></span>
+        </div>
+        <span class="material-symbols-outlined text-gray-600 text-sm" id="video-panel-icon">expand_more</span>
+      </button>
+      <div id="video-panel-body" style="display:none;padding:0 20px 20px">
+        <p class="text-[11px] text-gray-500 font-mono mb-4">Alle Videos – Lehrvideos & Highlights von Scampy's KI-News</p>
+        <div id="video-archive-list"></div>
       </div>
     </div>
 
@@ -847,6 +863,8 @@ fetch('hashtags/hashtags.json?t=' + Date.now())
 
 // ── Podcast + Video Archiv aus media.json ────────────────────────────────────
 let podcastPanelOpen = false;
+let videoPanelOpen = false;
+
 function togglePodcastPanel() {
   podcastPanelOpen = !podcastPanelOpen;
   const body = document.getElementById('podcast-panel-body');
@@ -855,80 +873,99 @@ function togglePodcastPanel() {
   if (icon) icon.textContent = podcastPanelOpen ? 'expand_less' : 'expand_more';
 }
 
-function buildArchiveVideoThumb(video) {
-  if (!video || video.type === 'none' || !video.src) return '';
-  if (video.type === 'local') {
-    return `<div style="margin-top:10px;border:1px solid #2f3336;border-radius:4px;overflow:hidden;background:#000">
-      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#1d9bf0;color:white;text-transform:uppercase">${video.label||'VIDEO'}</div>
-      <video controls preload="metadata" style="width:100%;max-height:140px;display:block;object-fit:contain;background:#000">
-        <source src="${video.src}" type="video/mp4"/>
-      </video>
-      ${video.title ? `<p style="font-size:11px;color:#bfc7d3;padding:6px 8px;font-family:'Space Grotesk',sans-serif;font-weight:600">${video.title}</p>` : ''}
+function toggleVideoPanel() {
+  videoPanelOpen = !videoPanelOpen;
+  const body = document.getElementById('video-panel-body');
+  const icon = document.getElementById('video-panel-icon');
+  if (body) body.style.display = videoPanelOpen ? '' : 'none';
+  if (icon) icon.textContent = videoPanelOpen ? 'expand_less' : 'expand_more';
+}
+
+function buildVideoCard(v) {
+  if (!v || v.type === 'none' || !v.src) return '';
+  let player = '';
+  if (v.type === 'local') {
+    player = `<div style="background:#000;border-radius:4px;overflow:hidden;margin-bottom:8px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#1d9bf0;color:white;text-transform:uppercase">${v.label||'VIDEO'}</div>
+      <video controls preload="metadata" style="width:100%;max-height:180px;display:block;object-fit:contain;background:#000"><source src="${v.src}" type="video/mp4"/></video>
+    </div>`;
+  } else if (v.type === 'youtube') {
+    const ytId = v.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || v.src;
+    player = `<div style="border-radius:4px;overflow:hidden;margin-bottom:8px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#dc2626;color:white;text-transform:uppercase">${v.label||'VIDEO'}</div>
+      <div style="position:relative;padding-top:56.25%"><iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div>
+    </div>`;
+  } else if (v.type === 'vimeo') {
+    const vmId = v.src.match(/vimeo\.com\/(\d+)/)?.[1] || v.src;
+    player = `<div style="border-radius:4px;overflow:hidden;margin-bottom:8px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#1ab7ea;color:white;text-transform:uppercase">${v.label||'VIDEO'}</div>
+      <div style="position:relative;padding-top:56.25%"><iframe src="https://player.vimeo.com/video/${vmId}" frameborder="0" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div>
     </div>`;
   }
-  if (video.type === 'youtube') {
-    const ytId = video.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || video.src;
-    return `<div style="margin-top:10px;border:1px solid #2f3336;border-radius:4px;overflow:hidden">
-      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#dc2626;color:white;text-transform:uppercase">${video.label||'VIDEO'}</div>
-      <div style="position:relative;padding-top:56.25%">
-        <iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
-          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
-      </div>
-      ${video.title ? `<p style="font-size:11px;color:#bfc7d3;padding:6px 8px;font-family:'Space Grotesk',sans-serif;font-weight:600">${video.title}</p>` : ''}
-    </div>`;
-  }
-  if (video.type === 'vimeo') {
-    const vmId = video.src.match(/vimeo\.com\/(\d+)/)?.[1] || video.src;
-    return `<div style="margin-top:10px;border:1px solid #2f3336;border-radius:4px;overflow:hidden">
-      <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;background:#1ab7ea;color:white;text-transform:uppercase">${video.label||'VIDEO'}</div>
-      <div style="position:relative;padding-top:56.25%">
-        <iframe src="https://player.vimeo.com/video/${vmId}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
-          style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
-      </div>
-      ${video.title ? `<p style="font-size:11px;color:#bfc7d3;padding:6px 8px;font-family:'Space Grotesk',sans-serif;font-weight:600">${video.title}</p>` : ''}
-    </div>`;
-  }
-  return '';
+  return `<div style="border:1px solid #2f3336;border-radius:4px;background:#16181c;padding:16px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:9px;font-family:monospace;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.1em">VIDEO #${v.id||''}</span>
+      <span style="font-size:9px;font-family:monospace;color:#536471">${v.date||''}</span>
+    </div>
+    <h4 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#dfe3ea;margin-bottom:10px">${v.title||''}</h4>
+    ${player}
+  </div>`;
 }
 
 fetch('media.json?t=' + Date.now())
   .then(r => r.json())
   .then(data => {
-    const episodes = data.episodes || [];
-    // Alle außer der ersten (die ist auf der Startseite "aktuell")
-    const archived = episodes.slice(1);
-    const countEl = document.getElementById('podcast-count');
-    const listEl = document.getElementById('podcast-archive-list');
-    if (countEl) countEl.textContent = archived.length + ' Folgen';
-    if (!listEl) return;
-    if (!archived.length) {
-      listEl.innerHTML = '<p style="font-size:11px;color:#536471;font-family:monospace">Noch keine archivierten Folgen.</p>';
-      return;
+    const podcasts = data.podcasts || [];
+    const videos = data.videos || [];
+
+    // ── Podcasts ──
+    const pcountEl = document.getElementById('podcast-count');
+    const plistEl = document.getElementById('podcast-archive-list');
+    if (pcountEl) pcountEl.textContent = podcasts.length + ' Folgen';
+    if (plistEl) {
+      if (!podcasts.length) {
+        plistEl.innerHTML = '<p style="font-size:11px;color:#536471;font-family:monospace">Noch keine Episoden.</p>';
+      } else {
+        plistEl.innerHTML = podcasts.map(ep => {
+          const scUrl = ep.track_id
+            ? `https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/${ep.track_id}&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`
+            : '';
+          return `<div style="border:1px solid #2f3336;border-radius:4px;background:#16181c;padding:16px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:9px;font-family:monospace;font-weight:700;color:#1d9bf0;text-transform:uppercase;letter-spacing:0.1em">KI NEWS #${ep.id}</span>
+              ${ep.duration ? `<span style="font-size:9px;font-family:monospace;color:#536471">${ep.duration}</span>` : `<span style="font-size:9px;font-family:monospace;color:#536471">${ep.date||''}</span>`}
+            </div>
+            <h4 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#dfe3ea;margin-bottom:4px">${ep.title}</h4>
+            <p style="font-size:12px;color:#536471;margin-bottom:10px">${ep.description||''}</p>
+            ${scUrl
+              ? `<iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay" src="${scUrl}" style="border-radius:4px;opacity:0.9"></iframe>`
+              : '<p style="font-size:11px;color:#536471;font-family:monospace;margin-bottom:6px">Player wird bald verfügbar…</p>'}
+            <div style="margin-top:8px">
+              <a href="${ep.soundcloud_url}" target="_blank"
+                style="display:inline-flex;align-items:center;gap:6px;color:#1d9bf0;font-size:11px;font-family:monospace;text-decoration:none">
+                <span class="material-symbols-outlined" style="font-size:14px">open_in_new</span>Auf SoundCloud anhören
+              </a>
+            </div>
+          </div>`;
+        }).join('');
+      }
     }
-    listEl.innerHTML = archived.map(ep => {
-      const scUrl = `https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${ep.podcast.track_id}&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`;
-      return `<div style="border:1px solid #2f3336;border-radius:4px;background:#16181c;padding:16px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span style="font-size:9px;font-family:monospace;font-weight:700;color:#1d9bf0;text-transform:uppercase;letter-spacing:0.1em">KI NEWS #${ep.id}</span>
-          ${ep.podcast.duration ? `<span style="font-size:9px;font-family:monospace;color:#536471">${ep.podcast.duration}</span>` : ''}
-        </div>
-        <h4 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#dfe3ea;margin-bottom:4px">${ep.title}</h4>
-        <p style="font-size:12px;color:#536471;margin-bottom:10px">${ep.description}</p>
-        <iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
-          src="${scUrl}" style="border-radius:4px;opacity:0.9"></iframe>
-        <div style="margin-top:8px">
-          <a href="${ep.podcast.soundcloud_url}" target="_blank"
-            style="display:inline-flex;align-items:center;gap:6px;color:#1d9bf0;font-size:11px;font-family:monospace;text-decoration:none">
-            <span class="material-symbols-outlined" style="font-size:14px">open_in_new</span>Auf SoundCloud anhören
-          </a>
-        </div>
-        ${buildArchiveVideoThumb(ep.video)}
-      </div>`;
-    }).join('');
+
+    // ── Videos ──
+    const vcountEl = document.getElementById('video-count');
+    const vlistEl = document.getElementById('video-archive-list');
+    if (vcountEl) vcountEl.textContent = videos.length + ' Videos';
+    if (vlistEl) {
+      if (!videos.length) {
+        vlistEl.innerHTML = '<p style="font-size:11px;color:#536471;font-family:monospace">Noch keine Videos.</p>';
+      } else {
+        vlistEl.innerHTML = videos.map(v => buildVideoCard(v)).join('');
+      }
+    }
   })
   .catch(() => {
-    const listEl = document.getElementById('podcast-archive-list');
-    if (listEl) listEl.innerHTML = '<p style="font-size:11px;color:#536471;font-family:monospace">Archiv konnte nicht geladen werden.</p>';
+    const plistEl = document.getElementById('podcast-archive-list');
+    if (plistEl) plistEl.innerHTML = '<p style="font-size:11px;color:#536471;font-family:monospace">Archiv konnte nicht geladen werden.</p>';
   });
 
 // Wenn die URL #hashtags enthält → Panel direkt öffnen
