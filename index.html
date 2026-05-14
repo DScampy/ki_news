@@ -812,11 +812,12 @@ const positions=Array.from({length:COUNT},()=>new THREE.Vector3((Math.random()-.
 const dummy=new THREE.Object3D(),color=new THREE.Color(),target=new THREE.Vector3(),clock=new THREE.Clock();
 let rotY=0;
 const THEME_3D={
-  genesis: {fog:0x000000,fogD:0.007,bloom:1.2,bloomT:0.0,coreH:0.55,coreS:0.80,tailH:0.55,tailS:0.70},
-  karst:   {fog:0x060e08,fogD:0.006,bloom:0.80,bloomT:0.0,coreH:0.43,coreS:0.80,tailH:0.38,tailS:0.65},
-  aurora:  {fog:0x04020f,fogD:0.007,bloom:1.50,bloomT:0.0,coreH:0.74,coreS:0.85,tailH:0.68,tailS:0.70},
-  meridian:{fog:0x090300,fogD:0.007,bloom:1.00,bloomT:0.0,coreH:0.065,coreS:0.90,tailH:0.08,tailS:0.75},
-  blanc:   {fog:0xfafcff,fogD:0.006,bloom:0.20,bloomT:0.5,coreH:0.58,coreS:0.80,tailH:0.58,tailS:0.50}
+  // coreH = Kern-Farbe (pulsierendes Herz), tailH = Faden-Farbe (differenziert!)
+  genesis: {fog:0x000000,fogD:0.007,bloom:1.2,bloomT:0.0,coreH:0.78,coreS:0.70,tailH:0.55,tailS:0.70},
+  karst:   {fog:0x060e08,fogD:0.006,bloom:0.80,bloomT:0.0,coreH:0.36,coreS:0.85,tailH:0.14,tailS:0.70},
+  aurora:  {fog:0x04020f,fogD:0.007,bloom:1.50,bloomT:0.0,coreH:0.74,coreS:0.85,tailH:0.60,tailS:0.70},
+  meridian:{fog:0x090300,fogD:0.007,bloom:1.00,bloomT:0.0,coreH:0.065,coreS:0.90,tailH:0.12,tailS:0.80},
+  blanc:   {fog:0xfafcff,fogD:0.006,bloom:0.20,bloomT:0.5,coreH:0.60,coreS:0.70,tailH:0.55,tailS:0.55}
 };
 function getCurrentTheme(){return document.documentElement.getAttribute('data-theme')||'genesis';}
 function applyTheme(){
