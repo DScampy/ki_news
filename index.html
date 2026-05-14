@@ -272,6 +272,31 @@ html.light .c-dot.active{background:#00d4ff;}
 
 .hero-fade{height:80px;position:relative;z-index:10;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,0.88) 100%);}
 html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(248,250,252,0.97) 100%);}
+
+/* ── 5-Theme System ─────────────────────────────────────────────────────── */
+[data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;--surface:rgba(0,212,255,0.06);--text:#e8f8ff;--muted:rgba(180,220,240,0.55);}
+[data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--surface:rgba(52,211,153,0.06);--text:#e0f5ec;--muted:rgba(160,220,190,0.55);}
+[data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--surface:rgba(167,139,250,0.06);--text:#ede9fe;--muted:rgba(180,160,240,0.55);}
+[data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--surface:rgba(251,146,60,0.06);--text:#fff0e6;--muted:rgba(240,190,140,0.55);}
+[data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--surface:rgba(14,165,233,0.06);--text:#0f172a;--muted:rgba(30,80,140,0.55);}
+
+/* Sidebar nav links – no Tailwind hover conflict */
+.sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .15s;border-left:2px solid transparent;color:rgba(180,220,240,0.55);text-decoration:none;}
+.sidebar-nav-link:hover{background:rgba(29,37,53,0.85);color:#fff;border-left-color:var(--accent,#00d4ff);}
+html.light .sidebar-nav-link{color:rgba(30,80,140,0.7);}
+html.light .sidebar-nav-link:hover{background:#deeaf7;color:#0f172a;border-left-color:var(--accent,#0ea5e9);}
+
+/* Theme dots in nav */
+#genesis-dots{display:flex;align-items:center;gap:5px;}
+.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;}
+.gdot:hover{transform:scale(1.25);}
+.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
+.gdot[data-t="genesis"]{background:#00d4ff;}
+.gdot[data-t="karst"]{background:#34d399;}
+.gdot[data-t="aurora"]{background:#a78bfa;}
+.gdot[data-t="meridian"]{background:#fb923c;}
+.gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
 </style>
 </head>
 <body class="font-body-lg">
@@ -316,6 +341,7 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">Podcast</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif;opacity:0.45;" href="creature-lab.html" title="Kreatur-Lab">🐉</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif;" href="profil.html">Profil</a>
     </div>
   </div>
   <div class="flex items-center gap-4">
@@ -323,10 +349,12 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span class="hidden sm:inline">@ScampyKI</span>
     </a>
-    <div id="themeSlider" class="theme-slider-wrap" onclick="cycleTheme()" title="Hell/Dunkel">
-      <span class="theme-slider-label" data-theme="light" style="font-size:12px">☀</span>
-      <div class="theme-slider-track"><div class="theme-slider-knob"></div></div>
-      <span class="theme-slider-label" data-theme="dark" style="font-size:12px">☾</span>
+    <div id="genesis-dots" title="Design-Theme">
+      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis"></button>
+      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst"></button>
+      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora"></button>
+      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian"></button>
+      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc"></button>
     </div>
   </div>
 </nav>
@@ -353,20 +381,23 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
     <a class="ki-sidebar-active flex items-center gap-3 text-[#00d4ff] border-l-2 border-[#00d4ff] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(0,212,255,0.08);" href="#">
       <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="Archiv.html">
+    <a class="sidebar-nav-link" href="Archiv.html">
       <span class="material-symbols-outlined text-sm">archive</span>Archiv
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">
+    <a class="sidebar-nav-link" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">
       <span class="material-symbols-outlined text-sm">mic</span>Podcast
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://youtube.com/@ScampyKI" target="_blank">
+    <a class="sidebar-nav-link" href="https://youtube.com/@ScampyKI" target="_blank">
       <span class="material-symbols-outlined text-sm">play_circle</span>YouTube
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="creature-lab.html">
+    <a class="sidebar-nav-link" href="creature-lab.html">
       <span style="font-size:14px;flex-shrink:0">🐉</span>Kreatur Labor
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2.5 hover:bg-[#1a2535] hover:text-white text-xs uppercase font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="stats.html">
+    <a class="sidebar-nav-link" href="stats.html">
       <span class="material-symbols-outlined text-sm">bar_chart</span>Statistik
+    </a>
+    <a class="sidebar-nav-link" href="profil.html">
+      <span class="material-symbols-outlined text-sm">person</span>Profil & Design
     </a>
 
     <!-- Divider -->
@@ -374,14 +405,14 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
 
     <!-- Social Links -->
     <div style="padding:4px 16px 4px;font-size:9px;font-family:monospace;color:rgba(0,212,255,0.5);letter-spacing:0.12em;text-transform:uppercase;">Kontakt & Social</div>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2 hover:bg-[#1a2535] hover:text-white text-xs font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://x.com/ScampyKI" target="_blank">
+    <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       @ScampyKI
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2 hover:bg-[#1a2535] hover:text-white text-xs font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://instagram.com/KIScampy" target="_blank">
+    <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank">
       <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
     </a>
-    <a class="flex items-center gap-3 ki-muted px-4 py-2 hover:bg-[#1a2535] hover:text-white text-xs font-bold tracking-widest transition-all border-l-2 border-transparent hover:border-[#00d4ff]" style="font-family:'Space Grotesk',sans-serif;" href="https://linkedin.com/in/dscampy" target="_blank">
+    <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank">
       <span class="material-symbols-outlined text-sm">work</span>dscampy
     </a>
   </div>
@@ -516,31 +547,32 @@ function toggleSidebar() {
     main.style.marginLeft = '0'; toggle.style.left = '0'; icon.textContent = 'chevron_right';
   }
 }
+// ── Genesis Theme System ──────────────────────────────────────────────────
+window.setGenesisTheme = function(name) {
+  var themes = ['genesis','karst','aurora','meridian','blanc'];
+  if (themes.indexOf(name) === -1) name = 'genesis';
+  document.documentElement.setAttribute('data-theme', name);
+  if (name === 'blanc') {
+    document.documentElement.classList.add('light');
+    document.documentElement.classList.remove('dark');
+  } else {
+    document.documentElement.classList.remove('light','dark');
+  }
+  try { localStorage.setItem('ki_genesis_theme', name); } catch(e) {}
+  // update dot states
+  document.querySelectorAll('.gdot').forEach(function(d) {
+    d.classList.toggle('active', d.getAttribute('data-t') === name);
+  });
+};
+
 document.addEventListener('DOMContentLoaded', function() {
   var toggle = document.getElementById('sidebar-toggle');
   if (window.innerWidth >= 1024) toggle.style.display = 'flex';
-  // Theme slider knob init
-  var s = 'auto'; try { s = localStorage.getItem('ki_theme') || 'auto'; } catch(e) {}
-  var knob = document.querySelector('.theme-slider-knob');
-  if (knob) {
-    var isDark = s === 'dark' || (s === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    knob.style.left = isDark ? '22px' : '2px';
-    knob.style.background = isDark ? '#1d9bf0' : '#f59e0b';
-  }
+  // init genesis theme from storage
+  var saved = 'genesis';
+  try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
+  window.setGenesisTheme(saved);
 });
-
-// Patch cycleTheme to also update knob
-var _baseCycle = window.cycleTheme;
-window.cycleTheme = function() {
-  _baseCycle();
-  setTimeout(function() {
-    var knob = document.querySelector('.theme-slider-knob');
-    if (!knob) return;
-    var isDark = document.documentElement.classList.contains('dark');
-    knob.style.left = isDark ? '22px' : '2px';
-    knob.style.background = isDark ? '#1d9bf0' : '#f59e0b';
-  }, 50);
-};
 
 // ── Source colors ────────────────────────────────────────────────────────
 var SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393','AlignedNews':'#f59e0b'};
@@ -779,26 +811,35 @@ group.add(mesh);
 const positions=Array.from({length:COUNT},()=>new THREE.Vector3((Math.random()-.5)*100,(Math.random()-.5)*100,(Math.random()-.5)*100));
 const dummy=new THREE.Object3D(),color=new THREE.Color(),target=new THREE.Vector3(),clock=new THREE.Clock();
 let rotY=0;
-let isLight=document.documentElement.classList.contains('light');
+const THEME_3D={
+  genesis: {fog:0x000000,fogD:0.007,bloom:1.2,bloomT:0.0,coreH:0.55,coreS:0.80,tailH:0.55,tailS:0.70},
+  karst:   {fog:0x060e08,fogD:0.006,bloom:0.80,bloomT:0.0,coreH:0.43,coreS:0.80,tailH:0.38,tailS:0.65},
+  aurora:  {fog:0x04020f,fogD:0.007,bloom:1.50,bloomT:0.0,coreH:0.74,coreS:0.85,tailH:0.68,tailS:0.70},
+  meridian:{fog:0x090300,fogD:0.007,bloom:1.00,bloomT:0.0,coreH:0.065,coreS:0.90,tailH:0.08,tailS:0.75},
+  blanc:   {fog:0xfafcff,fogD:0.006,bloom:0.20,bloomT:0.5,coreH:0.58,coreS:0.80,tailH:0.58,tailS:0.50}
+};
+function getCurrentTheme(){return document.documentElement.getAttribute('data-theme')||'genesis';}
 function applyTheme(){
-  if(isLight){scene.fog.color.set(0xffffff);scene.fog.density=0.006;bloom.strength=0.2;bloom.threshold=0.5;}
-  else{scene.fog.color.set(0x000000);scene.fog.density=0.007;bloom.strength=1.2;bloom.threshold=0.0;}
+  var t=THEME_3D[getCurrentTheme()]||THEME_3D.genesis;
+  scene.fog.color.set(t.fog);scene.fog.density=t.fogD;
+  bloom.strength=t.bloom;bloom.threshold=t.bloomT;
 }
 applyTheme();
-new MutationObserver(()=>{isLight=document.documentElement.classList.contains('light');applyTheme();})
-  .observe(document.documentElement,{attributes:true,attributeFilter:['class']});
+new MutationObserver(()=>{applyTheme();})
+  .observe(document.documentElement,{attributes:true,attributeFilter:['class','data-theme']});
 function animate(){
   requestAnimationFrame(animate);
   const time=clock.getElapsedTime();
   rotY+=0.0015;group.rotation.y=rotY;
   const t=time*SPEED,coreCount=Math.floor(COUNT*0.25);
+  const _tc=THEME_3D[getCurrentTheme()]||THEME_3D.genesis;
   for(let i=0;i<COUNT;i++){
     const isCore=i<coreCount;let x=0,y=0,z=0,h=0,s=0,l=0;
     if(isCore){
       const cn=i/coreCount,phi=Math.acos(1-2*cn),theta=Math.PI*(1+Math.sqrt(5))*i;
       const sp=Math.sin(t*3+phi*5+theta*3)*COMPLEXITY,r=SCALE*0.4+sp;
       x=Math.sin(phi)*Math.cos(theta)*r;y=Math.sin(phi)*Math.sin(theta)*r;z=Math.cos(phi)*r;
-      if(isLight){h=0.0;s=0.90;l=0.30+sp*0.03;}else{h=0.78+Math.sin(t+cn*10)*0.05;s=0.7;l=0.2+sp*0.04;}
+      h=_tc.coreH+Math.sin(t+cn*10)*0.05;s=_tc.coreS;l=0.2+sp*0.04;
     }else{
       const si=i-coreCount,ppc=25,tc=Math.max(1,Math.floor((COUNT-coreCount)/ppc));
       const cid=Math.floor(si/ppc),pid=si%ppc,pn=pid/ppc,cn2=cid/tc;
@@ -809,7 +850,7 @@ function animate(){
       const wx=Math.sin(cph+pn*2)*u*COMPLEXITY,wy=Math.cos(cph+pn*2)*u*COMPLEXITY,wz=Math.sin(cph*.5+pn*2)*u*COMPLEXITY;
       const tl=SCALE*0.3;
       x=dx*(ap+pn*tl)+wx;y=dy*(ap+pn*tl)+wy;z=dz*(ap+pn*tl)+wz;
-      if(isLight){h=0.07+pn*0.02;s=0.88;l=0.40-pn*0.22;}else{h=0.55+pn*0.08;s=0.7;l=(0.55-pn*0.4)*0.7;}
+      h=_tc.tailH+pn*0.06;s=_tc.tailS;l=(0.55-pn*0.4)*0.7;
     }
     target.set(x,y,z);color.setHSL(h,s,l);
     positions[i].lerp(target,0.1);dummy.position.copy(positions[i]);

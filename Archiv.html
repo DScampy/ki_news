@@ -103,6 +103,10 @@
   .card-hover:hover h4 { color: var(--accent-color, #1d9bf0); }
   .search-clear { display: none; }
   .has-search .search-clear { display: flex; }
+  /* Panel-Toggle-Buttons: sauberer dark/light hover ohne Tailwind-Konflikt */
+  .panel-toggle-btn { background: transparent; }
+  .panel-toggle-btn:hover { background: rgba(29,37,53,0.85); }
+  html.light .panel-toggle-btn:hover { background: #e8f0f8 !important; }
 
   /* ── Light Mode ── */
   html.light body { background: #f0f4f8 !important; color: #0f172a !important; }
@@ -420,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- 🎙 Podcast Archiv (dynamisch aus media.json) ───────────────────── -->
     <div id="podcast-panel" class="mb-4 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
-      <button onclick="togglePodcastPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
+      <button onclick="togglePodcastPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[#1d9bf0] text-base">mic</span>
           <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🎙 Podcast-Episoden</span>
@@ -436,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- 🎬 Video Archiv (dynamisch aus media.json) ──────────────────────── -->
     <div id="video-panel" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
-      <button onclick="toggleVideoPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
+      <button onclick="toggleVideoPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[#dc2626] text-base">play_circle</span>
           <span class="text-[11px] font-mono text-[#dc2626] font-bold uppercase tracking-widest">🎬 Videos</span>
@@ -452,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- Hashtag Panel ─────────────────────────────────────────────────── -->
     <div id="hashtags" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
-      <button onclick="toggleHashtagPanel()" class="w-full flex items-center justify-between px-5 py-3 hover:bg-[#1d2535] transition-all">
+      <button onclick="toggleHashtagPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[#1d9bf0] text-base">tag</span>
           <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest"># Hashtags</span>
