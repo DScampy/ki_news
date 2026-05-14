@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html data-theme="genesis" lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Profil & Design – KI News</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;900&family=Work+Sans:wght@400;500;600&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet"/>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ═══ THEME TOKENS (identical to prototype-genesis.html) ════════ */
+:root {
+  --bg: #000000; --surface: rgba(8,12,20,0.82); --card: rgba(10,14,22,0.88);
+  --border: rgba(255,255,255,0.07); --text: #e5e7eb; --muted: rgba(255,255,255,0.38);
+  --accent: #1d9bf0; --neon-rgb: 0,212,255; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(0,0,0,0.18); --overlay-mid: rgba(0,0,0,0.25);
+  --overlay-bottom: rgba(0,0,0,0.82);
+  --nav-bg: rgba(0,0,0,0.72); --nav-border: rgba(255,255,255,0.06);
+}
+[data-theme="karst"] {
+  --bg: #0d1410; --surface: rgba(12,20,14,0.82); --card: rgba(14,22,16,0.88);
+  --border: rgba(74,222,128,0.07); --text: #d1fae5; --muted: rgba(167,243,208,0.42);
+  --accent: #4ade80; --neon-rgb: 74,222,128; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(13,20,16,0.18); --overlay-mid: rgba(13,20,16,0.30);
+  --overlay-bottom: rgba(10,18,12,0.88);
+  --nav-bg: rgba(10,18,12,0.80); --nav-border: rgba(74,222,128,0.08);
+}
+[data-theme="aurora"] {
+  --bg: #07041a; --surface: rgba(14,10,35,0.85); --card: rgba(18,12,42,0.90);
+  --border: rgba(192,132,252,0.08); --text: #f3e8ff; --muted: rgba(216,180,254,0.42);
+  --accent: #c084fc; --neon-rgb: 192,132,252; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(7,4,26,0.18); --overlay-mid: rgba(7,4,26,0.30);
+  --overlay-bottom: rgba(5,3,20,0.88);
+  --nav-bg: rgba(5,3,20,0.80); --nav-border: rgba(192,132,252,0.08);
+}
+[data-theme="meridian"] {
+  --bg: #110700; --surface: rgba(24,12,0,0.85); --card: rgba(28,14,0,0.90);
+  --border: rgba(251,191,36,0.08); --text: #fef3c7; --muted: rgba(253,230,138,0.42);
+  --accent: #f59e0b; --neon-rgb: 251,191,36; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(17,7,0,0.18); --overlay-mid: rgba(17,7,0,0.30);
+  --overlay-bottom: rgba(12,5,0,0.88);
+  --nav-bg: rgba(12,5,0,0.80); --nav-border: rgba(251,191,36,0.08);
+}
+[data-theme="blanc"] {
+  --bg: #f8fafc; --surface: rgba(255,255,255,0.90); --card: rgba(255,255,255,0.97);
+  --border: rgba(15,23,42,0.08); --text: #0f172a; --muted: #64748b;
+  --accent: #0ea5e9; --neon-rgb: 14,165,233; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(248,250,252,0.06); --overlay-mid: rgba(248,250,252,0.40);
+  --overlay-bottom: rgba(248,250,252,0.95);
+  --nav-bg: rgba(255,255,255,0.88); --nav-border: rgba(15,23,42,0.08);
+}
+
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Work Sans', sans-serif;
+  min-height: 100vh; overflow-x: hidden;
+  transition: background 0.4s, color 0.3s;
+}
+
+/* ── Genesis Background ─────────────────────────────────────── */
+#genesis-wrap { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+#bg-overlay {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(to bottom, var(--overlay-hero) 0%, var(--overlay-mid) 40%, var(--overlay-bottom) 70%, var(--overlay-bottom) 100%);
+  transition: background 0.4s;
+}
+
+/* ── NAV ────────────────────────────────────────────────────── */
+nav {
+  position: fixed; inset: 0 0 auto; height: 56px; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: var(--nav-bg); border-bottom: 1px solid var(--nav-border);
+  backdrop-filter: blur(14px); transition: background 0.4s, border-color 0.3s;
+}
+.logo { font-family:'Space Grotesk',sans-serif; font-weight:900; font-size:18px; letter-spacing:-0.04em; color:var(--accent); text-transform:uppercase; }
+.nav-link { font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:600; color:var(--muted); text-decoration:none; text-transform:uppercase; letter-spacing:0.06em; transition:color 0.15s; }
+.nav-link:hover { color: var(--text); }
+.nav-link.active { color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:2px; }
+
+/* ── MAIN PAGE CONTENT ──────────────────────────────────────── */
+.page { position: relative; z-index: 10; padding: 80px 20px 80px; }
+.wrap { max-width: 1100px; margin: 0 auto; }
+
+/* ── Profile Hero ───────────────────────────────────────────── */
+.profile-hero {
+  display: flex; align-items: center; gap: 28px;
+  margin-bottom: 52px; padding: 32px 36px;
+  background: var(--surface); border: 1px solid rgba(var(--neon-rgb),0.22);
+  border-radius: 20px; backdrop-filter: blur(16px);
+  box-shadow: 0 0 24px rgba(var(--neon-rgb),0.10), 0 0 60px rgba(var(--neon-rgb),0.04);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+.avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(var(--neon-rgb),0.12);
+  border: 2px solid rgba(var(--neon-rgb),0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(var(--neon-rgb),0.25);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+.profile-name {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 900; font-size: 28px;
+  letter-spacing: -0.03em; color: var(--text); line-height: 1;
+}
+.profile-handle {
+  font-family: monospace; font-size: 12px; color: var(--accent);
+  margin-top: 4px; letter-spacing: 0.04em;
+}
+.profile-bio {
+  font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.6;
+  max-width: 480px;
+}
+.profile-tags {
+  display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+}
+.tag {
+  font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 10px; border: 1px solid rgba(var(--neon-rgb),0.30);
+  color: var(--neon); border-radius: 3px;
+  background: rgba(var(--neon-rgb),0.08);
+  transition: all 0.4s;
+}
+.profile-stats {
+  margin-left: auto; display: flex; gap: 28px; flex-shrink: 0;
+}
+.stat { text-align: center; }
+.stat-num {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 900; font-size: 22px;
+  color: var(--accent); letter-spacing: -0.02em;
+}
+.stat-lbl {
+  font-size: 9px; font-family: monospace; color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;
+}
+
+/* ── Section Header ─────────────────────────────────────────── */
+.section-header {
+  margin-bottom: 24px; display: flex; align-items: center; gap: 16px;
+}
+.section-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text);
+}
+.section-sub {
+  font-size: 11px; font-family: monospace; color: var(--muted);
+}
+.section-line { flex: 1; height: 1px; background: var(--border); }
+
+/* ── Theme Grid ─────────────────────────────────────────────── */
+.theme-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px;
+  margin-bottom: 48px;
+}
+@media(max-width:900px){ .theme-grid { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:580px){ .theme-grid { grid-template-columns: repeat(2,1fr); } }
+
+.theme-card {
+  position: relative; border-radius: 14px; overflow: hidden;
+  cursor: pointer; transition: transform 0.25s, box-shadow 0.25s;
+  border: 2px solid transparent;
+}
+.theme-card:hover { transform: translateY(-4px); }
+.theme-card.active { border-color: #fff; }
+.theme-card.active::after {
+  content: '✓ AKTIV';
+  position: absolute; top: 8px; right: 8px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 7px; font-weight: 700;
+  letter-spacing: 0.1em; padding: 2px 7px;
+  background: rgba(255,255,255,0.18); color: #fff;
+  border-radius: 10px; backdrop-filter: blur(4px);
+}
+
+/* Theme card swatch backgrounds */
+.tc-genesis  { background: linear-gradient(135deg, #000 0%, #030d1a 50%, #001122 100%); }
+.tc-karst    { background: linear-gradient(135deg, #0d1410 0%, #122218 50%, #0a1a0c 100%); }
+.tc-aurora   { background: linear-gradient(135deg, #07041a 0%, #120a2e 50%, #1a0830 100%); }
+.tc-meridian { background: linear-gradient(135deg, #110700 0%, #1e0c00 50%, #120900 100%); }
+.tc-blanc    { background: linear-gradient(135deg, #f8fafc 0%, #eef2f8 50%, #e8f0fb 100%); }
+
+.tc-preview {
+  padding: 16px 14px 12px;
+  min-height: 140px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.tc-dots {
+  display: flex; gap: 4px; margin-bottom: 12px;
+}
+.tc-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.tc-lines { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.tc-line {
+  height: 5px; border-radius: 2px; background: rgba(255,255,255,0.12);
+}
+.tc-line.accent { width: 35%; }
+.tc-line.long   { width: 88%; }
+.tc-line.medium { width: 62%; }
+.tc-line.short  { width: 45%; }
+
+/* Blanc lines use dark */
+.tc-blanc .tc-line { background: rgba(15,23,42,0.10); }
+
+.tc-footer {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tc-blanc .tc-footer { border-top-color: rgba(15,23,42,0.08); }
+.tc-name {
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.tc-desc {
+  font-family: monospace; font-size: 9px; color: rgba(255,255,255,0.4);
+  text-align: right;
+}
+.tc-blanc .tc-desc { color: rgba(15,23,42,0.4); }
+
+/* Genesis theme card colors */
+.tc-genesis .tc-dot:nth-child(1)  { background: #00d4ff; box-shadow: 0 0 6px #00d4ff; }
+.tc-genesis .tc-dot:nth-child(2)  { background: #1d9bf0; }
+.tc-genesis .tc-dot:nth-child(3)  { background: rgba(255,255,255,0.15); }
+.tc-genesis .tc-line.accent       { background: #00d4ff; opacity: 0.7; }
+.tc-genesis .tc-name              { color: #00d4ff; }
+
+.tc-karst .tc-dot:nth-child(1)    { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+.tc-karst .tc-dot:nth-child(2)    { background: #86efac; }
+.tc-karst .tc-dot:nth-child(3)    { background: rgba(255,255,255,0.12); }
+.tc-karst .tc-line.accent         { background: #4ade80; opacity: 0.7; }
+.tc-karst .tc-name                { color: #4ade80; }
+
+.tc-aurora .tc-dot:nth-child(1)   { background: #c084fc; box-shadow: 0 0 6px #c084fc; }
+.tc-aurora .tc-dot:nth-child(2)   { background: #e879f9; }
+.tc-aurora .tc-dot:nth-child(3)   { background: rgba(255,255,255,0.10); }
+.tc-aurora .tc-line.accent        { background: #c084fc; opacity: 0.7; }
+.tc-aurora .tc-name               { color: #c084fc; }
+
+.tc-meridian .tc-dot:nth-child(1) { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+.tc-meridian .tc-dot:nth-child(2) { background: #f59e0b; }
+.tc-meridian .tc-dot:nth-child(3) { background: rgba(255,255,255,0.10); }
+.tc-meridian .tc-line.accent      { background: #fbbf24; opacity: 0.7; }
+.tc-meridian .tc-name             { color: #fbbf24; }
+
+.tc-blanc .tc-dot:nth-child(1)    { background: #0ea5e9; box-shadow: 0 0 6px rgba(14,165,233,0.5); }
+.tc-blanc .tc-dot:nth-child(2)    { background: #38bdf8; }
+.tc-blanc .tc-dot:nth-child(3)    { background: rgba(15,23,42,0.12); }
+.tc-blanc .tc-line.accent         { background: #0ea5e9; opacity: 0.6; }
+.tc-blanc .tc-name                { color: #0ea5e9; }
+
+/* ── Settings Blocks ────────────────────────────────────────── */
+.settings-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px;
+}
+@media(max-width:640px){ .settings-grid { grid-template-columns: 1fr; } }
+.settings-block {
+  background: var(--surface); border: 1px solid rgba(var(--neon-rgb),0.14);
+  border-radius: 14px; padding: 20px 22px; backdrop-filter: blur(12px);
+  transition: border-color 0.4s;
+}
+.settings-block h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+  margin-bottom: 14px;
+}
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-val {
+  font-family: monospace; font-size: 11px; color: var(--muted);
+}
+.settings-val.accent { color: var(--accent); }
+
+/* ── Active Theme Details ───────────────────────────────────── */
+.theme-detail {
+  background: var(--surface); border: 1px solid rgba(var(--neon-rgb),0.22);
+  border-radius: 16px; padding: 28px 30px; margin-bottom: 48px;
+  backdrop-filter: blur(16px);
+  transition: all 0.4s;
+  box-shadow: 0 0 20px rgba(var(--neon-rgb),0.08);
+}
+.color-palette {
+  display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;
+}
+.swatch {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.swatch-color {
+  width: 44px; height: 44px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.swatch-name {
+  font-family: monospace; font-size: 8px; color: var(--muted);
+  text-align: center; letter-spacing: 0.04em;
+}
+
+/* Social Links Block */
+.social-row {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px;
+}
+.social-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 7px 14px; border: 1px solid rgba(var(--neon-rgb),0.25);
+  color: var(--text); text-decoration: none; border-radius: 6px;
+  background: rgba(var(--neon-rgb),0.06);
+  transition: all 0.15s;
+}
+.social-btn:hover { background: rgba(var(--neon-rgb),0.15); border-color: rgba(var(--neon-rgb),0.5); }
+
+@media(max-width:768px) {
+  .profile-hero { flex-direction: column; align-items: flex-start; }
+  .profile-stats { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<div id="genesis-wrap"></div>
+<div id="bg-overlay"></div>
+
+<!-- NAV -->
+<nav>
+  <div style="display:flex;align-items:center;gap:28px">
+    <a href="/" style="text-decoration:none"><span class="logo">KI NEWS</span></a>
+    <div style="display:flex;gap:18px">
+      <a href="/" class="nav-link">Aktuell</a>
+      <a href="Archiv.html" class="nav-link">Archiv</a>
+      <a href="#" class="nav-link">Podcast</a>
+      <a href="profil.html" class="nav-link active">Profil</a>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="https://x.com/ScampyKI" target="_blank" style="font-size:11px;color:var(--muted);font-family:monospace;text-decoration:none;">@ScampyKI</a>
+    <a href="prototype-genesis.html" style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:4px 10px;border:1px solid var(--border);border-radius:4px;transition:all 0.15s"
+      onmouseenter="this.style.color='var(--text)';this.style.borderColor='rgba(var(--neon-rgb),0.4)'"
+      onmouseleave="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">
+      ◈ Vorschau
+    </a>
+  </div>
+</nav>
+
+<!-- PAGE CONTENT -->
+<div class="page">
+  <div class="wrap">
+
+    <!-- ── Profile Hero ─────────────────────────────────────── -->
+    <div class="profile-hero">
+      <div class="avatar">⚡</div>
+      <div style="flex:1">
+        <div class="profile-name">Scampy</div>
+        <div class="profile-handle">@ScampyKI · ki-news.live</div>
+        <div class="profile-bio">
+          Techniker. KI-Content-Creator. Täglich deutschsprachige KI-News — kuratiert, eingeordnet, erklärt.<br>
+          Ein-Mann-Projekt aus Dresden.
+        </div>
+        <div class="profile-tags">
+          <span class="tag">KI</span>
+          <span class="tag">Dresden</span>
+          <span class="tag">Open Source</span>
+          <span class="tag">Techniker</span>
+          <span class="tag">Maker</span>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="stat"><div class="stat-num">3</div><div class="stat-lbl">Podcasts</div></div>
+        <div class="stat"><div class="stat-num" id="newsCount">—</div><div class="stat-lbl">News</div></div>
+        <div class="stat"><div class="stat-num">5</div><div class="stat-lbl">Designs</div></div>
+      </div>
+    </div>
+
+    <!-- ── Theme Selection ──────────────────────────────────── -->
+    <div class="section-header">
+      <span class="section-title">Design-Theme</span>
+      <span class="section-sub" id="activeThemeName">Genesis</span>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="theme-grid">
+
+      <div class="theme-card tc-genesis active" id="card-genesis" onclick="setTheme('genesis')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Genesis</span>
+          <span class="tc-desc">Neon Cyan</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-karst" id="card-karst" onclick="setTheme('karst')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Karst</span>
+          <span class="tc-desc">Jungle Green</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-aurora" id="card-aurora" onclick="setTheme('aurora')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Aurora</span>
+          <span class="tc-desc">Cosmic Violet</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-meridian" id="card-meridian" onclick="setTheme('meridian')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Meridian</span>
+          <span class="tc-desc">Ember Amber</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-blanc" id="card-blanc" onclick="setTheme('blanc')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Blanc</span>
+          <span class="tc-desc">Editorial</span>
+        </div>
+      </div>
+
+    </div><!-- /theme-grid -->
+
+    <!-- ── Active Theme Details ─────────────────────────────── -->
+    <div class="theme-detail" id="theme-detail">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent)" id="td-name">GENESIS</span>
+        <span style="font-size:10px;font-family:monospace;color:var(--muted)" id="td-mood">Neon Cyan · Space Black · Dark</span>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-top:8px" id="td-desc">
+        Das Original. Tiefschwarz mit Neon-Cyan-Akzenten — KI-Atmosphäre pur. Der Genesis-Partikel-Hintergrund leuchtet in kaltem Blau-Weiß. Präzise, technisch, unverwechselbar.
+      </p>
+      <div class="color-palette" id="td-palette"></div>
+    </div>
+
+    <!-- ── Settings ─────────────────────────────────────────── -->
+    <div class="section-header">
+      <span class="section-title">Einstellungen</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="settings-grid">
+      <div class="settings-block">
+        <h3>Projekt</h3>
+        <div class="settings-row">
+          <span>Domain</span>
+          <span class="settings-val accent">ki-news.live</span>
+        </div>
+        <div class="settings-row">
+          <span>Repository</span>
+          <span class="settings-val">GitHub</span>
+        </div>
+        <div class="settings-row">
+          <span>Update-Rhythmus</span>
+          <span class="settings-val">Täglich</span>
+        </div>
+        <div class="settings-row">
+          <span>Sprache</span>
+          <span class="settings-val">Deutsch</span>
+        </div>
+      </div>
+      <div class="settings-block">
+        <h3>Links</h3>
+        <div style="margin-top:4px">
+          <div class="social-row">
+            <a href="https://x.com/ScampyKI" target="_blank" class="social-btn">𝕏 @ScampyKI</a>
+            <a href="https://youtube.com/@ScampyKI" target="_blank" class="social-btn">▶ YouTube</a>
+          </div>
+          <div class="social-row" style="margin-top:10px">
+            <a href="https://t.me/kinews_live" target="_blank" class="social-btn">📬 Telegram</a>
+            <a href="https://soundcloud.com/dscampy" target="_blank" class="social-btn">🎵 Podcast</a>
+          </div>
+          <div class="social-row" style="margin-top:10px">
+            <a href="prototype-genesis.html" class="social-btn">◈ Genesis Vorschau</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /wrap -->
+</div><!-- /page -->
+
+<!-- ═══ JS ══════════════════════════════════════════════════════════ -->
+<script>
+var THEMES = {
+  genesis:  {
+    name: 'GENESIS', mood: 'Neon Cyan · Space Black · Dark',
+    desc: 'Das Original. Tiefschwarz mit Neon-Cyan-Akzenten — KI-Atmosphäre pur. Der Genesis-Partikel-Hintergrund leuchtet in kaltem Blau-Weiß. Präzise, technisch, unverwechselbar.',
+    palette: [
+      { n:'BG',       c:'#000000' },
+      { n:'Surface',  c:'rgba(8,12,20,0.82)' },
+      { n:'Accent',   c:'#1d9bf0' },
+      { n:'Neon',     c:'#00d4ff' },
+      { n:'Text',     c:'#e5e7eb' },
+    ]
+  },
+  karst: {
+    name: 'KARST', mood: 'Jungle Green · Limestone Dark · Dark',
+    desc: 'Inspiriert von Kalkstein-Karsttürmen und Dschungelvegetation. Tiefes Waldgrün als Basis, lebendige Jade-Akzente. Ruhig, natürlich, geerdet — wie ein Morgen im Nebeltal.',
+    palette: [
+      { n:'BG',       c:'#0d1410' },
+      { n:'Surface',  c:'rgba(12,20,14,0.82)' },
+      { n:'Accent',   c:'#4ade80' },
+      { n:'Neon',     c:'#86efac' },
+      { n:'Text',     c:'#d1fae5' },
+    ]
+  },
+  aurora: {
+    name: 'AURORA', mood: 'Cosmic Violet · Deep Space · Dark',
+    desc: 'Tiefer Weltraum trifft Polarlicht. Violett-Magenta-Spektrum mit maximaler Bloom-Intensität. Der Genesis-Background explodiert in kosmischen Farben — dramatisch und unvergesslich.',
+    palette: [
+      { n:'BG',       c:'#07041a' },
+      { n:'Surface',  c:'rgba(14,10,35,0.85)' },
+      { n:'Accent',   c:'#c084fc' },
+      { n:'Neon',     c:'#e879f9' },
+      { n:'Text',     c:'#f3e8ff' },
+    ]
+  },
+  meridian: {
+    name: 'MERIDIAN', mood: 'Ember Amber · Deep Ember · Dark',
+    desc: 'Warme Glut trifft Tech-Ästhetik. Tiefstes Bernstein auf fast schwarzem Hintergrund. Der Genesis-Background glüht in Gold- und Orangetönen — wie Lava unter der Oberfläche.',
+    palette: [
+      { n:'BG',       c:'#110700' },
+      { n:'Surface',  c:'rgba(24,12,0,0.85)' },
+      { n:'Accent',   c:'#f59e0b' },
+      { n:'Neon',     c:'#fbbf24' },
+      { n:'Text',     c:'#fef3c7' },
+    ]
+  },
+  blanc: {
+    name: 'BLANC', mood: 'Sky Blue · Editorial White · Light',
+    desc: 'Sauberes redaktionelles Hell-Design. Fraunces-Serif für Headlines, Sky Blue als Akzent. Der Genesis-Background wird zu einem dezenten Muster auf weißem Grund — professionell und lesbar.',
+    palette: [
+      { n:'BG',       c:'#f8fafc' },
+      { n:'Surface',  c:'#ffffff' },
+      { n:'Accent',   c:'#0ea5e9' },
+      { n:'Neon',     c:'#38bdf8' },
+      { n:'Text',     c:'#0f172a' },
+    ]
+  }
+};
+
+function setTheme(name) {
+  var t = THEMES[name];
+  if (!t) return;
+  document.documentElement.setAttribute('data-theme', name);
+  if (name === 'blanc') {
+    document.documentElement.classList.add('light');
+  } else {
+    document.documentElement.classList.remove('light');
+  }
+  // Update theme cards
+  document.querySelectorAll('.theme-card').forEach(function(c) {
+    c.classList.toggle('active', c.id === 'card-' + name);
+  });
+  // Update section label
+  var lbl = document.getElementById('activeThemeName');
+  if (lbl) lbl.textContent = t.name.charAt(0) + t.name.slice(1).toLowerCase();
+  // Update detail block
+  document.getElementById('td-name').textContent = t.name;
+  document.getElementById('td-mood').textContent = t.mood;
+  document.getElementById('td-desc').textContent = t.desc;
+  // Rebuild palette
+  var pal = document.getElementById('td-palette');
+  pal.innerHTML = '';
+  t.palette.forEach(function(sw) {
+    var div = document.createElement('div');
+    div.className = 'swatch';
+    div.innerHTML =
+      '<div class="swatch-color" style="background:' + sw.c + '"></div>' +
+      '<div class="swatch-name">' + sw.n + '</div>';
+    pal.appendChild(div);
+  });
+  // Persist globally (shared with prototype-genesis.html)
+  try { localStorage.setItem('ki_genesis_theme', name); } catch(e) {}
+}
+
+// Load news count from archive
+try {
+  fetch('archive.json').then(function(r){return r.json();}).then(function(d){
+    var cnt = Array.isArray(d) ? d.length : (d.news ? d.news.length : '—');
+    var el = document.getElementById('newsCount');
+    if (el) el.textContent = cnt > 999 ? (Math.floor(cnt/100)/10)+'k' : cnt;
+  }).catch(function(){});
+} catch(e) {}
+
+// Init
+(function(){
+  var saved = 'genesis';
+  try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
+  setTheme(saved);
+})();
+</script>
+
+<!-- ═══ GENESIS THREE.js ═══════════════════════════════════════════ -->
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const COUNT=12000, SCALE=45, SPEED=0.6, COMPLEXITY=1.2;
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000, 0.007);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(0, 0, 120);
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, powerPreference:'high-performance'});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+document.getElementById('genesis-wrap').appendChild(renderer.domElement);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 1.2, 0.5, 0);
+composer.addPass(bloom);
+const group = new THREE.Group();
+group.position.set(-8, 5, 0);
+scene.add(group);
+const geo = new THREE.TetrahedronGeometry(0.22);
+const mat = new THREE.MeshBasicMaterial({color:0xffffff});
+const mesh = new THREE.InstancedMesh(geo, mat, COUNT);
+mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+group.add(mesh);
+const positions = Array.from({length:COUNT}, () =>
+  new THREE.Vector3((Math.random()-.5)*100, (Math.random()-.5)*100, (Math.random()-.5)*100)
+);
+const dummy = new THREE.Object3D();
+const color  = new THREE.Color();
+const target = new THREE.Vector3();
+const clock  = new THREE.Clock();
+let rotY = 0;
+
+const THEME_3D = {
+  genesis:  { fog:0x000000, fogD:0.007, bloom:1.2, bloomT:0.0, coreH:0.78, coreS:0.70, coreLB:0.20, coreLV:0.04, trailH:0.55, trailS:0.70, trailLB:0.55, trailLE:0.40 },
+  karst:    { fog:0x080e09, fogD:0.006, bloom:0.80, bloomT:0.0, coreH:0.36, coreS:0.80, coreLB:0.18, coreLV:0.04, trailH:0.32, trailS:0.75, trailLB:0.42, trailLE:0.30 },
+  aurora:   { fog:0x040210, fogD:0.007, bloom:1.50, bloomT:0.0, coreH:0.78, coreS:0.85, coreLB:0.20, coreLV:0.05, trailH:0.86, trailS:0.80, trailLB:0.55, trailLE:0.38 },
+  meridian: { fog:0x090300, fogD:0.007, bloom:1.00, bloomT:0.0, coreH:0.065, coreS:0.90, coreLB:0.18, coreLV:0.04, trailH:0.095, trailS:0.85, trailLB:0.50, trailLE:0.32 },
+  blanc:    { fog:0xfafcff, fogD:0.006, bloom:0.20, bloomT:0.5, coreH:0.0, coreS:0.90, coreLB:0.28, coreLV:0.03, trailH:0.07, trailS:0.88, trailLB:0.38, trailLE:0.22 }
+};
+
+function applyTheme3D() {
+  const t = document.documentElement.getAttribute('data-theme') || 'genesis';
+  const cfg = THEME_3D[t] || THEME_3D.genesis;
+  scene.fog.color.setHex(cfg.fog);
+  scene.fog.density = cfg.fogD;
+  bloom.strength = cfg.bloom;
+  bloom.threshold = cfg.bloomT;
+}
+applyTheme3D();
+new MutationObserver(() => applyTheme3D())
+  .observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = document.documentElement.getAttribute('data-theme') || 'genesis';
+  const cfg = THEME_3D[t] || THEME_3D.genesis;
+  const time = clock.getElapsedTime();
+  rotY += 0.001;
+  group.rotation.y = rotY;
+  const elapsed = time * SPEED;
+  const coreCount = Math.floor(COUNT * 0.25);
+  for (let i = 0; i < COUNT; i++) {
+    const isCore = i < coreCount;
+    let x=0, y=0, z=0, h=0, s=0, l=0;
+    if (isCore) {
+      const cn  = i / coreCount;
+      const phi   = Math.acos(1 - 2 * cn);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+      const sp  = Math.sin(elapsed*3 + phi*5 + theta*3) * COMPLEXITY;
+      const r   = SCALE * 0.4 + sp;
+      x = Math.sin(phi) * Math.cos(theta) * r;
+      y = Math.sin(phi) * Math.sin(theta) * r;
+      z = Math.cos(phi) * r;
+      h = cfg.coreH + Math.sin(elapsed + cn*10) * 0.03;
+      s = cfg.coreS; l = cfg.coreLB + sp * cfg.coreLV;
+    } else {
+      const si = i - coreCount;
+      const ppc = 25;
+      const tc  = Math.max(1, Math.floor((COUNT - coreCount) / ppc));
+      const cid = Math.floor(si / ppc);
+      const pid = si % ppc;
+      const pn  = pid / ppc;
+      const cn2 = cid / tc;
+      const cp  = Math.acos(1 - 2 * cn2);
+      const ct  = Math.PI * (1 + Math.sqrt(5)) * cid;
+      const dx  = Math.sin(cp) * Math.cos(ct);
+      const dy  = Math.sin(cp) * Math.sin(ct);
+      const dz  = Math.cos(cp);
+      const cph = elapsed * 3 + cid * 10;
+      const lt  = Math.abs((cid * 78.9 + elapsed * 20) % 200);
+      const ap  = Math.max(SCALE * 0.4, 200 - lt);
+      const u   = Math.sin(cph*5 - pn*15) * (pn * 3);
+      x = dx*(ap + pn*SCALE*0.3) + Math.sin(cph + pn*2) * u * COMPLEXITY;
+      y = dy*(ap + pn*SCALE*0.3) + Math.cos(cph + pn*2) * u * COMPLEXITY;
+      z = dz*(ap + pn*SCALE*0.3) + Math.sin(cph*.5 + pn*2) * u * COMPLEXITY;
+      h = cfg.trailH + pn * 0.03; s = cfg.trailS;
+      l = (cfg.trailLB - pn * cfg.trailLE) * 0.8;
+    }
+    target.set(x, y, z);
+    color.setHSL(h, s, l);
+    positions[i].lerp(target, 0.1);
+    dummy.position.copy(positions[i]);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+    mesh.setColorAt(i, color);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  composer.render();
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+</script>
+
+</body>
+</html>
