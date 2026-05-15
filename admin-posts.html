@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>KI News – Täglich. Auf Deutsch. Mit Kontext.</title>
-<meta name="description" content="Deutschsprachige KI-News: Englische Quellen kuratiert, eingeordnet, erklärt. Ein Mann - Projekt. Von @ScampyKI."/>
+<title>Post-Helfer (intern) · KI News</title>
+<meta name="description" content="Internes Tool: fertige X-Posts mit Teaser und Thread aus den Top-News, bereit zum Kopieren."/>
 <meta name="author" content="Daniel S."/>
-<meta name="robots" content="index, follow"/>
-<link rel="canonical" href="https://ki-news.live/"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="canonical" href="https://ki-news.live/admin-posts.html"/>
 <!-- Open Graph -->
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="KI News – Täglich. Auf Deutsch. Mit Kontext."/>
@@ -300,11 +300,342 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 .gdot[data-t="aurora"]{background:#a78bfa;}
 .gdot[data-t="meridian"]{background:#fb923c;}
 .gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
+
+
+/* ═══════════════════ ARTIKEL PAGE ═══════════════════ */
+#artikel-main { position:relative; z-index:10; padding-top:78px; padding-bottom:64px; min-height:100vh; background:rgba(0,0,0,0.88); }
+html.light #artikel-main { background:rgba(248,250,252,0.95); }
+
+.artikel-wrap { max-width:920px; margin:0 auto; padding:0 24px; }
+
+/* Page header */
+.ah-row { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
+.ah-title { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:28px; letter-spacing:-0.02em; color:var(--text); }
+.ah-eyebrow { font-family:monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(var(--neon-rgb),0.6); margin-bottom:6px; }
+.ah-stand { font-family:monospace; font-size:11px; color:rgba(255,255,255,0.42); letter-spacing:0.06em; }
+html.light .ah-stand { color:#64748b; }
+
+/* Post tabs */
+.tabs { display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
+.tab { flex:1; min-width:220px; padding:14px 16px; background:rgba(10,14,22,0.88); border:1px solid rgba(var(--neon-rgb),0.18);
+       backdrop-filter:blur(8px); border-radius:12px; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; gap:6px; }
+html.light .tab { background:rgba(255,255,255,0.92); }
+.tab:hover { border-color:rgba(var(--neon-rgb),0.5); }
+.tab.active { border-color:rgba(var(--neon-rgb),0.7); box-shadow:0 0 18px rgba(var(--neon-rgb),0.28); background:rgba(var(--neon-rgb),0.06); }
+.tab-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.tab-num { font-family:'Space Grotesk',sans-serif; font-size:10px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); }
+.tab-prio { font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:2px 7px; border-radius:3px; color:#fff; }
+.tab-title { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; color:var(--text); line-height:1.35; letter-spacing:-0.01em; }
+.tab-source { font-family:monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; }
+
+/* Source pill (top of article body) */
+.source-pill { display:inline-flex; align-items:center; gap:6px; font-family:'Space Grotesk',sans-serif; font-size:10px; font-weight:700;
+               letter-spacing:0.12em; text-transform:uppercase; padding:4px 10px; border-radius:3px; color:#fff; }
+
+/* Teaser card */
+.teaser-card { background:rgba(8,12,20,0.88); border:1px solid rgba(var(--neon-rgb),0.32); backdrop-filter:blur(16px);
+               padding:28px 32px; border-radius:16px; margin-bottom:18px; position:relative;
+               box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.10),0 0 22px rgba(var(--neon-rgb),0.18); }
+html.light .teaser-card { background:rgba(255,255,255,0.96); }
+.teaser-meta { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+.teaser-meta-left { display:flex; align-items:center; gap:10px; }
+.teaser-label { font-family:'Space Grotesk',sans-serif; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); }
+.charcount { font-family:monospace; font-size:11px; font-weight:600; letter-spacing:0.04em; padding:2px 8px; border-radius:3px; }
+.charcount.ok { background:rgba(34,197,94,0.12); color:#22c55e; border:1px solid rgba(34,197,94,0.3); }
+.charcount.over { background:rgba(220,38,38,0.12); color:#ef4444; border:1px solid rgba(220,38,38,0.4); }
+.teaser-text { font-family:'Space Grotesk',sans-serif; font-size:18px; line-height:1.55; color:var(--text); font-weight:500; letter-spacing:-0.005em; white-space:pre-wrap; }
+.teaser-actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:7px; font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:700;
+       letter-spacing:0.08em; text-transform:uppercase; padding:9px 15px; border-radius:6px; cursor:pointer;
+       border:1px solid rgba(var(--neon-rgb),0.3); background:transparent; color:var(--text); text-decoration:none;
+       transition:all 0.15s; }
+.btn:hover { background:rgba(var(--neon-rgb),0.10); border-color:rgba(var(--neon-rgb),0.6); }
+.btn.primary { background:var(--accent); color:#000; border-color:var(--accent); }
+html.light .btn.primary { color:#fff; }
+.btn.primary:hover { filter:brightness(1.15); box-shadow:0 0 14px rgba(var(--neon-rgb),0.55); }
+.btn.copied { background:#16a34a !important; color:#fff !important; border-color:#16a34a !important; }
+.btn-icon { width:14px; height:14px; }
+
+/* Erklärung */
+.erkl { display:flex; align-items:flex-start; gap:10px; background:rgba(var(--neon-rgb),0.06); border:1px dashed rgba(var(--neon-rgb),0.28);
+        padding:12px 16px; border-radius:8px; margin-bottom:28px; font-style:italic; }
+.erkl-label { font-family:monospace; font-size:9px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); flex-shrink:0; line-height:1.6; }
+.erkl-text { font-size:13px; color:var(--text); line-height:1.6; opacity:0.8; }
+
+/* Thread section */
+.thread-head { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid rgba(var(--neon-rgb),0.18); }
+.thread-h { font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; color:var(--text); letter-spacing:-0.01em; }
+.thread-h .small { font-family:monospace; font-size:11px; font-weight:600; letter-spacing:0.1em; color:rgba(255,255,255,0.5); margin-left:8px; }
+html.light .thread-h .small { color:#64748b; }
+
+.thread-list { display:flex; flex-direction:column; gap:10px; }
+.tcard { background:rgba(10,14,22,0.88); border:1px solid rgba(var(--neon-rgb),0.20); backdrop-filter:blur(8px);
+         padding:16px 18px 18px; border-radius:12px; position:relative; transition:border-color 0.2s; }
+html.light .tcard { background:rgba(255,255,255,0.96); }
+.tcard:hover { border-color:rgba(var(--neon-rgb),0.5); }
+.tcard-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.tcard-left { display:flex; align-items:center; gap:10px; }
+.tcard-num { font-family:'Space Grotesk',sans-serif; font-weight:800; font-size:14px; letter-spacing:-0.01em; color:var(--accent);
+             min-width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:50%;
+             background:rgba(var(--neon-rgb),0.10); border:1px solid rgba(var(--neon-rgb),0.32); }
+.tcard-label { font-family:'Space Grotesk',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase;
+               color:rgba(255,255,255,0.55); }
+html.light .tcard-label { color:#64748b; }
+.tcard-text { font-size:14px; line-height:1.6; color:var(--text); white-space:pre-wrap; margin-bottom:10px; }
+.tcard-foot { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+.tcard.copied .tcard-num { background:#16a34a; color:#fff; border-color:#16a34a; transition:all 0.3s; }
+
+/* Source footer link */
+.source-foot { margin-top:22px; padding:16px 20px; background:rgba(10,14,22,0.6); border:1px solid rgba(var(--neon-rgb),0.18);
+               border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+html.light .source-foot { background:rgba(255,255,255,0.92); }
+.source-foot-left { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1; }
+.source-foot-label { font-family:monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(var(--neon-rgb),0.7); }
+.source-foot-title { font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:600; color:var(--text); line-height:1.4; }
+
+/* Empty state */
+.empty { padding:60px 24px; text-align:center; color:rgba(255,255,255,0.55); }
+html.light .empty { color:#64748b; }
+.empty-icon { font-size:48px; opacity:0.4; margin-bottom:12px; }
+
+@media(max-width:640px){
+  .artikel-wrap { padding:0 14px; }
+  .ah-title { font-size:22px; }
+  .teaser-text { font-size:16px; }
+  .teaser-card { padding:20px 22px; }
+}
 </style>
+
+<script type="application/json" id="news-data">
+{
+  "stand": "14.05.2026 22:29",
+  "news": [
+    {
+      "title": "KI-Portierung: Claude schreibt Bun-Codebasis in Rust neu",
+      "summary": "Der KI-Assistent Claude hat die gesamte Codebasis des JavaScript-Runtime-Systems Bun in die Programmiersprache Rust übertragen. Dies demonstriert die Fähigkeit von KI, komplexe Code-Konvertierungen durchzuführen und könnte die Entwicklung effizienter und sicherer Software beschleunigen.",
+      "link": "https://www.heise.de/news/KI-Portierung-Claude-schreibt-Bun-Codebasis-in-Rust-neu-9787350.html?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag",
+      "source": "Heise",
+      "color": "#ca8a04",
+      "score": 23,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Saugroboter Ecovacs X12 Omni Cyclone im Test: Flecken lösen mit Wassersprüher",
+      "summary": "Der Ecovacs X12 Omni Cyclone ist ein neuer Saugroboter, der hartnäckige Flecken durch einen integrierten Wassersprüher beseitigen kann.  Dies stellt eine Weiterentwicklung in der Robotik dar, die über einfaches Staubsaugen hinausgeht und eine verbesserte Reinigungsleistung bietet.",
+      "link": "https://www.heise.de/bestenlisten/testbericht/saugroboter-ecovacs-x12-omni-cyclone-im-test-flecken-loesen-mit-wassersprueher/gpltxew?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag",
+      "source": "Heise",
+      "color": "#ca8a04",
+      "score": 23,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Mythos und GPT-5.5: KI-Cyberfähigkeiten verdoppeln sich alle vier Monate",
+      "summary": "Experten schätzen, dass sich die Fähigkeiten von KI-Modellen im Bereich Cybersicherheit alle vier Monate verdoppeln.  Diese rasante Entwicklung birgt sowohl Chancen zur Verbesserung der Sicherheit als auch Risiken durch den potenziellen Einsatz von KI für Angriffe.",
+      "link": "https://www.golem.de/news/mythos-und-gpt-5-5-ki-cyberfaehigkeiten-verdoppeln-sich-alle-vier-monate-2605-208675.html",
+      "source": "Golem",
+      "color": "#555",
+      "score": 21,
+      "label": "📰 normal"
+    },
+    {
+      "title": "KI-Abomodell: Anthropic erlaubt wieder Openclaw-Anwendungen",
+      "summary": "Anthropic, der Entwickler des KI-Modells Claude, hat die Nutzung von Openclaw-Anwendungen auf seiner Plattform wieder zugelassen. Openclaw ermöglicht es Entwicklern, KI-Modelle mit ihren eigenen Daten zu trainieren und zu personalisieren, was die Flexibilität und Zugänglichkeit von KI erhöht.",
+      "link": "https://www.golem.de/news/ki-abomodell-anthropic-erlaubt-wieder-openclaw-anwendungen-2605-208674.html",
+      "source": "Golem",
+      "color": "#555",
+      "score": 21,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Künstliche Intelligenz: Entwickler sind von KI-Einsatz nicht begeistert",
+      "summary": "Eine Umfrage zeigt, dass viele Softwareentwickler den aktuellen Hype um KI kritisch sehen und sich nicht von den Versprechungen der Automatisierung begeistern lassen. Sie äußern Bedenken hinsichtlich der Qualität von KI-generiertem Code und der damit verbundenen Risiken.",
+      "link": "https://www.golem.de/news/kuenstliche-intelligenz-entwickler-sind-von-ki-einsatz-nicht-begeistert-2605-208673.html",
+      "source": "Golem",
+      "color": "#555",
+      "score": 21,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Razer Blade 18: Desktop-Power für das Modelljahr 2026",
+      "summary": "Razer hat das neue Blade 18 Laptop vorgestellt, das Desktop-ähnliche Leistung in einem mobilen Formfaktor bieten soll. Es ist mit Hochleistungs-Komponenten ausgestattet und richtet sich an anspruchsvolle Nutzer, einschließlich KI-Entwickler und Data Scientists, die rechenintensive Aufgaben erledigen müssen.",
+      "link": "https://stadt-bremerhaven.de/razer-blade-18-desktop-power-fuer-das-modelljahr-2026/",
+      "source": "Caschy Blog",
+      "color": "#555",
+      "score": 19,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Google kürzt Gratis-Speicher für anonyme Neukonten",
+      "summary": "Google reduziert den kostenlosen Speicherplatz für neu erstellte anonyme Konten. Dies könnte Auswirkungen auf Nutzer haben, die Google-Dienste ohne feste Identität für KI-Experimente nutzen.",
+      "link": "https://stadt-bremerhaven.de/google-kuerzt-gratis-speicher-fuer-anonyme-neukonten/",
+      "source": "Caschy Blog",
+      "color": "#555",
+      "score": 19,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Was passiert, wenn KI anfängt, sich selbst zu bauen?",
+      "summary": "Der Artikel untersucht das Konzept der rekursiven Selbstverbesserung von KI-Systemen. Dies ist ein zentrales Thema auf dem Weg zur künstlichen allgemeinen Intelligenz (AGI).",
+      "link": "https://techcrunch.com/2026/05/14/what-happens-when-ai-starts-building-itself/",
+      "source": "TechCrunch AI",
+      "color": "#ff6b35",
+      "score": 23,
+      "label": "📰 normal"
+    },
+    {
+      "title": "OpenAI bereitet Berichten zufolge rechtliche Schritte gegen Apple vor; es wäre nicht der erste Partner, der sich verbrannt hat",
+      "summary": "OpenAI plant möglicherweise eine Klage gegen Apple aufgrund von Differenzen in ihrer Partnerschaft. Der Fall zeigt die Spannungen zwischen großen KI-Modellanbietern und Plattformbetreibern auf.",
+      "link": "https://techcrunch.com/2026/05/14/openai-is-reportedly-preparing-legal-action-against-apple-it-wouldnt-be-the-first-partner-to-feel-burned/",
+      "source": "TechCrunch AI",
+      "color": "#ff6b35",
+      "score": 28,
+      "label": "⚡ wichtig"
+    },
+    {
+      "title": "Clawdmeter verwandelt deine Claude Code Nutzungsstatistiken in ein kleines Desktop-Dashboard",
+      "summary": "Ein neues Tool ermöglicht es Entwicklern, ihren Verbrauch von Claude Code visuell zu überwachen. Dies hilft bei der Kostenkontrolle und Analyse der Effizienz beim KI-gestützten Programmieren.",
+      "link": "https://techcrunch.com/2026/05/14/clawdmeter-turns-your-claude-code-usage-stats-into-a-tiny-desktop-dashboard/",
+      "source": "TechCrunch AI",
+      "color": "#ff6b35",
+      "score": 38,
+      "label": "⚡ wichtig"
+    },
+    {
+      "title": "Railway sichert sich 100 Millionen Dollar, um AWS mit KI-nativer Cloud-Infrastruktur herauszufordern",
+      "summary": "Das Unternehmen Railway erhält massives Kapital, um eine Cloud-Plattform speziell für KI-Anwendungen zu bauen. Ziel ist es, eine effizientere Alternative zu Giganten wie AWS zu bieten.",
+      "link": "https://venturebeat.com/infrastructure/railway-secures-usd100-million-to-challenge-aws-with-ai-native-cloud",
+      "source": "VentureBeat AI",
+      "color": "#7c3aed",
+      "score": 32,
+      "label": "⚡ wichtig"
+    },
+    {
+      "title": "Claude Code kostet bis zu 200 Dollar im Monat. Goose macht dasselbe kostenlos.",
+      "summary": "Während Anthropic mit Claude Code ein kostenpflichtiges Tool anbietet, positioniert sich Goose als kostenlose Alternative. Dies verdeutlicht den Wettbewerb im Bereich der KI-Coding-Agenten.",
+      "link": "https://venturebeat.com/infrastructure/claude-code-costs-up-to-usd200-a-month-goose-does-the-same-thing-for-free",
+      "source": "VentureBeat AI",
+      "color": "#7c3aed",
+      "score": 0,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Listen Labs sammelt 69 Millionen Dollar nach viralem Plakat-Einstellungsstunt ein, um KI-Kundeninterviews zu skalieren",
+      "summary": "Das Startup Listen Labs sichert sich eine beachtliche Finanzierung, um die Durchführung von Kundeninterviews durch KI zu automatisieren. Für KI-Interessierte zeigt dies den Trend zur Automatisierung von qualitativem Marktforschungsprozessen.",
+      "link": "https://venturebeat.com/technology/listen-labs-raises-usd69m-after-viral-billboard-hiring-stunt-to-scale-ai",
+      "source": "VentureBeat AI",
+      "color": "#7c3aed",
+      "score": 32,
+      "label": "⚡ wichtig"
+    },
+    {
+      "title": "KI versprach die Audemars Piguet x Swatch Armbanduhr. China wird sie liefern",
+      "summary": "Der Artikel beleuchtet die Diskrepanz zwischen KI-generierten Konzepten und der tatsächlichen physischen Produktion. Es illustriert, wie generative KI als Design-Katalysator dient, die Umsetzung jedoch weiterhin Hardware-Expertise erfordert.",
+      "link": "https://www.wired.com/story/ai-ruined-the-audemars-piguet-x-swatch-collaboration-china-could-save-it/",
+      "source": "Wired",
+      "color": "#555",
+      "score": 22,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Treibstoff für die KI-Fabrik: Datenorchestrierung wird zu Dells Leitstern im neuen Zeitalter der maschinellen Intelligenz",
+      "summary": "Dell setzt verstärkt auf Datenorchestrierung, um die Infrastruktur für KI-Modelle zu optimieren. Dies ist relevant, da die effiziente Datenverwaltung die größte Hürde bei der Skalierung von Enterprise-KI darstellt.",
+      "link": "https://siliconangle.com/2026/05/14/dell-ai-factory-data-intelligence-delltechworld/",
+      "source": "SiliconAngle",
+      "color": "#555",
+      "score": 20,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Ungetrainierte KI-Agenten sind leichte Sicherheitsziele – sie wissen nicht, dass es böse Menschen gibt, sagt KnowBe4-CEO",
+      "summary": "Der CEO von KnowBe4 warnt vor Sicherheitslücken bei KI-Agenten, denen es an Training im Bereich Social Engineering fehlt. Dies unterstreicht die dringende Notwendigkeit von Sicherheitsleitplanken bei der Implementierung autonomer Agenten.",
+      "link": "https://siliconangle.com/2026/05/14/dual-threat-landscape-evolution-digital-workers-kb4con/",
+      "source": "SiliconAngle",
+      "color": "#555",
+      "score": 20,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Während KI-Agenten die Unternehmen überfluten, wird Vertrauen zum einzig wahren Fundament: theCUBE's VeeamON Keynote-Analyse",
+      "summary": "Die Analyse einer Keynote betont, dass Vertrauen und Verlässlichkeit die kritischsten Faktoren für den Unternehmenseinsatz von KI-Agenten sind. Für Fachleute bedeutet dies einen Fokus auf Governance und Validierung von KI-Ausgaben.",
+      "link": "https://siliconangle.com/2026/05/14/ai-trust-infrastructure-defines-veeams-next-evolution-veeamon/",
+      "source": "SiliconAngle",
+      "color": "#555",
+      "score": 20,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Microsoft stellt 'Copilot-Modus' ein, da Edge integrierte KI-Tools erhält",
+      "summary": "Microsoft integriert KI-Funktionen tiefer in den Edge-Browser und ersetzt den separaten Modus durch native Tools. Dies markiert den Übergang von KI als Zusatzfeature hin zu einer vollständig integrierten Browser-Erfahrung.",
+      "link": "https://www.techrepublic.com/article/news-microsoft-retires-copilot-mode-edge/",
+      "source": "TechRepublic",
+      "color": "#555",
+      "score": 20,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Wie KI den Krankenhäusern hilft, voranzukommen",
+      "summary": "Die KI-Technologie unterstützt Krankenhäuser bei der Verbesserung ihrer Prozesse und der Patientenversorgung. Durch den Einsatz von KI können Krankenhäuser ihre Effizienz steigern und die Gesundheitsversorgung verbessern, was für KI-Interessierte von großem Interesse ist.",
+      "link": "https://www.techrepublic.com/article/how-ai-is-helping-hospitals-get-ahead/",
+      "source": "TechRepublic",
+      "color": "#555",
+      "score": 20,
+      "label": "📰 normal"
+    },
+    {
+      "title": "Die echten AI-Experten sind auf meiner Newsmaker-Liste – Scoble verweist seine Follower auf seine kuratierte Signal-Quelle",
+      "summary": "Der bekannte Technologie-Experte Robert Scoble hat eine Liste mit den wichtigsten AI-Experten zusammengestellt und teilt seine Quellen mit seinen Followern. Diese Liste ist für KI-Interessierte von großem Wert, da sie einen Überblick über die wichtigsten Entwicklungen und Experten im Bereich KI gibt.",
+      "link": "https://x.com/Scobleizer/status/2054953903125602633",
+      "source": "AlignedNews",
+      "color": "#555",
+      "score": 18,
+      "label": "📰 normal"
+    }
+  ],
+  "posts": [
+    {
+      "teaser": "Claude Code Nutzung als Desktop-Dashboard sichtbar",
+      "erklaerung": "Code-Nutzung uebersichtlich",
+      "thread": [
+        "Code-Statistiken werden nun übersichtlich",
+        "Entwickler können ihre Produktivität messen",
+        "Clawdmeter vereinfacht Code-Analyse",
+        "Das Tool gibt Einblick in Nutzungsverhalten",
+        "Entwickler können ihre Arbeit optimieren",
+        "Wie wichtig ist Code-Analyse für dich"
+      ]
+    },
+    {
+      "teaser": "Railway will AWS mit AI-Cloud Infrastruktur herausfordern",
+      "erklaerung": "AWS-Konkurrenz durch AI-Cloud",
+      "thread": [
+        "100 Millionen Dollar für Railway gesichert",
+        "AWS-Dominanz soll gebrochen werden",
+        "AI-Cloud-Infrastruktur in Entwicklung",
+        "Konkurrenz um Cloud-Dienste eskaliert",
+        "Unternehmen suchen nach alternativen Anbietern",
+        "Wird Railway AWS erfolgreich herausfordern"
+      ]
+    },
+    {
+      "teaser": "Listen Labs sammelt 69 Millionen Dollar fuer AI-Kundeninterviews",
+      "erklaerung": "AI-gestuetzte Kundeninterviews (via TechCrunch AI, VentureBeat AI)",
+      "thread": [
+        "Virale Werbekampagne sorgt fuer Aufmerksamkeit",
+        "Listen Labs setzt auf AI-Technologie",
+        "Kundeninterviews sollen automatisiert werden",
+        "Unternehmen suchen nach effizienten Lösungen",
+        "Listen Labs will Marktführer werden",
+        "Wie wichtig ist Effizienz fuer Kundenkommunikation"
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body class="font-body-lg">
 
-<!-- Theme Script -->
 <script>
 (function(){
   function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
@@ -328,11 +659,9 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 })();
 </script>
 
-<!-- Genesis Background -->
 <div id="genesis-wrap"></div>
 <div id="bg-overlay"></div>
 
-<!-- Nav -->
 <nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);">
   <div class="flex items-center gap-8">
     <a href="/" class="flex items-center gap-2.5">
@@ -341,7 +670,7 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
       <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
     </a>
     <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="artikel.html">Artikel</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
@@ -362,13 +691,9 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
     </div>
   </div>
 </nav>
-
-<!-- Sidebar Toggle -->
 <button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
   <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
 </button>
-
-<!-- Sidebar -->
 <aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col ki-border border-r hidden lg:flex overflow-hidden collapsed" style="border-color:rgba(var(--neon-rgb),0.18);">
 
   <!-- S-Logo Header -->
@@ -382,14 +707,14 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 
   <!-- Nav -->
   <div class="flex flex-col gap-0.5 px-2 pt-3 flex-1 overflow-y-auto">
-    <a class="ki-sidebar-active flex items-center gap-3 text-[var(--accent)] border-l-2 border-[var(--accent)] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.08);" href="#">
+    <a class="sidebar-nav-link" href="/" style="color:rgba(180,220,240,0.55);">
       <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
+    </a>
+    <a class="ki-sidebar-active flex items-center gap-3 text-[var(--accent)] border-l-2 border-[var(--accent)] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.08);" href="#">
+      <span class="material-symbols-outlined text-sm">build</span>Post-Helfer
     </a>
     <a class="sidebar-nav-link" href="Archiv.html">
       <span class="material-symbols-outlined text-sm">archive</span>Archiv
-    </a>
-    <a class="sidebar-nav-link" href="artikel.html">
-      <span class="material-symbols-outlined text-sm">menu_book</span>Artikel
     </a>
     <a class="sidebar-nav-link" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">
       <span class="material-symbols-outlined text-sm">mic</span>Podcast
@@ -427,130 +752,58 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
   </div>
 </aside>
 
-<!-- HERO + Genesis Carousel -->
-<section id="hero">
-  <div id="carousel-wrap">
-    <button class="carousel-arrow prev" onclick="heroMove(-1)">&#8592;</button>
-    <button class="carousel-arrow next" onclick="heroMove(1)">&#8594;</button>
-    <div id="carousel-grid">
-      <div id="carousel-featured">
-        <div id="progress-bar"></div>
-        <div>
-          <div class="c-counter-row">
-            <div class="c-counter">TOP STORY · <span id="c-num">– / –</span></div>
-            <div class="c-priority">
-              <div class="priority-bars" id="c-pbars"></div>
-              <span class="priority-label" id="c-plabel"></span>
-            </div>
-          </div>
-          <div class="c-badge-row"><span class="c-badge" id="c-badge">…</span></div>
-          <div class="c-content-row">
-            <div class="c-text">
-              <h2 id="c-title">Wird geladen…</h2>
-              <p id="c-desc"></p>
-            </div>
-          </div>
-        </div>
-        <div class="c-actions">
-          <a href="#" id="c-link" class="c-read-link">Artikel lesen →</a>
-        </div>
-      </div>
-      <div id="carousel-side">
-        <div class="side-card" id="side-card-a"></div>
-        <div class="side-card" id="side-card-b"></div>
-      </div>
-    </div>
-    <div id="carousel-dots"></div>
-  </div>
-</section>
+<main id="artikel-main">
+  <div class="artikel-wrap">
 
-<div class="hero-fade"></div>
-
-<!-- Main -->
-<main id="main-content" class="pt-0 min-h-screen" style="position:relative;z-index:10;background:rgba(0,0,0,0.92);">
-  <div class="max-w-[1400px] mx-auto p-gutter">
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mt-gutter mb-gutter" id="media-top-grid">
-      <div class="ki-card ki-border border p-5 animate-pulse h-48"></div>
-      <div class="ki-card ki-border border p-5 animate-pulse h-48"></div>
-    </div>
-
-    <div id="editorial-banner" class="ed-banner" style="display:none;border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:12px;gap:14px;align-items:flex-start"></div>
-
-    <div>
-      <div class="mb-6 flex items-center justify-between">
-        <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:24px">Aktuelle News</h3>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Wird geladen...</span>
-        </div>
-      </div>
-      <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
-        <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
-        <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
-        <div class="ki-card ki-border border p-4 h-48 animate-pulse"></div>
-      </div>
-    </div>
-
-    <div class="mt-12 pb-12 ki-border border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="ah-row">
       <div>
-        <span class="ki-main font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
-        <p class="text-[11px] ki-muted font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/ScampyKI" target="_blank" class="text-[#1d9bf0] hover:underline">@ScampyKI</a></p>
+        <div class="ah-eyebrow">— X · Posts</div>
+        <h1 class="ah-title">Post-Helfer <span style="font-size:14px;color:var(--accent);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-left:8px;padding:3px 8px;border:1px solid rgba(var(--neon-rgb),0.4);border-radius:4px;vertical-align:middle">INTERN</span></h1>
       </div>
-      <div class="flex items-center gap-4">
-        <a href="Archiv.html" class="ki-muted hover:text-white transition-colors text-xs font-mono">Archiv</a>
-        <a href="https://x.com/ScampyKI" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
-        <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">Podcast</a>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span id="stand" class="ah-stand">…</span>
+        <span class="ah-stand"><span id="post-count">—</span> Posts verfügbar</span>
       </div>
     </div>
+
+    <div id="content">
+      <div id="tabs" class="tabs"></div>
+      <article id="teaser-card" class="teaser-card">
+        <div class="teaser-text">Lädt…</div>
+      </article>
+      <div id="erkl-block" class="erkl" style="display:none"></div>
+      <section>
+        <div class="thread-head">
+          <div class="thread-h">🧵 Thread <span class="small" id="thread-count">…</span></div>
+          <span class="ah-stand">max 265 Z. pro Teil</span>
+        </div>
+        <div id="thread-list" class="thread-list"></div>
+      </section>
+      <div id="source-foot" class="source-foot" style="display:none"></div>
+    </div>
+
   </div>
 </main>
 
-<!-- Chat Widget -->
-<div id="chat-widget">
-  <div id="chat-panel">
-    <div class="chat-header">
-      <div><h4>KI-News Assistent</h4><span>Powered by OpenRouter</span></div>
-      <button class="chat-close" onclick="closeChat()">×</button>
-    </div>
-    <div id="chat-messages">
-      <div class="msg bot">
-        <div class="msg-bubble">Hallo! Ich bin der KI-News Assistent. Stell mir Fragen zu den aktuellen KI-News! 🤖</div>
-        <div class="msg-time">Jetzt</div>
-      </div>
-    </div>
-    <div class="chat-input-row">
-      <textarea id="chat-input" placeholder="Frage stellen…" rows="1"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
-      <button id="chat-send" onclick="sendChat()">
-        <span class="material-symbols-outlined" style="font-size:18px">send</span>
-      </button>
-    </div>
-  </div>
-  <button id="chat-fab" onclick="toggleChat()">
-    <span class="material-symbols-outlined" style="font-size:22px;font-variation-settings:'FILL' 1">smart_toy</span>
-  </button>
-</div>
-
 
 <script>
-// ── Sidebar ────────────────────────────────────────────────────────────
+// ── Sidebar toggle (reuse) ────────────────────────────────────────────────
 var sidebarOpen = false;
 function toggleSidebar() {
   sidebarOpen = !sidebarOpen;
   var sidebar = document.getElementById('sidebar');
-  var main    = document.getElementById('main-content');
   var toggle  = document.getElementById('sidebar-toggle');
   var icon    = document.getElementById('toggle-icon');
   if (sidebarOpen) {
     sidebar.classList.remove('collapsed');
-    main.style.marginLeft = '240px'; toggle.style.left = '240px'; icon.textContent = 'chevron_left';
+    toggle.style.left = '240px'; icon.textContent = 'chevron_left';
   } else {
     sidebar.classList.add('collapsed');
-    main.style.marginLeft = '0'; toggle.style.left = '0'; icon.textContent = 'chevron_right';
+    toggle.style.left = '0'; icon.textContent = 'chevron_right';
   }
 }
-// ── Genesis Theme System ──────────────────────────────────────────────────
+
+// ── Genesis Theme System (reuse) ──────────────────────────────────────────
 window.setGenesisTheme = function(name) {
   var themes = ['genesis','karst','aurora','meridian','blanc'];
   if (themes.indexOf(name) === -1) name = 'genesis';
@@ -562,26 +815,24 @@ window.setGenesisTheme = function(name) {
     document.documentElement.classList.remove('light','dark');
   }
   try { localStorage.setItem('ki_genesis_theme', name); } catch(e) {}
-  // update dot states
   document.querySelectorAll('.gdot').forEach(function(d) {
     d.classList.toggle('active', d.getAttribute('data-t') === name);
   });
 };
-
 document.addEventListener('DOMContentLoaded', function() {
   var toggle = document.getElementById('sidebar-toggle');
   if (window.innerWidth >= 1024) toggle.style.display = 'flex';
-  // init genesis theme from storage
   var saved = 'genesis';
   try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
   window.setGenesisTheme(saved);
 });
 
-// ── Source colors ────────────────────────────────────────────────────────
-var SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393','AlignedNews':'#f59e0b'};
-function srcColor(s) { return SRC[s] || '#1d9bf0'; }
+// ── Source colors ─────────────────────────────────────────────────────────
+var SRC = {'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393','AlignedNews':'#f59e0b','Caschy Blog':'#16a34a','Wired':'#ec4899','SiliconAngle':'#1d9bf0','TechRepublic':'#16a34a'};
+function srcColor(s){ return SRC[s] || '#1d9bf0'; }
 
-// ── Priority ─────────────────────────────────────────────────────────────
+// Priority labels (mirror index.html scoring)
+function scoreToLevel(score){ if(score>=40)return 5;if(score>=30)return 4;if(score>=20)return 3;if(score>=10)return 2;return 1; }
 var PRIO = {
   1:{label:'INFO',    color:'rgba(148,163,184,0.7)'},
   2:{label:'AKTUELL', color:'#1d9bf0'},
@@ -589,200 +840,212 @@ var PRIO = {
   4:{label:'TOP',     color:'#ea580c'},
   5:{label:'BREAKING',color:'#dc2626'}
 };
-function scoreToLevel(score) {
-  if (score >= 40) return 5; if (score >= 30) return 4;
-  if (score >= 20) return 3; if (score >= 10) return 2; return 1;
-}
-function scoreBadge(label, score) {
-  if (!label || !score || label.indexOf('normal') > -1 || score < 25) return '';
-  var epic = score >= 40;
-  return '<span style="background:' + (epic?'#dc2626':'#d97706') + ';color:#fff;font-size:9px;font-weight:700;padding:1px 7px;border-radius:3px;font-family:monospace">' + (epic?'🔥 episch':'⚡ wichtig') + '</span>';
+
+// 6-teilig thread labels
+var THREAD_LABELS = ['Hook','Kontext','Aufbau','Wendung','Konsequenz','Fazit'];
+
+// ── State ─────────────────────────────────────────────────────────────────
+var POSTS = [];     // array of post objects from news.json
+var TOP_NEWS = [];  // top 3 news (sorted by score desc) matching posts
+var STAND = '';
+var currentIdx = 0;
+
+// ── Render ────────────────────────────────────────────────────────────────
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+function charBadge(text, max){
+  var n = text.length;
+  return '<span class="charcount '+(n<=max?'ok':'over')+'">'+n+'/'+max+'</span>';
 }
 
-// ── News card ────────────────────────────────────────────────────────────
-function renderCard(item) {
-  var c = item.color || srcColor(item.source);
-  var a = document.createElement('a');
-  a.href = item.link || '#';
-  if (item.link) a.target = '_blank';
-  a.className = 'ki-card ki-border border p-4 flex flex-col h-full transition-all group cursor-pointer';
-  a.onmouseenter = function() { a.style.borderColor = c; };
-  a.onmouseleave = function() { a.style.borderColor = ''; };
-  var badge = item.label ? scoreBadge(item.label, item.score) : '';
-  a.innerHTML =
-    '<div class="flex items-center justify-between mb-4">' +
-      '<span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:' + c + '">' + item.source + '</span>' +
-      '<div class="flex items-center gap-1.5">' + badge + '<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div></div>' +
-    '</div>' +
-    '<h4 class="font-headline-md ki-main mb-2 leading-snug" style="font-family:\'Space Grotesk\',sans-serif">' + item.title + '</h4>' +
-    '<p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">' + (item.summary||'') + '</p>' +
-    '<div class="pt-4 ki-border border-t flex items-center justify-between">' +
-      '<span class="text-[11px] font-mono uppercase" style="color:' + c + '">' + item.source + '</span>' +
-      '<span class="material-symbols-outlined ki-muted text-sm">open_in_new</span>' +
-    '</div>';
-  return a;
-}
-
-// ── Hero Carousel ─────────────────────────────────────────────────────────
-var heroCur = 0, heroTimer, heroProgTimer, heroProg = 0;
-var HERO_INTERVAL = 25000;
-var heroStories = [];
-
-function buildPBars(el, n, color) {
-  el.innerHTML = '';
-  for (var i = 0; i < 5; i++) {
-    var b = document.createElement('div'); b.className = 'pbar';
-    if (i < n) b.style.background = color;
-    el.appendChild(b);
-  }
-}
-function buildSPBars(el, n, color) {
-  el.innerHTML = '';
-  for (var i = 0; i < 5; i++) {
-    var b = document.createElement('div'); b.className = 'sp';
-    if (i < n) b.style.background = color;
-    el.appendChild(b);
-  }
-}
-function renderSideCard(el, idx) {
-  var s = heroStories[idx], level = scoreToLevel(s.score||0), p = PRIO[level], c = s.color||srcColor(s.source);
-  el.onclick = function() { heroCur = idx; heroRender(true); heroStartAuto(); };
-  el.innerHTML =
-    '<div class="side-top"><span class="side-card-badge" style="background:' + c + '">' + s.source + '</span><div class="side-priority" id="hsp-' + idx + '"></div></div>' +
-    '<div class="side-card-title">' + s.title + '</div>' +
-    '<div class="side-card-label">Top Story ' + (idx+1) + ' · ' + p.label + '</div>';
-  var spEl = document.getElementById('hsp-' + idx);
-  if (spEl) buildSPBars(spEl, level, p.color);
-}
-function heroRender(animate) {
-  var feat = document.getElementById('carousel-featured');
-  if (animate) feat.style.opacity = '0';
-  setTimeout(function() {
-    if (!heroStories.length) return;
-    var s = heroStories[heroCur], level = scoreToLevel(s.score||0), p = PRIO[level], c = s.color||srcColor(s.source);
-    document.getElementById('c-num').textContent   = (heroCur+1) + ' / ' + heroStories.length;
-    document.getElementById('c-badge').textContent = s.source;
-    document.getElementById('c-badge').style.background = c;
-    document.getElementById('c-title').textContent = s.title;
-    document.getElementById('c-desc').textContent  = s.summary || '';
-    document.getElementById('c-link').href         = s.link || '#';
-    document.getElementById('c-plabel').textContent = p.label;
-    document.getElementById('c-plabel').style.color  = p.color;
-    buildPBars(document.getElementById('c-pbars'), level, p.color);
-    document.querySelectorAll('.c-dot').forEach(function(d,i){ d.classList.toggle('active', i===heroCur); });
-    var others = heroStories.map(function(_,i){return i;}).filter(function(i){return i!==heroCur;});
-    if (others[0]!==undefined) renderSideCard(document.getElementById('side-card-a'), others[0]);
-    if (others[1]!==undefined) renderSideCard(document.getElementById('side-card-b'), others[1]);
-    feat.style.opacity = '1';
-  }, animate ? 200 : 0);
-}
-function heroStartProgress() {
-  clearInterval(heroProgTimer); heroProg = 0;
-  document.getElementById('progress-bar').style.width = '0%';
-  heroProgTimer = setInterval(function() {
-    heroProg += 100/(HERO_INTERVAL/80);
-    document.getElementById('progress-bar').style.width = Math.min(heroProg,100) + '%';
-  }, 80);
-}
-function heroStartAuto() {
-  clearInterval(heroTimer); heroStartProgress();
-  heroTimer = setInterval(function() {
-    heroCur = (heroCur+1) % heroStories.length; heroRender(true); heroStartProgress();
-  }, HERO_INTERVAL);
-}
-function heroMove(dir) { heroCur=(heroCur+dir+heroStories.length)%heroStories.length; heroRender(true); heroStartAuto(); }
-function initHero(stories) {
-  heroStories = stories; heroCur = 0;
-  var dotsEl = document.getElementById('carousel-dots'); dotsEl.innerHTML = '';
-  stories.forEach(function(_,i) {
-    var d = document.createElement('button');
-    d.className = 'c-dot' + (i===0?' active':'');
-    (function(idx){ d.onclick = function(){ heroCur=idx; heroRender(true); heroStartAuto(); }; })(i);
-    dotsEl.appendChild(d);
+function renderTabs(){
+  var wrap = document.getElementById('tabs');
+  wrap.innerHTML = '';
+  POSTS.forEach(function(p, i){
+    var n = TOP_NEWS[i] || {};
+    var level = scoreToLevel(n.score||0);
+    var prio = PRIO[level];
+    var c = srcColor(n.source);
+    var tab = document.createElement('button');
+    tab.className = 'tab' + (i===currentIdx?' active':'');
+    tab.onclick = function(){ currentIdx = i; updateURL(); renderPost(); renderTabs(); };
+    tab.innerHTML =
+      '<div class="tab-meta">'+
+        '<span class="tab-num">Post '+(i+1)+' / '+POSTS.length+'</span>'+
+        '<span class="tab-prio" style="background:'+prio.color+'">'+prio.label+'</span>'+
+      '</div>'+
+      '<div class="tab-title">'+escapeHtml(n.title||p.teaser.split(/[.—]/)[0])+'</div>'+
+      '<div class="tab-meta">'+
+        '<span class="tab-source" style="color:'+c+'">'+escapeHtml(n.source||'')+'</span>'+
+        '<span style="font-family:monospace;font-size:9px;color:rgba(255,255,255,0.35)">'+(n.label||'')+'</span>'+
+      '</div>';
+    wrap.appendChild(tab);
   });
-  heroRender(false); heroStartAuto();
 }
 
-// ── Data fetch ────────────────────────────────────────────────────────────
-var topLinks = [], currentNewsContext = '';
-fetch('news.json?t=' + Date.now())
-  .then(function(r){ return r.json(); })
-  .then(function(data) {
-    var grid = document.getElementById('news-grid'), label = document.getElementById('stand-label');
-    if (!data.news || !data.news.length) return;
-    if (data.editorial) {
-      var banner = document.getElementById('editorial-banner');
-      if (banner) {
-        var z = data.editorial.length;
-        banner.innerHTML = '<span style="font-size:18px;flex-shrink:0">🗞</span><div style="flex:1"><div style="color:#1d9bf0;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-family:monospace">Tagesüberblick</div><div class="ed-text" style="font-size:14px;line-height:1.5">' + data.editorial + '</div><div style="margin-top:4px"><span class="ed-zeichen" style="color:' + (z>265?'#dc2626':'#536471') + '">' + z + '/265</span></div></div>';
-        banner.style.display = 'flex';
-      }
-    }
-    var top = data.news.slice().sort(function(a,b){return(b.score||0)-(a.score||0);}).slice(0,3);
-    topLinks = top.map(function(n){return n.link;}).filter(Boolean);
-    initHero(top);
-    var filtered = data.news.filter(function(n){return topLinks.indexOf(n.link)===-1;});
-    grid.innerHTML = '';
-    filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
-    if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
-    currentNewsContext = 'Aktuelle KI-News (Stand ' + (data.stand||'') + '):\n' +
-      data.news.map(function(n,i){return (i+1)+'. "'+n.title+'" ('+n.source+'): '+(n.summary||'');}).join('\n');
-  })
-  .catch(function(){ var l=document.getElementById('stand-label'); if(l) l.textContent='Stand: offline'; });
+function renderPost(){
+  var p = POSTS[currentIdx];
+  var n = TOP_NEWS[currentIdx] || {};
+  var c = srcColor(n.source);
+  if (!p) return;
 
-// ── Media ─────────────────────────────────────────────────────────────────
-function buildVideoBlock(video) {
-  if (!video||video.type==='none'||!video.src)
-    return '<div class="ki-card ki-border border flex items-center justify-center text-center p-8"><div><span class="material-symbols-outlined ki-muted" style="font-size:40px">videocam_off</span><p class="ki-muted text-[12px] mt-2 font-mono">Kein Video für diese Episode</p></div></div>';
-  if (video.type==='local')
-    return '<div class="ki-card ki-border border overflow-hidden flex flex-col"><div class="video-wrap flex-shrink-0"><div class="video-label">'+(video.label||'VIDEO')+'</div><video controls preload="metadata" style="max-height:185px"><source src="'+video.src+'" type="video/mp4"/></video></div><div class="p-4 flex-1"><h4 class="ki-main font-bold mb-1" style="font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+(video.title||'')+'</h4></div></div>';
-  if (video.type==='youtube') {
-    var ytId=(video.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)||[])[1]||video.src;
-    return '<div class="ki-card ki-border border overflow-hidden flex flex-col"><div class="video-wrap flex-shrink-0" style="padding-top:56.25%;position:relative"><div class="video-label">'+(video.label||'VIDEO')+'</div><iframe src="https://www.youtube.com/embed/'+ytId+'" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div><div class="p-4 flex-1"><h4 class="ki-main font-bold mb-1" style="font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+(video.title||'')+'</h4></div></div>';
+  // Teaser
+  var teaser = p.teaser || '';
+  var teaserHtml =
+    '<div class="teaser-meta">'+
+      '<div class="teaser-meta-left">'+
+        '<span class="teaser-label">📝 Teaser</span>'+
+        '<span class="source-pill" style="background:'+c+'">'+escapeHtml(n.source||'')+'</span>'+
+      '</div>'+
+      charBadge(teaser, 265)+
+    '</div>'+
+    '<div class="teaser-text" id="teaser-text">'+escapeHtml(teaser)+'</div>'+
+    '<div class="teaser-actions">'+
+      '<button class="btn primary" onclick="copyText(teaserGet(), this)">'+
+        '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'+
+        'Teaser kopieren'+
+      '</button>'+
+      '<a class="btn" target="_blank" onclick="this.href=\'https://x.com/intent/tweet?text=\'+encodeURIComponent(teaserGet())" href="#">'+
+        '<svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>'+
+        'Auf X posten'+
+      '</a>'+
+      '<button class="btn" onclick="copyAll(this)">'+
+        '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'+
+        'Alles kopieren'+
+      '</button>'+
+    '</div>';
+  document.getElementById('teaser-card').innerHTML = teaserHtml;
+
+  // Erklärung
+  var erkl = document.getElementById('erkl-block');
+  if (p.erklaerung) {
+    erkl.style.display = 'flex';
+    erkl.innerHTML =
+      '<span class="erkl-label">Erkl.</span>'+
+      '<span class="erkl-text">'+escapeHtml(p.erklaerung)+' <span style="opacity:0.5;font-family:monospace;font-size:11px">· '+p.erklaerung.length+'/60</span></span>';
+  } else {
+    erkl.style.display = 'none';
   }
-  return '';
-}
-fetch('media.json?t=' + Date.now())
-  .then(function(r){ return r.json(); })
-  .then(function(data) {
-    var podcasts=data.podcasts||[], videos=data.videos||[];
-    var grid=document.getElementById('media-top-grid'); if (!grid) return;
-    var html='';
-    if (podcasts.length) {
-      var p=podcasts[0];
-      var scUrl=p.track_id ? 'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/'+p.track_id+'&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false' : '';
-      html += '<div class="ki-card ki-border border p-5 relative overflow-hidden"><div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none"><div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div></div><div class="relative z-10"><span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span><h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px">'+p.title+'</h2><p class="ki-muted text-[13px] mb-3">'+p.description+'</p>'+(scUrl?'<iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay" src="'+scUrl+'" style="border-radius:4px;opacity:0.9"></iframe>':'<p class="ki-muted text-xs font-mono" style="padding:12px 0">Podcast wird bald verfügbar…</p>')+'<div class="mt-2 flex items-center gap-3"><a href="'+p.soundcloud_url+'" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:\'Space Grotesk\',sans-serif"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">open_in_new</span>SoundCloud</a><span class="text-xs ki-muted font-mono">KI NEWS #'+p.id+(p.duration?' · '+p.duration:'')+'</span></div></div></div>';
-    }
-    if (videos.length) html += buildVideoBlock(videos[0]);
-    grid.innerHTML = html;
-  })
-  .catch(function(){ var g=document.getElementById('media-top-grid'); if(g) g.innerHTML=''; });
 
-// ── Chat ──────────────────────────────────────────────────────────────────
-var chatOpen=false;
-function toggleChat(){chatOpen?closeChat():openChat();}
-function openChat(){chatOpen=true;document.getElementById('chat-panel').classList.add('open');document.getElementById('chat-input').focus();}
-function closeChat(){chatOpen=false;document.getElementById('chat-panel').classList.remove('open');}
-function timeStr(){return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
-function addMsg(role,text){var msgs=document.getElementById('chat-messages'),div=document.createElement('div');div.className='msg '+(role==='user'?'user':'bot');div.innerHTML='<div class="msg-bubble">'+text.replace(/\n/g,'<br>')+'</div><div class="msg-time">'+timeStr()+'</div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
-function addTyping(){var msgs=document.getElementById('chat-messages'),div=document.createElement('div');div.className='msg bot';div.id='typing-indicator';div.innerHTML='<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
-function removeTyping(){var el=document.getElementById('typing-indicator');if(el)el.remove();}
-async function sendChat(){
-  var input=document.getElementById('chat-input'),btn=document.getElementById('chat-send'),text=input.value.trim();
-  if(!text)return; input.value=''; input.style.height='auto';
-  addMsg('user',text); btn.disabled=true; addTyping();
-  try{
-    if(typeof window.claude!=='undefined'&&window.claude.complete){
-      var reply=await window.claude.complete({messages:[{role:'user',content:'Du bist KI-News Assistent auf ki-news.live. Antworte auf Deutsch, kurz (max. 3 Sätze).\n\nNews:\n'+currentNewsContext+'\n\nFrage: '+text}]});
-      removeTyping();addMsg('bot',reply||'Keine Antwort.');
-    }else{removeTyping();addMsg('bot','KI-Assistent ist live verfügbar sobald der OpenRouter-Key konfiguriert ist. 🤖');}
-  }catch(e){removeTyping();addMsg('bot','Fehler: '+e.message);}
-  finally{btn.disabled=false;input.focus();}
+  // Thread
+  var thread = p.thread || [];
+  var threadList = document.getElementById('thread-list');
+  if (!thread.length) {
+    threadList.innerHTML = '<div class="empty">Kein Thread für diesen Post.</div>';
+  } else {
+    threadList.innerHTML = thread.map(function(t, j){
+      var label = THREAD_LABELS[j] || ('Teil '+(j+1));
+      return '<div class="tcard" id="tcard-'+j+'">'+
+        '<div class="tcard-head">'+
+          '<div class="tcard-left">'+
+            '<span class="tcard-num">'+(j+1)+'</span>'+
+            '<span class="tcard-label">'+label+' · '+(j+1)+'/'+thread.length+'</span>'+
+          '</div>'+
+          charBadge(t, 265)+
+        '</div>'+
+        '<div class="tcard-text" id="tc-text-'+j+'">'+escapeHtml(t)+'</div>'+
+        '<div class="tcard-foot">'+
+          '<button class="btn" onclick="copyText(threadGet('+j+'), this, '+j+')">'+
+            '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'+
+            'Kopieren'+
+          '</button>'+
+          '<a class="btn" target="_blank" onclick="this.href=\'https://x.com/intent/tweet?text=\'+encodeURIComponent(threadGet('+j+'))" href="#">'+
+            '<svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>'+
+            'X'+
+          '</a>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+  document.getElementById('thread-count').textContent = thread.length + (thread.length === 1 ? ' Teil' : ' Teile');
+
+  // Source footer
+  var sf = document.getElementById('source-foot');
+  if (n.title && n.link) {
+    sf.style.display = 'flex';
+    sf.innerHTML =
+      '<div class="source-foot-left">'+
+        '<span class="source-foot-label">Quelle · '+escapeHtml(n.source||'')+'</span>'+
+        '<span class="source-foot-title">'+escapeHtml(n.title)+'</span>'+
+      '</div>'+
+      '<a href="'+escapeHtml(n.link)+'" target="_blank" class="btn primary">'+
+        '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+
+        'Originalartikel'+
+      '</a>';
+  } else {
+    sf.style.display = 'none';
+  }
 }
-document.getElementById('chat-input').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';});
+
+// Getters used by inline onclick handlers (so we always get current text)
+function teaserGet(){ return POSTS[currentIdx].teaser || ''; }
+function threadGet(j){ return (POSTS[currentIdx].thread || [])[j] || ''; }
+
+// Copy helpers
+function copyText(text, btn, threadIdx){
+  navigator.clipboard.writeText(text).catch(function(){});
+  var orig = btn.innerHTML;
+  btn.classList.add('copied');
+  btn.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Kopiert';
+  if (threadIdx !== undefined) {
+    var tc = document.getElementById('tcard-'+threadIdx);
+    if (tc) { tc.classList.add('copied'); setTimeout(function(){ tc.classList.remove('copied'); }, 1500); }
+  }
+  setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML = orig; }, 1500);
+}
+function copyAll(btn){
+  var p = POSTS[currentIdx];
+  var text = p.teaser + '\n\n— Thread —\n\n' + (p.thread||[]).map(function(t,i){return (i+1)+'/'+p.thread.length+': '+t;}).join('\n\n');
+  if (p.erklaerung) text += '\n\nErklärung: '+p.erklaerung;
+  copyText(text, btn);
+}
+
+// URL param sync
+function readURL(){
+  var u = new URL(window.location.href);
+  var id = parseInt(u.searchParams.get('id'), 10);
+  if (!isNaN(id) && id >= 0 && id < POSTS.length) currentIdx = id;
+}
+function updateURL(){
+  var u = new URL(window.location.href);
+  u.searchParams.set('id', currentIdx);
+  history.replaceState(null, '', u.toString());
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+(function(){
+  var el = document.getElementById('news-data');
+  if (el) { try { return Promise.resolve(JSON.parse(el.textContent)); } catch(e){} }
+  return fetch('news.json?t=' + Date.now()).then(function(r){return r.json();});
+})()
+  .then(function(data){
+    POSTS = data.posts || [];
+    STAND = data.stand || '';
+    document.getElementById('stand').textContent = STAND ? 'Stand · ' + STAND : '';
+    document.getElementById('post-count').textContent = POSTS.length;
+
+    // Top 3 news by score (matches python pick_top_news order)
+    var sorted = (data.news || []).slice().sort(function(a,b){ return (b.score||0) - (a.score||0); });
+    TOP_NEWS = sorted.slice(0, POSTS.length);
+
+    if (!POSTS.length) {
+      document.getElementById('content').innerHTML =
+        '<div class="empty"><div class="empty-icon">📝</div>'+
+        '<p style="font-size:14px;margin-bottom:6px">Keine Post-Vorschläge für diesen Lauf.</p>'+
+        '<p style="font-size:12px;opacity:0.6">Der nächste KI-News-Lauf generiert frische Posts.</p></div>';
+      return;
+    }
+    readURL();
+    renderTabs();
+    renderPost();
+  })
+  .catch(function(err){
+    console.error('news.json load failed', err);
+    document.getElementById('content').innerHTML =
+      '<div class="empty"><div class="empty-icon">⚠️</div>'+
+      '<p style="font-size:14px">news.json konnte nicht geladen werden.</p></div>';
+  });
 </script>
 
-<!-- ── Genesis Three.js ────────────────────────────────────────────────── -->
 <script type="module">
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -870,5 +1133,6 @@ window.addEventListener('resize',()=>{
   renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);
 });
 </script>
+
 </body>
 </html>
