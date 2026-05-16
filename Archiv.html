@@ -36,10 +36,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
   /* ── Light mode overrides ─────────────────────────────── */
-  html.light body { background-color: #f8fafc !important; color: #0f172a !important; }
-  html.light nav.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
-  html.light aside.fixed { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
-  html.light main { background-color: #f8fafc !important; }
+  html.light body { background-color: #f0f4f8 !important; color: #0f172a !important; }
+  html.light nav.fixed { background: rgba(248,250,252,0.92) !important; backdrop-filter: blur(14px); border-color: #e2e8f0 !important; }
+  html.light main { background-color: #f0f4f8 !important; }
   html.light .bg-black { background-color: #ffffff !important; }
   html.light .bg-\[#16181c\] { background-color: #ffffff !important; }
   html.light .bg-\[#1d1f23\] { background-color: #f1f5f9 !important; }
@@ -110,8 +109,7 @@
 
   /* ── Light Mode ── */
   html.light body { background: #f0f4f8 !important; color: #0f172a !important; }
-  html.light nav.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
-  html.light aside.fixed { background: #ffffff !important; border-color: #e2e8f0 !important; }
+  html.light nav.fixed { background: rgba(248,250,252,0.92) !important; backdrop-filter: blur(14px); border-color: #e2e8f0 !important; }
   html.light main { background: #f0f4f8 !important; }
   html.light .bg-black { background: #ffffff !important; }
   html.light .bg-\[#16181c\] { background: #ffffff !important; }
@@ -493,8 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="material-symbols-outlined text-gray-600 text-sm" id="video-panel-icon">expand_more</span>
       </button>
       <div id="video-panel-body" style="display:none;padding:0 20px 20px">
-        <p class="text-[11px] text-gray-500 font-mono mb-4">Alle Videos – Lehrvideos & Highlights von Scampy's KI-News</p>
-        <div id="video-archive-list"></div>
+        <div id="video-archive-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
       </div>
     </div>
 
@@ -509,7 +506,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="material-symbols-outlined text-gray-600 text-sm" id="hashtag-panel-icon">expand_more</span>
       </button>
       <div id="hashtag-panel-body" style="display:none;padding:0 20px 16px">
-        <p class="text-[11px] text-gray-500 font-mono mb-3">Klick zum Kopieren – für X / Telegram Posts</p>
         <div id="hashtag-chips-archiv" class="flex flex-wrap gap-1.5"></div>
       </div>
     </div>
@@ -982,7 +978,7 @@ function buildVideoCard(v) {
       <div style="position:relative;padding-top:56.25%"><iframe src="https://player.vimeo.com/video/${vmId}" frameborder="0" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div>
     </div>`;
   }
-  return `<div style="border:1px solid #2f3336;border-radius:4px;background:#16181c;padding:16px;margin-bottom:12px">
+  return `<div style="border:1px solid #2f3336;border-radius:4px;background:#16181c;padding:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <span style="font-size:9px;font-family:monospace;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.1em">VIDEO #${v.id||''}</span>
       <span style="font-size:9px;font-family:monospace;color:#536471">${v.date||''}</span>
