@@ -115,9 +115,10 @@ nav {
 [data-theme="blanc"] .sidebar-nav-link:hover{background:#deeaf7;color:#0f172a;}
 .sidebar-active-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border-left:2px solid var(--accent);background:rgba(var(--neon-rgb),0.08);text-decoration:none;}
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-size:16px;}
-/* Sidebar toggle — in nav bar */
-#sidebar-toggle{position:static;transform:none;z-index:auto;background:none;border:none;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:color 0.15s;border-radius:6px;box-shadow:none;padding:4px;margin-right:4px;}
-#sidebar-toggle:hover{color:var(--text);background:rgba(var(--neon-rgb),0.08);}
+/* Sidebar toggle — fixed accent tab on left edge (same as index.html) */
+#sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:var(--accent);border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease,box-shadow 0.2s;border-radius:0 6px 6px 0;box-shadow:0 0 12px rgba(var(--neon-rgb),0.5);}
+#sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);}
+@media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
 /* ── MAIN PAGE CONTENT ──────────────────────────────────────── */
 .page { position: relative; z-index: 10; padding: 80px 20px 80px; transition: margin-left 0.25s ease; }
 .wrap { max-width: 1100px; margin: 0 auto; }
@@ -368,11 +369,8 @@ nav {
 <!-- NAV -->
 <nav>
   <div class="nav-logo-wrap">
-    <button id="sidebar-toggle" onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:4px;margin-right:4px;">
-      <span class="material-symbols-outlined" style="font-size:20px;">menu</span>
-    </button>
     <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
-      <img src="s-logo.png" alt="KI News" style="width:28px;height:28px;border-radius:6px;" onerror="this.style.display='none'"/>
+      <img src="s-logo.png" alt="KI News" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));" onerror="this.style.display='none'"/>
       <span class="nav-logo-text">KI NEWS</span>
     </a>
     <div class="nav-links">
@@ -384,7 +382,11 @@ nav {
     </div>
   </div>
   <div class="nav-right">
-    <div id="genesis-dots">
+    <a href="https://x.com/ScampyKI" target="_blank" style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:monospace;color:var(--muted);text-decoration:none;transition:color 0.15s;" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='var(--muted)'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span style="display:none;" class="nav-xhandle">@ScampyKI</span>
+    </a>
+    <div id="genesis-dots" title="Design-Theme">
       <div class="gdot" data-t="genesis" onclick="window.setGenesisTheme('genesis')" title="Genesis"></div>
       <div class="gdot" data-t="karst"   onclick="window.setGenesisTheme('karst')"   title="Karst"></div>
       <div class="gdot" data-t="aurora"  onclick="window.setGenesisTheme('aurora')"  title="Aurora"></div>
@@ -394,20 +396,44 @@ nav {
   </div>
 </nav>
 
+<!-- Sidebar Toggle (fixed tab, left edge) -->
+<button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
+  <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
+</button>
+
 <!-- SIDEBAR -->
 <aside id="sidebar" class="collapsed">
-  <div style="padding:16px 0 8px;">
+
+  <!-- S-Logo Header -->
+  <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(var(--neon-rgb),0.12);">
+    <img src="s-logo.png" alt="ScampyKI" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(var(--neon-rgb),0.5));" onerror="this.style.display='none'"/>
+    <div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;">ScampyKI</div>
+      <div style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">KI-NEWS.LIVE</div>
+    </div>
+  </div>
+
+  <!-- Nav Links -->
+  <div style="display:flex;flex-direction:column;gap:2px;padding:12px 8px 0;flex:1;overflow-y:auto;">
     <a href="/" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">home</span>
+      <span class="material-symbols-outlined">bolt</span>
       <span>Aktuell</span>
     </a>
     <a href="Archiv.html" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">folder_open</span>
+      <span class="material-symbols-outlined">archive</span>
       <span>Archiv</span>
     </a>
     <a href="artikel.html" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">article</span>
+      <span class="material-symbols-outlined">menu_book</span>
       <span>Artikel</span>
+    </a>
+    <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">mic</span>
+      <span>Podcast</span>
+    </a>
+    <a href="https://youtube.com/@ScampyKI" target="_blank" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">play_circle</span>
+      <span>YouTube</span>
     </a>
     <a href="stats.html" class="sidebar-nav-link">
       <span class="material-symbols-outlined">bar_chart</span>
@@ -418,22 +444,20 @@ nav {
       <span>Profil & Design</span>
     </a>
   </div>
-  <div style="margin-top:auto;padding:16px 0 8px;border-top:1px solid rgba(var(--neon-rgb),0.10);">
-    <div style="padding:4px 16px 8px;font-size:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);opacity:0.6;">Kontakt & Social</div>
+
+  <!-- Social Footer -->
+  <div style="padding:12px 0 8px;border-top:1px solid rgba(var(--neon-rgb),0.10);">
+    <div style="padding:4px 16px 8px;font-size:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);opacity:0.6;">Social</div>
     <a href="https://x.com/ScampyKI" target="_blank" class="sidebar-nav-link">
       <span class="material-symbols-outlined">alternate_email</span>
-      <span>X / Twitter</span>
+      <span>X @ScampyKI</span>
     </a>
     <a href="https://t.me/kinews_live" target="_blank" class="sidebar-nav-link">
       <span class="material-symbols-outlined">send</span>
       <span>Telegram</span>
     </a>
-    <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">podcasts</span>
-      <span>Podcast</span>
-    </a>
   </div>
-  <div style="padding:10px 16px 16px;font-size:9px;font-family:monospace;color:var(--muted);opacity:0.4;">
+  <div style="padding:8px 16px 14px;font-size:9px;font-family:monospace;color:var(--muted);opacity:0.4;">
     ki-news.live · @ScampyKI
   </div>
 </aside>
@@ -635,17 +659,20 @@ nav {
 <script>
 /* ── Sidebar toggle ──────────────────────────────────────────── */
 function toggleSidebar() {
-  var sb = document.getElementById('sidebar');
-  var mc = document.getElementById('main-content');
+  var sb   = document.getElementById('sidebar');
+  var tog  = document.getElementById('sidebar-toggle');
+  var icon = document.getElementById('toggle-icon');
   if (!sb) return;
   var open = !sb.classList.contains('collapsed');
   if (open) {
     sb.classList.add('collapsed');
-    if (mc) mc.style.marginLeft = '0';
+    if (tog)  tog.style.left  = '0';
+    if (icon) icon.textContent = 'chevron_right';
     try { localStorage.setItem('ki_sidebar_open','0'); } catch(e) {}
   } else {
     sb.classList.remove('collapsed');
-    if (mc && window.innerWidth >= 1024) mc.style.marginLeft = '240px';
+    if (tog)  tog.style.left  = '240px';
+    if (icon) icon.textContent = 'chevron_left';
     try { localStorage.setItem('ki_sidebar_open','1'); } catch(e) {}
   }
 }
@@ -677,21 +704,19 @@ document.addEventListener('DOMContentLoaded', function() {
     d.classList.toggle('active', d.getAttribute('data-t') === saved);
   });
   // Sidebar state
-  var sb = document.getElementById('sidebar');
-  var mc = document.getElementById('main-content');
+  var sb   = document.getElementById('sidebar');
+  var tog  = document.getElementById('sidebar-toggle');
+  var icon = document.getElementById('toggle-icon');
   var sideOpen = '0';
   try { sideOpen = localStorage.getItem('ki_sidebar_open') || '0'; } catch(e) {}
   if (sideOpen === '1' && window.innerWidth >= 1024) {
-    if (sb) sb.classList.remove('collapsed');
-    if (mc) mc.style.marginLeft = '240px';
+    if (sb)   sb.classList.remove('collapsed');
+    if (tog)  tog.style.left  = '240px';
+    if (icon) icon.textContent = 'chevron_left';
   } else {
-    if (sb) sb.classList.add('collapsed');
-    if (mc) mc.style.marginLeft = '0';
-  }
-  // Also update nav sidebar-toggle position
-  var tog = document.getElementById('sidebar-toggle');
-  if (tog) {
-    tog.style.left = (sb && !sb.classList.contains('collapsed')) ? '240px' : '0';
+    if (sb)   sb.classList.add('collapsed');
+    if (tog)  tog.style.left  = '0';
+    if (icon) icon.textContent = 'chevron_right';
   }
 });
 

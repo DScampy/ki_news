@@ -275,6 +275,60 @@ select:focus { border-color: oklch(52% 0.18 240); }
 </head>
 <body>
 
+<!-- ═══ ADMIN GATE ══════════════════════════════════════════════════ -->
+<div id="admin-gate" style="
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.92);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Grotesk',sans-serif;
+">
+  <div style="
+    background:#0f172a;border:1px solid rgba(99,179,237,0.25);border-radius:16px;
+    padding:40px 48px;max-width:380px;width:90%;text-align:center;
+    box-shadow:0 0 40px rgba(99,179,237,0.1);
+  ">
+    <div style="font-size:32px;margin-bottom:16px;">🔒</div>
+    <div style="font-size:18px;font-weight:800;color:#e2e8f0;letter-spacing:-0.02em;margin-bottom:6px;">Admin-Bereich</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);font-family:monospace;margin-bottom:28px;">ki-news.live · intern</div>
+    <input id="gate-input" type="password" placeholder="Passwort" style="
+      width:100%;padding:12px 16px;background:#1e293b;
+      border:1px solid rgba(99,179,237,0.2);border-radius:8px;
+      color:#e2e8f0;font-size:15px;font-family:inherit;
+      outline:none;margin-bottom:12px;letter-spacing:0.1em;
+    " onkeydown="if(event.key==='Enter')checkGate()"/>
+    <button onclick="checkGate()" style="
+      width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;
+      color:#fff;font-family:inherit;font-size:13px;font-weight:700;
+      letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;
+      transition:background 0.15s;
+    " onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">Zugang</button>
+    <div id="gate-error" style="color:#f87171;font-size:12px;margin-top:12px;min-height:16px;"></div>
+  </div>
+</div>
+<script>
+(function(){
+  // ── Passwort ändern: diese eine Zeile ────────────────────────────
+  var ADMIN_PW = 'scampy';
+  // ─────────────────────────────────────────────────────────────────
+  if (localStorage.getItem('ki_admin_auth') === 'ok') {
+    document.getElementById('admin-gate').style.display = 'none';
+  }
+  window.checkGate = function() {
+    var val = document.getElementById('gate-input').value;
+    if (val === ADMIN_PW) {
+      try { localStorage.setItem('ki_admin_auth','ok'); } catch(e){}
+      document.getElementById('admin-gate').style.display = 'none';
+    } else {
+      var err = document.getElementById('gate-error');
+      err.textContent = 'Falsches Passwort.';
+      document.getElementById('gate-input').value = '';
+      document.getElementById('gate-input').focus();
+      setTimeout(function(){ err.textContent = ''; }, 2500);
+    }
+  };
+})();
+</script>
+
 <header class="header">
   <a href="http://ki-news.live" class="logo">KI <span>NEWS</span></a>
   <span class="header-badge">Admin</span>
