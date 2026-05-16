@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Profil & Design – KI News</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;900&family=Work+Sans:wght@400;500;600&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
 </script>
@@ -72,17 +73,53 @@ body {
 nav {
   position: fixed; inset: 0 0 auto; height: 56px; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px;
-  background: var(--nav-bg); border-bottom: 1px solid var(--nav-border);
+  padding: 0 16px;
+  background: var(--nav-bg); border-bottom: 1px solid rgba(var(--neon-rgb),0.18);
   backdrop-filter: blur(14px); transition: background 0.4s, border-color 0.3s;
 }
-.logo { font-family:'Space Grotesk',sans-serif; font-weight:900; font-size:18px; letter-spacing:-0.04em; color:var(--accent); text-transform:uppercase; }
-.nav-link { font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:600; color:var(--muted); text-decoration:none; text-transform:uppercase; letter-spacing:0.06em; transition:color 0.15s; }
-.nav-link:hover { color: var(--text); }
+.nav-logo-wrap { display: flex; align-items: center; gap: 8px; }
+.nav-logo-text { font-family:'Space Grotesk',sans-serif; font-weight:900; font-size:18px; letter-spacing:-0.04em; color:var(--accent); text-transform:uppercase; }
+.nav-links { display: none; align-items: center; gap: 24px; }
+@media(min-width:768px){.nav-links{display:flex;}}
+.nav-link { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:500; color:rgba(180,220,240,0.55); text-decoration:none; transition:color 0.15s; }
+.nav-link:hover { color: #fff; }
 .nav-link.active { color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:2px; }
-
+.nav-right { display:flex; align-items:center; gap:16px; }
+/* Genesis dots */
+#genesis-dots{display:flex;align-items:center;gap:5px;}
+.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;background:none;}
+.gdot:hover{transform:scale(1.25);}
+.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+.gdot[data-t="genesis"]{background:#00d4ff;}
+.gdot[data-t="karst"]{background:#34d399;}
+.gdot[data-t="aurora"]{background:#a78bfa;}
+.gdot[data-t="meridian"]{background:#fb923c;}
+.gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
+/* ── SIDEBAR ── */
+#sidebar {
+  position: fixed; left: 0; top: 56px;
+  height: calc(100vh - 56px); width: 240px; z-index: 40;
+  display: none; flex-direction: column; overflow: hidden;
+  background: #0c1220; border-right: 1px solid rgba(var(--neon-rgb),0.18);
+  transition: width 0.25s ease, opacity 0.2s ease;
+}
+@media(min-width:1024px){#sidebar{display:flex;}}
+#sidebar.collapsed{width:0;opacity:0;pointer-events:none;}
+[data-theme="karst"] #sidebar{background:#06100a;}
+[data-theme="aurora"] #sidebar{background:#0a0818;}
+[data-theme="meridian"] #sidebar{background:#100600;}
+[data-theme="blanc"] #sidebar{background:#e8edf4;}
+.sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .15s;border-left:2px solid transparent;color:rgba(180,220,240,0.55);text-decoration:none;}
+.sidebar-nav-link:hover{background:rgba(29,37,53,0.85);color:#fff;border-left-color:var(--accent);}
+[data-theme="blanc"] .sidebar-nav-link{color:rgba(30,80,140,0.7);}
+[data-theme="blanc"] .sidebar-nav-link:hover{background:#deeaf7;color:#0f172a;}
+.sidebar-active-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border-left:2px solid var(--accent);background:rgba(var(--neon-rgb),0.08);text-decoration:none;}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-size:16px;}
+/* Sidebar toggle — in nav bar */
+#sidebar-toggle{position:static;transform:none;z-index:auto;background:none;border:none;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:color 0.15s;border-radius:6px;box-shadow:none;padding:4px;margin-right:4px;}
+#sidebar-toggle:hover{color:var(--text);background:rgba(var(--neon-rgb),0.08);}
 /* ── MAIN PAGE CONTENT ──────────────────────────────────────── */
-.page { position: relative; z-index: 10; padding: 80px 20px 80px; }
+.page { position: relative; z-index: 10; padding: 80px 20px 80px; transition: margin-left 0.25s ease; }
 .wrap { max-width: 1100px; margin: 0 auto; }
 
 /* ── Profile Hero ───────────────────────────────────────────── */
@@ -330,9 +367,15 @@ nav {
 
 <!-- NAV -->
 <nav>
-  <div style="display:flex;align-items:center;gap:28px">
-    <a href="/" style="text-decoration:none"><span class="logo">KI NEWS</span></a>
-    <div style="display:flex;gap:18px">
+  <div class="nav-logo-wrap">
+    <button id="sidebar-toggle" onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:4px;margin-right:4px;">
+      <span class="material-symbols-outlined" style="font-size:20px;">menu</span>
+    </button>
+    <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+      <img src="s-logo.png" alt="KI News" style="width:28px;height:28px;border-radius:6px;" onerror="this.style.display='none'"/>
+      <span class="nav-logo-text">KI NEWS</span>
+    </a>
+    <div class="nav-links">
       <a href="/" class="nav-link">Aktuell</a>
       <a href="Archiv.html" class="nav-link">Archiv</a>
       <a href="artikel.html" class="nav-link">Artikel</a>
@@ -340,18 +383,63 @@ nav {
       <a href="profil.html" class="nav-link active">Profil</a>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:12px">
-    <a href="https://x.com/ScampyKI" target="_blank" style="font-size:11px;color:var(--muted);font-family:monospace;text-decoration:none;">@ScampyKI</a>
-    <a href="prototype-genesis.html" style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:4px 10px;border:1px solid var(--border);border-radius:4px;transition:all 0.15s"
-      onmouseenter="this.style.color='var(--text)';this.style.borderColor='rgba(var(--neon-rgb),0.4)'"
-      onmouseleave="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">
-      ◈ Vorschau
-    </a>
+  <div class="nav-right">
+    <div id="genesis-dots">
+      <div class="gdot" data-t="genesis" onclick="window.setGenesisTheme('genesis')" title="Genesis"></div>
+      <div class="gdot" data-t="karst"   onclick="window.setGenesisTheme('karst')"   title="Karst"></div>
+      <div class="gdot" data-t="aurora"  onclick="window.setGenesisTheme('aurora')"  title="Aurora"></div>
+      <div class="gdot" data-t="meridian" onclick="window.setGenesisTheme('meridian')" title="Meridian"></div>
+      <div class="gdot" data-t="blanc"   onclick="window.setGenesisTheme('blanc')"   title="Blanc"></div>
+    </div>
   </div>
 </nav>
 
+<!-- SIDEBAR -->
+<aside id="sidebar" class="collapsed">
+  <div style="padding:16px 0 8px;">
+    <a href="/" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">home</span>
+      <span>Aktuell</span>
+    </a>
+    <a href="Archiv.html" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">folder_open</span>
+      <span>Archiv</span>
+    </a>
+    <a href="artikel.html" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">article</span>
+      <span>Artikel</span>
+    </a>
+    <a href="stats.html" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">bar_chart</span>
+      <span>Statistik</span>
+    </a>
+    <a href="profil.html" class="sidebar-active-link">
+      <span class="material-symbols-outlined">person</span>
+      <span>Profil & Design</span>
+    </a>
+  </div>
+  <div style="margin-top:auto;padding:16px 0 8px;border-top:1px solid rgba(var(--neon-rgb),0.10);">
+    <div style="padding:4px 16px 8px;font-size:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);opacity:0.6;">Kontakt & Social</div>
+    <a href="https://x.com/ScampyKI" target="_blank" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">alternate_email</span>
+      <span>X / Twitter</span>
+    </a>
+    <a href="https://t.me/kinews_live" target="_blank" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">send</span>
+      <span>Telegram</span>
+    </a>
+    <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="sidebar-nav-link">
+      <span class="material-symbols-outlined">podcasts</span>
+      <span>Podcast</span>
+    </a>
+  </div>
+  <div style="padding:10px 16px 16px;font-size:9px;font-family:monospace;color:var(--muted);opacity:0.4;">
+    ki-news.live · @ScampyKI
+  </div>
+</aside>
+
 <!-- PAGE CONTENT -->
-<div class="page">
+<div class="page" id="main-content">
   <div class="wrap">
 
     <!-- ── Profile Hero ─────────────────────────────────────── -->
@@ -545,6 +633,69 @@ nav {
 
 <!-- ═══ JS ══════════════════════════════════════════════════════════ -->
 <script>
+/* ── Sidebar toggle ──────────────────────────────────────────── */
+function toggleSidebar() {
+  var sb = document.getElementById('sidebar');
+  var mc = document.getElementById('main-content');
+  if (!sb) return;
+  var open = !sb.classList.contains('collapsed');
+  if (open) {
+    sb.classList.add('collapsed');
+    if (mc) mc.style.marginLeft = '0';
+    try { localStorage.setItem('ki_sidebar_open','0'); } catch(e) {}
+  } else {
+    sb.classList.remove('collapsed');
+    if (mc && window.innerWidth >= 1024) mc.style.marginLeft = '240px';
+    try { localStorage.setItem('ki_sidebar_open','1'); } catch(e) {}
+  }
+}
+
+/* ── Genesis theme sync (shared key with other pages) ───────── */
+window.setGenesisTheme = function(name) {
+  document.documentElement.setAttribute('data-theme', name);
+  if (name === 'blanc') {
+    document.documentElement.classList.add('light');
+  } else {
+    document.documentElement.classList.remove('light');
+  }
+  // Sync dots
+  document.querySelectorAll('.gdot').forEach(function(d) {
+    d.classList.toggle('active', d.getAttribute('data-t') === name);
+  });
+  // Persist
+  try { localStorage.setItem('ki_genesis_theme', name); } catch(e) {}
+  // Delegate to page setTheme for cards/palette block
+  if (typeof setTheme === 'function') setTheme(name);
+};
+
+/* ── DOMContentLoaded: restore sidebar + dots ───────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  // Dots
+  var saved = 'genesis';
+  try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
+  document.querySelectorAll('.gdot').forEach(function(d) {
+    d.classList.toggle('active', d.getAttribute('data-t') === saved);
+  });
+  // Sidebar state
+  var sb = document.getElementById('sidebar');
+  var mc = document.getElementById('main-content');
+  var sideOpen = '0';
+  try { sideOpen = localStorage.getItem('ki_sidebar_open') || '0'; } catch(e) {}
+  if (sideOpen === '1' && window.innerWidth >= 1024) {
+    if (sb) sb.classList.remove('collapsed');
+    if (mc) mc.style.marginLeft = '240px';
+  } else {
+    if (sb) sb.classList.add('collapsed');
+    if (mc) mc.style.marginLeft = '0';
+  }
+  // Also update nav sidebar-toggle position
+  var tog = document.getElementById('sidebar-toggle');
+  if (tog) {
+    tog.style.left = (sb && !sb.classList.contains('collapsed')) ? '240px' : '0';
+  }
+});
+
+/* ── Theme data ──────────────────────────────────────────────── */
 var THEMES = {
   genesis:  {
     name: 'GENESIS', mood: 'Neon Cyan · Space Black · Dark',

@@ -113,23 +113,38 @@
   .rank-num.silver { color:#94a3b8; }
   .rank-num.bronze { color:#cd7c36; }
 
-  /* ── Sidebar toggle ── */
-  #stats-sidebar-toggle {
-    position:fixed;left:240px;top:50%;transform:translateY(-50%);
-    z-index:45;background:var(--accent);border:none;cursor:pointer;
-    width:18px;height:60px;display:none;align-items:center;justify-content:center;
-    color:#000;transition:left 0.25s;border-radius:0 6px 6px 0;
-    box-shadow:0 0 12px rgba(var(--neon-rgb),0.5);
-  }
-  @media(max-width:1023px){#stats-sidebar-toggle{display:none!important;}}
-
   /* ── 5-Theme System ── */
-  [data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;}
-  [data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;}
-  [data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;}
-  [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;}
-  [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;}
+  [data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;--sidebar-bg:#0c1220;--nav-bg:rgba(0,0,0,0.72);}
+  [data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--sidebar-bg:#06100a;--nav-bg:rgba(4,12,6,0.80);}
+  [data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--sidebar-bg:#0a0818;--nav-bg:rgba(4,2,15,0.80);}
+  [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--sidebar-bg:#100600;--nav-bg:rgba(9,3,0,0.80);}
+  [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--sidebar-bg:#e8edf4;--nav-bg:rgba(255,255,255,0.88);}
   body{background:var(--bg,#000);transition:background 0.4s;}
+  /* ── Sidebar ── */
+  #sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;background:var(--sidebar-bg,#0c1220)!important;}
+  #sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
+  nav.fixed{background:var(--nav-bg,rgba(0,0,0,0.72))!important;}
+  .sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .15s;border-left:2px solid transparent;color:rgba(180,220,240,0.55);text-decoration:none;}
+  .sidebar-nav-link:hover{background:rgba(29,37,53,0.85);color:#fff;border-left-color:var(--accent);}
+  html.light .sidebar-nav-link{color:rgba(30,80,140,0.7);}
+  html.light .sidebar-nav-link:hover{background:#deeaf7;color:#0f172a;border-left-color:var(--accent,#0ea5e9);}
+  html.light .ki-sidebar-active{background:#eff6ff!important;}
+  #sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:var(--accent);border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease,box-shadow 0.2s;border-radius:0 6px 6px 0;box-shadow:0 0 12px rgba(var(--neon-rgb),0.5);}
+  #sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);}
+  @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
+  #genesis-dots{display:flex;align-items:center;gap:5px;}
+  .gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;background:none;}
+  .gdot:hover{transform:scale(1.25);}
+  .gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+  html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
+  .gdot[data-t="genesis"]{background:#00d4ff;}
+  .gdot[data-t="karst"]{background:#34d399;}
+  .gdot[data-t="aurora"]{background:#a78bfa;}
+  .gdot[data-t="meridian"]{background:#fb923c;}
+  .gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
+  .ki-border{border-color:rgba(var(--neon-rgb),0.18);}
+  .ki-muted{color:rgba(180,220,240,0.55);}
+  html.light .ki-muted{color:rgba(30,80,140,0.7);}
 </style>
 </head>
 <body>
@@ -172,44 +187,53 @@
     if(n==='blanc'){document.documentElement.classList.add('light');document.documentElement.classList.remove('dark');}
     else{document.documentElement.classList.remove('light','dark');}
   }
+  window.setGenesisTheme = function(name) {
+    applyGenesisTheme(name);
+    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
+    document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.getAttribute('data-t')===name);});
+  };
   let gS='genesis';try{gS=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
   applyGenesisTheme(gS);
 
   let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  document.addEventListener('DOMContentLoaded',()=>updateSlider(localStorage.getItem('ki_theme')||'auto'));
+  document.addEventListener('DOMContentLoaded',function(){
+    updateSlider(localStorage.getItem('ki_theme')||'auto');
+    document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.getAttribute('data-t')===gS);});
+  });
 })();
 
-let statsSidebarOpen=true;
-function toggleStatsSidebar(){
-  const sb=document.querySelector('aside.fixed');
-  const main=document.querySelector('main');
-  const btn=document.getElementById('stats-sidebar-toggle');
-  const icon=document.getElementById('stats-toggle-icon');
-  statsSidebarOpen=!statsSidebarOpen;
-  if(sb){sb.style.transform=statsSidebarOpen?'translateX(0)':'translateX(-240px)';sb.style.transition='transform 0.25s';}
-  if(main){main.style.marginLeft=statsSidebarOpen?'240px':'0';main.style.transition='margin-left 0.25s';}
-  if(btn){btn.style.left=statsSidebarOpen?'240px':'0';btn.style.display='flex';}
-  if(icon)icon.textContent=statsSidebarOpen?'chevron_left':'chevron_right';
+var sidebarOpen=(function(){try{return localStorage.getItem("ki_sidebar_open")==="1";}catch(e){return false;}})();
+function toggleSidebar(){
+  sidebarOpen=!sidebarOpen;
+  var sidebar=document.getElementById('sidebar'),main=document.getElementById('main-content'),toggle=document.getElementById('sidebar-toggle'),icon=document.getElementById('toggle-icon');
+  if(sidebarOpen){sidebar.classList.remove('collapsed');main.style.marginLeft='240px';toggle.style.left='240px';icon.textContent='chevron_left';}
+  else{sidebar.classList.add('collapsed');main.style.marginLeft='0';toggle.style.left='0';icon.textContent='chevron_right';}
+  try{localStorage.setItem('ki_sidebar_open',sidebarOpen?'1':'0');}catch(e){}
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const btn=document.getElementById('stats-sidebar-toggle');
-  if(btn)btn.style.display='flex';
+document.addEventListener('DOMContentLoaded',function(){
+  var toggle=document.getElementById('sidebar-toggle');
+  if(window.innerWidth>=1024)toggle.style.display='flex';
+  if(sidebarOpen){
+    var s=document.getElementById('sidebar'),m=document.getElementById('main-content'),i=document.getElementById('toggle-icon');
+    if(s)s.classList.remove('collapsed');if(m)m.style.marginLeft='240px';if(toggle)toggle.style.left='240px';if(i)i.textContent='chevron_left';
+  }
 });
 </script>
 
-<!-- ── Top Nav ── -->
-<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-black border-b border-[#2f3336]">
+<!-- Nav -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);">
   <div class="flex items-center gap-8">
-    <a href="/" class="flex items-center gap-2">
+    <a href="/" class="flex items-center gap-2.5">
+      <img src="s-logo.png" alt="" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));"/>
       <span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span>
-      <span class="hidden sm:inline text-[10px] font-mono text-gray-500 tracking-widest uppercase border border-[#2f3336] px-1.5 py-0.5">DE</span>
+      <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
     </a>
     <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="artikel.html">Artikel</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="profil.html">Profil</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="artikel.html">Artikel</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="profil.html">Profil</a>
       <a class="text-sm font-medium border-b-2 pb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent);border-color:var(--accent)" href="#">Statistik</a>
     </div>
   </div>
@@ -218,71 +242,63 @@ document.addEventListener('DOMContentLoaded',()=>{
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span class="hidden sm:inline">@ScampyKI</span>
     </a>
-    <div onclick="cycleTheme()" title="Hell/Dunkel" style="display:flex;align-items:center;gap:6px;cursor:pointer">
-      <span style="font-size:12px;color:#536471">☀</span>
-      <div style="width:40px;height:20px;border-radius:10px;background:#2f3336;position:relative;border:1px solid #3f4851">
-        <div class="theme-slider-knob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#536471;transition:all 0.25s"></div>
-      </div>
-      <span style="font-size:12px;color:#536471">☾</span>
+    <div id="genesis-dots" title="Design-Theme">
+      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis"></button>
+      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst"></button>
+      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora"></button>
+      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian"></button>
+      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc"></button>
     </div>
   </div>
 </nav>
 
-<!-- ── Sidebar Toggle ── -->
-<button id="stats-sidebar-toggle" onclick="toggleStatsSidebar()">
-  <span class="material-symbols-outlined" style="font-size:13px;font-weight:700" id="stats-toggle-icon">chevron_left</span>
+<!-- Sidebar Toggle -->
+<button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
+  <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
 </button>
 
-<!-- ── Sidebar ── -->
-<aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-[240px] z-40 flex-col py-0 hidden lg:flex overflow-hidden"
-  style="background:#0c1220;border-right:1px solid rgba(var(--neon-rgb),0.15)">
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col ki-border border-r hidden lg:flex overflow-hidden collapsed" style="border-color:rgba(var(--neon-rgb),0.18);">
 
-  <div class="flex items-center gap-3 px-5 py-4" style="border-bottom:1px solid rgba(var(--neon-rgb),0.12);flex-shrink:0">
-    <img src="s-logo.png" style="width:36px;height:36px;filter:drop-shadow(0 0 6px rgba(var(--neon-rgb),0.5));flex-shrink:0" onerror="this.style.display='none'"/>
+  <!-- S-Logo Header -->
+  <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(var(--neon-rgb),0.12);flex-shrink:0">
+    <img src="s-logo.png" alt="ScampyKI" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(var(--neon-rgb),0.5));"/>
     <div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-weight:900;letter-spacing:-0.03em;font-size:15px;color:var(--accent);line-height:1">KI NEWS</div>
-      <div style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.45);margin-top:2px">ki-news.live</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;">ScampyKI</div>
+      <div style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">KI-NEWS.LIVE</div>
     </div>
   </div>
 
-  <div class="flex flex-col gap-0.5 px-2 py-3" style="flex-shrink:0">
-    <a href="/" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">bolt</span>Aktuell
+  <!-- Nav -->
+  <div class="flex flex-col gap-0.5 px-2 pt-3" style="flex-shrink:0">
+    <a class="sidebar-nav-link" href="/">
+      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
     </a>
-    <a href="Archiv.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">archive</span>Archiv
+    <a class="sidebar-nav-link" href="Archiv.html">
+      <span class="material-symbols-outlined text-sm">archive</span>Archiv
     </a>
-    <a href="artikel.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">menu_book</span>Artikel
+    <a class="sidebar-nav-link" href="artikel.html">
+      <span class="material-symbols-outlined text-sm">menu_book</span>Artikel
     </a>
-    <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">mic</span>Podcast
+    <a class="sidebar-nav-link" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">
+      <span class="material-symbols-outlined text-sm">mic</span>Podcast
     </a>
-    <a href="https://youtube.com/@ScampyKI" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">play_circle</span>YouTube
+    <a class="sidebar-nav-link" href="https://youtube.com/@ScampyKI" target="_blank">
+      <span class="material-symbols-outlined text-sm">play_circle</span>YouTube
     </a>
-    <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all"
-      style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.10);color:var(--accent);border-radius:6px;border-left:3px solid var(--accent)">
-      <span class="material-symbols-outlined" style="font-size:16px">bar_chart</span>Statistik
+    <a class="ki-sidebar-active flex items-center gap-3 text-[var(--accent)] border-l-2 border-[var(--accent)] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.08);" href="#">
+      <span class="material-symbols-outlined text-sm">bar_chart</span>Statistik
     </a>
-    <a href="profil.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">person</span>Profil
+    <a class="sidebar-nav-link" href="profil.html">
+      <span class="material-symbols-outlined text-sm">person</span>Profil & Design
+    </a>
+    <a class="sidebar-nav-link" href="Admin.html" style="opacity:0.55" title="Admin (intern)">
+      <span class="material-symbols-outlined text-sm">settings</span>Admin
     </a>
   </div>
 
-  <div class="px-5 mb-3" style="flex-shrink:0"><div style="border-top:1px solid rgba(var(--neon-rgb),0.10)"></div></div>
+  <!-- Divider -->
+  <div style="margin:8px 16px;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0"></div>
 
   <!-- Live Metriken in Sidebar -->
   <div class="px-4 flex flex-col gap-2 overflow-y-auto flex-1">
@@ -305,21 +321,27 @@ document.addEventListener('DOMContentLoaded',()=>{
     </div>
   </div>
 
-  <div class="px-5 py-3 flex items-center gap-4" style="border-top:1px solid rgba(var(--neon-rgb),0.08);flex-shrink:0">
-    <a href="https://x.com/ScampyKI" target="_blank" style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    </a>
-    <a href="https://instagram.com/KIScampy" target="_blank" style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-    </a>
-    <a href="https://linkedin.com/in/dscampy" target="_blank" style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-    </a>
+  <!-- Social Links -->
+  <div style="padding:4px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0">Kontakt & Social</div>
+  <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank" style="flex-shrink:0">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    @ScampyKI
+  </a>
+  <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank" style="flex-shrink:0">
+    <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
+  </a>
+  <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank" style="flex-shrink:0">
+    <span class="material-symbols-outlined text-sm">work</span>dscampy
+  </a>
+
+  <!-- Footer -->
+  <div style="padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0;margin-top:auto">
+    <p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.22);line-height:1.5;">KI-News täglich auf Deutsch.<br>Kuratiert · Eingeordnet · Erklärt.</p>
   </div>
 </aside>
 
 <!-- ── Main ── -->
-<main class="lg:ml-[240px] pt-14 min-h-screen" style="background:#000">
+<main id="main-content" class="pt-14 min-h-screen" style="background:#000;transition:margin-left 0.25s ease;">
   <div class="max-w-[1400px] mx-auto p-6">
 
     <!-- Header -->
