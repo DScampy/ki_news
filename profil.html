@@ -391,6 +391,9 @@ nav {
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span style="display:none;" class="nav-xhandle">@ScampyKI</span>
     </a>
+    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;" title="Dark/Light Toggle">
+      <span class="material-symbols-outlined" style="font-size:18px;">contrast</span>
+    </button>
     <div id="genesis-dots" title="Design-Theme">
       <div class="gdot" data-t="genesis" onclick="window.setGenesisTheme('genesis')" title="Genesis"></div>
       <div class="gdot" data-t="karst"   onclick="window.setGenesisTheme('karst')"   title="Karst"></div>
@@ -477,7 +480,7 @@ nav {
     <div class="profile-hero">
       <div class="avatar">⚡</div>
       <div style="flex:1">
-        <div class="profile-name">Scampy</div>
+        <div class="profile-name">Scampy.de</div>
         <div class="profile-handle">@ScampyKI · ki-news.live</div>
         <div class="profile-bio">
           Techniker. KI-Content-Creator. Täglich deutschsprachige KI-News — kuratiert, eingeordnet, erklärt.<br>
@@ -702,8 +705,32 @@ window.setGenesisTheme = function(name) {
   if (typeof setTheme === 'function') setTheme(name);
 };
 
+/* ── Light/Dark cycle (shared with other pages) ─────────────── */
+window.cycleTheme = function() {
+  var isLight = document.documentElement.classList.contains('light');
+  if (isLight) {
+    document.documentElement.classList.remove('light');
+    try { localStorage.setItem('ki_theme', 'dark'); } catch(e) {}
+  } else {
+    document.documentElement.classList.add('light');
+    try { localStorage.setItem('ki_theme', 'light'); } catch(e) {}
+  }
+};
+
 /* ── DOMContentLoaded: restore sidebar + dots ───────────────── */
 document.addEventListener('DOMContentLoaded', function() {
+  // Light/dark restore
+  var theme = 'auto';
+  try { theme = localStorage.getItem('ki_theme') || 'auto'; } catch(e) {}
+  if (theme === 'light') {
+    document.documentElement.classList.add('light');
+  } else if (theme === 'dark') {
+    document.documentElement.classList.remove('light');
+  } else {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.classList.add('light');
+    }
+  }
   // Dots
   var saved = 'genesis';
   try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
