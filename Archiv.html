@@ -232,7 +232,7 @@
 })();
 
 // ── Sidebar Toggle ──────────────────────────────────────────────────────
-let archivSidebarOpen = true;
+let archivSidebarOpen = (function(){try{var v=localStorage.getItem("ki_sidebar_open");return v===null?true:v==="1";}catch(e){return true;}})();
 function toggleArchivSidebar() {
   const sidebar = document.querySelector('aside.fixed');
   const main = document.querySelector('main');
@@ -252,10 +252,21 @@ function toggleArchivSidebar() {
     btn.style.display = 'flex';
   }
   if (icon) icon.textContent = archivSidebarOpen ? 'chevron_left' : 'chevron_right';
+  try{localStorage.setItem('ki_sidebar_open', archivSidebarOpen?'1':'0');}catch(e){}
 }
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('archiv-sidebar-toggle');
   if (btn) btn.style.display = 'flex';
+  // Apply persisted sidebar state — if user collapsed it elsewhere
+  if (!archivSidebarOpen) {
+    const sidebar = document.querySelector('aside.fixed');
+    const main = document.querySelector('main');
+    const icon = document.getElementById('archiv-toggle-icon');
+    if (sidebar) { sidebar.style.transform = 'translateX(-240px)'; sidebar.style.transition = 'transform 0.25s ease'; }
+    if (main) { main.style.marginLeft = '0'; main.style.transition = 'margin-left 0.25s ease'; }
+    if (btn) { btn.style.left = '0'; }
+    if (icon) icon.textContent = 'chevron_right';
+  }
 });
 
 </script>
@@ -269,15 +280,15 @@ document.addEventListener('DOMContentLoaded', () => {
     </a>
     <div class="hidden md:flex items-center gap-6">
       <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
-      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif" href="#">Archiv</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">Podcast</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="creature-lab.html">Kreatur Lab</a>
+      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent);border-color:var(--accent)" href="#">Archiv</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="artikel.html">Artikel</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
     </div>
   </div>
   <div class="flex items-center gap-4">
-    <a href="https://x.com/CScampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
+    <a href="https://x.com/ScampyKI" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span class="hidden sm:inline">@CScampy</span>
+      <span class="hidden sm:inline">@ScampyKI</span>
     </a>
     <a href="https://linkedin.com/in/dscampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-[#0a66c2] transition-colors">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
@@ -324,20 +335,20 @@ document.addEventListener('DOMContentLoaded', () => {
       style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.10);color:var(--accent);border-radius:6px;border-left:3px solid var(--accent)">
       <span class="material-symbols-outlined" style="font-size:16px">archive</span>Archiv
     </a>
-    <a href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+    <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
       onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
       onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
       <span class="material-symbols-outlined" style="font-size:16px">mic</span>Podcast
+    </a>
+    <a href="artikel.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">menu_book</span>Artikel
     </a>
     <a href="https://youtube.com/@ScampyKI" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
       onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
       onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
       <span class="material-symbols-outlined" style="font-size:16px">play_circle</span>YouTube
-    </a>
-    <a href="creature-lab.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">science</span>Kreatur Lab
     </a>
     <a href="stats.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
       onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
@@ -382,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- Social Links -->
   <div class="px-5 py-3 flex items-center gap-4" style="border-top:1px solid rgba(var(--neon-rgb),0.08);flex-shrink:0">
-    <a href="https://x.com/CScampy" target="_blank" title="@ScampyKI auf X"
+    <a href="https://x.com/ScampyKI" target="_blank" title="@ScampyKI auf X"
       style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s"
       onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -396,6 +407,11 @@ document.addEventListener('DOMContentLoaded', () => {
       style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s"
       onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+    <a href="Admin.html" target="_self" title="Admin (intern)"
+      style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s;margin-left:auto"
+      onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
+      <span class="material-symbols-outlined" style="font-size:14px">settings</span>
     </a>
   </div>
 </aside>
@@ -517,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="flex items-center gap-4">
         <a href="/" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">Aktuell</a>
         <a href="https://x.com/CScampy" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
-        <a href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">Podcast</a>
+        <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="text-gray-500 hover:text-white transition-colors text-xs font-mono">Podcast</a>
       </div>
     </div>
   </div>
