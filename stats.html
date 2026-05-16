@@ -8,6 +8,9 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
   tailwind.config = {
@@ -131,6 +134,11 @@
 </head>
 <body>
 
+<!-- ── Genesis 3D Background ─────────────────────────────── -->
+<div id="genesis-wrap" style="position:fixed;inset:0;z-index:0;pointer-events:none"></div>
+<div id="bg-overlay" style="position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.45) 38%,rgba(0,0,0,0.88) 68%,rgba(0,0,0,0.94) 100%);transition:background 0.4s"></div>
+<style>html.light #bg-overlay{background:linear-gradient(to bottom,rgba(240,246,255,0.06) 0%,rgba(240,246,255,0.30) 40%,rgba(240,246,255,0.93) 68%,rgba(240,246,255,0.99) 100%) !important;}main,nav,aside{position:relative;z-index:10;}main{background:rgba(0,0,0,0.88);}html.light main{background:rgba(248,250,252,0.96);}</style>
+
 <!-- ── Theme Script ── -->
 <script>
 (function(){
@@ -199,15 +207,16 @@ document.addEventListener('DOMContentLoaded',()=>{
     <div class="hidden md:flex items-center gap-6">
       <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
       <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank">Podcast</a>
-      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="creature-lab.html">Kreatur Lab</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="artikel.html">Artikel</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
+      <a class="text-sm font-medium text-gray-500 hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="profil.html">Profil</a>
       <a class="text-sm font-medium border-b-2 pb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent);border-color:var(--accent)" href="#">Statistik</a>
     </div>
   </div>
   <div class="flex items-center gap-4">
-    <a href="https://x.com/CScampy" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
+    <a href="https://x.com/ScampyKI" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span class="hidden sm:inline">@CScampy</span>
+      <span class="hidden sm:inline">@ScampyKI</span>
     </a>
     <div onclick="cycleTheme()" title="Hell/Dunkel" style="display:flex;align-items:center;gap:6px;cursor:pointer">
       <span style="font-size:12px;color:#536471">☀</span>
@@ -247,7 +256,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
       <span class="material-symbols-outlined" style="font-size:16px">archive</span>Archiv
     </a>
-    <a href="https://soundcloud.com/dscampy/scampys-podcast-ausweispflicht" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+    <a href="artikel.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">menu_book</span>Artikel
+    </a>
+    <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
       onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
       onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
       <span class="material-symbols-outlined" style="font-size:16px">mic</span>Podcast
@@ -257,14 +271,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
       <span class="material-symbols-outlined" style="font-size:16px">play_circle</span>YouTube
     </a>
-    <a href="creature-lab.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
-      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
-      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
-      <span class="material-symbols-outlined" style="font-size:16px">science</span>Kreatur Lab
-    </a>
     <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all"
       style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.10);color:var(--accent);border-radius:6px;border-left:3px solid var(--accent)">
       <span class="material-symbols-outlined" style="font-size:16px">bar_chart</span>Statistik
+    </a>
+    <a href="profil.html" class="flex items-center gap-3 px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;color:#9ca3af;border-radius:6px"
+      onmouseenter="this.style.background='rgba(var(--neon-rgb),0.07)';this.style.color='rgba(var(--neon-rgb),0.9)'"
+      onmouseleave="this.style.background='transparent';this.style.color='#9ca3af'">
+      <span class="material-symbols-outlined" style="font-size:16px">person</span>Profil
     </a>
   </div>
 
@@ -292,7 +306,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   </div>
 
   <div class="px-5 py-3 flex items-center gap-4" style="border-top:1px solid rgba(var(--neon-rgb),0.08);flex-shrink:0">
-    <a href="https://x.com/CScampy" target="_blank" style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
+    <a href="https://x.com/ScampyKI" target="_blank" style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
     </a>
     <a href="https://instagram.com/KIScampy" target="_blank" style="color:rgba(var(--neon-rgb),0.35);transition:color 0.2s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='rgba(var(--neon-rgb),0.35)'">
@@ -414,7 +428,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     <div class="mt-8 pb-12 border-t border-[#2f3336] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div>
         <span class="text-white font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
-        <p class="text-[11px] text-gray-500 font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/CScampy" target="_blank" style="color:var(--accent)">@CScampy</a></p>
+        <p class="text-[11px] text-gray-500 font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/ScampyKI" target="_blank" style="color:var(--accent)">@ScampyKI</a></p>
       </div>
       <p class="text-[11px] text-gray-600 font-mono" id="stats-footer-stand">—</p>
     </div>
@@ -745,5 +759,78 @@ function updateChartTheme(chart){
 loadData();
 </script>
 
+
+<!-- ── Three.js Genesis Particle Scene ───────────────────── -->
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+const COUNT=14000,SCALE=45,SPEED=0.8,COMPLEXITY=1.5;
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x000000,0.007);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,2000);
+camera.position.set(0,0,120);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000,0);
+document.getElementById('genesis-wrap').appendChild(renderer.domElement);
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.2,0.5,0);
+composer.addPass(bloom);
+const group=new THREE.Group();group.position.set(-8,5,0);scene.add(group);
+const geo=new THREE.TetrahedronGeometry(0.22),mat=new THREE.MeshBasicMaterial({color:0xffffff});
+const mesh=new THREE.InstancedMesh(geo,mat,COUNT);mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.add(mesh);
+const positions=Array.from({length:COUNT},()=>new THREE.Vector3((Math.random()-.5)*100,(Math.random()-.5)*100,(Math.random()-.5)*100));
+const dummy=new THREE.Object3D(),color=new THREE.Color(),target=new THREE.Vector3(),clock=new THREE.Clock();
+let rotY=0;
+const T3D={
+  genesis: {fog:0x000000,fogD:0.007,bloom:1.2,bloomT:0.0,coreH:0.78,coreS:0.70,tailH:0.55,tailS:0.70},
+  karst:   {fog:0x060e08,fogD:0.006,bloom:0.80,bloomT:0.0,coreH:0.36,coreS:0.85,tailH:0.14,tailS:0.70},
+  aurora:  {fog:0x04020f,fogD:0.007,bloom:1.50,bloomT:0.0,coreH:0.74,coreS:0.85,tailH:0.60,tailS:0.70},
+  meridian:{fog:0x090300,fogD:0.007,bloom:1.00,bloomT:0.0,coreH:0.065,coreS:0.90,tailH:0.12,tailS:0.80},
+  blanc:   {fog:0xfafcff,fogD:0.006,bloom:0.20,bloomT:0.5,coreH:0.60,coreS:0.70,tailH:0.55,tailS:0.55}
+};
+function getCurrentTheme(){return document.documentElement.getAttribute('data-theme')||'genesis';}
+function applyTheme3D(){var t=T3D[getCurrentTheme()]||T3D.genesis;scene.fog.color.set(t.fog);scene.fog.density=t.fogD;bloom.strength=t.bloom;bloom.threshold=t.bloomT;}
+applyTheme3D();
+new MutationObserver(()=>applyTheme3D()).observe(document.documentElement,{attributes:true,attributeFilter:['class','data-theme']});
+function animate(){
+  requestAnimationFrame(animate);
+  const time=clock.getElapsedTime();rotY+=0.0015;group.rotation.y=rotY;
+  const t=time*SPEED,coreCount=Math.floor(COUNT*0.25);
+  const _tc=T3D[getCurrentTheme()]||T3D.genesis;
+  for(let i=0;i<COUNT;i++){
+    const isCore=i<coreCount;let x=0,y=0,z=0,h=0,s=0,l=0;
+    if(isCore){
+      const cn=i/coreCount,phi=Math.acos(1-2*cn),theta=Math.PI*(1+Math.sqrt(5))*i;
+      const sp=Math.sin(t*3+phi*5+theta*3)*COMPLEXITY,r=SCALE*0.4+sp;
+      x=Math.sin(phi)*Math.cos(theta)*r;y=Math.sin(phi)*Math.sin(theta)*r;z=Math.cos(phi)*r;
+      h=_tc.coreH+Math.sin(t+cn*10)*0.05;s=_tc.coreS;l=0.2+sp*0.04;
+    }else{
+      const si=i-coreCount,ppc=25,tc=Math.max(1,Math.floor((COUNT-coreCount)/ppc));
+      const cid=Math.floor(si/ppc),pid=si%ppc,pn=pid/ppc,cn2=cid/tc;
+      const cp=Math.acos(1-2*cn2),ct=Math.PI*(1+Math.sqrt(5))*cid;
+      const dx=Math.sin(cp)*Math.cos(ct),dy=Math.sin(cp)*Math.sin(ct),dz=Math.cos(cp);
+      const cph=t*3+cid*10,lt=Math.abs((cid*78.9+t*20)%200),dfc=200-lt,ap=Math.max(SCALE*0.4,dfc);
+      const u=Math.sin(cph*5-pn*15)*(pn*3);
+      const wx=Math.sin(cph+pn*2)*u*COMPLEXITY,wy=Math.cos(cph+pn*2)*u*COMPLEXITY,wz=Math.sin(cph*.5+pn*2)*u*COMPLEXITY;
+      const tl=SCALE*0.3;
+      x=dx*(ap+pn*tl)+wx;y=dy*(ap+pn*tl)+wy;z=dz*(ap+pn*tl)+wz;
+      h=_tc.tailH+pn*0.06;s=_tc.tailS;l=(0.55-pn*0.4)*0.7;
+    }
+    target.set(x,y,z);color.setHSL(h,s,l);
+    positions[i].lerp(target,0.1);dummy.position.copy(positions[i]);dummy.updateMatrix();
+    mesh.setMatrixAt(i,dummy.matrix);mesh.setColorAt(i,color);
+  }
+  mesh.instanceMatrix.needsUpdate=true;
+  if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+  composer.render();
+}
+animate();
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+</script>
 </body>
 </html>
