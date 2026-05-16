@@ -962,6 +962,53 @@ html.light .empty { color:#64748b; }
 
   </div>
 
+  <!-- ══════════════════ PAGE MANAGER ══════════════════ -->
+  <div class="ae-sep"></div>
+  <div id="pm-section" class="artikel-wrap" style="padding-bottom:80px;">
+
+    <div class="ah-row">
+      <div>
+        <div class="ah-eyebrow">— Artikel-Seite</div>
+        <h2 class="ah-title">Seiten-Editor <span style="font-size:14px;color:var(--accent);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-left:8px;padding:3px 8px;border:1px solid rgba(var(--neon-rgb),0.4);border-radius:4px;vertical-align:middle">INTERN</span></h2>
+      </div>
+    </div>
+
+    <div class="erkl">
+      <span class="erkl-label">Workflow</span>
+      <span class="erkl-text">Blöcke anlegen oder sortieren → "HTML generieren" → "Snippet kopieren" → in <code style="background:rgba(var(--neon-rgb),0.1);padding:1px 5px;border-radius:3px;">artikel.html</code> den Bereich zwischen Strapline-Content und <code style="background:rgba(var(--neon-rgb),0.1);padding:1px 5px;border-radius:3px;">— Weitere Artikel</code> ersetzen → GitHub push.</span>
+    </div>
+
+    <!-- Block-Typ Buttons -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:20px 0;">
+      <button class="ae-add" onclick="pmAdd('sbreak')"><span class="material-symbols-outlined" style="font-size:13px;vertical-align:-2px;">horizontal_rule</span> Section Break</button>
+      <button class="ae-add" onclick="pmAdd('longform')"><span class="material-symbols-outlined" style="font-size:13px;vertical-align:-2px;">article</span> Longform-Karte</button>
+      <button class="ae-add" onclick="pmAdd('xtweet')"><span class="material-symbols-outlined" style="font-size:13px;vertical-align:-2px;">tag</span> X-Tweet</button>
+      <button class="ae-add" onclick="pmAdd('highlight')"><span class="material-symbols-outlined" style="font-size:13px;vertical-align:-2px;">star</span> Highlight-Box</button>
+    </div>
+
+    <!-- Block-Liste -->
+    <div id="pm-blocks"></div>
+
+    <!-- Aktionen -->
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:22px;">
+      <button class="btn primary" onclick="pmGenerate()">
+        <span class="material-symbols-outlined" style="font-size:15px;">code</span>HTML generieren
+      </button>
+      <button class="btn" id="pm-copy-btn" style="opacity:0.4;pointer-events:none;" onclick="pmCopy()">
+        <span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>Snippet kopieren
+      </button>
+    </div>
+
+    <div id="pm-result" style="display:none;margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-bottom:6px;">
+        <span class="ae-flabel">HTML-Snippet für artikel.html</span>
+        <span style="font-family:monospace;font-size:10px;color:rgba(var(--neon-rgb),0.5);">Bereich zwischen Strapline-Content und — Weitere Artikel ersetzen</span>
+      </div>
+      <div class="ae-out" id="pm-out-box" style="max-height:320px;"></div>
+    </div>
+
+  </div>
+
   <script>
   /* ── Artikel Editor ────────────────────────────────────────────── */
   var _aeBlocks = [];
@@ -1477,6 +1524,191 @@ function updateURL(){
       '<div class="empty"><div class="empty-icon">⚠️</div>'+
       '<p style="font-size:14px">news.json konnte nicht geladen werden.</p></div>';
   });
+</script>
+
+<script>
+/* ── Page Manager ──────────────────────────────────────────────── */
+var _pmBlocks = [];
+var _pmHTML   = '';
+var PM_KEY    = 'ki_pm_blocks';
+
+var PM_FIELDS = {
+  sbreak:   [{k:'label',   l:'Label',           ph:'z.B. Longform Analyse'}],
+  longform: [{k:'title',   l:'Titel',           ph:'Artikel-Titel'},
+             {k:'subline', l:'Subline',          ph:'Kurze Einleitung...'},
+             {k:'tag1',    l:'Tag 1 (farbig)',   ph:'Analyse'},
+             {k:'tags',    l:'Tags 2+ (Komma)',  ph:'KI-Industrie, Machtstrukturen'},
+             {k:'date',    l:'Datum',            ph:'15. Mai 2026'},
+             {k:'minutes', l:'Lesezeit (Min.)',  ph:'8'},
+             {k:'link',    l:'Link (relativ)',   ph:'artikel/mein-artikel.html'}],
+  xtweet:   [{k:'url',     l:'Tweet-URL',        ph:'https://x.com/ScampyKI/status/...'}],
+  highlight:[{k:'text',    l:'Text',             ph:'Kurzer Hinweis oder Zitat...'},
+             {k:'sub',     l:'Sub (optional)',   ph:'Datum oder Quelle'}]
+};
+
+var PM_LABELS = {
+  sbreak:'── Section Break', longform:'▤ Longform-Karte',
+  xtweet:'X Tweet-Embed',    highlight:'★ Highlight-Box'
+};
+
+function pmLoad() {
+  try {
+    var saved = localStorage.getItem(PM_KEY);
+    if (saved) {
+      _pmBlocks = JSON.parse(saved);
+    } else {
+      _pmBlocks = [
+        {id:'p1', type:'sbreak', label:'Longform Analyse'},
+        {id:'p2', type:'longform',
+          title:'Tagsüber Gericht, abends Peking',
+          subline:'Musk klagt gegen Altman, macht Selfies mit Cook in Peking, und Anthropic läuft auf seinem Supercomputer. Das ist kein Widerspruch. Das ist Arithmetik.',
+          tag1:'Analyse', tags:'KI-Industrie, Machtstrukturen',
+          date:'15. Mai 2026', minutes:'8', link:'artikel/peking-gericht.html'},
+        {id:'p3', type:'sbreak', label:'Zuletzt auf X'},
+        {id:'p4', type:'xtweet', url:'https://x.com/ScampyKI/status/2055424641368232238'}
+      ];
+    }
+  } catch(e) { _pmBlocks = []; }
+  pmRender();
+}
+
+function pmSync() {
+  _pmBlocks.forEach(function(b) {
+    (PM_FIELDS[b.type]||[]).forEach(function(f) {
+      var el = document.getElementById('pmf_'+b.id+'_'+f.k);
+      if (el) b[f.k] = el.value;
+    });
+  });
+}
+
+function pmSave() {
+  pmSync();
+  try { localStorage.setItem(PM_KEY, JSON.stringify(_pmBlocks)); } catch(e) {}
+}
+
+function pmAdd(type) {
+  pmSync();
+  var b = {id:'p'+Date.now(), type:type};
+  (PM_FIELDS[type]||[]).forEach(function(f){ b[f.k]=''; });
+  _pmBlocks.push(b);
+  pmSave(); pmRender();
+}
+
+function pmDel(id) {
+  pmSync();
+  _pmBlocks = _pmBlocks.filter(function(b){ return b.id!==id; });
+  pmSave(); pmRender();
+}
+
+function pmMove(id, dir) {
+  pmSync();
+  var idx = -1;
+  for(var i=0;i<_pmBlocks.length;i++){if(_pmBlocks[i].id===id){idx=i;break;}}
+  var ni = idx+dir;
+  if(idx<0||ni<0||ni>=_pmBlocks.length) return;
+  var tmp=_pmBlocks[idx]; _pmBlocks[idx]=_pmBlocks[ni]; _pmBlocks[ni]=tmp;
+  pmSave(); pmRender();
+}
+
+function pmRender() {
+  var c = document.getElementById('pm-blocks');
+  if(!c) return;
+  if(!_pmBlocks.length) {
+    c.innerHTML='<div style="padding:24px;text-align:center;font-family:monospace;font-size:12px;color:rgba(255,255,255,0.3);border:1px dashed rgba(var(--neon-rgb),0.15);border-radius:10px;">Noch keine Blöcke. Füge oben einen hinzu.</div>';
+    return;
+  }
+  c.innerHTML = _pmBlocks.map(function(b,idx) {
+    var fields = PM_FIELDS[b.type]||[];
+    var inputs = fields.map(function(f) {
+      var wide = (f.k==='subline'||f.k==='text');
+      if(wide) return '<div class="ae-field" style="grid-column:1/-1"><label class="ae-flabel">'+f.l+'</label><textarea class="ae-ta" id="pmf_'+b.id+'_'+f.k+'" rows="2" style="min-height:54px" placeholder="'+f.ph+'">'+(b[f.k]||'')+'</textarea></div>';
+      return '<div class="ae-field"><label class="ae-flabel">'+f.l+'</label><input class="ae-inp" id="pmf_'+b.id+'_'+f.k+'" type="text" value="'+(b[f.k]||'')+'" placeholder="'+f.ph+'"/></div>';
+    }).join('');
+    var up   = idx>0 ? '<button class="ae-bdel" style="font-size:13px;width:26px;height:26px;" onclick="pmMove(\''+b.id+'\',-1)" title="Nach oben">↑</button>' : '';
+    var down = idx<_pmBlocks.length-1 ? '<button class="ae-bdel" style="font-size:13px;width:26px;height:26px;" onclick="pmMove(\''+b.id+'\',1)" title="Nach unten">↓</button>' : '';
+    return '<div class="ae-block" style="margin-bottom:12px;">'+
+      '<div class="ae-bhead"><span class="ae-btype">'+PM_LABELS[b.type]+'</span>'+
+      '<div style="display:flex;gap:5px;align-items:center;">'+up+down+
+      '<button class="ae-bdel" onclick="pmDel(\''+b.id+'\')" title="Löschen">✕</button></div></div>'+
+      '<div class="ae-grid" style="margin-top:10px;">'+inputs+'</div></div>';
+  }).join('');
+}
+
+function pmEsc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function pmGenerate() {
+  pmSync(); pmSave();
+  var hasTweet = _pmBlocks.some(function(b){return b.type==='xtweet';});
+  var lines = ['<!-- ═══ KI-NEWS PAGE MANAGER OUTPUT — kopiere ab hier in artikel.html ═══ -->'];
+  var i = 0;
+  while(i < _pmBlocks.length) {
+    var b = _pmBlocks[i];
+    if(b.type==='sbreak') {
+      lines.push('<div class="section-break"><span>— '+pmEsc(b.label||'')+'</span></div>');
+      i++;
+    } else if(b.type==='longform') {
+      var grp=[];
+      while(i<_pmBlocks.length&&_pmBlocks[i].type==='longform'){grp.push(_pmBlocks[i]);i++;}
+      lines.push('<div style="display:flex;flex-direction:column;gap:16px;margin-bottom:32px;">');
+      grp.forEach(function(lf){
+        var t1 = lf.tag1 ? '<span style="display:inline-flex;padding:3px 10px;font-family:\'Space Grotesk\',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:3px;">'+pmEsc(lf.tag1)+'</span> ' : '';
+        var t2 = (lf.tags||'').split(',').map(function(t){return t.trim();}).filter(Boolean).map(function(t){
+          return '<span style="display:inline-flex;padding:3px 8px;font-family:\'Space Grotesk\',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.85);border:1px solid rgba(var(--neon-rgb),0.3);border-radius:3px;">'+pmEsc(t)+'</span>';
+        }).join(' ');
+        var mins = lf.minutes ? ' <span style="width:3px;height:3px;border-radius:50%;background:currentColor;display:inline-block;opacity:0.5;"></span> <span>≈ '+pmEsc(lf.minutes)+' Min. Lesezeit</span>' : '';
+        lines.push(
+          '  <a href="'+pmEsc(lf.link||'')+'"'+
+          ' style="display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:12px;border:1px solid rgba(var(--neon-rgb),0.35);background:rgba(10,14,22,0.6);text-decoration:none;transition:border-color 0.2s,box-shadow 0.2s;backdrop-filter:blur(8px);"'+
+          ' onmouseenter="this.style.borderColor=\'rgba(var(--neon-rgb),0.7)\';this.style.boxShadow=\'0 0 22px rgba(var(--neon-rgb),0.28)\'"'+
+          ' onmouseleave="this.style.borderColor=\'rgba(var(--neon-rgb),0.35)\';this.style.boxShadow=\'none\'">'+
+          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'+t1+t2+'</div>'+
+          '<h3 style="font-family:\'Space Grotesk\',sans-serif;font-size:clamp(18px,2vw,24px);font-weight:700;color:#dfe3ea;letter-spacing:-0.01em;line-height:1.2;">'+pmEsc(lf.title||'')+'</h3>'+
+          '<p style="font-family:\'Work Sans\',sans-serif;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">'+pmEsc(lf.subline||'')+'</p>'+
+          '<div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.38);letter-spacing:0.05em;flex-wrap:wrap;">'+
+          '<span>@ScampyKI</span> <span style="width:3px;height:3px;border-radius:50%;background:currentColor;display:inline-block;opacity:0.5;"></span> <span>'+pmEsc(lf.date||'')+'</span>'+mins+
+          ' <span style="margin-left:auto;color:rgba(var(--neon-rgb),0.6);font-weight:700;">Artikel lesen →</span>'+
+          '</div></a>'
+        );
+      });
+      lines.push('</div>');
+    } else if(b.type==='xtweet') {
+      var turl = (b.url||'').replace('x.com','twitter.com').replace(/\/video\/\d+.*$/,'');
+      lines.push('<div style="display:flex;justify-content:center;margin-bottom:32px;">'+
+        '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark">'+
+        '<a href="'+pmEsc(turl)+'"></a></blockquote></div>');
+      i++;
+    } else if(b.type==='highlight') {
+      var sub = b.sub ? '<p style="margin-top:8px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">'+pmEsc(b.sub)+'</p>' : '';
+      lines.push('<div style="margin-bottom:24px;padding:18px 22px;border-left:3px solid var(--accent);background:rgba(var(--neon-rgb),0.04);border-radius:0 10px 10px 0;">'+
+        '<p style="font-family:\'Work Sans\',sans-serif;font-size:15px;color:rgba(255,255,255,0.85);line-height:1.6;">'+pmEsc(b.text||'')+'</p>'+sub+'</div>');
+      i++;
+    } else { i++; }
+  }
+  if(hasTweet) lines.push('<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"><\/script>');
+  lines.push('<!-- ═══ PAGE MANAGER OUTPUT ENDE ═══ -->');
+  _pmHTML = lines.join('\n');
+  document.getElementById('pm-out-box').textContent = _pmHTML;
+  document.getElementById('pm-result').style.display = 'block';
+  var cb = document.getElementById('pm-copy-btn');
+  cb.style.opacity='1'; cb.style.pointerEvents='auto';
+}
+
+function pmCopy() {
+  if(!_pmHTML) return;
+  navigator.clipboard.writeText(_pmHTML).then(function(){
+    var btn = document.getElementById('pm-copy-btn');
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;">check</span>Kopiert!';
+    btn.classList.add('copied');
+    setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); },2000);
+  }).catch(function(){});
+}
+
+window.pmAdd=pmAdd; window.pmDel=pmDel; window.pmMove=pmMove;
+window.pmGenerate=pmGenerate; window.pmCopy=pmCopy;
+document.addEventListener('DOMContentLoaded', function(){ pmLoad(); });
 </script>
 
 <script type="module">
