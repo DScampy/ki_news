@@ -350,29 +350,22 @@ select:focus { border-color: oklch(52% 0.18 240); }
   </div>
 </div>
 <script>
-(function(){
-  // ── Passwort ändern: diese eine Zeile ────────────────────────────
-  var ADMIN_PW = 'scampy';
-  // ─────────────────────────────────────────────────────────────────
-  var _authed = false;
-  try { _authed = localStorage.getItem('ki_admin_auth') === 'ok'; } catch(e) {}
-  if (_authed) {
+var ADMIN_PW = 'scampy';
+var ki_authed = false;
+try { if (localStorage.getItem('ki_admin_auth') === 'ok') { ki_authed = true; } } catch(e) {}
+if (ki_authed) { document.getElementById('admin-gate').style.display = 'none'; }
+function checkGate() {
+  var val = document.getElementById('gate-input').value;
+  if (val === ADMIN_PW) {
+    try { localStorage.setItem('ki_admin_auth', 'ok'); } catch(e) {}
     document.getElementById('admin-gate').style.display = 'none';
+  } else {
+    document.getElementById('gate-error').textContent = 'Falsches Passwort.';
+    document.getElementById('gate-input').value = '';
+    document.getElementById('gate-input').focus();
+    setTimeout(function() { document.getElementById('gate-error').textContent = ''; }, 2500);
   }
-  window.checkGate = function() {
-    var val = document.getElementById('gate-input').value;
-    if (val === ADMIN_PW) {
-      try { localStorage.setItem('ki_admin_auth','ok'); } catch(e){}
-      document.getElementById('admin-gate').style.display = 'none';
-    } else {
-      var err = document.getElementById('gate-error');
-      err.textContent = 'Falsches Passwort.';
-      document.getElementById('gate-input').value = '';
-      document.getElementById('gate-input').focus();
-      setTimeout(function(){ err.textContent = ''; }, 2500);
-    }
-  };
-})();
+}
 </script>
 
 <header class="header">
