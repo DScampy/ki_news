@@ -354,9 +354,11 @@ select:focus { border-color: oklch(52% 0.18 240); }
   // ── Passwort ändern: diese eine Zeile ────────────────────────────
   var ADMIN_PW = 'scampy';
   // ─────────────────────────────────────────────────────────────────
-  try { if (localStorage.getItem('ki_admin_auth') === 'ok') {
+  var _authed = false;
+  try { _authed = localStorage.getItem('ki_admin_auth') === 'ok'; } catch(e) {}
+  if (_authed) {
     document.getElementById('admin-gate').style.display = 'none';
-  }} catch(e) {}
+  }
   window.checkGate = function() {
     var val = document.getElementById('gate-input').value;
     if (val === ADMIN_PW) {
