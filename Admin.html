@@ -271,6 +271,50 @@ select:focus { border-color: oklch(52% 0.18 240); }
   font-size: 11px; color: oklch(60% 0.01 240);
   font-family: monospace; margin-left: 8px;
 }
+
+/* ── Dashboard Config Tab ── */
+.dash-article {
+  background: white; border: 1px solid oklch(90% 0.008 80);
+  border-radius: 10px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px;
+  transition: all 0.15s; margin-bottom: 8px;
+}
+.dash-article:hover { border-color: oklch(75% 0.01 240); box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+.dash-article.pinned { border-color: oklch(65% 0.18 145); background: oklch(99% 0.01 145); }
+.dash-article.blocked { background: oklch(98% 0.005 80); opacity: 0.55; }
+.dash-score {
+  font-family: 'Space Grotesk', sans-serif; font-size: 22px;
+  font-weight: 900; width: 44px; text-align: center; flex-shrink: 0; line-height: 1;
+}
+.dash-content { flex: 1; min-width: 0; }
+.dash-title { font-size: 13px; font-weight: 600; color: oklch(18% 0.01 240); line-height: 1.35; }
+.dash-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.dash-actions { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+.dash-slot {
+  border: 2px dashed oklch(88% 0.008 80); border-radius: 8px;
+  padding: 10px 12px; min-height: 54px; display: flex; align-items: center;
+  transition: all 0.15s; gap: 10px;
+}
+.dash-slot.filled {
+  border-style: solid; border-color: oklch(65% 0.18 145);
+  background: oklch(99% 0.01 145);
+}
+.dash-slot-num {
+  font-family: 'Space Grotesk', sans-serif; font-size: 22px;
+  font-weight: 900; color: oklch(85% 0.005 80); flex-shrink: 0; width: 28px; text-align: center;
+}
+.dash-slot.filled .dash-slot-num { color: oklch(58% 0.22 145); }
+.dash-slot-text { flex: 1; min-width: 0; }
+.dash-slot-title { font-size: 12px; font-weight: 600; color: oklch(18% 0.01 240); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.dash-slot-source { font-size: 10px; color: oklch(55% 0.01 240); margin-top: 2px; }
+.dash-slot-empty { font-size: 12px; color: oklch(68% 0.01 240); font-style: italic; }
+.dash-blocked-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid oklch(95% 0.005 80);
+}
+.dash-blocked-row:last-child { border-bottom: none; }
+.dash-blocked-title { flex: 1; font-size: 11px; font-weight: 600; color: oklch(30% 0.01 240); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-blocked-src { font-size: 10px; color: oklch(55% 0.01 240); }
 </style>
 </head>
 <body>
@@ -310,9 +354,9 @@ select:focus { border-color: oklch(52% 0.18 240); }
   // ── Passwort ändern: diese eine Zeile ────────────────────────────
   var ADMIN_PW = 'scampy';
   // ─────────────────────────────────────────────────────────────────
-  if (localStorage.getItem('ki_admin_auth') === 'ok') {
+  try { if (localStorage.getItem('ki_admin_auth') === 'ok') {
     document.getElementById('admin-gate').style.display = 'none';
-  }
+  }} catch(e) {}
   window.checkGate = function() {
     var val = document.getElementById('gate-input').value;
     if (val === ADMIN_PW) {
@@ -410,6 +454,7 @@ select:focus { border-color: oklch(52% 0.18 240); }
     <div class="tab-bar">
       <button class="tab-btn active" id="tab-news-btn" onclick="switchTab('news')">📰 Artikel</button>
       <button class="tab-btn" id="tab-media-btn" onclick="switchTab('media')">🎙 Media Manager</button>
+      <button class="tab-btn" id="tab-dash-btn" onclick="switchTab('dash')">📌 Dashboard</button>
     </div>
 
     <!-- Tab: Artikel -->
@@ -474,6 +519,61 @@ select:focus { border-color: oklch(52% 0.18 240); }
       </div>
       <div class="ep-list" id="videoList">
         <div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben, dann "Laden" klicken.</p></div>
+      </div>
+    </div>
+
+
+    <!-- Tab: Dashboard Config -->
+    <div class="tab-panel" id="tab-dash">
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start">
+
+        <!-- Linke Seite: Artikel-Liste -->
+        <div>
+          <div class="main-header">
+            <div>
+              <h1 class="main-title">Dashboard konfigurieren</h1>
+              <p style="font-size:12px;color:oklch(55% 0.01 240);margin-top:4px" id="dash-status">Token eingeben und "Artikel laden" klicken.</p>
+            </div>
+            <button class="btn btn-ghost" onclick="loadDashConfig()">↓ Artikel laden</button>
+          </div>
+          <div id="dash-article-list">
+            <div class="empty">
+              <h3>Noch nicht geladen</h3>
+              <p>GitHub-Token eingeben und "Artikel laden" klicken.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rechte Seite: Konfig-Panel -->
+        <div style="position:sticky;top:88px;display:flex;flex-direction:column;gap:14px">
+
+          <!-- Carousel Slots -->
+          <div class="card">
+            <div class="card-title">📌 Top-3 Carousel</div>
+            <div id="dash-pin-slots" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+            <p id="dash-slots-info" style="font-size:11px;color:oklch(60% 0.01 240);font-family:monospace;margin-top:4px">Alle 3 Slots: automatisch (Top-Score)</p>
+          </div>
+
+          <!-- Sperrliste -->
+          <div class="card">
+            <div class="card-title">🚫 Sperrliste</div>
+            <p style="font-size:11px;color:oklch(60% 0.01 240);margin-bottom:10px;line-height:1.5">
+              Gesperrte Artikel tauchen nie auf dem Dashboard auf – auch nicht nach Feed-Updates des Python-Scripts.
+            </p>
+            <div id="dash-blocked-list">
+              <p style="font-size:12px;color:oklch(65% 0.01 240)">Keine gesperrten Artikel.</p>
+            </div>
+          </div>
+
+          <!-- Speichern -->
+          <button class="btn btn-primary btn-full" id="dashSaveBtn" onclick="saveDashConfig()" disabled>
+            Konfiguration speichern →
+          </button>
+          <p style="font-size:10px;color:oklch(65% 0.01 240);text-align:center;margin-top:-8px">
+            Schreibt <code>dashboard_config.json</code> ins GitHub-Repo
+          </p>
+
+        </div>
       </div>
     </div>
 
@@ -1259,6 +1359,244 @@ document.getElementById('tab-media-btn').addEventListener('click', () => {
     loadMediaFromGitHub();
   }
 });
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DASHBOARD CONFIG
+// ──────────────────────────────────────────────────────────────────────────────
+const DASH_SRC_COLORS = {
+  'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed',
+  'MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb',
+  'Golem':'#e84393','AlignedNews':'#f59e0b','Caschy Blog':'#fb923c',
+  'Bloomberg':'#f59e0b','SiliconAngle':'#e879f9','Wired':'#84cc16','TechRepublic':'#38bdf8'
+};
+function dashSrcColor(s){ return DASH_SRC_COLORS[s] || '#555'; }
+
+let dashConfig = { featured_links: [], blocked_links: [] };
+let dashArticles = [];
+let dashConfigSha = '';
+let dashConfigModified = false;
+
+// ── Laden ────────────────────────────────────────────────────────────────────
+async function loadDashConfig() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { toast('Bitte Token eingeben', 'error'); return; }
+  const repo   = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim();
+  setDashStatus('Lade news.json & dashboard_config.json…');
+  try {
+    // news.json
+    const nRes = await fetch(`https://api.github.com/repos/${repo}/contents/news.json?ref=${branch}`, { headers: ghHeaders() });
+    if (!nRes.ok) throw new Error('news.json: ' + nRes.status);
+    const nData = await nRes.json();
+    const nDecoded = JSON.parse(decodeBase64UTF8(nData.content));
+    dashArticles = (nDecoded.news || []).slice().sort((a,b)=>(b.score||0)-(a.score||0));
+    // dashboard_config.json (optional)
+    try {
+      const cRes = await fetch(`https://api.github.com/repos/${repo}/contents/dashboard_config.json?ref=${branch}`, { headers: ghHeaders() });
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        dashConfigSha = cData.sha;
+        dashConfig = JSON.parse(decodeBase64UTF8(cData.content));
+        if (!dashConfig.featured_links) dashConfig.featured_links = [];
+        if (!dashConfig.blocked_links)  dashConfig.blocked_links  = [];
+      } else {
+        dashConfig = { featured_links: [], blocked_links: [] };
+        dashConfigSha = '';
+      }
+    } catch(e) {
+      dashConfig = { featured_links: [], blocked_links: [] };
+      dashConfigSha = '';
+    }
+    renderDashboard();
+    setDashStatus(dashArticles.length + ' Artikel · ' + dashConfig.featured_links.length + ' angepinnt · ' + dashConfig.blocked_links.length + ' gesperrt');
+    toast('Dashboard geladen', 'success');
+  } catch(e) {
+    setDashStatus('Fehler: ' + e.message);
+    toast('Fehler: ' + e.message, 'error');
+  }
+}
+
+// ── Speichern ─────────────────────────────────────────────────────────────────
+async function saveDashConfig() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { toast('Token fehlt', 'error'); return; }
+  const repo   = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim();
+  const btn = document.getElementById('dashSaveBtn');
+  btn.disabled = true; btn.textContent = 'Wird gespeichert…';
+  try {
+    dashConfig.last_updated = new Date().toISOString();
+    const jsonStr = JSON.stringify(dashConfig, null, 2);
+    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+    const body = { message: 'dashboard: Konfiguration aktualisiert', content, branch };
+    if (dashConfigSha) body.sha = dashConfigSha;
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/dashboard_config.json`, {
+      method: 'PUT',
+      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(res.status + ': ' + (result.message || res.statusText));
+    dashConfigSha = result.content.sha;
+    dashConfigModified = false;
+    setDashStatus('✓ Gespeichert · ' + dashConfig.featured_links.length + ' angepinnt · ' + dashConfig.blocked_links.length + ' gesperrt');
+    toast('✓ dashboard_config.json gespeichert', 'success');
+  } catch(e) {
+    toast('Fehler: ' + e.message, 'error');
+  } finally {
+    btn.textContent = 'Konfiguration speichern →';
+    btn.disabled = !dashConfigModified;
+  }
+}
+
+// ── Pin / Unpin / Block / Unblock ─────────────────────────────────────────────
+function pinArticle(link) {
+  if (dashConfig.featured_links.includes(link)) return;
+  if (dashConfig.featured_links.length >= 3) { toast('Maximal 3 Artikel pinnen', 'error'); return; }
+  dashConfig.blocked_links = dashConfig.blocked_links.filter(l => l !== link);
+  dashConfig.featured_links.push(link);
+  markDashModified();
+}
+function unpinArticle(link) {
+  dashConfig.featured_links = dashConfig.featured_links.filter(l => l !== link);
+  markDashModified();
+}
+function blockArticle(link) {
+  if (dashConfig.blocked_links.includes(link)) return;
+  dashConfig.featured_links = dashConfig.featured_links.filter(l => l !== link);
+  dashConfig.blocked_links.push(link);
+  markDashModified();
+}
+function unblockArticle(link) {
+  dashConfig.blocked_links = dashConfig.blocked_links.filter(l => l !== link);
+  markDashModified();
+}
+function markDashModified() {
+  dashConfigModified = true;
+  document.getElementById('dashSaveBtn').disabled = false;
+  renderDashboard();
+}
+function setDashStatus(msg) {
+  const el = document.getElementById('dash-status');
+  if (el) el.textContent = msg;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  renderDashSlots();
+  renderDashArticleList();
+  renderDashBlockedList();
+  // Update slots info
+  const n = dashConfig.featured_links.length;
+  const info = document.getElementById('dash-slots-info');
+  if (info) info.textContent = n > 0
+    ? n + ' manuell angepinnt · ' + (3-n) + ' Slot(s) automatisch (Top-Score)'
+    : 'Alle 3 Slots: automatisch (Top-Score)';
+}
+
+function renderDashSlots() {
+  const el = document.getElementById('dash-pin-slots');
+  if (!el) return;
+  el.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const link = dashConfig.featured_links[i];
+    const art  = link ? dashArticles.find(a => a.link === link) : null;
+    const slot = document.createElement('div');
+    slot.className = 'dash-slot' + (art ? ' filled' : '');
+    if (art) {
+      slot.innerHTML =
+        '<div class="dash-slot-num">' + (i+1) + '</div>' +
+        '<div class="dash-slot-text">' +
+          '<div class="dash-slot-title">' + escHtml(art.title||'—') + '</div>' +
+          '<div class="dash-slot-source">' + escHtml(art.source||'') + '</div>' +
+        '</div>' +
+        '<button class="btn btn-danger btn-sm" onclick="unpinArticle(' + JSON.stringify(link) + ')">✕</button>';
+    } else {
+      slot.innerHTML =
+        '<div class="dash-slot-num">' + (i+1) + '</div>' +
+        '<div class="dash-slot-empty">Leer – automatisch (Top-Score)</div>';
+    }
+    el.appendChild(slot);
+  }
+}
+
+function renderDashArticleList() {
+  const container = document.getElementById('dash-article-list');
+  if (!container) return;
+  if (!dashArticles.length) {
+    container.innerHTML = '<div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben und "Artikel laden" klicken.</p></div>';
+    return;
+  }
+  container.innerHTML = '';
+  dashArticles.forEach((art, i) => {
+    const isPinned  = dashConfig.featured_links.includes(art.link);
+    const isBlocked = dashConfig.blocked_links.includes(art.link);
+    const sc = art.score || 0;
+    const scoreColor = sc >= 40 ? '#dc2626' : sc >= 25 ? '#f97316' : '#9ca3af';
+    const c = document.createElement('div');
+    c.className = 'dash-article' + (isPinned ? ' pinned' : '') + (isBlocked ? ' blocked' : '');
+    // Pin slot badge
+    let slotBadge = '';
+    if (isPinned) {
+      const pos = dashConfig.featured_links.indexOf(art.link) + 1;
+      slotBadge = '<span style="font-size:9px;font-weight:700;background:oklch(92% 0.08 145);color:oklch(35% 0.22 145);border:1px solid oklch(78% 0.16 145);border-radius:4px;padding:1px 7px">📌 Slot ' + pos + '</span>';
+    }
+    if (isBlocked) {
+      slotBadge = '<span style="font-size:9px;font-weight:700;background:oklch(94% 0.04 25);color:oklch(42% 0.18 25);border:1px solid oklch(83% 0.1 25);border-radius:4px;padding:1px 7px">🚫 Gesperrt</span>';
+    }
+    const pinBtn = isPinned
+      ? '<button class="btn btn-ghost btn-sm" style="background:oklch(92% 0.08 145);border-color:oklch(78% 0.16 145);color:oklch(35% 0.22 145)" onclick="unpinArticle(' + JSON.stringify(art.link) + ')">Loslösen</button>'
+      : '<button class="btn btn-ghost btn-sm" onclick="pinArticle(' + JSON.stringify(art.link) + ')">📌 Anpinnen</button>';
+    const blockBtn = isBlocked
+      ? '<button class="btn btn-ghost btn-sm" style="background:oklch(94% 0.04 25);border-color:oklch(83% 0.1 25);color:oklch(42% 0.18 25)" onclick="unblockArticle(' + JSON.stringify(art.link) + ')">✓ Freigeben</button>'
+      : '<button class="btn btn-ghost btn-sm" onclick="blockArticle(' + JSON.stringify(art.link) + ')">🚫 Sperren</button>';
+    c.innerHTML =
+      '<div class="dash-score" style="color:' + scoreColor + '">' + sc + '</div>' +
+      '<div class="dash-content">' +
+        '<div class="dash-title">' + escHtml(art.title||'—') + '</div>' +
+        '<div class="dash-meta">' +
+          '<span class="source-badge ' + srcClass(art.source) + '" style="font-size:9px;padding:1px 7px">' + escHtml(art.source||'') + '</span>' +
+          slotBadge +
+        '</div>' +
+      '</div>' +
+      '<div class="dash-actions">' +
+        (!isBlocked ? pinBtn : '') +
+        blockBtn +
+      '</div>';
+    container.appendChild(c);
+  });
+}
+
+function renderDashBlockedList() {
+  const el = document.getElementById('dash-blocked-list');
+  if (!el) return;
+  if (!dashConfig.blocked_links.length) {
+    el.innerHTML = '<p style="font-size:12px;color:oklch(65% 0.01 240)">Keine gesperrten Artikel.</p>';
+    return;
+  }
+  el.innerHTML = '';
+  dashConfig.blocked_links.forEach(link => {
+    const art = dashArticles.find(a => a.link === link);
+    const row = document.createElement('div');
+    row.className = 'dash-blocked-row';
+    row.innerHTML =
+      '<div style="flex:1;min-width:0">' +
+        '<div class="dash-blocked-title">' + escHtml(art ? art.title : link) + '</div>' +
+        '<div class="dash-blocked-src">' + escHtml(art ? art.source : '') + '</div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:10px" onclick="unblockArticle(' + JSON.stringify(link) + ')">✓ Freigeben</button>';
+    el.appendChild(row);
+  });
+}
+
+// Auto-load when tab opened and token exists
+document.getElementById('tab-dash-btn').addEventListener('click', () => {
+  if (!dashArticles.length && document.getElementById('ghToken').value.trim()) {
+    loadDashConfig();
+  }
+});
+
 </script>
 </body>
 </html>

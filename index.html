@@ -345,6 +345,7 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="artikel.html">Artikel</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="stats.html">Statistik</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif;" href="profil.html">Profil</a>
     </div>
   </div>
@@ -717,30 +718,38 @@ function initHero(stories) {
 
 // ── Data fetch ────────────────────────────────────────────────────────────
 var topLinks = [], currentNewsContext = '';
-fetch('news.json?t=' + Date.now())
-  .then(function(r){ return r.json(); })
-  .then(function(data) {
-    var grid = document.getElementById('news-grid'), label = document.getElementById('stand-label');
-    if (!data.news || !data.news.length) return;
-    if (data.editorial) {
-      var banner = document.getElementById('editorial-banner');
-      if (banner) {
-        var z = data.editorial.length;
-        banner.innerHTML = '<span style="font-size:18px;flex-shrink:0">🗞</span><div style="flex:1"><div style="color:#1d9bf0;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-family:monospace">Tagesüberblick</div><div class="ed-text" style="font-size:14px;line-height:1.5">' + data.editorial + '</div><div style="margin-top:4px"><span class="ed-zeichen" style="color:' + (z>265?'#dc2626':'#536471') + '">' + z + '/265</span></div></div>';
-        banner.style.display = 'flex';
-      }
+Promise.all([
+  fetch('news.json?t=' + Date.now()).then(function(r){ return r.json(); }),
+  fetch('dashboard_config.json?t=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {featured_links:[],blocked_links:[]}; })
+]).then(function(results) {
+  var data = results[0], cfg = results[1] || {};
+  var grid = document.getElementById('news-grid'), label = document.getElementById('stand-label');
+  if (!data.news || !data.news.length) return;
+  if (data.editorial) {
+    var banner = document.getElementById('editorial-banner');
+    if (banner) {
+      var z = data.editorial.length;
+      banner.innerHTML = '<span style="font-size:18px;flex-shrink:0">🗞</span><div style="flex:1"><div style="color:#1d9bf0;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-family:monospace">Tagesüberblick</div><div class="ed-text" style="font-size:14px;line-height:1.5">' + data.editorial + '</div><div style="margin-top:4px"><span class="ed-zeichen" style="color:' + (z>265?'#dc2626':'#536471') + '">' + z + '/265</span></div></div>';
+      banner.style.display = 'flex';
     }
-    var top = data.news.slice().sort(function(a,b){return(b.score||0)-(a.score||0);}).slice(0,3);
-    topLinks = top.map(function(n){return n.link;}).filter(Boolean);
-    initHero(top);
-    var filtered = data.news.filter(function(n){return topLinks.indexOf(n.link)===-1;});
-    grid.innerHTML = '';
-    filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
-    if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
-    currentNewsContext = 'Aktuelle KI-News (Stand ' + (data.stand||'') + '):\n' +
-      data.news.map(function(n,i){return (i+1)+'. "'+n.title+'" ('+n.source+'): '+(n.summary||'');}).join('\n');
-  })
-  .catch(function(){ var l=document.getElementById('stand-label'); if(l) l.textContent='Stand: offline'; });
+  }
+  // ── Dashboard-Config: Sperrliste + angepinnte Artikel ──────────────────
+  var blockedSet = new Set(cfg.blocked_links || []);
+  var allNews = data.news.filter(function(n){ return !blockedSet.has(n.link); });
+  var featuredLinks = cfg.featured_links || [];
+  var featured = featuredLinks.map(function(link){ return allNews.find(function(n){ return n.link === link; }); }).filter(Boolean);
+  var nonFeatured = allNews.filter(function(n){ return featuredLinks.indexOf(n.link) === -1; });
+  nonFeatured.sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  var top = featured.concat(nonFeatured).slice(0,3);
+  topLinks = top.map(function(n){return n.link;}).filter(Boolean);
+  initHero(top);
+  var filtered = allNews.filter(function(n){ return topLinks.indexOf(n.link) === -1; });
+  grid.innerHTML = '';
+  filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
+  if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
+  currentNewsContext = 'Aktuelle KI-News (Stand ' + (data.stand||'') + '):\n' +
+    data.news.map(function(n,i){return (i+1)+'. "'+n.title+'" ('+n.source+'): '+(n.summary||'');}).join('\n');
+}).catch(function(){ var l=document.getElementById('stand-label'); if(l) l.textContent='Stand: offline'; });
 
 // ── Media ─────────────────────────────────────────────────────────────────
 function buildVideoBlock(video) {
