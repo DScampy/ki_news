@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Statistik – KI News</title>
+<link rel="icon" type="image/png" href="s-logo.png"/>
 <meta name="description" content="Content-Statistiken von ki-news.live – Quellen, Scores, Themen."/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -376,6 +377,19 @@ document.addEventListener('DOMContentLoaded',function(){
       </div>
     </div>
 
+    <!-- ── Wöchentliche Statistik ── -->
+    <div class="chart-card mb-6">
+      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <p class="section-title">Wöchentliche Statistik</p>
+        <span class="meta-text" id="weekly-coverage" style="font-size:11px"></span>
+      </div>
+      <p class="meta-text mb-4">Artikel pro Kalenderwoche · Linie = Ø Score (rechte Achse)</p>
+      <div style="position:relative;height:220px">
+        <canvas id="chart-weekly"></canvas>
+      </div>
+      <div id="weekly-table" class="mt-4"></div>
+    </div>
+
     <!-- ── Row 1: Quellen + Score-Verteilung ── -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
@@ -444,6 +458,56 @@ document.addEventListener('DOMContentLoaded',function(){
           <p class="text-[12px] text-gray-400 leading-relaxed">Diese Statistik zeigt deine <strong style="color:#dfe3ea">Content-Daten</strong>. Für echte Besucher-Zahlen (Seitenaufrufe, Klicks, Herkunft) ist <strong style="color:var(--accent)">Cloudflare Web Analytics</strong> kostenlos – ein Script-Tag reicht, kein Server nötig.</p>
         </div>
       </div>
+    </div>
+
+    <!-- ── Score-Formel ── -->
+    <div class="chart-card mb-8">
+      <p class="section-title mb-1">⚙️ Score-Formel</p>
+      <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird</p>
+
+      <!-- Formel-Visualisierung -->
+      <div style="display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+        <div style="background:rgba(var(--neon-rgb),0.08);border:1px solid rgba(var(--neon-rgb),0.25);border-radius:10px;padding:12px 18px;text-align:center;min-width:150px">
+          <div style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.55);letter-spacing:.12em;margin-bottom:6px">QUELLEN-BONUS</div>
+          <div style="font-size:20px;font-weight:900;color:var(--accent);font-family:'Space Grotesk',sans-serif">Quellen × 15</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Mehrere Quellen → wichtig</div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">+</div>
+        <div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
+          <div style="font-size:9px;font-family:monospace;color:rgba(249,115,22,0.6);letter-spacing:.12em;margin-bottom:6px">PRESTIGE</div>
+          <div style="font-size:20px;font-weight:900;color:#f97316;font-family:'Space Grotesk',sans-serif">4 – 10 Pkt.</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Quellen-Glaubwürdigkeit</div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">+</div>
+        <div style="background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
+          <div style="font-size:9px;font-family:monospace;color:rgba(234,179,8,0.6);letter-spacing:.12em;margin-bottom:6px">KEYWORDS</div>
+          <div style="font-size:20px;font-weight:900;color:#eab308;font-family:'Space Grotesk',sans-serif">0 – ∞ Pkt.</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Wichtigkeits-Keywords</div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">=</div>
+        <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
+          <div style="font-size:9px;font-family:monospace;color:rgba(239,68,68,0.6);letter-spacing:.12em;margin-bottom:6px">SCORE</div>
+          <div style="font-size:20px;font-weight:900;color:#ef4444;font-family:'Space Grotesk',sans-serif">Gesamt</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">≥ 40 = BREAKING</div>
+        </div>
+      </div>
+
+      <!-- Prestige + Keywords nebeneinander -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <p style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.45);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Quellen-Prestige (max im Cluster)</p>
+          <div id="prestige-table"></div>
+        </div>
+        <div>
+          <p style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.45);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Keyword-Boni (kumulativ)</p>
+          <div id="keyword-table"></div>
+        </div>
+      </div>
+
+      <!-- Hinweis -->
+      <p style="font-size:11px;font-family:monospace;color:#4b5563;margin-top:16px;line-height:1.6">
+        Artikel werden erst zu <strong style="color:#6b7280">Clustern</strong> gruppiert (≥ 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster – je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus.
+      </p>
     </div>
 
     <!-- Footer -->
@@ -587,6 +651,7 @@ function renderAll(current, all){
         borderWidth:1,
         borderRadius:4,
         borderSkipped:false,
+        minBarLength:6,
       }]
     },
     options:{
@@ -741,6 +806,10 @@ function renderAll(current, all){
       curList.appendChild(a);
     });
   }
+
+  // ── Wöchentliche Stats + Score-Formel ────────────────────────────────────
+  renderWeeklyStats(all);
+  renderScoreBreakdown();
 }
 
 // ── Source Metric Toggle ─────────────────────────────────────────────────────
@@ -765,6 +834,180 @@ function toggleSourceMetric(metric){
     btnScore.style.background='rgba(var(--neon-rgb),0.15)'; btnScore.style.color='var(--accent)'; btnScore.style.borderColor='rgba(var(--neon-rgb),0.3)';
     btnCount.style.background='transparent'; btnCount.style.color='#6b7280'; btnCount.style.borderColor='rgba(107,114,128,0.2)';
   }
+}
+
+// ── Wöchentliche Statistik ───────────────────────────────────────────────────
+function extractDateFromUrl(url) {
+  if (!url) return null;
+  // /YYYY/MM/DD/ – TechCrunch, SiliconAngle, Ars Technica, VentureBeat, Wired
+  const m = url.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  return null;
+}
+
+function getISOWeekInfo(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const year = d.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return {
+    key: `${year}-W${String(week).padStart(2,'0')}`,
+    label: `KW ${String(week).padStart(2,'0')} /${String(year).slice(2)}`
+  };
+}
+
+function renderWeeklyStats(all) {
+  const dated = all.map(a => ({ ...a, _date: extractDateFromUrl(a.link) })).filter(a => a._date);
+  const pct = all.length ? Math.round(dated.length / all.length * 100) : 0;
+  const covEl = document.getElementById('weekly-coverage');
+  if (covEl) covEl.textContent = `${dated.length} von ${all.length} Artikeln mit erkennbarem Datum (${pct}%)`;
+
+  if (dated.length < 3) return;
+
+  // Gruppieren nach KW
+  const weeks = {};
+  dated.forEach(a => {
+    const { key, label } = getISOWeekInfo(a._date);
+    if (!weeks[key]) weeks[key] = { label, count: 0, scoreSum: 0, sources: {} };
+    weeks[key].count++;
+    weeks[key].scoreSum += (a.score || 0);
+    weeks[key].sources[a.source] = (weeks[key].sources[a.source] || 0) + 1;
+  });
+
+  const sorted = Object.entries(weeks).sort(([a], [b]) => a.localeCompare(b));
+  if (!sorted.length) return;
+
+  const labels = sorted.map(([, v]) => v.label);
+  const counts = sorted.map(([, v]) => v.count);
+  const avgs   = sorted.map(([, v]) => +(v.scoreSum / v.count).toFixed(1));
+
+  const ctx = document.getElementById('chart-weekly');
+  if (!ctx) return;
+  const weekChart = new Chart(ctx.getContext('2d'), {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Artikel',
+          data: counts,
+          backgroundColor: 'rgba(var(--neon-rgb),0.22)',
+          borderColor: 'rgba(var(--neon-rgb),0.7)',
+          borderWidth: 1,
+          borderRadius: 5,
+          minBarLength: 6,
+          yAxisID: 'y',
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: 'Ø Score',
+          data: avgs,
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249,115,22,0.08)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#f97316',
+          pointBorderColor: '#000',
+          pointBorderWidth: 1,
+          tension: 0.35,
+          fill: true,
+          yAxisID: 'y2',
+          order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#6b7280', font: { size: 10, family: "'Space Grotesk',sans-serif" }, boxWidth: 12, padding: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label === 'Ø Score'
+              ? ` Ø Score: ${ctx.parsed.y}`
+              : ` ${ctx.parsed.y} Artikel`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: labelColor(), font: { size: 11 } } },
+        y: {
+          position: 'left',
+          grid: { color: gridColor() },
+          ticks: { color: labelColor(), stepSize: 1, font: { size: 11 } },
+          title: { display: true, text: 'Artikel', color: '#6b7280', font: { size: 10 } }
+        },
+        y2: {
+          position: 'right',
+          grid: { display: false },
+          ticks: { color: '#f97316', font: { size: 11 } },
+          title: { display: true, text: 'Ø Score', color: '#f97316', font: { size: 10 } }
+        }
+      }
+    }
+  });
+  window._charts.push(weekChart);
+
+  // Wochentabelle (letzte 6 KW)
+  const tableEl = document.getElementById('weekly-table');
+  if (!tableEl) return;
+  const recent = sorted.slice(-6).reverse();
+  tableEl.innerHTML = recent.map(([, v]) => {
+    const avg = v.count ? (v.scoreSum / v.count).toFixed(1) : '—';
+    const topSrc = Object.entries(v.sources).sort(([,a],[,b]) => b - a)[0];
+    return `<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;flex-wrap:wrap">
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;color:var(--accent);width:80px;flex-shrink:0">${v.label}</span>
+      <span style="font-family:monospace;color:#6b7280">${v.count} Artikel</span>
+      <span style="font-family:monospace;color:#f97316">Ø ${avg} Score</span>
+      ${topSrc ? `<span style="font-family:monospace;color:${srcColor(topSrc[0])};margin-left:auto">Top-Quelle: ${topSrc[0]} (${topSrc[1]})</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Score-Formel Tabellen ─────────────────────────────────────────────────────
+function renderScoreBreakdown() {
+  const PRESTIGE = [
+    ['Bloomberg', 10], ['The Decoder', 9], ['TechCrunch AI', 8], ['Heise', 8],
+    ['VentureBeat AI', 7], ['Ars Technica', 7], ['Wired', 7],
+    ['The Verge', 6], ['Golem', 6], ['SiliconAngle', 5], ['TechRepublic', 5], ['Caschy Blog', 4],
+  ];
+  const KEYWORDS = [
+    ['ban · verboten · lawsuit · klage · shutdown', 15],
+    ['billion · milliard · fired · merger · übernimmt', 15],
+    ['launch · release · breakthrough · funding · raises', 10],
+    ['million · opens · patent · investment', 10],
+    ['study · warnt · kritik · beats · erstmals', 5],
+    ['open source · open-source · kostenlos', 5],
+  ];
+
+  const pt = document.getElementById('prestige-table');
+  if (pt) pt.innerHTML = PRESTIGE.map(([name, pts]) => {
+    const col = srcColor(name);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.06)">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:600;color:#dfe3ea;font-family:'Space Grotesk',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+        <div style="height:2px;background:rgba(var(--neon-rgb),0.07);border-radius:2px;margin-top:4px">
+          <div style="height:2px;background:${col};border-radius:2px;width:${Math.round(pts/10*100)}%;opacity:0.75"></div>
+        </div>
+      </div>
+      <div style="font-family:monospace;font-size:13px;font-weight:900;color:${col};flex-shrink:0;width:24px;text-align:right">${pts}</div>
+    </div>`;
+  }).join('');
+
+  const kt = document.getElementById('keyword-table');
+  if (kt) kt.innerHTML = KEYWORDS.map(([kw, pts]) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.06)">
+      <span style="font-size:10px;font-family:monospace;color:#94a3b8;line-height:1.4">${kw}</span>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:13px;color:#eab308;flex-shrink:0">+${pts}</span>
+    </div>`).join('');
 }
 
 // ── Chart Theme Update ────────────────────────────────────────────────────────
