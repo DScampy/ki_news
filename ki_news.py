@@ -167,18 +167,18 @@ THREAD_LABELS = ["Hook", "Kontext", "Kaskade", "Gruselig", "Konsequenz", "Fazit"
 
 # Quellen-Prestige: höhere Zahl = glaubwürdiger / reichweitenstärker
 SOURCE_PRESTIGE = {
-    "Bloomberg":      10,
-    "The Decoder":    9,
-    "TechCrunch AI":  8,
-    "Heise":          8,
-    "VentureBeat AI": 7,
-    "Ars Technica":   7,
-    "Wired":          7,
-    "The Verge":      6,
-    "Golem":          6,
+    "Bloomberg":      5,
+    "The Decoder":    5,
+    "TechCrunch AI":  5,
+    "Heise":          5,
+    "VentureBeat AI": 5,
+    "Ars Technica":   5,
+    "Wired":          5,
+    "The Verge":      5,
+    "Golem":          5,
     "SiliconAngle":   5,
     "TechRepublic":   5,
-    "Caschy Blog":    4,
+    "Caschy Blog":    5,
     # Gizmodo entfernt (blockiert GitHub Actions)
 }
 
