@@ -946,6 +946,7 @@ def main():
             "color":   SOURCE_COLORS.get(n.get("source", ""), "#555"),
             "score":   scoring.get("score", 0),        # NEU: Relevanz-Score
             "label":   scoring.get("label", "📰 normal"),  # NEU: episch/wichtig/normal
+            "date":    datetime.now(BERLIN).strftime("%Y-%m-%d"),
         }
         news_list.append(entry)
 
