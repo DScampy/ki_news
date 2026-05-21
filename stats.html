@@ -475,8 +475,8 @@ document.addEventListener('DOMContentLoaded',function(){
         <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">+</div>
         <div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
           <div style="font-size:9px;font-family:monospace;color:rgba(249,115,22,0.6);letter-spacing:.12em;margin-bottom:6px">PRESTIGE</div>
-          <div style="font-size:20px;font-weight:900;color:#f97316;font-family:'Space Grotesk',sans-serif">4 – 10 Pkt.</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Quellen-Glaubwürdigkeit</div>
+          <div style="font-size:20px;font-weight:900;color:#f97316;font-family:'Space Grotesk',sans-serif">5 Pkt.</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Alle Quellen gleich</div>
         </div>
         <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">+</div>
         <div style="background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
@@ -885,6 +885,13 @@ function renderWeeklyStats(all) {
 
   const ctx = document.getElementById('chart-weekly');
   if (!ctx) return;
+
+  // Canvas versteht keine CSS-Variablen → computed value lesen
+  const neonRgb = getComputedStyle(document.documentElement)
+    .getPropertyValue('--neon-rgb').trim() || '0,212,255';
+  const barFill   = `rgba(${neonRgb},0.35)`;
+  const barStroke = `rgba(${neonRgb},0.85)`;
+
   const weekChart = new Chart(ctx.getContext('2d'), {
     data: {
       labels,
@@ -893,9 +900,9 @@ function renderWeeklyStats(all) {
           type: 'bar',
           label: 'Artikel',
           data: counts,
-          backgroundColor: 'rgba(var(--neon-rgb),0.22)',
-          borderColor: 'rgba(var(--neon-rgb),0.7)',
-          borderWidth: 1,
+          backgroundColor: barFill,
+          borderColor: barStroke,
+          borderWidth: 1.5,
           borderRadius: 5,
           minBarLength: 6,
           yAxisID: 'y',
@@ -974,9 +981,9 @@ function renderWeeklyStats(all) {
 // ── Score-Formel Tabellen ─────────────────────────────────────────────────────
 function renderScoreBreakdown() {
   const PRESTIGE = [
-    ['Bloomberg', 10], ['The Decoder', 9], ['TechCrunch AI', 8], ['Heise', 8],
-    ['VentureBeat AI', 7], ['Ars Technica', 7], ['Wired', 7],
-    ['The Verge', 6], ['Golem', 6], ['SiliconAngle', 5], ['TechRepublic', 5], ['Caschy Blog', 4],
+    ['Bloomberg', 5], ['The Decoder', 5], ['TechCrunch AI', 5], ['Heise', 5],
+    ['VentureBeat AI', 5], ['Ars Technica', 5], ['Wired', 5],
+    ['The Verge', 5], ['Golem', 5], ['SiliconAngle', 5], ['TechRepublic', 5], ['Caschy Blog', 5],
   ];
   const KEYWORDS = [
     ['ban · verboten · lawsuit · klage · shutdown', 15],
