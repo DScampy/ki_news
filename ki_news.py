@@ -87,9 +87,14 @@ FEEDS = [
     ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
     ("Wired",          "https://wired.com/feed/rss"),
     ("The Verge",      "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"),
+    ("CNBC", 		"https://www.cnbc.com/id/19854910/device/rss/rss.html"),
     ("SiliconAngle",   "https://siliconangle.com/feed"),
     ("TechRepublic",   "https://www.techrepublic.com/rssfeeds/articles/"),
-    ("Bloomberg", "https://feeds.bloomberg.com/news.json?ageHours=120&token=glassdoor%3Agd4bloomberg&tickers=NTRS%3AUS&callback=jQuery21306832818930041152_1513149004387"),
+    ("Bloomberg",	"https://feeds.bloomberg.com/technology/news.rss"),
+    ("CNet", 		"https://www.cnet.com/rss/all/"),
+    ("MIT", 		"https://www.technologyreview.com/feed/"),
+    ("NYT Technology",  "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"),
+    ("OpenAI",		"https://openai.com/blog/rss/"),
     # Kuratiert – bereits AI-spezifisch, kein KI-Filter nötig
     ("AlignedNews",    "https://alignednews.com/feed"),
 ]
@@ -113,7 +118,7 @@ MODELLE = [
 # Gemma-4-31b schreibt bessere deutsche Posts als Llama – empirisch aus Logs bestätigt.
 # Reihenfolge bewusst anders als MODELLE: Gemma zuerst, Llama als Fallback.
 MODELLE_POSTS = [
-    "google/gemma-4-31b-it:free",                      # Beste Posts-Qualität (DE-Format, Tuki-6)
+    "google/gemma-4-31b-it:free",                      # Beste Posts-Qualität (DE-Format, Scampy-6)
     "google/gemma-4-26b-a4b-it:free",                  # Gemma-Fallback
     "meta-llama/llama-3.3-70b-instruct:free",          # Llama Free
     "nousresearch/hermes-3-llama-3.1-405b:free",       # Hermes Free
@@ -179,6 +184,9 @@ SOURCE_PRESTIGE = {
     "SiliconAngle":   5,
     "TechRepublic":   5,
     "Caschy Blog":    5,
+    "CNet":	      5,
+    "CNBC":           5,
+    "NYT Technology"  5,
     # Gizmodo entfernt (blockiert GitHub Actions)
 }
 
@@ -470,7 +478,7 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
         return json.loads(r.read())["choices"][0]["message"]["content"]
 
 # -------------------------
-# LLM – Posts Tuki-6
+# LLM – Posts Scampy-6
 # Bekommt nur MAX_LLM_NEWS Items – mehr = Fuelltext
 # -------------------------
 def ask_llm(top_news):
@@ -485,7 +493,7 @@ def ask_llm(top_news):
 
     news_text = "\n".join([f"- {n['title']} (via {n['source']})" for n in top_news])
 
-    system = """Du bist @CScampy, ein sachlicher aber neugieriger KI-Beobachter aus Deutschland.
+    system = """Du bist @ScampyKI, ein sachlicher aber neugieriger KI-Beobachter aus Deutschland.
 Dein Stil: direkt, menschlich, keine Floskeln, keine Ausrufezeichen, kein "Sie".
 Du ziehst den Leser rein – jeder Satz endet mit einer kleinen Spannung die zum naechsten zieht.
 Du erklaerst was eine News WIRKLICH bedeutet – die Erkenntnis, nicht das Ereignis.
@@ -501,7 +509,7 @@ TEASER-Regeln:
 - Kein Ausrufezeichen, kein Promotional Content
 - Ende: (via Quellenname)
 
-THREAD-Regeln – Tuki-6-Struktur:
+THREAD-Regeln – Scampy-6-Struktur:
 THREAD X-1 Hook: Sofort rein, kein Anlauf, die Erkenntnis als erster Satz
 THREAD X-2 Kontext: Historischer Rahmen + konkrete Zahlen
 THREAD X-3 Kaskade: Was das Schritt fuer Schritt konkret bedeutet
@@ -853,7 +861,7 @@ def create_html(alle_news, parsed, summaries):
             {news_html}
         </div>
         <div class="panel panel-right">
-            <div class="panel-title">Post-Vorschlaege fuer @CScampy</div>
+            <div class="panel-title">Post-Vorschlaege fuer @ScampyKI</div>
             {posts_html}
         </div>
     </div>

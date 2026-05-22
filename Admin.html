@@ -1,588 +1,688 @@
 <!DOCTYPE html>
-<html lang="de">
+<html class="dark" lang="de">
 <head>
 <meta charset="utf-8"/>
 <link rel="icon" type="image/png" href="s-logo.png"/>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, nofollow"/>
 <title>Admin – KI News</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Work Sans', sans-serif;
-  background: oklch(97% 0.005 80);
-  color: oklch(18% 0.01 240);
-  min-height: 100vh;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#080c12;
+  --surface:#111827;
+  --surface2:#1a2436;
+  --surface3:#1e2d42;
+  --border:rgba(99,179,237,0.14);
+  --border2:rgba(99,179,237,0.25);
+  --accent:#1d9bf0;
+  --accent-dim:rgba(29,155,240,0.18);
+  --text:#e2e8f0;
+  --muted:rgba(226,232,240,0.45);
+  --muted2:rgba(226,232,240,0.25);
+  --green:#22c55e;
+  --red:#f87171;
+  --yellow:#fbbf24;
 }
-a { color: inherit; text-decoration: none; }
-button { cursor: pointer; font-family: inherit; }
+html,body{height:100%;font-family:'Work Sans',sans-serif;background:var(--bg);color:var(--text);}
+a{color:inherit;text-decoration:none;}
+button{cursor:pointer;font-family:inherit;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:#2f3a4e;border-radius:10px;}
 
-/* Header */
-.header {
-  background: white; border-bottom: 1px solid oklch(90% 0.008 80);
-  height: 56px; display: flex; align-items: center;
-  padding: 0 24px; gap: 20px; position: sticky; top: 0; z-index: 50;
+/* ── Nav ── */
+.top-nav{
+  position:fixed;top:0;left:0;right:0;height:56px;z-index:100;
+  display:flex;align-items:center;gap:0;
+  background:rgba(8,12,18,0.88);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
 }
-.logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; }
-.logo span { color: oklch(52% 0.18 240); }
-.header-badge {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; background: oklch(95% 0.04 60);
-  color: oklch(48% 0.12 60); border: 1px solid oklch(88% 0.06 60);
-  border-radius: 4px; padding: 2px 8px;
+.nav-logo{display:flex;align-items:center;gap:10px;margin-right:32px;}
+.nav-logo-text{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:800;letter-spacing:-0.02em;color:var(--accent);}
+.nav-admin-badge{
+  font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  background:rgba(251,191,36,0.15);color:#fbbf24;
+  border:1px solid rgba(251,191,36,0.3);border-radius:4px;padding:2px 8px;
 }
-.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: oklch(75% 0.01 240); }
-.status-dot.ok { background: oklch(62% 0.18 145); }
-.status-dot.err { background: oklch(55% 0.2 25); }
-.status-text { font-size: 12px; color: oklch(50% 0.01 240); }
+.nav-tabs{display:flex;align-items:stretch;height:56px;gap:0;flex:1;}
+.nav-tab{
+  display:flex;align-items:center;gap:7px;
+  padding:0 18px;font-size:12px;font-weight:600;
+  font-family:'Space Grotesk',sans-serif;letter-spacing:0.04em;
+  color:var(--muted);border:none;background:transparent;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all 0.15s;white-space:nowrap;
+}
+.nav-tab:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-tab svg{width:14px;height:14px;flex-shrink:0;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-family:monospace;color:var(--muted);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:4px 12px;
+}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#4b5563;}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.5);}
+.status-dot.err{background:var(--red);}
+.nav-site-link{
+  font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;
+  letter-spacing:0.06em;text-transform:uppercase;
+  color:var(--muted);border:1px solid var(--border);
+  border-radius:6px;padding:5px 12px;transition:all 0.15s;
+}
+.nav-site-link:hover{color:var(--accent);border-color:var(--border2);}
 
-/* Main layout */
-.layout { display: flex; max-width: 1200px; margin: 0 auto; padding: 32px 24px; gap: 28px; }
+/* ── Layout ── */
+.admin-body{padding-top:56px;min-height:100vh;}
+.tab-panel{display:none;max-width:1100px;margin:0 auto;padding:32px 24px 80px;}
+.tab-panel.active{display:block;}
 
-/* Sidebar */
-.sidebar { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+/* ── GitHub Bar ── */
+.gh-bar{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:20px 24px;margin-bottom:28px;
+}
+.gh-bar-header{
+  display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;
+}
+.gh-bar-title{
+  font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);
+}
+.gh-bar-body{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:16px;}
+.gh-bar input{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;font:13px/1.4 'Work Sans',sans-serif;color:var(--text);
+  outline:none;transition:border-color 0.15s;
+}
+.gh-bar input:focus{border-color:var(--accent);}
+.gh-bar input[type="password"]{font-family:monospace;letter-spacing:0.08em;}
+.gh-bar-hint{font-size:11px;color:var(--muted2);margin-top:4px;line-height:1.4;}
+.gh-bar-hint a{color:var(--accent);}
 
-.card {
-  background: white; border: 1px solid oklch(90% 0.008 80);
-  border-radius: 10px; padding: 18px;
+/* ── Cards ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:20px 22px;
 }
-.card-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: oklch(55% 0.01 240);
-  margin-bottom: 14px; padding-bottom: 10px;
-  border-bottom: 1px solid oklch(93% 0.006 80);
+.card-title{
+  font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);
 }
+.section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.section-title{
+  font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;
+  letter-spacing:-0.02em;color:var(--text);
+}
+.section-sub{font-size:12px;color:var(--muted);margin-top:4px;}
 
-/* GitHub connect */
-.gh-form { display: flex; flex-direction: column; gap: 10px; }
-.field-label { font-size: 12px; font-weight: 600; color: oklch(40% 0.01 240); margin-bottom: 4px; }
-.field-hint { font-size: 11px; color: oklch(60% 0.01 240); margin-top: 3px; line-height: 1.4; }
-input[type="text"], input[type="password"], textarea {
-  width: 100%; border: 1px solid oklch(88% 0.008 80);
-  border-radius: 7px; padding: 8px 10px;
-  font: 13px/1.4 'Work Sans', sans-serif;
-  color: oklch(18% 0.01 240); background: oklch(98.5% 0.003 80);
-  outline: none; transition: border-color 0.15s;
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 18px;border-radius:8px;border:none;
+  font-size:12px;font-weight:700;font-family:'Space Grotesk',sans-serif;
+  letter-spacing:0.04em;transition:all 0.15s;white-space:nowrap;
 }
-input:focus, textarea:focus { border-color: oklch(52% 0.18 240); background: white; }
-input[type="password"] { font-family: monospace; letter-spacing: 0.1em; }
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{filter:brightness(1.12);}
+.btn-primary:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--text);background:var(--accent-dim);}
+.btn-ghost:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-danger{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:var(--red);}
+.btn-danger:hover{background:rgba(248,113,113,0.2);}
+.btn-sm{padding:5px 11px;font-size:11px;}
+.btn-full{width:100%;}
 
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 8px 16px; border-radius: 7px; border: none;
-  font-size: 13px; font-weight: 600; font-family: 'Space Grotesk', sans-serif;
-  transition: all 0.15s; white-space: nowrap;
+/* ── Form fields ── */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+.field-label{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);}
+.field-hint{font-size:11px;color:var(--muted2);line-height:1.5;}
+input[type="text"],input[type="password"],input[type="date"],textarea,select{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;font:13px/1.4 'Work Sans',sans-serif;color:var(--text);
+  outline:none;transition:border-color 0.15s;width:100%;
 }
-.btn-primary { background: oklch(18% 0.01 240); color: white; }
-.btn-primary:hover { background: oklch(28% 0.01 240); }
-.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-ghost { background: transparent; border: 1px solid oklch(88% 0.008 80); color: oklch(40% 0.01 240); }
-.btn-ghost:hover { border-color: oklch(75% 0.01 240); color: oklch(18% 0.01 240); }
-.btn-danger { background: oklch(94% 0.04 25); border: 1px solid oklch(85% 0.08 25); color: oklch(45% 0.18 25); }
-.btn-danger:hover { background: oklch(90% 0.06 25); }
-.btn-sm { padding: 5px 10px; font-size: 11px; }
-.btn-full { width: 100%; }
+input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--surface3);}
+input[type="password"]{font-family:monospace;letter-spacing:0.1em;}
+textarea{resize:vertical;}
+select{cursor:pointer;}
+select option{background:var(--surface2);}
 
-/* Stats */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.stat-box {
-  background: oklch(97% 0.005 80); border-radius: 8px;
-  padding: 12px; text-align: center;
+/* ── Stats row ── */
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;}
+.stat-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:14px 18px;flex:1;min-width:100px;
 }
-.stat-num { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
-.stat-lbl { font-size: 10px; color: oklch(55% 0.01 240); margin-top: 2px; font-weight: 500; }
+.stat-num{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:800;color:var(--text);}
+.stat-lbl{font-size:10px;font-family:monospace;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
 
-/* Actions */
-.action-list { display: flex; flex-direction: column; gap: 8px; }
+/* ── Article cards (news editor) ── */
+.article-list{display:flex;flex-direction:column;gap:10px;}
+.article-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;transition:border-color 0.15s;
+}
+.article-card.modified{border-color:rgba(251,191,36,0.45);}
+.article-card:focus-within{border-color:var(--border2);}
+.card-indicator{width:3px;flex-shrink:0;background:transparent;}
+.article-card.modified .card-indicator{background:#fbbf24;}
+.card-inner{display:flex;}
+.card-content{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.card-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.source-badge{
+  font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  border-radius:4px;padding:2px 8px;border:1px solid;
+}
+.modified-badge{
+  font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;
+  background:rgba(251,191,36,0.15);color:#fbbf24;
+  border:1px solid rgba(251,191,36,0.3);border-radius:4px;padding:2px 8px;
+}
+.card-num{font-size:11px;color:var(--muted);font-weight:600;font-family:monospace;}
+.card-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-top:8px;border-top:1px solid var(--border);
+}
+.link-preview{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px;}
+.link-preview a{color:rgba(29,155,240,0.7);}
 
-/* Main editor */
-.main { flex: 1; min-width: 0; }
-.main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 16px; }
-.main-title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-.main-actions { display: flex; gap: 8px; }
+/* ── Search bar ── */
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:9px;padding:0 14px;margin-bottom:16px;
+}
+.search-bar input{
+  border:none;background:transparent;padding:10px 0;
+  font-size:13px;flex:1;color:var(--text);
+}
+.search-bar input::placeholder{color:var(--muted2);}
+.search-bar input:focus{outline:none;}
+.search-icon{color:var(--muted);font-size:15px;}
 
-/* Search bar */
-.search-bar {
-  display: flex; align-items: center; gap: 10px;
-  background: white; border: 1px solid oklch(88% 0.008 80);
-  border-radius: 8px; padding: 0 14px; margin-bottom: 16px;
-}
-.search-bar input {
-  border: none; background: transparent; padding: 10px 0;
-  font-size: 13px; flex: 1;
-}
-.search-bar input:focus { outline: none; }
-.search-icon { color: oklch(65% 0.01 240); font-size: 15px; }
+/* ── Empty state ── */
+.empty{text-align:center;padding:56px 24px;color:var(--muted);}
+.empty h3{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text);}
 
-/* Article cards */
-.article-list { display: flex; flex-direction: column; gap: 12px; }
+/* ── Neue Artikel Tab ── */
+.art-builder{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start;}
+@media(max-width:900px){.art-builder{grid-template-columns:1fr;}}
+.art-form{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;}
+.art-preview{position:sticky;top:80px;}
+.preview-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+}
+.preview-header{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.preview-dot{width:10px;height:10px;border-radius:50%;}
+.preview-body{padding:20px;font-size:12px;line-height:1.7;color:var(--muted);}
+.preview-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.3;}
+.preview-sub{font-size:12px;color:var(--muted);margin-bottom:12px;font-style:italic;}
+.preview-meta{font-family:monospace;font-size:10px;color:var(--muted2);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.preview-text{font-size:12px;color:var(--muted);white-space:pre-wrap;word-break:break-word;}
 
-.article-card {
-  background: white; border: 1px solid oklch(90% 0.008 80);
-  border-radius: 10px; overflow: hidden;
-  transition: border-color 0.15s, box-shadow 0.15s;
+/* ── Media manager ── */
+.ep-list{display:flex;flex-direction:column;gap:10px;}
+.ep-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;transition:box-shadow 0.15s;
 }
-.article-card:focus-within { border-color: oklch(75% 0.12 240); box-shadow: 0 0 0 3px oklch(52% 0.18 240 / 0.1); }
-.article-card.modified { border-color: oklch(72% 0.14 75); }
-.article-card.modified .card-indicator { background: oklch(72% 0.14 75); }
+.ep-card.dragging{opacity:0.4;box-shadow:0 8px 30px rgba(0,0,0,0.5);}
+.ep-card.drag-over{border-color:var(--accent);}
+.ep-header{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--surface2);border-bottom:1px solid var(--border);cursor:grab;
+}
+.ep-drag-handle{color:var(--muted2);}
+.ep-badge-current{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:var(--accent);color:#fff;border-radius:4px;padding:2px 8px;}
+.ep-badge-archive{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:var(--surface3);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 8px;}
+.ep-num{font-size:11px;color:var(--muted);font-family:monospace;font-weight:700;}
+.ep-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.ep-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ep-actions{display:flex;gap:8px;justify-content:flex-end;padding-top:4px;}
+.media-section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0 10px;border-bottom:1px solid var(--border2);margin-bottom:14px;
+}
+.media-section-title{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--text);}
+.media-section-count{font-size:11px;color:var(--muted);font-family:monospace;margin-left:6px;}
 
-.card-indicator { width: 3px; background: transparent; flex-shrink: 0; }
+/* ── Dashboard config ── */
+.dash-article{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all 0.15s;margin-bottom:8px;
+}
+.dash-article:hover{border-color:var(--border2);}
+.dash-article.pinned{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.04);}
+.dash-article.blocked{opacity:0.5;}
+.dash-score{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:900;width:44px;text-align:center;flex-shrink:0;line-height:1;}
+.dash-content{flex:1;min-width:0;}
+.dash-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.35;}
+.dash-meta{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;}
+.dash-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+.dash-slot{
+  border:2px dashed var(--border2);border-radius:8px;
+  padding:10px 12px;min-height:54px;display:flex;align-items:center;
+  transition:all 0.15s;gap:10px;margin-bottom:8px;
+}
+.dash-slot.filled{border-style:solid;border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.04);}
+.dash-slot-num{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:900;color:var(--border2);flex-shrink:0;width:28px;text-align:center;}
+.dash-slot.filled .dash-slot-num{color:var(--green);}
+.dash-slot-text{flex:1;min-width:0;}
+.dash-slot-title{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.dash-slot-source{font-size:10px;color:var(--muted);margin-top:2px;}
+.dash-slot-empty{font-size:12px;color:var(--muted2);font-style:italic;}
+.dash-blocked-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.dash-blocked-row:last-child{border-bottom:none;}
+.dash-blocked-title{flex:1;font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-.card-inner { display: flex; }
-.card-content { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+/* ── Commit Modal ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.65);
+  display:flex;align-items:center;justify-content:center;
+  z-index:200;backdrop-filter:blur(6px);
+}
+.modal{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:16px;padding:28px;width:520px;max-width:calc(100vw - 32px);
+  box-shadow:0 24px 60px rgba(0,0,0,0.5);
+}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;margin-bottom:18px;color:var(--text);}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+.diff-preview{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:12px;font-size:11px;font-family:monospace;line-height:1.6;
+  max-height:180px;overflow-y:auto;margin:12px 0;color:var(--muted);
+}
+.diff-add{color:#86efac;}
+.diff-del{color:#fca5a5;}
 
-.card-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.source-badge {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  border-radius: 4px; padding: 2px 8px; border: 1px solid;
-}
-.card-num { font-size: 11px; color: oklch(65% 0.01 240); font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
-.modified-badge {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
-  background: oklch(95% 0.06 75); color: oklch(48% 0.14 75);
-  border: 1px solid oklch(85% 0.1 75); border-radius: 4px; padding: 2px 7px;
-}
+/* ── Source colors ── */
+.src-decoder{background:rgba(29,155,240,0.12);color:#93c5fd;border-color:rgba(29,155,240,0.3);}
+.src-techcrunch{background:rgba(251,146,60,0.12);color:#fdba74;border-color:rgba(251,146,60,0.3);}
+.src-venturebeat{background:rgba(167,139,250,0.12);color:#c4b5fd;border-color:rgba(167,139,250,0.3);}
+.src-mit{background:rgba(248,113,113,0.12);color:#fca5a5;border-color:rgba(248,113,113,0.3);}
+.src-ars{background:rgba(74,222,128,0.12);color:#86efac;border-color:rgba(74,222,128,0.3);}
+.src-heise{background:rgba(29,155,240,0.12);color:#7dd3fc;border-color:rgba(29,155,240,0.3);}
+.src-default{background:var(--surface2);color:var(--muted);border-color:var(--border);}
 
-.field-group { display: flex; flex-direction: column; gap: 4px; }
-.field-group textarea { resize: vertical; min-height: 60px; }
-.field-group.title-field input { font-weight: 600; font-size: 14px; }
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
+.toast{
+  background:var(--surface2);color:var(--text);
+  border:1px solid var(--border2);border-radius:10px;
+  padding:10px 20px;font-size:13px;font-weight:500;font-family:'Space Grotesk',sans-serif;
+  box-shadow:0 8px 30px rgba(0,0,0,0.4);
+  animation:toastIn 0.2s ease;pointer-events:auto;
+}
+.toast.success{background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.35);color:#86efac;}
+.toast.error{background:rgba(248,113,113,0.15);border-color:rgba(248,113,113,0.35);color:#fca5a5;}
+@keyframes toastIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
-.card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid oklch(95% 0.005 80); }
-.link-preview { font-size: 11px; color: oklch(55% 0.01 240); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
-.card-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
-/* Toast */
-.toast-wrap { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
-.toast {
-  background: oklch(18% 0.01 240); color: white;
-  border-radius: 8px; padding: 10px 18px;
-  font-size: 13px; font-weight: 500;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-  animation: toastIn 0.25s ease; pointer-events: auto;
+/* ── Sitemap list ── */
+.sitemap-entry{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;margin-bottom:8px;
 }
-.toast.success { background: oklch(35% 0.18 145); }
-.toast.error { background: oklch(42% 0.2 25); }
-@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Empty state */
-.empty { text-align: center; padding: 48px 24px; color: oklch(60% 0.01 240); }
-.empty h3 { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-
-/* Commit modal */
-.overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 200; backdrop-filter: blur(4px);
-}
-.modal {
-  background: white; border-radius: 14px;
-  padding: 28px; width: 480px; max-width: calc(100vw - 32px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-}
-.modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 16px; }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-.diff-preview {
-  background: oklch(97% 0.005 80); border: 1px solid oklch(90% 0.008 80);
-  border-radius: 7px; padding: 12px; font-size: 12px;
-  font-family: monospace; line-height: 1.5; max-height: 200px; overflow-y: auto;
-  margin: 12px 0; color: oklch(35% 0.01 240);
-}
-.diff-line-add { color: oklch(42% 0.18 145); }
-.diff-line-del { color: oklch(48% 0.2 25); }
-
-/* Source colors */
-.src-decoder  { background: oklch(94% 0.04 220); color: oklch(38% 0.18 220); border-color: oklch(82% 0.1 220); }
-.src-techcrunch { background: oklch(95% 0.05 55);  color: oklch(45% 0.18 55);  border-color: oklch(84% 0.1 55); }
-.src-venturebeat { background: oklch(94% 0.04 280); color: oklch(40% 0.18 280); border-color: oklch(82% 0.1 280); }
-.src-mit      { background: oklch(94% 0.04 25);  color: oklch(42% 0.2 25);   border-color: oklch(83% 0.1 25); }
-.src-ars      { background: oklch(94% 0.04 145); color: oklch(38% 0.18 145); border-color: oklch(82% 0.1 145); }
-.src-heise    { background: oklch(94% 0.04 240); color: oklch(40% 0.18 240); border-color: oklch(82% 0.1 240); }
-.src-default  { background: oklch(95% 0.005 80); color: oklch(45% 0.01 240); border-color: oklch(88% 0.008 80); }
-
-/* ── Tabs ── */
-.tab-bar { display: flex; gap: 0; border-bottom: 2px solid oklch(90% 0.008 80); margin-bottom: 24px; }
-.tab-btn {
-  padding: 10px 20px; font-size: 13px; font-weight: 600; font-family: 'Space Grotesk', sans-serif;
-  border: none; background: transparent; cursor: pointer; color: oklch(55% 0.01 240);
-  border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s;
-}
-.tab-btn.active { color: oklch(18% 0.01 240); border-bottom-color: oklch(52% 0.18 240); }
-.tab-btn:hover:not(.active) { color: oklch(30% 0.01 240); background: oklch(97% 0.005 80); }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* ── Media Manager ── */
-.ep-list { display: flex; flex-direction: column; gap: 10px; }
-.ep-card {
-  background: white; border: 1px solid oklch(90% 0.008 80); border-radius: 10px;
-  overflow: hidden; transition: box-shadow 0.15s;
-}
-.ep-card.dragging { opacity: 0.4; box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
-.ep-card.drag-over { border-color: oklch(52% 0.18 240); box-shadow: 0 0 0 3px oklch(52% 0.18 240 / 0.15); }
-.ep-header {
-  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
-  background: oklch(98% 0.003 80); border-bottom: 1px solid oklch(93% 0.006 80);
-  cursor: grab;
-}
-.ep-header:active { cursor: grabbing; }
-.ep-drag-handle { color: oklch(70% 0.01 240); font-size: 16px; flex-shrink: 0; }
-.ep-badge-current {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  background: oklch(52% 0.18 240); color: white; border-radius: 4px; padding: 2px 8px;
-}
-.ep-badge-archive {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  background: oklch(94% 0.006 80); color: oklch(55% 0.01 240);
-  border: 1px solid oklch(88% 0.008 80); border-radius: 4px; padding: 2px 8px;
-}
-.ep-num { font-size: 11px; color: oklch(60% 0.01 240); font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
-.ep-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.ep-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ep-section-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: oklch(55% 0.01 240); padding: 8px 0 4px; border-top: 1px solid oklch(93% 0.006 80);
-  display: flex; align-items: center; gap: 6px;
-}
-.ep-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 4px; }
-.media-top-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.help-hint { font-size: 11px; color: oklch(60% 0.01 240); display: flex; align-items: center; gap: 4px; }
-select {
-  width: 100%; border: 1px solid oklch(88% 0.008 80); border-radius: 7px;
-  padding: 8px 10px; font: 13px/1.4 'Work Sans', sans-serif;
-  color: oklch(18% 0.01 240); background: oklch(98.5% 0.003 80);
-  outline: none; transition: border-color 0.15s; cursor: pointer;
-}
-select:focus { border-color: oklch(52% 0.18 240); }
-
-/* ── Media section headers ── */
-.media-section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 0 10px; border-bottom: 2px solid oklch(93% 0.006 80);
-  margin-bottom: 14px;
-}
-.media-section-title {
-  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
-  color: oklch(25% 0.01 240);
-}
-.media-section-count {
-  font-size: 11px; color: oklch(60% 0.01 240);
-  font-family: monospace; margin-left: 8px;
-}
-
-/* ── Dashboard Config Tab ── */
-.dash-article {
-  background: white; border: 1px solid oklch(90% 0.008 80);
-  border-radius: 10px; padding: 12px 14px;
-  display: flex; align-items: center; gap: 12px;
-  transition: all 0.15s; margin-bottom: 8px;
-}
-.dash-article:hover { border-color: oklch(75% 0.01 240); box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
-.dash-article.pinned { border-color: oklch(65% 0.18 145); background: oklch(99% 0.01 145); }
-.dash-article.blocked { background: oklch(98% 0.005 80); opacity: 0.55; }
-.dash-score {
-  font-family: 'Space Grotesk', sans-serif; font-size: 22px;
-  font-weight: 900; width: 44px; text-align: center; flex-shrink: 0; line-height: 1;
-}
-.dash-content { flex: 1; min-width: 0; }
-.dash-title { font-size: 13px; font-weight: 600; color: oklch(18% 0.01 240); line-height: 1.35; }
-.dash-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
-.dash-actions { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
-.dash-slot {
-  border: 2px dashed oklch(88% 0.008 80); border-radius: 8px;
-  padding: 10px 12px; min-height: 54px; display: flex; align-items: center;
-  transition: all 0.15s; gap: 10px;
-}
-.dash-slot.filled {
-  border-style: solid; border-color: oklch(65% 0.18 145);
-  background: oklch(99% 0.01 145);
-}
-.dash-slot-num {
-  font-family: 'Space Grotesk', sans-serif; font-size: 22px;
-  font-weight: 900; color: oklch(85% 0.005 80); flex-shrink: 0; width: 28px; text-align: center;
-}
-.dash-slot.filled .dash-slot-num { color: oklch(58% 0.22 145); }
-.dash-slot-text { flex: 1; min-width: 0; }
-.dash-slot-title { font-size: 12px; font-weight: 600; color: oklch(18% 0.01 240); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.dash-slot-source { font-size: 10px; color: oklch(55% 0.01 240); margin-top: 2px; }
-.dash-slot-empty { font-size: 12px; color: oklch(68% 0.01 240); font-style: italic; }
-.dash-blocked-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 0; border-bottom: 1px solid oklch(95% 0.005 80);
-}
-.dash-blocked-row:last-child { border-bottom: none; }
-.dash-blocked-title { flex: 1; font-size: 11px; font-weight: 600; color: oklch(30% 0.01 240); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dash-blocked-src { font-size: 10px; color: oklch(55% 0.01 240); }
+.sitemap-url{flex:1;font-size:12px;font-family:monospace;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sitemap-badge{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;padding:2px 8px;border:1px solid;}
+.sitemap-new{background:rgba(34,197,94,0.12);color:#86efac;border-color:rgba(34,197,94,0.3);}
+.sitemap-existing{background:var(--surface3);color:var(--muted);border-color:var(--border);}
 </style>
 </head>
 <body>
 
-<!-- ═══ ADMIN GATE ══════════════════════════════════════════════════ -->
+<!-- ═══ ADMIN GATE ══════════════════════════════════════════════════════════ -->
 <div id="admin-gate" style="
   position:fixed;inset:0;z-index:9999;
-  background:rgba(0,0,0,0.92);backdrop-filter:blur(8px);
+  background:rgba(0,0,0,0.95);backdrop-filter:blur(8px);
   display:flex;align-items:center;justify-content:center;
   font-family:'Space Grotesk',sans-serif;
 ">
   <div style="
-    background:#0f172a;border:1px solid rgba(99,179,237,0.25);border-radius:16px;
-    padding:40px 48px;max-width:380px;width:90%;text-align:center;
-    box-shadow:0 0 40px rgba(99,179,237,0.1);
+    background:#0b1120;border:1px solid rgba(29,155,240,0.2);border-radius:18px;
+    padding:44px 52px;max-width:380px;width:90%;text-align:center;
+    box-shadow:0 0 60px rgba(29,155,240,0.08);
   ">
-    <div style="font-size:32px;margin-bottom:16px;">🔒</div>
-    <div style="font-size:18px;font-weight:800;color:#e2e8f0;letter-spacing:-0.02em;margin-bottom:6px;">Admin-Bereich</div>
-    <div style="font-size:12px;color:rgba(255,255,255,0.4);font-family:monospace;margin-bottom:28px;">ki-news.live · intern</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(29,155,240,0.7);margin-bottom:20px;">KI News · Admin</div>
+    <div style="font-size:24px;font-weight:800;color:#e2e8f0;letter-spacing:-0.03em;margin-bottom:8px;">Zugang</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);font-family:monospace;margin-bottom:32px;">ki-news.live · intern</div>
     <input id="gate-input" type="password" placeholder="Passwort" style="
-      width:100%;padding:12px 16px;background:#1e293b;
-      border:1px solid rgba(99,179,237,0.2);border-radius:8px;
-      color:#e2e8f0;font-size:15px;font-family:inherit;
+      width:100%;padding:12px 16px;background:#111827;
+      border:1px solid rgba(29,155,240,0.18);border-radius:10px;
+      color:#e2e8f0;font-size:15px;font-family:'Work Sans',sans-serif;
       outline:none;margin-bottom:12px;letter-spacing:0.1em;
     " onkeydown="if(event.key==='Enter')checkGate()"/>
     <button onclick="checkGate()" style="
-      width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;
-      color:#fff;font-family:inherit;font-size:13px;font-weight:700;
-      letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;
-      transition:background 0.15s;
-    " onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">Zugang</button>
-    <div id="gate-error" style="color:#f87171;font-size:12px;margin-top:12px;min-height:16px;"></div>
+      width:100%;padding:12px;background:#1d9bf0;border:none;border-radius:10px;
+      color:#fff;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:800;
+      letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:filter 0.15s;
+    " onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">Einloggen →</button>
+    <div id="gate-error" style="color:#f87171;font-size:12px;font-family:monospace;margin-top:14px;min-height:16px;"></div>
   </div>
 </div>
 <script>
-var ADMIN_PW = 'scampy';
-var ki_authed = false;
-try { if (localStorage.getItem('ki_admin_auth') === 'ok') { ki_authed = true; } } catch(e) {}
-if (ki_authed) { document.getElementById('admin-gate').style.display = 'none'; }
-function checkGate() {
-  var val = document.getElementById('gate-input').value;
-  if (val === ADMIN_PW) {
-    try { localStorage.setItem('ki_admin_auth', 'ok'); } catch(e) {}
-    document.getElementById('admin-gate').style.display = 'none';
-  } else {
-    document.getElementById('gate-error').textContent = 'Falsches Passwort.';
-    document.getElementById('gate-input').value = '';
+var ADMIN_PW='scampy';
+var ki_authed=false;
+try{if(localStorage.getItem('ki_admin_auth')==='ok')ki_authed=true;}catch(e){}
+if(ki_authed)document.getElementById('admin-gate').style.display='none';
+function checkGate(){
+  if(document.getElementById('gate-input').value===ADMIN_PW){
+    try{localStorage.setItem('ki_admin_auth','ok');}catch(e){}
+    document.getElementById('admin-gate').style.display='none';
+  }else{
+    document.getElementById('gate-error').textContent='Falsches Passwort.';
+    document.getElementById('gate-input').value='';
     document.getElementById('gate-input').focus();
-    setTimeout(function() { document.getElementById('gate-error').textContent = ''; }, 2500);
+    setTimeout(()=>document.getElementById('gate-error').textContent='',2500);
   }
 }
 </script>
 
-<header class="header">
-  <a href="http://ki-news.live" class="logo">KI <span>NEWS</span></a>
-  <span class="header-badge">Admin</span>
-  <a href="/" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;color:oklch(45% 0.01 240);text-decoration:none;border-radius:6px;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;border:1px solid oklch(88% 0.008 80);margin-right:6px;transition:all 0.15s" onmouseover="this.style.background='oklch(96% 0.005 80)';this.style.borderColor='oklch(52% 0.18 240)';this.style.color='oklch(52% 0.18 240)'" onmouseout="this.style.background='transparent';this.style.borderColor='oklch(88% 0.008 80)';this.style.color='oklch(45% 0.01 240)'">← Zur Live-Seite</a>
-  <a href="admin-posts.html" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:oklch(52% 0.18 240);color:#fff;text-decoration:none;border-radius:6px;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;transition:filter 0.15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">📝 Post-Helfer →</a>
-  <div class="header-right">
-    <div class="status-dot" id="statusDot"></div>
-    <span class="status-text" id="statusText">Nicht verbunden</span>
+<!-- ═══ TOP NAV ══════════════════════════════════════════════════════════════ -->
+<nav class="top-nav">
+  <div class="nav-logo">
+    <span class="nav-logo-text">KI NEWS</span>
+    <span class="nav-admin-badge">Admin</span>
   </div>
-</header>
 
-<div class="layout">
-  <!-- Sidebar -->
-  <aside class="sidebar">
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('editor')" id="tab-editor-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Artikel-Editor
+    </button>
+    <button class="nav-tab" onclick="switchTab('create')" id="tab-create-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Neuer Artikel
+    </button>
+    <button class="nav-tab" onclick="switchTab('media')" id="tab-media-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      Media
+    </button>
+    <button class="nav-tab" onclick="switchTab('dash')" id="tab-dash-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-tab" onclick="switchTab('sitemap')" id="tab-sitemap-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Sitemap
+    </button>
+  </div>
 
-    <!-- GitHub Config -->
-    <div class="card">
-      <div class="card-title">GitHub Verbindung</div>
-      <div class="gh-form">
+  <div class="nav-right">
+    <div class="status-pill">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Nicht verbunden</span>
+    </div>
+    <a href="/" class="nav-site-link">← Live-Seite</a>
+  </div>
+</nav>
+
+<!-- ═══ ADMIN BODY ═══════════════════════════════════════════════════════════ -->
+<div class="admin-body">
+
+  <!-- ═══ TAB: ARTIKEL-EDITOR ══════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-editor">
+
+    <!-- GitHub Bar -->
+    <div class="gh-bar">
+      <div class="gh-bar-header" onclick="toggleGhBar()">
+        <span style="color:var(--accent);font-size:14px;">⚙</span>
+        <span class="gh-bar-title">GitHub Verbindung</span>
+        <span id="gh-bar-toggle" style="margin-left:auto;color:var(--muted);font-size:11px;font-family:monospace;">▼</span>
+      </div>
+      <div id="gh-bar-body" class="gh-bar-body">
         <div>
-          <div class="field-label">Personal Access Token</div>
-          <input type="password" id="ghToken" placeholder="ghp_…" autocomplete="off"/>
-          <div class="field-hint">Benötigt <code>repo</code>-Scope. <a href="https://github.com/settings/tokens/new" target="_blank" style="color:oklch(52% 0.18 240)">Token erstellen →</a></div>
+          <div class="field-label" style="font-size:10px;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);">Token</div>
+          <input type="password" id="ghToken" placeholder="ghp_…" autocomplete="off" style="width:220px;"/>
+          <div class="gh-bar-hint">Braucht <code>repo</code> Scope. <a href="https://github.com/settings/tokens/new" target="_blank">Token erstellen →</a></div>
         </div>
         <div>
-          <div class="field-label">Repository</div>
-          <input type="text" id="ghRepo" value="DScampy/ki_news" readonly/>
+          <div class="field-label" style="font-size:10px;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);">Repository</div>
+          <input type="text" id="ghRepo" value="DScampy/ki_news" style="width:180px;"/>
         </div>
         <div>
-          <div class="field-label">Branch</div>
-          <input type="text" id="ghBranch" value="main"/>
+          <div class="field-label" style="font-size:10px;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);">Branch</div>
+          <input type="text" id="ghBranch" value="main" style="width:100px;"/>
         </div>
-        <button class="btn btn-primary btn-full" onclick="loadFromGitHub()">
-          Laden &amp; Verbinden
-        </button>
+        <button class="btn btn-primary" onclick="loadFromGitHub()">Laden &amp; Verbinden</button>
       </div>
     </div>
 
-    <!-- Stats -->
-    <div class="card" id="statsCard" style="display:none">
-      <div class="card-title">Übersicht</div>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-num" id="statTotal">—</div>
-          <div class="stat-lbl">Artikel</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-num" id="statModified" style="color:oklch(52% 0.14 75)">0</div>
-          <div class="stat-lbl">Geändert</div>
-        </div>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:oklch(55% 0.01 240)">
-        Stand: <span id="statStand">—</span>
+    <!-- Stats row -->
+    <div class="stats-row" id="statsRow" style="display:none">
+      <div class="stat-box"><div class="stat-num" id="statTotal">—</div><div class="stat-lbl">Artikel</div></div>
+      <div class="stat-box"><div class="stat-num" id="statModified" style="color:var(--yellow)">0</div><div class="stat-lbl">Geändert</div></div>
+      <div class="stat-box" style="flex:2"><div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:monospace;letter-spacing:0.06em;">STAND</div><div style="font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;" id="statStand">—</div></div>
+      <div class="stat-box" style="display:flex;align-items:center;gap:8px;flex:2;">
+        <button class="btn btn-primary" onclick="openCommitModal()" id="commitBtn" disabled>Speichern →</button>
+        <button class="btn btn-ghost" onclick="downloadJSON()">↓ JSON</button>
+        <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="card" id="actionsCard" style="display:none">
-      <div class="card-title">Aktionen</div>
-      <div class="action-list">
-        <button class="btn btn-primary btn-full" onclick="openCommitModal()" id="commitBtn" disabled>
-          Änderungen speichern
-        </button>
-        <button class="btn btn-ghost btn-full" onclick="downloadJSON()">
-          JSON herunterladen
-        </button>
-        <button class="btn btn-ghost btn-full" onclick="resetAll()">
-          Änderungen zurücksetzen
-        </button>
-      </div>
+    <!-- Section header -->
+    <div class="section-header">
+      <div><div class="section-title">Artikel bearbeiten</div><div class="section-sub" id="modifiedCount"></div></div>
     </div>
 
-  </aside>
-
-  <!-- Main editor -->
-  <main class="main">
-
-    <!-- Tab Bar -->
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tab-news-btn" onclick="switchTab('news')">📰 Artikel</button>
-      <button class="tab-btn" id="tab-media-btn" onclick="switchTab('media')">🎙 Media Manager</button>
-      <button class="tab-btn" id="tab-dash-btn" onclick="switchTab('dash')">📌 Dashboard</button>
+    <div class="search-bar" id="searchBar" style="display:none">
+      <span class="search-icon">⌕</span>
+      <input type="text" placeholder="Artikel suchen…" oninput="filterArticles(this.value)" id="searchInput"/>
     </div>
 
-    <!-- Tab: Artikel -->
-    <div class="tab-panel active" id="tab-news">
-      <div class="main-header">
-        <div>
-          <h1 class="main-title">Artikel bearbeiten</h1>
-        </div>
-        <div class="main-actions">
-          <span id="modifiedCount" style="font-size:12px;color:oklch(55% 0.01 240);align-self:center"></span>
-        </div>
+    <div id="editorContainer">
+      <div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben und "Laden" klicken.</p></div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: NEUER ARTIKEL ═══════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-create">
+    <div class="section-header">
+      <div>
+        <div class="section-title">Neuer Artikel</div>
+        <div class="section-sub">Generiert die HTML-Datei und updated die sitemap.xml automatisch</div>
       </div>
-      <div class="search-bar" id="searchBar" style="display:none">
-        <span class="search-icon">⌕</span>
-        <input type="text" placeholder="Artikel suchen…" oninput="filterArticles(this.value)" id="searchInput"/>
-      </div>
-      <div id="editorContainer">
-        <div class="empty">
-          <h3>Noch nicht geladen</h3>
-          <p>Token eingeben und "Laden" klicken.</p>
-        </div>
-      </div>
+      <button class="btn btn-primary" onclick="publishArticle()" id="publishBtn">
+        🚀 Veröffentlichen
+      </button>
     </div>
 
-    <!-- Tab: Media Manager -->
-    <div class="tab-panel" id="tab-media">
-      <div class="main-header">
-        <h1 class="main-title">Media Manager</h1>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="help-hint">☰ Ziehen = Reihenfolge</span>
-          <button class="btn btn-ghost" onclick="loadMediaFromGitHub()">↓ Laden</button>
-          <button class="btn btn-primary" onclick="saveMediaToGitHub()" id="mediaCommitBtn" disabled>Speichern →</button>
+    <div class="art-builder">
+      <!-- Left: Form -->
+      <div class="art-form">
+        <div class="field">
+          <label class="field-label">Titel *</label>
+          <input type="text" id="art-title" placeholder="Tagsüber Gericht, abends Peking" oninput="updateSlug();updatePreview();"/>
         </div>
-      </div>
-      <div id="mediaStatus" style="font-size:12px;color:oklch(55% 0.01 240);margin-bottom:16px"></div>
-
-      <!-- 🎙 Podcast-Episoden -->
-      <div class="media-section-header">
-        <div>
-          <span class="media-section-title">🎙 Podcast-Episoden</span>
-          <span class="media-section-count" id="podcastCount"></span>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="addPodcast()"
-          style="background:oklch(94% 0.04 145);border-color:oklch(80% 0.1 145);color:oklch(35% 0.18 145)">
-          + Neue Episode
-        </button>
-      </div>
-      <div class="ep-list" id="podcastList" style="margin-bottom:32px">
-        <div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben, dann "Laden" klicken.</p></div>
-      </div>
-
-      <!-- 🎬 Videos -->
-      <div class="media-section-header">
-        <div>
-          <span class="media-section-title">🎬 Videos</span>
-          <span class="media-section-count" id="videoCount"></span>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="addVideo()"
-          style="background:oklch(94% 0.04 25);border-color:oklch(80% 0.1 25);color:oklch(35% 0.18 25)">
-          + Neues Video
-        </button>
-      </div>
-      <div class="ep-list" id="videoList">
-        <div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben, dann "Laden" klicken.</p></div>
-      </div>
-    </div>
-
-
-    <!-- Tab: Dashboard Config -->
-    <div class="tab-panel" id="tab-dash">
-      <div style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start">
-
-        <!-- Linke Seite: Artikel-Liste -->
-        <div>
-          <div class="main-header">
-            <div>
-              <h1 class="main-title">Dashboard konfigurieren</h1>
-              <p style="font-size:12px;color:oklch(55% 0.01 240);margin-top:4px" id="dash-status">Token eingeben und "Artikel laden" klicken.</p>
-            </div>
-            <button class="btn btn-ghost" onclick="loadDashConfig()">↓ Artikel laden</button>
+        <div class="field">
+          <label class="field-label">URL-Slug (Dateiname) *</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="art-slug" placeholder="peking-gericht" style="flex:1;" oninput="updatePreview()"/>
+            <span style="font-size:11px;font-family:monospace;color:var(--muted);white-space:nowrap;">.html</span>
           </div>
-          <div id="dash-article-list">
-            <div class="empty">
-              <h3>Noch nicht geladen</h3>
-              <p>GitHub-Token eingeben und "Artikel laden" klicken.</p>
-            </div>
+          <div class="field-hint">→ ki-news.live/artikel/<span id="slug-preview" style="color:var(--accent);">slug</span>.html</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Untertitel / Teaser *</label>
+          <input type="text" id="art-sub" placeholder="Warum die KI-Kriege Theater sind – und wer wirklich die Karten hält" oninput="updatePreview()"/>
+        </div>
+        <div class="field">
+          <label class="field-label">Meta-Beschreibung *</label>
+          <textarea id="art-desc" rows="2" placeholder="Kurze Beschreibung für Google & Co. (150-160 Zeichen)" oninput="updatePreview()"></textarea>
+          <div class="field-hint"><span id="desc-count">0</span>/160 Zeichen</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="field">
+            <label class="field-label">Datum *</label>
+            <input type="date" id="art-date" oninput="updatePreview()"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Kategorie-Tag</label>
+            <input type="text" id="art-tag" placeholder="Analyse" oninput="updatePreview()"/>
           </div>
         </div>
+        <div class="field">
+          <label class="field-label">Themen-Tags</label>
+          <input type="text" id="art-tags" placeholder="KI-Industrie, Machtstrukturen (kommagetrennt)" oninput="updatePreview()"/>
+          <div class="field-hint">Werden als Tag-Badges angezeigt</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Lesezeit</label>
+          <input type="text" id="art-readtime" placeholder="≈ 8 Min." oninput="updatePreview()"/>
+        </div>
+        <div class="field">
+          <label class="field-label">Link zum Original auf X (optional)</label>
+          <input type="text" id="art-xlink" placeholder="https://x.com/ScampyKI/status/…"/>
+        </div>
 
-        <!-- Rechte Seite: Konfig-Panel -->
-        <div style="position:sticky;top:88px;display:flex;flex-direction:column;gap:14px">
+        <div style="margin:20px 0;height:1px;background:var(--border);"></div>
 
-          <!-- Carousel Slots -->
-          <div class="card">
-            <div class="card-title">📌 Top-3 Carousel</div>
-            <div id="dash-pin-slots" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
-            <p id="dash-slots-info" style="font-size:11px;color:oklch(60% 0.01 240);font-family:monospace;margin-top:4px">Alle 3 Slots: automatisch (Top-Score)</p>
+        <div class="field">
+          <label class="field-label">Artikel-Text *</label>
+          <div class="field-hint" style="margin-bottom:8px;">
+            Absätze durch Leerzeile trennen · <code>## Überschrift</code> für H2 · <code>&gt; Zitat</code> für Blockquote
           </div>
+          <textarea id="art-body" rows="18" placeholder="Niemand rahmt das gerade richtig ein.
 
-          <!-- Sperrliste -->
-          <div class="card">
-            <div class="card-title">🚫 Sperrliste</div>
-            <p style="font-size:11px;color:oklch(60% 0.01 240);margin-bottom:10px;line-height:1.5">
-              Gesperrte Artikel tauchen nie auf dem Dashboard auf – auch nicht nach Feed-Updates des Python-Scripts.
-            </p>
-            <div id="dash-blocked-list">
-              <p style="font-size:12px;color:oklch(65% 0.01 240)">Keine gesperrten Artikel.</p>
-            </div>
+Elon Musk klagt gegen Sam Altman. Alle reden vom KI-Krieg.
+
+## Der entscheidende Widerspruch
+
+Aber gleichzeitig sitzt Musk beim Staatsbankett in Peking…
+
+> Das ist kein Widerspruch. Das ist Arithmetik." oninput="updatePreview()"></textarea>
+        </div>
+      </div>
+
+      <!-- Right: Preview -->
+      <div class="art-preview">
+        <div class="preview-box">
+          <div class="preview-header">
+            <div class="preview-dot" style="background:#f87171;"></div>
+            <div class="preview-dot" style="background:#fbbf24;margin-left:5px;"></div>
+            <div class="preview-dot" style="background:#22c55e;margin-left:5px;"></div>
+            <span style="font-size:10px;font-family:monospace;color:var(--muted);margin-left:10px;" id="preview-url-bar">ki-news.live/artikel/slug.html</span>
           </div>
-
-          <!-- Speichern -->
-          <button class="btn btn-primary btn-full" id="dashSaveBtn" onclick="saveDashConfig()" disabled>
-            Konfiguration speichern →
-          </button>
-          <p style="font-size:10px;color:oklch(65% 0.01 240);text-align:center;margin-top:-8px">
-            Schreibt <code>dashboard_config.json</code> ins GitHub-Repo
-          </p>
-
+          <div class="preview-body">
+            <div style="font-size:9px;font-family:monospace;color:var(--muted2);letter-spacing:0.08em;margin-bottom:12px;">VORSCHAU</div>
+            <div class="preview-title" id="prev-title">Kein Titel</div>
+            <div class="preview-sub" id="prev-sub">Kein Untertitel</div>
+            <div class="preview-meta" id="prev-meta">Von @ScampyKI · Datum · Lesezeit</div>
+            <div class="preview-text" id="prev-body" style="color:var(--muted2);font-style:italic;">Artikeltext erscheint hier…</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;" class="card">
+          <div class="card-title">Was passiert beim Veröffentlichen</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+            <div>① <strong style="color:var(--text);">HTML generieren</strong> — artikel/<span id="pub-slug">slug</span>.html</div>
+            <div>② <strong style="color:var(--text);">Sitemap updaten</strong> — neue URL eintragen</div>
+            <div>③ <strong style="color:var(--text);">GitHub Commit</strong> — beide Dateien auf einmal</div>
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2);font-family:monospace;">
+            Token muss verbunden sein
+          </div>
         </div>
       </div>
     </div>
+  </div>
 
-  </main>
-</div>
+  <!-- ═══ TAB: MEDIA ═════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-media">
+    <div class="section-header">
+      <div><div class="section-title">Media Manager</div><div class="section-sub">☰ Ziehen zum Sortieren</div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="loadMediaFromGitHub()">↓ Laden</button>
+        <button class="btn btn-primary" onclick="saveMediaToGitHub()" id="mediaCommitBtn" disabled>Speichern →</button>
+      </div>
+    </div>
+    <div id="mediaStatus" style="font-size:12px;color:var(--muted);font-family:monospace;margin-bottom:16px;"></div>
+
+    <div class="media-section-header">
+      <div><span class="media-section-title">🎙 Podcast-Episoden</span><span class="media-section-count" id="podcastCount"></span></div>
+      <button class="btn btn-ghost btn-sm" onclick="addPodcast()" style="border-color:rgba(34,197,94,0.3);color:#86efac;">+ Episode</button>
+    </div>
+    <div class="ep-list" id="podcastList" style="margin-bottom:32px;">
+      <div class="empty"><h3>Noch nicht geladen</h3><p>Token verbinden, dann "Laden" klicken.</p></div>
+    </div>
+
+    <div class="media-section-header">
+      <div><span class="media-section-title">🎬 Videos</span><span class="media-section-count" id="videoCount"></span></div>
+      <button class="btn btn-ghost btn-sm" onclick="addVideo()" style="border-color:rgba(251,191,36,0.3);color:#fbbf24;">+ Video</button>
+    </div>
+    <div class="ep-list" id="videoList">
+      <div class="empty"><h3>Noch nicht geladen</h3><p>Token verbinden, dann "Laden" klicken.</p></div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: DASHBOARD ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-dash">
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start;">
+      <div>
+        <div class="section-header">
+          <div><div class="section-title">Dashboard konfigurieren</div><div class="section-sub" id="dash-status">Token verbinden und "Laden" klicken.</div></div>
+          <button class="btn btn-ghost" onclick="loadDashConfig()">↓ Laden</button>
+        </div>
+        <div id="dash-article-list">
+          <div class="empty"><h3>Noch nicht geladen</h3></div>
+        </div>
+      </div>
+      <div style="position:sticky;top:80px;display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="card-title">📌 Top-3 Carousel</div>
+          <div id="dash-pin-slots" style="display:flex;flex-direction:column;gap:0;margin-bottom:10px;"></div>
+          <p id="dash-slots-info" style="font-size:11px;color:var(--muted2);font-family:monospace;">Alle 3 Slots: automatisch</p>
+        </div>
+        <div class="card">
+          <div class="card-title">🚫 Sperrliste</div>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Gesperrte Artikel tauchen nie im Dashboard auf.</p>
+          <div id="dash-blocked-list"><p style="font-size:12px;color:var(--muted2);">Keine gesperrten Artikel.</p></div>
+        </div>
+        <button class="btn btn-primary btn-full" id="dashSaveBtn" onclick="saveDashConfig()" disabled>Konfiguration speichern →</button>
+        <p style="font-size:10px;color:var(--muted2);text-align:center;margin-top:-6px;font-family:monospace;">Schreibt dashboard_config.json</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: SITEMAP ══════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-sitemap">
+    <div class="section-header">
+      <div><div class="section-title">Sitemap verwalten</div><div class="section-sub">sitemap.xml auf GitHub</div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="loadSitemap()">↓ Laden</button>
+        <button class="btn btn-primary" onclick="saveSitemap()" id="sitemapSaveBtn" disabled>Speichern →</button>
+      </div>
+    </div>
+    <div id="sitemapStatus" style="font-size:12px;color:var(--muted);font-family:monospace;margin-bottom:16px;"></div>
+    <div id="sitemapContainer">
+      <div class="empty"><h3>Noch nicht geladen</h3><p>Token verbinden, dann "Laden" klicken.</p></div>
+    </div>
+  </div>
+
+</div><!-- end admin-body -->
 
 <!-- Commit Modal -->
 <div class="overlay" id="commitModal" style="display:none" onclick="if(event.target===this)closeCommitModal()">
   <div class="modal">
     <div class="modal-title">Änderungen committen</div>
-    <div>
-      <div class="field-label">Commit-Nachricht</div>
-      <input type="text" id="commitMsg" value="fix: Tippfehler korrigiert in news.json"/>
+    <div class="field">
+      <label class="field-label">Commit-Nachricht</label>
+      <input type="text" id="commitMsg" value="fix: news.json aktualisiert"/>
     </div>
     <div class="diff-preview" id="diffPreview"></div>
     <div class="modal-actions">
@@ -592,1007 +692,861 @@ function checkGate() {
   </div>
 </div>
 
-<!-- Toasts -->
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let originalData = null;   // raw JSON from GitHub
-let articles = [];          // working copy (objects)
-let fileSha = '';           // GitHub blob SHA (needed for update)
-let searchQuery = '';
+// ════════════════════════════════════════════════════════════════════════════
+// GLOBALS
+// ════════════════════════════════════════════════════════════════════════════
+let originalData=null, articles=[], fileSha='', searchQuery='';
+let mediaPodcasts=[], mediaVideos=[], mediaFileSha='', mediaModified=false;
+let podcastDragSrc=null, videoDragSrc=null;
+let dashConfig={featured_links:[],blocked_links:[]}, dashArticles=[], dashConfigSha='', dashConfigModified=false;
+let sitemapSha='', sitemapUrls=[], sitemapModified=false;
 
-// ── Source styling ─────────────────────────────────────────────────────────
-function srcClass(source) {
-  if (!source) return 'src-default';
-  const s = source.toLowerCase();
-  if (s.includes('decoder')) return 'src-decoder';
-  if (s.includes('techcrunch')) return 'src-techcrunch';
-  if (s.includes('venturebeat')) return 'src-venturebeat';
-  if (s.includes('mit')) return 'src-mit';
-  if (s.includes('ars')) return 'src-ars';
-  if (s.includes('heise')) return 'src-heise';
-  return 'src-default';
+// ════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+function decodeBase64UTF8(b64){
+  const bytes=Uint8Array.from(atob(b64.replace(/\n/g,'')),c=>c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+function encodeUTF8Base64(str){return btoa(unescape(encodeURIComponent(str)));}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg,type=''){
+  const wrap=document.getElementById('toastWrap');
+  const el=document.createElement('div');
+  el.className='toast'+(type?' '+type:'');el.textContent=msg;
+  wrap.appendChild(el);setTimeout(()=>el.remove(),3200);
+}
+function setStatus(s){
+  const dot=document.getElementById('statusDot'),txt=document.getElementById('statusText');
+  dot.className='status-dot'+(s==='ok'?' ok':s==='err'?' err':'');
+  txt.textContent=s==='ok'?'Verbunden':s==='err'?'Fehler':'Lädt…';
+}
+function srcClass(src){
+  if(!src)return'src-default';const s=src.toLowerCase();
+  if(s.includes('decoder'))return'src-decoder';if(s.includes('techcrunch'))return'src-techcrunch';
+  if(s.includes('venturebeat'))return'src-venturebeat';if(s.includes('mit'))return'src-mit';
+  if(s.includes('ars'))return'src-ars';if(s.includes('heise'))return'src-heise';
+  return'src-default';
 }
 
-// ── GitHub API ─────────────────────────────────────────────────────────────
-function ghHeaders() {
-  const token = document.getElementById('ghToken').value.trim();
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  };
+// ════════════════════════════════════════════════════════════════════════════
+// GITHUB API
+// ════════════════════════════════════════════════════════════════════════════
+function ghHeaders(){
+  const t=document.getElementById('ghToken').value.trim();
+  return{'Authorization':'Bearer '+t,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
 }
-
-async function loadFromGitHub() {
-  const token = document.getElementById('ghToken').value.trim();
-  if (!token) { toast('Bitte Token eingeben', 'error'); return; }
-  const repo = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim();
-
-  setStatus('loading');
-  try {
-    const res = await fetch(`https://api.github.com/repos/${repo}/contents/news.json?ref=${branch}`, {
-      headers: ghHeaders()
-    });
-    if (!res.ok) throw new Error(`GitHub: ${res.status} ${res.statusText}`);
-    const data = await res.json();
-    fileSha = data.sha;
-    const decoded = JSON.parse(decodeBase64UTF8(data.content));
-    originalData = JSON.parse(JSON.stringify(decoded));
-    articles = decoded.news.map((a, i) => ({ ...a, _id: i, _modified: false }));
-    renderEditor();
-    updateStats(decoded);
-    setStatus('ok');
-    toast(`${articles.length} Artikel geladen`, 'success');
-    document.getElementById('statsCard').style.display = '';
-    document.getElementById('actionsCard').style.display = '';
-    document.getElementById('searchBar').style.display = '';
-    try { localStorage.setItem('ki_admin_token', token); } catch(e) {}
-  } catch (e) {
-    setStatus('err');
-    toast('Fehler: ' + e.message, 'error');
-  }
+function getRepo(){return document.getElementById('ghRepo').value.trim();}
+function getBranch(){return document.getElementById('ghBranch').value.trim();}
+async function ghGet(path){
+  const res=await fetch('https://api.github.com/repos/'+getRepo()+'/contents/'+path+'?ref='+getBranch(),{headers:ghHeaders()});
+  if(!res.ok)throw new Error('GitHub '+res.status+': '+res.statusText);
+  return res.json();
 }
-
-async function commitChanges() {
-  const token = document.getElementById('ghToken').value.trim();
-  if (!token) { toast('Token fehlt', 'error'); return; }
-  const repo = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim();
-  const msg = document.getElementById('commitMsg').value.trim() || 'fix: news.json aktualisiert';
-
-  const btn = document.getElementById('commitSubmitBtn');
-  btn.disabled = true; btn.textContent = 'Wird gespeichert…';
-
-  try {
-    const updated = buildJSON();
-    const jsonStr = JSON.stringify(updated, null, 2);
-    // Encode properly for Unicode (German umlauts etc.)
-    const content = btoa(unescape(encodeURIComponent(jsonStr)));
-
-    const body = { message: msg, content, sha: fileSha, branch };
-    console.log('Committing to:', repo, 'sha:', fileSha, 'branch:', branch);
-
-    const res = await fetch(`https://api.github.com/repos/${repo}/contents/news.json`, {
-      method: 'PUT',
-      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const result = await res.json();
-    console.log('GitHub response:', res.status, result);
-    if (!res.ok) {
-      const hint = res.status === 404
-        ? ' → Token hat wahrscheinlich nur Lesezugriff. Bitte "Contents: Read and write" im Token aktivieren.'
-        : res.status === 401 ? ' → Token ungültig oder abgelaufen.' : '';
-      throw new Error(`${res.status}: ${result.message || res.statusText}${hint}`);
-    }
-    fileSha = result.content.sha;
-    // mark all as unmodified
-    articles.forEach(a => a._modified = false);
-    originalData = JSON.parse(JSON.stringify(updated));
-    renderEditor();
-    updateStats(updated);
-    closeCommitModal();
-    toast('✓ Erfolgreich gespeichert auf GitHub', 'success');
-  } catch (e) {
-    toast('Fehler: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Committen →';
-  }
-}
-
-// ── Build output JSON ───────────────────────────────────────────────────────
-function buildJSON() {
-  return {
-    stand: originalData.stand,
-    news: articles.map(({ _id, _modified, ...rest }) => rest)
-  };
-}
-
-// ── Render ─────────────────────────────────────────────────────────────────
-function renderEditor() {
-  const container = document.getElementById('editorContainer');
-  const filtered = articles.filter(a => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (a.title||'').toLowerCase().includes(q) ||
-           (a.summary||'').toLowerCase().includes(q) ||
-           (a.source||'').toLowerCase().includes(q);
+async function ghPut(path,content,sha,msg){
+  const body={message:msg,content:encodeUTF8Base64(content),branch:getBranch()};
+  if(sha)body.sha=sha;
+  const res=await fetch('https://api.github.com/repos/'+getRepo()+'/contents/'+path,{
+    method:'PUT',headers:{...ghHeaders(),'Content-Type':'application/json'},body:JSON.stringify(body)
   });
+  const result=await res.json();
+  if(!res.ok)throw new Error(res.status+': '+(result.message||res.statusText));
+  return result;
+}
 
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty"><h3>Keine Artikel gefunden</h3><p>Suchbegriff anpassen.</p></div>';
-    return;
-  }
+// ════════════════════════════════════════════════════════════════════════════
+// NEWS.JSON EDITOR
+// ════════════════════════════════════════════════════════════════════════════
+async function loadFromGitHub(){
+  const token=document.getElementById('ghToken').value.trim();
+  if(!token){toast('Bitte Token eingeben','error');return;}
+  setStatus('loading');
+  try{
+    const data=await ghGet('news.json');
+    fileSha=data.sha;
+    const decoded=JSON.parse(decodeBase64UTF8(data.content));
+    originalData=JSON.parse(JSON.stringify(decoded));
+    articles=decoded.news.map((a,i)=>({...a,_id:i,_modified:false}));
+    renderEditor();updateStats(decoded);setStatus('ok');
+    toast(articles.length+' Artikel geladen','success');
+    document.getElementById('statsRow').style.display='';
+    document.getElementById('searchBar').style.display='';
+    try{localStorage.setItem('ki_admin_token',document.getElementById('ghToken').value.trim());}catch(e){}
+  }catch(e){setStatus('err');toast('Fehler: '+e.message,'error');}
+}
 
-  container.innerHTML = '<div class="article-list" id="articleList"></div>';
-  const list = document.getElementById('articleList');
-  filtered.forEach(a => list.appendChild(createCard(a)));
+async function commitChanges(){
+  const msg=document.getElementById('commitMsg').value.trim()||'fix: news.json aktualisiert';
+  const btn=document.getElementById('commitSubmitBtn');
+  btn.disabled=true;btn.textContent='Wird gespeichert…';
+  try{
+    const updated=buildJSON();
+    const result=await ghPut('news.json',JSON.stringify(updated,null,2),fileSha,msg);
+    fileSha=result.content.sha;
+    articles.forEach(a=>a._modified=false);
+    originalData=JSON.parse(JSON.stringify(updated));
+    renderEditor();updateStats(updated);closeCommitModal();
+    toast('✓ Erfolgreich gespeichert','success');
+  }catch(e){toast('Fehler: '+e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='Committen →';}
+}
+
+function buildJSON(){return{stand:originalData.stand,news:articles.map(({_id,_modified,...rest})=>rest)};}
+
+function renderEditor(){
+  const container=document.getElementById('editorContainer');
+  const filtered=articles.filter(a=>{
+    if(!searchQuery)return true;
+    const q=searchQuery.toLowerCase();
+    return(a.title||'').toLowerCase().includes(q)||(a.summary||'').toLowerCase().includes(q)||(a.source||'').toLowerCase().includes(q);
+  });
+  if(!filtered.length){container.innerHTML='<div class="empty"><h3>Keine Artikel gefunden</h3></div>';return;}
+  container.innerHTML='<div class="article-list" id="articleList"></div>';
+  const list=document.getElementById('articleList');
+  filtered.forEach(a=>list.appendChild(createCard(a)));
   updateModifiedCount();
 }
 
-function createCard(article) {
-  const div = document.createElement('div');
-  div.className = `article-card${article._modified ? ' modified' : ''}`;
-  div.id = `card-${article._id}`;
-  div.innerHTML = `
-    <div class="card-inner">
-      <div class="card-indicator"></div>
-      <div class="card-content">
-        <div class="card-meta">
-          <span class="source-badge ${srcClass(article.source)}">${article.source || '—'}</span>
-          <span class="card-num">#${article._id + 1}</span>
-          ${article._modified ? '<span class="modified-badge">Geändert</span>' : ''}
-        </div>
-        <div class="field-group title-field">
-          <label class="field-label">Titel</label>
-          <input type="text" value="${escHtml(article.title || '')}"
-            oninput="updateField(${article._id}, 'title', this.value)"
-            placeholder="Titel…"/>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Zusammenfassung</label>
-          <textarea rows="3"
-            oninput="updateField(${article._id}, 'summary', this.value)"
-            placeholder="Zusammenfassung…">${escHtml(article.summary || '')}</textarea>
-        </div>
-        <div class="card-footer">
-          <span class="link-preview" title="${escHtml(article.link || '')}">
-            ${article.link ? `<a href="${escHtml(article.link)}" target="_blank" style="color:oklch(52% 0.18 240)">${escHtml(article.link)}</a>` : '—'}
-          </span>
-          <div class="card-actions">
-            ${article._modified ? `<button class="btn btn-ghost btn-sm" onclick="resetArticle(${article._id})">Zurücksetzen</button>` : ''}
-          </div>
+function createCard(article){
+  const div=document.createElement('div');
+  div.className='article-card'+(article._modified?' modified':'');
+  div.id='card-'+article._id;
+  div.innerHTML=`<div class="card-inner">
+    <div class="card-indicator"></div>
+    <div class="card-content">
+      <div class="card-meta-row">
+        <span class="source-badge ${srcClass(article.source)}">${article.source||'—'}</span>
+        <span class="card-num">#${article._id+1}</span>
+        ${article._modified?'<span class="modified-badge">Geändert</span>':''}
+      </div>
+      <div class="field" style="margin:0">
+        <label class="field-label">Titel</label>
+        <input type="text" value="${escHtml(article.title||'')}" oninput="updateField(${article._id},'title',this.value)" placeholder="Titel…" style="font-weight:600;"/>
+      </div>
+      <div class="field" style="margin:0">
+        <label class="field-label">Zusammenfassung</label>
+        <textarea rows="3" oninput="updateField(${article._id},'summary',this.value)" placeholder="Zusammenfassung…">${escHtml(article.summary||'')}</textarea>
+      </div>
+      <div class="card-footer">
+        <span class="link-preview" title="${escHtml(article.link||'')}">
+          ${article.link?`<a href="${escHtml(article.link)}" target="_blank">${escHtml(article.link)}</a>`:'—'}
+        </span>
+        <div style="display:flex;gap:6px;">
+          ${article._modified?`<button class="btn btn-ghost btn-sm" onclick="resetArticle(${article._id})">↺ Reset</button>`:''}
         </div>
       </div>
-    </div>`;
+    </div>
+  </div>`;
   return div;
 }
 
-function updateField(id, field, value) {
-  const a = articles.find(x => x._id === id);
-  if (!a) return;
-  a[field] = value;
-  const orig = originalData.news[id];
-  a._modified = orig ? (a.title !== orig.title || a.summary !== orig.summary) : true;
-
-  // update card classes without full re-render
-  const card = document.getElementById(`card-${id}`);
-  if (card) {
-    card.className = `article-card${a._modified ? ' modified' : ''}`;
-    // update modified badge
-    const meta = card.querySelector('.card-meta');
-    const existing = meta.querySelector('.modified-badge');
-    if (a._modified && !existing) {
-      const badge = document.createElement('span');
-      badge.className = 'modified-badge'; badge.textContent = 'Geändert';
-      meta.appendChild(badge);
-    } else if (!a._modified && existing) {
-      existing.remove();
-    }
-    // update reset button
-    const actions = card.querySelector('.card-actions');
-    const resetBtn = actions.querySelector('button');
-    if (a._modified && !resetBtn) {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-ghost btn-sm';
-      btn.textContent = 'Zurücksetzen';
-      btn.onclick = () => resetArticle(id);
-      actions.appendChild(btn);
-    } else if (!a._modified && resetBtn) {
-      resetBtn.remove();
-    }
+function updateField(id,field,value){
+  const a=articles.find(x=>x._id===id);if(!a)return;
+  a[field]=value;
+  const orig=originalData.news[id];
+  a._modified=orig?(a.title!==orig.title||a.summary!==orig.summary):true;
+  const card=document.getElementById('card-'+id);
+  if(card){
+    card.className='article-card'+(a._modified?' modified':'');
+    const meta=card.querySelector('.card-meta-row');
+    const existing=meta.querySelector('.modified-badge');
+    if(a._modified&&!existing){const b=document.createElement('span');b.className='modified-badge';b.textContent='Geändert';meta.appendChild(b);}
+    else if(!a._modified&&existing)existing.remove();
+    const acts=card.querySelector('.card-footer div');
+    const rb=acts.querySelector('button');
+    if(a._modified&&!rb){const b=document.createElement('button');b.className='btn btn-ghost btn-sm';b.textContent='↺ Reset';b.onclick=()=>resetArticle(id);acts.appendChild(b);}
+    else if(!a._modified&&rb)rb.remove();
   }
   updateModifiedCount();
 }
 
-function resetArticle(id) {
-  const a = articles.find(x => x._id === id);
-  const orig = originalData.news[id];
-  if (!a || !orig) return;
-  a.title = orig.title; a.summary = orig.summary; a._modified = false;
-  const card = document.getElementById(`card-${id}`);
-  if (card) {
-    card.querySelector('input[type="text"]').value = orig.title || '';
-    card.querySelector('textarea').value = orig.summary || '';
-    card.className = 'article-card';
-    card.querySelector('.card-meta .modified-badge')?.remove();
-    card.querySelector('.card-actions button')?.remove();
+function resetArticle(id){
+  const a=articles.find(x=>x._id===id),orig=originalData.news[id];
+  if(!a||!orig)return;
+  a.title=orig.title;a.summary=orig.summary;a._modified=false;
+  const card=document.getElementById('card-'+id);
+  if(card){
+    card.querySelector('input[type="text"]').value=orig.title||'';
+    card.querySelector('textarea').value=orig.summary||'';
+    card.className='article-card';
+    card.querySelector('.card-meta-row .modified-badge')?.remove();
+    card.querySelector('.card-footer div button')?.remove();
   }
   updateModifiedCount();
 }
 
-function resetAll() {
-  if (!confirm('Alle Änderungen zurücksetzen?')) return;
-  articles.forEach(a => {
-    const orig = originalData.news[a._id];
-    if (orig) { a.title = orig.title; a.summary = orig.summary; a._modified = false; }
+function resetAll(){
+  if(!confirm('Alle Änderungen zurücksetzen?'))return;
+  articles.forEach(a=>{const orig=originalData.news[a._id];if(orig){a.title=orig.title;a.summary=orig.summary;a._modified=false;}});
+  renderEditor();toast('Alle Änderungen zurückgesetzt');
+}
+
+function updateModifiedCount(){
+  const count=articles.filter(a=>a._modified).length;
+  document.getElementById('statModified').textContent=count;
+  document.getElementById('modifiedCount').textContent=count>0?count+' Änderung'+(count>1?'en':'')+' ausstehend':'';
+  document.getElementById('commitBtn').disabled=count===0;
+}
+
+function filterArticles(q){searchQuery=q;renderEditor();}
+function updateStats(data){
+  document.getElementById('statTotal').textContent=data.news?.length||0;
+  document.getElementById('statStand').textContent=data.stand||'—';
+}
+function openCommitModal(){
+  const modified=articles.filter(a=>a._modified);if(!modified.length)return;
+  let diff='';
+  modified.forEach(a=>{
+    const orig=originalData.news[a._id];
+    if(orig&&orig.title!==a.title){diff+=`<div class="diff-del">- ${escHtml(orig.title)}</div><div class="diff-add">+ ${escHtml(a.title)}</div>`;}
+    if(orig&&orig.summary!==a.summary){diff+=`<div class="diff-del">- ${escHtml((orig.summary||'').slice(0,80))}…</div><div class="diff-add">+ ${escHtml((a.summary||'').slice(0,80))}…</div>`;}
   });
-  renderEditor();
-  toast('Alle Änderungen zurückgesetzt');
+  document.getElementById('diffPreview').innerHTML=diff||'<span style="color:var(--muted)">Keine Änderungen</span>';
+  document.getElementById('commitModal').style.display='flex';
 }
-
-function updateModifiedCount() {
-  const count = articles.filter(a => a._modified).length;
-  document.getElementById('statModified').textContent = count;
-  document.getElementById('modifiedCount').textContent = count > 0 ? `${count} Änderung${count > 1 ? 'en' : ''} ausstehend` : '';
-  document.getElementById('commitBtn').disabled = count === 0;
-}
-
-function filterArticles(q) {
-  searchQuery = q;
-  renderEditor();
-}
-
-// ── Stats ───────────────────────────────────────────────────────────────────
-function updateStats(data) {
-  document.getElementById('statTotal').textContent = data.news?.length || 0;
-  document.getElementById('statStand').textContent = data.stand || '—';
-}
-
-// ── Commit modal ────────────────────────────────────────────────────────────
-function openCommitModal() {
-  const modified = articles.filter(a => a._modified);
-  if (modified.length === 0) return;
-  // build diff preview
-  let diff = '';
-  modified.forEach(a => {
-    const orig = originalData.news[a._id];
-    if (orig && orig.title !== a.title) {
-      diff += `<div class="diff-line-del">- [${orig.source}] Titel: ${escHtml(orig.title)}</div>`;
-      diff += `<div class="diff-line-add">+ [${a.source}] Titel: ${escHtml(a.title)}</div>`;
-    }
-    if (orig && orig.summary !== a.summary) {
-      diff += `<div class="diff-line-del">- Zusammenfassung: ${escHtml(orig.summary?.slice(0,80))}…</div>`;
-      diff += `<div class="diff-line-add">+ Zusammenfassung: ${escHtml(a.summary?.slice(0,80))}…</div>`;
-    }
-  });
-  document.getElementById('diffPreview').innerHTML = diff || '<span style="color:oklch(55% 0.01 240)">Keine Änderungen</span>';
-  document.getElementById('commitModal').style.display = 'flex';
-}
-
-function closeCommitModal() {
-  document.getElementById('commitModal').style.display = 'none';
-}
-
-// ── Download ────────────────────────────────────────────────────────────────
-function downloadJSON() {
-  const data = buildJSON();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'news.json';
-  a.click();
+function closeCommitModal(){document.getElementById('commitModal').style.display='none';}
+function downloadJSON(){
+  const blob=new Blob([JSON.stringify(buildJSON(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='news.json';a.click();
   toast('JSON heruntergeladen');
 }
 
-// ── Status indicator ────────────────────────────────────────────────────────
-function setStatus(s) {
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  dot.className = 'status-dot ' + (s === 'ok' ? 'ok' : s === 'err' ? 'err' : '');
-  txt.textContent = s === 'ok' ? 'Verbunden' : s === 'err' ? 'Fehler' : 'Wird geladen…';
+// ════════════════════════════════════════════════════════════════════════════
+// NEUER ARTIKEL — HTML GENERATOR + SITEMAP
+// ════════════════════════════════════════════════════════════════════════════
+function updateSlug(){
+  const title=document.getElementById('art-title').value;
+  const slug=title.toLowerCase()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').trim().slice(0,60);
+  document.getElementById('art-slug').value=slug;
+  document.getElementById('slug-preview').textContent=slug||'slug';
+  document.getElementById('pub-slug').textContent=slug||'slug';
+  document.getElementById('preview-url-bar').textContent='ki-news.live/artikel/'+(slug||'slug')+'.html';
 }
 
-// ── Toast ───────────────────────────────────────────────────────────────────
-function toast(msg, type = '') {
-  const wrap = document.getElementById('toastWrap');
-  const el = document.createElement('div');
-  el.className = `toast${type ? ' ' + type : ''}`;
-  el.textContent = msg;
-  wrap.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+function updatePreview(){
+  const title=document.getElementById('art-title').value||'Kein Titel';
+  const sub=document.getElementById('art-sub').value||'Kein Untertitel';
+  const date=document.getElementById('art-date').value;
+  const readtime=document.getElementById('art-readtime').value||'—';
+  const body=document.getElementById('art-body').value;
+  const slug=document.getElementById('art-slug').value||'slug';
+  const desc=document.getElementById('art-desc').value;
+
+  document.getElementById('prev-title').textContent=title;
+  document.getElementById('prev-sub').textContent=sub;
+  document.getElementById('prev-meta').textContent='Von @ScampyKI · '+(date||'Datum')+' · '+readtime;
+  document.getElementById('prev-body').textContent=body.slice(0,300)+(body.length>300?'…':'');
+  document.getElementById('slug-preview').textContent=slug;
+  document.getElementById('pub-slug').textContent=slug;
+  document.getElementById('preview-url-bar').textContent='ki-news.live/artikel/'+slug+'.html';
+  document.getElementById('desc-count').textContent=desc.length;
+  document.getElementById('desc-count').style.color=desc.length>160?'var(--red)':desc.length>120?'var(--accent)':'var(--muted)';
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-// UTF-8-sicheres Base64-Decode (atob() allein bricht bei Umlauten)
-function decodeBase64UTF8(b64) {
-  const bytes = Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0));
-  return new TextDecoder('utf-8').decode(bytes);
+function parseArticleBody(raw){
+  const paragraphs=raw.split(/\n\n+/);
+  return paragraphs.map(p=>{
+    p=p.trim();if(!p)return'';
+    if(p.startsWith('## ')){return`<h2>${escHtml(p.slice(3))}</h2>`;}
+    if(p.startsWith('> ')){return`<blockquote><p>${escHtml(p.slice(2))}</p></blockquote>`;}
+    return`<p>${escHtml(p).replace(/\n/g,'<br>')}</p>`;
+  }).filter(Boolean).join('\n    ');
 }
 
-function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function formatDateDE(dateStr){
+  if(!dateStr)return'';
+  const d=new Date(dateStr+'T12:00:00');
+  return d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
 }
 
-// ── Restore token from localStorage ────────────────────────────────────────
-try {
-  const saved = localStorage.getItem('ki_admin_token');
-  if (saved) document.getElementById('ghToken').value = saved;
-} catch(e) { /* sandboxed — ignore */ }
+function generateArticleHTML(fields){
+  const {title,slug,sub,desc,date,tag,tagsArr,readtime,xlink,bodyRaw}=fields;
+  const bodyHTML=parseArticleBody(bodyRaw);
+  const dateDE=formatDateDE(date);
+  const tagBadges=tagsArr.map(t=>`<span class="art-tag-outline">${escHtml(t.trim())}</span>`).join('\n    ');
+  const xlinkHTML=xlink?`<span class="dot"></span>\n    <a href="${escHtml(xlink)}" target="_blank">Original auf X ↗</a>`:'';
+  const canonicalUrl=`https://ki-news.live/artikel/${slug}.html`;
 
-// ── Tab switching ────────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + name + '-btn').classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
+  return`<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<meta charset="utf-8"/>
+<link rel="icon" type="image/png" href="../s-logo.png"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>${escHtml(title)} · KI News</title>
+<meta name="description" content="${escHtml(desc)}"/>
+<meta name="author" content="Daniel S. · @ScampyKI"/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="${canonicalUrl}"/>
+<meta property="og:type" content="article"/>
+<meta property="og:title" content="${escHtml(title)}"/>
+<meta property="og:description" content="${escHtml(desc)}"/>
+<meta property="og:url" content="${canonicalUrl}"/>
+<meta property="og:image" content="https://ki-news.live/s-logo.png"/>
+<meta property="og:locale" content="de_DE"/>
+<meta property="og:site_name" content="KI News"/>
+<meta property="article:published_time" content="${date}"/>
+<meta property="article:author" content="Daniel S."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:site" content="@ScampyKI"/>
+<meta name="twitter:creator" content="@ScampyKI"/>
+<meta name="twitter:title" content="${escHtml(title)}"/>
+<meta name="twitter:description" content="${escHtml(sub)}"/>
+<meta name="twitter:image" content="https://ki-news.live/s-logo.png"/>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "${escHtml(title)}",
+  "description": "${escHtml(desc)}",
+  "datePublished": "${date}",
+  "author": {"@type":"Person","name":"Daniel S.","alternateName":"Scampy","url":"https://ki-news.live/","sameAs":["https://twitter.com/ScampyKI","https://soundcloud.com/dscampy"]},
+  "publisher": {"@type":"Person","name":"Daniel S.","url":"https://ki-news.live/"},
+  "mainEntityOfPage": {"@type":"WebPage","@id":"${canonicalUrl}"}
 }
-
-// ── Media Manager State ──────────────────────────────────────────────────────
-let mediaPodcasts = [];
-let mediaVideos = [];
-let mediaFileSha = '';
-let mediaModified = false;
-let podcastDragSrc = null;
-let videoDragSrc = null;
-
-// ── Load media.json from GitHub ──────────────────────────────────────────────
-async function loadMediaFromGitHub() {
-  const token = document.getElementById('ghToken').value.trim();
-  if (!token) { toast('Bitte Token eingeben', 'error'); return; }
-  const repo = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim();
-  setMediaStatus('Lade media.json…');
-  try {
-    const res = await fetch(`https://api.github.com/repos/${repo}/contents/media.json?ref=${branch}`, { headers: ghHeaders() });
-    if (!res.ok) throw new Error(`GitHub: ${res.status} ${res.statusText}`);
-    const data = await res.json();
-    mediaFileSha = data.sha;
-    const decoded = JSON.parse(decodeBase64UTF8(data.content));
-    mediaPodcasts = decoded.podcasts || [];
-    mediaVideos = decoded.videos || [];
-    mediaModified = false;
-    renderPodcastList();
-    renderVideoList();
-    setMediaStatus(`${mediaPodcasts.length} Podcast(s) · ${mediaVideos.length} Video(s) geladen`);
-    document.getElementById('mediaCommitBtn').disabled = true;
-    toast('media.json geladen', 'success');
-  } catch(e) {
-    setMediaStatus('Fehler: ' + e.message);
-    toast('Fehler: ' + e.message, 'error');
-  }
-}
-
-// ── Save media.json to GitHub ────────────────────────────────────────────────
-async function saveMediaToGitHub() {
-  const token = document.getElementById('ghToken').value.trim();
-  if (!token) { toast('Token fehlt', 'error'); return; }
-  const repo = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim();
-  const btn = document.getElementById('mediaCommitBtn');
-  btn.disabled = true; btn.textContent = 'Wird gespeichert…';
-  try {
-    const payload = { podcasts: mediaPodcasts, videos: mediaVideos };
-    const jsonStr = JSON.stringify(payload, null, 2);
-    const content = btoa(unescape(encodeURIComponent(jsonStr)));
-    const body = { message: 'media: Podcasts & Videos aktualisiert', content, sha: mediaFileSha, branch };
-    const res = await fetch(`https://api.github.com/repos/${repo}/contents/media.json`, {
-      method: 'PUT', headers: { ...ghHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(`${res.status}: ${result.message}`);
-    mediaFileSha = result.content.sha;
-    mediaModified = false;
-    setMediaStatus('✓ Gespeichert');
-    toast('✓ media.json gespeichert', 'success');
-  } catch(e) {
-    toast('Fehler: ' + e.message, 'error');
-  } finally {
-    btn.textContent = 'Speichern →';
-    btn.disabled = !mediaModified;
-  }
-}
-
-// ── Add ─────────────────────────────────────────────────────────────────────
-function addPodcast() {
-  const nextId = String(mediaPodcasts.length + 1).padStart(3, '0');
-  mediaPodcasts.unshift({
-    id: nextId, title: '', description: '',
-    date: new Date().toISOString().slice(0,10),
-    soundcloud_url: '', track_id: '', duration: ''
-  });
-  markMediaModified();
-  renderPodcastList();
-  document.getElementById('podcastList').scrollIntoView({ behavior: 'smooth' });
-}
-
-function addVideo() {
-  const nextId = 'v' + String(mediaVideos.length + 1).padStart(3, '0');
-  mediaVideos.unshift({
-    id: nextId, title: '',
-    date: new Date().toISOString().slice(0,10),
-    type: 'youtube', src: '', label: 'VIDEO'
-  });
-  markMediaModified();
-  renderVideoList();
-  document.getElementById('videoList').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ── Delete ───────────────────────────────────────────────────────────────────
-function deletePodcast(idx) {
-  if (!confirm(`Episode #${mediaPodcasts[idx].id} "${mediaPodcasts[idx].title || '(leer)'}" wirklich löschen?`)) return;
-  mediaPodcasts.splice(idx, 1);
-  markMediaModified();
-  renderPodcastList();
-}
-
-function deleteVideo(idx) {
-  if (!confirm(`Video #${mediaVideos[idx].id} "${mediaVideos[idx].title || '(leer)'}" wirklich löschen?`)) return;
-  mediaVideos.splice(idx, 1);
-  markMediaModified();
-  renderVideoList();
-}
-
-// ── Update fields ─────────────────────────────────────────────────────────────
-function updatePodcastField(idx, key, value) {
-  mediaPodcasts[idx][key] = value;
-  markMediaModified();
-}
-
-function updateVideoField(idx, key, value) {
-  mediaVideos[idx][key] = value;
-  markMediaModified();
-}
-
-function extractTrackId(embedOrUrl) {
-  // Moderne SoundCloud-Embed-src: …url=https%3A//api.soundcloud.com/tracks/2315736341&…
-  const m1 = embedOrUrl.match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
-  if (m1) return m1[1];
-  // Fallback: direkt im URL-String
-  const m2 = embedOrUrl.match(/tracks\/(\d+)/);
-  if (m2) return m2[1];
-  return '';
-}
-
-function parseEmbedCode(idx, embedCode) {
-  if (!embedCode.trim()) { toast('Embed-Code ist leer', 'error'); return; }
-
-  // Track-ID aus src-URL-Parameter (modernes Format)
-  const trackIdMatch = embedCode.match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
-
-  // SC-URL aus href (Untertext im Embed) oder aus dem url=-Param im src
-  const hrefMatch = embedCode.match(/href="(https:\/\/soundcloud\.com\/[^"]+)"/);
-  const srcUrlRaw = embedCode.match(/[?&]url=(https?[^&"]+soundcloud\.com[^&"]+)/i);
-  let scUrl = '';
-  if (hrefMatch) {
-    scUrl = hrefMatch[1];
-  } else if (srcUrlRaw) {
-    try { scUrl = decodeURIComponent(srcUrlRaw[1]); } catch(e) { scUrl = srcUrlRaw[1]; }
-  }
-
-  let changed = false;
-  if (trackIdMatch) {
-    mediaPodcasts[idx].track_id = trackIdMatch[1];
-    document.getElementById(`ep-track-id-${idx}`).value = trackIdMatch[1];
-    changed = true;
-  }
-  if (scUrl) {
-    mediaPodcasts[idx].soundcloud_url = scUrl;
-    document.getElementById(`ep-sc-url-${idx}`).value = scUrl;
-    changed = true;
-  }
-
-  if (changed) {
-    toast('Track-ID + URL extrahiert ✓', 'success');
-    markMediaModified();
-  } else {
-    toast('Kein SoundCloud-Embed erkannt – prüfe den Code', 'error');
-  }
-}
-
-// ── SoundCloud oEmbed Auto-Fill ──────────────────────────────────────────────
-async function autoFillFromUrl(idx) {
-  const urlField = document.getElementById(`ep-sc-url-${idx}`);
-  const scUrl = urlField.value.trim();
-  if (!scUrl) { toast('Bitte erst SC-URL eingeben', 'error'); return; }
-  if (!scUrl.includes('soundcloud.com')) { toast('Keine SoundCloud-URL', 'error'); return; }
-  try {
-    toast('Lade Track-Daten…');
-    const res = await fetch(`https://soundcloud.com/oembed?url=${encodeURIComponent(scUrl)}&format=json`);
-    if (!res.ok) throw new Error(`oEmbed: ${res.status}`);
-    const data = await res.json();
-    const trackMatch = (data.html || '').match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
-    if (trackMatch) {
-      mediaPodcasts[idx].track_id = trackMatch[1];
-      document.getElementById(`ep-track-id-${idx}`).value = trackMatch[1];
-    }
-    if (!mediaPodcasts[idx].title && data.title) {
-      mediaPodcasts[idx].title = data.title;
-    }
-    markMediaModified();
-    renderPodcastList();
-    toast(trackMatch ? `✓ Track-ID: ${trackMatch[1]}` : 'URL gespeichert – Track-ID nicht gefunden', trackMatch ? 'success' : '');
-  } catch(e) {
-    toast('Fehler beim Laden: ' + e.message, 'error');
-  }
-}
-
-// ── Drag & Drop – Podcasts ────────────────────────────────────────────────────
-function onPodcastDragStart(e, idx) {
-  podcastDragSrc = idx;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => e.target.closest('.ep-card').classList.add('dragging'), 0);
-}
-function onPodcastDragEnd(e) {
-  e.target.closest('.ep-card').classList.remove('dragging');
-  document.querySelectorAll('#podcastList .ep-card').forEach(c => c.classList.remove('drag-over'));
-}
-function onPodcastDragOver(e, idx) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('#podcastList .ep-card').forEach(c => c.classList.remove('drag-over'));
-  if (idx !== podcastDragSrc) e.currentTarget.classList.add('drag-over');
-}
-function onPodcastDrop(e, idx) {
-  e.preventDefault();
-  if (podcastDragSrc === null || podcastDragSrc === idx) return;
-  const moved = mediaPodcasts.splice(podcastDragSrc, 1)[0];
-  mediaPodcasts.splice(idx, 0, moved);
-  podcastDragSrc = null;
-  markMediaModified();
-  renderPodcastList();
-}
-
-// ── Drag & Drop – Videos ──────────────────────────────────────────────────────
-function onVideoDragStart(e, idx) {
-  videoDragSrc = idx;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => e.target.closest('.ep-card').classList.add('dragging'), 0);
-}
-function onVideoDragEnd(e) {
-  e.target.closest('.ep-card').classList.remove('dragging');
-  document.querySelectorAll('#videoList .ep-card').forEach(c => c.classList.remove('drag-over'));
-}
-function onVideoDragOver(e, idx) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('#videoList .ep-card').forEach(c => c.classList.remove('drag-over'));
-  if (idx !== videoDragSrc) e.currentTarget.classList.add('drag-over');
-}
-function onVideoDrop(e, idx) {
-  e.preventDefault();
-  if (videoDragSrc === null || videoDragSrc === idx) return;
-  const moved = mediaVideos.splice(videoDragSrc, 1)[0];
-  mediaVideos.splice(idx, 0, moved);
-  videoDragSrc = null;
-  markMediaModified();
-  renderVideoList();
-}
-
-// ── Render – Podcasts ─────────────────────────────────────────────────────────
-function renderPodcastList() {
-  const list = document.getElementById('podcastList');
-  const countEl = document.getElementById('podcastCount');
-  if (countEl) countEl.textContent = `(${mediaPodcasts.length})`;
-  if (!mediaPodcasts.length) {
-    list.innerHTML = '<div class="empty"><h3>Keine Episoden</h3><p>Klick auf "+ Neue Episode".</p></div>';
-    return;
-  }
-  list.innerHTML = '';
-  mediaPodcasts.forEach((ep, idx) => {
-    const card = document.createElement('div');
-    card.className = 'ep-card';
-    card.draggable = true;
-    card.addEventListener('dragstart', e => onPodcastDragStart(e, idx));
-    card.addEventListener('dragend', onPodcastDragEnd);
-    card.addEventListener('dragover', e => onPodcastDragOver(e, idx));
-    card.addEventListener('drop', e => onPodcastDrop(e, idx));
-    const badge = idx === 0 ? '<span class="ep-badge-current">▶ Aktuell</span>' : '<span class="ep-badge-archive">Archiv</span>';
-    card.innerHTML = `
-      <div class="ep-header">
-        <span class="ep-drag-handle">⠿</span>
-        ${badge}
-        <span class="ep-num">Episode #${ep.id||idx+1}</span>
-        <span style="font-size:13px;font-weight:600;color:oklch(30% 0.01 240);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ep.title||'<em style="color:oklch(65% 0.01 240)">Kein Titel</em>'}</span>
-        <span style="font-size:11px;color:oklch(65% 0.01 240);font-family:monospace">${ep.date||''}</span>
-      </div>
-      <div class="ep-body">
-        <div class="ep-row">
-          <div>
-            <div class="field-label">Episode-ID</div>
-            <input type="text" value="${escHtml(ep.id||'')}" placeholder="001"
-              oninput="updatePodcastField(${idx},'id',this.value)"/>
-          </div>
-          <div>
-            <div class="field-label">Datum</div>
-            <input type="date" value="${ep.date||''}"
-              oninput="updatePodcastField(${idx},'date',this.value)"/>
-          </div>
-        </div>
-        <div>
-          <div class="field-label">Titel</div>
-          <input type="text" value="${escHtml(ep.title||'')}" placeholder="Episodentitel…"
-            oninput="updatePodcastField(${idx},'title',this.value)"/>
-        </div>
-        <div>
-          <div class="field-label">Beschreibung</div>
-          <textarea rows="2" placeholder="Kurze Beschreibung…"
-            oninput="updatePodcastField(${idx},'description',this.value)">${escHtml(ep.description||'')}</textarea>
-        </div>
-        <div class="ep-section-label">🎙 SoundCloud</div>
-        <div>
-          <div class="field-label">Embed-Code einfügen → auto-ausfüllen</div>
-          <div style="display:flex;gap:8px">
-            <textarea rows="2" placeholder='&lt;iframe … src="https://w.soundcloud.com/…"&gt;&lt;/iframe&gt;' id="ep-embed-${idx}"
-              style="font-size:11px;font-family:monospace"></textarea>
-            <button class="btn btn-ghost btn-sm" style="align-self:flex-end;white-space:nowrap"
-              onclick="parseEmbedCode(${idx}, document.getElementById('ep-embed-${idx}').value)">
-              Extrahieren
-            </button>
-          </div>
-        </div>
-        <div class="ep-row">
-          <div>
-            <div class="field-label">SoundCloud URL</div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <input id="ep-sc-url-${idx}" type="text" value="${escHtml(ep.soundcloud_url||'')}"
-                placeholder="https://soundcloud.com/…"
-                oninput="updatePodcastField(${idx},'soundcloud_url',this.value)" style="flex:1"/>
-              <button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0"
-                onclick="autoFillFromUrl(${idx})" title="Track-ID per oEmbed laden">🔍 Auto</button>
-            </div>
-          </div>
-          <div>
-            <div class="field-label">Track-ID</div>
-            <input id="ep-track-id-${idx}" type="text" value="${escHtml(ep.track_id||'')}"
-              placeholder="2315736341"
-              oninput="updatePodcastField(${idx},'track_id',this.value)"/>
-          </div>
-        </div>
-        <div style="max-width:200px">
-          <div class="field-label">Dauer (optional)</div>
-          <input type="text" value="${escHtml(ep.duration||'')}" placeholder="~20 MIN"
-            oninput="updatePodcastField(${idx},'duration',this.value)"/>
-        </div>
-        <div class="ep-actions">
-          <button class="btn btn-danger btn-sm" onclick="deletePodcast(${idx})">✕ Löschen</button>
-        </div>
-      </div>`;
-    list.appendChild(card);
-  });
-}
-
-// ── Render – Videos ───────────────────────────────────────────────────────────
-function renderVideoList() {
-  const list = document.getElementById('videoList');
-  const countEl = document.getElementById('videoCount');
-  if (countEl) countEl.textContent = `(${mediaVideos.length})`;
-  if (!mediaVideos.length) {
-    list.innerHTML = '<div class="empty"><h3>Keine Videos</h3><p>Klick auf "+ Neues Video".</p></div>';
-    return;
-  }
-  list.innerHTML = '';
-  mediaVideos.forEach((v, idx) => {
-    const card = document.createElement('div');
-    card.className = 'ep-card';
-    card.draggable = true;
-    card.addEventListener('dragstart', e => onVideoDragStart(e, idx));
-    card.addEventListener('dragend', onVideoDragEnd);
-    card.addEventListener('dragover', e => onVideoDragOver(e, idx));
-    card.addEventListener('drop', e => onVideoDrop(e, idx));
-    const badge = idx === 0 ? '<span class="ep-badge-current">▶ Aktuell</span>' : '<span class="ep-badge-archive">Archiv</span>';
-    card.innerHTML = `
-      <div class="ep-header">
-        <span class="ep-drag-handle">⠿</span>
-        ${badge}
-        <span class="ep-num">Video #${v.id||idx+1}</span>
-        <span style="font-size:13px;font-weight:600;color:oklch(30% 0.01 240);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title||'<em style="color:oklch(65% 0.01 240)">Kein Titel</em>'}</span>
-        <span style="font-size:11px;color:oklch(65% 0.01 240);font-family:monospace">${v.date||''}</span>
-      </div>
-      <div class="ep-body">
-        <div class="ep-row">
-          <div>
-            <div class="field-label">Video-ID</div>
-            <input type="text" value="${escHtml(v.id||'')}" placeholder="v001"
-              oninput="updateVideoField(${idx},'id',this.value)"/>
-          </div>
-          <div>
-            <div class="field-label">Datum</div>
-            <input type="date" value="${v.date||''}"
-              oninput="updateVideoField(${idx},'date',this.value)"/>
-          </div>
-        </div>
-        <div>
-          <div class="field-label">Titel</div>
-          <input type="text" value="${escHtml(v.title||'')}" placeholder="Videotitel…"
-            oninput="updateVideoField(${idx},'title',this.value)"/>
-        </div>
-        <div class="ep-row">
-          <div>
-            <div class="field-label">Video-Typ</div>
-            <select onchange="updateVideoField(${idx},'type',this.value);renderVideoList()">
-              <option value="youtube" ${v.type==='youtube'?'selected':''}>YouTube</option>
-              <option value="vimeo"   ${v.type==='vimeo'?'selected':''}>Vimeo</option>
-              <option value="local"   ${v.type==='local'?'selected':''}>Lokale MP4-Datei</option>
-              <option value="none"    ${v.type==='none'?'selected':''}>Kein Video</option>
-            </select>
-          </div>
-          <div>
-            <div class="field-label">Video-Label</div>
-            <input type="text" value="${escHtml(v.label||'VIDEO')}" placeholder="VIDEO"
-              oninput="updateVideoField(${idx},'label',this.value)"/>
-          </div>
-        </div>
-        <div>
-          <div class="field-label">${v.type==='local' ? 'Pfad (z.B. uploads/video.mp4)' : 'URL (YouTube / Vimeo)'}</div>
-          <input type="text" value="${escHtml(v.src||'')}"
-            placeholder="${v.type==='local' ? 'uploads/mein-video.mp4' : 'https://youtu.be/…'}"
-            oninput="updateVideoField(${idx},'src',this.value)"/>
-        </div>
-        <div class="ep-actions">
-          <button class="btn btn-danger btn-sm" onclick="deleteVideo(${idx})">✕ Löschen</button>
-        </div>
-      </div>`;
-    list.appendChild(card);
-  });
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function markMediaModified() {
-  mediaModified = true;
-  document.getElementById('mediaCommitBtn').disabled = false;
-}
-function setMediaStatus(msg) {
-  document.getElementById('mediaStatus').textContent = msg;
-}
-
-// Auto-load media when tab is opened if token exists
-document.getElementById('tab-media-btn').addEventListener('click', () => {
-  if (!mediaPodcasts.length && !mediaVideos.length && document.getElementById('ghToken').value.trim()) {
-    loadMediaFromGitHub();
-  }
+<\/script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--accent:#1d9bf0;--neon-rgb:29,155,240;--bg:#080c12;--text:#e2e8f0;}
+body{background:var(--bg);color:var(--text);font-family:'Work Sans',sans-serif;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
+nav.ki-nav{position:fixed;top:0;width:100%;z-index:50;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(8,12,18,0.88);backdrop-filter:blur(14px);border-bottom:1px solid rgba(29,155,240,0.18);}
+.nav-brand{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;}
+.nav-links{display:flex;align-items:center;gap:20px;}
+.nav-links a{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s;letter-spacing:0.02em;}
+.nav-links a:hover,.nav-links a.active{color:var(--accent);}
+#main-content{position:relative;min-height:100vh;padding-top:56px;}
+.art-container{max-width:780px;margin:0 auto;padding:48px 24px 80px;}
+.breadcrumb{display:flex;align-items:center;gap:8px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:32px;}
+.breadcrumb a{color:rgba(29,155,240,0.7);text-decoration:none;}
+.breadcrumb a:hover{color:var(--accent);}
+.art-eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.art-tag{display:inline-flex;padding:4px 12px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:3px;}
+.art-tag-outline{display:inline-flex;padding:4px 10px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(29,155,240,0.9);border:1px solid rgba(29,155,240,0.35);border-radius:3px;}
+.art-date{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.35);}
+.art-headline{font-family:'Fraunces',serif;font-weight:700;font-variation-settings:'opsz' 144;font-size:clamp(32px,5vw,52px);line-height:1.06;letter-spacing:-0.025em;color:var(--text);margin-bottom:20px;}
+.art-subline{font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:clamp(17px,1.5vw,21px);line-height:1.55;color:var(--text);opacity:0.82;margin-bottom:28px;}
+.art-meta-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 0;border-top:1px solid rgba(29,155,240,0.18);border-bottom:1px solid rgba(29,155,240,0.18);margin-bottom:40px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.45);letter-spacing:0.06em;}
+.art-meta-row .dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:0.5;}
+.art-meta-row a{color:var(--accent);text-decoration:none;}
+.art-body{line-height:1.75;}
+.art-body p{font-family:'Fraunces',serif;font-size:clamp(16px,1.2vw,18px);line-height:1.75;color:rgba(255,255,255,0.88);margin-bottom:24px;}
+.art-body h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,1.8vw,22px);font-weight:700;letter-spacing:-0.01em;color:var(--text);margin:40px 0 16px;padding-left:14px;border-left:3px solid var(--accent);}
+.art-body blockquote{background:rgba(29,155,240,0.07);border-left:3px solid rgba(29,155,240,0.4);border-radius:0 8px 8px 0;padding:16px 20px;margin:24px 0;}
+.art-body blockquote p{margin:0;font-style:italic;color:rgba(255,255,255,0.7);}
+.art-colophon{margin-top:56px;padding:24px 0 12px;border-top:3px double rgba(29,155,240,0.28);display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.colophon-name{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
+.colophon-handle{font-family:monospace;font-size:11px;color:var(--accent);letter-spacing:0.06em;}
+.colophon-bio{font-size:12px;color:rgba(255,255,255,0.45);margin-top:4px;line-height:1.5;}
+.back-btn{display:inline-flex;align-items:center;gap:8px;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,155,240,0.7);text-decoration:none;border:1px solid rgba(29,155,240,0.25);padding:8px 14px;border-radius:6px;transition:all 0.15s;margin-top:32px;}
+.back-btn:hover{background:rgba(29,155,240,0.08);border-color:rgba(29,155,240,0.55);color:var(--accent);}
+#read-progress{position:fixed;top:56px;left:0;right:0;height:2px;background:rgba(29,155,240,0.12);z-index:49;}
+#read-progress-bar{height:100%;width:0%;background:var(--accent);transition:width 0.1s linear;box-shadow:0 0 8px rgba(29,155,240,0.6);}
+</style>
+</head>
+<body>
+<div id="read-progress"><div id="read-progress-bar"></div></div>
+<nav class="ki-nav">
+  <a href="/" class="nav-brand">KI NEWS</a>
+  <div class="nav-links">
+    <a href="/">Aktuell</a>
+    <a href="../Archiv.html">Archiv</a>
+    <a href="../artikel.html" class="active">Artikel</a>
+    <a href="../profil.html">Profil</a>
+  </div>
+</nav>
+<main id="main-content">
+<div class="art-container">
+  <nav class="breadcrumb">
+    <a href="/">ki-news.live</a>
+    <span>›</span>
+    <a href="../artikel.html">Artikel</a>
+    <span>›</span>
+    <span>${escHtml(title)}</span>
+  </nav>
+  <div class="art-eyebrow">
+    ${tag?`<span class="art-tag">${escHtml(tag)}</span>`:''}
+    ${tagBadges}
+    <span class="art-date">${dateDE}</span>
+  </div>
+  <h1 class="art-headline">${escHtml(title)}</h1>
+  <p class="art-subline">${escHtml(sub)}</p>
+  <div class="art-meta-row">
+    <span>Von <a href="https://x.com/ScampyKI" target="_blank">@ScampyKI</a></span>
+    <span class="dot"></span>
+    <span>${dateDE}</span>
+    <span class="dot"></span>
+    <span>${escHtml(readtime||'')}</span>
+    ${xlinkHTML}
+  </div>
+  <article class="art-body">
+    ${bodyHTML}
+  </article>
+  <div class="art-colophon">
+    <div>
+      <div class="colophon-name">Daniel S.</div>
+      <div class="colophon-handle">@ScampyKI</div>
+      <div class="colophon-bio">KI-News täglich auf Deutsch.<br>Englische Quellen kuratiert, eingeordnet, erklärt.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+      <a href="https://x.com/ScampyKI" target="_blank" style="font-family:monospace;font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.06em;">X / Twitter ↗</a>
+      <a href="https://ki-news.live" style="font-family:monospace;font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.06em;">ki-news.live ↗</a>
+    </div>
+  </div>
+  <a href="../artikel.html" class="back-btn">← Alle Artikel</a>
+</div>
+</main>
+<script>
+window.addEventListener('scroll',function(){
+  var el=document.getElementById('read-progress-bar');
+  var h=document.documentElement.scrollHeight-window.innerHeight;
+  if(h>0)el.style.width=(window.scrollY/h*100)+'%';
 });
+<\/script>
+</body>
+</html>`;
+}
 
+async function publishArticle(){
+  const title=document.getElementById('art-title').value.trim();
+  const slug=document.getElementById('art-slug').value.trim();
+  const sub=document.getElementById('art-sub').value.trim();
+  const desc=document.getElementById('art-desc').value.trim();
+  const date=document.getElementById('art-date').value;
+  const tag=document.getElementById('art-tag').value.trim();
+  const tagsRaw=document.getElementById('art-tags').value;
+  const tagsArr=tagsRaw?tagsRaw.split(',').map(t=>t.trim()).filter(Boolean):[];
+  const readtime=document.getElementById('art-readtime').value.trim();
+  const xlink=document.getElementById('art-xlink').value.trim();
+  const bodyRaw=document.getElementById('art-body').value.trim();
 
-// ──────────────────────────────────────────────────────────────────────────────
+  if(!title||!slug||!sub||!desc||!date||!bodyRaw){toast('Bitte alle Pflichtfelder ausfüllen','error');return;}
+  if(!document.getElementById('ghToken').value.trim()){toast('Bitte zuerst GitHub-Token eingeben (Tab Artikel-Editor)','error');return;}
+
+  const btn=document.getElementById('publishBtn');
+  btn.disabled=true;btn.textContent='Wird veröffentlicht…';
+
+  try{
+    const html=generateArticleHTML({title,slug,sub,desc,date,tag,tagsArr,readtime,xlink,bodyRaw});
+    const artikelPath='artikel/'+slug+'.html';
+
+    // Step 1: Check if file already exists (get SHA if it does)
+    let existingSha='';
+    try{const existing=await ghGet(artikelPath);existingSha=existing.sha;}catch(e){/* new file */}
+
+    // Step 2: Commit the article HTML
+    const artResult=await ghPut(artikelPath,html,existingSha,'artikel: '+title);
+    toast('① HTML committet','success');
+
+    // Step 3: Load sitemap, add URL, commit
+    await updateSitemapWithNewArticle(slug,date);
+
+    toast('✓ Artikel veröffentlicht: /artikel/'+slug+'.html','success');
+  }catch(e){
+    toast('Fehler: '+e.message,'error');
+  }finally{
+    btn.disabled=false;btn.textContent='🚀 Veröffentlichen';
+  }
+}
+
+async function updateSitemapWithNewArticle(slug,date){
+  const newUrl='https://ki-news.live/artikel/'+slug+'.html';
+  let xmlStr='', sha='';
+  try{
+    const data=await ghGet('sitemap.xml');
+    sha=data.sha;
+    xmlStr=decodeBase64UTF8(data.content);
+  }catch(e){
+    xmlStr=defaultSitemapXML();
+  }
+  // Check if URL already in sitemap
+  if(!xmlStr.includes(newUrl)){
+    const lastmod=date||new Date().toISOString().slice(0,10);
+    const newEntry=`
+  <url>
+    <loc>${newUrl}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+    xmlStr=xmlStr.replace('</urlset>',newEntry+'\n</urlset>');
+  }
+  await ghPut('sitemap.xml',xmlStr,sha,'sitemap: '+slug+' hinzugefügt');
+  toast('② Sitemap aktualisiert','success');
+}
+
+function defaultSitemapXML(){
+  return`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://ki-news.live/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://ki-news.live/artikel.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://ki-news.live/Archiv.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ki-news.live/profil.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+</urlset>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SITEMAP TAB
+// ════════════════════════════════════════════════════════════════════════════
+async function loadSitemap(){
+  try{
+    document.getElementById('sitemapStatus').textContent='Lade sitemap.xml…';
+    const data=await ghGet('sitemap.xml');
+    sitemapSha=data.sha;
+    const xml=decodeBase64UTF8(data.content);
+    const matches=[...xml.matchAll(/<loc>(.*?)<\/loc>/g)];
+    sitemapUrls=matches.map(m=>m[1].trim());
+    renderSitemap(sitemapUrls);
+    document.getElementById('sitemapStatus').textContent=sitemapUrls.length+' URLs geladen';
+    toast('sitemap.xml geladen','success');
+  }catch(e){toast('Fehler: '+e.message,'error');document.getElementById('sitemapStatus').textContent='Fehler beim Laden';}
+}
+
+function renderSitemap(urls){
+  const c=document.getElementById('sitemapContainer');
+  if(!urls.length){c.innerHTML='<div class="empty"><h3>Keine URLs</h3></div>';return;}
+  c.innerHTML='';
+  urls.forEach(url=>{
+    const isArtikel=url.includes('/artikel/');
+    const div=document.createElement('div');
+    div.className='sitemap-entry';
+    div.innerHTML=`<span class="sitemap-url">${escHtml(url)}</span>
+      <span class="sitemap-badge ${isArtikel?'sitemap-new':'sitemap-existing'}">${isArtikel?'Artikel':'Seite'}</span>`;
+    c.appendChild(div);
+  });
+}
+
+async function saveSitemap(){
+  // rebuild XML from current urls (simple version)
+  toast('Sitemap wird über "Neuer Artikel" oder direkt im Repo bearbeitet','');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MEDIA MANAGER
+// ════════════════════════════════════════════════════════════════════════════
+async function loadMediaFromGitHub(){
+  if(!document.getElementById('ghToken').value.trim()){toast('Bitte Token eingeben','error');return;}
+  setMediaStatus('Lade media.json…');
+  try{
+    const data=await ghGet('media.json');
+    mediaFileSha=data.sha;
+    const decoded=JSON.parse(decodeBase64UTF8(data.content));
+    mediaPodcasts=decoded.podcasts||[];mediaVideos=decoded.videos||[];mediaModified=false;
+    renderPodcastList();renderVideoList();
+    setMediaStatus(mediaPodcasts.length+' Podcast(s) · '+mediaVideos.length+' Video(s)');
+    document.getElementById('mediaCommitBtn').disabled=true;
+    toast('media.json geladen','success');
+  }catch(e){setMediaStatus('Fehler: '+e.message);toast('Fehler: '+e.message,'error');}
+}
+
+async function saveMediaToGitHub(){
+  const btn=document.getElementById('mediaCommitBtn');
+  btn.disabled=true;btn.textContent='Wird gespeichert…';
+  try{
+    const payload={podcasts:mediaPodcasts,videos:mediaVideos};
+    const result=await ghPut('media.json',JSON.stringify(payload,null,2),mediaFileSha,'media: aktualisiert');
+    mediaFileSha=result.content.sha;mediaModified=false;
+    setMediaStatus('✓ Gespeichert');toast('✓ media.json gespeichert','success');
+  }catch(e){toast('Fehler: '+e.message,'error');}
+  finally{btn.textContent='Speichern →';btn.disabled=!mediaModified;}
+}
+
+function addPodcast(){
+  const nextId=String(mediaPodcasts.length+1).padStart(3,'0');
+  mediaPodcasts.unshift({id:nextId,title:'',description:'',date:new Date().toISOString().slice(0,10),soundcloud_url:'',track_id:'',duration:''});
+  markMediaModified();renderPodcastList();
+}
+function addVideo(){
+  const nextId='v'+String(mediaVideos.length+1).padStart(3,'0');
+  mediaVideos.unshift({id:nextId,title:'',date:new Date().toISOString().slice(0,10),type:'youtube',src:'',label:'VIDEO'});
+  markMediaModified();renderVideoList();
+}
+function deletePodcast(idx){if(!confirm('Episode löschen?'))return;mediaPodcasts.splice(idx,1);markMediaModified();renderPodcastList();}
+function deleteVideo(idx){if(!confirm('Video löschen?'))return;mediaVideos.splice(idx,1);markMediaModified();renderVideoList();}
+function updatePodcastField(idx,k,v){mediaPodcasts[idx][k]=v;markMediaModified();}
+function updateVideoField(idx,k,v){mediaVideos[idx][k]=v;markMediaModified();}
+function markMediaModified(){mediaModified=true;document.getElementById('mediaCommitBtn').disabled=false;}
+function setMediaStatus(msg){document.getElementById('mediaStatus').textContent=msg;}
+
+function extractTrackId(s){const m=s.match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);return m?m[1]:'';}
+function parseEmbedCode(idx,code){
+  if(!code.trim()){toast('Embed-Code ist leer','error');return;}
+  const m=code.match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
+  const h=code.match(/href="(https:\/\/soundcloud\.com\/[^"]+)"/);
+  if(m){mediaPodcasts[idx].track_id=m[1];document.getElementById('ep-track-'+idx).value=m[1];}
+  if(h){mediaPodcasts[idx].soundcloud_url=h[1];document.getElementById('ep-scurl-'+idx).value=h[1];}
+  if(m||h){toast('Extrahiert ✓','success');markMediaModified();}else{toast('Kein SoundCloud-Embed erkannt','error');}
+}
+async function autoFillFromUrl(idx){
+  const url=document.getElementById('ep-scurl-'+idx).value.trim();
+  if(!url||!url.includes('soundcloud.com')){toast('Keine SoundCloud-URL','error');return;}
+  try{
+    const res=await fetch('https://soundcloud.com/oembed?url='+encodeURIComponent(url)+'&format=json');
+    if(!res.ok)throw new Error('oEmbed: '+res.status);
+    const data=await res.json();
+    const m=(data.html||'').match(/api\.soundcloud\.com(?:%2F|\/)tracks(?:%2F|\/)(\d+)/i);
+    if(m){mediaPodcasts[idx].track_id=m[1];document.getElementById('ep-track-'+idx).value=m[1];}
+    if(!mediaPodcasts[idx].title&&data.title)mediaPodcasts[idx].title=data.title;
+    markMediaModified();renderPodcastList();
+    toast(m?'✓ Track-ID: '+m[1]:'URL gespeichert',m?'success':'');
+  }catch(e){toast('Fehler: '+e.message,'error');}
+}
+
+function onPodcastDragStart(e,idx){podcastDragSrc=idx;e.dataTransfer.effectAllowed='move';setTimeout(()=>e.target.closest('.ep-card').classList.add('dragging'),0);}
+function onPodcastDragEnd(e){e.target.closest('.ep-card').classList.remove('dragging');document.querySelectorAll('#podcastList .ep-card').forEach(c=>c.classList.remove('drag-over'));}
+function onPodcastDragOver(e,idx){e.preventDefault();document.querySelectorAll('#podcastList .ep-card').forEach(c=>c.classList.remove('drag-over'));if(idx!==podcastDragSrc)e.currentTarget.classList.add('drag-over');}
+function onPodcastDrop(e,idx){e.preventDefault();if(podcastDragSrc===null||podcastDragSrc===idx)return;const m=mediaPodcasts.splice(podcastDragSrc,1)[0];mediaPodcasts.splice(idx,0,m);podcastDragSrc=null;markMediaModified();renderPodcastList();}
+function onVideoDragStart(e,idx){videoDragSrc=idx;e.dataTransfer.effectAllowed='move';setTimeout(()=>e.target.closest('.ep-card').classList.add('dragging'),0);}
+function onVideoDragEnd(e){e.target.closest('.ep-card').classList.remove('dragging');document.querySelectorAll('#videoList .ep-card').forEach(c=>c.classList.remove('drag-over'));}
+function onVideoDragOver(e,idx){e.preventDefault();document.querySelectorAll('#videoList .ep-card').forEach(c=>c.classList.remove('drag-over'));if(idx!==videoDragSrc)e.currentTarget.classList.add('drag-over');}
+function onVideoDrop(e,idx){e.preventDefault();if(videoDragSrc===null||videoDragSrc===idx)return;const m=mediaVideos.splice(videoDragSrc,1)[0];mediaVideos.splice(idx,0,m);videoDragSrc=null;markMediaModified();renderVideoList();}
+
+function renderPodcastList(){
+  const list=document.getElementById('podcastList');
+  const cnt=document.getElementById('podcastCount');
+  if(cnt)cnt.textContent='('+mediaPodcasts.length+')';
+  if(!mediaPodcasts.length){list.innerHTML='<div class="empty"><h3>Keine Episoden</h3></div>';return;}
+  list.innerHTML='';
+  mediaPodcasts.forEach((ep,idx)=>{
+    const card=document.createElement('div');card.className='ep-card';card.draggable=true;
+    card.addEventListener('dragstart',e=>onPodcastDragStart(e,idx));card.addEventListener('dragend',onPodcastDragEnd);
+    card.addEventListener('dragover',e=>onPodcastDragOver(e,idx));card.addEventListener('drop',e=>onPodcastDrop(e,idx));
+    const badge=idx===0?'<span class="ep-badge-current">▶ Aktuell</span>':'<span class="ep-badge-archive">Archiv</span>';
+    card.innerHTML=`<div class="ep-header">
+      <span class="ep-drag-handle">⠿</span>${badge}
+      <span class="ep-num">Episode #${ep.id||idx+1}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ep.title||'<em style="color:var(--muted2)">Kein Titel</em>'}</span>
+      <span style="font-size:11px;color:var(--muted);font-family:monospace;">${ep.date||''}</span>
+    </div>
+    <div class="ep-body">
+      <div class="ep-row">
+        <div class="field" style="margin:0"><label class="field-label">ID</label><input type="text" value="${escHtml(ep.id||'')}" oninput="updatePodcastField(${idx},'id',this.value)"/></div>
+        <div class="field" style="margin:0"><label class="field-label">Datum</label><input type="date" value="${ep.date||''}" oninput="updatePodcastField(${idx},'date',this.value)"/></div>
+      </div>
+      <div class="field" style="margin:0"><label class="field-label">Titel</label><input type="text" value="${escHtml(ep.title||'')}" placeholder="Episodentitel…" oninput="updatePodcastField(${idx},'title',this.value)"/></div>
+      <div class="field" style="margin:0"><label class="field-label">Beschreibung</label><textarea rows="2" oninput="updatePodcastField(${idx},'description',this.value)">${escHtml(ep.description||'')}</textarea></div>
+      <div class="field" style="margin:0">
+        <label class="field-label">Embed-Code → Auto-Ausfüllen</label>
+        <div style="display:flex;gap:8px;">
+          <textarea rows="2" id="ep-embed-${idx}" style="font-size:11px;font-family:monospace;" placeholder="&lt;iframe …&gt;&lt;/iframe&gt;"></textarea>
+          <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="parseEmbedCode(${idx},document.getElementById('ep-embed-${idx}').value)">Extrahieren</button>
+        </div>
+      </div>
+      <div class="ep-row">
+        <div class="field" style="margin:0">
+          <label class="field-label">SoundCloud URL</label>
+          <div style="display:flex;gap:6px;">
+            <input id="ep-scurl-${idx}" type="text" value="${escHtml(ep.soundcloud_url||'')}" placeholder="https://soundcloud.com/…" oninput="updatePodcastField(${idx},'soundcloud_url',this.value)" style="flex:1;"/>
+            <button class="btn btn-ghost btn-sm" onclick="autoFillFromUrl(${idx})">🔍</button>
+          </div>
+        </div>
+        <div class="field" style="margin:0"><label class="field-label">Track-ID</label><input id="ep-track-${idx}" type="text" value="${escHtml(ep.track_id||'')}" placeholder="2315736341" oninput="updatePodcastField(${idx},'track_id',this.value)"/></div>
+      </div>
+      <div class="field" style="margin:0;max-width:180px;"><label class="field-label">Dauer</label><input type="text" value="${escHtml(ep.duration||'')}" placeholder="~20 MIN" oninput="updatePodcastField(${idx},'duration',this.value)"/></div>
+      <div class="ep-actions"><button class="btn btn-danger btn-sm" onclick="deletePodcast(${idx})">✕ Löschen</button></div>
+    </div>`;
+    list.appendChild(card);
+  });
+}
+
+function renderVideoList(){
+  const list=document.getElementById('videoList');
+  const cnt=document.getElementById('videoCount');
+  if(cnt)cnt.textContent='('+mediaVideos.length+')';
+  if(!mediaVideos.length){list.innerHTML='<div class="empty"><h3>Keine Videos</h3></div>';return;}
+  list.innerHTML='';
+  mediaVideos.forEach((v,idx)=>{
+    const card=document.createElement('div');card.className='ep-card';card.draggable=true;
+    card.addEventListener('dragstart',e=>onVideoDragStart(e,idx));card.addEventListener('dragend',onVideoDragEnd);
+    card.addEventListener('dragover',e=>onVideoDragOver(e,idx));card.addEventListener('drop',e=>onVideoDrop(e,idx));
+    const badge=idx===0?'<span class="ep-badge-current">▶ Aktuell</span>':'<span class="ep-badge-archive">Archiv</span>';
+    card.innerHTML=`<div class="ep-header">
+      <span class="ep-drag-handle">⠿</span>${badge}
+      <span class="ep-num">Video #${v.id||idx+1}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.title||'<em style="color:var(--muted2)">Kein Titel</em>'}</span>
+      <span style="font-size:11px;color:var(--muted);font-family:monospace;">${v.date||''}</span>
+    </div>
+    <div class="ep-body">
+      <div class="ep-row">
+        <div class="field" style="margin:0"><label class="field-label">Video-ID</label><input type="text" value="${escHtml(v.id||'')}" oninput="updateVideoField(${idx},'id',this.value)"/></div>
+        <div class="field" style="margin:0"><label class="field-label">Datum</label><input type="date" value="${v.date||''}" oninput="updateVideoField(${idx},'date',this.value)"/></div>
+      </div>
+      <div class="field" style="margin:0"><label class="field-label">Titel</label><input type="text" value="${escHtml(v.title||'')}" placeholder="Videotitel…" oninput="updateVideoField(${idx},'title',this.value)"/></div>
+      <div class="ep-row">
+        <div class="field" style="margin:0"><label class="field-label">Typ</label>
+          <select onchange="updateVideoField(${idx},'type',this.value);renderVideoList()">
+            <option value="youtube" ${v.type==='youtube'?'selected':''}>YouTube</option>
+            <option value="vimeo" ${v.type==='vimeo'?'selected':''}>Vimeo</option>
+            <option value="local" ${v.type==='local'?'selected':''}>Lokal</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0"><label class="field-label">Label</label><input type="text" value="${escHtml(v.label||'VIDEO')}" oninput="updateVideoField(${idx},'label',this.value)"/></div>
+      </div>
+      <div class="field" style="margin:0"><label class="field-label">${v.type==='local'?'Pfad':'URL'}</label><input type="text" value="${escHtml(v.src||'')}" placeholder="${v.type==='local'?'uploads/video.mp4':'https://youtu.be/…'}" oninput="updateVideoField(${idx},'src',this.value)"/></div>
+      <div class="ep-actions"><button class="btn btn-danger btn-sm" onclick="deleteVideo(${idx})">✕ Löschen</button></div>
+    </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // DASHBOARD CONFIG
-// ──────────────────────────────────────────────────────────────────────────────
-const DASH_SRC_COLORS = {
-  'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed',
-  'MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb',
-  'Golem':'#e84393','AlignedNews':'#f59e0b','Caschy Blog':'#fb923c',
-  'Bloomberg':'#f59e0b','SiliconAngle':'#e879f9','Wired':'#84cc16','TechRepublic':'#38bdf8'
-};
-function dashSrcColor(s){ return DASH_SRC_COLORS[s] || '#555'; }
+// ════════════════════════════════════════════════════════════════════════════
+const DASH_SRC_COLORS={'The Decoder':'#1d9bf0','TechCrunch AI':'#ff6b35','VentureBeat AI':'#7c3aed','MIT Tech Review':'#dc2626','Ars Technica':'#16a34a','Heise':'#2563eb','Golem':'#e84393'};
+function dashSrcColor(s){return DASH_SRC_COLORS[s]||'#555';}
 
-let dashConfig = { featured_links: [], blocked_links: [] };
-let dashArticles = [];
-let dashConfigSha = '';
-let dashConfigModified = false;
-
-// ── Laden ────────────────────────────────────────────────────────────────────
-async function loadDashConfig() {
-  const token = document.getElementById('ghToken').value.trim();
-  if (!token) { toast('Bitte Token eingeben', 'error'); return; }
-  const repo   = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim();
-  setDashStatus('Lade news.json & dashboard_config.json…');
-  try {
-    // news.json
-    const nRes = await fetch(`https://api.github.com/repos/${repo}/contents/news.json?ref=${branch}`, { headers: ghHeaders() });
-    if (!nRes.ok) throw new Error('news.json: ' + nRes.status);
-    const nData = await nRes.json();
-    const nDecoded = JSON.parse(decodeBase64UTF8(nData.content));
-    dashArticles = (nDecoded.news || []).slice().sort((a,b)=>(b.score||0)-(a.score||0));
-    // dashboard_config.json (optional)
-    try {
-      const cRes = await fetch(`https://api.github.com/repos/${repo}/contents/dashboard_config.json?ref=${branch}`, { headers: ghHeaders() });
-      if (cRes.ok) {
-        const cData = await cRes.json();
-        dashConfigSha = cData.sha;
-        dashConfig = JSON.parse(decodeBase64UTF8(cData.content));
-        if (!dashConfig.featured_links) dashConfig.featured_links = [];
-        if (!dashConfig.blocked_links)  dashConfig.blocked_links  = [];
-      } else {
-        dashConfig = { featured_links: [], blocked_links: [] };
-        dashConfigSha = '';
-      }
-    } catch(e) {
-      dashConfig = { featured_links: [], blocked_links: [] };
-      dashConfigSha = '';
-    }
+async function loadDashConfig(){
+  if(!document.getElementById('ghToken').value.trim()){toast('Bitte Token eingeben','error');return;}
+  setDashStatus('Lade…');
+  try{
+    const nData=await ghGet('news.json');
+    const nDecoded=JSON.parse(decodeBase64UTF8(nData.content));
+    dashArticles=(nDecoded.news||[]).slice().sort((a,b)=>(b.score||0)-(a.score||0));
+    try{
+      const cData=await ghGet('dashboard_config.json');
+      dashConfigSha=cData.sha;
+      dashConfig=JSON.parse(decodeBase64UTF8(cData.content));
+      if(!dashConfig.featured_links)dashConfig.featured_links=[];
+      if(!dashConfig.blocked_links)dashConfig.blocked_links=[];
+    }catch(e){dashConfig={featured_links:[],blocked_links:[]};dashConfigSha='';}
     renderDashboard();
-    setDashStatus(dashArticles.length + ' Artikel · ' + dashConfig.featured_links.length + ' angepinnt · ' + dashConfig.blocked_links.length + ' gesperrt');
-    toast('Dashboard geladen', 'success');
-  } catch(e) {
-    setDashStatus('Fehler: ' + e.message);
-    toast('Fehler: ' + e.message, 'error');
-  }
+    setDashStatus(dashArticles.length+' Artikel · '+dashConfig.featured_links.length+' angepinnt · '+dashConfig.blocked_links.length+' gesperrt');
+    toast('Dashboard geladen','success');
+  }catch(e){setDashStatus('Fehler: '+e.message);toast('Fehler: '+e.message,'error');}
 }
 
-// ── Speichern ─────────────────────────────────────────────────────────────────
-async function saveDashConfig() {
-  const token = document.getElementById('ghToken').value.trim();
-  if (!token) { toast('Token fehlt', 'error'); return; }
-  const repo   = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim();
-  const btn = document.getElementById('dashSaveBtn');
-  btn.disabled = true; btn.textContent = 'Wird gespeichert…';
-  try {
-    dashConfig.last_updated = new Date().toISOString();
-    const jsonStr = JSON.stringify(dashConfig, null, 2);
-    const content = btoa(unescape(encodeURIComponent(jsonStr)));
-    const body = { message: 'dashboard: Konfiguration aktualisiert', content, branch };
-    if (dashConfigSha) body.sha = dashConfigSha;
-    const res = await fetch(`https://api.github.com/repos/${repo}/contents/dashboard_config.json`, {
-      method: 'PUT',
-      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(res.status + ': ' + (result.message || res.statusText));
-    dashConfigSha = result.content.sha;
-    dashConfigModified = false;
-    setDashStatus('✓ Gespeichert · ' + dashConfig.featured_links.length + ' angepinnt · ' + dashConfig.blocked_links.length + ' gesperrt');
-    toast('✓ dashboard_config.json gespeichert', 'success');
-  } catch(e) {
-    toast('Fehler: ' + e.message, 'error');
-  } finally {
-    btn.textContent = 'Konfiguration speichern →';
-    btn.disabled = !dashConfigModified;
-  }
+async function saveDashConfig(){
+  const btn=document.getElementById('dashSaveBtn');btn.disabled=true;btn.textContent='Wird gespeichert…';
+  try{
+    dashConfig.last_updated=new Date().toISOString();
+    const result=await ghPut('dashboard_config.json',JSON.stringify(dashConfig,null,2),dashConfigSha,'dashboard: Konfiguration aktualisiert');
+    dashConfigSha=result.content.sha;dashConfigModified=false;
+    setDashStatus('✓ Gespeichert');toast('✓ dashboard_config.json gespeichert','success');
+  }catch(e){toast('Fehler: '+e.message,'error');}
+  finally{btn.textContent='Konfiguration speichern →';btn.disabled=!dashConfigModified;}
 }
 
-// ── Pin / Unpin / Block / Unblock ─────────────────────────────────────────────
-function pinArticle(link) {
-  if (dashConfig.featured_links.includes(link)) return;
-  if (dashConfig.featured_links.length >= 3) { toast('Maximal 3 Artikel pinnen', 'error'); return; }
-  dashConfig.blocked_links = dashConfig.blocked_links.filter(l => l !== link);
-  dashConfig.featured_links.push(link);
-  markDashModified();
-}
-function unpinArticle(link) {
-  dashConfig.featured_links = dashConfig.featured_links.filter(l => l !== link);
-  markDashModified();
-}
-function blockArticle(link) {
-  if (dashConfig.blocked_links.includes(link)) return;
-  dashConfig.featured_links = dashConfig.featured_links.filter(l => l !== link);
-  dashConfig.blocked_links.push(link);
-  markDashModified();
-}
-function unblockArticle(link) {
-  dashConfig.blocked_links = dashConfig.blocked_links.filter(l => l !== link);
-  markDashModified();
-}
-function markDashModified() {
-  dashConfigModified = true;
-  document.getElementById('dashSaveBtn').disabled = false;
-  renderDashboard();
-}
-function setDashStatus(msg) {
-  const el = document.getElementById('dash-status');
-  if (el) el.textContent = msg;
+function pinArticle(link){if(dashConfig.featured_links.includes(link))return;if(dashConfig.featured_links.length>=3){toast('Maximal 3 Artikel','error');return;}dashConfig.blocked_links=dashConfig.blocked_links.filter(l=>l!==link);dashConfig.featured_links.push(link);markDashModified();}
+function unpinArticle(link){dashConfig.featured_links=dashConfig.featured_links.filter(l=>l!==link);markDashModified();}
+function blockArticle(link){if(dashConfig.blocked_links.includes(link))return;dashConfig.featured_links=dashConfig.featured_links.filter(l=>l!==link);dashConfig.blocked_links.push(link);markDashModified();}
+function unblockArticle(link){dashConfig.blocked_links=dashConfig.blocked_links.filter(l=>l!==link);markDashModified();}
+function markDashModified(){dashConfigModified=true;document.getElementById('dashSaveBtn').disabled=false;renderDashboard();}
+function setDashStatus(msg){const el=document.getElementById('dash-status');if(el)el.textContent=msg;}
+
+function renderDashboard(){renderDashSlots();renderDashArticleList();renderDashBlockedList();
+  const n=dashConfig.featured_links.length;
+  const info=document.getElementById('dash-slots-info');
+  if(info)info.textContent=n>0?n+' manuell · '+(3-n)+' automatisch':'Alle 3 Slots automatisch';
 }
 
-// ── Render ────────────────────────────────────────────────────────────────────
-function renderDashboard() {
-  renderDashSlots();
-  renderDashArticleList();
-  renderDashBlockedList();
-  // Update slots info
-  const n = dashConfig.featured_links.length;
-  const info = document.getElementById('dash-slots-info');
-  if (info) info.textContent = n > 0
-    ? n + ' manuell angepinnt · ' + (3-n) + ' Slot(s) automatisch (Top-Score)'
-    : 'Alle 3 Slots: automatisch (Top-Score)';
-}
-
-function renderDashSlots() {
-  const el = document.getElementById('dash-pin-slots');
-  if (!el) return;
-  el.innerHTML = '';
-  for (let i = 0; i < 3; i++) {
-    const link = dashConfig.featured_links[i];
-    const art  = link ? dashArticles.find(a => a.link === link) : null;
-    const slot = document.createElement('div');
-    slot.className = 'dash-slot' + (art ? ' filled' : '');
-    if (art) {
-      slot.innerHTML =
-        '<div class="dash-slot-num">' + (i+1) + '</div>' +
-        '<div class="dash-slot-text">' +
-          '<div class="dash-slot-title">' + escHtml(art.title||'—') + '</div>' +
-          '<div class="dash-slot-source">' + escHtml(art.source||'') + '</div>' +
-        '</div>' +
-        '<button class="btn btn-danger btn-sm" data-link="' + escHtml(link) + '" onclick="unpinArticle(this.dataset.link)">✕</button>';
-    } else {
-      slot.innerHTML =
-        '<div class="dash-slot-num">' + (i+1) + '</div>' +
-        '<div class="dash-slot-empty">Leer – automatisch (Top-Score)</div>';
-    }
+function renderDashSlots(){
+  const el=document.getElementById('dash-pin-slots');if(!el)return;el.innerHTML='';
+  for(let i=0;i<3;i++){
+    const link=dashConfig.featured_links[i];const art=link?dashArticles.find(a=>a.link===link):null;
+    const slot=document.createElement('div');slot.className='dash-slot'+(art?' filled':'');
+    if(art){slot.innerHTML='<div class="dash-slot-num">'+(i+1)+'</div><div class="dash-slot-text"><div class="dash-slot-title">'+escHtml(art.title||'—')+'</div><div class="dash-slot-source">'+escHtml(art.source||'')+'</div></div><button class="btn btn-danger btn-sm" data-link="'+escHtml(link)+'" onclick="unpinArticle(this.dataset.link)">✕</button>';}
+    else{slot.innerHTML='<div class="dash-slot-num">'+(i+1)+'</div><div class="dash-slot-empty">Automatisch (Top-Score)</div>';}
     el.appendChild(slot);
   }
 }
 
-function renderDashArticleList() {
-  const container = document.getElementById('dash-article-list');
-  if (!container) return;
-  if (!dashArticles.length) {
-    container.innerHTML = '<div class="empty"><h3>Noch nicht geladen</h3><p>Token eingeben und "Artikel laden" klicken.</p></div>';
-    return;
-  }
-  container.innerHTML = '';
-  dashArticles.forEach((art, i) => {
-    const isPinned  = dashConfig.featured_links.includes(art.link);
-    const isBlocked = dashConfig.blocked_links.includes(art.link);
-    const sc = art.score || 0;
-    const scoreColor = sc >= 40 ? '#dc2626' : sc >= 25 ? '#f97316' : '#9ca3af';
-    const c = document.createElement('div');
-    c.className = 'dash-article' + (isPinned ? ' pinned' : '') + (isBlocked ? ' blocked' : '');
-    // Pin slot badge
-    let slotBadge = '';
-    if (isPinned) {
-      const pos = dashConfig.featured_links.indexOf(art.link) + 1;
-      slotBadge = '<span style="font-size:9px;font-weight:700;background:oklch(92% 0.08 145);color:oklch(35% 0.22 145);border:1px solid oklch(78% 0.16 145);border-radius:4px;padding:1px 7px">📌 Slot ' + pos + '</span>';
-    }
-    if (isBlocked) {
-      slotBadge = '<span style="font-size:9px;font-weight:700;background:oklch(94% 0.04 25);color:oklch(42% 0.18 25);border:1px solid oklch(83% 0.1 25);border-radius:4px;padding:1px 7px">🚫 Gesperrt</span>';
-    }
-    const pinBtn = isPinned
-      ? '<button class="btn btn-ghost btn-sm" style="background:oklch(92% 0.08 145);border-color:oklch(78% 0.16 145);color:oklch(35% 0.22 145)" data-link="' + escHtml(art.link) + '" onclick="unpinArticle(this.dataset.link)">Loslösen</button>'
-      : '<button class="btn btn-ghost btn-sm" data-link="' + escHtml(art.link) + '" onclick="pinArticle(this.dataset.link)">📌 Anpinnen</button>';
-    const blockBtn = isBlocked
-      ? '<button class="btn btn-ghost btn-sm" style="background:oklch(94% 0.04 25);border-color:oklch(83% 0.1 25);color:oklch(42% 0.18 25)" data-link="' + escHtml(art.link) + '" onclick="unblockArticle(this.dataset.link)">✓ Freigeben</button>'
-      : '<button class="btn btn-ghost btn-sm" data-link="' + escHtml(art.link) + '" onclick="blockArticle(this.dataset.link)">🚫 Sperren</button>';
-    c.innerHTML =
-      '<div class="dash-score" style="color:' + scoreColor + '">' + sc + '</div>' +
-      '<div class="dash-content">' +
-        '<div class="dash-title">' + escHtml(art.title||'—') + '</div>' +
-        '<div class="dash-meta">' +
-          '<span class="source-badge ' + srcClass(art.source) + '" style="font-size:9px;padding:1px 7px">' + escHtml(art.source||'') + '</span>' +
-          slotBadge +
-        '</div>' +
-      '</div>' +
-      '<div class="dash-actions">' +
-        (!isBlocked ? pinBtn : '') +
-        blockBtn +
-      '</div>';
+function renderDashArticleList(){
+  const container=document.getElementById('dash-article-list');if(!container)return;
+  if(!dashArticles.length){container.innerHTML='<div class="empty"><h3>Noch nicht geladen</h3></div>';return;}
+  container.innerHTML='';
+  dashArticles.forEach(art=>{
+    const isPinned=dashConfig.featured_links.includes(art.link);
+    const isBlocked=dashConfig.blocked_links.includes(art.link);
+    const sc=art.score||0;
+    const scoreColor=sc>=40?'var(--red)':sc>=25?'#fb923c':'var(--muted)';
+    const c=document.createElement('div');
+    c.className='dash-article'+(isPinned?' pinned':'')+(isBlocked?' blocked':'');
+    let slotBadge='';
+    if(isPinned){const pos=dashConfig.featured_links.indexOf(art.link)+1;slotBadge='<span style="font-size:9px;font-weight:700;background:rgba(34,197,94,0.12);color:#86efac;border:1px solid rgba(34,197,94,0.3);border-radius:4px;padding:1px 7px">📌 Slot '+pos+'</span>';}
+    if(isBlocked){slotBadge='<span style="font-size:9px;font-weight:700;background:rgba(248,113,113,0.12);color:#fca5a5;border:1px solid rgba(248,113,113,0.3);border-radius:4px;padding:1px 7px">🚫 Gesperrt</span>';}
+    const pinBtn=isPinned?'<button class="btn btn-ghost btn-sm" style="border-color:rgba(34,197,94,0.3);color:#86efac;" data-link="'+escHtml(art.link)+'" onclick="unpinArticle(this.dataset.link)">Loslösen</button>':'<button class="btn btn-ghost btn-sm" data-link="'+escHtml(art.link)+'" onclick="pinArticle(this.dataset.link)">📌</button>';
+    const blockBtn=isBlocked?'<button class="btn btn-ghost btn-sm" style="border-color:rgba(34,197,94,0.3);color:#86efac;" data-link="'+escHtml(art.link)+'" onclick="unblockArticle(this.dataset.link)">✓ Freigeben</button>':'<button class="btn btn-ghost btn-sm" style="border-color:rgba(248,113,113,0.3);color:#fca5a5;" data-link="'+escHtml(art.link)+'" onclick="blockArticle(this.dataset.link)">🚫</button>';
+    c.innerHTML='<div class="dash-score" style="color:'+scoreColor+'">'+sc+'</div><div class="dash-content"><div class="dash-title">'+escHtml(art.title||'—')+'</div><div class="dash-meta"><span class="source-badge '+srcClass(art.source)+'" style="font-size:9px;padding:1px 7px">'+escHtml(art.source||'')+'</span>'+slotBadge+'</div></div><div class="dash-actions">'+(!isBlocked?pinBtn:'')+blockBtn+'</div>';
     container.appendChild(c);
   });
 }
 
-function renderDashBlockedList() {
-  const el = document.getElementById('dash-blocked-list');
-  if (!el) return;
-  if (!dashConfig.blocked_links.length) {
-    el.innerHTML = '<p style="font-size:12px;color:oklch(65% 0.01 240)">Keine gesperrten Artikel.</p>';
-    return;
-  }
-  el.innerHTML = '';
-  dashConfig.blocked_links.forEach(link => {
-    const art = dashArticles.find(a => a.link === link);
-    const row = document.createElement('div');
-    row.className = 'dash-blocked-row';
-    row.innerHTML =
-      '<div style="flex:1;min-width:0">' +
-        '<div class="dash-blocked-title">' + escHtml(art ? art.title : link) + '</div>' +
-        '<div class="dash-blocked-src">' + escHtml(art ? art.source : '') + '</div>' +
-      '</div>' +
-      '<button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:10px" data-link="' + escHtml(link) + '" onclick="unblockArticle(this.dataset.link)">✓ Freigeben</button>';
+function renderDashBlockedList(){
+  const el=document.getElementById('dash-blocked-list');if(!el)return;
+  if(!dashConfig.blocked_links.length){el.innerHTML='<p style="font-size:12px;color:var(--muted2);">Keine gesperrten Artikel.</p>';return;}
+  el.innerHTML='';
+  dashConfig.blocked_links.forEach(link=>{
+    const art=dashArticles.find(a=>a.link===link);
+    const row=document.createElement('div');row.className='dash-blocked-row';
+    row.innerHTML='<div style="flex:1;min-width:0;"><div class="dash-blocked-title">'+escHtml(art?art.title:link)+'</div><div style="font-size:10px;color:var(--muted2);">'+escHtml(art?art.source:'')+'</div></div><button class="btn btn-ghost btn-sm" data-link="'+escHtml(link)+'" onclick="unblockArticle(this.dataset.link)">✓</button>';
     el.appendChild(row);
   });
 }
 
-// Auto-load when tab opened and token exists
-document.getElementById('tab-dash-btn').addEventListener('click', () => {
-  if (!dashArticles.length && document.getElementById('ghToken').value.trim()) {
-    loadDashConfig();
-  }
-});
+// ════════════════════════════════════════════════════════════════════════════
+// TAB SWITCHING + INIT
+// ════════════════════════════════════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name+'-btn').classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  // Auto-load media/dash when switching tabs
+  if(name==='media'&&!mediaPodcasts.length&&!mediaVideos.length&&document.getElementById('ghToken').value.trim())loadMediaFromGitHub();
+  if(name==='dash'&&!dashArticles.length&&document.getElementById('ghToken').value.trim())loadDashConfig();
+  if(name==='sitemap'&&!sitemapUrls.length&&document.getElementById('ghToken').value.trim())loadSitemap();
+}
 
+function toggleGhBar(){
+  const body=document.getElementById('gh-bar-body');
+  const toggle=document.getElementById('gh-bar-toggle');
+  const visible=body.style.display!=='none';
+  body.style.display=visible?'none':'';
+  toggle.textContent=visible?'▶':'▼';
+}
+
+// Restore token + auto-collapse gh bar if already connected
+try{
+  const saved=localStorage.getItem('ki_admin_token');
+  if(saved){
+    document.getElementById('ghToken').value=saved;
+    // Auto-collapse the bar since token is already there
+    setTimeout(()=>{
+      document.getElementById('gh-bar-body').style.display='none';
+      document.getElementById('gh-bar-toggle').textContent='▶';
+    },100);
+  }
+}catch(e){}
+
+// Set today's date as default for article creator
+document.getElementById('art-date').value=new Date().toISOString().slice(0,10);
 </script>
 </body>
 </html>
