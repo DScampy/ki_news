@@ -186,7 +186,7 @@ SOURCE_PRESTIGE = {
     "Caschy Blog":    5,
     "CNet":	      5,
     "CNBC":           5,
-    "NYT Technology"  5,
+    "NYT Technology":  5,
     # Gizmodo entfernt (blockiert GitHub Actions)
 }
 
