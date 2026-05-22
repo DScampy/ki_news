@@ -97,6 +97,14 @@ FEEDS = [
     ("OpenAI",		"https://openai.com/blog/rss/"),
     # Kuratiert – bereits AI-spezifisch, kein KI-Filter nötig
     ("AlignedNews",    "https://alignednews.com/feed"),
+    # Primärquellen – Lab-Announcements direkt (via Olshansk/rss-feeds, stündlich aktualisiert)
+    ("Anthropic News",     "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml"),
+    ("Anthropic Research", "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml"),
+    ("Meta AI Blog",       "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_meta_ai.xml"),
+    ("Google AI Blog",     "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_google_ai.xml"),
+    ("xAI News",           "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_xainews.xml"),
+    ("Mistral News",       "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_mistral.xml"),
+    ("The Batch",          "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_the_batch.xml"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
@@ -188,6 +196,14 @@ SOURCE_PRESTIGE = {
     "CNBC":           5,
     "NYT Technology":  5,
     # Gizmodo entfernt (blockiert GitHub Actions)
+    # Primärquellen (Olshansk-Feeds)
+    "Anthropic News":     5,
+    "Anthropic Research": 5,
+    "Meta AI Blog":       5,
+    "Google AI Blog":     5,
+    "xAI News":           5,
+    "Mistral News":       5,
+    "The Batch":          5,
 }
 
 # Wichtigkeits-Keywords → Punktebonus
