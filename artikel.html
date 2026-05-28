@@ -723,7 +723,37 @@ function renderRail(news){
   }).join('');
 }
 fetch('news.json?t=' + Date.now())
-  .then(function(r){return r.json();});
+  .then(function(r){return r.json();})
+  .then(function(data){
+    var news = (data.news || []).slice();
+    var lead = document.getElementById('lead-story');
+    if (!news.length) {
+      if (lead) lead.innerHTML = '<p class="sec-text">Aktuell keine Artikel verfügbar.</p>';
+      return;
+    }
+    // Masthead aus "stand" ableiten
+    var stand = data.stand || '';
+    var timeM = stand.match(/(\d{2}:\d{2})/);
+    var issueEl = document.getElementById('m-issue');
+    var dateEl  = document.getElementById('m-date');
+    var statsEl = document.getElementById('m-stats');
+    if (issueEl) issueEl.textContent = timeM ? ('Ausgabe · ' + timeM[1] + ' Uhr') : 'Ausgabe';
+    if (dateEl)  dateEl.textContent  = germanDate(stand) || stand;
+    var srcCount = Object.keys(news.reduce(function(a,n){ a[n.source]=1; return a; }, {})).length;
+    if (statsEl) statsEl.textContent = news.length + ' Meldungen · ' + srcCount + ' Quellen';
+    // Nach Score sortieren: Leitartikel + zwei Spalten + Grid
+    var sorted = news.slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
+    renderLead(sorted[0]);
+    var secA = document.getElementById('sec-a'), secC = document.getElementById('sec-c');
+    if (sorted[1] && secA) renderSec(sorted[1], secA); else if (secA) secA.innerHTML = '';
+    if (sorted[2] && secC) renderSec(sorted[2], secC); else if (secC) secC.innerHTML = '';
+    renderGrid(sorted.slice(3, 12));
+    renderRail(news);
+  })
+  .catch(function(){
+    var lead = document.getElementById('lead-story');
+    if (lead) lead.innerHTML = '<p class="sec-text">News konnten nicht geladen werden.</p>';
+  });
 </script>
 
 <script type="module">
