@@ -56,6 +56,12 @@ html.light .nav-admin-badge{background:rgba(217,119,6,0.12);color:#d97706;border
 html.light .diff-preview{background:#f8fafc;color:#334155;}
 html.light .modal{box-shadow:0 20px 60px rgba(0,0,0,0.15);}
 html.light .preview-box{box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+/* Admin-Gate (Login) – Light-Modus */
+html.light #admin-gate{background:rgba(240,244,248,0.95)!important;}
+html.light #admin-gate>div{background:#ffffff!important;border-color:rgba(14,165,233,0.25)!important;box-shadow:0 10px 50px rgba(0,0,0,0.12)!important;}
+html.light #admin-gate>div>div:nth-child(2){color:#0f172a!important;}
+html.light #admin-gate>div>div:nth-child(3){color:rgba(15,23,42,0.45)!important;}
+html.light #gate-input{background:#f8fafc!important;color:#0f172a!important;border-color:rgba(14,165,233,0.25)!important;}
 a{color:inherit;text-decoration:none;}
 button{cursor:pointer;font-family:inherit;}
 ::-webkit-scrollbar{width:4px;}
@@ -1046,9 +1052,11 @@ function generateArticleHTML(fields){
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{--accent:#1d9bf0;--neon-rgb:29,155,240;--bg:#080c12;--text:#e2e8f0;}
-body{background:var(--bg);color:var(--text);font-family:'Work Sans',sans-serif;}
-::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
+:root{--accent:#1d9bf0;--neon-rgb:29,155,240;--bg:#080c12;--text:#e2e8f0;--muted:rgba(255,255,255,0.45);}
+html.light{--bg:#f0f4f8;--text:#0f172a;--muted:rgba(15,23,42,0.55);}
+html,body{background:var(--bg);color:var(--text);font-family:'Work Sans',sans-serif;transition:background 0.25s,color 0.25s;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
+html.light ::-webkit-scrollbar-thumb{background:#cbd5e1;}
 nav.ki-nav{position:fixed;top:0;width:100%;z-index:50;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(8,12,18,0.88);backdrop-filter:blur(14px);border-bottom:1px solid rgba(29,155,240,0.18);}
 .nav-brand{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;}
 .nav-links{display:flex;align-items:center;gap:20px;}
@@ -1081,17 +1089,31 @@ nav.ki-nav{position:fixed;top:0;width:100%;z-index:50;height:56px;display:flex;a
 .back-btn:hover{background:rgba(29,155,240,0.08);border-color:rgba(29,155,240,0.55);color:var(--accent);}
 #read-progress{position:fixed;top:56px;left:0;right:0;height:2px;background:rgba(29,155,240,0.12);z-index:49;}
 #read-progress-bar{height:100%;width:0%;background:var(--accent);transition:width 0.1s linear;box-shadow:0 0 8px rgba(29,155,240,0.6);}
+/* ── Light-Modus ── */
+html.light nav.ki-nav{background:rgba(255,255,255,0.92);}
+html.light .nav-links a{color:rgba(15,23,42,0.55);}
+html.light .breadcrumb{color:rgba(15,23,42,0.42);}
+html.light .breadcrumb a{color:#0284c7;}
+html.light .art-date{color:rgba(15,23,42,0.42);}
+html.light .art-meta-row{color:rgba(15,23,42,0.55);}
+html.light .art-body p{color:rgba(15,23,42,0.9);}
+html.light .art-body blockquote p{color:rgba(15,23,42,0.72);}
+html.light .colophon-bio{color:rgba(15,23,42,0.55);}
 </style>
+<script>(function(){try{var t=localStorage.getItem('ki_theme')||'auto';var r=t==='auto'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);}catch(e){}})();<\/script>
 </head>
 <body>
 <div id="read-progress"><div id="read-progress-bar"></div></div>
 <nav class="ki-nav">
   <a href="/" class="nav-brand">KI NEWS</a>
-  <div class="nav-links">
-    <a href="/">Aktuell</a>
-    <a href="../Archiv.html">Archiv</a>
-    <a href="../artikel.html" class="active">Artikel</a>
-    <a href="../profil.html">Profil</a>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <div class="nav-links">
+      <a href="/">Aktuell</a>
+      <a href="../Archiv.html">Archiv</a>
+      <a href="../artikel.html" class="active">Artikel</a>
+      <a href="../profil.html">Profil</a>
+    </div>
+    <button onclick="cycleArticleTheme()" id="art-theme-btn" title="Hell / Dunkel umschalten" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:4px 2px;">🌙</button>
   </div>
 </nav>
 <main id="main-content">
@@ -1128,8 +1150,8 @@ nav.ki-nav{position:fixed;top:0;width:100%;z-index:50;height:56px;display:flex;a
       <div class="colophon-bio">KI-News täglich auf Deutsch.<br>Englische Quellen kuratiert, eingeordnet, erklärt.</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-      <a href="https://x.com/ScampyKI" target="_blank" style="font-family:monospace;font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.06em;">X / Twitter ↗</a>
-      <a href="https://ki-news.live" style="font-family:monospace;font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.06em;">ki-news.live ↗</a>
+      <a href="https://x.com/ScampyKI" target="_blank" style="font-family:monospace;font-size:11px;color:var(--muted);text-decoration:none;letter-spacing:0.06em;">X / Twitter ↗</a>
+      <a href="https://ki-news.live" style="font-family:monospace;font-size:11px;color:var(--muted);text-decoration:none;letter-spacing:0.06em;">ki-news.live ↗</a>
     </div>
   </div>
   <a href="../artikel.html" class="back-btn">← Alle Artikel</a>
@@ -1141,6 +1163,10 @@ window.addEventListener('scroll',function(){
   var h=document.documentElement.scrollHeight-window.innerHeight;
   if(h>0)el.style.width=(window.scrollY/h*100)+'%';
 });
+<\/script>
+<script>
+window.cycleArticleTheme=function(){var cur='auto';try{cur=localStorage.getItem('ki_theme')||'auto';}catch(e){}var r=cur==='auto'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):cur;var n=r==='dark'?'light':'dark';try{localStorage.setItem('ki_theme',n);}catch(e){}document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(n);var b=document.getElementById('art-theme-btn');if(b)b.textContent=n==='light'?'☀':'🌙';};
+(function(){var b=document.getElementById('art-theme-btn');if(b)b.textContent=document.documentElement.classList.contains('light')?'☀':'🌙';})();
 <\/script>
 </body>
 </html>`;
