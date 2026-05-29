@@ -1,6 +1,6 @@
 # KI News Dashboard · @CScampy
 
-Automatisches KI-News-Dashboard. Sammelt täglich News aus 10 Quellen, generiert fertige X-Posts im Tuki-6-Stil und schickt sie per Telegram.
+Automatisches KI-News-Dashboard. Sammelt täglich News aus 10 Quellen, generiert fertige X-Posts im Scampy-6-Stil und schickt sie per Telegram.
 
 **Live:** https://dscampy.github.io/ki\_news/
 
@@ -11,7 +11,7 @@ Automatisches KI-News-Dashboard. Sammelt täglich News aus 10 Quellen, generiert
 1. Holt KI-relevante News aus 10 Quellen (4 deutsch, 6 englisch)
 2. Filtert nach KI-Keywords, dedupliziert per URL
 3. Übersetzt \& fasst alle News auf Deutsch zusammen (via LLM)
-4. Generiert 3 fertige X-Posts im **Tuki-6-Format** (Teaser + 6-teiliger Thread + Erklärung)
+4. Generiert 3 fertige X-Posts im **Scampy-6-Format** (Teaser + 6-teiliger Thread + Erklärung)
 5. Schickt die Posts per Telegram an [@ScampyNews24\_bot](https://t.me/ScampyNews24_bot)
 6. Aktualisiert `news.json`, `archive.json`, `hashtags/hashtags.json` und `index.html`
 7. Committet alles automatisch zurück ins Repo via GitHub Actions
@@ -120,5 +120,5 @@ python ki\\\_news.py
 
 ## Erstellt von
 
-D. Scampy ([@CScampy](https://x.com/CScampy)) · 2026 · erstellt mit Claude
+D. Scampy ([@CScampy](https://x.com/CScampy)) · 2026
 
