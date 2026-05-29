@@ -5,8 +5,8 @@
    Wird auf JEDER Seite NACH dem Inline-Theme-Script eingebunden.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
-  var PROPS = ['--bg', '--surface', '--card', '--sidebar-bg', '--nav-bg',
-               '--nav-border', '--border', '--accent', '--neon-rgb', '--text', '--muted'];
+  var PROPS = ['--bg', '--surface', '--card', '--field', '--hairline', '--sidebar-bg', '--nav-bg',
+               '--nav-border', '--border', '--accent', '--accent-hover', '--neon-rgb', '--text', '--muted'];
 
   function hexToRgb(h) {
     h = String(h || '').trim().replace('#', '');
@@ -22,9 +22,9 @@
     var neon = c.neon ? hexToRgb(c.neon) : null;
     var textRgb = c.text ? hexToRgb(c.text) : null;
     if (c.bg)      { s.setProperty('--bg', c.bg); s.setProperty('--nav-bg', c.bg); }
-    if (c.surface) { s.setProperty('--surface', c.surface); s.setProperty('--card', c.surface); s.setProperty('--sidebar-bg', c.surface); }
-    if (c.accent)  { s.setProperty('--accent', c.accent); }
-    if (neon)      { s.setProperty('--neon-rgb', neon); s.setProperty('--border', 'rgba(' + neon + ',0.18)'); s.setProperty('--nav-border', 'rgba(' + neon + ',0.12)'); }
+    if (c.surface) { s.setProperty('--surface', c.surface); s.setProperty('--card', c.surface); s.setProperty('--field', c.surface); s.setProperty('--sidebar-bg', c.surface); }
+    if (c.accent)  { s.setProperty('--accent', c.accent); s.setProperty('--accent-hover', c.accent); }
+    if (neon)      { s.setProperty('--neon-rgb', neon); s.setProperty('--border', 'rgba(' + neon + ',0.18)'); s.setProperty('--nav-border', 'rgba(' + neon + ',0.12)'); s.setProperty('--hairline', 'rgba(' + neon + ',0.22)'); }
     if (c.text)    { s.setProperty('--text', c.text); if (textRgb) s.setProperty('--muted', 'rgba(' + textRgb + ',0.5)'); }
   }
 
