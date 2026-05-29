@@ -734,6 +734,7 @@ Promise.all([
   topLinks = top.map(function(n){return n.link;}).filter(Boolean);
   initHero(top);
   var filtered = allNews.filter(function(n){ return topLinks.indexOf(n.link) === -1; });
+  filtered.sort(function(a,b){ return (b.score||0)-(a.score||0); });
   grid.innerHTML = '';
   filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
   if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
