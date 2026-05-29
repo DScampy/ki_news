@@ -7,8 +7,11 @@
 
 /* ── Border-Preflight (damit `border` ohne Style sichtbar ist) ── */
 *,*::before,*::after{border-width:0;border-style:solid;border-color:#e5e7eb;}
-/* ── Link-Preflight (wie Tailwind: keine Standard-Unterstreichung/Blau) ── */
-a{color:inherit;text-decoration:inherit;}
+/* ── Link-Preflight: keine Standard-Unterstreichung/Blau ──
+   Robust gegen vererbte Unterstreichung: explizit `none` statt `inherit`.
+   Gewollte Unterstreichungen (z. B. .hover\:underline:hover, .c-read-link:hover)
+   gewinnen über höhere Spezifität via :hover. */
+a{color:inherit;text-decoration:none;}
 
 /* ── Custom Fonts (tailwind.config fontFamily) ── */
 .font-body-sm,.font-body-lg,.font-source-tag,.font-label-bold{font-family:'Work Sans',sans-serif;}
