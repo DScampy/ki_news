@@ -7,6 +7,8 @@
 
 /* ── Border-Preflight (damit `border` ohne Style sichtbar ist) ── */
 *,*::before,*::after{border-width:0;border-style:solid;border-color:#e5e7eb;}
+/* ── Link-Preflight (wie Tailwind: keine Standard-Unterstreichung/Blau) ── */
+a{color:inherit;text-decoration:inherit;}
 
 /* ── Custom Fonts (tailwind.config fontFamily) ── */
 .font-body-sm,.font-body-lg,.font-source-tag,.font-label-bold{font-family:'Work Sans',sans-serif;}
@@ -175,7 +177,7 @@
 .text-gray-600{color:#4b5563;}
 .text-gray-700{color:#374151;}
 .text-on-surface-variant{color:#bfc7d3;}
-.text-\[\#1d9bf0\]{color:#1d9bf0;}
+.text-\[\#1d9bf0\]{color:var(--accent);}
 .text-\[\#dc2626\]{color:#dc2626;}
 .text-\[var\(--accent\)\]{color:var(--accent);}
 
@@ -183,14 +185,14 @@
 .bg-black{background-color:#000;}
 .bg-transparent{background-color:transparent;}
 .bg-green-500{background-color:#22c55e;}
-.bg-\[\#0d1117\]{background-color:#0d1117;}
-.bg-\[\#16181c\]{background-color:#16181c;}
-.bg-\[\#1d1f23\]{background-color:#1d1f23;}
-.bg-\[\#1d9bf0\]{background-color:#1d9bf0;}
+.bg-\[\#0d1117\]{background-color:var(--card,#0d1117);}
+.bg-\[\#16181c\]{background-color:var(--card,#16181c);}
+.bg-\[\#1d1f23\]{background-color:var(--field,#1d1f23);}
+.bg-\[\#1d9bf0\]{background-color:var(--accent);}
 
 /* ── Gradients ── */
 .bg-gradient-to-l{background-image:linear-gradient(to left,var(--tw-grad-from,transparent),var(--tw-grad-to,transparent));}
-.from-\[\#1d9bf0\]{--tw-grad-from:#1d9bf0;}
+.from-\[\#1d9bf0\]{--tw-grad-from:var(--accent);}
 .to-transparent{--tw-grad-to:transparent;}
 
 /* ── Borders (width/side) ── */
@@ -201,7 +203,7 @@
 .border-b-2{border-bottom-width:2px;}
 .border-l-2{border-left-width:2px;}
 .border-none{border-style:none;}
-.border-\[\#1d9bf0\]{border-color:#1d9bf0;}
+.border-\[\#1d9bf0\]{border-color:var(--accent);}
 .border-\[\#2f3336\]{border-color:#2f3336;}
 .border-\[var\(--accent\)\]{border-color:var(--accent);}
 
@@ -220,7 +222,7 @@
 @keyframes tw-pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 
 /* ── Hover / Group variants ── */
-.hover\:bg-\[\#1a8cd8\]:hover{background-color:#1a8cd8;}
+.hover\:bg-\[\#1a8cd8\]:hover{background-color:var(--accent-hover,#1a8cd8);}
 .hover\:text-white:hover{color:#fff;}
 .hover\:underline:hover{text-decoration-line:underline;}
 .group:hover .group-hover\:text-gray-400{color:#9ca3af;}
