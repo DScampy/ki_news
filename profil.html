@@ -402,6 +402,7 @@ nav {
       <div class="gdot" data-t="aurora"  onclick="window.setGenesisTheme('aurora')"  title="Aurora"></div>
       <div class="gdot" data-t="meridian" onclick="window.setGenesisTheme('meridian')" title="Meridian"></div>
       <div class="gdot" data-t="blanc"   onclick="window.setGenesisTheme('blanc')"   title="Blanc"></div>
+      <div class="gdot" data-t="custom"  onclick="window.setGenesisTheme('custom')"  title="Eigenes Theme"></div>
     </div>
   </div>
 </nav>
@@ -621,6 +622,44 @@ nav {
       <div class="color-palette" id="td-palette"></div>
     </div>
 
+    <!-- ── Eigenes Theme ────────────────────────────────────── -->
+    <div class="section-header">
+      <span class="section-title">Eigenes Theme</span>
+      <span class="section-sub">Deine Farben</span>
+      <div class="section-line"></div>
+    </div>
+    <style>
+      .cte-wrap{background:var(--surface);border:1px solid rgba(var(--neon-rgb),0.22);border-radius:16px;padding:24px 26px;margin-bottom:48px;box-shadow:0 0 20px rgba(var(--neon-rgb),0.08);}
+      .cte-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+      @media(max-width:680px){.cte-grid{grid-template-columns:repeat(2,1fr);}}
+      .cte-field{display:flex;flex-direction:column;gap:8px;}
+      .cte-field>span{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+      .cte-field input[type=color]{width:100%;height:48px;border:1px solid rgba(var(--neon-rgb),0.25);border-radius:10px;background:transparent;cursor:pointer;padding:4px;}
+      .cte-field input[type=color]::-webkit-color-swatch{border:none;border-radius:6px;}
+      .cte-field input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
+      .cte-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+      .cte-apply{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:11px 18px;cursor:pointer;transition:filter 0.15s;}
+      .cte-apply:hover{filter:brightness(1.12);}
+      .cte-reset{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);background:transparent;border:1px solid rgba(var(--neon-rgb),0.25);border-radius:8px;padding:11px 18px;cursor:pointer;transition:all 0.15s;}
+      .cte-reset:hover{color:var(--text);border-color:rgba(var(--neon-rgb),0.5);}
+      .cte-hint{font-size:11px;font-family:monospace;color:var(--muted);margin-top:14px;letter-spacing:0.03em;}
+      .gdot[data-t="custom"]{background:conic-gradient(from 0deg,#00d4ff,#34d399,#fb923c,#a78bfa,#00d4ff);}
+    </style>
+    <div class="cte-wrap" id="custom-theme-editor">
+      <div class="cte-grid">
+        <label class="cte-field"><span>Hintergrund</span><input type="color" id="cte-bg" value="#000000" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Surface</span><input type="color" id="cte-surface" value="#0a0e16" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Akzent</span><input type="color" id="cte-accent" value="#00d4ff" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Neon-Glow</span><input type="color" id="cte-neon" value="#00d4ff" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Text</span><input type="color" id="cte-text" value="#e8f8ff" oninput="kiLiveEditor()"/></label>
+      </div>
+      <div class="cte-actions">
+        <button class="cte-apply" onclick="kiApplyEditor()">Anwenden &amp; aktivieren</button>
+        <button class="cte-reset" onclick="kiResetEditor()">Zurück zu Genesis</button>
+      </div>
+      <p class="cte-hint">Wird im Browser gespeichert und auf allen Seiten angewendet.</p>
+    </div>
+
     <!-- ── Settings ─────────────────────────────────────────── -->
     <div class="section-header">
       <span class="section-title">Einstellungen</span>
@@ -816,6 +855,14 @@ var THEMES = {
 };
 
 function setTheme(name) {
+  if (name === 'custom') {
+    document.querySelectorAll('.theme-card').forEach(function(c){ c.classList.remove('active'); });
+    var lblC=document.getElementById('activeThemeName'); if(lblC) lblC.textContent='Eigenes';
+    var tnC=document.getElementById('td-name'); if(tnC) tnC.textContent='EIGENES THEME';
+    var tmC=document.getElementById('td-mood'); if(tmC) tmC.textContent='Deine Farben · Custom';
+    var tdC=document.getElementById('td-desc'); if(tdC) tdC.textContent='Dein selbst gewähltes Farbschema — im Browser gespeichert und auf allen Seiten aktiv.';
+    return;
+  }
   var t = THEMES[name];
   if (!t) return;
   document.documentElement.setAttribute('data-theme', name);
@@ -991,6 +1038,15 @@ window.addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
 });
+</script>
+
+<script src="assets/ki-custom-theme.js"></script>
+<script>
+function kiEditorVals(){return {bg:document.getElementById('cte-bg').value,surface:document.getElementById('cte-surface').value,accent:document.getElementById('cte-accent').value,neon:document.getElementById('cte-neon').value,text:document.getElementById('cte-text').value};}
+function kiApplyEditor(){ if(window.kiSetCustom) window.kiSetCustom(kiEditorVals()); if(typeof setTheme==='function') setTheme('custom'); }
+function kiLiveEditor(){ kiApplyEditor(); }
+function kiResetEditor(){ if(window.setGenesisTheme) window.setGenesisTheme('genesis'); }
+(function(){ try{ var c=window.kiGetCustom&&window.kiGetCustom(); if(c){ if(c.bg)document.getElementById('cte-bg').value=c.bg; if(c.surface&&/^#[0-9a-fA-F]{6}$/.test(c.surface))document.getElementById('cte-surface').value=c.surface; if(c.accent)document.getElementById('cte-accent').value=c.accent; if(c.neon)document.getElementById('cte-neon').value=c.neon; if(c.text)document.getElementById('cte-text').value=c.text; if((localStorage.getItem('ki_genesis_theme')||'')==='custom'&&typeof setTheme==='function') setTheme('custom'); } }catch(e){} })();
 </script>
 
 </body>
