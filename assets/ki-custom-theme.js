@@ -93,7 +93,17 @@
     if (!document.getElementById('ki-custom-dot-style')) {
       var st = document.createElement('style');
       st.id = 'ki-custom-dot-style';
-      st.textContent = '.gdot[data-t="custom"]{background:conic-gradient(from 0deg,#00d4ff,#34d399,#fb923c,#a78bfa,#00d4ff);}';
+      st.textContent = '.gdot[data-t="custom"]{background:conic-gradient(from 0deg,#00d4ff,#34d399,#fb923c,#a78bfa,#00d4ff);}'
+        + '[data-theme="custom"] #sidebar{background:var(--sidebar-bg)!important;}'
+        + '[data-theme="custom"] #main-content{background:var(--bg)!important;}'
+        + '[data-theme="custom"] nav.fixed,[data-theme="custom"] nav.ki-nav{background:var(--nav-bg)!important;}'
+        + '[data-theme="custom"] .card-hover{background:var(--card)!important;}'
+        + '[data-theme="custom"] .card-hover h4{color:var(--text)!important;}'
+        + '[data-theme="custom"] .card-hover p{color:var(--muted)!important;}'
+        + '[data-theme="custom"] .ki-card{background:var(--card)!important;}'
+        + '[data-theme="custom"] #searchWrap,[data-theme="custom"] #stand-box{background:var(--surface)!important;}'
+        + '[data-theme="custom"] .bg-\\[\\#0d1117\\],[data-theme="custom"] .bg-\\[\\#16181c\\],[data-theme="custom"] .bg-\\[\\#1d1f23\\]{background:var(--surface)!important;}'
+        + '[data-theme="custom"] h1.text-white,[data-theme="custom"] h2.text-white,[data-theme="custom"] h3.text-white{color:var(--text)!important;}';
       document.head.appendChild(st);
     }
     var dots = document.getElementById('genesis-dots');
