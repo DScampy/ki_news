@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Repository auschecken
@@ -57,7 +59,7 @@ jobs:
           git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')" || echo "Keine Aenderungen"
           # Rebase vor Push – verhindert "rejected: fetch first" wenn Actions-Runs sich überlappen
           git pull --rebase origin main || true
-          git push
+          git push origin HEAD:main || (sleep 5 && git pull --rebase origin main && git push origin HEAD:main) || true
 
       - name: Log hochladen
         uses: actions/upload-artifact@v4
