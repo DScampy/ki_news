@@ -7,34 +7,57 @@
 <meta name="robots" content="noindex, nofollow"/>
 <title>Admin – KI News</title>
 <link rel="stylesheet" href="assets/ki-fonts.css"/>
+<script>
+/* Früh-Anwendung Theme (verhindert Flackern beim Laden) */
+(function(){try{
+  var GEN=['genesis','karst','aurora','meridian','blanc'];
+  var g=localStorage.getItem('ki_genesis_theme')||'genesis';
+  var c=localStorage.getItem('ki_theme')||'auto';
+  var r=document.documentElement;
+  if(g==='custom'){r.setAttribute('data-theme','custom');r.classList.remove('light','dark');return;}
+  if(GEN.indexOf(g)===-1)g='genesis';
+  var light=g==='blanc'?true:(c==='light'?true:(c==='dark'?false:(matchMedia('(prefers-color-scheme: light)').matches)));
+  r.setAttribute('data-theme',g);
+  r.classList.remove('light','dark');
+  r.classList.add(light?'light':'dark');
+}catch(e){}})();
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
+  /* Akzent-Familie (wird per [data-theme] gesetzt) */
+  --neon-rgb:29,155,240;
+  --accent:#1d9bf0;
+  --accent-hover:#1a8cd8;
+  /* Struktur – Dunkel-Default */
   --bg:#080c12;
   --surface:#111827;
   --surface2:#1a2436;
   --surface3:#1e2d42;
-  --border:rgba(99,179,237,0.14);
-  --border2:rgba(99,179,237,0.25);
-  --accent:#1d9bf0;
-  --accent-dim:rgba(29,155,240,0.18);
   --text:#e2e8f0;
   --muted:rgba(226,232,240,0.45);
   --muted2:rgba(226,232,240,0.25);
+  /* Abgeleitet aus der Akzent-Familie → folgt dem Theme automatisch */
+  --border:rgba(var(--neon-rgb),0.16);
+  --border2:rgba(var(--neon-rgb),0.30);
+  --accent-dim:rgba(var(--neon-rgb),0.16);
+  /* Status-Farben – über alle Themes konstant */
   --green:#22c55e;
   --red:#f87171;
   --yellow:#fbbf24;
 }
-/* ── Light Mode ── */
+/* ── 5-Theme-System (dieselben Akzent-Familien wie die Live-Seiten) ── */
+[data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--accent-hover:#1a8cd8;--bg:#080c12;--surface:#0d1420;--surface2:#152033;--surface3:#1d2d44;--text:#e8f8ff;--muted:rgba(180,220,240,0.55);--muted2:rgba(180,220,240,0.30);}
+[data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--accent-hover:#2bb583;--bg:#060e08;--surface:#0a160f;--surface2:#0f2016;--surface3:#163020;--text:#e0f5ec;--muted:rgba(160,220,190,0.55);--muted2:rgba(160,220,190,0.30);}
+[data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--accent-hover:#9171e8;--bg:#04020f;--surface:#0c0a1a;--surface2:#16122a;--surface3:#221c3c;--text:#ede9fe;--muted:rgba(180,160,240,0.55);--muted2:rgba(180,160,240,0.30);}
+[data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--accent-hover:#e07f2a;--bg:#090300;--surface:#150a02;--surface2:#1e1206;--surface3:#2c1c0c;--text:#fff0e6;--muted:rgba(240,190,140,0.55);--muted2:rgba(240,190,140,0.30);}
+[data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--accent-hover:#0c8fcb;--bg:#f0f4f8;--surface:#ffffff;--surface2:#f1f5f9;--surface3:#e8eef5;--text:#0f172a;--muted:rgba(15,23,42,0.55);--muted2:rgba(15,23,42,0.35);}
+/* ── Hell-Modus: Struktur wird hell, Akzent bleibt vom aktiven Theme ── */
 html.light{
   --bg:#f0f4f8;
   --surface:#ffffff;
   --surface2:#f1f5f9;
   --surface3:#e8eef5;
-  --border:rgba(14,165,233,0.18);
-  --border2:rgba(14,165,233,0.35);
-  --accent:#0ea5e9;
-  --accent-dim:rgba(14,165,233,0.12);
   --text:#0f172a;
   --muted:rgba(15,23,42,0.55);
   --muted2:rgba(15,23,42,0.35);
@@ -46,7 +69,7 @@ html,body{height:100%;font-family:'Work Sans',sans-serif;background:var(--bg);co
 html.light .card{box-shadow:0 1px 4px rgba(0,0,0,0.07);}
 html.light .article-card{box-shadow:0 1px 3px rgba(0,0,0,0.06);}
 html.light .gh-bar{box-shadow:0 1px 4px rgba(0,0,0,0.06);}
-html.light input,html.light textarea,html.light select{background:#fff;border-color:rgba(14,165,233,0.25);color:#0f172a;}
+html.light input,html.light textarea,html.light select{background:#fff;border-color:var(--border2);color:#0f172a;}
 html.light input::placeholder,html.light textarea::placeholder{color:rgba(15,23,42,0.35);}
 html.light .search-bar{background:#fff;}
 html.light .ep-header{background:#f8fafc;}
@@ -114,6 +137,19 @@ html.light .nav-tab:hover{background:rgba(0,0,0,0.04);}
   border-radius:6px;padding:5px 12px;transition:all 0.15s;
 }
 .nav-site-link:hover{color:var(--accent);border-color:var(--border2);}
+
+/* ── Theme-Punkte in der Nav (5-Theme-Umschalter) ── */
+#genesis-dots{display:flex;align-items:center;gap:5px;}
+.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;padding:0;background:transparent;}
+.gdot:hover{transform:scale(1.25);}
+.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
+.gdot[data-t="genesis"]{background:#00d4ff;}
+.gdot[data-t="karst"]{background:#34d399;}
+.gdot[data-t="aurora"]{background:#a78bfa;}
+.gdot[data-t="meridian"]{background:#fb923c;}
+.gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
+.gdot[data-t="custom"]{background:conic-gradient(from 0deg,#00d4ff,#34d399,#fb923c,#a78bfa,#00d4ff);}
 
 /* ── Layout ── */
 .admin-body{padding-top:56px;min-height:100vh;}
@@ -467,7 +503,14 @@ function checkGate(){
       <span class="status-dot" id="statusDot"></span>
       <span id="statusText">Nicht verbunden</span>
     </div>
-    <button onclick="toggleTheme()" id="themeBtn" title="Dark / Light" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:5px 10px;cursor:pointer;color:var(--muted);font-size:15px;transition:all 0.15s;line-height:1;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">☀</button>
+    <button onclick="cycleTheme()" id="themeBtn" title="Hell / Dunkel" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:5px 10px;cursor:pointer;color:var(--muted);font-size:15px;transition:all 0.15s;line-height:1;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">☀</button>
+    <div id="genesis-dots" title="Design-Theme">
+      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis"></button>
+      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst"></button>
+      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora"></button>
+      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian"></button>
+      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc"></button>
+    </div>
     <a href="/" class="nav-site-link">← Live-Seite</a>
   </div>
 </nav>
@@ -1606,22 +1649,60 @@ try{
 
 // Set today's date as default for article creator
 document.getElementById('art-date').value=new Date().toISOString().slice(0,10);
-
-// ── Theme Toggle ─────────────────────────────────────────────────────────────
-function toggleTheme(){
-  const isLight=document.documentElement.classList.contains('light');
-  document.documentElement.classList.toggle('light',!isLight);
-  document.documentElement.classList.toggle('dark',isLight);
-  document.getElementById('themeBtn').textContent=isLight?'☀':'🌙';
-  try{localStorage.setItem('ki_admin_theme',isLight?'dark':'light');}catch(e){}
-}
-// Restore saved theme
-try{
-  const t=localStorage.getItem('ki_admin_theme')||'dark';
-  document.documentElement.classList.remove('light','dark');
-  document.documentElement.classList.add(t);
-  document.getElementById('themeBtn').textContent=t==='light'?'🌙':'☀';
-}catch(e){}
 </script>
+
+<!-- ── KI Theme-Kopplung: Hell/Dunkel + 5 Genesis-Themes (identisch zu den Live-Seiten) ── -->
+<script>
+(function(){
+  var GEN=['genesis','karst','aurora','meridian','blanc'];
+  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
+  var memGen=null, memContrast=null;
+  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
+  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
+  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
+  function resolveLight(){
+    if(getGenesis()==='blanc')return true;
+    var c=getContrast();
+    return c==='light'?true:(c==='dark'?false:prefersLight());
+  }
+  function applyAll(){
+    var root=document.documentElement, raw=rawGenesis();
+    if(raw==='custom'){
+      root.setAttribute('data-theme','custom');
+      root.classList.remove('light','dark');
+    }else{
+      var g=getGenesis(), light=resolveLight();
+      root.setAttribute('data-theme',g);
+      root.classList.toggle('light',light);
+      root.classList.toggle('dark',!light);
+    }
+    var active=(raw==='custom')?'custom':getGenesis();
+    var dots=document.querySelectorAll('.gdot');
+    for(var i=0;i<dots.length;i++)dots[i].classList.toggle('active',dots[i].getAttribute('data-t')===active);
+    var b=document.getElementById('themeBtn');
+    if(b)b.textContent=root.classList.contains('light')?'🌙':'☀';
+    if(typeof window.__kiThemeHook==='function'){try{window.__kiThemeHook(root.classList.contains('light'),active);}catch(e){}}
+  }
+  window.setGenesisTheme=function(name){
+    if(GEN.indexOf(name)===-1)name='genesis';
+    memGen=name;
+    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
+    applyAll();
+  };
+  window.cycleTheme=function(){
+    var light=document.documentElement.classList.contains('light');
+    var next=light?'dark':'light';
+    if(next==='dark'&&getGenesis()==='blanc'&&rawGenesis()!=='custom'){memGen='genesis';try{localStorage.setItem('ki_genesis_theme','genesis');}catch(e){}}
+    memContrast=next;
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyAll();
+  };
+  window.__kiApplyTheme=applyAll;
+  applyAll();
+  document.addEventListener('DOMContentLoaded',applyAll);
+  if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getContrast()==='auto')applyAll();});}catch(e){}}
+})();
+</script>
+<script src="assets/ki-custom-theme.js"></script>
 </body>
 </html>
