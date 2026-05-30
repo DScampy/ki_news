@@ -749,8 +749,19 @@ function toggleSidebar() {
 
 /* ── Genesis theme sync (shared key with other pages) ───────── */
 /* Gekoppelte Hell/Dunkel-Logik: Kontrast-Schalter (ki_theme) + Blanc ⇒ hell */
+var kiMemGen = null;            // In-Memory-Fallback, falls localStorage blockiert ist
+var kiMemContrast = null;       // dito für Kontrast (ki_theme)
+function kiCurrentGenesis(){
+  // Quelle der Wahrheit: gespeicherter Wert → Memory → live data-theme → genesis
+  var v=null; try{ v=localStorage.getItem('ki_genesis_theme'); }catch(e){}
+  if(!v) v=kiMemGen;
+  if(!v) v=document.documentElement.getAttribute('data-theme');
+  return v||'genesis';
+}
 function kiContrastLight(){
-  var c='auto';try{c=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  var c=null; try{ c=localStorage.getItem('ki_theme'); }catch(e){}
+  if(!c) c=kiMemContrast;
+  c=c||'auto';
   if(c==='light')return true;
   if(c==='dark')return false;
   return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
@@ -764,6 +775,7 @@ function kiApplyLight(name){
   root.classList.toggle('dark',!l);
 }
 window.setGenesisTheme = function(name) {
+  kiMemGen = name;
   document.documentElement.setAttribute('data-theme', name);
   kiApplyLight(name);
   // Sync dots
@@ -780,7 +792,8 @@ window.setGenesisTheme = function(name) {
 window.cycleTheme = function() {
   var isLight = document.documentElement.classList.contains('light');
   var next = isLight ? 'dark' : 'light';
-  var g='genesis';try{g=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
+  var g = kiCurrentGenesis();
+  kiMemContrast = next;
   try { localStorage.setItem('ki_theme', next); } catch(e) {}
   // Aus Blanc heraus auf Dunkel: Blanc verlassen (Blanc hat keine Dunkel-Variante)
   if(next==='dark' && g==='blanc' && typeof setTheme==='function'){ setTheme('genesis'); return; }
@@ -887,6 +900,7 @@ function setTheme(name) {
   }
   var t = THEMES[name];
   if (!t) return;
+  kiMemGen = name;
   document.documentElement.setAttribute('data-theme', name);
   kiApplyLight(name);
   // Update theme cards

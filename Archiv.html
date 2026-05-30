@@ -1083,11 +1083,10 @@ if (window.location.hash === '#hashtags') {
 <!-- ── KI Theme-Kopplung + Seiten-Hook (Toolbar/Karten) ── -->
 <script>
 window.__kiThemeHook=function(light,active){
-  function set(id,bg,bc){var el=document.getElementById(id);if(el){el.style.background=bg;el.style.borderColor=bc;}}
-  set('viewToggle',  light?'#f8fafc':'#16181c', light?'#e2e8f0':'#2f3336');
-  set('mobileSearch',light?'#f8fafc':'#16181c', light?'#e2e8f0':'#2f3336');
-  set('filterChipLabel', light?'#f8fafc':'#16181c', light?'#e2e8f0':'#2f3336');
-  try{ if(typeof allNews!=='undefined'&&allNews.length&&typeof setLayout==='function'){ setLayout(window._currentLayout||'grid'); } }catch(e){}
+  // Karten & Panels recolorieren bereits per html.light-CSS. Nur die inline-gestylte
+  // Toolbar (viewToggle hat inline background) braucht eine Hand-Korrektur.
+  var vt=document.getElementById('viewToggle');
+  if(vt){vt.style.background=light?'#f1f5f9':'#16181c';vt.style.borderColor=light?'#e2e8f0':'#2f3336';}
 };
 (function(){
   var GEN=['genesis','karst','aurora','meridian','blanc'];
