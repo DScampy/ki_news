@@ -56,8 +56,9 @@
 }
 </script>
 <link rel="stylesheet" href="assets/ki-tw.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/ki-fonts.css"/>
+<script src="assets/ki-icons.js" defer></script>
+<script src="assets/ki-embed.js" defer></script>
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
 </script>
@@ -495,6 +496,8 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
         <a href="Archiv.html" class="ki-muted hover:text-white transition-colors text-xs font-mono">Archiv</a>
         <a href="https://x.com/ScampyKI" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
         <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">Podcast</a>
+        <a href="Impressum.html" class="ki-muted hover:text-white transition-colors text-xs font-mono">Impressum</a>
+        <a href="Datenschutz.html" class="ki-muted hover:text-white transition-colors text-xs font-mono">Datenschutz</a>
       </div>
     </div>
   </div>
@@ -750,7 +753,7 @@ function buildVideoBlock(video) {
     return '<div class="ki-card ki-border border overflow-hidden flex flex-col"><div class="video-wrap flex-shrink-0"><div class="video-label">'+(video.label||'VIDEO')+'</div><video controls preload="metadata" style="max-height:185px"><source src="'+video.src+'" type="video/mp4"/></video></div><div class="p-4 flex-1"><h4 class="ki-main font-bold mb-1" style="font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+(video.title||'')+'</h4></div></div>';
   if (video.type==='youtube') {
     var ytId=(video.src.match(/(?:v=|youtu\.be\/)([^&?/]+)/)||[])[1]||video.src;
-    return '<div class="ki-card ki-border border overflow-hidden flex flex-col"><div class="video-wrap flex-shrink-0" style="padding-top:56.25%;position:relative"><div class="video-label">'+(video.label||'VIDEO')+'</div><iframe src="https://www.youtube.com/embed/'+ytId+'" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div><div class="p-4 flex-1"><h4 class="ki-main font-bold mb-1" style="font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+(video.title||'')+'</h4></div></div>';
+    return '<div class="ki-card ki-border border overflow-hidden flex flex-col">'+KIEmbed.youtube(ytId,{label:video.label||'VIDEO'})+'<div class="p-4 flex-1"><h4 class="ki-main font-bold mb-1" style="font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+(video.title||'')+'</h4></div></div>';
   }
   return '';
 }
@@ -763,7 +766,7 @@ fetch('media.json?t=' + Date.now())
     if (podcasts.length) {
       var p=podcasts[0];
       var scUrl=p.track_id ? 'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/'+p.track_id+'&color=%231d9bf0&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false' : '';
-      html += '<div class="ki-card ki-border border p-5 relative overflow-hidden"><div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none"><div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div></div><div class="relative z-10"><span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span><h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px">'+p.title+'</h2><p class="ki-muted text-[13px] mb-3">'+p.description+'</p>'+(scUrl?'<iframe width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay" src="'+scUrl+'" style="border-radius:4px;opacity:0.9"></iframe>':'<p class="ki-muted text-xs font-mono" style="padding:12px 0">Podcast wird bald verfügbar…</p>')+'<div class="mt-2 flex items-center gap-3"><a href="'+p.soundcloud_url+'" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:\'Space Grotesk\',sans-serif"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">open_in_new</span>SoundCloud</a><span class="text-xs ki-muted font-mono">KI NEWS #'+p.id+(p.duration?' · '+p.duration:'')+'</span></div></div></div>';
+      html += '<div class="ki-card ki-border border p-5 relative overflow-hidden"><div class="absolute top-0 right-0 w-2/5 h-full opacity-10 pointer-events-none"><div class="w-full h-full bg-gradient-to-l from-[#1d9bf0] to-transparent"></div></div><div class="relative z-10"><span class="text-[#1d9bf0] font-label-bold text-label-bold uppercase tracking-[0.2em] mb-2 block">🎙 Aktuellster Podcast</span><h2 class="ki-main font-bold mb-2 leading-tight" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px">'+p.title+'</h2><p class="ki-muted text-[13px] mb-3">'+p.description+'</p>'+(scUrl?KIEmbed.soundcloud(scUrl,{height:80,label:'PODCAST'}):'<p class="ki-muted text-xs font-mono" style="padding:12px 0">Podcast wird bald verfügbar…</p>')+'<div class="mt-2 flex items-center gap-3"><a href="'+p.soundcloud_url+'" target="_blank" class="flex items-center gap-2 bg-[#1d9bf0] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#1a8cd8] transition-all" style="font-family:\'Space Grotesk\',sans-serif"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">open_in_new</span>SoundCloud</a><span class="text-xs ki-muted font-mono">KI NEWS #'+p.id+(p.duration?' · '+p.duration:'')+'</span></div></div></div>';
     }
     if (videos.length) html += buildVideoBlock(videos[0]);
     grid.innerHTML = html;
