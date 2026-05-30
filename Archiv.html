@@ -260,12 +260,13 @@
 
   let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
   // Only apply old light/dark if no genesis theme stored or it's blanc
-  if(!localStorage.getItem('ki_genesis_theme')) apply(saved);
+  var _gStored=null;try{_gStored=localStorage.getItem('ki_genesis_theme');}catch(e){}
+  if(!_gStored) apply(saved);
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
     let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
     if(s==='auto')apply('auto');
   });
-  document.addEventListener('DOMContentLoaded',()=>updateSlider(localStorage.getItem('ki_theme')||'auto'));
+  document.addEventListener('DOMContentLoaded',()=>{var _t='auto';try{_t=localStorage.getItem('ki_theme')||'auto';}catch(e){}updateSlider(_t);});
 })();
 
 // ── Sidebar Toggle ──────────────────────────────────────────────────────
