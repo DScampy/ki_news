@@ -274,6 +274,21 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
 #sidebar{background:var(--sidebar-bg,#0c1220) !important;}
 nav.fixed{background:var(--nav-bg,rgba(0,0,0,0.72)) !important;}
 
+/* ── Hell-Modus koppeln: Struktur-Variablen werden hell, Akzent bleibt vom aktiven Theme ── */
+html.light{
+  --bg:#f0f4f8;
+  --surface:rgba(var(--neon-rgb),0.06);
+  --sidebar-bg:#e8edf4;
+  --nav-bg:rgba(255,255,255,0.88);
+  --card:#ffffff;
+  --field:#eef3fa;
+  --hairline:#e2e8f0;
+  --text:#0f172a;
+  --muted:rgba(30,80,140,0.55);
+}
+html.light #sidebar{background:#e8edf4 !important;}
+html.light nav.fixed{background:rgba(255,255,255,0.88) !important;}
+
 /* Sidebar nav links – no Tailwind hover conflict */
 .sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .15s;border-left:2px solid transparent;color:rgba(180,220,240,0.55);text-decoration:none;}
 .sidebar-nav-link:hover{background:rgba(29,37,53,0.85);color:#fff;border-left-color:var(--accent,var(--accent));}
@@ -884,6 +899,63 @@ window.addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);
 });
+</script>
+<!-- ── KI Theme-Kopplung: Hell/Dunkel + Genesis vereinheitlicht ──────────────
+     Eine Quelle der Wahrheit fürs Hell/Dunkel:
+       • Kontrast-Schalter  → ki_theme (auto|light|dark)
+       • Farbpunkte         → ki_genesis_theme (Akzentfamilie)
+       • „Blanc" ist inhärent hell ⇒ erzwingt html.light
+       • Hell-Modus setzt die Struktur-Variablen (inkl. Sidebar) via CSS-Block,
+         daher bleibt die Sidebar nie dunkel.
+     Läuft VOR ki-custom-theme.js, damit dessen Wrapper diese Version umschließt. -->
+<script>
+(function(){
+  var GEN=['genesis','karst','aurora','meridian','blanc'];
+  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
+  var memGen=null, memContrast=null;
+  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
+  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
+  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
+  function resolveLight(){
+    if(getGenesis()==='blanc')return true;
+    var c=getContrast();
+    return c==='light'?true:(c==='dark'?false:prefersLight());
+  }
+  function applyAll(){
+    var root=document.documentElement, raw=rawGenesis();
+    if(raw==='custom'){
+      root.setAttribute('data-theme','custom');
+      root.classList.remove('light','dark');
+    }else{
+      var g=getGenesis(), light=resolveLight();
+      root.setAttribute('data-theme',g);
+      root.classList.toggle('light',light);
+      root.classList.toggle('dark',!light);
+    }
+    var active=(raw==='custom')?'custom':getGenesis();
+    var dots=document.querySelectorAll('.gdot');
+    for(var i=0;i<dots.length;i++)dots[i].classList.toggle('active',dots[i].getAttribute('data-t')===active);
+    if(typeof window.__kiThemeHook==='function'){try{window.__kiThemeHook(root.classList.contains('light'),active);}catch(e){}}
+  }
+  window.setGenesisTheme=function(name){
+    if(GEN.indexOf(name)===-1)name='genesis';
+    memGen=name;
+    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
+    applyAll();
+  };
+  window.cycleTheme=function(){
+    var light=document.documentElement.classList.contains('light');
+    var next=light?'dark':'light';
+    if(next==='dark'&&getGenesis()==='blanc'&&rawGenesis()!=='custom'){memGen='genesis';try{localStorage.setItem('ki_genesis_theme','genesis');}catch(e){}}
+    memContrast=next;
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyAll();
+  };
+  window.__kiApplyTheme=applyAll;
+  applyAll();
+  document.addEventListener('DOMContentLoaded',applyAll);
+  if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getContrast()==='auto')applyAll();});}catch(e){}}
+})();
 </script>
 <script src="assets/ki-custom-theme.js"></script>
 </body>

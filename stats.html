@@ -121,6 +121,21 @@
   [data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--sidebar-bg:#0a0818;--nav-bg:rgba(4,2,15,0.80);}
   [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--sidebar-bg:#100600;--nav-bg:rgba(9,3,0,0.80);}
   [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--sidebar-bg:#e8edf4;--nav-bg:rgba(255,255,255,0.88);}
+
+  /* ── Hell-Modus koppeln: Struktur-Variablen hell, Akzent bleibt vom aktiven Theme ── */
+  html.light{
+    --bg:#f0f4f8;
+    --surface:rgba(var(--neon-rgb),0.06);
+    --sidebar-bg:#e8edf4;
+    --nav-bg:rgba(255,255,255,0.88);
+    --card:#ffffff;
+    --field:#eef3fa;
+    --hairline:#e2e8f0;
+    --text:#0f172a;
+    --muted:rgba(30,80,140,0.55);
+  }
+  html.light #sidebar{background:#e8edf4 !important;}
+  html.light nav.fixed{background:rgba(255,255,255,0.88) !important;}
   body{background:var(--bg,#000);transition:background 0.4s;}
   /* ── Sidebar ── */
   #sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;background:var(--sidebar-bg,#0c1220)!important;}
@@ -199,7 +214,7 @@
 
   let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
   document.addEventListener('DOMContentLoaded',function(){
-    updateSlider(localStorage.getItem('ki_theme')||'auto');
+    try{updateSlider(localStorage.getItem('ki_theme')||'auto');}catch(e){}
     document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.getAttribute('data-t')===gS);});
   });
 })();
@@ -1108,6 +1123,61 @@ function animate(){
 }
 animate();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+</script>
+<!-- ── KI Theme-Kopplung + Seiten-Hook (Slider/Charts) ── -->
+<script>
+window.__kiThemeHook=function(light,active){
+  var knob=document.querySelector('.theme-slider-knob');
+  if(knob){knob.style.left=light?'2px':'22px';knob.style.background=light?'#f59e0b':'var(--accent)';}
+  if(window._charts&&window._charts.forEach){window._charts.forEach(function(c){try{updateChartTheme(c);}catch(e){}});}
+};
+(function(){
+  var GEN=['genesis','karst','aurora','meridian','blanc'];
+  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
+  var memGen=null, memContrast=null;
+  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
+  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
+  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
+  function resolveLight(){
+    if(getGenesis()==='blanc')return true;
+    var c=getContrast();
+    return c==='light'?true:(c==='dark'?false:prefersLight());
+  }
+  function applyAll(){
+    var root=document.documentElement, raw=rawGenesis();
+    if(raw==='custom'){
+      root.setAttribute('data-theme','custom');
+      root.classList.remove('light','dark');
+    }else{
+      var g=getGenesis(), light=resolveLight();
+      root.setAttribute('data-theme',g);
+      root.classList.toggle('light',light);
+      root.classList.toggle('dark',!light);
+    }
+    var active=(raw==='custom')?'custom':getGenesis();
+    var dots=document.querySelectorAll('.gdot');
+    for(var i=0;i<dots.length;i++)dots[i].classList.toggle('active',dots[i].getAttribute('data-t')===active);
+    if(typeof window.__kiThemeHook==='function'){try{window.__kiThemeHook(root.classList.contains('light'),active);}catch(e){}}
+  }
+  window.setGenesisTheme=function(name){
+    if(GEN.indexOf(name)===-1)name='genesis';
+    memGen=name;
+    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
+    applyAll();
+  };
+  window.cycleTheme=function(){
+    var light=document.documentElement.classList.contains('light');
+    var next=light?'dark':'light';
+    if(next==='dark'&&getGenesis()==='blanc'&&rawGenesis()!=='custom'){memGen='genesis';try{localStorage.setItem('ki_genesis_theme','genesis');}catch(e){}}
+    memContrast=next;
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyAll();
+  };
+  window.__kiApplyTheme=applyAll;
+  applyAll();
+  document.addEventListener('DOMContentLoaded',applyAll);
+  if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getContrast()==='auto')applyAll();});}catch(e){}}
+})();
 </script>
 <script src="assets/ki-custom-theme.js"></script>
 </body>

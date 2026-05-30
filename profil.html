@@ -55,6 +55,25 @@
   --nav-bg: rgba(255,255,255,0.88); --nav-border: rgba(15,23,42,0.08);
 }
 
+/* ── Hell-Modus koppeln: Struktur-Variablen hell, Akzent bleibt vom aktiven Theme ── */
+html.light {
+  --bg: #f0f4f8;
+  --surface: rgba(255,255,255,0.92);
+  --card: rgba(255,255,255,0.97);
+  --border: rgba(15,23,42,0.08);
+  --text: #0f172a;
+  --muted: #64748b;
+  --nav-bg: rgba(255,255,255,0.88);
+  --nav-border: rgba(15,23,42,0.08);
+  --sidebar-bg: #e8edf4;
+  --overlay-hero: rgba(248,250,252,0.06);
+  --overlay-mid: rgba(248,250,252,0.40);
+  --overlay-bottom: rgba(248,250,252,0.95);
+}
+html.light #sidebar { background: #e8edf4 !important; }
+html.light .sidebar-nav-link { color: rgba(30,80,140,0.7); }
+html.light .sidebar-nav-link:hover { background:#deeaf7; color:#0f172a; }
+
 body {
   background: var(--bg); color: var(--text);
   font-family: 'Work Sans', sans-serif;
@@ -729,13 +748,24 @@ function toggleSidebar() {
 }
 
 /* ── Genesis theme sync (shared key with other pages) ───────── */
+/* Gekoppelte Hell/Dunkel-Logik: Kontrast-Schalter (ki_theme) + Blanc ⇒ hell */
+function kiContrastLight(){
+  var c='auto';try{c=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  if(c==='light')return true;
+  if(c==='dark')return false;
+  return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
+}
+function kiApplyLight(name){
+  var root=document.documentElement;
+  if(name==='blanc'){root.classList.add('light');root.classList.remove('dark');return;}
+  if(name==='custom'){root.classList.remove('light','dark');return;}
+  var l=kiContrastLight();
+  root.classList.toggle('light',l);
+  root.classList.toggle('dark',!l);
+}
 window.setGenesisTheme = function(name) {
   document.documentElement.setAttribute('data-theme', name);
-  if (name === 'blanc') {
-    document.documentElement.classList.add('light');
-  } else {
-    document.documentElement.classList.remove('light');
-  }
+  kiApplyLight(name);
   // Sync dots
   document.querySelectorAll('.gdot').forEach(function(d) {
     d.classList.toggle('active', d.getAttribute('data-t') === name);
@@ -749,29 +779,21 @@ window.setGenesisTheme = function(name) {
 /* ── Light/Dark cycle (shared with other pages) ─────────────── */
 window.cycleTheme = function() {
   var isLight = document.documentElement.classList.contains('light');
-  if (isLight) {
-    document.documentElement.classList.remove('light');
-    try { localStorage.setItem('ki_theme', 'dark'); } catch(e) {}
-  } else {
-    document.documentElement.classList.add('light');
-    try { localStorage.setItem('ki_theme', 'light'); } catch(e) {}
-  }
+  var next = isLight ? 'dark' : 'light';
+  var g='genesis';try{g=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
+  try { localStorage.setItem('ki_theme', next); } catch(e) {}
+  // Aus Blanc heraus auf Dunkel: Blanc verlassen (Blanc hat keine Dunkel-Variante)
+  if(next==='dark' && g==='blanc' && typeof setTheme==='function'){ setTheme('genesis'); return; }
+  document.documentElement.classList.toggle('light', next==='light');
+  document.documentElement.classList.toggle('dark', next!=='light');
 };
 
 /* ── DOMContentLoaded: restore sidebar + dots ───────────────── */
 document.addEventListener('DOMContentLoaded', function() {
-  // Light/dark restore
-  var theme = 'auto';
-  try { theme = localStorage.getItem('ki_theme') || 'auto'; } catch(e) {}
-  if (theme === 'light') {
-    document.documentElement.classList.add('light');
-  } else if (theme === 'dark') {
-    document.documentElement.classList.remove('light');
-  } else {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      document.documentElement.classList.add('light');
-    }
-  }
+  // Hell/Dunkel gekoppelt wiederherstellen (Blanc ⇒ hell, Kontrast-Schalter sonst)
+  var gRestore = 'genesis';
+  try { gRestore = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
+  kiApplyLight(gRestore);
   // Dots
   var saved = 'genesis';
   try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
@@ -866,11 +888,7 @@ function setTheme(name) {
   var t = THEMES[name];
   if (!t) return;
   document.documentElement.setAttribute('data-theme', name);
-  if (name === 'blanc') {
-    document.documentElement.classList.add('light');
-  } else {
-    document.documentElement.classList.remove('light');
-  }
+  kiApplyLight(name);
   // Update theme cards
   document.querySelectorAll('.theme-card').forEach(function(c) {
     c.classList.toggle('active', c.id === 'card-' + name);
