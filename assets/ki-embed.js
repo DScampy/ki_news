@@ -91,6 +91,11 @@
   };
   window.KIEmbed = KIEmbed;
 
+  // Öffentlich, damit Seiten nach dynamisch eingefügten <blockquote> die
+  // 2-Klick-Umwandlung anstoßen können (MutationObserver erfasst direkt per
+  // innerHTML gesetzte Blockquotes nicht zuverlässig).
+  KIEmbed.wrapTweets = function (root) { wrapTweets(root || document); };
+
   function iframeFor(meta) {
     var kind = meta.getAttribute('data-embed-kind');
     var f = document.createElement('iframe');
