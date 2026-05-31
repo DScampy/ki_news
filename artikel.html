@@ -775,20 +775,20 @@ fetch('news.json?t=' + Date.now())
 // Fallback, falls media.json kein xposts hat oder nicht lädt:
 var X_FALLBACK = ['https://twitter.com/ScampyKI/status/2055424641368232238'];
 function tweetIdFromUrl(u){ var m=(u||'').match(/status(?:es)?\/(\d+)/); return m?m[1]:''; }
-function renderXPosts(urls){
+function renderXPosts(items){
   var box = document.getElementById('x-embed-list');
   if (!box) return;
-  var clean = (urls||[]).map(function(x){ return typeof x==='string'?x:(x&&x.url); })
-                        .filter(function(u){ return u && tweetIdFromUrl(u); });
-  if (!clean.length) clean = X_FALLBACK;
-  box.innerHTML = clean.map(function(u){
+  var list = (items||[]).map(function(x){ return typeof x==='string'?{url:x}:x; })
+                        .filter(function(x){ return x && x.url && tweetIdFromUrl(x.url); });
+  if (!list.length) list = X_FALLBACK.map(function(u){ return {url:u}; });
+  box.innerHTML = list.map(function(x){
     // X akzeptiert twitter.com-Links; normalisieren von x.com → twitter.com
-    var href = u.replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
-    return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark">' +
+    var href = x.url.replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
+    var prev = x.image ? (' data-ki-preview="' + String(x.image).replace(/"/g,'&quot;') + '"') : '';
+    return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark"' + prev + '>' +
              '<a href="' + href + '"></a></blockquote>';
   }).join('');
-  // ki-embed.js in 2-Klick-Platzhalter umwandeln (für dynamisch eingefügte
-  // Blockquotes muss das explizit angestoßen werden).
+  // ki-embed.js in 2-Klick-Platzhalter (mit Vorschaubild) umwandeln.
   if (window.KIEmbed && KIEmbed.wrapTweets) KIEmbed.wrapTweets(box);
 }
 fetch('media.json?t=' + Date.now())

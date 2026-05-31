@@ -1012,7 +1012,9 @@ function buildXPostCard(x){
   const url = typeof x==='string' ? x : (x && x.url);
   if (!url || !xpostTweetId(url)) return '';
   const href = url.replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
-  return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark" style="margin:0;max-width:520px;width:100%"><a href="' + href + '"></a></blockquote>';
+  const img = (typeof x==='object' && x && x.image) ? x.image : '';
+  const prev = img ? (' data-ki-preview="' + String(img).replace(/"/g,'&quot;') + '"') : '';
+  return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark"' + prev + ' style="margin:0;max-width:520px;width:100%"><a href="' + href + '"></a></blockquote>';
 }
 
 function buildVideoCard(v) {

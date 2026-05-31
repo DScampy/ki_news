@@ -1441,6 +1441,14 @@ function renderXPostList(){
     </div>
     <div class="ep-body">
       <div class="field" style="margin:0"><label class="field-label">Link zum X-Beitrag *</label><input type="text" value="${escHtml(x.url||'')}" placeholder="https://x.com/ScampyKI/status/1234567890" oninput="updateXPostField(${idx},'url',this.value)"/></div>
+      <div class="field" style="margin:0">
+        <label class="field-label">Vorschaubild-URL (optional – sonst automatisch)</label>
+        <div style="display:flex;gap:6px;">
+          <input id="xp-img-${idx}" type="text" value="${escHtml(x.image||'')}" placeholder="https://… (leer = automatisch vom Beitrag)" oninput="updateXPostField(${idx},'image',this.value)" style="flex:1;"/>
+          <button class="btn btn-ghost btn-sm" onclick="fetchXPreview(${idx})" title="Vorschaubild automatisch holen">🔍 Holen</button>
+        </div>
+        <div class="field-hint">Leer lassen = das Bild des Beitrags wird automatisch gezeigt.</div>
+      </div>
       <div class="ep-row">
         <div class="field" style="margin:0"><label class="field-label">Notiz (intern, optional)</label><input type="text" value="${escHtml(x.note||'')}" placeholder="z. B. Thread über GPT-5" oninput="updateXPostField(${idx},'note',this.value)"/></div>
         <div class="field" style="margin:0"><label class="field-label">Datum</label><input type="date" value="${x.date||''}" oninput="updateXPostField(${idx},'date',this.value)"/></div>
@@ -1449,6 +1457,24 @@ function renderXPostList(){
     </div>`;
     list.appendChild(card);
   });
+}
+async function fetchXPreview(idx){
+  const x=mediaXPosts[idx]||{}; const id=xTweetId(x.url||'');
+  if(!id){toast('Erst einen gültigen X-Link eintragen','error');return;}
+  try{
+    const token=((Number(id)/1e15)*Math.PI).toString(36).replace(/(0+|\.)/g,'');
+    const res=await fetch('https://cdn.syndication.twimg.com/tweet-result?id='+id+'&lang=de&token='+token);
+    if(!res.ok)throw new Error('CDN '+res.status);
+    const d=await res.json();
+    let img='';
+    if(d.mediaDetails&&d.mediaDetails.length)img=d.mediaDetails[0].media_url_https;
+    else if(d.photos&&d.photos.length)img=d.photos[0].url;
+    else if(d.video&&d.video.poster)img=d.video.poster;
+    else if(d.user&&d.user.profile_image_url_https)img=d.user.profile_image_url_https.replace('_normal','_400x400');
+    if(!img){toast('Kein Bild im Beitrag gefunden','');return;}
+    mediaXPosts[idx].image=img;const el=document.getElementById('xp-img-'+idx);if(el)el.value=img;
+    markMediaModified();toast('✓ Vorschaubild übernommen','success');
+  }catch(e){toast('Konnte Vorschau nicht holen: '+e.message,'error');}
 }
 function markMediaModified(){mediaModified=true;document.getElementById('mediaCommitBtn').disabled=false;}
 function setMediaStatus(msg){document.getElementById('mediaStatus').textContent=msg;}
