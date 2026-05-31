@@ -282,12 +282,17 @@ def score_cluster(cluster):
     label = next(lbl for threshold, lbl in SCORE_LABELS if total >= threshold)
     return total, label
 
-def pick_top_news(alle_news, n=3):
+def pick_top_news(alle_news, n=3, history=None):
     """
     Wählt die n wichtigsten Artikel nach Clustering + Scoring.
     Statt blindem [:3] aus der Feed-Reihenfolge.
     Gibt je einen repräsentativen Artikel pro Top-Cluster zurück.
+
+    history (link -> {first_seen, base_score}) optional: wenn gesetzt, wird nach
+    dem ZEIT-VERFALLENEN Score sortiert – identisch zur Dashboard-Sortierung,
+    damit Telegram und Dashboard dieselben Top-Storys zeigen.
     """
+    history = history or {}
     clusters = cluster_news(alle_news)
 
     # Jeden Cluster bewerten
@@ -296,21 +301,28 @@ def pick_top_news(alle_news, n=3):
         score, label = score_cluster(cluster)
         # Repräsentant = Artikel aus der prestigiösten Quelle im Cluster
         rep = max(cluster, key=lambda x: SOURCE_PRESTIGE.get(x["source"], 0))
+        # Effektiver (verfallener) Score fürs Ranking – wie im Dashboard:
+        hist = history.get(rep.get("link", ""))
+        if hist:
+            eff_score = decay_score(hist.get("base_score", score), hist.get("first_seen"))
+        else:
+            eff_score = score  # neuer Artikel: heute erfasst, kein Verfall
         scored.append({
             "rep": rep,
             "score": score,
+            "eff_score": eff_score,
             "label": label,
             "sources_count": len({i["source"] for i in cluster}),
         })
 
-    # Nach Score absteigend sortieren
-    scored.sort(key=lambda x: x["score"], reverse=True)
+    # Nach verfallenem Score absteigend sortieren (bei Gleichstand: roher Score)
+    scored.sort(key=lambda x: (x["eff_score"], x["score"]), reverse=True)
 
     top = scored[:n]
     for item in top:
         logger.info(
-            "[Scoring] %s | %s | Score: %d | Quellen: %d",
-            item["label"], item["rep"]["title"][:60], item["score"], item["sources_count"]
+            "[Scoring] %s | %s | Score: %d (akt. %d) | Quellen: %d",
+            item["label"], item["rep"]["title"][:60], item["score"], item["eff_score"], item["sources_count"]
         )
 
     return [item["rep"] for item in top], {
@@ -1141,8 +1153,22 @@ def main():
     # Zusammenfassungen fuer alle News (Dashboard links)
     summaries = summarize_news(alle_news)
 
-    # NEU: Top-3 nach Scoring wählen statt blindem [:3]
-    top_news, score_map = pick_top_news(alle_news, n=MAX_LLM_NEWS)
+    # ── Score-Verfall-Historie früh laden, damit Telegram-Auswahl UND Dashboard
+    #    nach demselben (verfallenen) Score ranken → identische Top-Storys ──────
+    heute = _today_iso()
+    proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
+    _archive_base = proj_dir if proj_dir.exists() else Path(".")
+    _existing_archive = []
+    try:
+        _arch_path = _archive_base / "archive.json"
+        if _arch_path.exists():
+            _existing_archive = json.loads(_arch_path.read_text(encoding="utf-8"))
+    except Exception:
+        _existing_archive = []
+    history = build_history_map(_existing_archive)
+
+    # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
+    top_news, score_map = pick_top_news(alle_news, n=MAX_LLM_NEWS, history=history)
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
 
     posts_raw = ask_llm(top_news)
@@ -1160,20 +1186,6 @@ def main():
             logger.exception("Fehler beim Schreiben %s: %s", path_obj, e)
 
     datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
-    heute = _today_iso()
-
-    # ── Score-Verfall vorbereiten: Erst-Sichtungs-Datum + Ausgangs-Score laden ──
-    # Quelle: vorhandenes archive.json (egal ob proj_dir oder lokal).
-    proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
-    _archive_base = proj_dir if proj_dir.exists() else Path(".")
-    _existing_archive = []
-    try:
-        _arch_path = _archive_base / "archive.json"
-        if _arch_path.exists():
-            _existing_archive = json.loads(_arch_path.read_text(encoding="utf-8"))
-    except Exception:
-        _existing_archive = []
-    history = build_history_map(_existing_archive)
 
     # News-Liste mit deutschen Titeln + Zusammenfassungen aufbauen
     # NEU: score + label aus score_map ergänzen, dann Zeit-Verfall anwenden
