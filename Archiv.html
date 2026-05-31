@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span class="hidden sm:inline">@ScampyKI</span>
     </a>
-    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.45);display:flex;align-items:center;" title="Dark/Light Toggle">
+    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;" title="Dark/Light Toggle">
       <span class="material-symbols-outlined" style="font-size:18px;">contrast</span>
     </button>
     <div id="genesis-dots" title="Design-Theme">
@@ -515,6 +515,21 @@ document.addEventListener('DOMContentLoaded', function() {
       </button>
       <div id="video-panel-body" style="display:none;padding:0 20px 20px">
         <div id="video-archive-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
+      </div>
+    </div>
+
+    <!-- 𝕏 X-Beiträge Archiv (dynamisch aus media.json) ───────────────────── -->
+    <div id="xpost-panel" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
+      <button onclick="toggleXPostPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
+        <div class="flex items-center gap-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" class="text-[#1d9bf0]" style="flex-shrink:0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.62 4.911-5.62zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"></path></svg>
+          <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">𝕏 X-Beiträge</span>
+          <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="xpost-count"></span>
+        </div>
+        <span class="material-symbols-outlined text-gray-600 text-sm" id="xpost-panel-icon">expand_more</span>
+      </button>
+      <div id="xpost-panel-body" style="display:none;padding:0 20px 20px">
+        <div id="xpost-archive-list" style="display:flex;flex-direction:column;align-items:center;gap:16px;"></div>
       </div>
     </div>
 
@@ -984,6 +999,22 @@ function toggleVideoPanel() {
   if (icon) icon.textContent = videoPanelOpen ? 'expand_less' : 'expand_more';
 }
 
+let xpostPanelOpen = false;
+function toggleXPostPanel() {
+  xpostPanelOpen = !xpostPanelOpen;
+  const body = document.getElementById('xpost-panel-body');
+  const icon = document.getElementById('xpost-panel-icon');
+  if (body) body.style.display = xpostPanelOpen ? '' : 'none';
+  if (icon) icon.textContent = xpostPanelOpen ? 'expand_less' : 'expand_more';
+}
+function xpostTweetId(u){ const m=(u||'').match(/status(?:es)?\/(\d+)/); return m?m[1]:''; }
+function buildXPostCard(x){
+  const url = typeof x==='string' ? x : (x && x.url);
+  if (!url || !xpostTweetId(url)) return '';
+  const href = url.replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
+  return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark" style="margin:0;max-width:520px;width:100%"><a href="' + href + '"></a></blockquote>';
+}
+
 function buildVideoCard(v) {
   if (!v || v.type === 'none' || !v.src) return '';
   let player = '';
@@ -1064,6 +1095,17 @@ fetch('media.json?t=' + Date.now())
       } else {
         vlistEl.innerHTML = videos.map(v => buildVideoCard(v)).join('');
       }
+    }
+
+    // ── X-Beiträge ──
+    const xposts = data.xposts || [];
+    const xcountEl = document.getElementById('xpost-count');
+    const xlistEl = document.getElementById('xpost-archive-list');
+    if (xcountEl) xcountEl.textContent = xposts.length + (xposts.length === 1 ? ' Beitrag' : ' Beiträge');
+    if (xlistEl) {
+      const cards = xposts.map(x => buildXPostCard(x)).filter(Boolean).join('');
+      xlistEl.innerHTML = cards || '<p style="font-size:11px;color:#536471;font-family:monospace">Noch keine X-Beiträge.</p>';
+      if (window.KIEmbed && KIEmbed.wrapTweets) KIEmbed.wrapTweets(xlistEl);
     }
   })
   .catch(() => {

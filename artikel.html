@@ -787,8 +787,9 @@ function renderXPosts(urls){
     return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark">' +
              '<a href="' + href + '"></a></blockquote>';
   }).join('');
-  // ki-embed.js erkennt neue Blockquotes über seinen MutationObserver und
-  // verwandelt sie in 2-Klick-Platzhalter – nichts weiter zu tun.
+  // ki-embed.js in 2-Klick-Platzhalter umwandeln (für dynamisch eingefügte
+  // Blockquotes muss das explizit angestoßen werden).
+  if (window.KIEmbed && KIEmbed.wrapTweets) KIEmbed.wrapTweets(box);
 }
 fetch('media.json?t=' + Date.now())
   .then(function(r){ return r.json(); })
