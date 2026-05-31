@@ -1440,7 +1440,7 @@ function renderXPostList(){
       <span style="font-size:11px;color:var(--muted);font-family:monospace;">${x.date||''}</span>
     </div>
     <div class="ep-body">
-      <div class="field" style="margin:0"><label class="field-label">Link zum X-Beitrag *</label><input type="text" value="${escHtml(x.url||'')}" placeholder="https://x.com/ScampyKI/status/1234567890" oninput="updateXPostField(${idx},'url',this.value)"/></div>
+      <div class="field" style="margin:0"><label class="field-label">Link zum X-Beitrag *</label><input type="text" value="${escHtml(x.url||'')}" placeholder="https://x.com/ScampyKI/status/1234567890" oninput="updateXPostField(${idx},'url',this.value)" onchange="if(xTweetId(this.value)&&!mediaXPosts[${idx}].image)fetchXPreview(${idx})"/></div>
       <div class="field" style="margin:0">
         <label class="field-label">Vorschaubild-URL (optional – sonst automatisch)</label>
         <div style="display:flex;gap:6px;">
@@ -1461,20 +1461,24 @@ function renderXPostList(){
 async function fetchXPreview(idx){
   const x=mediaXPosts[idx]||{}; const id=xTweetId(x.url||'');
   if(!id){toast('Erst einen gültigen X-Link eintragen','error');return;}
+  // CORS-fähiger Dienst (fxtwitter) – liefert Bild-URLs (pbs.twimg.com).
+  // Wird hier im Admin geholt und in media.json gespeichert; die öffentliche
+  // Seite lädt danach nur das fertige Bild (kein Fremd-Abruf beim Besucher).
   try{
-    const token=((Number(id)/1e15)*Math.PI).toString(36).replace(/(0+|\.)/g,'');
-    const res=await fetch('https://cdn.syndication.twimg.com/tweet-result?id='+id+'&lang=de&token='+token);
-    if(!res.ok)throw new Error('CDN '+res.status);
-    const d=await res.json();
+    const res=await fetch('https://api.fxtwitter.com/status/'+id);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    const t=(j&&j.tweet)||{};
+    const m=t.media||{};
     let img='';
-    if(d.mediaDetails&&d.mediaDetails.length)img=d.mediaDetails[0].media_url_https;
-    else if(d.photos&&d.photos.length)img=d.photos[0].url;
-    else if(d.video&&d.video.poster)img=d.video.poster;
-    else if(d.user&&d.user.profile_image_url_https)img=d.user.profile_image_url_https.replace('_normal','_400x400');
-    if(!img){toast('Kein Bild im Beitrag gefunden','');return;}
+    if(m.photos&&m.photos.length)img=m.photos[0].url;
+    else if(m.videos&&m.videos.length)img=m.videos[0].thumbnail_url||'';
+    else if(m.all&&m.all.length)img=m.all[0].thumbnail_url||m.all[0].url||'';
+    else if(t.author&&t.author.avatar_url)img=t.author.avatar_url;
+    if(!img){toast('Kein Bild im Beitrag gefunden – ggf. Bild-URL manuell einfügen','');return;}
     mediaXPosts[idx].image=img;const el=document.getElementById('xp-img-'+idx);if(el)el.value=img;
     markMediaModified();toast('✓ Vorschaubild übernommen','success');
-  }catch(e){toast('Konnte Vorschau nicht holen: '+e.message,'error');}
+  }catch(e){toast('Konnte Vorschau nicht holen: '+e.message+' — Bild-URL ggf. manuell einfügen','error');}
 }
 function markMediaModified(){mediaModified=true;document.getElementById('mediaCommitBtn').disabled=false;}
 function setMediaStatus(msg){document.getElementById('mediaStatus').textContent=msg;}

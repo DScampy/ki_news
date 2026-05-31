@@ -517,6 +517,70 @@ def resolve_preview_image(link, history_entry):
     return fetch_og_image(link)
 
 # -------------------------
+# X-Beiträge: Vorschaubild serverseitig holen (kein CORS-Problem)
+# -------------------------
+def _tweet_id_from_url(url):
+    m = re.search(r"status(?:es)?/(\d+)", url or "")
+    return m.group(1) if m else ""
+
+def fetch_tweet_image(tweet_id):
+    """
+    Holt das Vorschaubild eines X-Beitrags über die CORS-freie fxtwitter-API.
+    Serverseitig (GitHub-Action) – im Gegensatz zum Browser kein CORS-Block.
+    Gibt eine pbs.twimg.com-Bild-URL zurück oder '' wenn keins gefunden.
+    """
+    if not tweet_id:
+        return ""
+    try:
+        raw = http_get_with_retry(f"https://api.fxtwitter.com/status/{tweet_id}", timeout=10, retries=1)
+        if not raw:
+            return ""
+        d = json.loads(raw)
+        t = (d or {}).get("tweet") or {}
+        m = t.get("media") or {}
+        photos = m.get("photos") or []
+        if photos and photos[0].get("url"):
+            return photos[0]["url"]
+        videos = m.get("videos") or []
+        if videos and videos[0].get("thumbnail_url"):
+            return videos[0]["thumbnail_url"]
+        allm = m.get("all") or []
+        if allm:
+            return allm[0].get("thumbnail_url") or allm[0].get("url") or ""
+        author = t.get("author") or {}
+        if author.get("avatar_url"):
+            return author["avatar_url"]
+    except Exception as e:
+        logger.debug("Tweet-Bild (fx) fehlgeschlagen %s: %s", tweet_id, e)
+    return ""
+
+def update_media_xpost_images(base_dir):
+    """Ergänzt fehlende Vorschaubilder der X-Beiträge in media.json (serverseitig)."""
+    path = base_dir / "media.json"
+    try:
+        if not path.exists():
+            return
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    xposts = data.get("xposts") or []
+    changed = False
+    for x in xposts:
+        if not isinstance(x, dict) or x.get("image"):
+            continue
+        img = fetch_tweet_image(_tweet_id_from_url(x.get("url", "")))
+        if img:
+            x["image"] = img
+            changed = True
+            logger.info("X-Vorschaubild ergänzt: %s", x.get("url", ""))
+    if changed:
+        try:
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            logger.info("media.json: X-Vorschaubilder aktualisiert")
+        except Exception as e:
+            logger.exception("Fehler beim Schreiben media.json: %s", e)
+
+# -------------------------
 # LLM – Zusammenfassungen (alle News, fuer Dashboard links)
 # -------------------------
 def summarize_news(alle_news):
@@ -1190,6 +1254,9 @@ def main():
         update_archive(proj_dir)
     else:
         update_archive(Path("."))
+
+    # ── X-Beiträge: fehlende Vorschaubilder serverseitig ergänzen ──────────
+    update_media_xpost_images(proj_dir if proj_dir.exists() else Path("."))
 
     # ── hashtags/hashtags.json aktualisieren ──────────────────────────────
     def update_hashtags(base_dir):
