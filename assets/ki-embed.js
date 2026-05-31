@@ -154,14 +154,10 @@
     document.body.appendChild(s);
   }
 
-  // ── Tweet-Vorschaubild (X-Syndication-CDN, clientseitig) ─────────────────
-  // Holt das Bild eines Tweets ohne Login/Token-Geheimnis (öffentliche CDN,
-  // CORS-fähig – dieselbe Quelle wie offizielle Lite-Tweet-Bibliotheken).
-  function tweetToken(id) {
-    try { return ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, ''); }
-    catch (e) { return '0'; }
-  }
-  function tweetIdFrom(href) { var m = (href || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : ''; }
+  // ── Tweet-Vorschaubild ───────────────────────────────────────────────────
+  // Das Bild wird im Admin (CORS-fähig) geholt und in media.json gespeichert.
+  // Hier auf der Besucherseite wird NUR das fertige Bild angezeigt – kein
+  // Fremd-Abruf beim Besucher, kein CORS-Problem.
   function applyPreviewImage(ph, img) {
     if (!img) return;
     ph.style.padding = '0';
@@ -177,22 +173,7 @@
     ph.insertBefore(ov, ph.firstChild);
     ph.insertBefore(im, ph.firstChild);
   }
-  function enrichTweetPreview(ph, id, manualImg) {
-    if (manualImg) { applyPreviewImage(ph, manualImg); return; }
-    if (!id || !('fetch' in window)) return;
-    try {
-      var url = 'https://cdn.syndication.twimg.com/tweet-result?id=' + id + '&lang=de&token=' + tweetToken(id);
-      fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-        if (!d) return;
-        var img = '';
-        if (d.mediaDetails && d.mediaDetails.length) img = d.mediaDetails[0].media_url_https;
-        else if (d.photos && d.photos.length) img = d.photos[0].url;
-        else if (d.video && d.video.poster) img = d.video.poster;
-        else if (d.user && d.user.profile_image_url_https) img = d.user.profile_image_url_https.replace('_normal', '_400x400');
-        if (img) applyPreviewImage(ph, img);
-      }).catch(function () {});
-    } catch (e) {}
-  }
+  function tweetIdFrom(href) { var m = (href || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : ''; }
 
   function wrapTweets(root) {
     var quotes = (root || document).querySelectorAll('blockquote.twitter-tweet:not([data-ki-wrapped])');
@@ -225,8 +206,8 @@
         ph.addEventListener('click', go);
         ph.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
         bq.parentNode.insertBefore(ph, bq);
-        // Vorschaubild laden (manuell oder automatisch via Syndication-CDN)
-        enrichTweetPreview(ph, tid, manualImg);
+        // Vorschaubild (im Admin geholt, in media.json gespeichert) anzeigen
+        if (manualImg) applyPreviewImage(ph, manualImg);
       })(quotes[i]);
     }
   }
