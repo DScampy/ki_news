@@ -17,6 +17,15 @@
     });
   }
 
+  // ── Einwilligung merken (pro Anbieter) ───────────────────────────────────
+  // Klickt der Nutzer einmal „laden", merken wir das in localStorage und laden
+  // diesen Anbieter beim nächsten Besuch/weiteren Beiträgen automatisch –
+  // kein erneutes Akzeptieren nötig. Gilt hier nur für X (kein Auto-Play-Risiko).
+  var CONSENT_KEY = 'ki_embed_consent';
+  function getConsent() { try { return JSON.parse(localStorage.getItem(CONSENT_KEY) || '{}'); } catch (e) { return {}; } }
+  function hasConsent(p) { return !!getConsent()[p]; }
+  function setConsent(p) { try { var c = getConsent(); c[p] = 1; localStorage.setItem(CONSENT_KEY, JSON.stringify(c)); } catch (e) {} }
+
   var PROVIDER = {
     youtube:    { name: 'YouTube',     transfer: 'Google (USA)' },
     soundcloud: { name: 'SoundCloud',  transfer: 'SoundCloud' },
@@ -148,6 +157,8 @@
         bq.setAttribute('data-ki-wrapped', '1');
         var link = bq.querySelector('a');
         var href = link ? link.getAttribute('href') : '#';
+        // Einwilligung schon erteilt? Tweet direkt laden, keinen Platzhalter zeigen.
+        if (hasConsent('twitter')) { loadTwitter(); return; }
         bq.style.display = 'none';
         var ph = document.createElement('div');
         ph.className = 'ki-embed-tw';
@@ -163,7 +174,7 @@
             '<a href="/Datenschutz.html" style="color:#1d9bf0;text-decoration:underline;">Datenschutz</a> · ' +
             '<a href="' + h(href) + '" target="_blank" rel="noopener" style="color:#1d9bf0;text-decoration:underline;" ' +
             'onclick="event.stopPropagation()">Direkt auf X öffnen</a></div>';
-        function go() { ph.remove(); bq.style.display = ''; loadTwitter(); }
+        function go() { setConsent('twitter'); ph.remove(); bq.style.display = ''; loadTwitter(); }
         ph.addEventListener('click', go);
         ph.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
         bq.parentNode.insertBefore(ph, bq);
