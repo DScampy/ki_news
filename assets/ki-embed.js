@@ -26,26 +26,41 @@
 
   var ICON = '<svg viewBox="0 -960 960 960" width="34" height="34" fill="currentColor" aria-hidden="true"><path d="M320-200v-560l440 280-440 280Z"></path></svg>';
 
-  function shell(kind, label, pad, inner) {
+  function shell(kind, label, pad, inner, bg) {
     var p = PROVIDER[kind] || { name: kind, transfer: kind };
     var ratio = pad ? ('padding-top:' + pad + ';') : 'min-height:120px;';
+    // Optionales Vorschaubild (z. B. YouTube-Standbild): liegt UNTER dem
+    // Consent-Overlay. Es wird per <img> geladen – beim YouTube-Thumbnail
+    // bedeutet das einen Bild-Abruf von i.ytimg.com (Google) vor dem Klick.
+    // Der eigentliche Player startet weiterhin erst nach aktivem Klick.
+    var bgImg = bg
+      ? '<img src="' + h(bg) + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
+        'onerror="this.style.display=\'none\'" ' +
+        'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;">' +
+        '<div style="position:absolute;inset:0;background:rgba(8,10,14,0.55);z-index:0;"></div>'
+      : '';
+    // Bei vorhandenem Standbild den Consent-Text dezenter (kleiner) zeigen.
+    var phBg = bg ? 'background:transparent;' : '';
     return '' +
-      '<div class="ki-embed" data-embed-loaded="0" role="button" tabindex="0" ' +
+      '<div class="ki-embed' + (bg ? ' ki-embed-thumb' : '') + '" data-embed-loaded="0" role="button" tabindex="0" ' +
         'aria-label="Inhalt von ' + h(p.name) + ' laden" ' +
         'style="position:relative;width:100%;' + ratio + 'cursor:pointer;background:#0e1014;' +
-        'border:1px solid rgba(127,127,127,0.22);border-radius:8px;overflow:hidden;">' + inner +
-        '<div class="ki-embed-ph" style="position:absolute;inset:0;display:flex;flex-direction:column;' +
-          'align-items:center;justify-content:center;gap:8px;text-align:center;padding:18px;color:#cbd5e1;">' +
-          (label ? '<span style="position:absolute;top:8px;left:8px;background:rgba(127,127,127,0.18);' +
+        'border:1px solid rgba(127,127,127,0.22);border-radius:8px;overflow:hidden;">' + bgImg + inner +
+        '<div class="ki-embed-ph" style="position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;' +
+          'align-items:center;justify-content:center;gap:8px;text-align:center;padding:18px;color:#cbd5e1;' + phBg + '">' +
+          (label ? '<span style="position:absolute;top:8px;left:8px;background:rgba(8,10,14,0.55);' +
             'font-size:9px;font-weight:700;letter-spacing:0.08em;padding:2px 7px;border-radius:3px;' +
             'font-family:\'Space Grotesk\',sans-serif;text-transform:uppercase;">' + h(label) + '</span>' : '') +
           '<span style="display:flex;align-items:center;justify-content:center;width:58px;height:58px;' +
-            'border-radius:50%;background:rgba(29,155,240,0.15);color:#1d9bf0;">' + ICON + '</span>' +
-          '<span style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:14px;color:#e7e9ea;">' +
+            'border-radius:50%;background:' + (bg ? 'rgba(220,38,38,0.92)' : 'rgba(29,155,240,0.15)') + ';' +
+            'color:' + (bg ? '#fff' : '#1d9bf0') + ';box-shadow:' + (bg ? '0 4px 18px rgba(0,0,0,0.45)' : 'none') + ';">' + ICON + '</span>' +
+          '<span style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:14px;color:#e7e9ea;' +
+            (bg ? 'text-shadow:0 1px 6px rgba(0,0,0,0.7);' : '') + '">' +
             h(p.name) + ' laden</span>' +
-          '<span style="font-size:11px;line-height:1.5;color:#7b8794;max-width:300px;">Mit dem Laden ' +
+          '<span style="font-size:11px;line-height:1.5;color:' + (bg ? '#cbd5e1' : '#7b8794') + ';max-width:300px;' +
+            (bg ? 'text-shadow:0 1px 6px rgba(0,0,0,0.7);' : '') + '">Mit dem Laden ' +
             'stimmst du zu, dass Daten an ' + h(p.transfer) + ' übertragen werden. ' +
-            'Siehe <a href="/Datenschutz.html" style="color:#1d9bf0;text-decoration:underline;" ' +
+            'Siehe <a href="/Datenschutz.html" style="color:#7cc4ff;text-decoration:underline;" ' +
             'onclick="event.stopPropagation()">Datenschutz</a>.</span>' +
         '</div>' +
       '</div>';
@@ -54,8 +69,13 @@
   var KIEmbed = {
     youtube: function (id, o) {
       o = o || {};
+      // Lite-Embed: YouTube-Standbild als Vorschau, Player erst bei Klick.
+      // o.thumb = false schaltet das Bild ab (strikter 2-Klick ohne Google-Kontakt).
+      var thumb = (o.thumb === false) ? null
+        : (o.thumb || ('https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'));
       return shell('youtube', o.label || 'VIDEO', '56.25%',
-        '<span data-embed-kind="youtube" data-embed-id="' + h(id) + '" style="display:none"></span>');
+        '<span data-embed-kind="youtube" data-embed-id="' + h(id) + '" style="display:none"></span>',
+        thumb);
     },
     vimeo: function (id, o) {
       o = o || {};
