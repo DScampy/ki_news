@@ -128,7 +128,7 @@ html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
 #main-content{transition:margin-left 0.25s ease;margin-left:0;}
 @media(max-width:1023px){#main-content{margin-left:0!important;}}
 #sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:var(--accent);border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease,box-shadow 0.2s;border-radius:0 6px 6px 0;box-shadow:0 0 12px rgba(var(--neon-rgb),0.5);}
-#sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);background:#22dfff;}
+#sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);background:var(--accent);filter:brightness(1.18);}
 @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
 
 /* ── Light Mode ── */
@@ -277,7 +277,7 @@ html.light .hero-fade{background:linear-gradient(to bottom,transparent 0%,rgba(2
 /* ── 5-Theme System ─────────────────────────────────────────────────────── */
 [data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--accent-hover:#1a8cd8;--bg:#000000;--surface:rgba(0,212,255,0.06);--text:#e8f8ff;--muted:rgba(180,220,240,0.55);--sidebar-bg:#0c1220;--nav-bg:rgba(0,0,0,0.72);--card:#0d1117;--field:#1d1f23;--hairline:#2f3336;}
 [data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--accent-hover:#2bb583;--bg:#060e08;--surface:rgba(52,211,153,0.06);--text:#e0f5ec;--muted:rgba(160,220,190,0.55);--sidebar-bg:#06100a;--nav-bg:rgba(4,12,6,0.80);--card:#08140d;--field:#0f2016;--hairline:#1d3328;}
-[data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--accent-hover:#9171e8;--bg:#04020f;--surface:rgba(167,139,250,0.06);--text:#ede9fe;--muted:rgba(180,160,240,0.55);--sidebar-bg:#0a0818;--nav-bg:rgba(4,2,15,0.80);--card:#0a0816;--field:#16122a;--hairline:#2a2442;});}
+[data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--accent-hover:#9171e8;--bg:#04020f;--surface:rgba(167,139,250,0.06);--text:#ede9fe;--muted:rgba(180,160,240,0.55);--sidebar-bg:#0a0818;--nav-bg:rgba(4,2,15,0.80);--card:#0a0816;--field:#16122a;--hairline:#2a2442;}
 [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--accent-hover:#e07f2a;--bg:#090300;--surface:rgba(251,146,60,0.06);--text:#fff0e6;--muted:rgba(240,190,140,0.55);--sidebar-bg:#100600;--nav-bg:rgba(9,3,0,0.80);--card:#100600;--field:#1e1206;--hairline:#33220e;}
 [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--accent-hover:#0c8fcb;--bg:#f0f6ff;--surface:rgba(14,165,233,0.06);--text:#0f172a;--muted:rgba(30,80,140,0.55);--sidebar-bg:#e8edf4;--nav-bg:rgba(255,255,255,0.88);--card:#ffffff;--field:#eef3fa;--hairline:#e2e8f0;}
 
@@ -434,7 +434,7 @@ html.light .colophon-links a { color:#64748b; }
       <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
     </a>
     <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="#">Aktuell</a>
+      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
       <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent);border-color:var(--accent)" href="artikel.html">Artikel</a>
       <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
@@ -588,12 +588,8 @@ html.light .colophon-links a { color:#64748b; }
       </div>
 
       <div class="section-break"><span>— Zuletzt auf X</span></div>
-      <div id="x-embed-list" style="display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:32px;">
-        <blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark">
-          <a href="https://twitter.com/ScampyKI/status/2055424641368232238"></a>
-        </blockquote>
-      </div>
-      <!-- X/Twitter wird via assets/ki-embed.js erst auf Klick geladen -->
+      <div id="x-embed-list" style="display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:32px;"></div>
+      <!-- X-Beiträge werden aus media.json geladen (Sektion "xposts"), Tweets via assets/ki-embed.js erst auf Klick -->
 
       <div class="section-break"><span>— Weitere Artikel</span></div>
       <div id="art-grid" class="art-grid">
@@ -774,6 +770,30 @@ fetch('news.json?t=' + Date.now())
     var lead = document.getElementById('lead-story');
     if (lead) lead.innerHTML = '<p class="sec-text">News konnten nicht geladen werden.</p>';
   });
+
+// ── "Zuletzt auf X" aus media.json (Sektion xposts) ──────────────────────────
+// Fallback, falls media.json kein xposts hat oder nicht lädt:
+var X_FALLBACK = ['https://twitter.com/ScampyKI/status/2055424641368232238'];
+function tweetIdFromUrl(u){ var m=(u||'').match(/status(?:es)?\/(\d+)/); return m?m[1]:''; }
+function renderXPosts(urls){
+  var box = document.getElementById('x-embed-list');
+  if (!box) return;
+  var clean = (urls||[]).map(function(x){ return typeof x==='string'?x:(x&&x.url); })
+                        .filter(function(u){ return u && tweetIdFromUrl(u); });
+  if (!clean.length) clean = X_FALLBACK;
+  box.innerHTML = clean.map(function(u){
+    // X akzeptiert twitter.com-Links; normalisieren von x.com → twitter.com
+    var href = u.replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
+    return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark">' +
+             '<a href="' + href + '"></a></blockquote>';
+  }).join('');
+  // ki-embed.js erkennt neue Blockquotes über seinen MutationObserver und
+  // verwandelt sie in 2-Klick-Platzhalter – nichts weiter zu tun.
+}
+fetch('media.json?t=' + Date.now())
+  .then(function(r){ return r.json(); })
+  .then(function(data){ renderXPosts(data.xposts || []); })
+  .catch(function(){ renderXPosts([]); });
 </script>
 
 <script type="module">

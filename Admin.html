@@ -710,6 +710,15 @@ Aber gleichzeitig sitzt Musk beim Staatsbankett in Peking…
     <div class="ep-list" id="videoList">
       <div class="empty"><h3>Noch nicht geladen</h3><p>Token verbinden, dann "Laden" klicken.</p></div>
     </div>
+
+    <div class="media-section-header" style="margin-top:32px;">
+      <div><span class="media-section-title">𝕏 X-Beiträge</span><span class="media-section-count" id="xpostCount"></span></div>
+      <button class="btn btn-ghost btn-sm" onclick="addXPost()" style="border-color:rgba(99,179,237,0.35);color:#7cc4ff;">+ X-Beitrag</button>
+    </div>
+    <div class="section-sub" style="margin:-6px 0 14px;">Erscheinen unter „Zuletzt auf X" auf der Artikel-Seite. Einfach den Link zum Beitrag einfügen (x.com/…/status/…). Für einen Thread jeden Tweet einzeln hinzufügen — oder nur den ersten, X zeigt dann „Diesen Thread anzeigen".</div>
+    <div class="ep-list" id="xpostList">
+      <div class="empty"><h3>Noch nicht geladen</h3><p>Token verbinden, dann "Laden" klicken.</p></div>
+    </div>
   </div>
 
   <!-- ═══ TAB: DASHBOARD ════════════════════════════════════════════════════ -->
@@ -781,8 +790,8 @@ Aber gleichzeitig sitzt Musk beim Staatsbankett in Peking…
 // GLOBALS
 // ════════════════════════════════════════════════════════════════════════════
 let originalData=null, articles=[], fileSha='', searchQuery='';
-let mediaPodcasts=[], mediaVideos=[], mediaFileSha='', mediaModified=false;
-let podcastDragSrc=null, videoDragSrc=null;
+let mediaPodcasts=[], mediaVideos=[], mediaXPosts=[], mediaFileSha='', mediaModified=false;
+let podcastDragSrc=null, videoDragSrc=null, xpostDragSrc=null;
 let dashConfig={featured_links:[],blocked_links:[]}, dashArticles=[], dashConfigSha='', dashConfigModified=false;
 let sitemapSha='', sitemapUrls=[], sitemapModified=false;
 
@@ -1360,9 +1369,9 @@ async function loadMediaFromGitHub(){
     const data=await ghGet('media.json');
     mediaFileSha=data.sha;
     const decoded=JSON.parse(decodeBase64UTF8(data.content));
-    mediaPodcasts=decoded.podcasts||[];mediaVideos=decoded.videos||[];mediaModified=false;
-    renderPodcastList();renderVideoList();
-    setMediaStatus(mediaPodcasts.length+' Podcast(s) · '+mediaVideos.length+' Video(s)');
+    mediaPodcasts=decoded.podcasts||[];mediaVideos=decoded.videos||[];mediaXPosts=decoded.xposts||[];mediaModified=false;
+    renderPodcastList();renderVideoList();renderXPostList();
+    setMediaStatus(mediaPodcasts.length+' Podcast(s) · '+mediaVideos.length+' Video(s) · '+mediaXPosts.length+' X-Beitrag/-Beiträge');
     document.getElementById('mediaCommitBtn').disabled=true;
     toast('media.json geladen','success');
   }catch(e){setMediaStatus('Fehler: '+e.message);toast('Fehler: '+e.message,'error');}
@@ -1372,7 +1381,7 @@ async function saveMediaToGitHub(){
   const btn=document.getElementById('mediaCommitBtn');
   btn.disabled=true;btn.textContent='Wird gespeichert…';
   try{
-    const payload={podcasts:mediaPodcasts,videos:mediaVideos};
+    const payload={podcasts:mediaPodcasts,videos:mediaVideos,xposts:mediaXPosts};
     const result=await ghPut('media.json',JSON.stringify(payload,null,2),mediaFileSha,'media: aktualisiert');
     mediaFileSha=result.content.sha;mediaModified=false;
     setMediaStatus('✓ Gespeichert');toast('✓ media.json gespeichert','success');
@@ -1394,6 +1403,53 @@ function deletePodcast(idx){if(!confirm('Episode löschen?'))return;mediaPodcast
 function deleteVideo(idx){if(!confirm('Video löschen?'))return;mediaVideos.splice(idx,1);markMediaModified();renderVideoList();}
 function updatePodcastField(idx,k,v){mediaPodcasts[idx][k]=v;markMediaModified();}
 function updateVideoField(idx,k,v){mediaVideos[idx][k]=v;markMediaModified();}
+
+// ── X-Beiträge ──────────────────────────────────────────────────────────────
+function xTweetId(u){const m=(u||'').match(/status(?:es)?\/(\d+)/);return m?m[1]:'';}
+function addXPost(){
+  const nextId='x'+String(mediaXPosts.length+1).padStart(3,'0');
+  mediaXPosts.unshift({id:nextId,date:new Date().toISOString().slice(0,10),url:'',note:''});
+  markMediaModified();renderXPostList();
+}
+function deleteXPost(idx){if(!confirm('X-Beitrag entfernen?'))return;mediaXPosts.splice(idx,1);markMediaModified();renderXPostList();}
+function updateXPostField(idx,k,v){
+  mediaXPosts[idx][k]=v;markMediaModified();
+  if(k==='url'){const badge=document.getElementById('xp-idbadge-'+idx);if(badge){const id=xTweetId(v);badge.textContent=id?('ID '+id):(v?'⚠ keine Status-ID erkannt':'');badge.style.color=id?'var(--green)':'var(--yellow)';}}
+}
+function onXPostDragStart(e,idx){xpostDragSrc=idx;e.dataTransfer.effectAllowed='move';setTimeout(()=>e.target.closest('.ep-card').classList.add('dragging'),0);}
+function onXPostDragEnd(e){e.target.closest('.ep-card').classList.remove('dragging');document.querySelectorAll('#xpostList .ep-card').forEach(c=>c.classList.remove('drag-over'));}
+function onXPostDragOver(e,idx){e.preventDefault();document.querySelectorAll('#xpostList .ep-card').forEach(c=>c.classList.remove('drag-over'));if(idx!==xpostDragSrc)e.currentTarget.classList.add('drag-over');}
+function onXPostDrop(e,idx){e.preventDefault();if(xpostDragSrc===null||xpostDragSrc===idx)return;const m=mediaXPosts.splice(xpostDragSrc,1)[0];mediaXPosts.splice(idx,0,m);xpostDragSrc=null;markMediaModified();renderXPostList();}
+function renderXPostList(){
+  const list=document.getElementById('xpostList');
+  const cnt=document.getElementById('xpostCount');
+  if(cnt)cnt.textContent='('+mediaXPosts.length+')';
+  if(!mediaXPosts.length){list.innerHTML='<div class="empty"><h3>Keine X-Beiträge</h3><p>„+ X-Beitrag" klicken und den Link einfügen.</p></div>';return;}
+  list.innerHTML='';
+  mediaXPosts.forEach((x,idx)=>{
+    const card=document.createElement('div');card.className='ep-card';card.draggable=true;
+    card.addEventListener('dragstart',e=>onXPostDragStart(e,idx));card.addEventListener('dragend',onXPostDragEnd);
+    card.addEventListener('dragover',e=>onXPostDragOver(e,idx));card.addEventListener('drop',e=>onXPostDrop(e,idx));
+    const id=xTweetId(x.url||'');
+    const badge=idx===0?'<span class="ep-badge-current">▲ Oben</span>':'<span class="ep-badge-archive">Reihe</span>';
+    card.innerHTML=`<div class="ep-header">
+      <span class="ep-drag-handle">⠿</span>${badge}
+      <span class="ep-num">${escHtml(x.id||('#'+(idx+1)))}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.note?escHtml(x.note):(x.url?escHtml(x.url):'<em style="color:var(--muted2)">Kein Link</em>')}</span>
+      <span class="ep-num" id="xp-idbadge-${idx}" style="color:${id?'var(--green)':'var(--yellow)'};">${id?('ID '+id):(x.url?'⚠ keine ID':'')}</span>
+      <span style="font-size:11px;color:var(--muted);font-family:monospace;">${x.date||''}</span>
+    </div>
+    <div class="ep-body">
+      <div class="field" style="margin:0"><label class="field-label">Link zum X-Beitrag *</label><input type="text" value="${escHtml(x.url||'')}" placeholder="https://x.com/ScampyKI/status/1234567890" oninput="updateXPostField(${idx},'url',this.value)"/></div>
+      <div class="ep-row">
+        <div class="field" style="margin:0"><label class="field-label">Notiz (intern, optional)</label><input type="text" value="${escHtml(x.note||'')}" placeholder="z. B. Thread über GPT-5" oninput="updateXPostField(${idx},'note',this.value)"/></div>
+        <div class="field" style="margin:0"><label class="field-label">Datum</label><input type="date" value="${x.date||''}" oninput="updateXPostField(${idx},'date',this.value)"/></div>
+      </div>
+      <div class="ep-actions"><button class="btn btn-danger btn-sm" onclick="deleteXPost(${idx})">✕ Löschen</button></div>
+    </div>`;
+    list.appendChild(card);
+  });
+}
 function markMediaModified(){mediaModified=true;document.getElementById('mediaCommitBtn').disabled=false;}
 function setMediaStatus(msg){document.getElementById('mediaStatus').textContent=msg;}
 
