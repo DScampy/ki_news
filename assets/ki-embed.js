@@ -195,16 +195,12 @@
           'border:1px solid rgba(127,127,127,0.22);border-radius:10px;padding:22px 18px;text-align:center;color:#cbd5e1;' +
           'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;';
         ph.innerHTML =
-          '<div style="position:relative;z-index:2;display:inline-flex;flex-direction:column;gap:5px;align-items:center;' +
-            'background:rgba(8,10,14,0.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);' +
-            'border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:14px 18px;max-width:88%;">' +
-            '<div style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:14px;color:#fff;">' +
+          '<div style="position:relative;z-index:2;display:inline-flex;flex-direction:column;gap:3px;align-items:center;' +
+            'background:rgba(8,10,14,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);' +
+            'border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:12px 20px;">' +
+            '<div style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:14px;color:#e7eaee;">' +
               '▶ Beitrag von X laden</div>' +
-            '<div style="font-size:11px;line-height:1.5;color:#cfd7df;max-width:320px;margin:0 auto;">' +
-              'Mit dem Laden stimmst du zu, dass Daten an X / Twitter übertragen werden. ' +
-              '<a href="/Datenschutz.html" style="color:#7cc4ff;text-decoration:underline;">Datenschutz</a> · ' +
-              '<a href="' + h(href) + '" target="_blank" rel="noopener" style="color:#7cc4ff;text-decoration:underline;" ' +
-              'onclick="event.stopPropagation()">Direkt auf X öffnen</a></div>' +
+            '<div style="font-size:11px;color:#9aa4ad;">Tippen, um den Beitrag anzuzeigen</div>' +
           '</div>';
         function go() { setConsent('twitter'); ph.remove(); bq.style.display = ''; loadTwitter(); }
         ph.addEventListener('click', go);
