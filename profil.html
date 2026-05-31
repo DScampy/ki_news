@@ -384,6 +384,18 @@ nav {
   .profile-stats { margin-left: 0; }
 }
 </style>
+<style id="km-drawer">
+#brand-menu-hint{display:none;}
+@media(max-width:767px){#brand-menu-hint{display:inline-flex !important;align-items:center;gap:4px;}#brand-link{cursor:pointer;}}
+#sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}
+#sidebar-backdrop.open{opacity:1;visibility:visible;}
+@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}
+@media(max-width:1023px){
+#sidebar{display:flex !important;width:284px !important;max-width:84vw;transform:translateX(-100%);transition:transform .28s ease;opacity:1 !important;z-index:60;pointer-events:none;box-shadow:8px 0 40px rgba(0,0,0,0.55);}
+#sidebar.collapsed{width:284px !important;max-width:84vw;opacity:1 !important;transform:translateX(-100%);pointer-events:none;}
+#sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}
+}
+</style>
 </head>
 <body>
 
@@ -393,9 +405,9 @@ nav {
 <!-- NAV -->
 <nav>
   <div class="nav-logo-wrap">
-    <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+    <a href="/" id="brand-link" style="text-decoration:none;display:flex;align-items:center;gap:8px;" onclick="return brandClick(event);">
       <img src="s-logo.png" alt="KI News" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));" onerror="this.style.display='none'"/>
-      <span class="nav-logo-text">KI NEWS</span>
+      <span style="display:flex;flex-direction:column;justify-content:center;line-height:1.02;"><span class="nav-logo-text">KI NEWS</span><span id="brand-menu-hint" style="font-size:8px;font-family:monospace;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-top:2px;">☰ Menü</span></span>
       <span style="display:none;font-size:10px;font-family:monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--border);padding:1px 5px;border-radius:3px;" class="nav-de-badge">DE</span>
     </a>
     <div class="nav-links">
@@ -432,6 +444,9 @@ nav {
 </button>
 
 <!-- SIDEBAR -->
+<!-- Sidebar Backdrop (mobile drawer) -->
+<div id="sidebar-backdrop" onclick="closeDrawer()"></div>
+
 <aside id="sidebar" class="collapsed">
 
   <!-- S-Logo Header -->
@@ -1085,5 +1100,14 @@ function kiResetEditor(){ if(window.setGenesisTheme) window.setGenesisTheme('gen
   <a href="Impressum.html" style="color:inherit;text-decoration:none;margin:0 10px;">Impressum</a>·
   <a href="Datenschutz.html" style="color:inherit;text-decoration:none;margin:0 10px;">Datenschutz</a>
 </footer>
+<script>
+function openDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.add('drawer-open');if(b)b.classList.add('open');document.body.style.overflow='hidden';}
+function closeDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.remove('drawer-open');if(b)b.classList.remove('open');document.body.style.overflow='';}
+function toggleDrawer(){var s=document.getElementById('sidebar');(s&&s.classList.contains('drawer-open'))?closeDrawer():openDrawer();}
+function brandClick(e){if(window.innerWidth<768){e.preventDefault();toggleDrawer();return false;}return true;}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
+window.addEventListener('resize',function(){if(window.innerWidth>=1024)closeDrawer();});
+(function(){var sb=document.getElementById('sidebar');if(sb)sb.addEventListener('click',function(e){if(e.target.closest('a'))closeDrawer();});})();
+</script>
 </body>
 </html>

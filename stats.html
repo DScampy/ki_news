@@ -163,6 +163,18 @@
   .ki-muted{color:rgba(180,220,240,0.55);}
   html.light .ki-muted{color:rgba(30,80,140,0.7);}
 </style>
+<style id="km-drawer">
+#brand-menu-hint{display:none;}
+@media(max-width:767px){#brand-menu-hint{display:inline-flex !important;align-items:center;gap:4px;}#brand-link{cursor:pointer;}}
+#sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}
+#sidebar-backdrop.open{opacity:1;visibility:visible;}
+@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}
+@media(max-width:1023px){
+#sidebar{display:flex !important;width:284px !important;max-width:84vw;transform:translateX(-100%);transition:transform .28s ease;opacity:1 !important;z-index:60;pointer-events:none;box-shadow:8px 0 40px rgba(0,0,0,0.55);}
+#sidebar.collapsed{width:284px !important;max-width:84vw;opacity:1 !important;transform:translateX(-100%);pointer-events:none;}
+#sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}
+}
+</style>
 </head>
 <body>
 
@@ -240,9 +252,9 @@ document.addEventListener('DOMContentLoaded',function(){
 <!-- Nav -->
 <nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);box-sizing:border-box;">
   <div class="flex items-center gap-8">
-    <a href="/" class="flex items-center gap-2.5">
+    <a href="/" id="brand-link" class="flex items-center gap-2.5" onclick="return brandClick(event);">
       <img src="s-logo.png" alt="" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));"/>
-      <span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span>
+      <span style="display:flex;flex-direction:column;justify-content:center;line-height:1.02;"><span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span><span id="brand-menu-hint" style="font-size:8px;font-family:monospace;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.42);margin-top:2px;">☰ Menü</span></span>
       <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
     </a>
     <div class="hidden md:flex items-center gap-6">
@@ -259,7 +271,7 @@ document.addEventListener('DOMContentLoaded',function(){
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       <span class="hidden sm:inline">@ScampyKI</span>
     </a>
-    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.45);display:flex;align-items:center;" title="Dark/Light Toggle">
+    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;" title="Dark/Light Toggle">
       <span class="material-symbols-outlined" style="font-size:18px;">contrast</span>
     </button>
     <div id="genesis-dots" title="Design-Theme">
@@ -278,6 +290,9 @@ document.addEventListener('DOMContentLoaded',function(){
 </button>
 
 <!-- Sidebar -->
+<!-- Sidebar Backdrop (mobile drawer) -->
+<div id="sidebar-backdrop" onclick="closeDrawer()"></div>
+
 <aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col ki-border border-r hidden lg:flex overflow-hidden collapsed" style="border-color:rgba(var(--neon-rgb),0.18);">
 
   <!-- S-Logo Header -->
@@ -1180,5 +1195,14 @@ window.__kiThemeHook=function(light,active){
 })();
 </script>
 <script src="assets/ki-custom-theme.js"></script>
+<script>
+function openDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.add('drawer-open');if(b)b.classList.add('open');document.body.style.overflow='hidden';}
+function closeDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.remove('drawer-open');if(b)b.classList.remove('open');document.body.style.overflow='';}
+function toggleDrawer(){var s=document.getElementById('sidebar');(s&&s.classList.contains('drawer-open'))?closeDrawer():openDrawer();}
+function brandClick(e){if(window.innerWidth<768){e.preventDefault();toggleDrawer();return false;}return true;}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
+window.addEventListener('resize',function(){if(window.innerWidth>=1024)closeDrawer();});
+(function(){var sb=document.getElementById('sidebar');if(sb)sb.addEventListener('click',function(e){if(e.target.closest('a'))closeDrawer();});})();
+</script>
 </body>
 </html>
