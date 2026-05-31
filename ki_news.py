@@ -319,6 +319,93 @@ def pick_top_news(alle_news, n=3):
     }
 
 # -------------------------
+# Score-Verfall (Zeit-Decay)
+# -------------------------
+# Jeder Artikel verliert pro Tag seit Erst-Erfassung Punkte, Untergrenze 0.
+# So sinken alte Stories automatisch nach unten und machen Platz für Neues.
+SCORE_DECAY_PER_DAY = 5
+SCORE_FLOOR = 0
+
+def _today_iso():
+    return datetime.now(BERLIN).strftime("%Y-%m-%d")
+
+def _days_since(date_str):
+    """Volle Tage zwischen date_str (YYYY-MM-DD) und heute. Robust gegen Müll."""
+    if not date_str:
+        return 0
+    try:
+        d0 = datetime.strptime(str(date_str)[:10], "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return 0
+    today = datetime.now(BERLIN).date()
+    return max(0, (today - d0).days)
+
+def decay_score(base_score, first_seen):
+    """
+    Deterministischer Verfall: score = max(0, base_score - 5 * Tage_seit_Erfassung).
+
+    Bewusst NICHT kumulativ (kein „-5 pro Lauf“): der GitHub-Action-Cron kann
+    mehrmals täglich laufen – ein Abzug pro Lauf würde Artikel je nach Laufzahl
+    unterschiedlich stark bestrafen. Aus base_score + first_seen neu zu rechnen
+    ist idempotent und liefert bei jedem Lauf denselben, korrekten Wert.
+    """
+    try:
+        base = int(base_score)
+    except (ValueError, TypeError):
+        base = 0
+    decayed = base - SCORE_DECAY_PER_DAY * _days_since(first_seen)
+    return max(SCORE_FLOOR, decayed)
+
+def build_history_map(*archive_lists):
+    """
+    Baut link -> {first_seen, base_score} aus vorhandenen Archiv-Einträgen.
+    Quelle der Wahrheit für „wann zum ersten Mal gesehen“ + „Ausgangs-Score“.
+    Ältere Archive ohne diese Felder werden tolerant migriert (Fallback auf date/score).
+    """
+    hist = {}
+    for lst in archive_lists:
+        for n in (lst or []):
+            link = n.get("link")
+            if not link:
+                continue
+            first_seen = n.get("first_seen") or n.get("date") or _today_iso()
+            base_score = n.get("base_score")
+            if base_score is None:
+                base_score = n.get("score", 0)
+            prev = hist.get(link)
+            entry = {"first_seen": first_seen, "base_score": base_score}
+            if "image" in n:
+                entry["image"] = n.get("image") or ""
+            # Frühestes Datum gewinnt (echtes Erst-Sichten)
+            if prev is None or str(first_seen) < str(prev["first_seen"]):
+                # Bild aus dem vorherigen Eintrag retten, falls neuer keins hat
+                if prev and "image" in prev and "image" not in entry:
+                    entry["image"] = prev["image"]
+                hist[link] = entry
+            else:
+                if base_score and not prev.get("base_score"):
+                    prev["base_score"] = base_score
+                if "image" in entry and "image" not in prev:
+                    prev["image"] = entry["image"]
+    return hist
+
+def apply_decay_to_entries(entries):
+    """Rechnet score für eine Liste von Einträgen neu (in-place) aus base_score+first_seen."""
+    for n in entries:
+        if not isinstance(n, dict):
+            continue
+        fs = n.get("first_seen") or n.get("date")
+        bs = n.get("base_score")
+        if bs is None:
+            bs = n.get("score", 0)
+            n["base_score"] = bs
+        if not n.get("first_seen"):
+            n["first_seen"] = fs or _today_iso()
+        n["score"] = decay_score(bs, n["first_seen"])
+    return entries
+
+
+# -------------------------
 # Feeds
 # -------------------------
 def http_get_with_retry(url, headers=None, timeout=10, retries=3, backoff=2):
@@ -374,6 +461,60 @@ def fetch_feed(name, url):
         if title and _is_ki_relevant(title):
             items.append({"title": title, "link": link, "source": name})
     return items[:3]
+
+# -------------------------
+# Vorschaubilder (og:image) – serverseitig für externe Links / X-Posts
+# -------------------------
+# X-Posts (und andere externe Links) liefern kein eigenes Vorschaubild im RSS.
+# Wir holen das og:image / twitter:image einmalig beim Lauf und speichern es in
+# news.json + archive.json, damit die Karten im Frontend ein Standbild zeigen –
+# ganz ohne dass der Browser des Besuchers das Drittanbieter-HTML laden muss.
+_OG_PATTERNS = [
+    re.compile(r'<meta[^>]+property=["\']og:image(?::secure_url)?["\'][^>]+content=["\']([^"\']+)["\']', re.I),
+    re.compile(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image(?::secure_url)?["\']', re.I),
+    re.compile(r'<meta[^>]+name=["\']twitter:image(?::src)?["\'][^>]+content=["\']([^"\']+)["\']', re.I),
+    re.compile(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']twitter:image(?::src)?["\']', re.I),
+]
+
+def fetch_og_image(url):
+    """Holt das og:image / twitter:image einer URL. Gibt absolute URL oder '' zurück."""
+    if not url or not url.startswith(("http://", "https://")):
+        return ""
+    try:
+        raw = http_get_with_retry(url, timeout=10, retries=1, backoff=2)
+        if not raw:
+            return ""
+        # Nur den <head> durchsuchen reicht und ist schnell.
+        head = raw[:200000]
+        for pat in _OG_PATTERNS:
+            m = pat.search(head)
+            if m:
+                img = (m.group(1) or "").strip()
+                if not img:
+                    continue
+                # Schema-relative oder Pfad-relative URLs absolut machen
+                if img.startswith("//"):
+                    img = "https:" + img
+                elif img.startswith("/"):
+                    from urllib.parse import urlparse
+                    p = urlparse(url)
+                    img = f"{p.scheme}://{p.netloc}{img}"
+                if img.startswith(("http://", "https://")):
+                    return img
+    except Exception as e:
+        logger.debug("og:image-Abruf fehlgeschlagen für %s: %s", url, e)
+    return ""
+
+def resolve_preview_image(link, history_entry):
+    """
+    Liefert das Vorschaubild für einen Link. Nutzt den Cache (history_entry aus
+    archive.json) und holt nur dann neu, wenn noch keins gespeichert ist – das
+    spart HTTP-Abrufe bei jedem Lauf. Leerer String = kein Bild gefunden.
+    """
+    if history_entry and "image" in history_entry:
+        # Schon einmal versucht (auch wenn Ergebnis leer war) → nicht erneut abrufen
+        return history_entry.get("image") or ""
+    return fetch_og_image(link)
 
 # -------------------------
 # LLM – Zusammenfassungen (alle News, fuer Dashboard links)
@@ -955,22 +1096,47 @@ def main():
             logger.exception("Fehler beim Schreiben %s: %s", path_obj, e)
 
     datum = datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M")
+    heute = _today_iso()
+
+    # ── Score-Verfall vorbereiten: Erst-Sichtungs-Datum + Ausgangs-Score laden ──
+    # Quelle: vorhandenes archive.json (egal ob proj_dir oder lokal).
+    proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
+    _archive_base = proj_dir if proj_dir.exists() else Path(".")
+    _existing_archive = []
+    try:
+        _arch_path = _archive_base / "archive.json"
+        if _arch_path.exists():
+            _existing_archive = json.loads(_arch_path.read_text(encoding="utf-8"))
+    except Exception:
+        _existing_archive = []
+    history = build_history_map(_existing_archive)
 
     # News-Liste mit deutschen Titeln + Zusammenfassungen aufbauen
-    # NEU: score + label aus score_map ergänzen
+    # NEU: score + label aus score_map ergänzen, dann Zeit-Verfall anwenden
     news_list = []
     for i, n in enumerate(alle_news):
         s = summaries.get(i, {})
-        scoring = score_map.get(n.get("link", ""), {})
+        link = n.get("link", "")
+        scoring = score_map.get(link, {})
+        raw_score = scoring.get("score", 0)
+        # Schon mal gesehen? Dann ursprüngliches Datum + Ausgangs-Score behalten.
+        hist = history.get(link)
+        first_seen = hist["first_seen"] if hist else heute
+        base_score = hist["base_score"] if hist else raw_score
+        # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
+        preview_img = resolve_preview_image(link, hist)
         entry = {
-            "title":   s.get("title_de", n["title"]),
-            "summary": s.get("summary", ""),
-            "link":    n.get("link", ""),
-            "source":  n.get("source", ""),
-            "color":   SOURCE_COLORS.get(n.get("source", ""), "#555"),
-            "score":   scoring.get("score", 0),        # NEU: Relevanz-Score
-            "label":   scoring.get("label", "📰 normal"),  # NEU: episch/wichtig/normal
-            "date":    datetime.now(BERLIN).strftime("%Y-%m-%d"),
+            "title":      s.get("title_de", n["title"]),
+            "summary":    s.get("summary", ""),
+            "link":       link,
+            "source":     n.get("source", ""),
+            "color":      SOURCE_COLORS.get(n.get("source", ""), "#555"),
+            "image":      preview_img,                     # NEU: Vorschaubild für die Karte
+            "base_score": base_score,                      # NEU: Ausgangs-Score (verfällt nie)
+            "score":      decay_score(base_score, first_seen),  # NEU: aktueller, verfallener Score
+            "label":      scoring.get("label", "📰 normal"),
+            "first_seen": first_seen,                      # NEU: Erst-Erfassung (Basis für Verfall)
+            "date":       first_seen,                      # date = Erst-Erfassung (für Sortierung/Anzeige)
         }
         news_list.append(entry)
 
@@ -989,7 +1155,6 @@ def main():
         "posts": posts_list,
     }
 
-    proj_dir = Path.home() / "Documents" / "Projekte" / "ki-news"
     if proj_dir.exists():
         write_json_file(proj_dir / "news.json", news_json_data)
     else:
@@ -1011,9 +1176,13 @@ def main():
         # Neuestes vorne, max 2000 Eintraege
         merged = new_entries + existing
         merged = merged[:2000]
+        # NEU: Score-Verfall auf das GANZE Archiv neu anwenden, damit auch alte
+        # Einträge in der Statistik-Seite über die Zeit absinken (idempotent aus
+        # base_score + first_seen). Migriert alte Einträge ohne diese Felder.
+        apply_decay_to_entries(merged)
         try:
             archive_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
-            logger.info("archive.json aktualisiert: %d Eintraege gesamt", len(merged))
+            logger.info("archive.json aktualisiert: %d Eintraege gesamt (Score-Verfall angewandt)", len(merged))
         except Exception as e:
             logger.exception("Fehler beim Schreiben archive.json: %s", e)
 

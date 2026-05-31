@@ -82,6 +82,7 @@ html.light #bg-overlay{
 /* ── Neon glow – dark mode: bright border visible on dark cards ── */
 .ki-card{
   border-radius:12px !important;
+  overflow:hidden;
   border-color:rgba(var(--neon-rgb),0.40) !important;
   box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.10),0 0 14px rgba(var(--neon-rgb),0.20);
   transition:border-color 0.2s,box-shadow 0.2s;
@@ -630,7 +631,15 @@ function renderCard(item) {
   a.onmouseenter = function() { a.style.borderColor = c; };
   a.onmouseleave = function() { a.style.borderColor = ''; };
   var badge = item.label ? scoreBadge(item.label, item.score) : '';
+  var img = item.image
+    ? '<div class="ki-card-thumb" style="margin:-16px -16px 14px;position:relative;padding-top:52%;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)">' +
+        '<img src="' + item.image + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
+        'onerror="this.parentNode.style.display=\'none\'" ' +
+        'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">' +
+      '</div>'
+    : '';
   a.innerHTML =
+    img +
     '<div class="flex items-center justify-between mb-4">' +
       '<span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:' + c + '">' + item.source + '</span>' +
       '<div class="flex items-center gap-1.5">' + badge + '<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div></div>' +
