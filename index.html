@@ -121,6 +121,28 @@ html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
 #sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);background:var(--accent);filter:brightness(1.18);}
 @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
 
+/* ── Mobile Nav Hamburger ── */
+#nav-hamburger{display:none;align-items:center;justify-content:center;width:38px;height:38px;margin-left:-8px;background:none;border:none;cursor:pointer;color:var(--accent);border-radius:8px;transition:background .15s;flex-shrink:0;}
+#nav-hamburger:hover{background:rgba(var(--neon-rgb),0.12);}
+@media(max-width:767px){#nav-hamburger{display:flex;}}
+
+/* ── Sidebar als mobiler Drawer (< 1024px) ── */
+#sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}
+#sidebar-backdrop.open{opacity:1;visibility:visible;}
+@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}
+@media(max-width:1023px){
+  #sidebar{
+    display:flex !important;
+    width:284px !important;max-width:84vw;
+    transform:translateX(-100%);
+    transition:transform .28s ease;
+    opacity:1 !important;z-index:60;pointer-events:none;
+    box-shadow:8px 0 40px rgba(0,0,0,0.55);
+  }
+  #sidebar.collapsed{width:284px !important;max-width:84vw;opacity:1 !important;transform:translateX(-100%);pointer-events:none;}
+  #sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}
+}
+
 /* ── Light Mode ── */
 html.light body{background:#f0f4f8!important;color:#0f172a!important;}
 html.light nav.fixed{border-color:#e2e8f0!important;}
@@ -342,6 +364,9 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 <!-- Nav -->
 <nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);">
   <div class="flex items-center gap-8">
+    <button id="nav-hamburger" onclick="toggleDrawer()" aria-label="Menü öffnen" title="Menü">
+      <span class="material-symbols-outlined" style="font-size:24px;">menu</span>
+    </button>
     <a href="/" class="flex items-center gap-2.5">
       <img src="s-logo.png" alt="" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));"/>
       <span class="text-xl font-black tracking-tighter text-[#1d9bf0] uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span>
@@ -378,6 +403,9 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 <button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
   <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
 </button>
+
+<!-- Sidebar Backdrop (mobile drawer) -->
+<div id="sidebar-backdrop" onclick="closeDrawer()"></div>
 
 <!-- Sidebar -->
 <aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col ki-border border-r hidden lg:flex overflow-hidden collapsed" style="border-color:rgba(var(--neon-rgb),0.18);">
@@ -564,6 +592,32 @@ function toggleSidebar() {
   }
   try{localStorage.setItem('ki_sidebar_open', sidebarOpen?'1':'0');}catch(e){}
 }
+
+// ── Mobile Drawer ──────────────────────────────────────────────────────
+function openDrawer(){
+  var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');
+  if(s)s.classList.add('drawer-open');
+  if(b)b.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDrawer(){
+  var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');
+  if(s)s.classList.remove('drawer-open');
+  if(b)b.classList.remove('open');
+  document.body.style.overflow='';
+}
+function toggleDrawer(){
+  var s=document.getElementById('sidebar');
+  (s&&s.classList.contains('drawer-open'))?closeDrawer():openDrawer();
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
+// Beim Tippen auf einen Sidebar-Link Drawer schließen (Seitenwechsel bleibt sichtbar sauber)
+document.addEventListener('DOMContentLoaded',function(){
+  var sb=document.getElementById('sidebar');
+  if(sb)sb.addEventListener('click',function(e){ if(e.target.closest('a'))closeDrawer(); });
+});
+// Drawer schließen, wenn auf Desktop-Breite gewechselt wird
+window.addEventListener('resize',function(){ if(window.innerWidth>=1024)closeDrawer(); });
 // ── Genesis Theme System ──────────────────────────────────────────────────
 window.setGenesisTheme = function(name) {
   var themes = ['genesis','karst','aurora','meridian','blanc'];
@@ -585,8 +639,8 @@ window.setGenesisTheme = function(name) {
 document.addEventListener('DOMContentLoaded', function() {
   var toggle = document.getElementById('sidebar-toggle');
   if (window.innerWidth >= 1024) toggle.style.display = 'flex';
-  // Apply persisted sidebar state
-  if (sidebarOpen) {
+  // Apply persisted sidebar state (nur Desktop – mobil übernimmt der Drawer)
+  if (sidebarOpen && window.innerWidth >= 1024) {
     var s=document.getElementById('sidebar'),m=document.getElementById('main-content'),i=document.getElementById('toggle-icon');
     if(s) s.classList.remove('collapsed');
     if(m) m.style.marginLeft='240px';
