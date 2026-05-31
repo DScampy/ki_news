@@ -121,10 +121,12 @@ html.light.theme-light .theme-slider-knob{left:22px;background:#f59e0b;}
 #sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);background:var(--accent);filter:brightness(1.18);}
 @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
 
-/* ── Mobile Nav Hamburger ── */
-#nav-hamburger{display:none;align-items:center;justify-content:center;width:38px;height:38px;margin-left:-8px;background:none;border:none;cursor:pointer;color:var(--accent);border-radius:8px;transition:background .15s;flex-shrink:0;}
-#nav-hamburger:hover{background:rgba(var(--neon-rgb),0.12);}
-@media(max-width:767px){#nav-hamburger{display:flex;}}
+/* ── Mobiler Menü-Hinweis unter dem Logo (Logo = Drawer-Trigger) ── */
+#brand-menu-hint{display:none;}
+@media(max-width:767px){
+  #brand-menu-hint{display:inline-flex !important;align-items:center;gap:4px;}
+  #brand-link{cursor:pointer;}
+}
 
 /* ── Sidebar als mobiler Drawer (< 1024px) ── */
 #sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}
@@ -364,12 +366,12 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 <!-- Nav -->
 <nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);">
   <div class="flex items-center gap-8">
-    <button id="nav-hamburger" onclick="toggleDrawer()" aria-label="Menü öffnen" title="Menü">
-      <span class="material-symbols-outlined" style="font-size:24px;">menu</span>
-    </button>
-    <a href="/" class="flex items-center gap-2.5">
+    <a href="/" id="brand-link" class="flex items-center gap-2.5" onclick="return brandClick(event);">
       <img src="s-logo.png" alt="" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));"/>
-      <span class="text-xl font-black tracking-tighter text-[#1d9bf0] uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span>
+      <span style="display:flex;flex-direction:column;justify-content:center;line-height:1.02;">
+        <span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span>
+        <span id="brand-menu-hint" style="font-size:8px;font-family:monospace;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted,rgba(148,163,184,0.75));margin-top:2px;">☰ Menü</span>
+      </span>
       <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
     </a>
     <div class="hidden md:flex items-center gap-6">
@@ -420,7 +422,7 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
   </div>
 
   <!-- Nav -->
-  <div class="flex flex-col gap-0.5 px-2 pt-3 flex-1 overflow-y-auto">
+  <div class="flex flex-col gap-0.5 px-2 pt-3" style="flex-shrink:0">
     <a class="ki-sidebar-active flex items-center gap-3 text-[var(--accent)] border-l-2 border-[var(--accent)] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.08);" href="#">
       <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
     </a>
@@ -442,26 +444,27 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
     <a class="sidebar-nav-link" href="profil.html">
       <span class="material-symbols-outlined text-sm">person</span>Profil & Design
     </a>
-
-    <!-- Divider -->
-    <div style="margin:8px 16px;height:1px;background:rgba(var(--neon-rgb),0.10);"></div>
-
-    <!-- Social Links -->
-    <div style="padding:4px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;">Kontakt & Social</div>
-    <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      @ScampyKI
-    </a>
-    <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank">
-      <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
-    </a>
-    <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank">
-      <span class="material-symbols-outlined text-sm">work</span>dscampy
-    </a>
   </div>
 
+  <!-- Spacer schiebt Social nach unten -->
+  <div style="flex:1 1 auto"></div>
+
+  <!-- Kontakt & Social (unten angeheftet) -->
+  <div style="margin:8px 16px 0;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0"></div>
+  <div style="padding:8px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0">Kontakt & Social</div>
+  <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank" style="flex-shrink:0">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    @ScampyKI
+  </a>
+  <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank" style="flex-shrink:0">
+    <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
+  </a>
+  <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank" style="flex-shrink:0">
+    <span class="material-symbols-outlined text-sm">work</span>dscampy
+  </a>
+
   <!-- Footer -->
-  <div style="padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);">
+  <div style="padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0">
     <p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.22);line-height:1.5;">KI-News täglich auf Deutsch.<br>Kuratiert · Eingeordnet · Erklärt.</p>
   </div>
 </aside>
@@ -609,6 +612,11 @@ function closeDrawer(){
 function toggleDrawer(){
   var s=document.getElementById('sidebar');
   (s&&s.classList.contains('drawer-open'))?closeDrawer():openDrawer();
+}
+// Logo: auf dem Handy öffnet es die Sidebar, auf Desktop führt es zur Startseite
+function brandClick(e){
+  if(window.innerWidth < 768){ e.preventDefault(); toggleDrawer(); return false; }
+  return true;
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
 // Beim Tippen auf einen Sidebar-Link Drawer schließen (Seitenwechsel bleibt sichtbar sauber)
