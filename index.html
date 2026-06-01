@@ -257,6 +257,16 @@ html.light #carousel-featured p{color:#64748b;}
 .c-actions{display:flex;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap;}
 .c-read-link{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .c-read-link:hover{text-decoration:underline;}
+.c-analyse-toggle{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,0.5);background:none;border:none;cursor:pointer;padding:0;transition:color .15s;}
+.c-analyse-toggle:hover{color:var(--accent);}
+html.light .c-analyse-toggle{color:#64748b;}
+.c-analyse{margin-top:16px;border-top:1px solid rgba(var(--neon-rgb),0.18);padding-top:14px;animation:cAnalyseIn .25s ease;}
+@keyframes cAnalyseIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.c-analyse-lead{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px;line-height:1.4;}
+.c-analyse-thread{list-style:none;counter-reset:cstep;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+.c-analyse-thread li{counter-increment:cstep;position:relative;padding-left:30px;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.62);}
+html.light .c-analyse-thread li{color:#475569;}
+.c-analyse-thread li::before{content:counter(cstep);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:rgba(var(--neon-rgb),0.12);color:var(--accent);font-family:monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 .c-telegram-btn{font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;color:rgba(255,255,255,0.42);text-decoration:none;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:4px;transition:all 0.15s;}
 .c-telegram-btn:hover{color:#fff;border-color:rgba(var(--neon-rgb),0.45);}
 html.light .c-telegram-btn{color:#64748b;border-color:rgba(0,0,0,0.12);}
@@ -513,6 +523,11 @@ html.light #tts-title{color:#0f172a;}
         </div>
         <div class="c-actions">
           <a href="#" id="c-link" class="c-read-link">Artikel lesen →</a>
+          <button id="c-analyse-toggle" class="c-analyse-toggle" onclick="toggleAnalyse()" style="display:none">Analyse anzeigen ▾</button>
+        </div>
+        <div id="c-analyse" class="c-analyse" hidden>
+          <div id="c-analyse-lead" class="c-analyse-lead"></div>
+          <ol id="c-analyse-thread" class="c-analyse-thread"></ol>
         </div>
       </div>
       <div id="carousel-side">
@@ -811,8 +826,24 @@ function heroRender(animate) {
     document.getElementById('c-badge').textContent = s.source;
     document.getElementById('c-badge').style.background = c;
     document.getElementById('c-title').textContent = s.title;
-    document.getElementById('c-desc').textContent  = s.summary || '';
+    var post = s.post;
+    var lead = post && post.teaser ? post.teaser.replace(/\s*\(via[^)]*\)\s*$/i, '').trim() : '';
+    document.getElementById('c-desc').textContent  = lead || s.summary || '';
     document.getElementById('c-link').href         = s.link || '#';
+    // Analyse-Thread (Scampy-6) – ausklappbar, bei jedem Wechsel eingeklappt
+    var toggle = document.getElementById('c-analyse-toggle');
+    var panel  = document.getElementById('c-analyse');
+    var thread = (post && post.thread) || [];
+    panel.hidden = true;
+    toggle.textContent = 'Analyse anzeigen ▾';
+    if (post && thread.length) {
+      toggle.style.display = '';
+      document.getElementById('c-analyse-lead').textContent = post.erklaerung || '';
+      var ol = document.getElementById('c-analyse-thread'); ol.innerHTML = '';
+      thread.forEach(function(t){ var li = document.createElement('li'); li.textContent = t; ol.appendChild(li); });
+    } else {
+      toggle.style.display = 'none';
+    }
     document.getElementById('c-plabel').textContent = p.label;
     document.getElementById('c-plabel').style.color  = p.color;
     buildPBars(document.getElementById('c-pbars'), level, p.color);
@@ -838,6 +869,14 @@ function heroStartAuto() {
   }, HERO_INTERVAL);
 }
 function heroMove(dir) { heroCur=(heroCur+dir+heroStories.length)%heroStories.length; heroRender(true); heroStartAuto(); }
+function toggleAnalyse() {
+  var panel = document.getElementById('c-analyse'), toggle = document.getElementById('c-analyse-toggle');
+  var show = panel.hidden;
+  panel.hidden = !show;
+  toggle.textContent = show ? 'Analyse verbergen ▴' : 'Analyse anzeigen ▾';
+  if (show) { clearInterval(heroTimer); clearInterval(heroProgTimer); document.getElementById('progress-bar').style.width = '0%'; }
+  else { heroStartAuto(); }
+}
 function initHero(stories) {
   heroStories = stories; heroCur = 0;
   var dotsEl = document.getElementById('carousel-dots'); dotsEl.innerHTML = '';
@@ -876,6 +915,12 @@ Promise.all([
   nonFeatured.sort(function(a,b){ return (b.score||0)-(a.score||0); });
   var top = featured.concat(nonFeatured).slice(0,3);
   topLinks = top.map(function(n){return n.link;}).filter(Boolean);
+  // Scampy-Posts (teaser/erklaerung/thread) den Top-Storys zuordnen – per Quelle, Index als Fallback
+  var posts = data.posts || [];
+  top.forEach(function(s, i){
+    var sameSrc = posts.filter(function(p){ return p.teaser && s.source && p.teaser.indexOf('(via ' + s.source) !== -1; });
+    s.post = (sameSrc.length === 1 ? sameSrc[0] : posts[i]) || null;
+  });
   initHero(top);
   var filtered = allNews.filter(function(n){ return topLinks.indexOf(n.link) === -1; });
   filtered.sort(function(a,b){ return (b.score||0)-(a.score||0); });
@@ -1104,7 +1149,7 @@ window.addEventListener('resize',()=>{
     var rest=window.__ttsList||[];
     if(rest.length){
       out.push({label:'Weitere Meldungen', title:rest.length+' weitere Meldungen', text:'Weitere Meldungen.'});
-      rest.forEach(function(n,i){ out.push({label:'Meldung '+(i+1)+' / '+rest.length, title:n.title, text:'Quelle '+fix(n.source)+'. '+fix(n.title)+'. '+fix(n.summary)}); });
+      rest.forEach(function(n,i){ out.push({label:'Meldung '+(i+1)+' / '+rest.length, title:n.title, text:fix(n.title)+'. '+fix(n.summary)}); });
     }
     return out;
   }
