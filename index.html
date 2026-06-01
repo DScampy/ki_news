@@ -332,6 +332,24 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 .gdot[data-t="meridian"]{background:#fb923c;}
 .gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
 </style>
+<style id="tts-css">
+#tts-trigger{display:inline-flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--accent);background:rgba(var(--neon-rgb),0.08);border:1px solid rgba(var(--neon-rgb),0.35);border-radius:999px;padding:6px 14px;cursor:pointer;transition:all .15s;}
+#tts-trigger:hover{background:rgba(var(--neon-rgb),0.16);border-color:rgba(var(--neon-rgb),0.6);box-shadow:0 0 14px rgba(var(--neon-rgb),0.3);}
+#tts-bar{position:fixed;bottom:24px;left:24px;z-index:1001;display:none;align-items:center;gap:10px;background:var(--card,#0d1117);border:1px solid rgba(var(--neon-rgb),0.4);border-radius:14px;padding:10px 12px;box-shadow:0 10px 40px rgba(0,0,0,0.5),0 0 18px rgba(var(--neon-rgb),0.18);max-width:430px;font-family:'Work Sans',sans-serif;}
+html.light #tts-bar{background:#fff;}
+#tts-bar.open{display:flex;}
+.tts-btn{width:36px;height:36px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(var(--neon-rgb),0.12);color:var(--accent);flex-shrink:0;font-size:15px;line-height:1;transition:background .15s;}
+.tts-btn:hover{background:rgba(var(--neon-rgb),0.22);}
+.tts-btn.primary{background:var(--accent);color:#000;font-size:16px;}
+.tts-meta{min-width:0;flex:1;}
+#tts-label{font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);}
+#tts-title{font-size:12px;color:var(--text,#dfe3ea);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px;}
+html.light #tts-title{color:#0f172a;}
+.tts-rate{display:flex;gap:3px;flex-shrink:0;}
+.tts-rate button{font-family:monospace;font-size:10px;padding:4px 6px;border-radius:6px;border:1px solid rgba(var(--neon-rgb),0.25);background:transparent;color:var(--muted,#8a94a6);cursor:pointer;}
+.tts-rate button.active{background:rgba(var(--neon-rgb),0.18);color:var(--accent);border-color:rgba(var(--neon-rgb),0.5);}
+@media(max-width:560px){#tts-bar{left:12px;right:12px;bottom:88px;max-width:none;}#tts-title{max-width:130px;}}
+</style>
 </head>
 <body class="font-body-lg">
 
@@ -520,8 +538,11 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
     <div id="editorial-banner" class="ed-banner" style="display:none;border:1px solid #1d9bf0;padding:14px 20px;margin-bottom:16px;border-radius:12px;gap:14px;align-items:flex-start"></div>
 
     <div>
-      <div class="mb-6 flex items-center justify-between">
-        <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:24px">Aktuelle News</h3>
+      <div class="mb-6 flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center gap-3">
+          <h3 class="ki-main font-bold" style="font-family:'Space Grotesk',sans-serif;font-size:24px">Aktuelle News</h3>
+          <button id="tts-trigger" onclick="ttsStart()" title="Nachrichten vorlesen">🎧 Vorlesen</button>
+        </div>
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
           <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Wird geladen...</span>
@@ -549,6 +570,22 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
     </div>
   </div>
 </main>
+
+<!-- Vorlese-Player -->
+<div id="tts-bar" role="region" aria-label="Vorlesen">
+  <button class="tts-btn primary" id="tts-playpause" onclick="ttsPauseToggle()" title="Pause / Weiter" aria-label="Pause / Weiter"><span id="tts-pp-icon">⏸</span></button>
+  <div class="tts-meta">
+    <div id="tts-label">Vorlesen</div>
+    <div id="tts-title">…</div>
+  </div>
+  <div class="tts-rate">
+    <button data-r="0.9" onclick="ttsSetRate(0.9)">0.9×</button>
+    <button data-r="1" class="active" onclick="ttsSetRate(1)">1×</button>
+    <button data-r="1.2" onclick="ttsSetRate(1.2)">1.2×</button>
+  </div>
+  <button class="tts-btn" onclick="ttsNext()" title="Nächste Meldung" aria-label="Nächste Meldung">⏭</button>
+  <button class="tts-btn" onclick="ttsStop()" title="Stopp" aria-label="Stopp">✕</button>
+</div>
 
 <!-- Chat Widget -->
 <div id="chat-widget">
@@ -683,6 +720,21 @@ function scoreBadge(label, score) {
   return '<span style="background:' + (epic?'#dc2626':'#d97706') + ';color:#fff;font-size:9px;font-weight:700;padding:1px 7px;border-radius:3px;font-family:monospace">' + (epic?'🔥 episch':'⚡ wichtig') + '</span>';
 }
 
+// ── Relativer Zeitstempel ──────────────────────────────────────────────────
+function relDate(d) {
+  if (!d) return '';
+  var then = new Date(String(d).length <= 10 ? d + 'T00:00:00' : d);
+  if (isNaN(then)) return '';
+  var now = new Date();
+  var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var d0 = new Date(then.getFullYear(), then.getMonth(), then.getDate());
+  var days = Math.round((t0 - d0) / 86400000);
+  if (days <= 0) return 'Heute';
+  if (days === 1) return 'Gestern';
+  if (days < 7) return 'vor ' + days + ' Tagen';
+  return then.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 // ── News card ────────────────────────────────────────────────────────────
 function renderCard(item) {
   var c = item.color || srcColor(item.source);
@@ -709,7 +761,10 @@ function renderCard(item) {
     '<h4 class="font-headline-md ki-main mb-2 leading-snug" style="font-family:\'Space Grotesk\',sans-serif">' + item.title + '</h4>' +
     '<p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">' + (item.summary||'') + '</p>' +
     '<div class="pt-4 ki-border border-t flex items-center justify-between">' +
-      '<span class="text-[11px] font-mono uppercase" style="color:' + c + '">' + item.source + '</span>' +
+      '<div class="flex items-center gap-2 min-w-0">' +
+        '<span class="text-[11px] font-mono uppercase" style="color:' + c + '">' + item.source + '</span>' +
+        (item.date ? '<span class="text-[11px] font-mono ki-faint">· ' + relDate(item.date) + '</span>' : '') +
+      '</div>' +
       '<span class="material-symbols-outlined ki-muted text-sm">open_in_new</span>' +
     '</div>';
   return a;
@@ -824,6 +879,8 @@ Promise.all([
   initHero(top);
   var filtered = allNews.filter(function(n){ return topLinks.indexOf(n.link) === -1; });
   filtered.sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  window.__ttsList = filtered;
+  window.__ttsEditorial = (data.editorial || '');
   grid.innerHTML = '';
   filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
   if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
@@ -1029,5 +1086,68 @@ window.addEventListener('resize',()=>{
 })();
 </script>
 <script src="assets/ki-custom-theme.js"></script>
+<script>
+/* ── Vorlese-Engine (Web Speech API) ───────────────────────────────────── */
+(function(){
+  var segs=[], idx=0, rate=1, active=false;
+  function fix(s){ return String(s==null?'':s).replace(/\bKI\b/g,'K I'); }
+  function buildSegments(){
+    var out=[];
+    out.push({label:'Intro', title:'KI-News', text:'K I News. Die wichtigsten Meldungen, vorgelesen.'});
+    var ed = window.__ttsEditorial;
+    if(ed) out.push({label:'Tagesüberblick', title:'Tagesüberblick', text:'Tagesüberblick. '+fix(ed)});
+    var tops=(window.heroStories||[]).slice(0,3);
+    if(tops.length){
+      out.push({label:'Top-Storys', title:'Die wichtigsten Meldungen', text:'Die drei wichtigsten Meldungen des Tages.'});
+      tops.forEach(function(s,i){ out.push({label:'Top-Story '+(i+1)+' / '+tops.length, title:s.title, text:'Top Meldung '+(i+1)+'. Quelle '+fix(s.source)+'. '+fix(s.title)+'. '+fix(s.summary)}); });
+    }
+    var rest=window.__ttsList||[];
+    if(rest.length){
+      out.push({label:'Weitere Meldungen', title:rest.length+' weitere Meldungen', text:'Weitere Meldungen.'});
+      rest.forEach(function(n,i){ out.push({label:'Meldung '+(i+1)+' / '+rest.length, title:n.title, text:'Quelle '+fix(n.source)+'. '+fix(n.title)+'. '+fix(n.summary)}); });
+    }
+    return out;
+  }
+  function pickVoice(){
+    var vs=window.speechSynthesis?speechSynthesis.getVoices():[];
+    return vs.filter(function(v){return /de[-_]?de/i.test(v.lang);})[0] || vs.filter(function(v){return /^de/i.test(v.lang);})[0] || null;
+  }
+  function updateUI(){
+    var bar=document.getElementById('tts-bar'); if(!bar)return;
+    var seg=segs[idx]||{};
+    var lab=document.getElementById('tts-label'); if(lab)lab.textContent=seg.label||'Vorlesen';
+    var ti=document.getElementById('tts-title'); if(ti)ti.textContent=seg.title||'';
+    var ic=document.getElementById('tts-pp-icon'); if(ic)ic.textContent=(window.speechSynthesis&&speechSynthesis.paused)?'▶':'⏸';
+    document.querySelectorAll('.tts-rate button').forEach(function(b){ b.classList.toggle('active', parseFloat(b.getAttribute('data-r'))===rate); });
+  }
+  function speakCurrent(){
+    if(!active)return;
+    if(idx>=segs.length){ window.ttsStop(); return; }
+    var seg=segs[idx];
+    var u=new SpeechSynthesisUtterance(seg.text);
+    u.lang='de-DE'; u.rate=rate;
+    var v=pickVoice(); if(v)u.voice=v;
+    u.onend=function(){ if(active){ idx++; updateUI(); speakCurrent(); } };
+    u.onerror=function(){ if(active){ idx++; speakCurrent(); } };
+    speechSynthesis.speak(u);
+    updateUI();
+  }
+  window.ttsStart=function(){
+    if(!('speechSynthesis' in window)){ alert('Dein Browser unterstützt das Vorlesen leider nicht.'); return; }
+    if((window.heroStories||[]).length===0 && (window.__ttsList||[]).length===0){ alert('Die News werden noch geladen – einen Moment, dann nochmal tippen.'); return; }
+    segs=buildSegments();
+    speechSynthesis.cancel();
+    idx=0; active=true;
+    var b=document.getElementById('tts-bar'); if(b)b.classList.add('open');
+    speakCurrent();
+  };
+  window.ttsPauseToggle=function(){ if(!active)return; if(speechSynthesis.paused){speechSynthesis.resume();}else{speechSynthesis.pause();} updateUI(); };
+  window.ttsStop=function(){ active=false; if(window.speechSynthesis)speechSynthesis.cancel(); var b=document.getElementById('tts-bar'); if(b)b.classList.remove('open'); };
+  window.ttsNext=function(){ if(!active)return; speechSynthesis.cancel(); idx++; if(idx>=segs.length){ window.ttsStop(); return; } speakCurrent(); };
+  window.ttsSetRate=function(r){ rate=r; if(active && window.speechSynthesis && !speechSynthesis.paused){ speechSynthesis.cancel(); speakCurrent(); } updateUI(); };
+  if(window.speechSynthesis){ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=function(){ speechSynthesis.getVoices(); }; }
+  setInterval(function(){ if(active && window.speechSynthesis && speechSynthesis.speaking && !speechSynthesis.paused){ speechSynthesis.resume(); } }, 10000);
+})();
+</script>
 </body>
 </html>

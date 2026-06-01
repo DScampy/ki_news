@@ -872,6 +872,20 @@ function render() {
   filtered.forEach(item => grid.appendChild(createCard(item)));
 }
 
+function relDate(d) {
+  if (!d) return '';
+  const then = new Date(String(d).length <= 10 ? d + 'T00:00:00' : d);
+  if (isNaN(then)) return '';
+  const now = new Date();
+  const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const d0 = new Date(then.getFullYear(), then.getMonth(), then.getDate());
+  const days = Math.round((t0 - d0) / 86400000);
+  if (days <= 0) return 'Heute';
+  if (days === 1) return 'Gestern';
+  if (days < 7) return 'vor ' + days + ' Tagen';
+  return then.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 function createCard(item) {
   const conf = srcConf(item.source);
   const isList = layout === 'list';
@@ -906,7 +920,7 @@ function createCard(item) {
     a.innerHTML = `
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-2 flex-wrap">
-          <span style="background:${conf.color}" class="text-white px-2 py-0.5 text-[10px] font-mono rounded-sm uppercase flex-shrink-0">${item.source || '—'}</span>
+          <span style="background:${conf.color}" class="text-white px-2 py-0.5 text-[10px] font-mono rounded-sm uppercase flex-shrink-0">${item.source || '—'}</span> ${item.date ? `<span style="font-size:10px;font-family:monospace;margin-left:2px;color:${mutedColor}">${relDate(item.date)}</span>` : ''}
         </div>
         <h4 class="font-headline-md leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
         <p class="font-body-sm text-body-sm line-clamp-2" style="color:${mutedColor}">${item.summary || ''}</p>
@@ -915,7 +929,7 @@ function createCard(item) {
   } else {
     a.innerHTML = `
       <div class="flex items-center justify-between mb-4">
-        <span style="background:${conf.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.source || '—'}</span>
+        <span style="background:${conf.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.source || '—'}</span> ${item.date ? `<span style="font-size:10px;font-family:monospace;margin-left:2px;color:${mutedColor}">${relDate(item.date)}</span>` : ''}
         <span class="material-symbols-outlined text-sm" style="color:${iconColor}">open_in_new</span>
       </div>
       <h4 class="font-headline-md mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
