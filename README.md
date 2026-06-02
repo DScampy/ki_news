@@ -1,124 +1,173 @@
-# KI News Dashboard · @CScampy
+# KI News · ki-news.live
 
-Automatisches KI-News-Dashboard. Sammelt täglich News aus 10 Quellen, generiert fertige X-Posts im Scampy-6-Stil und schickt sie per Telegram.
+Automatisiertes, deutschsprachiges KI-News-Dashboard. Sammelt mehrmals täglich KI-News aus ~25 Quellen, ordnet sie ein, bewertet ihre Wichtigkeit, fasst sie auf Deutsch zusammen und generiert fertige X-Posts im **Scampy-6-Format** — vollautomatisch via GitHub Actions, kein Server nötig.
 
-**Live:** https://dscampy.github.io/ki\_news/
+**Live:** https://ki-news.live/
+**Repo:** https://github.com/DScampy/ki_news
+**Von:** D. Scampy · [@ScampyKI](https://x.com/ScampyKI)
 
-\---
+---
 
 ## Was das System macht
 
-1. Holt KI-relevante News aus 10 Quellen (4 deutsch, 6 englisch)
-2. Filtert nach KI-Keywords, dedupliziert per URL
-3. Übersetzt \& fasst alle News auf Deutsch zusammen (via LLM)
-4. Generiert 3 fertige X-Posts im **Scampy-6-Format** (Teaser + 6-teiliger Thread + Erklärung)
-5. Schickt die Posts per Telegram an [@ScampyNews24\_bot](https://t.me/ScampyNews24_bot)
-6. Aktualisiert `news.json`, `archive.json`, `hashtags/hashtags.json` und `index.html`
-7. Committet alles automatisch zurück ins Repo via GitHub Actions
+Bei jedem Lauf (`ki_news.py`):
 
-\---
+1. **Holen** — KI-relevante News aus ~25 RSS-Feeds (deutsch, international, Primärquellen der Labs).
+2. **Filtern & dedupen** — KI-Keyword-Filter, Duplikate per URL/Titel entfernen.
+3. **Clustern & bewerten** — verwandte Meldungen gruppieren, Wichtigkeit scoren (Multi-Quellen-Bonus + Quellen-Prestige + Keyword-Signale). Scores **verfallen über die Zeit** (deterministisch aus `base_score` + Erst-Erfassung), damit alte News absinken.
+4. **Übersetzen & zusammenfassen** — alle Meldungen auf Deutsch (via LLM).
+5. **Posts generieren** — die Top-Storys als fertige X-Posts im **Scampy-6-Format** (Teaser + 6-teiliger Thread + Erklärung).
+6. **Verteilen** — Posts per Telegram an [@ScampyNews24_bot](https://t.me/ScampyNews24_bot).
+7. **Schreiben** — aktualisiert `news.json`, `archive.json`, `hashtags/hashtags.json`.
+8. **Pre-Rendering (SEO)** — bäckt die aktuellen News als echtes HTML + JSON-LD in `index.html` (Hero + News-Grid), damit Crawler & KI-Bots ohne JavaScript den vollen Inhalt sehen.
+9. **Committen** — alles automatisch zurück ins Repo via GitHub Actions.
+
+---
 
 ## Zeitplan
 
-Läuft 4× täglich automatisch via GitHub Actions – kein Rechner nötig:
+Läuft **4× täglich** automatisch via GitHub Actions (`workflow_dispatch` erlaubt manuellen Start):
 
-|Berliner Zeit|UTC|
-|-|-|
-|07:00|05:00|
-|12:00|10:00|
-|17:00|15:00|
-|20:00|18:00|
+| Berliner Zeit | UTC |
+|---|---|
+| 07:00 | 05:00 |
+| 12:00 | 10:00 |
+| 17:00 | 15:00 |
+| 20:00 | 18:00 |
 
-\---
+Cron: `0 5,10,15,18 * * *`
 
-## News-Quellen
+---
 
-|Quelle|Feed|Sprache|
-|-|-|-|
-|The Decoder|the-decoder.de/feed/|Deutsch|
-|Heise|heise.de/rss/heise-Rubrik-IT-atom.xml|Deutsch|
-|Golem|rss.golem.de/rss.php?feed=RSS2.0|Deutsch|
-|Caschy Blog|stadt-bremerhaven.de/feed/|Deutsch|
-|TechCrunch AI|techcrunch.com/category/artificial-intelligence/feed/|Englisch|
-|Ars Technica|feeds.arstechnica.com/arstechnica/technology-lab|Englisch|
-|VentureBeat AI|venturebeat.com/category/ai/feed/|Englisch|
-|MIT Tech Review|technologyreview.com/feed/|Englisch|
-|The Verge|theverge.com/rss/index.xml|Englisch|
-|Wired AI|wired.com/feed/tag/artificial-intelligence/rss|Englisch|
+## News-Quellen (~25)
 
-\---
+**Deutsch:** The Decoder · Heise · Golem · Caschy Blog
 
-## LLM-Modelle (OpenRouter)
+**International:** TechCrunch AI · Ars Technica · VentureBeat AI · Wired · The Verge · CNBC · SiliconAngle · TechRepublic · Bloomberg · CNet · MIT Technology Review · NYT Technology · OpenAI Blog
 
-Das Script probiert Modelle der Reihe nach. Bei 429 (Rate Limit) sofort weiter zum nächsten.
+**Kuratiert:** AlignedNews
 
-|Priorität|Modell|Kosten|
-|-|-|-|
-|1|meta-llama/llama-3.3-70b-instruct:free|kostenlos|
-|2|nousresearch/hermes-3-llama-3.1-405b:free|kostenlos|
-|3|google/gemma-4-31b-it:free|kostenlos|
-|4|tencent/hy3-preview:free|kostenlos|
-|5|google/gemma-4-26b-a4b-it:free|kostenlos|
-|6|meta-llama/llama-3.3-70b-instruct|\~$0.008/Lauf|
-|7|google/gemma-3-27b-it|Fallback|
+**Primärquellen (Lab-Announcements direkt, via Olshansk/rss-feeds):** Anthropic News · Anthropic Research · Google AI · Meta AI · xAI · Mistral · The Batch
 
-\---
+> Die volle, gepflegte Liste steht in `FEEDS` in `ki_news.py`. Feeds, die GitHub-Actions-IPs mit 403 blockieren, werden automatisch übersprungen.
+
+---
+
+## LLM-Modelle
+
+Das Script probiert Modelle der Reihe nach durch; bei `429` (Rate Limit) sofort zum nächsten — kein Retry.
+
+**OpenRouter (Zusammenfassungen):** zuerst Free-Modelle (`llama-3.3-70b:free`, `hermes-3-405b:free`, `gemma-4:free`-Varianten), dann kostenpflichtige Anker (`llama-3.3-70b`, `gemma-3-27b`) als Fallback.
+
+**Posts:** eigene Reihenfolge (`MODELLE_POSTS`) — Gemma zuerst für die beste deutsche Scampy-6-Qualität.
+
+**Lokal (optional):** Läuft ein **Ollama**-Server (`OLLAMA_HOST`, Default `localhost:11434`), werden lokale Modelle (`gemma3:27b` u. a.) automatisch erkannt und für die Post-Generierung bevorzugt — kostenlos, kein Rate-Limit.
+
+---
+
+## Frontend
+
+Statisches Dashboard (kein Build-Step, reines HTML/JS), gehostet auf GitHub Pages über die Custom-Domain `ki-news.live`:
+
+- **5 Design-Themes** — Genesis · Karst · Aurora · Meridian · Blanc, plus Dark/Light-Umschalter (Auswahl wird gespeichert).
+- **Animierter Hintergrund** — Three.js-Partikelsystem mit Bloom, themenreaktiv.
+- **Hero-Karussell** der Top-Storys + Score-/Prioritäts-Anzeige.
+- **News-Grid** mit Quellen-Badges, Vorschaubildern und relativem Datum.
+- **Vorlese-Funktion** (TTS) für die aktuellen Meldungen.
+- **Chat-Assistent** — konfiguriert über `chat-config.js` (Groq).
+- **Podcast- & Video-Einbettungen** (SoundCloud / YouTube).
+
+### Seiten
+
+| Datei | Zweck |
+|---|---|
+| `index.html` | Dashboard / Startseite (News, Hero, Medien) |
+| `artikel.html` + `artikel/*.html` | Longform-Artikel (eigene Texte) |
+| `Archiv.html` | Kumulatives News-Archiv |
+| `stats.html` | Statistiken (Quellen, Scores, Verlauf) |
+| `profil.html` | Profil & Design-Einstellungen |
+| `Impressum.html` · `Datenschutz.html` | Rechtliches |
+| `Admin.html` · `admin-posts.html` | Interne Verwaltung |
+
+---
+
+## SEO & KI-Sichtbarkeit
+
+- **`robots.txt`** — erlaubt explizit Google + alle relevanten KI-Crawler / Answer Engines (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot, Applebot, Bingbot u. v. m.).
+- **`sitemap.xml`** — alle Seiten, auf `ki-news.live`.
+- **Pre-Rendering (SSR)** — `ki_news.py` schreibt die aktuellen News bei jedem Lauf als echtes HTML + `ItemList`-JSON-LD in `index.html` (Marker `<!-- SSR:NEWS:… -->` / `<!-- SSR:HERO:… -->`). So sehen auch JS-lose Crawler sofort die Schlagzeilen — gleiche Seite, kein Cloaking; das JS-Frontend ersetzt den Block im Browser wie gehabt.
+- **Schema.org** — `WebSite` + `Person` JSON-LD auf jeder Seite.
+
+---
 
 ## GitHub Secrets
 
-|Name|Beschreibung|
-|-|-|
-|`OPENROUTER\\\_KEY`|OpenRouter API Key (LLM + Zusammenfassungen)|
-|`TELEGRAM\\\_TOKEN`|Token des Telegram-Bots (@ScampyNews24\_bot)|
-|`GROQ\\\_CHAT\\\_KEY`|Groq API Key (Frontend-Chat auf der Website)|
+| Name | Beschreibung |
+|------|-------------|
+| `OPENROUTER_KEY` | OpenRouter API Key (LLM-Zusammenfassungen + Posts) |
+| `TELEGRAM_TOKEN` | Token des Telegram-Bots (@ScampyNews24_bot) |
+| `GROQ_CHAT_KEY` | Groq API Key (Chat-Assistent auf der Website) |
 
-\---
+---
 
 ## Projektstruktur
 
 ```
-ki\\\_news/
-├── ki\\\_news.py                  # Hauptscript
-├── index.html                  # Dashboard (automatisch generiert)
-├── Archiv.html                 # Archiv-Seite (statisch, manuell gepflegt)
-├── news.json                   # Aktuelle News + Posts (automatisch)
-├── archive.json                # Kumulatives Archiv, max. 2000 Einträge (automatisch)
+ki_news/
+├── ki_news.py            # Hauptscript (Fetch, Scoring, LLM, Posts, SSR)
+├── index.html            # Dashboard – News-Grid & Hero werden per SSR befüllt
+├── artikel.html          # Longform-Übersicht
+├── artikel/              # Einzelne Longform-Artikel (eigene Texte)
+├── Archiv.html           # News-Archiv
+├── stats.html            # Statistik-Seite
+├── profil.html           # Profil & Design
+├── Admin.html
+├── admin-posts.html
+├── Impressum.html
+├── Datenschutz.html
+├── news.json             # Aktuelle News + Posts (automatisch)
+├── archive.json          # Kumulatives Archiv, max. 2000 Einträge (automatisch)
+├── media.json            # Podcasts / Videos / X-Vorschaubilder
+├── dashboard_config.json # Angepinnte / gesperrte Artikel
 ├── hashtags/
-│   └── hashtags.json           # Auto-generierte Hashtag-Liste (automatisch)
-├── .gitignore
-└── .github/
-    └── workflows/
-        └── ki\\\_news.yml         # GitHub Actions Workflow
+│   └── hashtags.json     # Auto-generierte Hashtag-Liste (automatisch)
+├── assets/               # CSS, Fonts, Icons, Embed-Helfer
+├── robots.txt
+├── sitemap.xml
+├── CNAME                 # ki-news.live
+└── .github/workflows/
+    └── ki_news.yml       # GitHub Actions Workflow (4× täglich)
 ```
 
-\---
+---
 
 ## Scampy-6 Post-Format
 
-Jeder Post besteht aus:
+Jeder generierte X-Post besteht aus:
 
-* **Teaser** – max. 265 Zeichen, Hook + Flip, endet mit Quellenangabe
-* **Thread 1–6** – je max. 265 Zeichen: Hook → Kontext → Kaskade → Gruselig → Konsequenz → Fazit
-* **Erklärung** – max. 60 Zeichen, was die News konkret bedeutet
+- **Teaser** — max. 265 Zeichen, Hook + Flip, endet mit Quellenangabe
+- **Thread 1–6** — je max. 265 Zeichen: Hook → Kontext → Kaskade → Gruselig → Konsequenz → Fazit
+- **Erklärung** — kurz, was die News konkret bedeutet
 
-\---
+---
 
 ## Lokale Einrichtung
 
 ```bash
-git clone https://github.com/DScampy/ki\\\_news.git
-cd ki\\\_news
+git clone https://github.com/DScampy/ki_news.git
+cd ki_news
 ```
 
-OpenRouter-Key in `\\\~/Documents/Projekte/ki-news/config.txt` speichern (wird nie commitet).
+OpenRouter-Key per Umgebungsvariable `OPENROUTER_KEY` setzen, oder in `~/Documents/Projekte/ki-news/config.txt` ablegen (wird nie committet).
 
 ```bash
-python ki\\\_news.py
+python ki_news.py
 ```
 
-\---
+> Lokal optional: läuft ein Ollama-Server, werden lokale Modelle automatisch für die Post-Generierung genutzt.
+
+---
 
 ## Erstellt von
 
-D. Scampy ([@CScampy](https://x.com/CScampy)) · 2026
-
+D. Scampy ([@ScampyKI](https://x.com/ScampyKI)) · 2026 · erstellt mit Claude
