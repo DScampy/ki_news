@@ -9,6 +9,133 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from time import sleep
 from urllib.error import URLError, HTTPError
+import html as _html
+
+# ──────────────────────────────────────────────────────────────────────────
+# SSR / Pre-Rendering für index.html
+# ──────────────────────────────────────────────────────────────────────────
+# Crawler & KI-Bots (GPTBot, ClaudeBot, PerplexityBot …) führen kein JavaScript
+# aus. Diese Funktion schreibt die aktuellen News bei jedem Lauf als ECHTES HTML
+# in index.html – in zwei markierte Bereiche. Das JS-Frontend bleibt unverändert;
+# es ersetzt diese Bereiche im Browser wie bisher.
+#   <!-- SSR:HERO:START --> … <!-- SSR:HERO:END -->
+#   <!-- SSR:NEWS:START --> … <!-- SSR:NEWS:END -->
+SSR_MAX = 24  # max. News-Karten im vorgerenderten HTML
+
+
+def _ssr_fmt_date(d):
+    """'2026-05-28' -> '28.05.2026'"""
+    if not d:
+        return ""
+    p = str(d)[:10].split("-")
+    return f"{p[2]}.{p[1]}.{p[0]}" if len(p) == 3 else _html.escape(str(d))
+
+
+def _ssr_card(n):
+    c = _html.escape(n.get("color") or "#1d9bf0", quote=True)
+    src = _html.escape(n.get("source") or "")
+    date = _ssr_fmt_date(n.get("date") or n.get("first_seen") or "")
+    date_html = (
+        f'<span class="text-[11px] font-mono ki-faint">· {date}</span>' if date else ""
+    )
+    return (
+        f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" target="_blank" rel="noopener" '
+        f'class="ki-card ki-border border p-4 flex flex-col h-full transition-all">'
+        f'<div class="flex items-center justify-between mb-4">'
+        f'<span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" '
+        f'style="background:{c}">{src}</span>'
+        f'</div>'
+        f'<h4 class="font-headline-md ki-main mb-2 leading-snug" '
+        f"style=\"font-family:'Space Grotesk',sans-serif\">{_html.escape(n.get('title') or '')}</h4>"
+        f'<p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">'
+        f"{_html.escape(n.get('summary') or '')}</p>"
+        f'<div class="pt-4 ki-border border-t flex items-center justify-between">'
+        f'<span class="text-[11px] font-mono uppercase" style="color:{c}">{src}</span>'
+        f'{date_html}'
+        f'</div>'
+        f'</a>'
+    )
+
+
+def inject_ssr(base_dir, news_json_data):
+    """Schreibt Hero + News-Grid + JSON-LD als statisches HTML in index.html."""
+    base_dir = Path(base_dir)
+    index_path = base_dir / "index.html"
+    if not index_path.exists():
+        return  # Kein index.html in diesem Verzeichnis (z.B. lokal) – nichts zu tun.
+
+    news = sorted(
+        list(news_json_data.get("news") or []),
+        key=lambda n: n.get("score", 0),
+        reverse=True,
+    )[:SSR_MAX]
+    if not news:
+        return
+
+    stand = news_json_data.get("stand", "")
+
+    # ── Hero (Top-Story) ──
+    top = news[0]
+    hero = (
+        "<!-- SSR:HERO:START -->\n"
+        '            <div class="c-text">\n'
+        f'              <h2 id="c-title">{_html.escape(top.get("title") or "")}</h2>\n'
+        f'              <p id="c-desc">{_html.escape(top.get("summary") or "")}</p>\n'
+        "            </div>\n"
+        "            <!-- SSR:HERO:END -->"
+    )
+
+    # ── JSON-LD ItemList ──
+    item_list = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Aktuelle KI-News",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": i + 1,
+                "url": n.get("link") or "https://ki-news.live/",
+                "name": n.get("title") or "",
+            }
+            for i, n in enumerate(news)
+        ],
+    }
+    json_ld = json.dumps(item_list, ensure_ascii=False, indent=2)
+
+    # ── News-Grid ──
+    cards = "\n".join("        " + _ssr_card(n) for n in news)
+    news_block = (
+        "<!-- SSR:NEWS:START -->\n"
+        '      <script type="application/ld+json" id="ssr-newslist">\n'
+        f"{json_ld}\n"
+        "      </script>\n"
+        '      <div id="news-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">\n'
+        f"{cards}\n"
+        "      </div>\n"
+        "      <!-- SSR:NEWS:END -->"
+    )
+
+    html_txt = index_path.read_text(encoding="utf-8")
+    html_txt, n_hero = re.subn(
+        r"<!-- SSR:HERO:START -->.*?<!-- SSR:HERO:END -->",
+        lambda _m: hero, html_txt, flags=re.DOTALL,
+    )
+    html_txt, n_news = re.subn(
+        r"<!-- SSR:NEWS:START -->.*?<!-- SSR:NEWS:END -->",
+        lambda _m: news_block, html_txt, flags=re.DOTALL,
+    )
+    # Stand-Label-Default (vor JS-Hydration)
+    html_txt = re.sub(
+        r'(<span id="stand-label"[^>]*>)[^<]*(</span>)',
+        lambda m: f"{m.group(1)}Stand: {_html.escape(stand)}{m.group(2)}",
+        html_txt,
+    )
+
+    if n_hero and n_news:
+        index_path.write_text(html_txt, encoding="utf-8")
+        logger.info("SSR: index.html aktualisiert (%d News, Stand %s)", len(news), stand)
+    else:
+        logger.warning("SSR: Marker fehlen (hero=%d, news=%d) – index.html unveraendert", n_hero, n_news)
 
 # -------------------------
 # Logging
@@ -642,7 +769,7 @@ News:
                 req = urllib.request.Request(url, data=data, headers={
                     "Authorization": f"Bearer {OPENROUTER_KEY}",
                     "Content-Type": "application/json",
-                    "HTTP-Referer": "https://dscampy.github.io/ki_news/",
+                    "HTTP-Referer": "https://ki-news.live/",
                     "X-Title": "KI News Dashboard"
                 })
                 with urllib.request.urlopen(req, timeout=60) as r:
@@ -696,7 +823,7 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
         headers = {
             "Authorization": f"Bearer {OPENROUTER_KEY}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://dscampy.github.io/ki_news/",
+            "HTTP-Referer": "https://ki-news.live/",
             "X-Title": "KI News Dashboard",
         }
         ollama_model = model
@@ -1235,6 +1362,13 @@ def main():
         write_json_file(proj_dir / "news.json", news_json_data)
     else:
         write_json_file(Path("news.json"), news_json_data)
+
+    # ── SSR / Pre-Rendering: aktuelle News als echtes HTML in index.html ──
+    # (für Crawler & KI-Bots, die kein JavaScript ausführen)
+    try:
+        inject_ssr(proj_dir if proj_dir.exists() else Path("."), news_json_data)
+    except Exception as e:
+        logger.exception("SSR-Injektion fehlgeschlagen: %s", e)
 
     # ── archive.json kumulativ schreiben ──────────────────────────────────
     def update_archive(base_dir):
