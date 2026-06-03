@@ -217,7 +217,12 @@ FEEDS = [
     ("CNBC", 		"https://www.cnbc.com/id/19854910/device/rss/rss.html"),
     ("SiliconAngle",   "https://siliconangle.com/feed"),
     ("TechRepublic",   "https://www.techrepublic.com/rssfeeds/articles/"),
-    ("Bloomberg",	"https://feeds.bloomberg.com/technology/news.rss"),
+    # Paywall-Quellen via Google News RSS
+    ("Reuters AI",   "https://news.google.com/rss/search?q=site:reuters.com+artificial+intelligence&hl=en&gl=US&ceid=US:en"),
+    ("Bloomberg AI", "https://news.google.com/rss/search?q=site:bloomberg.com+AI&hl=en&gl=US&ceid=US:en"),
+    ("WSJ AI",       "https://news.google.com/rss/search?q=site:wsj.com+artificial+intelligence&hl=en&gl=US&ceid=US:en"),
+    ("FT AI",        "https://news.google.com/rss/search?q=site:ft.com+artificial+intelligence&hl=en&gl=US&ceid=US:en"),
+    ("Economist AI", "https://news.google.com/rss/search?q=site:economist.com+artificial+intelligence&hl=en&gl=US&ceid=US:en"),
     ("CNet", 		"https://www.cnet.com/rss/all/"),
     ("MIT", 		"https://www.technologyreview.com/feed/"),
     ("NYT Technology",  "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"),
