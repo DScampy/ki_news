@@ -24,14 +24,14 @@
 <style>
 :root{
   --neon-rgb:0,212,255; --accent:#00d4ff; --accent-soft:rgba(var(--neon-rgb),0.08);
-  --bg:#05080d; --bg2:#0a0f17; --card:#0b1119; --hairline:#1c2735;
-  --text:#dfe7f0; --muted:#8a97a8; --faint:#5a6678; --topbar-bg:rgba(5,8,13,0.78);
+  --bg:#000000; --bg2:#0a0f17; --card:#0b1119; --hairline:#1c2735;
+  --text:#dfe7f0; --muted:#8a97a8; --faint:#5a6678; --topbar-bg:rgba(0,0,0,0.72);
   --sans:'Work Sans',system-ui,sans-serif; --grotesk:'Space Grotesk',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
 }
 
 /* ── 5-Theme System (synchron mit index.html · key: ki_genesis_theme) ── */
-[data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#05080d;--bg2:#0a0f17;--card:#0b1119;--hairline:#1c2735;--text:#dfe7f0;--muted:#8a97a8;--faint:#5a6678;--topbar-bg:rgba(5,8,13,0.78);}
-[data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--bg2:#0a1710;--card:#08140d;--hairline:#1d3328;--text:#e0f5ec;--muted:#88a89a;--faint:#56705f;--topbar-bg:rgba(6,14,8,0.80);}
+[data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;--bg2:#0a0f17;--card:#0b1119;--hairline:#1c2735;--text:#dfe7f0;--muted:#8a97a8;--faint:#5a6678;--topbar-bg:rgba(0,0,0,0.72);}
+[data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--bg2:#0a1710;--card:#08140d;--hairline:#1d3328;--text:#e0f5ec;--muted:#88a89a;--faint:#56705f;--topbar-bg:rgba(4,12,6,0.80);}
 [data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--bg2:#0a0818;--card:#0a0816;--hairline:#2a2442;--text:#ede9fe;--muted:#9a93b0;--faint:#645d7a;--topbar-bg:rgba(4,2,15,0.80);}
 [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--bg2:#140a04;--card:#100600;--hairline:#33220e;--text:#fff0e6;--muted:#b09a88;--faint:#7a6a5d;--topbar-bg:rgba(9,3,0,0.80);}
 [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--bg2:#e8edf4;--card:#ffffff;--hairline:#e2e8f0;--text:#0f172a;--muted:#475569;--faint:#94a3b8;--topbar-bg:rgba(255,255,255,0.88);}
@@ -176,50 +176,57 @@ footer.f a:hover{color:var(--accent);}
 </head>
 <body>
 
-<!-- Theme System (synchron mit index.html) -->
+<!-- ── KI Theme-Kopplung: Hell/Dunkel + Genesis vereinheitlicht (kanonisch · synchron mit allen Seiten) ──
+     Läuft VOR ki-custom-theme.js, damit dessen Wrapper diese Version umschließt. -->
 <script>
 (function(){
-  function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-  function apply(t){
-    var r=t==='auto'?pref():t;
-    document.documentElement.classList.remove('light','dark','theme-light','theme-dark','theme-auto');
-    document.documentElement.classList.add(r,'theme-'+t);
+  var GEN=['genesis','karst','aurora','meridian','blanc'];
+  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
+  var memGen=null, memContrast=null;
+  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
+  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
+  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
+  function resolveLight(){
+    if(getGenesis()==='blanc')return true;
+    var c=getContrast();
+    return c==='light'?true:(c==='dark'?false:prefersLight());
   }
-  window.setTheme=function(t){try{localStorage.setItem('ki_theme',t);}catch(e){}apply(t);};
-  window.cycleTheme=function(){
-    var cur=localStorage.getItem('ki_theme')||'auto';
-    var resolved=cur==='auto'?pref():cur;
-    window.setTheme(resolved==='dark'?'light':'dark');
-  };
-  var saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  apply(saved);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){
-    var s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-    if(s==='auto')apply('auto');
-  });
-
-  // ── Genesis Theme System ──
-  window.setGenesisTheme=function(name){
-    var themes=['genesis','karst','aurora','meridian','blanc'];
-    if(themes.indexOf(name)===-1)name='genesis';
-    document.documentElement.setAttribute('data-theme',name);
-    if(name==='blanc'){
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
+  function applyAll(){
+    var root=document.documentElement, raw=rawGenesis();
+    if(raw==='custom'){
+      root.setAttribute('data-theme','custom');
+      root.classList.remove('light','dark');
     }else{
-      document.documentElement.classList.remove('light','dark');
+      var g=getGenesis(), light=resolveLight();
+      root.setAttribute('data-theme',g);
+      root.classList.toggle('light',light);
+      root.classList.toggle('dark',!light);
     }
+    var active=(raw==='custom')?'custom':getGenesis();
+    var dots=document.querySelectorAll('.gdot');
+    for(var i=0;i<dots.length;i++)dots[i].classList.toggle('active',dots[i].getAttribute('data-t')===active);
+  }
+  window.setGenesisTheme=function(name){
+    if(GEN.indexOf(name)===-1)name='genesis';
+    memGen=name;
     try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
-    document.querySelectorAll('.gdot').forEach(function(d){
-      d.classList.toggle('active',d.getAttribute('data-t')===name);
-    });
+    applyAll();
   };
-  // Sofort anwenden (vermeidet Theme-Flash); Dot-States folgen bei DOMContentLoaded
-  var g='genesis';try{g=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
-  window.setGenesisTheme(g);
-  document.addEventListener('DOMContentLoaded',function(){window.setGenesisTheme(g);});
+  window.cycleTheme=function(){
+    var light=document.documentElement.classList.contains('light');
+    var next=light?'dark':'light';
+    if(next==='dark'&&getGenesis()==='blanc'&&rawGenesis()!=='custom'){memGen='genesis';try{localStorage.setItem('ki_genesis_theme','genesis');}catch(e){}}
+    memContrast=next;
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyAll();
+  };
+  window.__kiApplyTheme=applyAll;
+  applyAll();
+  document.addEventListener('DOMContentLoaded',applyAll);
+  if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getContrast()==='auto')applyAll();});}catch(e){}}
 })();
 </script>
+<script src="assets/ki-custom-theme.js"></script>
 
 <header class="topbar">
   <a class="brand" href="/"><img src="s-logo.png" alt=""/><span>KI News</span></a>
