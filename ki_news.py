@@ -226,7 +226,7 @@ FEEDS = [
     ("CNet", 		"https://www.cnet.com/rss/all/"),
     ("MIT", 		"https://www.technologyreview.com/feed/"),
     ("NYT Technology",  "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"),
-    ("OpenAI",		"https://openai.com/blog/rss/"),
+    ("OpenAI",         "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_openai.xml"),
     # Kuratiert – bereits AI-spezifisch, kein KI-Filter nötig
     ("AlignedNews",    "https://alignednews.com/feed"),
     # Primärquellen – Lab-Announcements direkt (via Olshansk/rss-feeds, stündlich aktualisiert)
@@ -246,11 +246,11 @@ FEEDS = [
 MAX_LLM_NEWS = 3
 
 MODELLE = [
-    # Free-Modelle – bei 429 sofort nächstes, kein Retry
-    "meta-llama/llama-3.3-70b-instruct:free",         # Llama 3.3 70B – bestes Free-Modell
-    "nousresearch/hermes-3-llama-3.1-405b:free",      # 405B – höchste Qualität
-    "google/gemma-4-31b-it:free",                      # Gemma 4 31B – gut für Deutsch
-    "google/gemma-4-26b-a4b-it:free",                  # Gemma 4 26B (korrigierter Slug)
+    # Free-Modelle – Gemma zuerst (empirisch: llama/hermes dauerhaft auf 429)
+    "google/gemma-4-31b-it:free",                      # Gemma 4 31B – zuverlässigster Free-Slot
+    "google/gemma-4-26b-a4b-it:free",                  # Gemma 4 26B Fallback
+    "meta-llama/llama-3.3-70b-instruct:free",         # Llama 3.3 70B – oft 429
+    "nousresearch/hermes-3-llama-3.1-405b:free",      # 405B – oft 429
     # Kostenpflichtige Fallbacks (~$0.008/Lauf) – nur wenn alle Free-Modelle 429
     "meta-llama/llama-3.3-70b-instruct",               # Anker – immer verfügbar
     "google/gemma-3-27b-it",                            # Letzter Fallback
@@ -432,7 +432,7 @@ def score_cluster(cluster):
     penalty_score = sum(pts for kw, pts in PENALTY_KEYWORDS if kw in all_titles)
 
     total = source_score + prestige_score + kw_score + penalty_score
-    label = next(lbl for threshold, lbl in SCORE_LABELS if total >= threshold)
+    label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
     return total, label
 
 def pick_top_news(alle_news, n=3, history=None):
