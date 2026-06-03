@@ -39,14 +39,14 @@
   html.light .stat-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.22)!important; }
   html.light .chart-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.18)!important; }
   html.light .text-white { color:#0f172a!important; }
-  html.light .text-gray-400 { color:#475569!important; }
-  html.light .text-gray-500 { color:#64748b!important; }
+  html.light .text-gray-400 { color:#334155!important; }
+  html.light .text-gray-500 { color:#475569!important; }
   html.light .border-\[#2f3336\] { border-color:#e2e8f0!important; }
   html.light ::-webkit-scrollbar-thumb { background:#cbd5e1!important; }
   html.light .top-article-row { background:#f8fafc!important; border-color:rgba(var(--neon-rgb),0.15)!important; }
   html.light .top-article-row:hover { background:#eff6ff!important; }
   html.light .section-title { color:#0f172a!important; }
-  html.light .meta-text { color:#64748b!important; }
+  html.light .meta-text { color:#475569!important; }
   /* ── Chart-Cards & Sidebar-Boxen Light Mode ── */
   html.light .chart-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.20)!important; }
   html.light aside.fixed > div:last-of-type { border-color:rgba(var(--neon-rgb),0.10)!important; }
@@ -699,12 +699,15 @@ function renderAll(current, all){
   window._allNews = all;
   window._sourceWindow = 7; // default: 7 Tage
 
-  function buildSrcData(days) {
+  // Global definiert damit toggleSourceWindow darauf zugreifen kann
+  window.buildSrcData = function(days) {
+    const news = window._allNews || [];
     const cutoff = days > 0 ? Date.now() - days * 86400000 : 0;
-    const filtered = days > 0 ? all.filter(a => {
-      const d = a._date ? a._date.getTime() : (a.first_seen ? new Date(a.first_seen).getTime() : 0);
-      return d >= cutoff;
-    }) : all;
+    const filtered = days > 0 ? news.filter(a => {
+      const raw = a.first_seen || a.date || '';
+      const t = raw ? new Date(raw).getTime() : 0;
+      return t >= cutoff;
+    }) : news;
     const srcData = {};
     filtered.forEach(a=>{
       const s = a.source||'Unbekannt';
@@ -719,9 +722,9 @@ function renderAll(current, all){
       avgs:   sorted.map(([,v])=>+(v.scoreSum/v.count).toFixed(1)),
       colors: sorted.map(([s])=>srcColor(s)),
     };
-  }
+  };
 
-  const initSrc = buildSrcData(7);
+  const initSrc = window.buildSrcData(7);
   window._srcChartData = initSrc;
 
   const ctxS = document.getElementById('chart-sources').getContext('2d');
@@ -901,8 +904,8 @@ function renderAll(current, all){
 let _sourceMetric = 'count';
 
 function _refreshSourceChart() {
-  if(!window._chartSrc) return;
-  const d = buildSrcData(window._sourceWindow);
+  if(!window._chartSrc || !window.buildSrcData) return;
+  const d = window.buildSrcData(window._sourceWindow);
   window._srcChartData = d;
   const chart = window._chartSrc;
   const isCount = _sourceMetric === 'count';
