@@ -906,7 +906,7 @@ THREAD X-3 Kaskade: Was das Schritt fuer Schritt konkret bedeutet
 THREAD X-4 Gruselig: Was daran beunruhigend oder faszinierend ist
 THREAD X-5 Konsequenz: Was das fuer echte Menschen heute bedeutet
 THREAD X-6 Fazit: Ein Gedanke der nachhallt – endet mit einer persoenlichen Frage an den Leser
-Jeder Thread-Teil: maximal 265 Zeichen.
+Jeder Thread-Teil: mindestens 180, maximal 265 Zeichen. Kurze Antworten sind Fehler.
 
 ERKLAERUNG: max 60 Zeichen, was die News konkret bedeutet.
 
@@ -949,7 +949,7 @@ News (genau diese 3, je eine pro Post):
     ]
     for modell in modell_liste:
         try:
-            antwort = _call_llm_api(modell, messages, max_tokens=2400, timeout=90)
+            antwort = _call_llm_api(modell, messages, max_tokens=3600, timeout=90)
             if not antwort:
                 logger.warning("Posts: %s liefert leeren Content – naechstes Modell", modell)
                 continue
