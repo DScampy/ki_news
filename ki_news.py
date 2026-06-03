@@ -1037,10 +1037,6 @@ def send_telegram(parsed):
         teile.append(p["teaser"])
         if p.get("erklaerung"):
             teile.append(f"({p['erklaerung']})")
-        if p.get("thread"):
-            teile.append("")
-            for t in p["thread"]:
-                teile.append(t)
         teile.append("")
 
     nachricht = "\n".join(teile).strip()
