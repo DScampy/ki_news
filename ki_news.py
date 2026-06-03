@@ -38,6 +38,11 @@ def _ssr_card(n):
     date_html = (
         f'<span class="text-[11px] font-mono ki-faint">· {date}</span>' if date else ""
     )
+    score = n.get("score")
+    score_html = (
+        f'<span class="text-[10px] font-mono ki-faint" title="Score">{round(score)}</span>'
+        if score else ""
+    )
     return (
         f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" target="_blank" rel="noopener" '
         f'class="ki-card ki-border border p-4 flex flex-col h-full transition-all">'
@@ -51,7 +56,7 @@ def _ssr_card(n):
         f"{_html.escape(n.get('summary') or '')}</p>"
         f'<div class="pt-4 ki-border border-t flex items-center justify-between">'
         f'<span class="text-[11px] font-mono uppercase" style="color:{c}">{src}</span>'
-        f'{date_html}'
+        f'<div style="display:flex;align-items:center;gap:6px">{date_html}{score_html}</div>'
         f'</div>'
         f'</a>'
     )

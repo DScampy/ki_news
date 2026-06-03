@@ -979,7 +979,10 @@ function renderCard(item) {
         '<span class="text-[11px] font-mono uppercase" style="color:' + c + '">' + item.source + '</span>' +
         (item.date ? '<span class="text-[11px] font-mono ki-faint">· ' + relDate(item.date) + '</span>' : '') +
       '</div>' +
-      '<span class="material-symbols-outlined ki-muted text-sm">open_in_new</span>' +
+      '<div class="flex items-center gap-1.5">' +
+        (item.score ? '<span class="text-[10px] font-mono ki-faint" title="Score">' + Math.round(item.score) + '</span>' : '') +
+        '<span class="material-symbols-outlined ki-muted text-sm">open_in_new</span>' +
+      '</div>' +
     '</div>';
   return a;
 }
