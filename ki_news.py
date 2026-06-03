@@ -449,12 +449,15 @@ def pick_top_news(alle_news, n=3, history=None):
         score, label = score_cluster(cluster)
         # Repräsentant = Artikel aus der prestigiösten Quelle im Cluster
         rep = max(cluster, key=lambda x: SOURCE_PRESTIGE.get(x["source"], 0))
-        # Effektiver (verfallener) Score fürs Ranking – wie im Dashboard:
-        hist = history.get(rep.get("link", ""))
-        if hist:
-            eff_score = decay_score(hist.get("base_score", score), hist.get("first_seen"))
+        # Effektiver Score: ältesten first_seen im ganzen Cluster verwenden.
+        # Verhindert dass neue Artikel über alte Storys den Cluster "verjüngen".
+        cluster_histories = [history[item["link"]] for item in cluster if item.get("link") in history]
+        if cluster_histories:
+            oldest_first_seen = min(h["first_seen"] for h in cluster_histories)
+            best_base = max(h.get("base_score", score) for h in cluster_histories)
+            eff_score = decay_score(best_base, oldest_first_seen)
         else:
-            eff_score = score  # neuer Artikel: heute erfasst, kein Verfall
+            eff_score = score  # komplett neue Story: heute erfasst, kein Verfall
         scored.append({
             "rep": rep,
             "score": score,
@@ -1316,6 +1319,18 @@ def main():
         _existing_archive = []
     history = build_history_map(_existing_archive)
 
+    # Cluster-Membership-Map: link → ältester first_seen im Cluster (Story-Alter-Fix)
+    # Verhindert dass neue Artikel über bekannte Storys mit frischem Datum auftauchen.
+    _clusters = cluster_news(alle_news)
+    link_to_cluster_age = {}
+    for cl in _clusters:
+        cl_histories = [history[item["link"]] for item in cl if item.get("link") in history]
+        if cl_histories:
+            oldest = min(h["first_seen"] for h in cl_histories)
+            for item in cl:
+                if item.get("link"):
+                    link_to_cluster_age[item["link"]] = oldest
+
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
     top_news, score_map = pick_top_news(alle_news, n=MAX_LLM_NEWS, history=history)
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
@@ -1345,8 +1360,9 @@ def main():
         scoring = score_map.get(link, {})
         raw_score = scoring.get("score", 0)
         # Schon mal gesehen? Dann ursprüngliches Datum + Ausgangs-Score behalten.
+        # Neuer Artikel einer bekannten Story? Cluster-Alter erben → kein Score-Revival.
         hist = history.get(link)
-        first_seen = hist["first_seen"] if hist else heute
+        first_seen = hist["first_seen"] if hist else link_to_cluster_age.get(link, heute)
         base_score = hist["base_score"] if hist else raw_score
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
         preview_img = resolve_preview_image(link, hist)
