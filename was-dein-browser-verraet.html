@@ -23,22 +23,57 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --neon-rgb:0,212,255; --accent:#00d4ff; --accent-soft:rgba(0,212,255,0.08);
+  --neon-rgb:0,212,255; --accent:#00d4ff; --accent-soft:rgba(var(--neon-rgb),0.08);
   --bg:#05080d; --bg2:#0a0f17; --card:#0b1119; --hairline:#1c2735;
-  --text:#dfe7f0; --muted:#8a97a8; --faint:#5a6678;
+  --text:#dfe7f0; --muted:#8a97a8; --faint:#5a6678; --topbar-bg:rgba(5,8,13,0.78);
   --sans:'Work Sans',system-ui,sans-serif; --grotesk:'Space Grotesk',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
 }
+
+/* ── 5-Theme System (synchron mit index.html · key: ki_genesis_theme) ── */
+[data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#05080d;--bg2:#0a0f17;--card:#0b1119;--hairline:#1c2735;--text:#dfe7f0;--muted:#8a97a8;--faint:#5a6678;--topbar-bg:rgba(5,8,13,0.78);}
+[data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--bg2:#0a1710;--card:#08140d;--hairline:#1d3328;--text:#e0f5ec;--muted:#88a89a;--faint:#56705f;--topbar-bg:rgba(6,14,8,0.80);}
+[data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--bg2:#0a0818;--card:#0a0816;--hairline:#2a2442;--text:#ede9fe;--muted:#9a93b0;--faint:#645d7a;--topbar-bg:rgba(4,2,15,0.80);}
+[data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--bg2:#140a04;--card:#100600;--hairline:#33220e;--text:#fff0e6;--muted:#b09a88;--faint:#7a6a5d;--topbar-bg:rgba(9,3,0,0.80);}
+[data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--bg2:#e8edf4;--card:#ffffff;--hairline:#e2e8f0;--text:#0f172a;--muted:#475569;--faint:#94a3b8;--topbar-bg:rgba(255,255,255,0.88);}
+
+/* Hell-Modus: Strukturfarben werden hell, Akzent bleibt vom aktiven Theme */
+html.light{
+  --bg:#f0f4f8; --bg2:#e8edf4; --card:#ffffff; --hairline:#e2e8f0;
+  --text:#0f172a; --muted:#475569; --faint:#94a3b8; --topbar-bg:rgba(255,255,255,0.88);
+}
+
+/* Theme dots + Hell/Dunkel-Toggle */
+.nav-sep{width:1px;height:18px;background:var(--hairline);flex-shrink:0;}
+.theme-toggle{background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;padding:0;transition:color .15s;}
+.theme-toggle:hover{color:var(--text);}
+.theme-toggle svg{width:17px;height:17px;display:block;}
+#genesis-dots{display:flex;align-items:center;gap:5px;}
+.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;padding:0;}
+.gdot:hover{transform:scale(1.25);}
+.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
+.gdot[data-t="genesis"]{background:#00d4ff;}
+.gdot[data-t="karst"]{background:#34d399;}
+.gdot[data-t="aurora"]{background:#a78bfa;}
+.gdot[data-t="meridian"]{background:#fb923c;}
+.gdot[data-t="blanc"]{background:#e2e8f0;border:2px solid rgba(0,0,0,0.2);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{
   background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6;
   -webkit-font-smoothing:antialiased;
   background-image:
-    radial-gradient(1200px 600px at 70% -10%, rgba(0,212,255,0.07), transparent 60%),
+    radial-gradient(1200px 600px at 70% -10%, rgba(var(--neon-rgb),0.07), transparent 60%),
     linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
   background-size:auto, 44px 44px, 44px 44px;
   background-attachment:fixed;
+}
+html.light body{
+  background-image:
+    radial-gradient(1200px 600px at 70% -10%, rgba(var(--neon-rgb),0.07), transparent 60%),
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
 }
 ::selection{background:rgba(var(--neon-rgb),0.28);color:#fff;}
 a{color:inherit;}
@@ -47,11 +82,11 @@ a{color:inherit;}
 /* ── Top bar ── */
 .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
   height:56px;padding:0 24px;border-bottom:1px solid var(--hairline);
-  background:rgba(5,8,13,0.78);backdrop-filter:blur(14px);}
+  background:var(--topbar-bg);backdrop-filter:blur(14px);}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
 .brand img{width:26px;height:26px;border-radius:6px;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));}
 .brand span{font-family:var(--grotesk);font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:var(--accent);font-size:16px;}
-.topbar nav{display:flex;gap:20px;}
+.topbar nav{display:flex;align-items:center;gap:16px;}
 .topbar nav a{font-family:var(--grotesk);font-size:13px;color:var(--muted);text-decoration:none;transition:color .15s;}
 .topbar nav a:hover{color:var(--text);}
 @media(max-width:560px){.topbar nav a.hide-sm{display:none;}}
@@ -141,12 +176,68 @@ footer.f a:hover{color:var(--accent);}
 </head>
 <body>
 
+<!-- Theme System (synchron mit index.html) -->
+<script>
+(function(){
+  function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  function apply(t){
+    var r=t==='auto'?pref():t;
+    document.documentElement.classList.remove('light','dark','theme-light','theme-dark','theme-auto');
+    document.documentElement.classList.add(r,'theme-'+t);
+  }
+  window.setTheme=function(t){try{localStorage.setItem('ki_theme',t);}catch(e){}apply(t);};
+  window.cycleTheme=function(){
+    var cur=localStorage.getItem('ki_theme')||'auto';
+    var resolved=cur==='auto'?pref():cur;
+    window.setTheme(resolved==='dark'?'light':'dark');
+  };
+  var saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+  apply(saved);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){
+    var s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
+    if(s==='auto')apply('auto');
+  });
+
+  // ── Genesis Theme System ──
+  window.setGenesisTheme=function(name){
+    var themes=['genesis','karst','aurora','meridian','blanc'];
+    if(themes.indexOf(name)===-1)name='genesis';
+    document.documentElement.setAttribute('data-theme',name);
+    if(name==='blanc'){
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }else{
+      document.documentElement.classList.remove('light','dark');
+    }
+    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
+    document.querySelectorAll('.gdot').forEach(function(d){
+      d.classList.toggle('active',d.getAttribute('data-t')===name);
+    });
+  };
+  // Sofort anwenden (vermeidet Theme-Flash); Dot-States folgen bei DOMContentLoaded
+  var g='genesis';try{g=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
+  window.setGenesisTheme(g);
+  document.addEventListener('DOMContentLoaded',function(){window.setGenesisTheme(g);});
+})();
+</script>
+
 <header class="topbar">
   <a class="brand" href="/"><img src="s-logo.png" alt=""/><span>KI News</span></a>
   <nav>
     <a href="/" class="hide-sm">Aktuell</a>
     <a href="artikel.html" class="hide-sm">Artikel</a>
     <a href="Datenschutz.html">Datenschutz</a>
+    <span class="nav-sep"></span>
+    <button class="theme-toggle" onclick="cycleTheme()" title="Hell / Dunkel" aria-label="Hell- oder Dunkelmodus umschalten">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor"/></svg>
+    </button>
+    <div id="genesis-dots" title="Design-Theme">
+      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis" aria-label="Theme Genesis"></button>
+      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst" aria-label="Theme Karst"></button>
+      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora" aria-label="Theme Aurora"></button>
+      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian" aria-label="Theme Meridian"></button>
+      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc" aria-label="Theme Blanc"></button>
+    </div>
   </nav>
 </header>
 
