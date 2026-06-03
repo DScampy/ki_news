@@ -372,6 +372,7 @@ IMPORTANCE_KEYWORDS = [
     ("billion", 15), ("milliard", 15), ("fired", 15), ("entlassen", 15),
     ("merger", 15), ("acqui", 15), ("übernimmt", 15), ("shutdown", 15),
     ("regulation", 15), ("gesetz", 15), ("verbot", 15),
+    ("valuation", 15), ("bewertung", 15), ("funding round", 15), ("raises $", 15),
     # Wichtige Ereignisse (10 Punkte)
     ("launch", 10), ("release", 10), ("veröffentlicht", 10),
     ("breakthrough", 10), ("durchbruch", 10), ("funding", 10), ("investment", 10),
@@ -444,8 +445,8 @@ def score_cluster(cluster):
     Formel: Multi-Quellen-Bonus + Prestige-Bonus + Wichtigkeits-Keywords
     """
     unique_sources = len({item["source"] for item in cluster})
-    # Mehrere Quellen = wichtige Story (Kern-Signal)
-    source_score = unique_sources * 15
+    # Mehrere Quellen = wichtige Story (Kern-Signal) – max. 4 gewertet (Deckel gegen Google-Dominanz)
+    source_score = min(unique_sources, 4) * 15
 
     # Höchstes Prestige im Cluster zählt
     prestige_score = max(SOURCE_PRESTIGE.get(item["source"], 3) for item in cluster)
