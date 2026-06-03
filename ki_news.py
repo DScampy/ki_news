@@ -142,6 +142,25 @@ def inject_ssr(base_dir, news_json_data):
     else:
         logger.warning("SSR: Marker fehlen (hero=%d, news=%d) – index.html unveraendert", n_hero, n_news)
 
+def inject_admin_posts(base_dir, news_json_data):
+    """Aktualisiert den eingebetteten #news-data Block in admin-posts.html."""
+    base_dir = Path(base_dir)
+    admin_path = base_dir / "admin-posts.html"
+    if not admin_path.exists():
+        return
+    payload = json.dumps(news_json_data, ensure_ascii=False, indent=2)
+    html_txt = admin_path.read_text(encoding="utf-8")
+    html_txt, n = re.subn(
+        r'(<script type="application/json" id="news-data">).*?(</script>)',
+        lambda m: f"{m.group(1)}\n{payload}\n{m.group(2)}",
+        html_txt, flags=re.DOTALL,
+    )
+    if n:
+        admin_path.write_text(html_txt, encoding="utf-8")
+        logger.info("SSR: admin-posts.html aktualisiert (Stand %s)", news_json_data.get("stand",""))
+    else:
+        logger.warning("SSR: #news-data Marker in admin-posts.html fehlt – unveraendert")
+
 # -------------------------
 # Logging
 # -------------------------
@@ -1419,6 +1438,10 @@ def main():
         inject_ssr(proj_dir if proj_dir.exists() else Path("."), news_json_data)
     except Exception as e:
         logger.exception("SSR-Injektion fehlgeschlagen: %s", e)
+    try:
+        inject_admin_posts(proj_dir if proj_dir.exists() else Path("."), news_json_data)
+    except Exception as e:
+        logger.exception("Admin-Posts SSR fehlgeschlagen: %s", e)
 
     # ── archive.json kumulativ schreiben ──────────────────────────────────
     def update_archive(base_dir):
