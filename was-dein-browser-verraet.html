@@ -424,26 +424,46 @@ footer.f a:hover{color:var(--accent);}
     setTimeout(function(){ document.getElementById('r-fp').textContent = fpFmt; bump(); }, 700);
     drawBarcode(seed);
 
-    // IP / Standort (asynchron, https-Dienst)
-    fetch('https://ipwho.is/?fields=ip,city,region,country,connection,success')
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if(!d || d.success===false) throw new Error('no');
-        var ip = String(d.ip||'');
-        var masked = ip.indexOf(':')>-1
-          ? ip.split(':').slice(0,2).join(':')+':····'
-          : ip.replace(/^(\d+)\.\d+\.\d+\.(\d+)$/, '$1.•••.•••.$2');
-        set('r-ip', masked || ip, true); bump();
-        set('r-loc', [d.city, d.region, d.country].filter(Boolean).join(', ')); bump();
-        var c = d.connection||{};
-        set('r-isp', c.isp || c.org || '—'); bump();
-        set('r-asn', c.asn ? ('AS'+c.asn) : '—'); if(c.asn) bump();
-      })
-      .catch(function(){
-        set('r-ip', 'durch Browser/VPN verborgen'); 
-        set('r-loc', 'nicht ermittelbar (gut so!)');
-        set('r-isp', '—'); set('r-asn', '—');
-      });
+    // IP / Standort (asynchron) – Kette aus mehreren Diensten,
+    // fällt einer aus (Rate-Limit, blockiert), übernimmt der nächste.
+    function showGeo(g){
+      var ip = String(g.ip||'');
+      var masked = ip.indexOf(':')>-1
+        ? ip.split(':').slice(0,2).join(':')+':····'
+        : ip.replace(/^(\d+)\.\d+\.\d+\.(\d+)$/, '$1.•••.•••.$2');
+      set('r-ip', masked || ip, true); bump();
+      set('r-loc', [g.city, g.region, g.country].filter(Boolean).join(', ') || '—'); bump();
+      set('r-isp', g.isp || '—'); bump();
+      set('r-asn', g.asn ? ('AS'+String(g.asn).replace(/^AS/i,'')) : '—'); if(g.asn) bump();
+    }
+    function failGeo(){
+      set('r-ip', 'durch Browser/VPN verborgen');
+      set('r-loc', 'nicht ermittelbar (gut so!)');
+      set('r-isp', '—'); set('r-asn', '—');
+    }
+    var geoProviders = [
+      { url:'https://ipwho.is/', map:function(d){
+          if(!d || d.success===false) return null;
+          var c = d.connection||{};
+          return {ip:d.ip, city:d.city, region:d.region, country:d.country, isp:(c.isp||c.org), asn:c.asn};
+        }},
+      { url:'https://get.geojs.io/v1/ip/geo.json', map:function(d){
+          if(!d || !d.ip) return null;
+          return {ip:d.ip, city:d.city, region:d.region, country:d.country, isp:(d.organization_name||d.organization), asn:d.asn};
+        }},
+      { url:'https://ipapi.co/json/', map:function(d){
+          if(!d || d.error || !d.ip) return null;
+          return {ip:d.ip, city:d.city, region:d.region, country:d.country_name, isp:d.org, asn:d.asn};
+        }}
+    ];
+    (function geoChain(i){
+      if(i >= geoProviders.length){ failGeo(); return; }
+      var p = geoProviders[i];
+      fetch(p.url, {cache:'no-store'})
+        .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+        .then(function(d){ var g = p.map(d); if(!g || !g.ip) throw 0; showGeo(g); })
+        .catch(function(){ geoChain(i+1); });
+    })(0);
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run);
