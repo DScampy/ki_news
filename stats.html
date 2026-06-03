@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded',function(){
       <div class="chart-card lg:col-span-2">
         <div class="flex items-center justify-between mb-1">
           <p class="section-title">Quellen-Analyse</p>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <button onclick="toggleSourceMetric('count')" id="btn-count"
               class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
               style="background:rgba(var(--neon-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3)">
@@ -439,9 +439,25 @@ document.addEventListener('DOMContentLoaded',function(){
               style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
               Ø Score
             </button>
+            <div style="width:1px;background:rgba(107,114,128,0.2);margin:0 2px"></div>
+            <button onclick="toggleSourceWindow(7)"  id="btn-w7"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:rgba(var(--neon-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3)">
+              7 Tage
+            </button>
+            <button onclick="toggleSourceWindow(30)" id="btn-w30"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
+              30 Tage
+            </button>
+            <button onclick="toggleSourceWindow(0)"  id="btn-wall"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
+              Gesamt
+            </button>
           </div>
         </div>
-        <p class="meta-text mb-4">Artikel-Anzahl und Durchschnitts-Score je Quelle</p>
+        <p class="meta-text mb-4" id="src-window-label">Artikel-Anzahl und Durchschnitts-Score je Quelle · letzte 7 Tage</p>
         <div style="position:relative;height:260px">
           <canvas id="chart-sources"></canvas>
         </div>
@@ -515,6 +531,18 @@ document.addEventListener('DOMContentLoaded',function(){
           <div style="font-size:20px;font-weight:900;color:#eab308;font-family:'Space Grotesk',sans-serif">0 – ∞ Pkt.</div>
           <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Wichtigkeits-Keywords</div>
         </div>
+        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">−</div>
+        <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.25);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
+          <div style="font-size:9px;font-family:monospace;color:rgba(99,102,241,0.6);letter-spacing:.12em;margin-bottom:6px">MALUS</div>
+          <div style="font-size:20px;font-weight:900;color:#818cf8;font-family:'Space Grotesk',sans-serif">0 – ∞ Pkt.</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Gaming / Deals / Werbung</div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">−</div>
+        <div style="background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
+          <div style="font-size:9px;font-family:monospace;color:rgba(20,184,166,0.6);letter-spacing:.12em;margin-bottom:6px">ZEIT-VERFALL</div>
+          <div style="font-size:20px;font-weight:900;color:#14b8a6;font-family:'Space Grotesk',sans-serif">5 Pkt./Tag</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Max. 7 Tage sichtbar</div>
+        </div>
         <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">=</div>
         <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
           <div style="font-size:9px;font-family:monospace;color:rgba(239,68,68,0.6);letter-spacing:.12em;margin-bottom:6px">SCORE</div>
@@ -523,8 +551,8 @@ document.addEventListener('DOMContentLoaded',function(){
         </div>
       </div>
 
-      <!-- Prestige + Keywords nebeneinander -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Prestige + Keywords + Malus -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div>
           <p style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.45);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Quellen-Prestige (max im Cluster)</p>
           <div id="prestige-table"></div>
@@ -533,11 +561,21 @@ document.addEventListener('DOMContentLoaded',function(){
           <p style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.45);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Keyword-Boni (kumulativ)</p>
           <div id="keyword-table"></div>
         </div>
+        <div>
+          <p style="font-size:9px;font-family:monospace;color:rgba(99,102,241,0.6);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Malus-Keywords (Abzug)</p>
+          <div style="display:flex;flex-direction:column;gap:4px;font-family:monospace;font-size:11px">
+            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">webinar / academy</span><span style="color:#818cf8">−30</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">gaming / esports</span><span style="color:#818cf8">−20 / −30</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">playstation / xbox</span><span style="color:#818cf8">−30</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">sale / deal / discount</span><span style="color:#818cf8">−20</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">rumor / leak</span><span style="color:#818cf8">−10</span></div>
+          </div>
+        </div>
       </div>
 
       <!-- Hinweis -->
       <p style="font-size:11px;font-family:monospace;color:#4b5563;margin-top:16px;line-height:1.6">
-        Artikel werden erst zu <strong style="color:#6b7280">Clustern</strong> gruppiert (≥ 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster – je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus.
+        Artikel werden erst zu <strong style="color:#6b7280">Clustern</strong> gruppiert (≥ 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster – je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus. Artikel verschwinden nach <strong style="color:#14b8a6">7 Tagen</strong> von der Hauptseite und wandern ins Archiv.
       </p>
     </div>
 
@@ -658,31 +696,44 @@ function renderAll(current, all){
   document.getElementById('sb-topscore').textContent = topArt?.score || '—';
 
   // ── Quellen Chart ──────────────────────────────────────────────────────────
-  const srcData = {};
-  all.forEach(a=>{
-    const s = a.source||'Unbekannt';
-    if(!srcData[s]) srcData[s]={count:0,scoreSum:0};
-    srcData[s].count++;
-    srcData[s].scoreSum += (a.score||0);
-  });
-  const srcSorted = Object.entries(srcData).sort((a,b)=>b[1].count-a[1].count);
-  window._srcSorted = srcSorted;
+  window._allNews = all;
+  window._sourceWindow = 7; // default: 7 Tage
 
-  const srcLabels = srcSorted.map(([s])=>s);
-  const srcCounts = srcSorted.map(([,v])=>v.count);
-  const srcAvgs   = srcSorted.map(([,v])=>+(v.scoreSum/v.count).toFixed(1));
-  const srcColors = srcLabels.map(s=>srcColor(s));
+  function buildSrcData(days) {
+    const cutoff = days > 0 ? Date.now() - days * 86400000 : 0;
+    const filtered = days > 0 ? all.filter(a => {
+      const d = a._date ? a._date.getTime() : (a.first_seen ? new Date(a.first_seen).getTime() : 0);
+      return d >= cutoff;
+    }) : all;
+    const srcData = {};
+    filtered.forEach(a=>{
+      const s = a.source||'Unbekannt';
+      if(!srcData[s]) srcData[s]={count:0,scoreSum:0};
+      srcData[s].count++;
+      srcData[s].scoreSum += (a.score||0);
+    });
+    const sorted = Object.entries(srcData).sort((a,b)=>b[1].count-a[1].count);
+    return {
+      labels: sorted.map(([s])=>s),
+      counts: sorted.map(([,v])=>v.count),
+      avgs:   sorted.map(([,v])=>+(v.scoreSum/v.count).toFixed(1)),
+      colors: sorted.map(([s])=>srcColor(s)),
+    };
+  }
+
+  const initSrc = buildSrcData(7);
+  window._srcChartData = initSrc;
 
   const ctxS = document.getElementById('chart-sources').getContext('2d');
   const chartSrc = new Chart(ctxS, {
     type:'bar',
     data:{
-      labels: srcLabels,
+      labels: initSrc.labels,
       datasets:[{
         label:'Artikel',
-        data: srcCounts,
-        backgroundColor: srcColors.map(c=>c+'bb'),
-        borderColor: srcColors,
+        data: initSrc.counts,
+        backgroundColor: initSrc.colors.map(c=>c+'bb'),
+        borderColor: initSrc.colors,
         borderWidth:1,
         borderRadius:4,
         borderSkipped:false,
@@ -693,7 +744,7 @@ function renderAll(current, all){
       indexAxis:'y',
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, tooltip:{
-        callbacks:{ label: ctx => ` ${ctx.parsed.x} Artikel · Ø ${srcAvgs[ctx.dataIndex]} Score` }
+        callbacks:{ label: ctx => ` ${ctx.parsed.x} Artikel · Ø ${initSrc.avgs[ctx.dataIndex]} Score` }
       }},
       scales:{
         x:{ grid:{color:gridColor()}, ticks:{color:labelColor()} },
@@ -701,7 +752,6 @@ function renderAll(current, all){
       }
     }
   });
-  window._srcChartData = { srcLabels, srcCounts, srcAvgs, srcColors };
   window._chartSrc = chartSrc;
   window._charts.push(chartSrc);
 
@@ -848,20 +898,29 @@ function renderAll(current, all){
 }
 
 // ── Source Metric Toggle ─────────────────────────────────────────────────────
-function toggleSourceMetric(metric){
-  sourceMetric = metric;
-  const { srcLabels, srcCounts, srcAvgs } = window._srcSortedData || {};
-  if(!window._chartSrc || !window._srcChartData) return;
-  const { srcCounts:c, srcAvgs:a } = window._srcChartData;
+let _sourceMetric = 'count';
+
+function _refreshSourceChart() {
+  if(!window._chartSrc) return;
+  const d = buildSrcData(window._sourceWindow);
+  window._srcChartData = d;
   const chart = window._chartSrc;
-  const isCount = metric==='count';
-
-  chart.data.datasets[0].data = isCount ? c : a;
+  const isCount = _sourceMetric === 'count';
+  chart.data.labels = d.labels;
+  chart.data.datasets[0].data = isCount ? d.counts : d.avgs;
   chart.data.datasets[0].label = isCount ? 'Artikel' : 'Ø Score';
+  chart.data.datasets[0].backgroundColor = d.colors.map(c=>c+'bb');
+  chart.data.datasets[0].borderColor = d.colors;
+  chart.options.plugins.tooltip.callbacks.label = ctx => ` ${ctx.parsed.x} ${isCount?'Artikel':'Score'} · Ø ${d.avgs[ctx.dataIndex]} Score`;
   chart.update();
+}
 
+function toggleSourceMetric(metric){
+  _sourceMetric = metric;
+  _refreshSourceChart();
   const btnCount=document.getElementById('btn-count');
   const btnScore=document.getElementById('btn-score');
+  const isCount = metric==='count';
   if(isCount){
     btnCount.style.background='rgba(var(--neon-rgb),0.15)'; btnCount.style.color='var(--accent)'; btnCount.style.borderColor='rgba(var(--neon-rgb),0.3)';
     btnScore.style.background='transparent'; btnScore.style.color='#6b7280'; btnScore.style.borderColor='rgba(107,114,128,0.2)';
@@ -869,6 +928,22 @@ function toggleSourceMetric(metric){
     btnScore.style.background='rgba(var(--neon-rgb),0.15)'; btnScore.style.color='var(--accent)'; btnScore.style.borderColor='rgba(var(--neon-rgb),0.3)';
     btnCount.style.background='transparent'; btnCount.style.color='#6b7280'; btnCount.style.borderColor='rgba(107,114,128,0.2)';
   }
+}
+
+function toggleSourceWindow(days){
+  window._sourceWindow = days;
+  _refreshSourceChart();
+  const labels = { 7:'letzte 7 Tage', 30:'letzte 30 Tage', 0:'Gesamtzeitraum' };
+  document.getElementById('src-window-label').textContent =
+    `Artikel-Anzahl und Durchschnitts-Score je Quelle · ${labels[days]}`;
+  ['btn-w7','btn-w30','btn-wall'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.background='transparent'; el.style.color='#6b7280'; el.style.borderColor='rgba(107,114,128,0.2)';
+  });
+  const activeId = days===7?'btn-w7':days===30?'btn-w30':'btn-wall';
+  const active = document.getElementById(activeId);
+  if(active){ active.style.background='rgba(var(--neon-rgb),0.15)'; active.style.color='var(--accent)'; active.style.borderColor='rgba(var(--neon-rgb),0.3)'; }
 }
 
 // ── Wöchentliche Statistik ───────────────────────────────────────────────────

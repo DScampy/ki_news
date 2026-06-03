@@ -232,6 +232,8 @@ FEEDS = [
     ("xAI News",           "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_xainews.xml"),
     ("Mistral News",       "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_mistral.xml"),
     ("The Batch",          "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_the_batch.xml"),
+    # Hardware / AI-Hardware (Computex, AI-Laptops, Server)
+    ("WCCFtech",           "https://wccftech.com/feed/"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
@@ -351,6 +353,24 @@ IMPORTANCE_KEYWORDS = [
     ("open source", 5), ("open-source", 5), ("kostenlos", 5),
 ]
 
+
+# Malus-Keywords → Punkteabzug (senkt Score, filtert nicht hart aus)
+# Tuple: (keyword, punkte)
+PENALTY_KEYWORDS = [
+    # Heise-Selbstvermarktung
+    ("webinar", -30), ("academy", -30), ("online-kurs", -25), ("anmeldung", -20),
+    ("schulung", -25), ("zertifikat", -20), ("workshop", -15),
+    # Gaming / Hardware ohne KI-Relevanz
+    ("gaming", -20), ("esports", -30), ("playstation", -30), ("xbox", -30),
+    ("nintendo", -30), ("benchmark", -15), (" fps", -20), ("game pass", -30),
+    ("grafikkarte test", -20), ("monitor test", -20),
+    # Deals / Commerce
+    (" sale", -20), ("deal:", -20), ("discount", -20), ("angebot:", -20),
+    ("best buy", -25), ("preis fällt", -15),
+    # Gerüchte ohne Substanz
+    ("rumor:", -10), ("leak:", -10), ("leaked:", -10), ("könnte kommen", -10),
+]
+
 # Score-Labels für Telegram-Log und news.json
 SCORE_LABELS = [
     (40, "🔥 episch"),
@@ -404,8 +424,9 @@ def score_cluster(cluster):
     # Keywords aus allen Titeln im Cluster prüfen
     all_titles = " ".join(item["title"].lower() for item in cluster)
     kw_score = sum(pts for kw, pts in IMPORTANCE_KEYWORDS if kw in all_titles)
+    penalty_score = sum(pts for kw, pts in PENALTY_KEYWORDS if kw in all_titles)
 
-    total = source_score + prestige_score + kw_score
+    total = source_score + prestige_score + kw_score + penalty_score
     label = next(lbl for threshold, lbl in SCORE_LABELS if total >= threshold)
     return total, label
 
@@ -464,6 +485,7 @@ def pick_top_news(alle_news, n=3, history=None):
 # So sinken alte Stories automatisch nach unten und machen Platz für Neues.
 SCORE_DECAY_PER_DAY = 5
 SCORE_FLOOR = 0
+MAX_AGE_DAYS = 7  # Artikel älter als 7 Tage werden aus news.json entfernt
 
 def _today_iso():
     return datetime.now(BERLIN).strftime("%Y-%m-%d")
@@ -1342,6 +1364,12 @@ def main():
             "date":       first_seen,                      # date = Erst-Erfassung (für Sortierung/Anzeige)
         }
         news_list.append(entry)
+
+    # Artikel älter als MAX_AGE_DAYS aus news.json entfernen
+    news_list = [
+        n for n in news_list
+        if _days_since(n.get("first_seen")) <= MAX_AGE_DAYS
+    ]
 
     # Posts (Teasers) den Top-3-News zuordnen
     posts_list = []
