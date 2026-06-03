@@ -93,10 +93,11 @@
     if (!document.getElementById('ki-custom-dot-style')) {
       var st = document.createElement('style');
       st.id = 'ki-custom-dot-style';
-      st.textContent = '.gdot[data-t="custom"]{background:conic-gradient(from 0deg,#00d4ff,#34d399,#fb923c,#a78bfa,#00d4ff);}'
+      st.textContent = '.gdot{-webkit-appearance:none;appearance:none;box-sizing:border-box;padding:0;margin:0;line-height:0;}'
+        + '.gdot[data-t="custom"]{background:conic-gradient(from 0deg,#00d4ff,#34d399,#fb923c,#a78bfa,#00d4ff);}'
         + '[data-theme="custom"] #sidebar{background:var(--sidebar-bg)!important;}'
         + '[data-theme="custom"] #main-content{background:var(--bg)!important;}'
-        + '[data-theme="custom"] nav.fixed,[data-theme="custom"] nav.ki-nav{background:var(--nav-bg)!important;}'
+        + '[data-theme="custom"] nav.fixed,[data-theme="custom"] nav.ki-nav,[data-theme="custom"] header.topbar{background:var(--nav-bg)!important;}'
         + '[data-theme="custom"] .card-hover{background:var(--card)!important;}'
         + '[data-theme="custom"] .card-hover h4{color:var(--text)!important;}'
         + '[data-theme="custom"] .card-hover p{color:var(--muted)!important;}'
