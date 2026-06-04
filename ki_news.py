@@ -162,6 +162,41 @@ def inject_admin_posts(base_dir, news_json_data):
         logger.warning("SSR: #news-data Marker in admin-posts.html fehlt – unveraendert")
 
 # -------------------------
+# Dashboard-Config + Post-Cache
+# -------------------------
+def load_dashboard_config(base_dir):
+    """Lädt dashboard_config.json (featured_links + blocked_links)."""
+    path = Path(base_dir) / "dashboard_config.json"
+    if not path.exists():
+        return {"featured_links": [], "blocked_links": []}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"featured_links": [], "blocked_links": []}
+
+def load_post_cache(base_dir):
+    """Lädt post-cache.json – gespeicherte LLM-Texte pro Artikel-Link."""
+    path = Path(base_dir) / "post-cache.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+def save_post_cache(base_dir, cache):
+    """Speichert post-cache.json, bereinigt Einträge älter als 90 Tage."""
+    cutoff = (datetime.now(BERLIN) - timedelta(days=90)).strftime("%Y-%m-%d")
+    pruned = {link: data for link, data in cache.items()
+              if data.get("generated_at", "9999") >= cutoff}
+    path = Path(base_dir) / "post-cache.json"
+    try:
+        path.write_text(json.dumps(pruned, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("post-cache.json: %d Eintraege gespeichert", len(pruned))
+    except Exception as e:
+        logger.exception("Fehler beim Schreiben post-cache.json: %s", e)
+
+# -------------------------
 # Logging
 # -------------------------
 LOG_PATH = Path("ki_news.log")
@@ -460,7 +495,7 @@ def score_cluster(cluster):
     label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
     return total, label
 
-def pick_top_news(alle_news, n=3, history=None):
+def pick_top_news(alle_news, n=3, history=None, featured_links=None):
     """
     Wählt die n wichtigsten Artikel nach Clustering + Scoring.
     Statt blindem [:3] aus der Feed-Reihenfolge.
@@ -471,6 +506,7 @@ def pick_top_news(alle_news, n=3, history=None):
     damit Telegram und Dashboard dieselben Top-Storys zeigen.
     """
     history = history or {}
+    featured_links = set(featured_links or [])
     clusters = cluster_news(alle_news)
 
     # Jeden Cluster bewerten
@@ -488,6 +524,14 @@ def pick_top_news(alle_news, n=3, history=None):
             eff_score = decay_score(best_base, oldest_first_seen)
         else:
             eff_score = score  # komplett neue Story: heute erfasst, kein Verfall
+        # Featured-Boost aus dashboard_config.json (mit Zeitverfall)
+        if featured_links:
+            cluster_links = {item.get("link", "") for item in cluster}
+            if rep.get("link", "") in featured_links or cluster_links & featured_links:
+                fs = history.get(rep.get("link", ""), {}).get("first_seen", _today_iso())
+                days_old = _days_since(fs)
+                boost = 60 if days_old == 0 else 30 if days_old == 1 else 15 if days_old == 2 else 0
+                eff_score += boost
         scored.append({
             "rep": rep,
             "score": score,
@@ -896,7 +940,7 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
 # LLM – Posts Scampy-6
 # Bekommt nur MAX_LLM_NEWS Items – mehr = Fuelltext
 # -------------------------
-def ask_llm(top_news):
+def ask_llm(top_news, n=None):
     if not OPENROUTER_KEY:
         fallback = ""
         for i in range(1, 4):
@@ -915,7 +959,8 @@ Du erklaerst was eine News WIRKLICH bedeutet – die Erkenntnis, nicht das Ereig
 Du schreibst immer auf Deutsch, auch wenn die Quelle englisch ist.
 Du erfindest keine Fakten."""
 
-    user = f"""Schreibe GENAU 3 Posts – einen pro News. Nicht mehr, nicht weniger.
+    n = n or len(top_news)
+    user = f"""Schreibe GENAU {n} Posts – einen pro News. Nicht mehr, nicht weniger.
 
 TEASER-Regeln:
 - Beginne mit der Erkenntnis, nicht mit dem Ereignis
@@ -1357,13 +1402,54 @@ def main():
                 if item.get("link"):
                     link_to_cluster_age[item["link"]] = oldest
 
+    # Dashboard-Config laden (featured + blocked links)
+    _cfg_base = proj_dir if proj_dir.exists() else Path(".")
+    dash_cfg = load_dashboard_config(_cfg_base)
+    featured_links = dash_cfg.get("featured_links", [])
+    blocked_links  = set(dash_cfg.get("blocked_links", []))
+    if blocked_links:
+        before = len(alle_news)
+        alle_news = [n for n in alle_news if n.get("link") not in blocked_links]
+        logger.info("Blocked-Filter: %d News entfernt", before - len(alle_news))
+
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
-    top_news, score_map = pick_top_news(alle_news, n=MAX_LLM_NEWS, history=history)
+    top_news, score_map = pick_top_news(
+        alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links
+    )
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
 
-    posts_raw = ask_llm(top_news)
-    parsed = parse_posts(posts_raw)
-    logger.info("%d Posts geparst", len(parsed))
+    # Post-Cache laden – LLM nur für noch nicht analysierte Stories aufrufen
+    post_cache = load_post_cache(_cfg_base)
+    heute_str  = _today_iso()
+    uncached   = [n for n in top_news if n.get("link") not in post_cache]
+    cached     = [n for n in top_news if n.get("link") in post_cache]
+    if uncached:
+        posts_raw    = ask_llm(uncached, n=len(uncached))
+        parsed_new   = parse_posts(posts_raw)
+        logger.info("%d neue Posts geparst, %d aus Cache", len(parsed_new), len(cached))
+        for news_item, p in zip(uncached, parsed_new):
+            link = news_item.get("link", "")
+            if link:
+                post_cache[link] = {
+                    "teaser":      p.get("teaser", ""),
+                    "erklaerung":  p.get("erklaerung", ""),
+                    "thread":      p.get("thread", []),
+                    "generated_at": heute_str,
+                }
+        save_post_cache(_cfg_base, post_cache)
+    else:
+        logger.info("Alle %d Top-Stories aus Post-Cache (keine LLM-Kosten)", len(top_news))
+
+    # Posts in Reihenfolge der Top-News zusammenbauen
+    parsed = [
+        {
+            "teaser":     post_cache.get(n.get("link",""), {}).get("teaser", ""),
+            "erklaerung": post_cache.get(n.get("link",""), {}).get("erklaerung", ""),
+            "thread":     post_cache.get(n.get("link",""), {}).get("thread", []),
+        }
+        for n in top_news
+    ]
+    logger.info("%d Posts bereit", len(parsed))
 
     send_telegram(parsed)
 
@@ -1413,14 +1499,11 @@ def main():
         if _days_since(n.get("first_seen")) <= MAX_AGE_DAYS
     ]
 
-    # Posts (Teasers) den Top-3-News zuordnen
-    posts_list = []
-    for i, p in enumerate(parsed):
-        posts_list.append({
-            "teaser":     p.get("teaser", ""),
-            "erklaerung": p.get("erklaerung", ""),
-            "thread":     p.get("thread", []),
-        })
+    # Posts (Teasers) den Top-3-News zuordnen (kommt aus post_cache via parsed)
+    posts_list = [
+        {"teaser": p.get("teaser",""), "erklaerung": p.get("erklaerung",""), "thread": p.get("thread",[])}
+        for p in parsed
+    ]
 
     news_json_data = {
         "stand": datum,
