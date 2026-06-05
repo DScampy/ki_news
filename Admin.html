@@ -585,6 +585,48 @@ function checkGate(){
       </button>
     </div>
 
+    <!-- ── Ganzen Artikel einfügen (Import) ── -->
+    <div class="card" style="margin-bottom:22px;border-color:rgba(29,155,240,0.3);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;" onclick="toggleImportPanel()">
+        <div>
+          <div class="card-title" style="margin:0;">📋 Ganzen Artikel auf einmal einfügen</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">Kopf-Felder + Text in einem Rutsch — füllt das Formular automatisch aus</div>
+        </div>
+        <span id="importChevron" style="font-size:13px;color:var(--muted);transition:transform 0.2s;">▼</span>
+      </div>
+      <div id="importPanelBody" style="display:none;margin-top:14px;">
+        <div class="field-hint" style="margin-bottom:8px;line-height:1.7;">
+          Format: <code>Feld: Wert</code> oben, dann eine Zeile mit <code>---</code>, danach der Artikeltext.<br>
+          Felder (alle optional außer Titel/Text): <code>Titel</code> · <code>Slug</code> · <code>Untertitel</code> · <code>Beschreibung</code> · <code>Datum</code> · <code>Tag</code> · <code>Tags</code> · <code>Lesezeit</code> · <code>X-Link</code>.<br>
+          Im Text: <code>## H2</code> · <code>### H3</code> · <code>&gt; Zitat</code> · <code>- Aufzählung</code> · Leerzeile = neuer Absatz.
+        </div>
+        <textarea id="art-import" rows="10" placeholder="Titel: Für wen ist der RTX Spark wirklich?
+Untertitel: Nvidia nennt vier Zielgruppen. Eine davon zahlt das ohne Bauchschmerzen.
+Beschreibung: Eine ehrliche Analyse von Gamer bis KI-Entwickler.
+Datum: 2026-06-05
+Tag: Analyse
+Tags: Hardware, Nvidia
+Lesezeit: ≈ 7 Min.
+---
+Auf der Computex 2026 hat Jensen Huang den RTX Spark für vier Gruppen angekündigt.
+
+## Die ehrliche Einordnung
+
+Wer zuoberst auf der Liste steht, wird am teuersten enttäuscht.
+
+- KI-Entwickler: klar ja
+- Kreatoren: bedingt
+- Gamer: warten
+
+> Das ist kein Gaming-Gerät. Es ist ein KI-Gerät, das auch gut zockt." style="font-family:monospace;font-size:12px;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="importWholeArticle()">↳ Formular befüllen</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('art-import').value='';">Leeren</button>
+          <span id="importMsg" style="font-size:11px;color:var(--muted);align-self:center;font-family:monospace;"></span>
+        </div>
+      </div>
+    </div>
+
     <div class="art-builder">
       <!-- Left: Form -->
       <div class="art-form">
@@ -638,7 +680,7 @@ function checkGate(){
         <div class="field">
           <label class="field-label">Artikel-Text *</label>
           <div class="field-hint" style="margin-bottom:8px;">
-            Absätze durch Leerzeile trennen · <code>## Überschrift</code> für H2 · <code>&gt; Zitat</code> für Blockquote
+            Absätze durch Leerzeile trennen · <code>## H2</code> · <code>### H3</code> · <code>&gt; Zitat</code> · <code>- Aufzählung</code>
           </div>
           <textarea id="art-body" rows="18" placeholder="Niemand rahmt das gerade richtig ein.
 
@@ -1040,13 +1082,117 @@ function updatePreview(){
 }
 
 function parseArticleBody(raw){
-  const paragraphs=raw.split(/\n\n+/);
-  return paragraphs.map(p=>{
-    p=p.trim();if(!p)return'';
-    if(p.startsWith('## ')){return`<h2>${escHtml(p.slice(3))}</h2>`;}
-    if(p.startsWith('> ')){return`<blockquote><p>${escHtml(p.slice(2))}</p></blockquote>`;}
-    return`<p>${escHtml(p).replace(/\n/g,'<br>')}</p>`;
-  }).filter(Boolean).join('\n    ');
+  const blocks=raw.split(/\n\n+/);
+  const out=[];
+  for(let block of blocks){
+    block=block.trim();if(!block)continue;
+    // Aufzählung: aufeinanderfolgende Zeilen mit "- " oder "* "
+    const lines=block.split('\n');
+    if(lines.every(l=>/^\s*[-*]\s+/.test(l))){
+      const items=lines.map(l=>`<li>${escHtml(l.replace(/^\s*[-*]\s+/,''))}</li>`).join('\n      ');
+      out.push(`<ul class="art-list">\n      ${items}\n    </ul>`);
+      continue;
+    }
+    if(block.startsWith('### ')){out.push(`<h3>${escHtml(block.slice(4))}</h3>`);continue;}
+    if(block.startsWith('## ')){out.push(`<h2>${escHtml(block.slice(3))}</h2>`);continue;}
+    if(block.startsWith('> ')){out.push(`<blockquote><p>${escHtml(block.replace(/^>\s?/gm,''))}</p></blockquote>`);continue;}
+    out.push(`<p>${escHtml(block).replace(/\n/g,'<br>')}</p>`);
+  }
+  return out.join('\n    ');
+}
+
+// ── Ganzen Artikel auf einmal importieren ──────────────────────────────────
+function toggleImportPanel(){
+  const b=document.getElementById('importPanelBody');
+  const c=document.getElementById('importChevron');
+  const open=b.style.display==='none';
+  b.style.display=open?'block':'none';
+  c.style.transform=open?'rotate(180deg)':'';
+}
+
+// Feld-Aliase → Form-Feld-IDs
+const IMPORT_FIELD_MAP={
+  'titel':'art-title','title':'art-title',
+  'slug':'art-slug','url':'art-slug','dateiname':'art-slug',
+  'untertitel':'art-sub','teaser':'art-sub','subtitle':'art-sub','sub':'art-sub',
+  'beschreibung':'art-desc','meta':'art-desc','description':'art-desc','desc':'art-desc',
+  'datum':'art-date','date':'art-date',
+  'tag':'art-tag','kategorie':'art-tag','category':'art-tag',
+  'tags':'art-tags','themen':'art-tags','themen-tags':'art-tags',
+  'lesezeit':'art-readtime','readtime':'art-readtime',
+  'x-link':'art-xlink','xlink':'art-xlink','x':'art-xlink','original':'art-xlink'
+};
+
+function parseGermanDate(v){
+  v=v.trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+  // "05. Juni 2026" / "5 Juni 2026"
+  const months={januar:'01',februar:'02',märz:'03',maerz:'03',april:'04',mai:'05',juni:'06',juli:'07',august:'08',september:'09',oktober:'10',november:'11',dezember:'12'};
+  const m=v.match(/(\d{1,2})\.?\s+([a-zäöü]+)\s+(\d{4})/i);
+  if(m){const mo=months[m[2].toLowerCase()];if(mo)return`${m[3]}-${mo}-${m[1].padStart(2,'0')}`;}
+  // "05.06.2026"
+  const d=v.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if(d)return`${d[3]}-${d[2].padStart(2,'0')}-${d[1].padStart(2,'0')}`;
+  return v;
+}
+
+function importWholeArticle(){
+  const raw=document.getElementById('art-import').value;
+  if(!raw.trim()){document.getElementById('importMsg').textContent='Nichts zum Einfügen.';return;}
+
+  // Header / Body am ersten "---" trennen
+  let header='', body='';
+  const sepMatch=raw.match(/^\s*---\s*$/m);
+  if(sepMatch){
+    const idx=raw.indexOf(sepMatch[0]);
+    header=raw.slice(0,idx);
+    body=raw.slice(idx+sepMatch[0].length).replace(/^\n+/,'');
+  }else{
+    // Kein Trenner: Kopfzeilen oben (Feld: Wert) automatisch erkennen, Rest = Body
+    const lines=raw.split('\n');
+    let i=0;
+    while(i<lines.length){
+      const l=lines[i];
+      if(l.trim()===''){i++;continue;}
+      const km=l.match(/^([A-Za-zäöüÄÖÜ\- ]{2,20}):\s*(.*)$/);
+      if(km && IMPORT_FIELD_MAP[km[1].trim().toLowerCase()]){i++;continue;}
+      break;
+    }
+    header=lines.slice(0,i).join('\n');
+    body=lines.slice(i).join('\n').replace(/^\n+/,'');
+    if(!header.trim()){body=raw;}
+  }
+
+  // Header-Felder parsen
+  const filled=[];
+  header.split('\n').forEach(line=>{
+    const m=line.match(/^([A-Za-zäöüÄÖÜ\- ]+?):\s*(.*)$/);
+    if(!m)return;
+    const key=m[1].trim().toLowerCase();
+    const val=m[2].trim();
+    const fieldId=IMPORT_FIELD_MAP[key];
+    if(!fieldId||!val)return;
+    const el=document.getElementById(fieldId);
+    if(!el)return;
+    el.value=fieldId==='art-date'?parseGermanDate(val):val;
+    filled.push(key);
+  });
+
+  // Body setzen
+  if(body.trim()){document.getElementById('art-body').value=body.trim();filled.push('text');}
+
+  // Slug automatisch, falls leer aber Titel da
+  if(!document.getElementById('art-slug').value.trim() && document.getElementById('art-title').value.trim()){
+    updateSlug();
+  }
+  updatePreview();
+
+  const msg=document.getElementById('importMsg');
+  msg.style.color='var(--green)';
+  msg.textContent='✓ '+filled.length+' Feld(er) befüllt: '+filled.join(', ');
+  toast('Formular aus Einfügung befüllt','success');
+  // Panel offen lassen, aber zum Formular scrollen
+  document.getElementById('art-title').focus();
 }
 
 function formatDateDE(dateStr){
@@ -1133,6 +1279,10 @@ nav.ki-nav{position:fixed;top:0;width:100%;z-index:50;height:56px;display:flex;a
 .art-body h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,1.8vw,22px);font-weight:700;letter-spacing:-0.01em;color:var(--text);margin:40px 0 16px;padding-left:14px;border-left:3px solid var(--accent);}
 .art-body blockquote{background:rgba(29,155,240,0.07);border-left:3px solid rgba(29,155,240,0.4);border-radius:0 8px 8px 0;padding:16px 20px;margin:24px 0;}
 .art-body blockquote p{margin:0;font-style:italic;color:rgba(255,255,255,0.7);}
+.art-body h3{font-family:'Space Grotesk',sans-serif;font-size:clamp(15px,1.4vw,18px);font-weight:700;color:var(--text);margin:32px 0 12px;}
+.art-body ul.art-list{list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:10px;}
+.art-body ul.art-list li{font-family:'Fraunces',serif;font-size:clamp(15px,1.1vw,17px);line-height:1.6;color:rgba(255,255,255,0.88);padding-left:22px;position:relative;}
+.art-body ul.art-list li::before{content:'\\2192';position:absolute;left:0;top:0;color:var(--accent);font-family:monospace;}
 .art-colophon{margin-top:56px;padding:24px 0 12px;border-top:3px double rgba(29,155,240,0.28);display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
 .colophon-name{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
 .colophon-handle{font-family:monospace;font-size:11px;color:var(--accent);letter-spacing:0.06em;}
@@ -1149,6 +1299,7 @@ html.light .breadcrumb a{color:#0284c7;}
 html.light .art-date{color:rgba(15,23,42,0.42);}
 html.light .art-meta-row{color:rgba(15,23,42,0.55);}
 html.light .art-body p{color:rgba(15,23,42,0.9);}
+html.light .art-body ul.art-list li{color:rgba(15,23,42,0.9);}
 html.light .art-body blockquote p{color:rgba(15,23,42,0.72);}
 html.light .colophon-bio{color:rgba(15,23,42,0.55);}
 </style>
