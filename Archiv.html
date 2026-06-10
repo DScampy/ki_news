@@ -235,7 +235,7 @@
 <script>
 /* Seitenspezifische Sidebar-Erweiterung: Suche + Quellen-Filter + Stand (wird von ki-layout.js gerendert) */
 window.KI_SIDEBAR_EXTRA =
-  '<div id="searchWrap" class="flex items-center gap-2 px-3 py-2" style="background:#111827;border:1px solid rgba(var(--neon-rgb),0.18);border-radius:8px;flex-shrink:0">' +
+  '<div id="searchWrap" class="flex items-center gap-2 px-3 py-2" style="background:var(--field,#111827);border:1px solid rgba(var(--neon-rgb),0.18);border-radius:8px;flex-shrink:0">' +
     '<span class="material-symbols-outlined text-gray-500 text-base">search</span>' +
     '<input id="searchInput" type="text" placeholder="Suchen&hellip;" class="bg-transparent border-none outline-none text-xs text-gray-300 placeholder-gray-600 w-full font-mono" oninput="handleSearch(this.value)"/>' +
     '<button class="search-clear text-gray-600 hover:text-white" onclick="clearSearch()"><span class="material-symbols-outlined text-base">close</span></button>' +
@@ -248,13 +248,14 @@ window.KI_SIDEBAR_EXTRA =
     '<div class="flex flex-col gap-1" id="sourceFilters"></div>' +
   '</div>' +
   '<div style="flex-shrink:0;margin-top:10px">' +
-    '<div id="stand-box" class="p-3" style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:#0d1520">' +
+    '<div id="stand-box" class="p-3" style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520)">' +
       '<p class="text-[10px] font-mono mb-1" style="color:rgba(var(--neon-rgb),0.4)">LETZTES UPDATE</p>' +
       '<p class="text-[11px] text-gray-400 font-mono" id="standLabel">&mdash;</p>' +
     '</div>' +
   '</div>';
 </script>
 <script src="assets/ki-layout.js"></script>
+<script src="assets/ki-custom-theme.js"></script>
 
 <!-- ── Theme + Sidebar Script ── -->
 <script>
@@ -628,10 +629,10 @@ function buildSourceFilters() {
   const allBtn = document.createElement('button');
   allBtn.id = 'src-all';
   allBtn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all border-l-2';
-  allBtn.style.background = isLight ? '#eff6ff' : '#1d1f23';
-  allBtn.style.color = '#1d9bf0';
-  allBtn.style.borderLeftColor = '#1d9bf0';
-  allBtn.innerHTML = `<span>Alle</span><span style="color:#6b7280">${allNews.length}</span>`;
+  allBtn.style.background = 'rgba(var(--neon-rgb),0.10)';
+  allBtn.style.color = 'var(--accent)';
+  allBtn.style.borderLeftColor = 'var(--accent)';
+  allBtn.innerHTML = `<span>Alle</span><span style="color:var(--muted,#6b7280)">${allNews.length}</span>`;
   allBtn.onclick = () => { clearFilter(); };
   container.appendChild(allBtn);
 
@@ -642,26 +643,25 @@ function buildSourceFilters() {
     btn.id = 'src-' + src.replace(/\s/g, '-');
     btn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all border-l-2';
     btn.style.background = 'transparent';
-    btn.style.color = isLight ? '#475569' : '#9ca3af';
+    btn.style.color = 'var(--muted,#9ca3af)';
     btn.style.borderLeftColor = 'transparent';
-    btn.innerHTML = `<span>${escapeHtml(src)}</span><span style="color:#6b7280">${count}</span>`;
-    btn.onmouseenter = () => { btn.style.background = isLight ? '#f1f5f9' : '#16181c'; btn.style.color = isLight ? '#0f172a' : '#fff'; };
-    btn.onmouseleave = () => { if (activeSource !== src) { btn.style.background = 'transparent'; btn.style.color = isLight ? '#475569' : '#9ca3af'; } };
+    btn.innerHTML = `<span>${escapeHtml(src)}</span><span style="color:var(--muted,#6b7280)">${count}</span>`;
+    btn.onmouseenter = () => { btn.style.background = 'rgba(var(--neon-rgb),0.06)'; btn.style.color = 'var(--text,#fff)'; };
+    btn.onmouseleave = () => { if (activeSource !== src) { btn.style.background = 'transparent'; btn.style.color = 'var(--muted,#9ca3af)'; } };
     btn.onclick = () => setFilter(src);
     container.appendChild(btn);
   });
 }
 
 function updateSourceFilterUI() {
-  const isLight = document.documentElement.classList.contains('light');
-  const activeBg = isLight ? '#eff6ff' : '#1d1f23';
+  const activeBg = 'rgba(var(--neon-rgb),0.10)';
   const sources = [...new Set(allNews.map(n => n.source).filter(Boolean))];
   const allBtn = document.getElementById('src-all');
   if (allBtn) {
     allBtn.className = 'flex items-center justify-between px-3 py-2 text-xs font-mono uppercase tracking-wider transition-all border-l-2';
     allBtn.style.background = !activeSource ? activeBg : 'transparent';
-    allBtn.style.color = '#1d9bf0';
-    allBtn.style.borderLeftColor = !activeSource ? '#1d9bf0' : 'transparent';
+    allBtn.style.color = !activeSource ? 'var(--accent)' : 'var(--muted,#9ca3af)';
+    allBtn.style.borderLeftColor = !activeSource ? 'var(--accent)' : 'transparent';
   }
   sources.forEach(src => {
     const btn = document.getElementById('src-' + src.replace(/\s/g, '-'));
@@ -675,7 +675,7 @@ function updateSourceFilterUI() {
       } else {
         btn.style.background = 'transparent';
         btn.style.borderLeftColor = 'transparent';
-        btn.style.color = isLight ? '#475569' : '#9ca3af';
+        btn.style.color = 'var(--muted,#9ca3af)';
       }
     }
   });
@@ -1081,33 +1081,4 @@ window.__kiThemeHook=function(light,active){
       root.classList.toggle('light',light);
       root.classList.toggle('dark',!light);
     }
-    var active=(raw==='custom')?'custom':getGenesis();
-    var dots=document.querySelectorAll('.gdot');
-    for(var i=0;i<dots.length;i++)dots[i].classList.toggle('active',dots[i].getAttribute('data-t')===active);
-    if(typeof window.__kiThemeHook==='function'){try{window.__kiThemeHook(root.classList.contains('light'),active);}catch(e){}}
-  }
-  window.setGenesisTheme=function(name){
-    if(GEN.indexOf(name)===-1)name='genesis';
-    memGen=name;
-    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
-    applyAll();
-  };
-  window.cycleTheme=function(){
-    var light=document.documentElement.classList.contains('light');
-    var next=light?'dark':'light';
-    if(next==='dark'&&getGenesis()==='blanc'&&rawGenesis()!=='custom'){memGen='genesis';try{localStorage.setItem('ki_genesis_theme','genesis');}catch(e){}}
-    memContrast=next;
-    try{localStorage.setItem('ki_theme',next);}catch(e){}
-    applyAll();
-  };
-  window.__kiApplyTheme=applyAll;
-  applyAll();
-  document.addEventListener('DOMContentLoaded',applyAll);
-  if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getContrast()==='auto')applyAll();});}catch(e){}}
-})();
-</script>
-<script src="assets/ki-custom-theme.js"></script>
-<script>
-function openDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.add('drawer-open');if(b)b.classList.add('open');document.body.style.overflow='hidden';}
-function closeDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.remove('drawer-open');if(b)b.classList.remove('open');document.body.style.overflow='';}
-function toggleDrawer(){var s=document.getElementById('sidebar');(s&&s.classList.contains('drawer-open'))?closeDrawer():
+    var active=(raw

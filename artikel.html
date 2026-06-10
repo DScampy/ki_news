@@ -339,6 +339,16 @@ html.light .masthead-stats { color:#64748b; }
 .strapline-pill::before { content:''; width:6px; height:6px; border-radius:50%; background:#22c55e; display:inline-block; animation:blink 1.5s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 .lead-story { margin-bottom:42px; padding-bottom:32px; border-bottom:1px solid rgba(var(--neon-rgb),0.18); position:relative; }
+/* ── Analyse-Aufklapper (Scampy-Thread aus news.json.posts) ── */
+.art-analyse-toggle{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,rgba(255,255,255,0.5));background:none;border:none;cursor:pointer;padding:0;transition:color .15s;}
+.art-analyse-toggle:hover{color:var(--accent);}
+.art-analyse{margin-top:14px;border-top:1px solid rgba(var(--neon-rgb),0.18);padding-top:12px;animation:artAnalyseIn .25s ease;}
+@keyframes artAnalyseIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.art-analyse-lead{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;line-height:1.4;}
+.art-analyse-thread{list-style:none;counter-reset:astep;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;}
+.art-analyse-thread li{counter-increment:astep;position:relative;padding-left:30px;font-size:13px;line-height:1.6;color:var(--muted,rgba(255,255,255,0.62));}
+.art-analyse-thread li::before{content:counter(astep);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:rgba(var(--neon-rgb),0.12);color:var(--accent);font-family:monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+html.light .art-analyse-thread li{color:#475569;}
 .lead-source { display:inline-flex; align-items:center; gap:8px; padding:5px 12px; font-family:'Space Grotesk', sans-serif; font-size:10px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:#fff; border-radius:3px; margin-bottom:18px; }
 .lead-prio { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; font-family:'Space Grotesk', sans-serif; font-size:9px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:#fff; border-radius:3px; margin-left:6px; }
 .lead-headline { font-family:'Fraunces', serif; font-weight:600; font-variation-settings:'opsz' 144; font-size:clamp(34px, 5vw, 56px); line-height:1.05; letter-spacing:-0.025em; color:var(--text); margin-bottom:18px; }
@@ -658,7 +668,29 @@ function germanDate(stand){
   var MO = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   return WT[d.getDay()] + ', ' + d.getDate() + '. ' + MO[d.getMonth()] + ' ' + d.getFullYear();
 }
-function renderLead(item){
+// ── Analyse-Aufklapper: Post (teaser/erklaerung/thread) zu Story matchen ──
+function matchPost(item, posts, idx){
+  if (!posts || !posts.length) return null;
+  var same = posts.filter(function(p){ return p.teaser && item.source && p.teaser.indexOf('(via ' + item.source) !== -1; });
+  return (same.length === 1 ? same[0] : posts[idx]) || null;
+}
+function analyseHtml(post, slot){
+  if (!post || !post.thread || !post.thread.length) return '';
+  var items = post.thread.map(function(t){ return '<li>'+escapeHtml(t)+'</li>'; }).join('');
+  return '<button class="art-analyse-toggle" id="aa-toggle-'+slot+'" onclick="toggleArtAnalyse(\''+slot+'\')" style="margin-top:12px;">Analyse anzeigen ▾</button>'+
+    '<div class="art-analyse" id="aa-panel-'+slot+'" hidden>'+
+      (post.erklaerung ? '<div class="art-analyse-lead">'+escapeHtml(post.erklaerung)+'</div>' : '')+
+      '<ol class="art-analyse-thread">'+items+'</ol>'+
+    '</div>';
+}
+window.toggleArtAnalyse = function(slot){
+  var p = document.getElementById('aa-panel-'+slot), t = document.getElementById('aa-toggle-'+slot);
+  if (!p || !t) return;
+  var show = p.hidden;
+  p.hidden = !show;
+  t.textContent = show ? 'Analyse verbergen ▴' : 'Analyse anzeigen ▾';
+};
+function renderLead(item, post){
   var c = srcColor(item.source);
   var level = scoreToLevel(item.score||0), prio = PRIO[level];
   var mins = readMinutes(item.title + ' ' + (item.summary||''));
@@ -673,9 +705,10 @@ function renderLead(item){
       '<span>≈ '+mins+' Min Lesezeit</span>'+
       '<span class="dot"></span>'+
       (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="lead-cta">Originalartikel ↗</a>' : '') +
-    '</div>';
+    '</div>' +
+    analyseHtml(post, 'lead');
 }
-function renderSec(item, target){
+function renderSec(item, target, post, slot){
   var c = srcColor(item.source);
   var prio = PRIO[scoreToLevel(item.score||0)];
   target.innerHTML =
@@ -685,7 +718,8 @@ function renderSec(item, target){
     '<div class="sec-meta">'+
       '<span style="color:'+prio.color+';font-weight:700">'+prio.label+'</span>'+
       (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="sec-cta">Weiter ↗</a>' : '') +
-    '</div>';
+    '</div>' +
+    analyseHtml(post, slot);
 }
 function renderGrid(items){
   document.getElementById('art-grid').innerHTML = items.map(function(item){
@@ -736,10 +770,11 @@ fetch('news.json?t=' + Date.now())
     if (statsEl) statsEl.textContent = news.length + ' Meldungen · ' + srcCount + ' Quellen';
     // Nach Score sortieren: Leitartikel + zwei Spalten + Grid
     var sorted = news.slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
-    renderLead(sorted[0]);
+    var posts = data.posts || [];
+    renderLead(sorted[0], matchPost(sorted[0], posts, 0));
     var secA = document.getElementById('sec-a'), secC = document.getElementById('sec-c');
-    if (sorted[1] && secA) renderSec(sorted[1], secA); else if (secA) secA.innerHTML = '';
-    if (sorted[2] && secC) renderSec(sorted[2], secC); else if (secC) secC.innerHTML = '';
+    if (sorted[1] && secA) renderSec(sorted[1], secA, matchPost(sorted[1], posts, 1), 'a'); else if (secA) secA.innerHTML = '';
+    if (sorted[2] && secC) renderSec(sorted[2], secC, matchPost(sorted[2], posts, 2), 'c'); else if (secC) secC.innerHTML = '';
     renderGrid(sorted.slice(3, 12));
     renderRail(news);
   })

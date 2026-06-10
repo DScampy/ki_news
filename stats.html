@@ -80,6 +80,15 @@
     padding:24px;
     box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.05),0 0 14px rgba(var(--neon-rgb),0.08);
   }
+  /* ── Quellen-Ranking (ersetzt Chart.js-Balken) ── */
+  .srcrow{display:flex;align-items:center;gap:10px;padding:4px 0;}
+  .srcrow-rank{font-family:monospace;font-size:10px;color:rgba(var(--neon-rgb),0.5);width:20px;flex-shrink:0;text-align:right;}
+  .srcrow-name{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;width:128px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .srcrow-bar{flex:1;height:14px;border-radius:4px;background:rgba(var(--neon-rgb),0.06);overflow:hidden;position:relative;}
+  .srcrow-bar>div{height:100%;border-radius:4px;transition:width .45s cubic-bezier(.22,1,.36,1);box-shadow:0 0 8px rgba(var(--neon-rgb),0.25);}
+  .srcrow-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--text,#e8f8ff);width:38px;text-align:right;flex-shrink:0;}
+  .srcrow-avg{font-family:monospace;font-size:10px;color:var(--muted,#6b7280);width:52px;flex-shrink:0;text-align:right;}
+  html.light .srcrow-val{color:#0f172a;}
   .section-title {
     font-family:'Space Grotesk',sans-serif;
     font-weight:700; font-size:18px;
@@ -189,6 +198,7 @@ window.KI_SIDEBAR_EXTRA =
   '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">Top Score</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:#f97316;margin:0;" id="sb-topscore">&mdash;</p></div>';
 </script>
 <script src="assets/ki-layout.js"></script>
+<script src="assets/ki-custom-theme.js"></script>
 
 <!-- ── Genesis 3D Background ─────────────────────────────── -->
 <div id="genesis-wrap" style="position:fixed;inset:0;z-index:0;pointer-events:none"></div>
@@ -347,9 +357,7 @@ document.addEventListener('DOMContentLoaded',function(){
           </div>
         </div>
         <p class="meta-text mb-4" id="src-window-label">Artikel-Anzahl und Durchschnitts-Score je Quelle · letzte 7 Tage</p>
-        <div style="position:relative;height:260px">
-          <canvas id="chart-sources"></canvas>
-        </div>
+        <div id="src-ranking" style="display:flex;flex-direction:column;gap:5px;min-height:260px;justify-content:center;"></div>
       </div>
 
       <!-- Score-Verteilung Donut (1/3) -->
@@ -618,36 +626,33 @@ function renderAll(current, all){
   const initSrc = window.buildSrcData(7);
   window._srcChartData = initSrc;
 
-  const ctxS = document.getElementById('chart-sources').getContext('2d');
-  const chartSrc = new Chart(ctxS, {
-    type:'bar',
-    data:{
-      labels: initSrc.labels,
-      datasets:[{
-        label:'Artikel',
-        data: initSrc.counts,
-        backgroundColor: initSrc.colors.map(c=>c+'bb'),
-        borderColor: initSrc.colors,
-        borderWidth:1,
-        borderRadius:4,
-        borderSkipped:false,
-        minBarLength:6,
-      }]
-    },
-    options:{
-      indexAxis:'y',
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{
-        callbacks:{ label: ctx => ` ${ctx.parsed.x} Artikel · Ø ${initSrc.avgs[ctx.dataIndex]} Score` }
-      }},
-      scales:{
-        x:{ grid:{color:gridColor()}, ticks:{color:labelColor()} },
-        y:{ grid:{display:false}, ticks:{color:labelColor(), font:{size:11}} }
-      }
-    }
-  });
-  window._chartSrc = chartSrc;
-  window._charts.push(chartSrc);
+  // Quellen-Ranking als HTML-Reihen (theme-reaktiv, kein Chart.js)
+  window.renderSrcRanking = function(){
+    const d = window._srcChartData;
+    const box = document.getElementById('src-ranking');
+    if (!d || !box) return;
+    const metric = (typeof _sourceMetric !== 'undefined' && _sourceMetric === 'score') ? 'avgs' : 'counts';
+    const vals = d[metric];
+    const max = Math.max.apply(null, vals.concat([1]));
+    const order = vals.map((v,i)=>i).sort((a,b)=>vals[b]-vals[a]);
+    // Quellen ohne definierte Farbe: stabile Farbe aus dem Namen ableiten
+    function srcHue(name){ let h=0; for(let k=0;k<name.length;k++) h=(h*31+name.charCodeAt(k))>>>0; return h%360; }
+    box.innerHTML = order.slice(0,12).map(function(i, rank){
+      let c = d.colors[i];
+      let c1, c2;
+      if (c && c.charAt(0) === '#') { c1 = c+'cc'; c2 = c+'55'; }
+      else { const h = srcHue(d.labels[i]); c = 'hsl('+h+',80%,62%)'; c1 = 'hsla('+h+',80%,62%,0.8)'; c2 = 'hsla('+h+',80%,62%,0.33)'; }
+      const pct = Math.max(4, Math.round(vals[i]/max*100));
+      return '<div class="srcrow">' +
+        '<span class="srcrow-rank">'+String(rank+1).padStart(2,'0')+'</span>' +
+        '<span class="srcrow-name" style="color:'+c+'">'+d.labels[i]+'</span>' +
+        '<div class="srcrow-bar"><div style="width:'+pct+'%;background:linear-gradient(90deg,'+c1+','+c2+')"></div></div>' +
+        '<span class="srcrow-val">'+vals[i]+'</span>' +
+        '<span class="srcrow-avg">Ø '+d.avgs[i]+'</span>' +
+      '</div>';
+    }).join('');
+  };
+  window.renderSrcRanking();
 
   // ── Score Donut ────────────────────────────────────────────────────────────
   const levelCounts = SCORE_LEVELS.map(l=>{
@@ -795,18 +800,9 @@ function renderAll(current, all){
 let _sourceMetric = 'count';
 
 function _refreshSourceChart() {
-  if(!window._chartSrc || !window.buildSrcData) return;
-  const d = window.buildSrcData(window._sourceWindow);
-  window._srcChartData = d;
-  const chart = window._chartSrc;
-  const isCount = _sourceMetric === 'count';
-  chart.data.labels = d.labels;
-  chart.data.datasets[0].data = isCount ? d.counts : d.avgs;
-  chart.data.datasets[0].label = isCount ? 'Artikel' : 'Ø Score';
-  chart.data.datasets[0].backgroundColor = d.colors.map(c=>c+'bb');
-  chart.data.datasets[0].borderColor = d.colors;
-  chart.options.plugins.tooltip.callbacks.label = ctx => ` ${ctx.parsed.x} ${isCount?'Artikel':'Score'} · Ø ${d.avgs[ctx.dataIndex]} Score`;
-  chart.update();
+  if(!window.buildSrcData) return;
+  window._srcChartData = window.buildSrcData(window._sourceWindow);
+  if (window.renderSrcRanking) window.renderSrcRanking();
 }
 
 function toggleSourceMetric(metric){
@@ -1136,36 +1132,4 @@ window.__kiThemeHook=function(light,active){
       root.classList.toggle('light',light);
       root.classList.toggle('dark',!light);
     }
-    var active=(raw==='custom')?'custom':getGenesis();
-    var dots=document.querySelectorAll('.gdot');
-    for(var i=0;i<dots.length;i++)dots[i].classList.toggle('active',dots[i].getAttribute('data-t')===active);
-    if(typeof window.__kiThemeHook==='function'){try{window.__kiThemeHook(root.classList.contains('light'),active);}catch(e){}}
-  }
-  window.setGenesisTheme=function(name){
-    if(GEN.indexOf(name)===-1)name='genesis';
-    memGen=name;
-    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
-    applyAll();
-  };
-  window.cycleTheme=function(){
-    var light=document.documentElement.classList.contains('light');
-    var next=light?'dark':'light';
-    if(next==='dark'&&getGenesis()==='blanc'&&rawGenesis()!=='custom'){memGen='genesis';try{localStorage.setItem('ki_genesis_theme','genesis');}catch(e){}}
-    memContrast=next;
-    try{localStorage.setItem('ki_theme',next);}catch(e){}
-    applyAll();
-  };
-  window.__kiApplyTheme=applyAll;
-  applyAll();
-  document.addEventListener('DOMContentLoaded',applyAll);
-  if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getContrast()==='auto')applyAll();});}catch(e){}}
-})();
-</script>
-<script src="assets/ki-custom-theme.js"></script>
-<script>
-function openDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.add('drawer-open');if(b)b.classList.add('open');document.body.style.overflow='hidden';}
-function closeDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.remove('drawer-open');if(b)b.classList.remove('open');document.body.style.overflow='';}
-function toggleDrawer(){var s=document.getElementById('sidebar');(s&&s.classList.contains('drawer-open'))?closeDrawer():openDrawer();}
-function brandClick(e){if(window.innerWidth<768){e.preventDefault();toggleDrawer();return false;}return true;}
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
-window.addEventListener('resiz
+    var active=(raw==='custom')?'custom':getGen
