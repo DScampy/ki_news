@@ -179,6 +179,16 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
 </head>
 <body>
+<script>
+/* Seitenspezifische Sidebar-Erweiterung: Quick-Stats (wird von ki-layout.js gerendert) */
+window.KI_SIDEBAR_EXTRA =
+  '<div style="padding:4px 0;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;">Schnell&uuml;berblick</div>' +
+  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">Artikel gesamt</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:var(--accent);margin:0;" id="sb-total">&mdash;</p></div>' +
+  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">Quellen</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:var(--accent);margin:0;" id="sb-sources">&mdash;</p></div>' +
+  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">&Oslash; Score</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:var(--accent);margin:0;" id="sb-avgscore">&mdash;</p></div>' +
+  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">Top Score</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:#f97316;margin:0;" id="sb-topscore">&mdash;</p></div>';
+</script>
+<script src="assets/ki-layout.js"></script>
 
 <!-- ── Genesis 3D Background ─────────────────────────────── -->
 <div id="genesis-wrap" style="position:fixed;inset:0;z-index:0;pointer-events:none"></div>
@@ -250,129 +260,6 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 });
 </script>
-
-<!-- Nav -->
-<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);box-sizing:border-box;">
-  <div class="flex items-center gap-8">
-    <a href="/" id="brand-link" class="flex items-center gap-2.5" onclick="return brandClick(event);">
-      <img src="s-logo.png" alt="" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));"/>
-      <span style="display:flex;flex-direction:column;justify-content:center;line-height:1.02;"><span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span><span id="brand-menu-hint" style="font-size:8px;font-family:monospace;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted,rgba(148,163,184,0.75));margin-top:2px;">☰ Menü</span></span>
-      <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
-    </a>
-    <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="artikel.html">Artikel</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
-      <a class="text-sm font-medium" style="font-family:'Space Grotesk',sans-serif;color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:4px" href="stats.html">Statistik</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="profil.html">Profil</a>
-    </div>
-  </div>
-  <div class="flex items-center gap-4">
-    <a href="https://x.com/ScampyKI" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span class="hidden sm:inline">@ScampyKI</span>
-    </a>
-    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;" title="Dark/Light Toggle">
-      <span class="material-symbols-outlined" style="font-size:18px;">contrast</span>
-    </button>
-    <div id="genesis-dots" title="Design-Theme">
-      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis"></button>
-      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst"></button>
-      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora"></button>
-      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian"></button>
-      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc"></button>
-    </div>
-  </div>
-</nav>
-
-<!-- Sidebar Toggle -->
-<button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
-  <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
-</button>
-
-<!-- Sidebar -->
-<!-- Sidebar Backdrop (mobile drawer) -->
-<div id="sidebar-backdrop" onclick="closeDrawer()"></div>
-
-<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col ki-border border-r hidden lg:flex overflow-hidden collapsed" style="border-color:rgba(var(--neon-rgb),0.18);">
-
-  <!-- S-Logo Header -->
-  <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(var(--neon-rgb),0.12);flex-shrink:0">
-    <img src="s-logo.png" alt="ScampyKI" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(var(--neon-rgb),0.5));"/>
-    <div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;">ScampyKI</div>
-      <div style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">KI-NEWS.LIVE</div>
-    </div>
-  </div>
-
-  <!-- Nav -->
-  <div class="flex flex-col gap-0.5 px-2 pt-3" style="flex-shrink:0">
-    <a class="sidebar-nav-link" href="/">
-      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
-    </a>
-    <a class="sidebar-nav-link" href="Archiv.html">
-      <span class="material-symbols-outlined text-sm">archive</span>Archiv
-    </a>
-    <a class="sidebar-nav-link" href="artikel.html">
-      <span class="material-symbols-outlined text-sm">menu_book</span>Artikel
-    </a>
-    <a class="sidebar-nav-link" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">
-      <span class="material-symbols-outlined text-sm">mic</span>Podcast
-    </a>
-    <a class="sidebar-nav-link" href="https://youtube.com/@ScampyKI" target="_blank">
-      <span class="material-symbols-outlined text-sm">play_circle</span>YouTube
-    </a>
-    <a class="ki-sidebar-active flex items-center gap-3 text-[var(--accent)] border-l-2 border-[var(--accent)] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.08);" href="#">
-      <span class="material-symbols-outlined text-sm">bar_chart</span>Statistik
-    </a>
-    <a class="sidebar-nav-link" href="profil.html">
-      <span class="material-symbols-outlined text-sm">person</span>Profil & Design
-    </a>
-  </div>
-
-  <!-- Divider -->
-  <div style="margin:8px 16px;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0"></div>
-
-  <!-- Live Metriken in Sidebar -->
-  <div class="px-4 flex flex-col gap-2 overflow-y-auto flex-1">
-    <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.4)">Live Metriken</p>
-    <div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
-      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(var(--neon-rgb),0.4)">ARTIKEL GESAMT</p>
-      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="sb-total">—</p>
-    </div>
-    <div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
-      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(var(--neon-rgb),0.4)">QUELLEN</p>
-      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="sb-sources">—</p>
-    </div>
-    <div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
-      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(var(--neon-rgb),0.4)">Ø SCORE</p>
-      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="sb-avgscore">—</p>
-    </div>
-    <div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:#0d1520;padding:10px 12px">
-      <p class="text-[10px] font-mono mb-0.5" style="color:rgba(var(--neon-rgb),0.4)">TOP SCORE</p>
-      <p class="font-black text-xl" style="font-family:'Space Grotesk',sans-serif;color:#f97316" id="sb-topscore">—</p>
-    </div>
-  </div>
-
-  <!-- Social Links -->
-  <div style="padding:4px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0">Kontakt & Social</div>
-  <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank" style="flex-shrink:0">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    @ScampyKI
-  </a>
-  <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank" style="flex-shrink:0">
-    <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
-  </a>
-  <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank" style="flex-shrink:0">
-    <span class="material-symbols-outlined text-sm">work</span>dscampy
-  </a>
-
-  <!-- Footer -->
-  <div style="padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0;margin-top:auto">
-    <p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.22);line-height:1.5;">KI-News täglich auf Deutsch.<br>Kuratiert · Eingeordnet · Erklärt.</p>
-  </div>
-</aside>
 
 <!-- ── Main ── -->
 <main id="main-content" class="pt-14 min-h-screen" style="background:#000;transition:margin-left 0.25s ease;">
@@ -1281,8 +1168,4 @@ function closeDrawer(){var s=document.getElementById('sidebar'),b=document.getEl
 function toggleDrawer(){var s=document.getElementById('sidebar');(s&&s.classList.contains('drawer-open'))?closeDrawer():openDrawer();}
 function brandClick(e){if(window.innerWidth<768){e.preventDefault();toggleDrawer();return false;}return true;}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
-window.addEventListener('resize',function(){if(window.innerWidth>=1024)closeDrawer();});
-(function(){var sb=document.getElementById('sidebar');if(sb)sb.addEventListener('click',function(e){if(e.target.closest('a'))closeDrawer();});})();
-</script>
-</body>
-</html>
+window.addEventListener('resiz

@@ -399,117 +399,12 @@ nav {
     <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
 </head>
 <body>
+<script src="assets/ki-layout.js"></script>
 
 <div id="genesis-wrap"></div>
 <div id="bg-overlay"></div>
 
 <!-- NAV -->
-<nav>
-  <div class="nav-logo-wrap">
-    <a href="/" id="brand-link" style="text-decoration:none;display:flex;align-items:center;gap:8px;" onclick="return brandClick(event);">
-      <img src="s-logo.png" alt="KI News" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));" onerror="this.style.display='none'"/>
-      <span style="display:flex;flex-direction:column;justify-content:center;line-height:1.02;"><span class="nav-logo-text">KI NEWS</span><span id="brand-menu-hint" style="font-size:8px;font-family:monospace;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-top:2px;">☰ Menü</span></span>
-      <span style="display:none;font-size:10px;font-family:monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--border);padding:1px 5px;border-radius:3px;" class="nav-de-badge">DE</span>
-    </a>
-    <div class="nav-links">
-      <a href="/" class="nav-link">Aktuell</a>
-      <a href="Archiv.html" class="nav-link">Archiv</a>
-      <a href="artikel.html" class="nav-link">Artikel</a>
-      <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" class="nav-link" target="_blank">Podcast</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="stats.html">Statistik</a>
-      <a href="profil.html" class="nav-link active">Profil</a>
-    </div>
-  </div>
-  <div class="nav-right">
-    <a href="https://x.com/ScampyKI" target="_blank" style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:monospace;color:var(--muted);text-decoration:none;transition:color 0.15s;" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='var(--muted)'">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span style="display:none;" class="nav-xhandle">@ScampyKI</span>
-    </a>
-    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;" title="Dark/Light Toggle">
-      <span class="material-symbols-outlined" style="font-size:18px;">contrast</span>
-    </button>
-    <div id="genesis-dots" title="Design-Theme">
-      <div class="gdot" data-t="genesis" onclick="window.setGenesisTheme('genesis')" title="Genesis"></div>
-      <div class="gdot" data-t="karst"   onclick="window.setGenesisTheme('karst')"   title="Karst"></div>
-      <div class="gdot" data-t="aurora"  onclick="window.setGenesisTheme('aurora')"  title="Aurora"></div>
-      <div class="gdot" data-t="meridian" onclick="window.setGenesisTheme('meridian')" title="Meridian"></div>
-      <div class="gdot" data-t="blanc"   onclick="window.setGenesisTheme('blanc')"   title="Blanc"></div>
-      <div class="gdot" data-t="custom"  onclick="window.setGenesisTheme('custom')"  title="Eigenes Theme"></div>
-    </div>
-  </div>
-</nav>
-
-<!-- Sidebar Toggle (fixed tab, left edge) -->
-<button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
-  <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
-</button>
-
-<!-- SIDEBAR -->
-<!-- Sidebar Backdrop (mobile drawer) -->
-<div id="sidebar-backdrop" onclick="closeDrawer()"></div>
-
-<aside id="sidebar" class="collapsed">
-
-  <!-- S-Logo Header -->
-  <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(var(--neon-rgb),0.12);">
-    <img src="s-logo.png" alt="ScampyKI" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(var(--neon-rgb),0.5));" onerror="this.style.display='none'"/>
-    <div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;">ScampyKI</div>
-      <div style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">KI-NEWS.LIVE</div>
-    </div>
-  </div>
-
-  <!-- Nav Links -->
-  <div style="display:flex;flex-direction:column;gap:2px;padding:12px 8px 0;flex:1;overflow-y:auto;">
-    <a href="/" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">bolt</span>
-      <span>Aktuell</span>
-    </a>
-    <a href="Archiv.html" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">archive</span>
-      <span>Archiv</span>
-    </a>
-    <a href="artikel.html" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">menu_book</span>
-      <span>Artikel</span>
-    </a>
-    <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">mic</span>
-      <span>Podcast</span>
-    </a>
-    <a href="https://youtube.com/@ScampyKI" target="_blank" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">play_circle</span>
-      <span>YouTube</span>
-    </a>
-    <a href="stats.html" class="sidebar-nav-link">
-      <span class="material-symbols-outlined">bar_chart</span>
-      <span>Statistik</span>
-    </a>
-    <a href="profil.html" class="sidebar-active-link">
-      <span class="material-symbols-outlined">person</span>
-      <span>Profil & Design</span>
-    </a>
-  </div>
-
-  <!-- Social Footer -->
-  <div style="padding:4px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;">Kontakt & Social</div>
-  <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    @ScampyKI
-  </a>
-  <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank">
-    <span class="material-symbols-outlined">photo_camera</span>
-    KIScampy
-  </a>
-  <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank">
-    <span class="material-symbols-outlined">work</span>
-    dscampy
-  </a>
-  <div style="padding:12px 20px 14px;border-top:1px solid rgba(var(--neon-rgb),0.10);margin-top:4px;">
-    <p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.22);line-height:1.5;">KI-News täglich auf Deutsch.<br>Kuratiert · Eingeordnet · Erklärt.</p>
-  </div>
-</aside>
-
 <!-- PAGE CONTENT -->
 <div class="page" id="main-content">
   <div class="wrap">

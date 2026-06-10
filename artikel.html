@@ -412,6 +412,7 @@ html.light .colophon-links a { color:#64748b; }
     <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
 </head>
 <body class="font-body-lg">
+<script src="assets/ki-layout.js"></script>
 
 <script>
 (function(){
@@ -438,104 +439,6 @@ html.light .colophon-links a { color:#64748b; }
 
 <div id="genesis-wrap"></div>
 <div id="bg-overlay"></div>
-
-<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);">
-  <div class="flex items-center gap-8">
-    <a href="/" id="brand-link" class="flex items-center gap-2.5" onclick="return brandClick(event);">
-      <img src="s-logo.png" alt="" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));"/>
-      <span style="display:flex;flex-direction:column;justify-content:center;line-height:1.02;"><span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span><span id="brand-menu-hint" style="font-size:8px;font-family:monospace;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted,rgba(148,163,184,0.75));margin-top:2px;">☰ Menü</span></span>
-      <span class="hidden sm:inline text-[10px] font-mono ki-muted tracking-widest uppercase ki-border border px-1.5 py-0.5">DE</span>
-    </a>
-    <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="/">Aktuell</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="Archiv.html">Archiv</a>
-      <a class="text-sm font-medium text-[#1d9bf0] border-b-2 border-[#1d9bf0] pb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent);border-color:var(--accent)" href="artikel.html">Artikel</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif" href="stats.html">Statistik</a>
-      <a class="text-sm font-medium ki-muted hover:text-white transition-colors" style="font-family:'Space Grotesk',sans-serif;" href="profil.html">Profil</a>
-    </div>
-  </div>
-  <div class="flex items-center gap-4">
-    <a href="https://x.com/ScampyKI" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span class="hidden sm:inline">@ScampyKI</span>
-    </a>
-    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.45);display:flex;align-items:center;" title="Dark/Light Toggle">
-      <span class="material-symbols-outlined" style="font-size:18px;">contrast</span>
-    </button>
-    <div id="genesis-dots" title="Design-Theme">
-      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis"></button>
-      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst"></button>
-      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora"></button>
-      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian"></button>
-      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc"></button>
-    </div>
-  </div>
-</nav>
-<button id="sidebar-toggle" class="visible" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen">
-  <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
-</button>
-<!-- Sidebar Backdrop (mobile drawer) -->
-<div id="sidebar-backdrop" onclick="closeDrawer()"></div>
-
-<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col ki-border border-r hidden lg:flex overflow-hidden collapsed" style="border-color:rgba(var(--neon-rgb),0.18);">
-
-  <!-- S-Logo Header -->
-  <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(var(--neon-rgb),0.12);">
-    <img src="s-logo.png" alt="ScampyKI" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(var(--neon-rgb),0.5));"/>
-    <div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;">ScampyKI</div>
-      <div style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">KI-NEWS.LIVE</div>
-    </div>
-  </div>
-
-  <!-- Nav -->
-  <div class="flex flex-col gap-0.5 px-2 pt-3" style="flex-shrink:0">
-    <a class="sidebar-nav-link" href="/">
-      <span class="material-symbols-outlined text-sm">bolt</span>Aktuell
-    </a>
-    <a class="sidebar-nav-link" href="Archiv.html">
-      <span class="material-symbols-outlined text-sm">archive</span>Archiv
-    </a>
-    <a class="ki-sidebar-active flex items-center gap-3 text-[var(--accent)] border-l-2 border-[var(--accent)] px-4 py-2.5 text-xs uppercase font-bold tracking-widest transition-all" style="font-family:'Space Grotesk',sans-serif;background:rgba(var(--neon-rgb),0.08);" href="#">
-      <span class="material-symbols-outlined text-sm">menu_book</span>Artikel
-    </a>
-    <a class="sidebar-nav-link" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">
-      <span class="material-symbols-outlined text-sm">mic</span>Podcast
-    </a>
-    <a class="sidebar-nav-link" href="https://youtube.com/@ScampyKI" target="_blank">
-      <span class="material-symbols-outlined text-sm">play_circle</span>YouTube
-    </a>
-    <a class="sidebar-nav-link" href="stats.html">
-      <span class="material-symbols-outlined text-sm">bar_chart</span>Statistik
-    </a>
-    <a class="sidebar-nav-link" href="profil.html">
-      <span class="material-symbols-outlined text-sm">person</span>Profil & Design
-    </a>
-  </div>
-
-  <!-- Spacer schiebt Social nach unten -->
-  <div style="flex:1 1 auto"></div>
-
-  <!-- Kontakt & Social (unten angeheftet) -->
-  <div style="margin:8px 16px 0;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0"></div>
-  <div style="padding:8px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0">Kontakt & Social</div>
-  <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank" style="flex-shrink:0">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    @ScampyKI
-  </a>
-  <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank" style="flex-shrink:0">
-    <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
-  </a>
-  <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank" style="flex-shrink:0">
-    <span class="material-symbols-outlined text-sm">work</span>dscampy
-  </a>
-
-  <!-- Footer -->
-  <div style="padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0">
-    <p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.22);line-height:1.5;">KI-News täglich auf Deutsch.<br>Kuratiert · Eingeordnet · Erklärt.</p>
-  </div>
-</aside>
 
 <main id="main-content">
   <div class="ed-wrap">
@@ -583,6 +486,25 @@ html.light .colophon-links a { color:#64748b; }
 
       <!-- Static longform articles -->
       <div id="longform-list" style="display:flex;flex-direction:column;gap:16px;margin-bottom:32px;">
+        <a href="artikel/rtx-spark-im-check.html" style="display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:12px;border:1px solid rgba(var(--neon-rgb),0.35);background:rgba(10,14,22,0.6);text-decoration:none;transition:border-color 0.2s,box-shadow 0.2s;backdrop-filter:blur(8px);"
+           onmouseenter="this.style.borderColor='rgba(var(--neon-rgb),0.7)';this.style.boxShadow='0 0 22px rgba(var(--neon-rgb),0.28)'"
+           onmouseleave="this.style.borderColor='rgba(var(--neon-rgb),0.35)';this.style.boxShadow='none'">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span style="display:inline-flex;padding:3px 10px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:3px;">Analyse</span>
+            <span style="display:inline-flex;padding:3px 8px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.85);border:1px solid rgba(var(--neon-rgb),0.3);border-radius:3px;">Hardware</span>
+            <span style="display:inline-flex;padding:3px 8px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.85);border:1px solid rgba(var(--neon-rgb),0.3);border-radius:3px;">Nvidia</span>
+          </div>
+          <h3 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,2vw,24px);font-weight:700;color:#dfe3ea;letter-spacing:-0.01em;line-height:1.2;">RTX Spark im Check: Revolution oder Hype?</h3>
+          <p style="font-family:'Work Sans',sans-serif;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">NVIDIAs RTX Spark im Faktencheck: Specs mit Fußnoten, das Apple-Timing-Problem, der CUDA-Burggraben und was bis zum Launch Herbst 2026 offen bleibt.</p>
+          <div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.38);letter-spacing:0.05em;flex-wrap:wrap;">
+            <span>@CScampy</span>
+            <span style="width:3px;height:3px;border-radius:50%;background:currentColor;display:inline-block;opacity:0.5;"></span>
+            <span>10. Juni 2026</span>
+            <span style="width:3px;height:3px;border-radius:50%;background:currentColor;display:inline-block;opacity:0.5;"></span>
+            <span>≈ 8 Min. Lesezeit</span>
+            <span style="margin-left:auto;color:rgba(var(--neon-rgb),0.6);font-weight:700;">Artikel lesen →</span>
+          </div>
+        </a>
         <a href="artikel/rtx-spark-fuer-wen.html" style="display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:12px;border:1px solid rgba(var(--neon-rgb),0.35);background:rgba(10,14,22,0.6);text-decoration:none;transition:border-color 0.2s,box-shadow 0.2s;backdrop-filter:blur(8px);"
            onmouseenter="this.style.borderColor='rgba(var(--neon-rgb),0.7)';this.style.boxShadow='0 0 22px rgba(var(--neon-rgb),0.28)'"
            onmouseleave="this.style.borderColor='rgba(var(--neon-rgb),0.35)';this.style.boxShadow='none'">
