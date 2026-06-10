@@ -355,130 +355,14 @@ html.light .colophon-bio{color:#64748b;}
     <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
 </head>
 <body class="font-body-lg">
-
-<script>
-(function(){
-  function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-  function apply(t){
-    var r=t==='auto'?pref():t;
-    document.documentElement.classList.remove('light','dark');
-    document.documentElement.classList.add(r);
-  }
-  var saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  apply(saved);
-  window.setTheme=function(t){try{localStorage.setItem('ki_theme',t);}catch(e){}apply(t);};
-  window.cycleTheme=function(){
-    var cur=localStorage.getItem('ki_theme')||'auto';
-    var resolved=cur==='auto'?pref():cur;
-    window.setTheme(resolved==='dark'?'light':'dark');
-  };
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){
-    var s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-    if(s==='auto')apply('auto');
-  });
-})();
-function setGenesisTheme(t){
-  document.documentElement.setAttribute('data-theme',t);
-  try{localStorage.setItem('ki_genesis_theme',t);}catch(e){}
-  document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.dataset.t===t);});
-}
-(function(){
-  var t='genesis';try{t=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
-  document.documentElement.setAttribute('data-theme',t);
-  document.addEventListener('DOMContentLoaded',function(){
-    document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.dataset.t===t);});
-  });
-})();
-</script>
+<script src="../assets/ki-layout.js"></script>
+<script src="../assets/ki-custom-theme.js"></script>
 
 <div id="genesis-wrap"></div>
 <div id="bg-overlay"></div>
 
 <!-- Reading Progress -->
 <div id="read-progress"><div id="read-progress-bar"></div></div>
-
-<!-- Nav -->
-<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-4 h-14 ki-border border-b" style="background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);border-color:rgba(var(--neon-rgb),0.18);">
-  <div class="flex items-center gap-8">
-    <a href="/" id="brand-link" class="flex items-center gap-2.5" onclick="return brandClick(event);">
-      <img src="../s-logo.png" alt="" style="width:30px;height:30px;border-radius:6px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));"/>
-      <span style="display:flex;flex-direction:column;justify-content:center;line-height:1.02;"><span class="text-xl font-black tracking-tighter uppercase" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)">KI NEWS</span><span id="brand-menu-hint" style="font-size:8px;font-family:monospace;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted,rgba(148,163,184,0.75));margin-top:2px;">☰ Menü</span></span>
-      <span class="hidden sm:inline text-[10px] font-mono tracking-widest uppercase px-1.5 py-0.5" style="border:1px solid rgba(var(--neon-rgb),0.25);color:rgba(255,255,255,0.4);">DE</span>
-    </a>
-    <div class="hidden md:flex items-center gap-6">
-      <a class="text-sm font-medium transition-colors" style="font-family:'Space Grotesk',sans-serif;color:rgba(255,255,255,0.45);" href="/">Aktuell</a>
-      <a class="text-sm font-medium transition-colors" style="font-family:'Space Grotesk',sans-serif;color:rgba(255,255,255,0.45);" href="../Archiv.html">Archiv</a>
-      <a class="text-sm font-medium border-b-2 pb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent);border-color:var(--accent);" href="../artikel.html">Artikel</a>
-      <a class="text-sm font-medium transition-colors" style="font-family:'Space Grotesk',sans-serif;color:rgba(255,255,255,0.45);" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">Podcast</a>
-      <a class="text-sm font-medium transition-colors" style="font-family:'Space Grotesk',sans-serif;color:rgba(255,255,255,0.45);" href="../profil.html">Profil</a>
-    </div>
-  </div>
-  <div class="flex items-center gap-4">
-    <a href="https://x.com/ScampyKI" target="_blank" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-mono">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      <span class="hidden sm:inline">@ScampyKI</span>
-    </a>
-    <button onclick="cycleTheme()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.45);display:flex;align-items:center;" title="Dark/Light Toggle">
-      <span class="material-symbols-outlined" style="font-size:18px;">contrast</span>
-    </button>
-    <div id="genesis-dots">
-      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis"></button>
-      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst"></button>
-      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora"></button>
-      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian"></button>
-      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc"></button>
-    </div>
-  </div>
-</nav>
-
-<!-- Sidebar Toggle -->
-<button id="sidebar-toggle" onclick="toggleSidebar()" title="Sidebar">
-  <span class="material-symbols-outlined" style="font-size:14px;font-weight:700;" id="toggle-icon">chevron_right</span>
-</button>
-
-<!-- Sidebar -->
-<!-- Sidebar Backdrop (mobile drawer) -->
-<div id="sidebar-backdrop" onclick="closeDrawer()"></div>
-
-<aside id="sidebar" class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] z-40 flex-col hidden lg:flex overflow-hidden collapsed" style="width:240px;border-right:1px solid rgba(var(--neon-rgb),0.18);">
-  <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(var(--neon-rgb),0.12);">
-    <img src="../s-logo.png" alt="ScampyKI" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(var(--neon-rgb),0.5));"/>
-    <div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;">ScampyKI</div>
-      <div style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">KI-NEWS.LIVE</div>
-    </div>
-  </div>
-  <div class="flex flex-col gap-0.5 px-2 pt-3" style="flex-shrink:0">
-    <a class="sidebar-nav-link" href="/"><span class="material-symbols-outlined text-sm">bolt</span>Aktuell</a>
-    <a class="sidebar-nav-link" href="../Archiv.html"><span class="material-symbols-outlined text-sm">archive</span>Archiv</a>
-    <a class="sidebar-nav-link" href="../artikel.html" style="color:var(--accent);border-left-color:var(--accent);background:rgba(var(--neon-rgb),0.08);"><span class="material-symbols-outlined text-sm">menu_book</span>Artikel</a>
-    <a class="sidebar-nav-link" href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank"><span class="material-symbols-outlined text-sm">mic</span>Podcast</a>
-    <a class="sidebar-nav-link" href="https://youtube.com/@ScampyKI" target="_blank"><span class="material-symbols-outlined text-sm">play_circle</span>YouTube</a>
-    <a class="sidebar-nav-link" href="../stats.html"><span class="material-symbols-outlined text-sm">bar_chart</span>Statistik</a>
-    <a class="sidebar-nav-link" href="../profil.html"><span class="material-symbols-outlined text-sm">person</span>Profil & Design</a>
-  </div>
-
-  <!-- Spacer schiebt Social nach unten -->
-  <div style="flex:1 1 auto"></div>
-
-  <!-- Kontakt & Social (unten angeheftet) -->
-  <div style="margin:8px 16px 0;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0"></div>
-  <div style="padding:8px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0">Kontakt & Social</div>
-  <a class="sidebar-nav-link" href="https://x.com/ScampyKI" target="_blank" style="flex-shrink:0">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="flex-shrink-0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    @ScampyKI
-  </a>
-  <a class="sidebar-nav-link" href="https://instagram.com/KIScampy" target="_blank" style="flex-shrink:0">
-    <span class="material-symbols-outlined text-sm">photo_camera</span>KIScampy
-  </a>
-  <a class="sidebar-nav-link" href="https://linkedin.com/in/dscampy" target="_blank" style="flex-shrink:0">
-    <span class="material-symbols-outlined text-sm">work</span>dscampy
-  </a>
-
-  <div style="padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0">
-    <p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.22);line-height:1.5;">KI-News täglich auf Deutsch.<br>Kuratiert · Eingeordnet · Erklärt.</p>
-  </div>
-</aside>
 
 <!-- Main -->
 <main id="main-content">
@@ -649,19 +533,6 @@ function setGenesisTheme(t){
 </main>
 
 <script>
-// Sidebar
-function toggleSidebar(){
-  var s=document.getElementById('sidebar');
-  var m=document.getElementById('main-content');
-  var ic=document.getElementById('toggle-icon');
-  var btn=document.getElementById('sidebar-toggle');
-  s.classList.toggle('collapsed');
-  var open=!s.classList.contains('collapsed');
-  if(window.innerWidth>=1024){m.style.marginLeft=open?'240px':'0';}
-  ic.textContent=open?'chevron_left':'chevron_right';
-  btn.style.left=open?'240px':'0';
-}
-
 // Reading progress
 window.addEventListener('scroll',function(){
   var body=document.body;
