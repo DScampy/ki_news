@@ -79,12 +79,6 @@ html.light .nav-admin-badge{background:rgba(217,119,6,0.12);color:#d97706;border
 html.light .diff-preview{background:#f8fafc;color:#334155;}
 html.light .modal{box-shadow:0 20px 60px rgba(0,0,0,0.15);}
 html.light .preview-box{box-shadow:0 1px 4px rgba(0,0,0,0.08);}
-/* Admin-Gate (Login) – Light-Modus */
-html.light #admin-gate{background:rgba(240,244,248,0.95)!important;}
-html.light #admin-gate>div{background:#ffffff!important;border-color:rgba(14,165,233,0.25)!important;box-shadow:0 10px 50px rgba(0,0,0,0.12)!important;}
-html.light #admin-gate>div>div:nth-child(2){color:#0f172a!important;}
-html.light #admin-gate>div>div:nth-child(3){color:rgba(15,23,42,0.45)!important;}
-html.light #gate-input{background:#f8fafc!important;color:#0f172a!important;border-color:rgba(14,165,233,0.25)!important;}
 a{color:inherit;text-decoration:none;}
 button{cursor:pointer;font-family:inherit;}
 ::-webkit-scrollbar{width:4px;}
@@ -422,52 +416,13 @@ select option{background:var(--surface2);}
 </head>
 <body>
 
-<!-- ═══ ADMIN GATE ══════════════════════════════════════════════════════════ -->
-<div id="admin-gate" style="
-  position:fixed;inset:0;z-index:9999;
-  background:rgba(0,0,0,0.95);backdrop-filter:blur(8px);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Space Grotesk',sans-serif;
-">
-  <div style="
-    background:#0b1120;border:1px solid rgba(29,155,240,0.2);border-radius:18px;
-    padding:44px 52px;max-width:380px;width:90%;text-align:center;
-    box-shadow:0 0 60px rgba(29,155,240,0.08);
-  ">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(29,155,240,0.7);margin-bottom:20px;">KI News · Admin</div>
-    <div style="font-size:24px;font-weight:800;color:#e2e8f0;letter-spacing:-0.03em;margin-bottom:8px;">Zugang</div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.3);font-family:monospace;margin-bottom:32px;">ki-news.live · intern</div>
-    <input id="gate-input" type="password" placeholder="Passwort" style="
-      width:100%;padding:12px 16px;background:#111827;
-      border:1px solid rgba(29,155,240,0.18);border-radius:10px;
-      color:#e2e8f0;font-size:15px;font-family:'Work Sans',sans-serif;
-      outline:none;margin-bottom:12px;letter-spacing:0.1em;
-    " onkeydown="if(event.key==='Enter')checkGate()"/>
-    <button onclick="checkGate()" style="
-      width:100%;padding:12px;background:#1d9bf0;border:none;border-radius:10px;
-      color:#fff;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:800;
-      letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:filter 0.15s;
-    " onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">Einloggen →</button>
-    <div id="gate-error" style="color:#f87171;font-size:12px;font-family:monospace;margin-top:14px;min-height:16px;"></div>
-  </div>
-</div>
-<script>
-var ADMIN_PW='scampy';
-var ki_authed=false;
-try{if(localStorage.getItem('ki_admin_auth')==='ok')ki_authed=true;}catch(e){}
-if(ki_authed)document.getElementById('admin-gate').style.display='none';
-function checkGate(){
-  if(document.getElementById('gate-input').value===ADMIN_PW){
-    try{localStorage.setItem('ki_admin_auth','ok');}catch(e){}
-    document.getElementById('admin-gate').style.display='none';
-  }else{
-    document.getElementById('gate-error').textContent='Falsches Passwort.';
-    document.getElementById('gate-input').value='';
-    document.getElementById('gate-input').focus();
-    setTimeout(()=>document.getElementById('gate-error').textContent='',2500);
-  }
-}
-</script>
+<!-- ═══ ADMIN GATE entfernt ══════════════════════════════════════════════════
+     Das frühere Klartext-Passwort-Gate (var ADMIN_PW='scampy') bot keinen
+     echten Schutz: Das Passwort stand im ausgelieferten Quelltext und ließ
+     sich per Konsole überspringen. Der eigentliche Schutz ist der GitHub-Token
+     – ohne ihn kann diese Seite nichts ins Repo schreiben. Das Gate war also
+     reine Dekoration und wurde ersatzlos entfernt.
+═══════════════════════════════════════════════════════════════════════════ -->
 
 <!-- ═══ TOP NAV ══════════════════════════════════════════════════════════════ -->
 <nav class="top-nav">
@@ -908,7 +863,9 @@ async function loadFromGitHub(){
     toast(articles.length+' Artikel geladen','success');
     document.getElementById('statsRow').style.display='';
     document.getElementById('searchBar').style.display='';
-    try{localStorage.setItem('ki_admin_token',document.getElementById('ghToken').value.trim());}catch(e){}
+    // Sicherheit: GitHub-Token NICHT in localStorage speichern. Er bleibt nur
+    // im Eingabefeld für diese Session – nach Reload neu eingeben. Verhindert
+    // Token-Diebstahl bei einer etwaigen XSS-Lücke auf same-origin-Seiten.
   }catch(e){setStatus('err');toast('Fehler: '+e.message,'error');}
 }
 
@@ -1873,18 +1830,8 @@ function toggleGhBar(){
   toggle.textContent=visible?'▶':'▼';
 }
 
-// Restore token + auto-collapse gh bar if already connected
-try{
-  const saved=localStorage.getItem('ki_admin_token');
-  if(saved){
-    document.getElementById('ghToken').value=saved;
-    // Auto-collapse the bar since token is already there
-    setTimeout(()=>{
-      document.getElementById('gh-bar-body').style.display='none';
-      document.getElementById('gh-bar-toggle').textContent='▶';
-    },100);
-  }
-}catch(e){}
+// GitHub-Token wird bewusst NICHT mehr aus localStorage wiederhergestellt.
+// Aus Sicherheitsgründen muss er pro Session neu eingegeben werden.
 
 // Set today's date as default for article creator
 document.getElementById('art-date').value=new Date().toISOString().slice(0,10);

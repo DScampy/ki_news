@@ -754,7 +754,7 @@ function buildSourceFilters() {
     btn.style.background = 'transparent';
     btn.style.color = isLight ? '#475569' : '#9ca3af';
     btn.style.borderLeftColor = 'transparent';
-    btn.innerHTML = `<span>${src}</span><span style="color:#6b7280">${count}</span>`;
+    btn.innerHTML = `<span>${escapeHtml(src)}</span><span style="color:#6b7280">${count}</span>`;
     btn.onmouseenter = () => { btn.style.background = isLight ? '#f1f5f9' : '#16181c'; btn.style.color = isLight ? '#0f172a' : '#fff'; };
     btn.onmouseleave = () => { if (activeSource !== src) { btn.style.background = 'transparent'; btn.style.color = isLight ? '#475569' : '#9ca3af'; } };
     btn.onclick = () => setFilter(src);
@@ -887,6 +887,12 @@ function relDate(d) {
   return then.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+// XSS-Schutz: Fremddaten (Feed-Titel, LLM-Text) vor innerHTML escapen.
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+}
+
 function createCard(item) {
   const conf = srcConf(item.source);
   const isList = layout === 'list';
@@ -921,20 +927,20 @@ function createCard(item) {
     a.innerHTML = `
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-2 flex-wrap">
-          <span style="background:${conf.color}" class="text-white px-2 py-0.5 text-[10px] font-mono rounded-sm uppercase flex-shrink-0">${item.source || '—'}</span> ${item.date ? `<span style="font-size:10px;font-family:monospace;margin-left:2px;color:${mutedColor}">${relDate(item.date)}</span>` : ''}
+          <span style="background:${conf.color}" class="text-white px-2 py-0.5 text-[10px] font-mono rounded-sm uppercase flex-shrink-0">${escapeHtml(item.source || '—')}</span> ${item.date ? `<span style="font-size:10px;font-family:monospace;margin-left:2px;color:${mutedColor}">${relDate(item.date)}</span>` : ''}
         </div>
-        <h4 class="font-headline-md leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
-        <p class="font-body-sm text-body-sm line-clamp-2" style="color:${mutedColor}">${item.summary || ''}</p>
+        <h4 class="font-headline-md leading-snug transition-colors mb-1 text-base" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${escapeHtml(item.title || '')}</h4>
+        <p class="font-body-sm text-body-sm line-clamp-2" style="color:${mutedColor}">${escapeHtml(item.summary || '')}</p>
       </div>
       <span class="material-symbols-outlined text-sm flex-shrink-0 mt-1" style="color:${iconColor}">open_in_new</span>`;
   } else {
     a.innerHTML = `
       <div class="flex items-center justify-between mb-4">
-        <span style="background:${conf.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${item.source || '—'}</span> ${item.date ? `<span style="font-size:10px;font-family:monospace;margin-left:2px;color:${mutedColor}">${relDate(item.date)}</span>` : ''}
+        <span style="background:${conf.color}" class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase">${escapeHtml(item.source || '—')}</span> ${item.date ? `<span style="font-size:10px;font-family:monospace;margin-left:2px;color:${mutedColor}">${relDate(item.date)}</span>` : ''}
         <span class="material-symbols-outlined text-sm" style="color:${iconColor}">open_in_new</span>
       </div>
-      <h4 class="font-headline-md mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${item.title || ''}</h4>
-      <p class="font-body-sm text-body-sm mt-auto pt-3 line-clamp-2" style="border-top:1px solid ${borderColor};color:${mutedColor}">${item.summary || ''}</p>`;
+      <h4 class="font-headline-md mb-2 leading-snug transition-colors flex-grow" style="font-family:'Space Grotesk',sans-serif;color:${titleColor}">${escapeHtml(item.title || '')}</h4>
+      <p class="font-body-sm text-body-sm mt-auto pt-3 line-clamp-2" style="border-top:1px solid ${borderColor};color:${mutedColor}">${escapeHtml(item.summary || '')}</p>`;
   }
   return a;
 }
