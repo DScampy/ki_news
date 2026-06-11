@@ -340,7 +340,7 @@ html.light .masthead-stats { color:#64748b; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 .lead-story { margin-bottom:42px; padding-bottom:32px; border-bottom:1px solid rgba(var(--neon-rgb),0.18); position:relative; }
 /* ── Analyse-Aufklapper (Scampy-Thread aus news.json.posts) ── */
-.art-analyse-toggle{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,rgba(255,255,255,0.5));background:none;border:none;cursor:pointer;padding:0;transition:color .15s;}
+.art-analyse-toggle{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;transition:color .15s;}
 .art-analyse-toggle:hover{color:var(--accent);}
 .art-analyse{margin-top:14px;border-top:1px solid rgba(var(--neon-rgb),0.18);padding-top:12px;animation:artAnalyseIn .25s ease;}
 @keyframes artAnalyseIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
@@ -674,11 +674,12 @@ function matchPost(item, posts, idx){
   var same = posts.filter(function(p){ return p.teaser && item.source && p.teaser.indexOf('(via ' + item.source) !== -1; });
   return (same.length === 1 ? same[0] : posts[idx]) || null;
 }
-function analyseHtml(post, slot){
-  if (!post || !post.thread || !post.thread.length) return '';
+function hasAnalyse(post){ return !!(post && post.thread && post.thread.length); }
+function analyseHtml(post, slot, link){
+  if (!hasAnalyse(post)) return '';
   var items = post.thread.map(function(t){ return '<li>'+escapeHtml(t)+'</li>'; }).join('');
-  return '<button class="art-analyse-toggle" id="aa-toggle-'+slot+'" onclick="toggleArtAnalyse(\''+slot+'\')" style="margin-top:12px;">Analyse anzeigen ▾</button>'+
-    '<div class="art-analyse" id="aa-panel-'+slot+'" hidden>'+
+  if (link) items += '<li><a href="'+escapeHtml(link)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700;text-decoration:none;">Originalartikel lesen ↗</a></li>';
+  return '<div class="art-analyse" id="aa-panel-'+slot+'" hidden>'+
       (post.erklaerung ? '<div class="art-analyse-lead">'+escapeHtml(post.erklaerung)+'</div>' : '')+
       '<ol class="art-analyse-thread">'+items+'</ol>'+
     '</div>';
@@ -704,9 +705,11 @@ function renderLead(item, post){
       '<span class="dot"></span>'+
       '<span>≈ '+mins+' Min Lesezeit</span>'+
       '<span class="dot"></span>'+
-      (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="lead-cta">Originalartikel ↗</a>' : '') +
+      (hasAnalyse(post)
+        ? '<button class="art-analyse-toggle lead-cta" id="aa-toggle-lead" onclick="toggleArtAnalyse(\'lead\')">Analyse anzeigen ▾</button>'
+        : (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="lead-cta">Originalartikel ↗</a>' : '')) +
     '</div>' +
-    analyseHtml(post, 'lead');
+    analyseHtml(post, 'lead', item.link);
 }
 function renderSec(item, target, post, slot){
   var c = srcColor(item.source);
@@ -717,9 +720,11 @@ function renderSec(item, target, post, slot){
     '<p class="sec-text">'+escapeHtml(item.summary||'')+'</p>'+
     '<div class="sec-meta">'+
       '<span style="color:'+prio.color+';font-weight:700">'+prio.label+'</span>'+
-      (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="sec-cta">Weiter ↗</a>' : '') +
+      (hasAnalyse(post)
+        ? '<button class="art-analyse-toggle sec-cta" id="aa-toggle-'+slot+'" onclick="toggleArtAnalyse(\''+slot+'\')">Analyse ▾</button>'
+        : (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="sec-cta">Weiter ↗</a>' : '')) +
     '</div>' +
-    analyseHtml(post, slot);
+    analyseHtml(post, slot, item.link);
 }
 function renderGrid(items){
   document.getElementById('art-grid').innerHTML = items.map(function(item){
@@ -809,7 +814,7 @@ fetch('media.json?t=' + Date.now())
   .catch(function(){ renderXPosts([]); });
 </script>
 
-<script type="module">
+<script type="text/plain" id="ki-genesis-src">
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
@@ -895,6 +900,20 @@ window.addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);
 });
+</script>
+<script>
+/* Mobile-Schonung: 3D-Hintergrund nur auf Desktop und ohne reduced-motion.
+   Auf Mobilgeräten wird three.js gar nicht erst heruntergeladen. */
+(function(){
+  if (window.innerWidth < 768) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var src = document.getElementById('ki-genesis-src');
+  if (!src) return;
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = src.textContent;
+  document.body.appendChild(s);
+})();
 </script>
 
 <!-- ── KI Theme-Kopplung: Hell/Dunkel + Genesis vereinheitlicht (vor ki-custom-theme.js) ── -->
