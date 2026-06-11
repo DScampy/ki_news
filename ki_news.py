@@ -3,6 +3,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import json
 import os
+import hashlib
 import logging
 import webbrowser
 from datetime import datetime, timezone, timedelta
@@ -1451,7 +1452,26 @@ def main():
     ]
     logger.info("%d Posts bereit", len(parsed))
 
-    send_telegram(parsed)
+    # ── Telegram-Dedupe: nur senden, wenn sich die Top-Posts geaendert haben ──
+    tg_state_file = Path("telegram_state.json")
+    tg_fingerprint = hashlib.sha256(
+        "|".join(n.get("link", "") for n in top_news).encode("utf-8")
+    ).hexdigest()
+    tg_last = ""
+    try:
+        tg_last = json.loads(tg_state_file.read_text(encoding="utf-8")).get("fingerprint", "")
+    except Exception:
+        pass
+    if tg_fingerprint == tg_last:
+        logger.info("Telegram: Top-Posts unveraendert seit letztem Versand – uebersprungen.")
+    elif send_telegram(parsed):
+        try:
+            tg_state_file.write_text(json.dumps({
+                "fingerprint": tg_fingerprint,
+                "stand": datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M"),
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            logger.warning("telegram_state.json nicht schreibbar: %s", e)
 
     # ── news.json schreiben (fuer Dashboard + Archiv) ──────────────────────
     def write_json_file(path_obj, data):
