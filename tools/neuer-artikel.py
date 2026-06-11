@@ -72,6 +72,12 @@ def main():
     if "<html" in body.lower() or "<head" in body.lower():
         fail("--body soll nur das Artikel-Innere sein, kein komplettes HTML-Dokument")
 
+    # Share-Card automatisch nutzen, wenn vorhanden (tools/og-card.py)
+    if a.ogimage == "https://ki-news.live/s-logo.png" and \
+       os.path.exists(os.path.join(ROOT, "artikel", a.slug + "-og.png")):
+        a.ogimage = "https://ki-news.live/artikel/%s-og.png" % a.slug
+        print("· Share-Card gefunden -> og:image gesetzt")
+
     tpl = io.open(os.path.join(ROOT, "tools", "artikel-template.html"), encoding="utf-8").read()
 
     tags = [t.strip() for t in a.tags.split(",") if t.strip()]
@@ -160,7 +166,6 @@ def main():
         io.open(sm_path, "w", encoding="utf-8").write(sm)
         print("✓ sitemap.xml ergänzt")
 
-    print("\nFertig. Lokal prüfen, dann deployen.")
-
-if __name__ == "__main__":
-    main()
+    # ── artikel/artikel-index.json (für "Weiterlesen"-Block) ──
+    import json
+  

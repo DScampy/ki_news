@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link rel="icon" type="image/png" href="../s-logo.png"/>
 <title>{{TITLE}} · KI News</title>
 <meta name="description" content="{{DESC}}"/>
 <meta name="author" content="Daniel S. · @ScampyKI"/>
@@ -135,7 +136,7 @@ html.light .video-card{background:#fff!important;border-color:#e2e8f0!important;
   padding-top:56px;
 }
 .art-container{
-  max-width:780px;
+  max-width:920px;
   margin:0 auto;
   padding:48px 24px 80px;
 }
@@ -377,6 +378,7 @@ html.light .art-img-cap{color:#64748b;}
 <body class="font-body-lg">
 <script src="../assets/ki-layout.js"></script>
 <script src="../assets/ki-custom-theme.js"></script>
+<script src="../assets/ki-readmore.js" defer></script>
 
 <div id="genesis-wrap"></div>
 <div id="bg-overlay"></div>
@@ -465,7 +467,7 @@ window.addEventListener('scroll',function(){
 <!-- X/Twitter wird via ../assets/ki-embed.js erst auf Klick geladen -->
 
 <!-- Genesis Background -->
-<script type="module">
+<script type="text/plain" id="ki-genesis-src">
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
@@ -538,6 +540,20 @@ function animate(){
 }
 animate();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+</script>
+<script>
+/* Mobile-Schonung: 3D-Hintergrund nur auf Desktop und ohne reduced-motion.
+   Auf Mobilgeräten wird three.js gar nicht erst heruntergeladen. */
+(function(){
+  if (window.innerWidth < 768) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var src = document.getElementById('ki-genesis-src');
+  if (!src) return;
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = src.textContent;
+  document.body.appendChild(s);
+})();
 </script>
 
 </body>
