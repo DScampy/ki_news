@@ -1,9 +1,9 @@
 import re
 import urllib.request
+import urllib.parse
 import xml.etree.ElementTree as ET
 import json
 import os
-import hashlib
 import logging
 import webbrowser
 from datetime import datetime, timezone, timedelta
@@ -1097,6 +1097,73 @@ def _telegram_send_chunk(text, max_retries=3, delay=5):
         sleep(delay)
     return False
 
+def _x_intent_url(text):
+    """X mit vorbefuelltem Post-Text oeffnen (ein Tap vom Ticker zum Posting)."""
+    return "https://x.com/intent/post?text=" + urllib.parse.quote(text or "", safe="")
+
+def _telegram_send_message(text, buttons=None, max_retries=3, delay=5):
+    """Einzelnachricht mit HTML-Formatierung + optionalen Inline-Buttons.
+    Faellt bei HTML-Parse-Fehlern automatisch auf plain text zurueck."""
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text[:4000],
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+    if buttons:
+        payload["reply_markup"] = {"inline_keyboard": buttons}
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    for attempt in range(1, max_retries + 1):
+        try:
+            data = json.dumps(payload).encode()
+            req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                resp = json.loads(r.read())
+                if resp.get("ok"):
+                    return True
+                logger.warning("Telegram API ok=false: %s", resp)
+                if "parse" in str(resp.get("description", "")).lower():
+                    # HTML-Problem -> naechster Versuch ohne parse_mode
+                    payload.pop("parse_mode", None)
+                    payload["text"] = _sanitize_for_telegram(text)[:4000]
+        except Exception as e:
+            logger.warning("Telegram Fehler (Versuch %d): %s", attempt, e)
+        sleep(delay)
+    return False
+
+def send_telegram_stories(stories, score_map=None, detailliert=False):
+    """Eine Nachricht PRO neuer Story: Label + fetter Titel + Teaser +
+    Erklaerung, Buttons 'Auf X posten' (Intent-Link) und 'Artikel'.
+    detailliert=True (genau 1 neue Story): Thread-Entwurf komplett anhaengen."""
+    if not TELEGRAM_TOKEN:
+        logger.warning("Kein Telegram Token. Ueberspringe Versand.")
+        return False
+    score_map = score_map or {}
+
+    def esc(t):
+        return _html.escape(t or "", quote=False)
+
+    ok_all = True
+    for n, p in stories:
+        label = score_map.get(n.get("link", ""), {}).get("label", "")
+        teile = [f"{label} <b>{esc(n.get('title', ''))}</b>".strip()]
+        if p.get("teaser"):
+            teile += ["", esc(p["teaser"])]
+        if p.get("erklaerung"):
+            teile += ["", f"<i>{esc(p['erklaerung'])}</i>"]
+        if detailliert and p.get("thread"):
+            teile += ["", "<b>Thread-Entwurf:</b>"]
+            teile += [f"{i}/ {esc(tweet)}" for i, tweet in enumerate(p["thread"], 1)]
+        buttons_row = []
+        if p.get("teaser"):
+            buttons_row.append({"text": "Auf X posten", "url": _x_intent_url(p["teaser"])})
+        if n.get("link"):
+            buttons_row.append({"text": "Artikel", "url": n["link"]})
+        ok = _telegram_send_message("\n".join(teile), [buttons_row] if buttons_row else None)
+        ok_all = ok and ok_all
+        sleep(1)  # Telegram-Rate-Limit schonen
+    return ok_all
+
 def send_telegram(parsed):
     if not TELEGRAM_TOKEN:
         logger.warning("Kein Telegram Token. Ueberspringe Versand.")
@@ -1452,24 +1519,30 @@ def main():
     ]
     logger.info("%d Posts bereit", len(parsed))
 
-    # ── Telegram-Dedupe: nur senden, wenn sich die Top-Posts geaendert haben ──
+    # ── Telegram-Delta: nur NEUE Top-Storys senden, 1 Nachricht pro Story ──
     tg_state_file = Path("telegram_state.json")
-    tg_fingerprint = hashlib.sha256(
-        "|".join(n.get("link", "") for n in top_news).encode("utf-8")
-    ).hexdigest()
-    tg_last = ""
+    tg_sent = {}
     try:
-        tg_last = json.loads(tg_state_file.read_text(encoding="utf-8")).get("fingerprint", "")
+        tg_sent = json.loads(tg_state_file.read_text(encoding="utf-8")).get("sent_links", {})
     except Exception:
         pass
-    if tg_fingerprint == tg_last:
-        logger.info("Telegram: Top-Posts unveraendert seit letztem Versand – uebersprungen.")
-    elif send_telegram(parsed):
+    neue_stories = [
+        (n, p) for n, p in zip(top_news, parsed)
+        if n.get("link") and n["link"] not in tg_sent
+    ]
+    if not neue_stories:
+        logger.info("Telegram: keine neuen Top-Storys – Versand uebersprungen.")
+    elif send_telegram_stories(neue_stories, score_map, detailliert=(len(neue_stories) == 1)):
+        jetzt = datetime.now(BERLIN).isoformat()
+        for n, _ in neue_stories:
+            tg_sent[n["link"]] = jetzt
+        if len(tg_sent) > 60:  # State begrenzen: nur die 60 juengsten Links
+            tg_sent = dict(sorted(tg_sent.items(), key=lambda kv: kv[1])[-60:])
         try:
-            tg_state_file.write_text(json.dumps({
-                "fingerprint": tg_fingerprint,
-                "stand": datetime.now(BERLIN).strftime("%d.%m.%Y %H:%M"),
-            }, ensure_ascii=False, indent=2), encoding="utf-8")
+            tg_state_file.write_text(
+                json.dumps({"sent_links": tg_sent, "stand": jetzt}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
         except Exception as e:
             logger.warning("telegram_state.json nicht schreibbar: %s", e)
 
