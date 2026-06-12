@@ -317,6 +317,20 @@ footer.f a:hover{color:var(--accent);}
         </div>
       </div>
 
+      <!-- LIVE-Verhalten (rein im Browser, nichts wird gespeichert oder gesendet) -->
+      <div class="card span2" data-i="5">
+        <h3><span class="ic">⦿</span> Live: Was du gerade hier tust <span style="font-size:9px;font-family:var(--mono,monospace);color:#f97316;letter-spacing:0.12em;vertical-align:middle;animation:livePulse 1.6s infinite">● LIVE</span></h3>
+        <div class="rows">
+          <div class="row"><span class="k">Maus-Strecke auf dieser Seite</span><span class="v big" id="lv-mouse">0,00 m</span></div>
+          <div class="row"><span class="k">Zeit auf dieser Seite</span><span class="v" id="lv-time">0 s</span></div>
+          <div class="row"><span class="k">Klicks / Tasten</span><span class="v" id="lv-input">0 / 0</span></div>
+          <div class="row"><span class="k">Gelesen (Scroll-Tiefe)</span><span class="v" id="lv-scroll">0%</span></div>
+          <div class="row"><span class="k">Fluchtversuche (Tab gewechselt)</span><span class="v" id="lv-away">0</span></div>
+          <div class="row"><span class="k">Werbeblocker</span><span class="v" id="lv-adblock">wird geprüft…</span></div>
+        </div>
+        <p class="fp-note" style="margin-top:12px">Alles hier entsteht live in deinem Browser und verschwindet, sobald du den Tab schließt. Aber jetzt weißt du, was eine Seite nebenbei mitzählen <i>könnte</i> – viele tun genau das.</p>
+      </div>
+
     </div>
   </div>
 
@@ -374,6 +388,7 @@ footer.f a:hover{color:var(--accent);}
   </div>
 </main>
 
+<div class="adsbox ad-banner textads banner-ads" style="position:absolute;height:1px;width:1px;left:-9999px;" aria-hidden="true">&nbsp;</div>
 <script>
 (function(){
   "use strict";
@@ -566,6 +581,123 @@ footer.f a:hover{color:var(--accent);}
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run);
   else run();
+})();
+</script>
+
+<style>
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:0.25}}
+#spy-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--card,#0d1117);color:var(--text,#e8f8ff);border:1px solid rgba(var(--neon-rgb,0,212,255),0.5);border-radius:12px;padding:12px 20px;font-family:var(--mono,monospace);font-size:13px;z-index:2000;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
+#spy-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="spy-toast"></div>
+<script>
+/* ── Live-Spielereien: alles flüchtig, nichts verlässt den Browser ── */
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+
+  /* Toast */
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('spy-toast'); if(!t) return;
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 3200);
+  }
+
+  /* Maus-Strecke (px → Meter, ~96dpi) */
+  var dist = 0, lx = null, ly = null;
+  document.addEventListener('mousemove', function(e){
+    if(lx !== null){ dist += Math.hypot(e.clientX-lx, e.clientY-ly); }
+    lx = e.clientX; ly = e.clientY;
+  }, {passive:true});
+
+  /* Klicks + Tasten */
+  var clicks = 0, keys = 0;
+  document.addEventListener('click', function(){ clicks++; }, {passive:true});
+  document.addEventListener('keydown', function(){ keys++; }, {passive:true});
+
+  /* Scroll-Tiefe */
+  var maxScroll = 0;
+  document.addEventListener('scroll', function(){
+    var h = document.documentElement;
+    var p = (h.scrollTop + h.clientHeight) / h.scrollHeight * 100;
+    if(p > maxScroll) maxScroll = Math.min(100, Math.round(p));
+  }, {passive:true});
+
+  /* Tab-Wechsel + Verlassen-Detektor */
+  var away = 0, origTitle = document.title;
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){
+      away++;
+      document.title = '\uD83D\uDC40 Ich hab das gesehen.';
+    } else {
+      document.title = origTitle;
+      var spr = ['Wieder da? Schön.','Instagram war\'s, oder?','Willkommen zurück. Versuch '+away+'.'];
+      toast(spr[Math.min(away-1, spr.length-1)] || spr[0]);
+    }
+  });
+
+  /* Copy-Detektor */
+  document.addEventListener('copy', function(){
+    var lines = ['Kopiert! Das melde ich\u2026 nicht. \uD83D\uDE09','Schon wieder kopiert. Ich sag nichts. Versprochen.','Strg+C, der Klassiker. Dein Geheimnis ist sicher.'];
+    if(!window.__copyN) window.__copyN = 0;
+    toast(lines[Math.min(window.__copyN++, lines.length-1)]);
+  });
+
+  /* Adblock-Erkennung über Köder-Element */
+  setTimeout(function(){
+    var bait = document.querySelector('.adsbox');
+    var blocked = !bait || bait.offsetParent === null || bait.offsetHeight === 0;
+    var el = $('lv-adblock');
+    if(el) el.textContent = blocked ? 'aktiv — Respekt. Hier gibt\u2019s eh keine Werbung.' : 'keiner erkannt — hier läuft trotzdem keine Werbung.';
+  }, 900);
+
+  /* Sekunden-Ticker für die Live-Karte */
+  var t0 = Date.now();
+  function fmtTime(ms){
+    var sec = Math.floor(ms/1000);
+    if(sec < 60) return sec + ' s';
+    var m = Math.floor(sec/60), r = sec%60;
+    return m + ' min ' + r + ' s' + (m >= 3 ? ' — statt zu arbeiten' : '');
+  }
+  setInterval(function(){
+    if($('lv-mouse'))  $('lv-mouse').textContent  = (dist/3779.5).toFixed(2).replace('.', ',') + ' m';
+    if($('lv-time'))   $('lv-time').textContent   = fmtTime(Date.now() - t0);
+    if($('lv-input'))  $('lv-input').textContent  = clicks + ' / ' + keys;
+    if($('lv-scroll')) $('lv-scroll').textContent = maxScroll + '%';
+    if($('lv-away'))   $('lv-away').textContent   = away === 0 ? '0 — voll fokussiert' : String(away);
+  }, 1000);
+
+  /* Hardware-Kommentare unter GPU + Akku (freche Einordnung) */
+  function comment(id, txt){
+    var el = $(id); if(!el || !txt) return;
+    var n = document.createElement('div');
+    n.style.cssText = 'font-size:10px;font-family:var(--mono,monospace);color:#f59e0b;margin-top:3px;';
+    n.textContent = txt;
+    el.appendChild(n);
+  }
+  setTimeout(function(){
+    var gpuEl = $('r-gpu');
+    var g = gpuEl ? (gpuEl.textContent || '') : '';
+    var gc = '';
+    if(/RTX\s*50|RTX\s*40/i.test(g)) gc = 'Schön für dich.';
+    else if(/RTX|GTX/i.test(g)) gc = 'Solide. Reicht für KI-Basteleien.';
+    else if(/Apple|M[1-9]/i.test(g)) gc = 'Apple Silicon. Der RTX Spark zittert (nicht).';
+    else if(/Intel.*(UHD|Iris|HD Graphics)/i.test(g)) gc = 'Büro-GPU. Ehrliche Arbeit.';
+    else if(/Radeon|AMD/i.test(g)) gc = 'Team Rot. Respekt für den Mut.';
+    if(gc) comment('r-gpu', gc);
+
+    if(navigator.getBattery){
+      navigator.getBattery().then(function(b){
+        var pct = Math.round(b.level*100), bc = '';
+        if(b.charging) bc = 'Lädt gerade. Verantwortungsvoll.';
+        else if(pct <= 15) bc = pct + '%?! Speichern. Sofort.';
+        else if(pct <= 40) bc = 'Wird langsam Zeit für die Steckdose.';
+        if(bc) comment('r-battery', bc);
+      }).catch(function(){});
+    }
+  }, 2500);
 })();
 </script>
 </body>
