@@ -205,74 +205,18 @@ window.KI_SIDEBAR_EXTRA =
 <div id="bg-overlay" style="position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.45) 38%,rgba(0,0,0,0.88) 68%,rgba(0,0,0,0.94) 100%);transition:background 0.4s"></div>
 <style>html.light #bg-overlay{background:linear-gradient(to bottom,rgba(240,246,255,0.06) 0%,rgba(240,246,255,0.30) 40%,rgba(240,246,255,0.93) 68%,rgba(240,246,255,0.99) 100%) !important;}main,nav,aside{position:relative;z-index:10;}main{background:rgba(0,0,0,0.88);}html.light main{background:rgba(248,250,252,0.96);}</style>
 
-<!-- ── Theme Script ── -->
+<!-- ── Theme-Hook: Charts bei Theme-Wechsel umfärben ──
+     (Theme-Logik selbst kommt zentral aus assets/ki-layout.js) -->
 <script>
-(function(){
-  function pref(){return window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
-  function apply(t){
-    const r=t==='auto'?pref():t;
-    document.documentElement.classList.remove('light','dark');
-    document.documentElement.classList.add(r);
-    updateSlider(t);
-  }
-  function updateSlider(t){
-    const knob=document.querySelector('.theme-slider-knob');
-    if(!knob) return;
-    const r=t==='auto'?pref():t;
-    knob.style.left=r==='dark'?'22px':'2px';
-    knob.style.background=r==='dark'?'var(--accent)':'#f59e0b';
-  }
-  window.cycleTheme=function(){
-    const cur=localStorage.getItem('ki_theme')||'auto';
-    const r=cur==='auto'?pref():cur;
-    const next=r==='dark'?'light':'dark';
-    try{localStorage.setItem('ki_theme',next);}catch(e){}
-    apply(next);
-    if(window._charts) window._charts.forEach(c=>updateChartTheme(c));
-  };
-  // Genesis Theme init
-  const GT=['genesis','karst','aurora','meridian','blanc'];
-  function applyGenesisTheme(n){
-    if(GT.indexOf(n)===-1) n='genesis';
-    document.documentElement.setAttribute('data-theme',n);
-    if(n==='blanc'){document.documentElement.classList.add('light');document.documentElement.classList.remove('dark');}
-    else{document.documentElement.classList.remove('light','dark');}
-  }
-  window.setGenesisTheme = function(name) {
-    applyGenesisTheme(name);
-    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
-    document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.getAttribute('data-t')===name);});
-  };
-  let gS='genesis';try{gS=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
-  applyGenesisTheme(gS);
-
-  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  document.addEventListener('DOMContentLoaded',function(){
-    try{updateSlider(localStorage.getItem('ki_theme')||'auto');}catch(e){}
-    document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.getAttribute('data-t')===gS);});
-  });
-})();
-
-var sidebarOpen=(function(){try{return localStorage.getItem("ki_sidebar_open")==="1";}catch(e){return false;}})();
-function toggleSidebar(){
-  sidebarOpen=!sidebarOpen;
-  var sidebar=document.getElementById('sidebar'),main=document.getElementById('main-content'),toggle=document.getElementById('sidebar-toggle'),icon=document.getElementById('toggle-icon');
-  if(sidebarOpen){sidebar.classList.remove('collapsed');main.style.marginLeft='240px';toggle.style.left='240px';icon.textContent='chevron_left';}
-  else{sidebar.classList.add('collapsed');main.style.marginLeft='0';toggle.style.left='0';icon.textContent='chevron_right';}
-  try{localStorage.setItem('ki_sidebar_open',sidebarOpen?'1':'0');}catch(e){}
-}
-document.addEventListener('DOMContentLoaded',function(){
-  var toggle=document.getElementById('sidebar-toggle');
-  if(window.innerWidth>=1024)toggle.style.display='flex';
-  if(sidebarOpen){
-    var s=document.getElementById('sidebar'),m=document.getElementById('main-content'),i=document.getElementById('toggle-icon');
-    if(s)s.classList.remove('collapsed');if(m)m.style.marginLeft='240px';if(toggle)toggle.style.left='240px';if(i)i.textContent='chevron_left';
-  }
-});
+window.__kiThemeHook = function(){
+  if (window._charts && typeof updateChartTheme === 'function') window._charts.forEach(function(c){ updateChartTheme(c); });
+  if (window.renderSrcRanking) window.renderSrcRanking();
+};
+document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTheme) window.__kiApplyTheme(); });
 </script>
 
 <!-- ── Main ── -->
-<main id="main-content" class="pt-14 min-h-screen" style="background:#000;transition:margin-left 0.25s ease;">
+<main id="main-content" class="pt-14 min-h-screen" style="background:var(--bg,#000);transition:margin-left 0.25s ease,background 0.4s;">
   <div class="max-w-[1400px] mx-auto p-6">
 
     <!-- Header -->
@@ -757,6 +701,7 @@ function renderAll(current, all){
         <p style="font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:var(--article-title-color,#dfe3ea);line-height:1.3;margin-bottom:3px" class="line-clamp-2">${escapeHtml(art.title||'—')}</p>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:9px;font-family:monospace;color:${srcColor(art.source)};font-weight:700">${escapeHtml(art.source||'—')}</span>
+          <span style="font-size:9px;font-family:monospace;color:var(--muted,#6b7280)">${(function(){const r=art.first_seen||art.date||'';if(!r)return '';const d=new Date(String(r).length<=10?r+'T00:00:00':r);return isNaN(d)?'':'· '+d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});})()}</span>
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0">
@@ -870,9 +815,10 @@ function renderWeeklyStats(all) {
   const weeks = {};
   dated.forEach(a => {
     const { key, label } = getISOWeekInfo(a._date);
-    if (!weeks[key]) weeks[key] = { label, count: 0, scoreSum: 0, sources: {} };
+    if (!weeks[key]) weeks[key] = { label, count: 0, scoreSum: 0, scored: 0, scoredSum: 0, sources: {} };
     weeks[key].count++;
     weeks[key].scoreSum += (a.score || 0);
+    if ((a.score || 0) > 0) { weeks[key].scored++; weeks[key].scoredSum += a.score; }
     weeks[key].sources[a.source] = (weeks[key].sources[a.source] || 0) + 1;
   });
 
@@ -881,7 +827,9 @@ function renderWeeklyStats(all) {
 
   const labels = sorted.map(([, v]) => v.label);
   const counts = sorted.map(([, v]) => v.count);
-  const avgs   = sorted.map(([, v]) => +(v.scoreSum / v.count).toFixed(1));
+  /* Ø nur über tatsächlich gescorte Artikel — Wochen ohne Scores (Alt-Archiv)
+     bekommen null und die Linie setzt dort aus, statt auf 0 zu stürzen */
+  const avgs   = sorted.map(([, v]) => v.scored ? +(v.scoredSum / v.scored).toFixed(1) : null);
 
   const ctx = document.getElementById('chart-weekly');
   if (!ctx) return;
@@ -916,6 +864,7 @@ function renderWeeklyStats(all) {
           pointRadius: 4,
           pointBackgroundColor: '#f97316',
           pointBorderColor: '#000',
+          spanGaps: false,
           pointBorderWidth: 1,
           tension: 0.35,
           fill: true,

@@ -257,103 +257,21 @@ window.KI_SIDEBAR_EXTRA =
 <script src="assets/ki-layout.js"></script>
 <script src="assets/ki-custom-theme.js"></script>
 
-<!-- ── Theme + Sidebar Script ── -->
+<!-- ── Theme-Hook: Archiv-spezifische Inline-Styles bei Theme-Wechsel ──
+     (Theme-Logik selbst kommt zentral aus assets/ki-layout.js) -->
 <script>
-(function(){
-  function pref(){return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-  function apply(t){
-    const r=t==='auto'?pref():t;
-    document.documentElement.classList.remove('light','dark');
-    document.documentElement.classList.add(r);
-    updateSlider(t);
-  }
-  function updateSlider(t){
-    const knob=document.querySelector('.theme-slider-knob');
-    if(!knob) return;
-    const resolved=t==='auto'?pref():t;
-    knob.style.left=resolved==='dark'?'22px':'2px';
-    knob.style.background=resolved==='dark'?'#1d9bf0':'#f59e0b';
-  }
-  window.cycleTheme=function(){
-    const cur=localStorage.getItem('ki_theme')||'auto';
-    const resolved=cur==='auto'?pref():cur;
-    const next=resolved==='dark'?'light':'dark';
-    try{localStorage.setItem('ki_theme',next);}catch(e){}
-    apply(next);
-    // Inline-Style-Elemente bei Theme-Wechsel aktualisieren
-    const isLightNow = next === 'light';
-    const vtog = document.getElementById('viewToggle');
-    const msrch = document.getElementById('mobileSearch');
-    const fchip = document.getElementById('filterChipLabel');
-    if(vtog){ vtog.style.background=isLightNow?'#f8fafc':'#16181c'; vtog.style.borderColor=isLightNow?'#e2e8f0':'#2f3336'; }
-    if(msrch){ msrch.style.background=isLightNow?'#f8fafc':'#16181c'; msrch.style.borderColor=isLightNow?'#e2e8f0':'#2f3336'; }
-    if(fchip){ fchip.style.background=isLightNow?'#f8fafc':'#16181c'; fchip.style.borderColor=isLightNow?'#e2e8f0':'#2f3336'; }
-    // Layout-Buttons neu rendern
-    if(typeof setLayout === 'function') setLayout(window._currentLayout || 'grid');
-  };
-  // Genesis Theme init (reads shared ki_genesis_theme key)
-  const GENESIS_THEMES=['genesis','karst','aurora','meridian','blanc'];
-  function applyGenesisTheme(name){
-    if(GENESIS_THEMES.indexOf(name)===-1) name='genesis';
-    document.documentElement.setAttribute('data-theme',name);
-    if(name==='blanc'){document.documentElement.classList.add('light');document.documentElement.classList.remove('dark');}
-    else{document.documentElement.classList.remove('light','dark');}
-  }
-  window.setGenesisTheme = function(name) {
-    applyGenesisTheme(name);
-    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
-    document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.getAttribute('data-t')===name);});
-  };
-  let gSaved='genesis';try{gSaved=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
-  applyGenesisTheme(gSaved);
-  document.addEventListener('DOMContentLoaded',function(){
-    document.querySelectorAll('.gdot').forEach(function(d){d.classList.toggle('active',d.getAttribute('data-t')===gSaved);});
+window.__kiThemeHook = function(isLight){
+  ['viewToggle','mobileSearch','filterChipLabel'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.style.background = isLight ? '#f8fafc' : '#16181c'; el.style.borderColor = isLight ? '#e2e8f0' : '#2f3336'; }
   });
-
-  let saved='auto';try{saved=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-  // Only apply old light/dark if no genesis theme stored or it's blanc
-  var _gStored=null;try{_gStored=localStorage.getItem('ki_genesis_theme');}catch(e){}
-  if(!_gStored) apply(saved);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-    let s='auto';try{s=localStorage.getItem('ki_theme')||'auto';}catch(e){}
-    if(s==='auto')apply('auto');
-  });
-  document.addEventListener('DOMContentLoaded',()=>{var _t='auto';try{_t=localStorage.getItem('ki_theme')||'auto';}catch(e){}updateSlider(_t);});
-})();
-
-// ── Sidebar Toggle ──────────────────────────────────────────────────────
-var sidebarOpen = (function(){try{return localStorage.getItem("ki_sidebar_open")==="1";}catch(e){return false;}})();
-function toggleSidebar() {
-  sidebarOpen = !sidebarOpen;
-  var sidebar = document.getElementById('sidebar');
-  var main    = document.getElementById('main-content');
-  var toggle  = document.getElementById('sidebar-toggle');
-  var icon    = document.getElementById('toggle-icon');
-  if (sidebarOpen) {
-    sidebar.classList.remove('collapsed');
-    main.style.marginLeft = '240px'; toggle.style.left = '240px'; icon.textContent = 'chevron_left';
-  } else {
-    sidebar.classList.add('collapsed');
-    main.style.marginLeft = '0'; toggle.style.left = '0'; icon.textContent = 'chevron_right';
-  }
-  try{localStorage.setItem('ki_sidebar_open', sidebarOpen?'1':'0');}catch(e){}
-}
-document.addEventListener('DOMContentLoaded', function() {
-  var toggle = document.getElementById('sidebar-toggle');
-  if (window.innerWidth >= 1024) toggle.style.display = 'flex';
-  if (sidebarOpen) {
-    var s=document.getElementById('sidebar'),m=document.getElementById('main-content'),i=document.getElementById('toggle-icon');
-    if(s) s.classList.remove('collapsed');
-    if(m) m.style.marginLeft='240px';
-    if(toggle) toggle.style.left='240px';
-    if(i) i.textContent='chevron_left';
-  }
-});
-
+  if (typeof setLayout === 'function') setLayout(window._currentLayout || 'grid');
+};
+document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTheme) window.__kiApplyTheme(); });
 </script>
 
 <!-- Main Content -->
-<main id="main-content" class="pt-14 min-h-screen bg-black" style="transition:margin-left 0.25s ease;">
+<main id="main-content" class="pt-14 min-h-screen" style="background:var(--bg,#000);transition:margin-left 0.25s ease,background 0.4s;">
   <div class="max-w-[1400px] mx-auto p-gutter">
 
     <!-- Header -->
@@ -760,7 +678,43 @@ function render() {
   empty.classList.add('hidden');
   countLabel.textContent = `${filtered.length} Artikel${activeSource ? ' · ' + activeSource : ''}${searchQuery ? ' · "' + searchQuery + '"' : ''}`;
   grid.innerHTML = '';
-  filtered.forEach(item => grid.appendChild(createCard(item)));
+
+  /* ── Pagination: ohne Filter/Suche zuerst nur die letzten 14 Tage,
+        ältere Beiträge chunk-weise auf Klick (DOM bleibt klein) ── */
+  const PAGE_CHUNK = 100;
+  const isFiltering = !!(activeSource || q);
+  let visible = filtered, rest = [];
+  if (!isFiltering) {
+    const cutoff = Date.now() - 14 * 86400000;
+    const isRecent = n => {
+      const raw = n.first_seen || n.date || '';
+      const t = raw ? new Date(String(raw).length <= 10 ? raw + 'T00:00:00' : raw).getTime() : 0;
+      return t >= cutoff;
+    };
+    visible = filtered.filter(isRecent);
+    rest = filtered.filter(n => !isRecent(n));
+    /* Falls (fast) nichts in 14 Tagen: mindestens 40 zeigen */
+    if (visible.length < 40) { visible = filtered.slice(0, 40); rest = filtered.slice(40); }
+  }
+  visible.forEach(item => grid.appendChild(createCard(item)));
+  window._archRest = rest;
+  if (rest.length) {
+    const moreWrap = document.createElement('div');
+    moreWrap.id = 'archMoreWrap';
+    moreWrap.style.cssText = 'grid-column:1/-1;display:flex;justify-content:center;padding:18px 0 6px;';
+    moreWrap.innerHTML = '<button id="archMoreBtn" style="font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);background:rgba(var(--neon-rgb),0.08);border:1px solid rgba(var(--neon-rgb),0.35);border-radius:999px;padding:10px 22px;cursor:pointer;transition:all .15s;">&#9660; &Auml;ltere Beitr&auml;ge anzeigen (' + rest.length + ')</button>';
+    grid.appendChild(moreWrap);
+    document.getElementById('archMoreBtn').onclick = function(){
+      const chunk = window._archRest.splice(0, PAGE_CHUNK);
+      const wrap = document.getElementById('archMoreWrap');
+      chunk.forEach(item => grid.insertBefore(createCard(item), wrap));
+      if (window._archRest.length) {
+        document.getElementById('archMoreBtn').innerHTML = '&#9660; &Auml;ltere Beitr&auml;ge anzeigen (' + window._archRest.length + ')';
+      } else {
+        wrap.remove();
+      }
+    };
+  }
 }
 
 function relDate(d) {
