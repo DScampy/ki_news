@@ -58,11 +58,9 @@ jobs:
           git add hashtags/hashtags.json 2>/dev/null || true
           git add telegram_state.json 2>/dev/null || true
           git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')" || echo "Keine Aenderungen"
-          # Rebase vor Push – verhindert "rejected: fetch first" wenn Actions-Runs sich überlappen
           git pull --rebase origin main || true
           git push origin HEAD:main || (sleep 5 && git pull --rebase origin main && git push origin HEAD:main) || true
 
-      # ── News Cards generieren ───────────────────────────────────────────────
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -88,7 +86,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add assets/cards/ cards.json
-          git diff --staged --quiet || git commit -m "🃏 auto: news cards $(date -u +%Y-%m-%d\ %H:%M) UTC"
+          git diff --staged --quiet || git commit -m "cards $(date -u +%Y-%m-%d)"
           git pull --rebase origin main || true
           git push origin HEAD:main || true
 
