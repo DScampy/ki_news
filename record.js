@@ -15,7 +15,7 @@
  */
 
 const { chromium } = require('playwright');
-const { execSync }  = require('child_process');
+const { execFileSync } = require('child_process');
 const fs            = require('fs');
 const path          = require('path');
 
@@ -128,30 +128,27 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   console.log(`[record.js] Berechnete FPS: ${fps}`);
 
   // ─── FFmpeg: Frames → MP4 ───────────────────────────────────────────────
-  const ffmpegCmd = [
-    'ffmpeg', '-y',
-    '-framerate', String(fps),
-    '-i', path.join(frameDir, 'frame_%06d.jpg'),
-    '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=decrease,pad=${WIDTH}:${HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
-    '-c:v', 'libx264',
-    '-preset', 'fast',
-    '-crf', '23',
-    '-pix_fmt', 'yuv420p',
-    '-movflags', '+faststart',
-    '-t', String(DURATION),
-    absMp4,
-  ].join(' ');
+const ffmpegArgs = [
+  '-y',
+  '-framerate', String(fps),
+  '-i', path.join(frameDir, 'frame_%06d.jpg'),
+  '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=decrease,pad=${WIDTH}:${HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
+  '-c:v', 'libx264',
+  '-preset', 'fast',
+  '-crf', '23',
+  '-pix_fmt', 'yuv420p',
+  '-movflags', '+faststart',
+  '-t', String(DURATION),
+  absMp4,
+];
 
-  console.log(`[record.js] FFmpeg: ${ffmpegCmd}`);
-
-  try {
-    execSync(ffmpegCmd, { stdio: 'inherit' });
-  } catch (err) {
-    console.error('[record.js] FFmpeg fehlgeschlagen:', err.message);
-    // Aufräumen
-    fs.rmSync(frameDir, { recursive: true, force: true });
-    process.exit(1);
-  }
+try {
+  execFileSync('ffmpeg', ffmpegArgs, { stdio: 'inherit' });
+} catch (err) {
+  console.error('[record.js] FFmpeg fehlgeschlagen:', err.message);
+  fs.rmSync(frameDir, { recursive: true, force: true });
+  process.exit(1);
+}
 
   // ─── Aufräumen ──────────────────────────────────────────────────────────
   fs.rmSync(frameDir, { recursive: true, force: true });
