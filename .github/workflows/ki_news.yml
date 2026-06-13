@@ -78,6 +78,7 @@ jobs:
       - name: Generate news cards (MP4 + cards.json)
         env:
           GROQ_CHAT_KEY: ${{ secrets.GROQ_CHAT_KEY }}
+	  OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
         run: python3 generate_news_cards.py
 
