@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=420, initial-scale=1.0">
+<title>Breaking News – ScampyKI</title>
+<style>
+  /* ─── Reset & Basis ──────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #05081A;
+    --cyan:      #00E5FF;
+    --orange:    #FF9E16;
+    --white:     #F0F4FF;
+    --grey:      #8B92A8;
+    --card-w:    420px;
+    --card-h:    660px;
+  }
+
+  html, body {
+    width:  var(--card-w);
+    height: var(--card-h);
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Hintergrund-Netz ───────────────────────────────────────────────── */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+  }
+
+  /* ─── Scan-Line ──────────────────────────────────────────────────────── */
+  .scanline {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: .55;
+    animation: scan 3s linear infinite;
+    pointer-events: none;
+    z-index: 10;
+  }
+  @keyframes scan {
+    0%   { top: -2px; }
+    100% { top: 100%; }
+  }
+
+  /* ─── Ecken-Dekoration ───────────────────────────────────────────────── */
+  .corner {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-color: var(--cyan);
+    border-style: solid;
+    opacity: .7;
+  }
+  .corner.tl { top: 12px; left: 12px;  border-width: 2px 0 0 2px; }
+  .corner.tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+  .corner.bl { bottom: 12px; left: 12px;  border-width: 0 0 2px 2px; }
+  .corner.br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+
+  /* ─── Haupt-Layout ───────────────────────────────────────────────────── */
+  .card {
+    position: relative;
+    width: var(--card-w);
+    height: var(--card-h);
+    display: flex;
+    flex-direction: column;
+    padding: 30px 26px 24px;
+    z-index: 1;
+  }
+
+  /* ─── Header: BREAKING NEWS Badge ───────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp .5s ease .15s forwards;
+  }
+
+  .badge {
+    background: var(--orange);
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 3px;
+    animation: pulse 2s ease-in-out 1s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .6; }
+  }
+
+  .branding {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    opacity: .85;
+  }
+
+  .timestamp {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--grey);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─── Divider ────────────────────────────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+    margin-bottom: 22px;
+    transform-origin: left;
+    transform: scaleX(0);
+    animation: growX .6s ease .4s forwards;
+  }
+  @keyframes growX {
+    to { transform: scaleX(1); }
+  }
+
+  /* ─── Headline ───────────────────────────────────────────────────────── */
+  .headline {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--white);
+    flex-shrink: 0;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeUp .5s ease .55s forwards;
+  }
+
+  /* ─── Quelle ─────────────────────────────────────────────────────────── */
+  .source-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp .4s ease .75s forwards;
+  }
+  .source-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    flex-shrink: 0;
+  }
+  .source-label {
+    font-size: 11px;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .source-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--orange);
+  }
+
+  /* ─── Kontext ────────────────────────────────────────────────────────── */
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 6px;
+    opacity: 0;
+    animation: fadeUp .4s ease .9s forwards;
+  }
+
+  .kontext {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #C8D0E8;
+    flex: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    opacity: 0;
+    animation: fadeUp .5s ease 1s forwards;
+    margin-bottom: 18px;
+  }
+
+  /* ─── Trennlinie Einordnung ──────────────────────────────────────────── */
+  .divider2 {
+    height: 1px;
+    background: rgba(0,229,255,.2);
+    margin-bottom: 14px;
+    transform-origin: left;
+    transform: scaleX(0);
+    animation: growX .5s ease 1.2s forwards;
+  }
+
+  /* ─── Einordnung (ScampyKI-Kommentar) ───────────────────────────────── */
+  .einordnung-wrap {
+    flex-shrink: 0;
+    opacity: 0;
+    animation: fadeUp .5s ease 1.35s forwards;
+  }
+
+  .einordnung-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 6px;
+  }
+
+  .einordnung {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #E8D8B8;
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ─── Footer ─────────────────────────────────────────────────────────── */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+    opacity: 0;
+    animation: fadeUp .4s ease 1.6s forwards;
+  }
+
+  .footer-brand {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: .05em;
+  }
+  .footer-brand span {
+    color: var(--orange);
+  }
+
+  .footer-url {
+    font-size: 10px;
+    color: var(--grey);
+  }
+
+  /* ─── Keyframe Hilfsfunktion ─────────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Glow-Effekt Headline ───────────────────────────────────────────── */
+  .headline-glow {
+    position: absolute;
+    top: 110px; left: 20px; right: 20px;
+    height: 60px;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,229,255,.08), transparent 70%);
+    pointer-events: none;
+    animation: glowPulse 4s ease-in-out 1s infinite;
+  }
+  @keyframes glowPulse {
+    0%, 100% { opacity: .5; }
+    50%       { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Hintergrund-Elemente -->
+  <div class="grid-bg"></div>
+  <div class="scanline"></div>
+  <div class="headline-glow"></div>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <!-- Inhalt -->
+  <div class="card">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="badge">Breaking</div>
+      <div class="branding">ScampyKI</div>
+      <div class="timestamp">{{DATUM}}</div>
+    </div>
+
+    <!-- Trennlinie -->
+    <div class="divider"></div>
+
+    <!-- Headline -->
+    <div class="headline">{{HEADLINE}}</div>
+
+    <!-- Quelle -->
+    <div class="source-row">
+      <div class="source-dot"></div>
+      <div class="source-label">Quelle</div>
+      <div class="source-name">{{QUELLE}}</div>
+    </div>
+
+    <!-- Kontext -->
+    <div class="section-label">Was ist passiert</div>
+    <div class="kontext">{{KONTEXT}}</div>
+
+    <div class="divider2"></div>
+
+    <!-- Einordnung -->
+    <div class="einordnung-wrap">
+      <div class="einordnung-label">⚡ ScampyKI-Einordnung</div>
+      <div class="einordnung">{{EINORDNUNG}}</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-brand">ki<span>-news</span>.live</div>
+      <div class="footer-url">ki-news.live</div>
+    </div>
+
+  </div>
+
+</body>
+</html>
