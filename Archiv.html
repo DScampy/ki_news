@@ -253,7 +253,7 @@ window.KI_SIDEBAR_EXTRA =
     '<button class="search-clear text-gray-600 hover:text-white" onclick="clearSearch()"><span class="material-symbols-outlined text-base">close</span></button>' +
   '</div>' +
   '<div class="overflow-y-auto" style="flex:1;min-height:60px;margin-top:10px">' +
-    '<button onclick="toggleSources()" class="flex items-center justify-between w-full mb-2 group" id="sourcesToggleBtn">' +
+    '<button onclick="toggleSources()" class="flex items-center justify-between w-full mb-2 group" id="sourcesToggleBtn" style="background:transparent;border:none;padding:0;">' +
       '<p class="text-[10px] font-mono uppercase tracking-widest" style="color:rgba(var(--neon-rgb),0.5)">Quellen</p>' +
       '<span class="material-symbols-outlined text-gray-600 group-hover:text-gray-400 transition-colors" style="font-size:14px" id="sourcesToggleIcon">expand_less</span>' +
     '</button>' +
@@ -708,16 +708,15 @@ function render() {
     return;
   }
   empty.classList.add('hidden');
-  countLabel.textContent = `${filtered.length} Artikel${activeSource ? ' · ' + activeSource : ''}${searchQuery ? ' · "' + searchQuery + '"' : ''}`;
   grid.innerHTML = '';
 
-  /* ── Pagination: ohne Filter/Suche zuerst nur die letzten 14 Tage,
+  /* ── Pagination: ohne Filter/Suche zuerst nur die letzten Tage,
         ältere Beiträge chunk-weise auf Klick (DOM bleibt klein) ── */
   const PAGE_CHUNK = 100;
   const isFiltering = !!(activeSource || q);
+  const days = (window._archivDays == null ? 14 : window._archivDays);
   let visible = filtered, rest = [];
   if (!isFiltering) {
-    const days = (window._archivDays == null ? 14 : window._archivDays);
     if (days > 0) {
       const cutoff = Date.now() - days * 86400000;
       const isRecent = n => {
@@ -735,6 +734,15 @@ function render() {
       rest = filtered.slice(PAGE_CHUNK);
     }
   }
+  /* ── countLabel: zeigt tatsächlich sichtbare Artikel ── */
+  if (isFiltering) {
+    countLabel.textContent = `${filtered.length} Artikel${activeSource ? ' · ' + activeSource : ''}${searchQuery ? ' · "' + searchQuery + '"' : ''}`;
+  } else if (days > 0) {
+    countLabel.textContent = `${visible.length} Artikel · letzte ${days} Tage${rest.length ? ' (' + rest.length + ' ältere)' : ''}`;
+  } else {
+    countLabel.textContent = `${visible.length} von ${filtered.length} Artikeln`;
+  }
+
   visible.forEach(item => grid.appendChild(createCard(item)));
   window._archRest = rest;
   if (rest.length) {
