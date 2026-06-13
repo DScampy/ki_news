@@ -31,7 +31,7 @@ GROQ_MODEL     = "meta-llama/llama-3.1-8b-instruct:free"
 TOP_N          = 5            # wie viele Storys verarbeitet werden
 CARD_WIDTH     = 420
 CARD_HEIGHT    = 660
-CARD_DURATION  = 8            # Sekunden
+CARD_DURATION  = 30           # Sekunden (kompletter Breaking-News-Zyklus)
 
 ROOT_DIR       = Path(__file__).parent.parent.parent.parent   # Repo-Root
 # Wenn als CI runner: Repo-Root ist CWD

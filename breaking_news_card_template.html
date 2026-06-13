@@ -2,312 +2,476 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=420, initial-scale=1.0">
-<title>Breaking News – KI-News.live</title>
+<title>ScampyKI Breaking News</title>
 <style>
-  /* ─── Reset & Basis ──────────────────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@700;900&display=swap');
 
-  :root {
-    --bg:        #05081A;
-    --cyan:      #00E5FF;
-    --orange:    #FF9E16;
-    --white:     #F0F4FF;
-    --grey:      #8B92A8;
-    --card-w:    420px;
-    --card-h:    660px;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body {
-    width:  var(--card-w);
-    height: var(--card-h);
-    overflow: hidden;
-    background: var(--bg);
-    font-family: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    color: var(--white);
-    -webkit-font-smoothing: antialiased;
-  }
+:root {
+  --bg:       #03060F;
+  --cyan:     #00E5FF;
+  --orange:   #FF6B00;
+  --text:     #E8EDF8;
+  --muted:    rgba(232,237,248,0.55);
+  --dimgrey:  rgba(232,237,248,0.28);
+}
 
-  /* ─── Hintergrund-Netz ───────────────────────────────────────────────── */
-  .grid-bg {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
-    background-size: 28px 28px;
-    pointer-events: none;
-  }
+html, body {
+  width: 420px;
+  height: 660px;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
 
-  /* ─── Scan-Line ──────────────────────────────────────────────────────── */
-  .scanline {
-    position: absolute;
-    left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    opacity: .55;
-    animation: scan 3s linear infinite;
-    pointer-events: none;
-    z-index: 10;
-  }
-  @keyframes scan {
-    0%   { top: -2px; }
-    100% { top: 100%; }
-  }
+/* ── GRID ── */
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.028) 1px, transparent 1px);
+  background-size: 30px 30px;
+  pointer-events: none;
+}
 
-  /* ─── Ecken-Dekoration ───────────────────────────────────────────────── */
-  .corner {
-    position: absolute;
-    width: 18px; height: 18px;
-    border-color: var(--cyan);
-    border-style: solid;
-    opacity: .7;
-  }
-  .corner.tl { top: 12px; left: 12px;  border-width: 2px 0 0 2px; }
-  .corner.tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
-  .corner.bl { bottom: 12px; left: 12px;  border-width: 0 0 2px 2px; }
-  .corner.br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+/* ── RADIAL GLOW (top center) ── */
+.glow {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 280px;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%,
+    rgba(0,229,255,.07) 0%, transparent 70%);
+  pointer-events: none;
+  animation: glowBreath 5s ease-in-out infinite;
+}
+@keyframes glowBreath {
+  0%,100% { opacity: .7; }
+  50%     { opacity: 1; }
+}
 
-  /* ─── Haupt-Layout ───────────────────────────────────────────────────── */
-  .card {
-    position: relative;
-    width: var(--card-w);
-    height: var(--card-h);
-    display: flex;
-    flex-direction: column;
-    padding: 30px 26px 24px;
-    z-index: 1;
-  }
+/* ── LEFT EDGE DATA STREAM ── */
+.stream {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  overflow: hidden;
+  opacity: 0;
+  animation: fadeIn .4s ease .9s forwards;
+}
+.stream-bar {
+  position: absolute;
+  left: 0; width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom,
+    transparent 0%, var(--cyan) 40%, var(--cyan) 60%, transparent 100%);
+  animation: streamDrop 2s ease-in-out infinite;
+}
+.stream-bar:nth-child(1) { animation-duration: 2.4s; animation-delay: 0s;    }
+.stream-bar:nth-child(2) { animation-duration: 1.9s; animation-delay: 0.8s;  }
+.stream-bar:nth-child(3) { animation-duration: 2.8s; animation-delay: 1.6s;  }
+@keyframes streamDrop {
+  0%   { height: 0;   top: -80px; opacity: 0;   }
+  15%  { height: 90px;            opacity: 0.55; }
+  85%  { height: 90px;            opacity: 0.35; }
+  100% { height: 0;   top: 740px; opacity: 0;   }
+}
 
-  /* ─── Header: BREAKING NEWS Badge ───────────────────────────────────── */
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-    opacity: 0;
-    animation: fadeUp .5s ease .15s forwards;
-  }
+/* ── SCAN LINE ── */
+.scan {
+  position: absolute;
+  left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(0,229,255,.45) 25%,
+    rgba(0,229,255,.85) 50%,
+    rgba(0,229,255,.45) 75%, transparent 100%);
+  pointer-events: none;
+  z-index: 100;
+  animation: scanPass 6s linear infinite;
+}
+@keyframes scanPass {
+  0%   { top: -2px;  opacity: 0; }
+  4%   {             opacity: 1; }
+  96%  {             opacity: .6; }
+  100% { top: 662px; opacity: 0; }
+}
 
-  .badge {
-    background: var(--orange);
-    color: #000;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    padding: 4px 9px;
-    border-radius: 3px;
-    animation: pulse 2s ease-in-out 1s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: .6; }
-  }
+/* ── PROGRESS BAR (30 s) ── */
+.progress {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  width: 0;
+  background: linear-gradient(90deg, var(--orange), var(--cyan));
+  box-shadow: 0 0 6px rgba(0,229,255,.55);
+  animation: progGrow 30s linear .3s forwards;
+  z-index: 50;
+}
+@keyframes progGrow { to { width: 100%; } }
 
-  .branding {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .1em;
-    color: var(--cyan);
-    text-transform: uppercase;
-    opacity: .85;
-  }
+/* ── CORNER BRACKETS ── */
+.c {
+  position: absolute; width: 18px; height: 18px;
+  border-color: rgba(0,229,255,.65); border-style: solid;
+  opacity: 0;
+  animation: fadeIn .35s ease .55s forwards;
+}
+.c.tl { top: 12px; left: 12px;   border-width: 2px 0 0 2px; }
+.c.tr { top: 12px; right: 12px;  border-width: 2px 2px 0 0; }
+.c.bl { bottom: 12px; left: 12px;   border-width: 0 0 2px 2px; }
+.c.br { bottom: 12px; right: 12px;  border-width: 0 2px 2px 0; }
 
-  .timestamp {
-    margin-left: auto;
-    font-size: 10px;
-    color: var(--grey);
-    font-variant-numeric: tabular-nums;
-  }
+/* ── INTRO FLASH ── */
+.flash {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 300;
+  pointer-events: none;
+  animation: flashOff .45s ease .25s forwards;
+}
+@keyframes flashOff {
+  0%   { opacity: 1; }
+  55%  { opacity: .25; }
+  75%  { opacity: .7; }
+  100% { opacity: 0; }
+}
 
-  /* ─── Divider ────────────────────────────────────────────────────────── */
-  .divider {
-    height: 1px;
-    background: linear-gradient(90deg, var(--cyan), transparent);
-    margin-bottom: 22px;
-    transform-origin: left;
-    transform: scaleX(0);
-    animation: growX .6s ease .4s forwards;
-  }
-  @keyframes growX {
-    to { transform: scaleX(1); }
-  }
+/* ════ CARD LAYOUT ════════════════════════════════════════════════════════ */
+.card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  height: 660px;
+  padding: 18px 24px 12px;
+}
 
-  /* ─── Headline ───────────────────────────────────────────────────────── */
-  .headline {
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1.25;
-    color: var(--white);
-    flex-shrink: 0;
-    margin-bottom: 16px;
-    opacity: 0;
-    animation: fadeUp .5s ease .55s forwards;
-  }
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-bottom: 13px;
+  opacity: 0;
+  animation: fadeUp .45s ease .65s forwards;
+}
 
-  /* ─── Quelle ─────────────────────────────────────────────────────────── */
-  .source-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-    opacity: 0;
-    animation: fadeUp .4s ease .75s forwards;
-  }
-  .source-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--orange);
-    flex-shrink: 0;
-  }
-  .source-label {
-    font-size: 11px;
-    color: var(--grey);
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-  .source-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--orange);
-  }
+.badge-breaking {
+  background: var(--orange);
+  color: #fff;
+  font-family: 'Orbitron', monospace;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  padding: 5px 10px;
+  flex-shrink: 0;
+  animation: badgePulse 2s ease-in-out 1.2s infinite;
+}
+@keyframes badgePulse {
+  0%,100% { box-shadow: none; }
+  50%     { box-shadow: 0 0 14px rgba(255,107,0,.75); }
+}
 
-  /* ─── Kontext ────────────────────────────────────────────────────────── */
-  .section-label {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    color: var(--cyan);
-    margin-bottom: 6px;
-    opacity: 0;
-    animation: fadeUp .4s ease .9s forwards;
-  }
+.badge-brand {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: .1em;
+  opacity: .75;
+  flex-shrink: 0;
+}
 
-  .kontext {
-    font-size: 12.5px;
-    line-height: 1.55;
-    color: #C8D0E8;
-    flex: 1;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 5;
-    -webkit-box-orient: vertical;
-    opacity: 0;
-    animation: fadeUp .5s ease 1s forwards;
-    margin-bottom: 18px;
-  }
+/* Signal bars */
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.sb {
+  width: 3px;
+  background: var(--cyan);
+  border-radius: 1px;
+  animation: sbBlink 1.4s ease-in-out infinite;
+}
+.sb:nth-child(1) { height: 4px;  opacity: .4; animation-delay: .0s; }
+.sb:nth-child(2) { height: 7px;  opacity: .6; animation-delay: .18s; }
+.sb:nth-child(3) { height: 10px; opacity: .8; animation-delay: .36s; }
+.sb:nth-child(4) { height: 13px; opacity: 1;  animation-delay: .54s; }
+@keyframes sbBlink {
+  0%,100% { opacity: inherit; }
+  50%     { opacity: .15; }
+}
 
-  /* ─── Trennlinie Einordnung ──────────────────────────────────────────── */
-  .divider2 {
-    height: 1px;
-    background: rgba(0,229,255,.2);
-    margin-bottom: 14px;
-    transform-origin: left;
-    transform: scaleX(0);
-    animation: growX .5s ease 1.2s forwards;
-  }
+.header-date {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--dimgrey);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
 
-  /* ─── Einordnung (ScampyKI-Kommentar) ───────────────────────────────── */
-  .einordnung-wrap {
-    flex-shrink: 0;
-    opacity: 0;
-    animation: fadeUp .5s ease 1.35s forwards;
-  }
+/* ── TOP DIVIDER ── */
+.div-top {
+  height: 1px;
+  background: linear-gradient(90deg, var(--cyan), rgba(0,229,255,0));
+  flex-shrink: 0;
+  margin-bottom: 20px;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: growX .6s ease 1s forwards;
+}
+@keyframes growX { to { transform: scaleX(1); } }
 
-  .einordnung-label {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    color: var(--orange);
-    margin-bottom: 6px;
-  }
+/* ── HEADLINE ── */
+.headline {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--text);
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  opacity: 0;
+  filter: blur(5px);
+  animation: materialize .9s cubic-bezier(.16,1,.3,1) 1.3s forwards;
+}
+@keyframes materialize {
+  from { opacity: 0; filter: blur(5px); transform: translateY(8px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+}
 
-  .einordnung {
-    font-size: 12px;
-    line-height: 1.5;
-    color: #E8D8B8;
-    font-style: italic;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
+/* ── SOURCE ROW ── */
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp .4s ease 2.4s forwards;
+}
+.source-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 6px rgba(255,107,0,.8);
+  flex-shrink: 0;
+  animation: dotPulse 2s ease-in-out 2.6s infinite;
+}
+@keyframes dotPulse {
+  0%,100% { box-shadow: 0 0 4px rgba(255,107,0,.5); }
+  50%     { box-shadow: 0 0 10px rgba(255,107,0,1); }
+}
+.source-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .15em;
+  color: var(--dimgrey);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.source-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cyan);
+}
 
-  /* ─── Footer ─────────────────────────────────────────────────────────── */
-  .footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,.07);
-    flex-shrink: 0;
-    opacity: 0;
-    animation: fadeUp .4s ease 1.6s forwards;
-  }
+/* ── KONTEXT SECTION ── */
+.kontext-section {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: fadeUp .6s ease 3.2s forwards;
+}
 
-  .footer-brand {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--cyan);
-    letter-spacing: .05em;
-  }
-  .footer-brand span {
-    color: var(--orange);
-  }
+.section-tag {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.section-tag::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0,229,255,.35), transparent);
+}
 
-  .footer-url {
-    font-size: 10px;
-    color: var(--grey);
-  }
+.kontext-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.62;
+  color: rgba(232,237,248,.88);
+  overflow: hidden;
+  flex: 1;
+  /* clamp overflow without cutting mid-line */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
 
-  /* ─── Keyframe Hilfsfunktion ─────────────────────────────────────────── */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+/* ── EINORDNUNG ── */
+.einordnung-section {
+  flex-shrink: 0;
+  padding: 14px 15px 14px 17px;
+  border: 1px solid rgba(255,107,0,.22);
+  border-left: 3px solid var(--orange);
+  background: rgba(255,107,0,.05);
+  position: relative;
+  margin-bottom: 14px;
+  opacity: 0;
+  animation: fadeUp .7s ease 5.5s forwards;
+}
+/* top glow line */
+.einordnung-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--orange), transparent 60%);
+}
 
-  /* ─── Glow-Effekt Headline ───────────────────────────────────────────── */
-  .headline-glow {
-    position: absolute;
-    top: 110px; left: 20px; right: 20px;
-    height: 60px;
-    background: radial-gradient(ellipse at 50% 50%, rgba(0,229,255,.08), transparent 70%);
-    pointer-events: none;
-    animation: glowPulse 4s ease-in-out 1s infinite;
-  }
-  @keyframes glowPulse {
-    0%, 100% { opacity: .5; }
-    50%       { opacity: 1; }
-  }
+.einordnung-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* "AI thinking" dots before text appears */
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  animation: thinkIn .25s ease 5s forwards, thinkOut .25s ease 5.5s forwards;
+}
+@keyframes thinkIn  { to { height: 18px; opacity: 1; } }
+@keyframes thinkOut { to { height: 0; opacity: 0; } }
+.td {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--orange);
+  animation: tdBounce .55s ease-in-out infinite;
+}
+.td:nth-child(2) { animation-delay: .18s; }
+.td:nth-child(3) { animation-delay: .36s; }
+@keyframes tdBounce {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-4px); }
+}
+
+.einordnung-text {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: rgba(255,220,175,.92);
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+/* ── FOOTER ── */
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.06);
+  opacity: 0;
+  animation: fadeIn .5s ease 6.5s forwards;
+}
+.footer-brand {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  opacity: .45;
+  letter-spacing: .04em;
+}
+.footer-url {
+  font-size: 9px;
+  color: var(--dimgrey);
+  letter-spacing: .04em;
+}
+
+/* ── UTILS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 </style>
 </head>
 <body>
 
-  <!-- Hintergrund-Elemente -->
-  <div class="grid-bg"></div>
-  <div class="scanline"></div>
-  <div class="headline-glow"></div>
-  <div class="corner tl"></div>
-  <div class="corner tr"></div>
-  <div class="corner bl"></div>
-  <div class="corner br"></div>
+  <!-- Dekor-Ebenen -->
+  <div class="grid"></div>
+  <div class="glow"></div>
+  <div class="stream">
+    <div class="stream-bar"></div>
+    <div class="stream-bar"></div>
+    <div class="stream-bar"></div>
+  </div>
+  <div class="scan"></div>
+  <div class="progress"></div>
+  <div class="flash"></div>
 
-  <!-- Inhalt -->
+  <!-- Ecken -->
+  <div class="c tl"></div>
+  <div class="c tr"></div>
+  <div class="c bl"></div>
+  <div class="c br"></div>
+
+  <!-- Karten-Inhalt -->
   <div class="card">
 
     <!-- Header -->
     <div class="header">
-      <div class="badge">Breaking</div>
-      <div class="branding">Scampy</div>
-      <div class="timestamp">{{DATUM}}</div>
+      <div class="badge-breaking">BREAKING</div>
+      <div class="badge-brand">SCAMPY</div>
+      <div class="signal">
+        <div class="sb"></div>
+        <div class="sb"></div>
+        <div class="sb"></div>
+        <div class="sb"></div>
+      </div>
+      <div class="header-date">{{DATUM}}</div>
     </div>
 
     <!-- Trennlinie -->
-    <div class="divider"></div>
+    <div class="div-top"></div>
 
     <!-- Headline -->
     <div class="headline">{{HEADLINE}}</div>
@@ -315,25 +479,30 @@
     <!-- Quelle -->
     <div class="source-row">
       <div class="source-dot"></div>
-      <div class="source-label">Quelle</div>
+      <div class="source-label">QUELLE</div>
       <div class="source-name">{{QUELLE}}</div>
     </div>
 
     <!-- Kontext -->
-    <div class="section-label">Was ist passiert</div>
-    <div class="kontext">{{KONTEXT}}</div>
+    <div class="kontext-section">
+      <div class="section-tag">WAS IST PASSIERT</div>
+      <p class="kontext-text">{{KONTEXT}}</p>
+    </div>
 
-    <div class="divider2"></div>
-
-    <!-- Einordnung -->
-    <div class="einordnung-wrap">
-      <div class="einordnung-label">⚡ Scampy-Einordnung</div>
-      <div class="einordnung">{{EINORDNUNG}}</div>
+    <!-- Scampy-Einordnung -->
+    <div class="einordnung-section">
+      <div class="einordnung-label">⚡ SCAMPY-EINORDNUNG</div>
+      <div class="thinking">
+        <div class="td"></div>
+        <div class="td"></div>
+        <div class="td"></div>
+      </div>
+      <p class="einordnung-text">{{EINORDNUNG}}</p>
     </div>
 
     <!-- Footer -->
     <div class="footer">
-      <div class="footer-brand">ki<span>-news</span>.live</div>
+      <div class="footer-brand">ki-news.live</div>
       <div class="footer-url">ki-news.live</div>
     </div>
 
