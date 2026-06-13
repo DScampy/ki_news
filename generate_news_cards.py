@@ -24,9 +24,9 @@ from pathlib import Path
 
 # ─── Konfiguration ────────────────────────────────────────────────────────────
 
-GROQ_API_KEY   = os.environ.get("GROQ_CHAT_KEY", "")
-GROQ_URL       = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL     = "llama-3.1-8b-instant"
+GROQ_API_KEY   = os.environ.get("OPENROUTER_KEY", "")
+GROQ_URL       = "https://openrouter.ai/api/v1/chat/completions"
+GROQ_MODEL     = "meta-llama/llama-3.1-8b-instruct:free"
 
 TOP_N          = 5            # wie viele Storys verarbeitet werden
 CARD_WIDTH     = 420
@@ -82,6 +82,8 @@ def groq_einordnung(headline: str, summary: str) -> str:
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {GROQ_API_KEY}",
+            "HTTP-Referer": "https://dscampy.github.io/ki_news",
+            "X-Title": "ScampyKI News Cards",
         },
         method="POST",
     )

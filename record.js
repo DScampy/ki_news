@@ -63,7 +63,7 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
 
   const context = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT },
-    deviceScaleFactor: 1,
+    deviceScaleFactor: 2,   // 2x-Rendering → scharfe Schrift
   });
 
   const page = await context.newPage();
@@ -85,9 +85,9 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
 
   await cdpSession.send('Page.startScreencast', {
     format: 'jpeg',
-    quality: 85,
-    maxWidth: WIDTH,
-    maxHeight: HEIGHT,
+    quality: 95,            // höhere JPEG-Qualität
+    maxWidth: WIDTH * 2,    // 2x für scharfe Schrift
+    maxHeight: HEIGHT * 2,
     everyNthFrame: 1,
   });
 
@@ -95,8 +95,8 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   const fileUrl = `file://${absHtml.replace(/\\/g, '/')}`;
   await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 30000 });
 
-  // Animation laufen lassen
-  await page.waitForTimeout(DURATION * 1000);
+  // Animation laufen lassen (+1s Puffer für -ss 0.5 Trim)
+  await page.waitForTimeout((DURATION + 1) * 1000);
 
   await cdpSession.send('Page.stopScreencast');
 
@@ -130,12 +130,13 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // ─── FFmpeg: Frames → MP4 ───────────────────────────────────────────────
 const ffmpegArgs = [
   '-y',
+  '-ss', '0.5',                                      // weißen Startframe abschneiden
   '-framerate', String(fps),
   '-i', path.join(frameDir, 'frame_%06d.jpg'),
-  '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=decrease,pad=${WIDTH}:${HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
+  '-vf', `scale=${WIDTH}:${HEIGHT}`,                 // 2x-Input → 1x-Output = scharf
   '-c:v', 'libx264',
   '-preset', 'fast',
-  '-crf', '23',
+  '-crf', '18',                                      // höhere Qualität (23 → 18)
   '-pix_fmt', 'yuv420p',
   '-movflags', '+faststart',
   '-t', String(DURATION),
