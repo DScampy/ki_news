@@ -234,7 +234,19 @@
 <body class="font-body-lg">
 <script>
 /* Seitenspezifische Sidebar-Erweiterung: Suche + Quellen-Filter + Stand (wird von ki-layout.js gerendert) */
+window._archivDays = 14; /* Standard: letzte 14 Tage */
 window.KI_SIDEBAR_EXTRA =
+  /* ── Zeitraum-Filter ── */
+  '<div style="flex-shrink:0;margin-bottom:12px">' +
+    '<p style="font-size:10px;font-family:monospace;text-transform:uppercase;letter-spacing:0.12em;color:rgba(var(--neon-rgb),0.5);margin:0 0 6px">Zeitraum</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">' +
+      '<button id="zBtn7"   onclick="setArchivDays(7)"  style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.2);background:transparent;color:var(--muted,#6b7280);cursor:pointer;transition:all .15s">7T</button>' +
+      '<button id="zBtn14"  onclick="setArchivDays(14)" style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.5);background:rgba(var(--neon-rgb),0.15);color:var(--accent);cursor:pointer;transition:all .15s">14T</button>' +
+      '<button id="zBtn30"  onclick="setArchivDays(30)" style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.2);background:transparent;color:var(--muted,#6b7280);cursor:pointer;transition:all .15s">30T</button>' +
+      '<button id="zBtnAll" onclick="setArchivDays(0)"  style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.2);background:transparent;color:var(--muted,#6b7280);cursor:pointer;transition:all .15s">Alles</button>' +
+    '</div>' +
+  '</div>' +
+  /* ── Suche ── */
   '<div id="searchWrap" class="flex items-center gap-2 px-3 py-2" style="background:var(--field,#111827);border:1px solid rgba(var(--neon-rgb),0.18);border-radius:8px;flex-shrink:0">' +
     '<span class="material-symbols-outlined text-gray-500 text-base">search</span>' +
     '<input id="searchInput" type="text" placeholder="Suchen&hellip;" class="bg-transparent border-none outline-none text-xs text-gray-300 placeholder-gray-600 w-full font-mono" oninput="handleSearch(this.value)"/>' +
@@ -656,6 +668,26 @@ function setLayout(l) {
   render();
 }
 
+// ── Zeitraum-Filter ──────────────────────────────────────────────────────────
+function setArchivDays(n) {
+  window._archivDays = n;
+  updateZeitButtons();
+  render();
+}
+
+function updateZeitButtons() {
+  const days = window._archivDays;
+  const map = { 7: 'zBtn7', 14: 'zBtn14', 30: 'zBtn30', 0: 'zBtnAll' };
+  Object.entries(map).forEach(([d, id]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const active = Number(d) === days;
+    btn.style.background = active ? 'rgba(var(--neon-rgb),0.15)' : 'transparent';
+    btn.style.color = active ? 'var(--accent)' : 'var(--muted,#6b7280)';
+    btn.style.borderColor = active ? 'rgba(var(--neon-rgb),0.5)' : 'rgba(var(--neon-rgb),0.2)';
+  });
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
   const q = searchQuery.toLowerCase();
@@ -685,16 +717,23 @@ function render() {
   const isFiltering = !!(activeSource || q);
   let visible = filtered, rest = [];
   if (!isFiltering) {
-    const cutoff = Date.now() - 14 * 86400000;
-    const isRecent = n => {
-      const raw = n.first_seen || n.date || '';
-      const t = raw ? new Date(String(raw).length <= 10 ? raw + 'T00:00:00' : raw).getTime() : 0;
-      return t >= cutoff;
-    };
-    visible = filtered.filter(isRecent);
-    rest = filtered.filter(n => !isRecent(n));
-    /* Falls (fast) nichts in 14 Tagen: mindestens 40 zeigen */
-    if (visible.length < 40) { visible = filtered.slice(0, 40); rest = filtered.slice(40); }
+    const days = (window._archivDays == null ? 14 : window._archivDays);
+    if (days > 0) {
+      const cutoff = Date.now() - days * 86400000;
+      const isRecent = n => {
+        const raw = n.first_seen || n.date || '';
+        const t = raw ? new Date(String(raw).length <= 10 ? raw + 'T00:00:00' : raw).getTime() : 0;
+        return t >= cutoff;
+      };
+      visible = filtered.filter(isRecent);
+      rest = filtered.filter(n => !isRecent(n));
+      /* Falls (fast) nichts im gewählten Zeitraum: mindestens 40 zeigen */
+      if (visible.length < 40) { visible = filtered.slice(0, 40); rest = filtered.slice(40); }
+    } else {
+      /* "Alles" — ersten PAGE_CHUNK sofort, Rest paginieren */
+      visible = filtered.slice(0, PAGE_CHUNK);
+      rest = filtered.slice(PAGE_CHUNK);
+    }
   }
   visible.forEach(item => grid.appendChild(createCard(item)));
   window._archRest = rest;
@@ -1006,33 +1045,18 @@ if (window.location.hash === '#hashtags') {
 
 <!-- ── KI Theme-Kopplung + Seiten-Hook (Toolbar/Karten) ── -->
 <script>
-window.__kiThemeHook=function(light,active){
-  // Karten & Panels recolorieren bereits per html.light-CSS. Nur die inline-gestylte
-  // Toolbar (viewToggle hat inline background) braucht eine Hand-Korrektur.
-  var vt=document.getElementById('viewToggle');
-  if(vt){vt.style.background=light?'#f1f5f9':'#16181c';vt.style.borderColor=light?'#e2e8f0':'#2f3336';}
+window.__kiThemeHook = function(light, active) {
+  /* Inline-gestylte Elemente bei Theme-Wechsel anpassen */
+  var vt = document.getElementById('viewToggle');
+  if (vt) { vt.style.background = light ? '#f1f5f9' : '#16181c'; vt.style.borderColor = light ? '#e2e8f0' : '#2f3336'; }
+  ['mobileSearch','filterChipLabel'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.style.background = light ? '#f8fafc' : '#16181c'; el.style.borderColor = light ? '#e2e8f0' : '#2f3336'; }
+  });
+  if (typeof setLayout === 'function') setLayout(window._currentLayout || 'grid');
+  if (typeof updateZeitButtons === 'function') updateZeitButtons();
 };
-(function(){
-  var GEN=['genesis','karst','aurora','meridian','blanc'];
-  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
-  var memGen=null, memContrast=null;
-  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
-  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
-  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
-  function resolveLight(){
-    if(getGenesis()==='blanc')return true;
-    var c=getContrast();
-    return c==='light'?true:(c==='dark'?false:prefersLight());
-  }
-  function applyAll(){
-    var root=document.documentElement, raw=rawGenesis();
-    if(raw==='custom'){
-      root.setAttribute('data-theme','custom');
-      root.classList.remove('light','dark');
-    }else{
-      var g=getGenesis(), light=resolveLight();
-      root.setAttribute('data-theme',g);
-      root.classList.toggle('light',light);
-      root.classList.toggle('dark',!light);
-    }
-    var active=(raw
+</script>
+
+</body>
+</html>
