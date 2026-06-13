@@ -1444,6 +1444,14 @@ def main():
     # Zusammenfassungen fuer alle News (Dashboard links)
     summaries = summarize_news(alle_news)
 
+    # Link->Titel-DE-Map: sofort aufgebaut, bevor blocked_links die alle_news-Indizes verschiebt.
+    # Wird fuer Telegram benoetigt (send_telegram_stories nutzt n['title'] direkt).
+    _title_de_by_link = {
+        alle_news[i].get("link"): summaries.get(i, {}).get("title_de") or alle_news[i]["title"]
+        for i in range(len(alle_news))
+        if alle_news[i].get("link")
+    }
+
     # ── Score-Verfall-Historie früh laden, damit Telegram-Auswahl UND Dashboard
     #    nach demselben (verfallenen) Score ranken → identische Top-Storys ──────
     heute = _today_iso()
@@ -1527,7 +1535,8 @@ def main():
     except Exception:
         pass
     neue_stories = [
-        (n, p) for n, p in zip(top_news, parsed)
+        ({**n, "title": _title_de_by_link.get(n.get("link"), n["title"])}, p)
+        for n, p in zip(top_news, parsed)
         if n.get("link") and n["link"] not in tg_sent
     ]
     if not neue_stories:
