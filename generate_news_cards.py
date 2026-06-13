@@ -145,7 +145,7 @@ def main() -> None:
         raw = json.load(f)
 
     # news.json kann als Liste oder als Dict mit 'articles'-Key vorliegen
-    articles = raw if isinstance(raw, list) else raw.get("news", raw.get("news", raw.get("articles", []))
+    articles = raw if isinstance(raw, list) else raw.get("news", raw.get("articles", []))
 
     # Sortieren nach Score (absteigend), Top-N nehmen
     articles_sorted = sorted(
