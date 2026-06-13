@@ -62,6 +62,36 @@ jobs:
           git pull --rebase origin main || true
           git push origin HEAD:main || (sleep 5 && git pull --rebase origin main && git push origin HEAD:main) || true
 
+      # ── News Cards generieren ───────────────────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright + Chromium
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Install FFmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Generate news cards (MP4 + cards.json)
+        env:
+          GROQ_CHAT_KEY: ${{ secrets.GROQ_CHAT_KEY }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+        run: python3 generate_news_cards.py
+
+      - name: Commit generated cards
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/cards/ cards.json
+          git diff --staged --quiet || git commit -m "🃏 auto: news cards $(date -u +%Y-%m-%d\ %H:%M) UTC"
+          git pull --rebase origin main || true
+          git push origin HEAD:main || true
+
       - name: Log hochladen
         uses: actions/upload-artifact@v4
         if: always()
