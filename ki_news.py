@@ -286,7 +286,7 @@ FEEDS = [
     ("CNet", 		"https://www.cnet.com/rss/all/"),
     ("MIT", 		"https://www.technologyreview.com/feed/"),
     ("NYT Technology",  "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"),
-    ("OpenAI",         "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_openai.xml"),
+    ("OpenAI",         "https://openai.com/blog/rss.xml"),
     # Kuratiert – bereits AI-spezifisch, kein KI-Filter nötig
     ("AlignedNews",    "https://alignednews.com/feed"),
     # Primärquellen – Lab-Announcements direkt (via Olshansk/rss-feeds, stündlich aktualisiert)
@@ -390,13 +390,14 @@ SOURCE_PRESTIGE = {
     "CNBC":           5,
     "NYT Technology":  5,
     # Gizmodo entfernt (blockiert GitHub Actions)
-    # Primärquellen (Olshansk-Feeds)
-    "Anthropic News":     5,
-    "Anthropic Research": 5,
-    "Meta AI Blog":       5,
-    "Google AI Blog":     5,
-    "xAI News":           5,
-    "Mistral News":       5,
+    # Primärquellen (direkt vom Hersteller) – höher gewichtet als Media
+    "Anthropic News":     10,
+    "Anthropic Research": 10,
+    "Meta AI Blog":       10,
+    "Google AI Blog":     10,
+    "xAI News":           10,
+    "Mistral News":       10,
+    "OpenAI":             10,
     "The Batch":          5,
 }
 
