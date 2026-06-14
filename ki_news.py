@@ -540,6 +540,7 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
             "eff_score": eff_score,
             "label": label,
             "sources_count": len({i["source"] for i in cluster}),
+            "members": cluster,   # NEU: alle Artikel im Cluster für Story-Mapping
         })
 
     # Nach verfallenem Score absteigend sortieren (bei Gleichstand: roher Score)
@@ -552,10 +553,27 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
             item["label"], item["rep"]["title"][:60], item["score"], item["eff_score"], item["sources_count"]
         )
 
+    # NEU: link → Story-Metadaten (für news.json-Anreicherung)
+    # Jeder Artikel erbt story_id, story_cluster_score und story_article_count seines Clusters.
+    # Damit kann die Podcast-Logik Artikel nach Story-Gewicht gruppieren statt nach Einzel-Score.
+    link_to_cluster_info = {}
+    for cluster_idx, item in enumerate(scored):
+        story_id = f"s{cluster_idx:03d}"
+        article_count = len(item.get("members", []))
+        for member in item.get("members", []):
+            lnk = member.get("link", "")
+            if lnk:
+                link_to_cluster_info[lnk] = {
+                    "story_id":            story_id,
+                    "story_cluster_score": item["score"],
+                    "story_label":         item["label"],
+                    "story_article_count": article_count,
+                }
+
     return [item["rep"] for item in top], {
         item["rep"]["link"]: {"score": item["score"], "label": item["label"]}
         for item in scored
-    }
+    }, link_to_cluster_info
 
 # -------------------------
 # Score-Verfall (Zeit-Decay)
@@ -1490,7 +1508,7 @@ def main():
         logger.info("Blocked-Filter: %d News entfernt", before - len(alle_news))
 
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
-    top_news, score_map = pick_top_news(
+    top_news, score_map, link_to_cluster_info = pick_top_news(
         alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links
     )
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
@@ -1581,18 +1599,23 @@ def main():
         base_score = hist["base_score"] if hist else raw_score
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
         preview_img = resolve_preview_image(link, hist)
+        cluster_info = link_to_cluster_info.get(link, {})
         entry = {
             "title":      s.get("title_de", n["title"]),
             "summary":    s.get("summary", ""),
             "link":       link,
             "source":     n.get("source", ""),
             "color":      SOURCE_COLORS.get(n.get("source", ""), "#555"),
-            "image":      preview_img,                     # NEU: Vorschaubild für die Karte
-            "base_score": base_score,                      # NEU: Ausgangs-Score (verfällt nie)
-            "score":      decay_score(base_score, first_seen),  # NEU: aktueller, verfallener Score
-            "label":      scoring.get("label", "📰 normal"),
-            "first_seen": first_seen,                      # NEU: Erst-Erfassung (Basis für Verfall)
+            "image":      preview_img,                     # Vorschaubild für die Karte
+            "base_score": base_score,                      # Ausgangs-Score (verfällt nie)
+            "score":      decay_score(base_score, first_seen),  # aktueller, verfallener Score
+            "label":      cluster_info.get("story_label", scoring.get("label", "📰 normal")),  # NEU: aus Cluster, nicht Einzel-Artikel
+            "first_seen": first_seen,                      # Erst-Erfassung (Basis für Verfall)
             "date":       first_seen,                      # date = Erst-Erfassung (für Sortierung/Anzeige)
+            # NEU: Story-Cluster-Felder – alle Artikel einer Story teilen dieselbe story_id
+            "story_id":            cluster_info.get("story_id", ""),
+            "story_cluster_score": cluster_info.get("story_cluster_score", 0),
+            "story_article_count": cluster_info.get("story_article_count", 1),
         }
         news_list.append(entry)
 
