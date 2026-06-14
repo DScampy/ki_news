@@ -26,7 +26,12 @@ from pathlib import Path
 
 GROQ_API_KEY   = os.environ.get("OPENROUTER_KEY", "")
 GROQ_URL       = "https://openrouter.ai/api/v1/chat/completions"
-GROQ_MODEL     = "meta-llama/llama-3.1-8b-instruct:free"
+GROQ_MODELS    = [
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "google/gemma-2-9b-it:free",
+    "microsoft/phi-3-mini-128k-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct",   # paid fallback
+]
 
 TOP_N          = 5            # wie viele Storys verarbeitet werden
 CARD_WIDTH     = 420
@@ -64,43 +69,58 @@ def slugify(text: str, max_len: int = 50) -> str:
 
 
 def groq_einordnung(headline: str, summary: str) -> str:
-    """Ruft Groq API auf und gibt eine 1–2-Satz-Einordnung zurück."""
+    """Ruft OpenRouter API auf, versucht Modelle der Reihe nach bei Rate-Limits."""
     if not GROQ_API_KEY:
-        print("  [WARN] GROQ_API_KEY nicht gesetzt — Einordnung wird übersprungen.")
+        print("  [WARN] OPENROUTER_KEY nicht gesetzt — Einordnung wird übersprungen.")
         return "Keine Einordnung verfügbar (API-Key fehlt)."
 
-    payload = json.dumps({
-        "model": GROQ_MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": f"News: {headline}\n\nZusammenfassung: {summary}"}
-        ],
-        "max_tokens": 120,
-        "temperature": 0.7,
-    }).encode("utf-8")
+    user_msg = f"News: {headline}\n\nZusammenfassung: {summary}"
 
-    req = urllib.request.Request(
-        GROQ_URL,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "HTTP-Referer": "https://dscampy.github.io/ki_news",
-            "X-Title": "ScampyKI News Cards",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"].strip()
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        print(f"  [ERROR] Groq HTTP {e.code}: {body[:200]}")
-        return "Einordnung nicht verfügbar."
-    except Exception as e:  # noqa: BLE001
-        print(f"  [ERROR] Groq Fehler: {e}")
-        return "Einordnung nicht verfügbar."
+    for model in GROQ_MODELS:
+        payload = json.dumps({
+            "model": model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": user_msg}
+            ],
+            "max_tokens": 120,
+            "temperature": 0.7,
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            GROQ_URL,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "HTTP-Referer": "https://dscampy.github.io/ki_news",
+                "X-Title": "ScampyKI News Cards",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                text = data["choices"][0]["message"]["content"].strip()
+                # Markdown-Artefakte bereinigen
+                text = re.sub(r"~~(.+?)~~", r"\1", text)  # ~~strikethrough~~
+                text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)  # **bold**
+                text = re.sub(r"\*(.+?)\*", r"\1", text)       # *italic*
+                print(f"  ✓ Einordnung via {model}")
+                return text
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            if e.code in (429, 503):
+                print(f"  [WARN] {model} Rate-Limit ({e.code}) — nächstes Modell")
+                continue
+            print(f"  [ERROR] {model} HTTP {e.code}: {body[:200]}")
+            return "Einordnung nicht verfügbar."
+        except Exception as e:  # noqa: BLE001
+            print(f"  [ERROR] {model}: {e}")
+            continue
+
+    print("  [ERROR] Alle Modelle erschöpft — keine Einordnung.")
+    return "Einordnung nicht verfügbar."
 
 
 def fill_template(template: str, fields: dict) -> str:

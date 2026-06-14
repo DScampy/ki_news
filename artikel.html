@@ -346,15 +346,19 @@ html.light .bps-counter { color:#94a3b8; }
 .bps-meta-source { font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:5px; opacity:.8; }
 .bps-meta-headline { font-family:'Fraunces',serif; font-size:13px; line-height:1.4; color:var(--text); font-weight:600; }
 html.light .bps-meta-headline { color:#0f172a; }
-.bps-archiv-toggle { display:flex; align-items:center; justify-content:space-between; font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.35); cursor:pointer; padding:8px 0; border-top:1px solid rgba(var(--neon-rgb),.1); transition:color .15s; }
-html.light .bps-archiv-toggle { color:#94a3b8; }
-.bps-archiv-toggle:hover { color:var(--accent); }
-.bps-archiv-item { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid rgba(var(--neon-rgb),.07); cursor:pointer; transition:background .15s; border-radius:3px; }
-.bps-archiv-item:hover { background:rgba(var(--neon-rgb),.04); }
-.bps-archiv-date { font-family:monospace; font-size:9px; color:rgba(255,255,255,.35); white-space:nowrap; padding-top:2px; }
-html.light .bps-archiv-date { color:#94a3b8; }
-.bps-archiv-hl { font-size:11px; line-height:1.35; color:var(--text); opacity:.78; }
-html.light .bps-archiv-hl { color:#0f172a; }
+.bps-playlist { border-top:1px solid rgba(var(--neon-rgb),.1); padding-top:8px; margin-top:2px; }
+.bps-pl-item { display:flex; align-items:flex-start; gap:9px; padding:7px 6px; border-radius:4px; cursor:pointer; transition:background .15s; border-bottom:1px solid rgba(var(--neon-rgb),.06); }
+.bps-pl-item:last-child { border-bottom:none; }
+.bps-pl-item:hover { background:rgba(var(--neon-rgb),.06); }
+.bps-pl-item.active { background:rgba(var(--neon-rgb),.1); }
+.bps-pl-num { font-family:monospace; font-size:10px; font-weight:700; color:rgba(var(--neon-rgb),.4); min-width:16px; padding-top:2px; }
+.bps-pl-item.active .bps-pl-num { color:var(--accent); }
+.bps-pl-info { flex:1; min-width:0; }
+.bps-pl-date { font-family:monospace; font-size:9px; color:rgba(255,255,255,.3); margin-bottom:2px; }
+html.light .bps-pl-date { color:#94a3b8; }
+.bps-pl-hl { font-size:11px; line-height:1.35; color:var(--text); opacity:.75; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+html.light .bps-pl-hl { color:#0f172a; }
+.bps-pl-item.active .bps-pl-hl { opacity:1; }
 .masthead { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:32px 0 18px; margin-bottom:18px; border-bottom:3px double rgba(var(--neon-rgb),0.45); position:relative; }
 .masthead::after { content:''; position:absolute; bottom:-8px; left:0; right:0; height:1px; background:rgba(var(--neon-rgb),0.18); }
 .masthead-left { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
@@ -662,13 +666,7 @@ html.light .colophon-links a { color:#64748b; }
           <div class="bps-meta-headline" id="bps-headline"></div>
         </div>
 
-        <div id="bps-archiv" style="display:none">
-          <div class="bps-archiv-toggle" onclick="bpsToggleArchiv()">
-            <span>Archiv</span>
-            <span id="bps-archiv-icon">▾</span>
-          </div>
-          <div id="bps-archiv-list" style="display:none; padding-top:4px;"></div>
-        </div>
+        <div class="bps-playlist" id="bps-playlist"></div>
 
       </div>
     </aside>
@@ -888,9 +886,7 @@ fetch('media.json?t=' + Date.now())
   var TOP_N   = 3;
   var cards   = [];
   var top     = [];
-  var arch    = [];
   var cur     = 0;
-  var archOpen = false;
 
   var video    = document.getElementById('bps-video');
   var loading  = document.getElementById('bps-loading');
@@ -899,15 +895,7 @@ fetch('media.json?t=' + Date.now())
   var metaEl   = document.getElementById('bps-meta');
   var srcEl    = document.getElementById('bps-source');
   var hlEl     = document.getElementById('bps-headline');
-  var archivEl = document.getElementById('bps-archiv');
-  var archList = document.getElementById('bps-archiv-list');
-  var archIcon = document.getElementById('bps-archiv-icon');
-
-  window.bpsToggleArchiv = function() {
-    archOpen = !archOpen;
-    archList.style.display = archOpen ? 'block' : 'none';
-    archIcon.textContent   = archOpen ? '▴' : '▾';
-  };
+  var playlistEl = document.getElementById('bps-playlist');
 
   function fmt(iso) {
     if (!iso) return '';
@@ -928,6 +916,9 @@ fetch('media.json?t=' + Date.now())
   function updateDots(idx) {
     dotsEl.querySelectorAll('.bps-dot').forEach(function(d, i) {
       d.classList.toggle('active', i === idx);
+    });
+    playlistEl.querySelectorAll('.bps-pl-item').forEach(function(el, i) {
+      el.classList.toggle('active', i === idx);
     });
   }
 
@@ -962,24 +953,19 @@ fetch('media.json?t=' + Date.now())
     loadCard(cur + 1 < top.length ? cur + 1 : 0);
   });
 
-  function buildArchiv() {
-    if (!arch.length) return;
-    archivEl.style.display = 'block';
-    arch.forEach(function(c) {
+  function buildPlaylist() {
+    playlistEl.innerHTML = '';
+    top.forEach(function(c, i) {
       var item = document.createElement('div');
-      item.className = 'bps-archiv-item';
+      item.className = 'bps-pl-item' + (i === 0 ? ' active' : '');
       item.innerHTML =
-        '<div class="bps-archiv-date">' + fmt(c.date) + '</div>' +
-        '<div class="bps-archiv-hl">' + c.headline + '</div>';
-      item.onclick = function() {
-        // Archiv-Karte temporär laden
-        var saved = top.slice();
-        top = [c];
-        buildDots();
-        loadCard(0);
-        top = saved;
-      };
-      archList.appendChild(item);
+        '<div class="bps-pl-num">' + (i + 1) + '</div>' +
+        '<div class="bps-pl-info">' +
+          '<div class="bps-pl-date">' + fmt(c.date) + ' · ' + (c.source || '') + '</div>' +
+          '<div class="bps-pl-hl">' + c.headline + '</div>' +
+        '</div>';
+      item.onclick = function() { loadCard(i); };
+      playlistEl.appendChild(item);
     });
   }
 
@@ -988,10 +974,9 @@ fetch('media.json?t=' + Date.now())
     .then(function(data) {
       cards = data.sort(function(a, b){ return b.date.localeCompare(a.date); });
       top   = cards.slice(0, TOP_N);
-      arch  = cards.slice(TOP_N);
       if (!top.length) { loading.style.display = 'none'; return; }
       buildDots();
-      buildArchiv();
+      buildPlaylist();
       loadCard(0);
     })
     .catch(function() { loading.style.display = 'none'; });
