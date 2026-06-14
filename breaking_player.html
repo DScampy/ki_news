@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScampyKI Breaking Player</title>
+<style>
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #03060F;
+  --surface:  #080D1E;
+  --cyan:     #00E5FF;
+  --orange:   #FF6B00;
+  --text:     #E8EDF8;
+  --muted:    rgba(232,237,248,0.5);
+  --border:   rgba(0,229,255,0.12);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* ── PLAYER WRAPPER ── */
+.player-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+}
+
+/* ── LIVE HEADER ── */
+.live-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 6px rgba(255,107,0,0.9);
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%,100% { box-shadow: 0 0 4px rgba(255,107,0,0.7); }
+  50%     { box-shadow: 0 0 12px rgba(255,107,0,1); }
+}
+
+.card-counter {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+/* ── VIDEO CONTAINER ── */
+.video-container {
+  position: relative;
+  width: 100%;
+  /* 9:16 aspect ratio */
+  padding-top: calc(660 / 420 * 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.video-container video {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Loading state */
+.video-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spinner {
+  width: 32px; height: 32px;
+  border: 2px solid rgba(0,229,255,0.15);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── PROGRESS DOTS ── */
+.dots-row {
+  display: flex;
+  gap: 7px;
+  margin: 14px 0 0;
+  align-self: flex-start;
+}
+
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgba(0,229,255,0.2);
+  border: 1px solid rgba(0,229,255,0.3);
+  cursor: pointer;
+  transition: background 0.25s, box-shadow 0.25s;
+}
+
+.dot.active {
+  background: var(--cyan);
+  box-shadow: 0 0 8px rgba(0,229,255,0.7);
+}
+
+.dot:hover {
+  background: rgba(0,229,255,0.5);
+}
+
+/* ── META BELOW VIDEO ── */
+.card-meta {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+}
+
+.meta-source {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 6px;
+}
+
+.meta-headline {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.meta-date {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ── ARCHIV ── */
+.archiv-section {
+  width: 100%;
+  margin-top: 28px;
+}
+
+.archiv-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.archiv-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,229,255,0.06);
+  cursor: pointer;
+  transition: background 0.2s;
+  border-radius: 3px;
+}
+
+.archiv-item:hover {
+  background: rgba(0,229,255,0.04);
+}
+
+.archiv-thumb {
+  flex-shrink: 0;
+  width: 48px; height: 75px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.archiv-thumb video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+.archiv-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.archiv-date {
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+.archiv-headline {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archiv-source {
+  font-size: 9px;
+  color: var(--cyan);
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+/* Error state */
+.error-state {
+  width: 100%;
+  padding: 32px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<div class="player-wrap">
+
+  <!-- Live-Header -->
+  <div class="live-header">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Breaking Cards
+    </div>
+    <div class="card-counter" id="counter">Lade...</div>
+  </div>
+
+  <!-- Video-Player -->
+  <div class="video-container" id="videoContainer">
+    <div class="video-loading" id="loadingState">
+      <div class="spinner"></div>
+      <div class="loading-text">Lade Karten...</div>
+    </div>
+    <video id="mainVideo" playsinline muted autoplay></video>
+  </div>
+
+  <!-- Dots -->
+  <div class="dots-row" id="dotsRow"></div>
+
+  <!-- Meta-Info unter Video -->
+  <div class="card-meta" id="cardMeta" style="display:none;">
+    <div class="meta-source" id="metaSource"></div>
+    <div class="meta-headline" id="metaHeadline"></div>
+    <div class="meta-date" id="metaDate"></div>
+  </div>
+
+  <!-- Archiv -->
+  <div class="archiv-section" id="archivSection" style="display:none;">
+    <div class="archiv-title">Archiv</div>
+    <div id="archivList"></div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-state" id="errorState" style="display:none;">
+    Keine Karten verfügbar.<br>
+    <small>cards.json konnte nicht geladen werden.</small>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const CARDS_JSON_URL = 'cards.json';   // relativ zur Seite
+const TOP_N          = 3;              // Anzahl Top-Karten im Player
+const AUTOPLAY_LOOP  = true;           // nach letzter Karte wieder von vorne
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let cards     = [];
+let topCards  = [];
+let archCards = [];
+let current   = 0;
+
+// ── DOM ──────────────────────────────────────────────────────────────────────
+const video        = document.getElementById('mainVideo');
+const loadingState = document.getElementById('loadingState');
+const cardMeta     = document.getElementById('cardMeta');
+const dotsRow      = document.getElementById('dotsRow');
+const counter      = document.getElementById('counter');
+const archivSec    = document.getElementById('archivSection');
+const archivList   = document.getElementById('archivList');
+const errorState   = document.getElementById('errorState');
+const metaSource   = document.getElementById('metaSource');
+const metaHeadline = document.getElementById('metaHeadline');
+const metaDate     = document.getElementById('metaDate');
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const res = await fetch(CARDS_JSON_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    cards = await res.json();
+  } catch (e) {
+    console.error('cards.json Ladefehler:', e);
+    loadingState.style.display = 'none';
+    errorState.style.display = 'block';
+    return;
+  }
+
+  // Neueste zuerst (nach date-Prefix im id-Feld)
+  cards.sort((a, b) => b.date.localeCompare(a.date));
+
+  topCards  = cards.slice(0, TOP_N);
+  archCards = cards.slice(TOP_N);
+
+  buildDots();
+  buildArchiv();
+  loadCard(0);
+}
+
+// ── DOTS ─────────────────────────────────────────────────────────────────────
+function buildDots() {
+  dotsRow.innerHTML = '';
+  topCards.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => loadCard(i);
+    dotsRow.appendChild(d);
+  });
+}
+
+function updateDots(idx) {
+  dotsRow.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.toggle('active', i === idx);
+  });
+}
+
+// ── LOAD CARD ────────────────────────────────────────────────────────────────
+function loadCard(idx) {
+  if (idx < 0 || idx >= topCards.length) return;
+  current = idx;
+
+  const card = topCards[idx];
+
+  // Loading state kurz zeigen
+  loadingState.style.display = 'flex';
+  video.style.opacity = '0';
+
+  video.src = card.mp4_url;
+  video.load();
+
+  video.oncanplay = () => {
+    loadingState.style.display = 'none';
+    video.style.opacity = '1';
+    video.play().catch(() => {});
+  };
+
+  video.onerror = () => {
+    loadingState.querySelector('.loading-text').textContent = 'Video nicht verfügbar';
+  };
+
+  // Meta aktualisieren
+  metaSource.textContent   = card.source || '—';
+  metaHeadline.textContent = card.headline;
+  metaDate.textContent     = formatDate(card.date);
+  cardMeta.style.display   = 'block';
+
+  // Counter aktualisieren
+  counter.textContent = `${idx + 1} / ${topCards.length}`;
+
+  updateDots(idx);
+}
+
+// ── AUTO-ADVANCE ─────────────────────────────────────────────────────────────
+video.addEventListener('ended', () => {
+  if (current + 1 < topCards.length) {
+    loadCard(current + 1);
+  } else if (AUTOPLAY_LOOP) {
+    loadCard(0);
+  }
+});
+
+// ── ARCHIV ───────────────────────────────────────────────────────────────────
+function buildArchiv() {
+  if (archCards.length === 0) return;
+
+  archivSec.style.display = 'block';
+  archivList.innerHTML = '';
+
+  archCards.forEach((card, i) => {
+    const item = document.createElement('div');
+    item.className = 'archiv-item';
+    item.innerHTML = `
+      <div class="archiv-thumb">📰</div>
+      <div class="archiv-info">
+        <div class="archiv-date">${formatDate(card.date)}</div>
+        <div class="archiv-headline">${card.headline}</div>
+        <div class="archiv-source">${card.source || ''}</div>
+      </div>
+    `;
+    // Klick lädt das archivierte Video in den Player (temporär als Top-0)
+    item.onclick = () => {
+      // Archiv-Karte oben einschieben ohne cards[] zu verändern
+      const tmp = [...topCards];
+      topCards = [card];
+      buildDots();
+      loadCard(0);
+      topCards = tmp;  // restore für Dots-Rückkehr
+    };
+    archivList.appendChild(item);
+  });
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+// ── START ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+
+</body>
+</html>

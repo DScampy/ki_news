@@ -127,24 +127,38 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   }
   console.log(`[record.js] Berechnete FPS: ${fps}`);
 
-  // ─── FFmpeg: Frames → MP4 ───────────────────────────────────────────────
-const ffmpegArgs = [
-  '-y',
-  '-ss', '0.5',                                      // weißen Startframe abschneiden
-  '-framerate', String(fps),
-  '-i', path.join(frameDir, 'frame_%06d.jpg'),
-  '-vf', `scale=${WIDTH}:${HEIGHT}`,                 // 2x-Input → 1x-Output = scharf
-  '-c:v', 'libx264',
-  '-preset', 'fast',
-  '-crf', '18',                                      // höhere Qualität (23 → 18)
-  '-pix_fmt', 'yuv420p',
-  '-movflags', '+faststart',
-  '-t', String(DURATION),
-  absMp4,
-];
+  // ─── FFmpeg: Frames → MP4 (SD + optional HD) ────────────────────────────
+  const absHd = absMp4.replace(/\.mp4$/i, '_hd.mp4');
+
+  const buildMp4 = (outPath, scaleW, scaleH, crf) => {
+    const args = [
+      '-y',
+      '-ss', '0.5',
+      '-framerate', String(fps),
+      '-i', path.join(frameDir, 'frame_%06d.jpg'),
+      '-vf', `scale=${scaleW}:${scaleH}`,
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', String(crf),
+      '-pix_fmt', 'yuv420p',
+      '-movflags', '+faststart',
+      '-t', String(DURATION),
+      outPath,
+    ];
+    console.log(`[record.js] FFmpeg → ${path.basename(outPath)} (${scaleW}×${scaleH})`);
+    execFileSync('ffmpeg', args, { stdio: 'inherit' });
+  };
 
 try {
-  execFileSync('ffmpeg', ffmpegArgs, { stdio: 'inherit' });
+  // SD: 420×660 — Web-Player & Archiv
+  buildMp4(absMp4, WIDTH, HEIGHT, 18);
+
+  // HD: 1080×1698 — YouTube Shorts / Desktop (nur wenn RENDER_HD=1 gesetzt)
+  if (process.env.RENDER_HD === '1') {
+    buildMp4(absHd, 1080, 1698, 16);
+    const hdStat = fs.statSync(absHd);
+    console.log(`[record.js] ✓ HD: ${absHd} (${(hdStat.size / 1024).toFixed(1)} KB)`);
+  }
 } catch (err) {
   console.error('[record.js] FFmpeg fehlgeschlagen:', err.message);
   fs.rmSync(frameDir, { recursive: true, force: true });

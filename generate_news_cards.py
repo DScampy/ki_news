@@ -45,9 +45,12 @@ CARDS_JSON     = ROOT_DIR / "cards.json"
 TMP_DIR        = Path("/tmp/cards")
 
 SYSTEM_PROMPT = (
-    "Du bist ScampyKI — kritischer KI-Journalist, skeptisch gegenüber Hype. "
-    "Schreib in 1–2 prägnanten deutschen Sätzen eine nüchterne Einordnung der News. "
-    "Kein Lob, kein Marketing-Sprech. Fokus: Was bedeutet das wirklich?"
+    "Du bist ScampyKI — das ist das KI-News-Alter-Ego von Daniel Scampy. "
+    "Stil: direkt, trocken, manchmal sarkastisch. Keine Floskeln, kein Hype, kein Marketing-Sprech. "
+    "Verbotene Phrasen: 'Das zeigt', 'Dies verdeutlicht', 'Es bleibt abzuwarten', 'bahnbrechend', 'revolutionär'. "
+    "Frag dich: Wer profitiert wirklich? Was wird nicht gesagt? Was klingt größer als es ist? "
+    "Schreib 1–2 knappe deutsche Sätze. Kein Satzzeichen am Ende außer Punkt. "
+    "Ton: gut informierter Skeptiker mit Fachkenntnis — nicht zynisch um des Zynismus willen, aber klar im Urteil."
 )
 
 # ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
@@ -201,9 +204,18 @@ def main() -> None:
         html_out.write_text(filled, encoding="utf-8")
         print(f"  ✓ HTML: {html_out}")
 
-        # MP4 rendern
-        if mp4_out.exists():
-            print(f"  → {mp4_out.name} existiert bereits — wird überschrieben.")
+        # MP4 rendern — überspringen wenn bereits vorhanden (wie Telegram-Texte)
+        force = os.environ.get("FORCE_RENDER", "").lower() in ("1", "true", "yes")
+        if mp4_out.exists() and not force:
+            print(f"  → {mp4_out.name} existiert bereits — überspringe (FORCE_RENDER=1 zum Erzwingen).")
+            cards_meta.append({
+                "id":       slug,
+                "headline": headline,
+                "mp4_url":  mp4_url,
+                "date":     today,
+                "source":   source,
+            })
+            continue
 
         success = render_card(html_out, mp4_out)
         if not success:
