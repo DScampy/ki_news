@@ -321,7 +321,40 @@ html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
 /* Fraunces lokal via assets/ki-fonts.css */
 #main-content { position:relative; z-index:10; padding-top:72px; padding-bottom:80px; min-height:100vh; background:rgba(0,0,0,0.88); }
 html.light #main-content { background:rgba(248,250,252,0.96); }
-.ed-wrap { max-width:1200px; margin:0 auto; padding:0 28px; }
+.ed-wrap { max-width:1200px; margin:0 auto; padding:0 28px; display:grid; grid-template-columns:1fr 284px; column-gap:36px; align-items:start; }
+.masthead, .strapline { grid-column:1 / -1; }
+#breaking-sidebar { grid-column:2; grid-row:3 / 20; }
+@media(max-width:960px){ .ed-wrap{ grid-template-columns:1fr; } #breaking-sidebar{ grid-column:1; grid-row:auto; max-width:360px; margin:0 auto 32px; } }
+
+/* ── Breaking Player Sidebar ── */
+#bps-inner { position:sticky; top:82px; }
+.bps-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.bps-live { display:flex; align-items:center; gap:7px; font-family:'Space Grotesk',sans-serif; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+.bps-live-dot { width:7px; height:7px; border-radius:50%; background:#ef4444; box-shadow:0 0 6px rgba(239,68,68,.9); animation:blink 1.4s ease-in-out infinite; }
+.bps-counter { font-family:monospace; font-size:10px; color:rgba(255,255,255,.35); letter-spacing:.06em; }
+html.light .bps-counter { color:#94a3b8; }
+.bps-video-wrap { position:relative; width:100%; padding-top:157.14%; /* 660/420 */ background:var(--card,#0d1117); border:1px solid rgba(var(--neon-rgb),.2); border-radius:6px; overflow:hidden; margin-bottom:10px; }
+.bps-video-wrap video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.bps-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--card,#0d1117); z-index:2; }
+.bps-spinner { width:28px; height:28px; border:2px solid rgba(var(--neon-rgb),.15); border-top-color:var(--accent); border-radius:50%; animation:bpsSpin .8s linear infinite; }
+@keyframes bpsSpin{ to{ transform:rotate(360deg); } }
+.bps-dots { display:flex; gap:6px; margin-bottom:10px; }
+.bps-dot { width:7px; height:7px; border-radius:50%; background:rgba(var(--neon-rgb),.18); border:1px solid rgba(var(--neon-rgb),.3); cursor:pointer; transition:background .2s,box-shadow .2s; }
+.bps-dot.active { background:var(--accent); box-shadow:0 0 7px rgba(var(--neon-rgb),.7); }
+.bps-dot:hover { background:rgba(var(--neon-rgb),.45); }
+.bps-meta { padding:10px 12px; border:1px solid rgba(var(--neon-rgb),.15); border-left:3px solid var(--accent); background:rgba(var(--neon-rgb),.04); border-radius:0 4px 4px 0; margin-bottom:10px; }
+.bps-meta-source { font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:5px; opacity:.8; }
+.bps-meta-headline { font-family:'Fraunces',serif; font-size:13px; line-height:1.4; color:var(--text); font-weight:600; }
+html.light .bps-meta-headline { color:#0f172a; }
+.bps-archiv-toggle { display:flex; align-items:center; justify-content:space-between; font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.35); cursor:pointer; padding:8px 0; border-top:1px solid rgba(var(--neon-rgb),.1); transition:color .15s; }
+html.light .bps-archiv-toggle { color:#94a3b8; }
+.bps-archiv-toggle:hover { color:var(--accent); }
+.bps-archiv-item { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid rgba(var(--neon-rgb),.07); cursor:pointer; transition:background .15s; border-radius:3px; }
+.bps-archiv-item:hover { background:rgba(var(--neon-rgb),.04); }
+.bps-archiv-date { font-family:monospace; font-size:9px; color:rgba(255,255,255,.35); white-space:nowrap; padding-top:2px; }
+html.light .bps-archiv-date { color:#94a3b8; }
+.bps-archiv-hl { font-size:11px; line-height:1.35; color:var(--text); opacity:.78; }
+html.light .bps-archiv-hl { color:#0f172a; }
 .masthead { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:32px 0 18px; margin-bottom:18px; border-bottom:3px double rgba(var(--neon-rgb),0.45); position:relative; }
 .masthead::after { content:''; position:absolute; bottom:-8px; left:0; right:0; height:1px; background:rgba(var(--neon-rgb),0.18); }
 .masthead-left { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
@@ -603,6 +636,43 @@ html.light .colophon-links a { color:#64748b; }
       </div>
     </div>
 
+    <!-- ── Breaking News Player Sidebar ── -->
+    <aside id="breaking-sidebar">
+      <div id="bps-inner">
+
+        <div class="bps-header">
+          <div class="bps-live">
+            <span class="bps-live-dot"></span>
+            Breaking Cards
+          </div>
+          <span class="bps-counter" id="bps-counter"></span>
+        </div>
+
+        <div class="bps-video-wrap">
+          <div class="bps-loading" id="bps-loading">
+            <div class="bps-spinner"></div>
+          </div>
+          <video id="bps-video" muted playsinline autoplay style="opacity:0;transition:opacity .3s;"></video>
+        </div>
+
+        <div class="bps-dots" id="bps-dots"></div>
+
+        <div class="bps-meta" id="bps-meta" style="display:none">
+          <div class="bps-meta-source" id="bps-source"></div>
+          <div class="bps-meta-headline" id="bps-headline"></div>
+        </div>
+
+        <div id="bps-archiv" style="display:none">
+          <div class="bps-archiv-toggle" onclick="bpsToggleArchiv()">
+            <span>Archiv</span>
+            <span id="bps-archiv-icon">▾</span>
+          </div>
+          <div id="bps-archiv-list" style="display:none; padding-top:4px;"></div>
+        </div>
+
+      </div>
+    </aside>
+
     <footer class="colophon">
       <div class="colophon-text">
         Eingeordnet, geprüft &amp; ins Deutsche gebracht — von Hand. Quellen bleiben verlinkt, Originale bleiben bei den Originalen.
@@ -812,6 +882,120 @@ fetch('media.json?t=' + Date.now())
   .then(function(r){ return r.json(); })
   .then(function(data){ renderXPosts(data.xposts || []); })
   .catch(function(){ renderXPosts([]); });
+
+/* ── Breaking Player Sidebar ───────────────────────────────────────────── */
+(function(){
+  var TOP_N   = 3;
+  var cards   = [];
+  var top     = [];
+  var arch    = [];
+  var cur     = 0;
+  var archOpen = false;
+
+  var video    = document.getElementById('bps-video');
+  var loading  = document.getElementById('bps-loading');
+  var dotsEl   = document.getElementById('bps-dots');
+  var counter  = document.getElementById('bps-counter');
+  var metaEl   = document.getElementById('bps-meta');
+  var srcEl    = document.getElementById('bps-source');
+  var hlEl     = document.getElementById('bps-headline');
+  var archivEl = document.getElementById('bps-archiv');
+  var archList = document.getElementById('bps-archiv-list');
+  var archIcon = document.getElementById('bps-archiv-icon');
+
+  window.bpsToggleArchiv = function() {
+    archOpen = !archOpen;
+    archList.style.display = archOpen ? 'block' : 'none';
+    archIcon.textContent   = archOpen ? '▴' : '▾';
+  };
+
+  function fmt(iso) {
+    if (!iso) return '';
+    var p = iso.split('-');
+    return p[2] + '.' + p[1] + '.' + p[0];
+  }
+
+  function buildDots() {
+    dotsEl.innerHTML = '';
+    top.forEach(function(_, i) {
+      var d = document.createElement('div');
+      d.className = 'bps-dot' + (i === 0 ? ' active' : '');
+      d.onclick   = function(){ loadCard(i); };
+      dotsEl.appendChild(d);
+    });
+  }
+
+  function updateDots(idx) {
+    dotsEl.querySelectorAll('.bps-dot').forEach(function(d, i) {
+      d.classList.toggle('active', i === idx);
+    });
+  }
+
+  function loadCard(idx) {
+    if (idx < 0 || idx >= top.length) return;
+    cur = idx;
+    var c = top[idx];
+
+    loading.style.display = 'flex';
+    video.style.opacity   = '0';
+
+    video.src = c.mp4_url;
+    video.load();
+
+    video.oncanplay = function() {
+      loading.style.display = 'none';
+      video.style.opacity   = '1';
+      video.play().catch(function(){});
+    };
+    video.onerror = function() {
+      loading.querySelector('.bps-spinner').style.display = 'none';
+    };
+
+    srcEl.textContent    = c.source || '';
+    hlEl.textContent     = c.headline;
+    metaEl.style.display = 'block';
+    counter.textContent  = (idx + 1) + ' / ' + top.length;
+    updateDots(idx);
+  }
+
+  video.addEventListener('ended', function() {
+    loadCard(cur + 1 < top.length ? cur + 1 : 0);
+  });
+
+  function buildArchiv() {
+    if (!arch.length) return;
+    archivEl.style.display = 'block';
+    arch.forEach(function(c) {
+      var item = document.createElement('div');
+      item.className = 'bps-archiv-item';
+      item.innerHTML =
+        '<div class="bps-archiv-date">' + fmt(c.date) + '</div>' +
+        '<div class="bps-archiv-hl">' + c.headline + '</div>';
+      item.onclick = function() {
+        // Archiv-Karte temporär laden
+        var saved = top.slice();
+        top = [c];
+        buildDots();
+        loadCard(0);
+        top = saved;
+      };
+      archList.appendChild(item);
+    });
+  }
+
+  fetch('cards.json?t=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      cards = data.sort(function(a, b){ return b.date.localeCompare(a.date); });
+      top   = cards.slice(0, TOP_N);
+      arch  = cards.slice(TOP_N);
+      if (!top.length) { loading.style.display = 'none'; return; }
+      buildDots();
+      buildArchiv();
+      loadCard(0);
+    })
+    .catch(function() { loading.style.display = 'none'; });
+})();
 </script>
 
 <script type="text/plain" id="ki-genesis-src">
