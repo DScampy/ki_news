@@ -5,7 +5,16 @@ on:
     # Berlin = UTC+2 (Sommerzeit)
     # 7 / 12 / 17 / 20 Uhr Berlin = 5 / 10 / 15 / 18 UTC
     - cron: "0 5,10,15,18 * * *"
-  workflow_dispatch:  # Manueller Start per Knopf in GitHub Actions
+  workflow_dispatch:
+    inputs:
+      force_render:
+        description: 'Alle Karten neu rendern (auch wenn MP4 existiert)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   build:
@@ -77,17 +86,17 @@ jobs:
 
       - name: Generate news cards (MP4 + cards.json)
         env:
-          GROQ_CHAT_KEY: ${{ secrets.GROQ_CHAT_KEY }}
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
+          FORCE_RENDER: ${{ github.event.inputs.force_render == 'true' && '1' || '0' }}
         run: python3 generate_news_cards.py
 
       - name: Commit generated cards
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add assets/cards/ cards.json
-          git diff --staged --quiet || git commit -m "cards $(date -u +%Y-%m-%d)"
+          git add assets/cards/ cards.json artikel.html breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+          git diff --staged --quiet || git commit -m "cards + template update $(date -u +%Y-%m-%d)"
           git pull --rebase origin main || true
           git push origin HEAD:main || true
 
