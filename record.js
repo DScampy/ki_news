@@ -3,10 +3,10 @@
  * =========
  * Rendert eine lokale HTML-Datei mit Playwright (headless Chromium),
  * nimmt einen Screen-Recording auf (WebM via CDP),
- * konvertiert das Ergebnis via FFmpeg zu MP4.
+ * konvertiert das Ergebnis via FFmpeg zu MP4 (optional mit Audio).
  *
  * Aufruf:
- *   node record.js <html_path> <mp4_path> [width] [height] [duration_sec]
+ *   node record.js <html_path> <mp4_path> [width] [height] [duration_sec] [audio_path]
  *
  * Abhängigkeiten (im CI installiert):
  *   npm install playwright
@@ -15,40 +15,40 @@
  */
 
 const { chromium } = require('playwright');
-const { execFileSync } = require('child_process');
+const { execSync }  = require('child_process');
 const fs            = require('fs');
 const path          = require('path');
 
 // ─── Argumente ────────────────────────────────────────────────────────────────
 
-const [,, htmlPath, mp4Path, widthArg, heightArg, durationArg] = process.argv;
+const [,, htmlPath, mp4Path, widthArg, heightArg, durationArg, audioPath] = process.argv;
 
 if (!htmlPath || !mp4Path) {
-  console.error('Usage: node record.js <html_path> <mp4_path> [width] [height] [duration_sec]');
+  console.error('Usage: node record.js <html_path> <mp4_path> [width] [height] [duration_sec] [audio_path]');
   process.exit(1);
 }
 
-const WIDTH    = parseInt(widthArg  || '420',  10);
-const HEIGHT   = parseInt(heightArg || '660',  10);
-const DURATION = parseInt(durationArg || '8', 10);   // Sekunden
+const WIDTH    = parseInt(widthArg    || '420', 10);
+const HEIGHT   = parseInt(heightArg   || '660', 10);
+const DURATION = parseInt(durationArg || '8',   10);
 
 const absHtml  = path.resolve(htmlPath);
 const absMp4   = path.resolve(mp4Path);
-const tmpWebm  = absMp4.replace(/\.mp4$/i, '_tmp.webm');
+const absAudio = audioPath ? path.resolve(audioPath) : null;
+const hasAudio = absAudio && fs.existsSync(absAudio);
 
 if (!fs.existsSync(absHtml)) {
   console.error(`HTML file not found: ${absHtml}`);
   process.exit(1);
 }
 
-// Sicherstellen dass Output-Verzeichnis existiert
 fs.mkdirSync(path.dirname(absMp4), { recursive: true });
 
 // ─── Haupt-Funktion ──────────────────────────────────────────────────────────
 
 (async () => {
   console.log(`[record.js] Start: ${path.basename(absHtml)} → ${path.basename(absMp4)}`);
-  console.log(`            Viewport: ${WIDTH}×${HEIGHT}, Dauer: ${DURATION}s`);
+  console.log(`            Viewport: ${WIDTH}×${HEIGHT}, Dauer: ${DURATION}s${hasAudio ? ', +Audio' : ''}`);
 
   const browser = await chromium.launch({
     headless: true,
@@ -63,43 +63,37 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
 
   const context = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT },
-    deviceScaleFactor: 2,   // 2x-Rendering → scharfe Schrift
+    deviceScaleFactor: 1,
   });
 
   const page = await context.newPage();
 
   // ─── CDP Screen Capture starten ─────────────────────────────────────────
   const cdpSession = await context.newCDPSession(page);
-
   await cdpSession.send('Page.enable');
 
-  // Screencasting via CDP (JPEG frames)
   const frames = [];
   const frameTimestamps = [];
 
   cdpSession.on('Page.screencastFrame', async (event) => {
-    frames.push(event.data);           // base64 JPEG
+    frames.push(event.data);
     frameTimestamps.push(event.metadata.timestamp);
     await cdpSession.send('Page.screencastFrameAck', { sessionId: event.sessionId });
   });
 
   await cdpSession.send('Page.startScreencast', {
     format: 'jpeg',
-    quality: 95,            // höhere JPEG-Qualität
-    maxWidth: WIDTH * 2,    // 2x für scharfe Schrift
-    maxHeight: HEIGHT * 2,
+    quality: 85,
+    maxWidth: WIDTH,
+    maxHeight: HEIGHT,
     everyNthFrame: 1,
   });
 
-  // Seite laden
   const fileUrl = `file://${absHtml.replace(/\\/g, '/')}`;
   await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 30000 });
-
-  // Animation laufen lassen (+1s Puffer für -ss 0.5 Trim)
-  await page.waitForTimeout((DURATION + 1) * 1000);
+  await page.waitForTimeout(DURATION * 1000);
 
   await cdpSession.send('Page.stopScreencast');
-
   await browser.close();
 
   console.log(`[record.js] Frames gesammelt: ${frames.length}`);
@@ -109,8 +103,8 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     process.exit(1);
   }
 
-  // ─── Frames als PNG-Sequenz in /tmp ablegen ──────────────────────────────
-  const frameDir = path.join(path.dirname(tmpWebm), `_frames_${Date.now()}`);
+  // ─── Frames als JPG-Sequenz ablegen ─────────────────────────────────────
+  const frameDir = path.join(path.dirname(absMp4), `_frames_${Date.now()}`);
   fs.mkdirSync(frameDir, { recursive: true });
 
   for (let i = 0; i < frames.length; i++) {
@@ -123,51 +117,42 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   if (frameTimestamps.length > 1) {
     const totalSec = frameTimestamps[frameTimestamps.length - 1] - frameTimestamps[0];
     fps = Math.round((frames.length - 1) / totalSec) || 24;
-    fps = Math.min(Math.max(fps, 6), 30);   // zwischen 6 und 30 clamp
+    fps = Math.min(Math.max(fps, 6), 30);
   }
   console.log(`[record.js] Berechnete FPS: ${fps}`);
 
-  // ─── FFmpeg: Frames → MP4 (SD + optional HD) ────────────────────────────
-  const absHd = absMp4.replace(/\.mp4$/i, '_hd.mp4');
+  // ─── FFmpeg: Frames → MP4 (optional mit Audio) ──────────────────────────
+  const ffmpegArgs = [
+    'ffmpeg', '-y',
+    '-framerate', String(fps),
+    '-i', path.join(frameDir, 'frame_%06d.jpg'),
+    ...(hasAudio ? ['-i', absAudio] : []),
+    '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=decrease,pad=${WIDTH}:${HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
+    '-c:v', 'libx264',
+    '-preset', 'fast',
+    '-crf', '23',
+    '-pix_fmt', 'yuv420p',
+    '-movflags', '+faststart',
+    ...(hasAudio
+      ? ['-c:a', 'aac', '-b:a', '128k', '-shortest']
+      : ['-t', String(DURATION)]
+    ),
+    absMp4,
+  ];
 
-  const buildMp4 = (outPath, scaleW, scaleH, crf) => {
-    const args = [
-      '-y',
-      '-ss', '0.5',
-      '-framerate', String(fps),
-      '-i', path.join(frameDir, 'frame_%06d.jpg'),
-      '-vf', `scale=${scaleW}:${scaleH}`,
-      '-c:v', 'libx264',
-      '-preset', 'fast',
-      '-crf', String(crf),
-      '-pix_fmt', 'yuv420p',
-      '-movflags', '+faststart',
-      '-t', String(DURATION),
-      outPath,
-    ];
-    console.log(`[record.js] FFmpeg → ${path.basename(outPath)} (${scaleW}×${scaleH})`);
-    execFileSync('ffmpeg', args, { stdio: 'inherit' });
-  };
+  const ffmpegCmd = ffmpegArgs.join(' ');
+  console.log(`[record.js] FFmpeg: ${ffmpegCmd}`);
 
-try {
-  // SD: 420×660 — Web-Player & Archiv
-  buildMp4(absMp4, WIDTH, HEIGHT, 18);
-
-  // HD: 1080×1698 — YouTube Shorts / Desktop (nur wenn RENDER_HD=1 gesetzt)
-  if (process.env.RENDER_HD === '1') {
-    buildMp4(absHd, 1080, 1698, 16);
-    const hdStat = fs.statSync(absHd);
-    console.log(`[record.js] ✓ HD: ${absHd} (${(hdStat.size / 1024).toFixed(1)} KB)`);
+  try {
+    execSync(ffmpegCmd, { stdio: 'inherit' });
+  } catch (err) {
+    console.error('[record.js] FFmpeg fehlgeschlagen:', err.message);
+    fs.rmSync(frameDir, { recursive: true, force: true });
+    process.exit(1);
   }
-} catch (err) {
-  console.error('[record.js] FFmpeg fehlgeschlagen:', err.message);
-  fs.rmSync(frameDir, { recursive: true, force: true });
-  process.exit(1);
-}
 
   // ─── Aufräumen ──────────────────────────────────────────────────────────
   fs.rmSync(frameDir, { recursive: true, force: true });
-  if (fs.existsSync(tmpWebm)) fs.unlinkSync(tmpWebm);
 
   const stat = fs.statSync(absMp4);
   console.log(`[record.js] ✓ MP4 fertig: ${absMp4} (${(stat.size / 1024).toFixed(1)} KB)`);
