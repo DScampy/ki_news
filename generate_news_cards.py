@@ -38,6 +38,9 @@ GROQ_MODELS      = [
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 GOOGLE_TTS_VOICE = "de-DE-Studio-C"   # weiblich, Note 2
 
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438")
+
 TOP_N          = 5
 CARD_WIDTH     = 420
 CARD_HEIGHT    = 660
@@ -198,6 +201,50 @@ def fill_template(template: str, fields: dict) -> str:
     return result
 
 
+def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str) -> bool:
+    """Schickt das fertige MP4 via Telegram sendVideo."""
+    if not TELEGRAM_TOKEN:
+        print("  [INFO] TELEGRAM_TOKEN nicht gesetzt — kein Telegram-Versand.")
+        return False
+
+    import io
+    boundary = "ScampyBoundary" + os.urandom(6).hex()
+    caption  = f"🤖 {headline}\n\n{einordnung}"[:1024]
+
+    body = io.BytesIO()
+    # Felder
+    for name, value in [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption)]:
+        body.write(f"--{boundary}\r\n".encode())
+        body.write(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode())
+        body.write(f"{value}\r\n".encode())
+    # Video-Datei
+    video_data = mp4_path.read_bytes()
+    body.write(f"--{boundary}\r\n".encode())
+    body.write(f'Content-Disposition: form-data; name="video"; filename="{mp4_path.name}"\r\n'.encode())
+    body.write(b"Content-Type: video/mp4\r\n\r\n")
+    body.write(video_data)
+    body.write(b"\r\n")
+    body.write(f"--{boundary}--\r\n".encode())
+
+    data = body.getvalue()
+    url  = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
+    req  = urllib.request.Request(
+        url, data=data,
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read())
+            if result.get("ok"):
+                print(f"  ✓ Telegram: Video gesendet")
+                return True
+            print(f"  [WARN] Telegram: {result}")
+            return False
+    except Exception as e:
+        print(f"  [WARN] Telegram sendVideo Fehler: {e}")
+        return False
+
+
 def render_card(html_path: Path, mp4_path: Path,
                 audio_path: Path | None = None,
                 duration: int = CARD_DURATION) -> bool:
@@ -297,6 +344,9 @@ def main() -> None:
             continue
 
         print(f"  ✓ MP4:  {mp4_out.name}")
+
+        # Karte direkt an Telegram schicken
+        send_card_to_telegram(mp4_out, headline, einordnung)
 
         cards_meta.append({
             "id":       slug,
