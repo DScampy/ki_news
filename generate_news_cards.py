@@ -35,6 +35,10 @@ GROQ_MODELS      = [
     "llama-3.3-70b-versatile",
 ]
 
+OPENROUTER_KEY   = os.environ.get("OPENROUTER_KEY", "")
+OPENROUTER_URL   = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 GOOGLE_TTS_VOICE = "de-DE-Studio-C"   # weiblich, Note 2
 
@@ -148,48 +152,63 @@ def generate_tts(text: str, slug: str) -> tuple:
 
 # ─── Groq ─────────────────────────────────────────────────────────────────────
 
+def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str) -> str | None:
+    """Generischer LLM-Aufruf. Gibt Text zurück oder None bei Fehler."""
+    payload = json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user",   "content": f"News: {headline}\n\nZusammenfassung: {summary}"}
+        ],
+        "max_tokens": 120,
+        "temperature": 0.7,
+    }).encode("utf-8")
+    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return clean_markdown(data["choices"][0]["message"]["content"].strip())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"  [WARN] LLM HTTP {e.code} ({url.split('/')[2]}): {body[:150]}")
+        return None
+    except Exception as e:
+        print(f"  [WARN] LLM Fehler ({url.split('/')[2]}): {e}")
+        return None
+
+
 def groq_einordnung(headline: str, summary: str) -> str:
-    """Ruft Groq API auf mit Fallback-Modellkette."""
-    if not GROQ_API_KEY:
-        print("  [WARN] GROQ_API_KEY nicht gesetzt — Einordnung wird übersprungen.")
-        return "Keine Einordnung verfügbar (API-Key fehlt)."
+    """Groq → OpenRouter Fallback für ScampyKI-Einordnung."""
+    # 1. Groq versuchen
+    if GROQ_API_KEY:
+        for model in GROQ_MODELS:
+            result = _llm_call(
+                GROQ_URL,
+                {"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_API_KEY}"},
+                model, headline, summary
+            )
+            if result:
+                return result
+    else:
+        print("  [INFO] GROQ_CHAT_KEY nicht gesetzt.")
 
-    for model in GROQ_MODELS:
-        payload = json.dumps({
-            "model": model,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": f"News: {headline}\n\nZusammenfassung: {summary}"}
-            ],
-            "max_tokens": 120,
-            "temperature": 0.7,
-        }).encode("utf-8")
-
-        req = urllib.request.Request(
-            GROQ_URL, data=payload,
-            headers={
+    # 2. OpenRouter-Fallback
+    if OPENROUTER_KEY:
+        print("  [INFO] Groq failed — versuche OpenRouter...")
+        result = _llm_call(
+            OPENROUTER_URL,
+            {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Authorization": f"Bearer {OPENROUTER_KEY}",
+                "HTTP-Referer": "https://ki-news.live",
+                "X-Title": "KI News Cards",
             },
-            method="POST",
+            OPENROUTER_MODEL, headline, summary
         )
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                text = data["choices"][0]["message"]["content"].strip()
-                return clean_markdown(text)
-        except urllib.error.HTTPError as e:
-            if e.code in (429, 503):
-                print(f"  [WARN] Groq {model}: {e.code} — versuche nächstes Modell.")
-                continue
-            body = e.read().decode("utf-8", errors="replace")
-            print(f"  [ERROR] Groq HTTP {e.code}: {body[:200]}")
-            return "Einordnung nicht verfügbar."
-        except Exception as e:
-            print(f"  [ERROR] Groq Fehler: {e}")
-            return "Einordnung nicht verfügbar."
+        if result:
+            return result
 
-    return "Einordnung nicht verfügbar (alle Modelle erschöpft)."
+    return "Einordnung nicht verfügbar."
 
 
 # ─── Template & Rendering ─────────────────────────────────────────────────────
