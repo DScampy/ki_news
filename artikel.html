@@ -4,14 +4,14 @@
 <meta charset="utf-8"/>
 <link rel="icon" type="image/png" href="s-logo.png"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Die Artikel · KI News — Täglich. Auf Deutsch. Mit Kontext.</title>
+<title>Die Artikel · KI News - Täglich. Auf Deutsch. Mit Kontext.</title>
 <meta name="description" content="Die Artikel zu den wichtigsten KI-News des Tages. Eingeordnet, erklärt, lesbar aufbereitet. Von @ScampyKI."/>
 <meta name="author" content="Daniel S."/>
 <meta name="robots" content="index, follow"/>
 <link rel="canonical" href="https://ki-news.live/artikel.html"/>
 <!-- Open Graph -->
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="KI News – Täglich. Auf Deutsch. Mit Kontext."/>
+<meta property="og:title" content="KI News - Täglich. Auf Deutsch. Mit Kontext."/>
 <meta property="og:description" content="Deutschsprachige KI-News: Englische Quellen kuratiert, eingeordnet, erklärt. Ein Mann-Projekt. Von @ScampyKI."/>
 <meta property="og:url" content="https://ki-news.live/"/>
 <meta property="og:image" content="https://ki-news.live/s-logo.png"/>
@@ -21,7 +21,7 @@
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:site" content="@ScampyKI"/>
 <meta name="twitter:creator" content="@ScampyKI"/>
-<meta name="twitter:title" content="KI News – Täglich. Auf Deutsch. Mit Kontext."/>
+<meta name="twitter:title" content="KI News - Täglich. Auf Deutsch. Mit Kontext."/>
 <meta name="twitter:description" content="Deutschsprachige KI-News: Englische Quellen kuratiert, eingeordnet, erklärt."/>
 <meta name="twitter:image" content="https://ki-news.live/s-logo.png"/>
 <!-- Schema.org: WebSite + Person -->
@@ -339,6 +339,23 @@ html.light .bps-counter { color:#94a3b8; }
 /* ── Unmute Button ── */
 .bps-unmute { position:absolute; bottom:10px; right:10px; z-index:10; background:rgba(0,0,0,0.65); border:1px solid rgba(var(--neon-rgb),0.4); border-radius:4px; color:var(--accent,#1d9bf0); font-size:11px; font-family:'Space Grotesk',sans-serif; font-weight:700; letter-spacing:0.1em; padding:5px 9px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:background 0.15s,border-color 0.15s; backdrop-filter:blur(4px); }
 .bps-unmute:hover { background:rgba(var(--neon-rgb),0.15); border-color:rgba(var(--neon-rgb),0.8); }
+/* ── X Posts Carousel ── */
+.bps-x-section { margin-top:14px; border-top:1px solid rgba(var(--neon-rgb),0.15); padding-top:12px; }
+.bps-x-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(var(--neon-rgb),0.6); margin-bottom:9px; display:flex; align-items:center; gap:6px; }
+.bps-x-label::before { content:'𝕏'; font-family:system-ui,sans-serif; font-size:11px; color:var(--accent,#1d9bf0); }
+.bps-x-card { display:none; background:rgba(var(--neon-rgb),0.04); border:1px solid rgba(var(--neon-rgb),0.1); border-radius:4px; padding:10px 12px; }
+.bps-x-card.active { display:block; animation:bpsXFadeIn .25s ease; }
+@keyframes bpsXFadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+.bps-x-handle { font-size:10px; font-weight:700; color:var(--accent,#1d9bf0); letter-spacing:0.04em; margin-bottom:6px; }
+.bps-x-img { width:100%; max-height:110px; object-fit:cover; border-radius:3px; margin-bottom:8px; display:block; }
+.bps-x-link { display:block; font-size:11px; color:rgba(232,237,248,0.72); text-decoration:none; line-height:1.45; }
+html.light .bps-x-link { color:#374151; }
+.bps-x-link:hover { color:var(--accent,#1d9bf0); }
+.bps-x-open { display:inline-flex; align-items:center; gap:4px; margin-top:8px; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent,#1d9bf0); text-decoration:none; opacity:0.7; transition:opacity .15s; }
+.bps-x-open:hover { opacity:1; }
+.bps-x-dots { display:flex; gap:5px; margin-top:9px; justify-content:center; }
+.bps-x-dot { width:5px; height:5px; border-radius:50%; background:rgba(var(--neon-rgb),0.2); border:1px solid rgba(var(--neon-rgb),0.3); cursor:pointer; transition:background .2s; flex-shrink:0; }
+.bps-x-dot.active { background:var(--accent,#1d9bf0); border-color:var(--accent,#1d9bf0); box-shadow:0 0 5px rgba(29,155,240,0.6); }
 .bps-spinner { width:28px; height:28px; border:2px solid rgba(var(--neon-rgb),.15); border-top-color:var(--accent); border-radius:50%; animation:bpsSpin .8s linear infinite; }
 @keyframes bpsSpin{ to{ transform:rotate(360deg); } }
 .bps-dots { display:flex; gap:6px; margin-bottom:10px; }
@@ -496,7 +513,7 @@ html.light .colophon-links a { color:#64748b; }
     <header class="masthead">
       <div class="masthead-left">
         <h1 class="masthead-title">KI&nbsp;News</h1>
-        <span class="masthead-sub">— Die Artikel</span>
+        <span class="masthead-sub">- Die Artikel -</span>
       </div>
       <div class="masthead-meta">
         <span class="masthead-issue" id="m-issue">Ausgabe …</span>
@@ -506,7 +523,7 @@ html.light .colophon-links a { color:#64748b; }
     </header>
 
     <div class="strapline">
-      <span class="strapline-text">Englische Quellen, deutsch eingeordnet — täglich kuratiert von D. Scampy.</span>
+      <span class="strapline-text">Englische Quellen, deutsch eingeordnet - täglich kuratiert von Scampy.</span>
       <span class="strapline-pill">Live · ki-news.live</span>
     </div>
 
@@ -614,9 +631,7 @@ html.light .colophon-links a { color:#64748b; }
         </a>
       </div>
 
-      <div class="section-break"><span>Zuletzt auf X</span></div>
-      <div id="x-embed-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;align-items:start;margin-bottom:32px;"></div>
-      <!-- X-Beiträge werden aus media.json geladen (Sektion "xposts"), Tweets via assets/ki-embed.js erst auf Klick -->
+      <!-- X-Beiträge jetzt im Breaking-Sidebar-Carousel -->
 
       <div class="section-break"><span>Weitere Artikel</span></div>
       <div id="art-grid" class="art-grid">
@@ -673,6 +688,13 @@ html.light .colophon-links a { color:#64748b; }
         </div>
 
         <div class="bps-playlist" id="bps-playlist"></div>
+
+        <!-- X Posts Carousel -->
+        <div class="bps-x-section" id="bps-x-section" style="display:none">
+          <div class="bps-x-label">Zuletzt auf X</div>
+          <div class="bps-x-track" id="bps-x-track"></div>
+          <div class="bps-x-dots" id="bps-x-dots"></div>
+        </div>
 
       </div>
     </aside>
@@ -862,26 +884,78 @@ fetch('news.json?t=' + Date.now())
     if (lead) lead.innerHTML = '<p class="sec-text">News konnten nicht geladen werden.</p>';
   });
 
-// ── "Zuletzt auf X" aus media.json (Sektion xposts) ──────────────────────────
-// Fallback, falls media.json kein xposts hat oder nicht lädt:
+// ── "Zuletzt auf X" Carousel im BPS-Sidebar ───────────────────────────────────
 var X_FALLBACK = ['https://twitter.com/ScampyKI/status/2055424641368232238'];
+var xCarousel = { items:[], cur:0, timer:null };
+
 function tweetIdFromUrl(u){ var m=(u||'').match(/status(?:es)?\/(\d+)/); return m?m[1]:''; }
+function xHandleFromUrl(u){ var m=(u||'').match(/(?:twitter|x)\.com\/([^/]+)/); return m?('@'+m[1]):'@ScampyKI'; }
+
 function renderXPosts(items){
-  var box = document.getElementById('x-embed-list');
-  if (!box) return;
   var list = (items||[]).map(function(x){ return typeof x==='string'?{url:x}:x; })
-                        .filter(function(x){ return x && x.url && tweetIdFromUrl(x.url); });
+                        .filter(function(x){ return x && x.url; });
   if (!list.length) list = X_FALLBACK.map(function(u){ return {url:u}; });
-  box.innerHTML = list.map(function(x){
-    // X akzeptiert twitter.com-Links; normalisieren von x.com → twitter.com
-    var href = x.url.replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
-    var prev = x.image ? (' data-ki-preview="' + String(x.image).replace(/"/g,'&quot;') + '"') : '';
-    return '<blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark"' + prev + '>' +
-             '<a href="' + href + '"></a></blockquote>';
-  }).join('');
-  // ki-embed.js in 2-Klick-Platzhalter (mit Vorschaubild) umwandeln.
-  if (window.KIEmbed && KIEmbed.wrapTweets) KIEmbed.wrapTweets(box);
+  xCarousel.items = list;
+  xCarousel.cur   = 0;
+  buildXCarousel();
 }
+
+function buildXCarousel(){
+  var section = document.getElementById('bps-x-section');
+  var track   = document.getElementById('bps-x-track');
+  var dotsEl  = document.getElementById('bps-x-dots');
+  if (!section || !track || !dotsEl) return;
+  var items = xCarousel.items;
+  if (!items.length) return;
+
+  // Cards
+  track.innerHTML = items.map(function(x, i){
+    var href    = (x.url||'').replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
+    var handle  = xHandleFromUrl(x.url);
+    var imgHtml = x.image ? '<img class="bps-x-img" src="'+String(x.image).replace(/"/g,'&quot;')+'" alt="" loading="lazy">' : '';
+    var preview = x.text ? String(x.text).slice(0,140) + (x.text.length>140?'…':'') : '';
+    return '<div class="bps-x-card'+(i===0?' active':'')+'" data-idx="'+i+'">' +
+             '<div class="bps-x-handle">'+handle+'</div>' +
+             imgHtml +
+             (preview ? '<a class="bps-x-link" href="'+href+'" target="_blank" rel="noopener">'+preview+'</a>' : '') +
+             '<a class="bps-x-open" href="'+href+'" target="_blank" rel="noopener">Auf 𝕏 ansehen →</a>' +
+           '</div>';
+  }).join('');
+
+  // Dots (nur wenn >1)
+  if (items.length > 1) {
+    dotsEl.innerHTML = items.map(function(_, i){
+      return '<div class="bps-x-dot'+(i===0?' active':'')+'" onclick="xGoTo('+i+')"></div>';
+    }).join('');
+  } else {
+    dotsEl.innerHTML = '';
+  }
+
+  section.style.display = '';
+
+  // Auto-advance
+  if (xCarousel.timer) clearInterval(xCarousel.timer);
+  if (items.length > 1) {
+    xCarousel.timer = setInterval(function(){
+      xGoTo((xCarousel.cur + 1) % xCarousel.items.length);
+    }, 30000);
+  }
+}
+
+window.xGoTo = function(idx){
+  var items   = xCarousel.items;
+  var track   = document.getElementById('bps-x-track');
+  var dotsEl  = document.getElementById('bps-x-dots');
+  if (!track) return;
+  var cards = track.querySelectorAll('.bps-x-card');
+  var dots  = dotsEl ? dotsEl.querySelectorAll('.bps-x-dot') : [];
+  if (cards[xCarousel.cur]) cards[xCarousel.cur].classList.remove('active');
+  if (dots[xCarousel.cur])  dots[xCarousel.cur].classList.remove('active');
+  xCarousel.cur = idx;
+  if (cards[idx]) cards[idx].classList.add('active');
+  if (dots[idx])  dots[idx].classList.add('active');
+};
+
 fetch('media.json?t=' + Date.now())
   .then(function(r){ return r.json(); })
   .then(function(data){ renderXPosts(data.xposts || []); })
