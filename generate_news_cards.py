@@ -35,9 +35,14 @@ GROQ_MODELS      = [
     "llama-3.3-70b-versatile",
 ]
 
-OPENROUTER_KEY   = os.environ.get("OPENROUTER_KEY", "")
-OPENROUTER_URL   = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+OPENROUTER_KEY    = os.environ.get("OPENROUTER_KEY", "")
+OPENROUTER_URL    = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODELS = [
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct",   # paid Anker
+]
 
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 GOOGLE_TTS_VOICE = "de-DE-Studio-C"   # weiblich, Note 2
@@ -195,18 +200,16 @@ def groq_einordnung(headline: str, summary: str) -> str:
     # 2. OpenRouter-Fallback
     if OPENROUTER_KEY:
         print("  [INFO] Groq failed — versuche OpenRouter...")
-        result = _llm_call(
-            OPENROUTER_URL,
-            {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "HTTP-Referer": "https://ki-news.live",
-                "X-Title": "KI News Cards",
-            },
-            OPENROUTER_MODEL, headline, summary
-        )
-        if result:
-            return f"[OR] {result}"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENROUTER_KEY}",
+            "HTTP-Referer": "https://ki-news.live",
+            "X-Title": "KI News Cards",
+        }
+        for model in OPENROUTER_MODELS:
+            result = _llm_call(OPENROUTER_URL, headers, model, headline, summary)
+            if result:
+                return f"[OR] {result}"
 
     return "Einordnung nicht verfügbar."
 
