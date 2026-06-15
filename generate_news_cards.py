@@ -343,8 +343,12 @@ def main() -> None:
         einordnung = groq_einordnung(headline, summary)
         kontext    = summary[:280] if summary else "–"
 
+        # TTS-Text: [OR]-Prefix entfernen, "KI" → "K I" für korrekte Aussprache
+        tts_text = re.sub(r"^\[OR\]\s*", "", einordnung)
+        tts_text = tts_text.replace("KI", "K I")
+
         # TTS generieren — bestimmt Video-Länge
-        audio_path, video_dauer = generate_tts(einordnung, slug)
+        audio_path, video_dauer = generate_tts(tts_text, slug)
 
         # HTML befüllen
         filled = fill_template(template, {
