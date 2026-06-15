@@ -30,18 +30,19 @@ from pathlib import Path
 GROQ_API_KEY     = os.environ.get("GROQ_CHAT_KEY", "")
 GROQ_URL         = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODELS      = [
-    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",   # stärkstes Groq-Modell zuerst
     "gemma2-9b-it",
-    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",      # schnellstes als letzter Fallback
 ]
 
 OPENROUTER_KEY    = os.environ.get("OPENROUTER_KEY", "")
 OPENROUTER_URL    = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODELS = [
-    "google/gemma-4-31b-it:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "meta-llama/llama-3.3-70b-instruct",   # paid Anker
+    "google/gemma-4-31b-it:free",              # Quality 65 — bestes Free-Modell
+    "nvidia/nemotron-3-super-120b-a12b:free",  # Quality 60 — Nvidia 120B, 1M ctx
+    "openai/gpt-oss-120b:free",                # Quality 55 — OpenAI OSS 120B
+    "meta-llama/llama-3.3-70b-instruct:free",  # Quality 24 — bewährter Fallback
+    "meta-llama/llama-3.3-70b-instruct",       # paid Anker
 ]
 
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
