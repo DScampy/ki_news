@@ -54,6 +54,7 @@ TOP_N          = 5
 CARD_WIDTH     = 420
 CARD_HEIGHT    = 660
 CARD_DURATION  = 8     # Fallback-Dauer wenn kein TTS
+FORCE_RENDER   = os.environ.get("FORCE_RENDER", "0") == "1"
 
 ROOT_DIR       = Path(os.environ.get("GITHUB_WORKSPACE", Path(__file__).resolve().parent))
 
@@ -361,8 +362,17 @@ def main() -> None:
         html_out.write_text(filled, encoding="utf-8")
         print(f"  ✓ HTML: {html_out.name}")
 
-        if mp4_out.exists():
-            print(f"  → {mp4_out.name} wird überschrieben.")
+        if mp4_out.exists() and not FORCE_RENDER:
+            print(f"  → {mp4_out.name} existiert bereits — überspringe (force_render=false).")
+            cards_meta.append({
+                "id":       slug,
+                "headline": headline,
+                "mp4_url":  mp4_url,
+                "date":     today,
+                "source":   source,
+                "duration": CARD_DURATION,
+            })
+            continue
 
         success = render_card(html_out, mp4_out, audio_path, video_dauer)
         if not success:
