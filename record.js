@@ -118,10 +118,8 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     '-crf', '23',
     '-pix_fmt', 'yuv420p',
     '-movflags', '+faststart',
-    ...(hasAudio
-      ? ['-c:a', 'aac', '-b:a', '128k', '-shortest']
-      : ['-t', String(DURATION)]
-    ),
+    '-t', String(DURATION),
+    ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k'] : []),
     absMp4,
   ];
 
