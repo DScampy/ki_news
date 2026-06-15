@@ -356,6 +356,8 @@ html.light .bps-x-link { color:#374151; }
 .bps-x-dots { display:flex; gap:5px; margin-top:9px; justify-content:center; }
 .bps-x-dot { width:5px; height:5px; border-radius:50%; background:rgba(var(--neon-rgb),0.2); border:1px solid rgba(var(--neon-rgb),0.3); cursor:pointer; transition:background .2s; flex-shrink:0; }
 .bps-x-dot.active { background:var(--accent,#1d9bf0); border-color:var(--accent,#1d9bf0); box-shadow:0 0 5px rgba(29,155,240,0.6); }
+.bps-x-date { font-weight:400; color:rgba(232,237,248,0.35); font-size:9px; }
+.bps-x-note { font-size:12px; font-weight:600; line-height:1.4; color:var(--text); margin-bottom:8px; }
 .bps-spinner { width:28px; height:28px; border:2px solid rgba(var(--neon-rgb),.15); border-top-color:var(--accent); border-radius:50%; animation:bpsSpin .8s linear infinite; }
 @keyframes bpsSpin{ to{ transform:rotate(360deg); } }
 .bps-dots { display:flex; gap:6px; margin-bottom:10px; }
@@ -912,12 +914,13 @@ function buildXCarousel(){
   track.innerHTML = items.map(function(x, i){
     var href    = (x.url||'').replace(/^https?:\/\/(www\.)?x\.com/, 'https://twitter.com');
     var handle  = xHandleFromUrl(x.url);
-    var imgHtml = x.image ? '<img class="bps-x-img" src="'+String(x.image).replace(/"/g,'&quot;')+'" alt="" loading="lazy">' : '';
-    var preview = x.text ? String(x.text).slice(0,140) + (x.text.length>140?'…':'') : '';
+    var imgHtml  = x.image ? '<img class="bps-x-img" src="'+String(x.image).replace(/"/g,'&quot;')+'" alt="" loading="lazy">' : '';
+    var note     = (x.note || x.text || '').trim();
+    var dateStr  = x.date || '';
     return '<div class="bps-x-card'+(i===0?' active':'')+'" data-idx="'+i+'">' +
-             '<div class="bps-x-handle">'+handle+'</div>' +
+             '<div class="bps-x-handle">'+handle+(dateStr?' <span class="bps-x-date">· '+dateStr+'</span>':'')+'</div>' +
+             (note ? '<div class="bps-x-note">'+note+'</div>' : '') +
              imgHtml +
-             (preview ? '<a class="bps-x-link" href="'+href+'" target="_blank" rel="noopener">'+preview+'</a>' : '') +
              '<a class="bps-x-open" href="'+href+'" target="_blank" rel="noopener">Auf 𝕏 ansehen →</a>' +
            '</div>';
   }).join('');
