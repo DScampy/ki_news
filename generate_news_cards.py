@@ -206,7 +206,7 @@ def groq_einordnung(headline: str, summary: str) -> str:
             OPENROUTER_MODEL, headline, summary
         )
         if result:
-            return result
+            return f"[OR] {result}"
 
     return "Einordnung nicht verfügbar."
 
