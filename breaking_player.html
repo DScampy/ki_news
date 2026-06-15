@@ -108,6 +108,34 @@ body {
   gap: 12px;
 }
 
+/* ── Unmute Button ── */
+.unmute-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid rgba(0,229,255,0.45);
+  border-radius: 4px;
+  color: var(--cyan);
+  font-size: 11px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 5px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s, border-color 0.15s;
+  backdrop-filter: blur(4px);
+  text-transform: uppercase;
+}
+.unmute-btn:hover {
+  background: rgba(0,229,255,0.15);
+  border-color: rgba(0,229,255,0.85);
+}
+
 .spinner {
   width: 32px; height: 32px;
   border: 2px solid rgba(0,229,255,0.15);
@@ -292,6 +320,9 @@ body {
       <div class="loading-text">Lade Karten...</div>
     </div>
     <video id="mainVideo" playsinline muted autoplay></video>
+    <button class="unmute-btn" id="unmuteBtn" onclick="toggleMute()" title="Ton an/aus">
+      <span id="muteIcon">🔇</span> Ton
+    </button>
   </div>
 
   <!-- Dots -->
@@ -465,6 +496,12 @@ function formatDate(iso) {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y}`;
+}
+
+// ── UNMUTE TOGGLE ─────────────────────────────────────────────────────────────
+function toggleMute() {
+  video.muted = !video.muted;
+  document.getElementById('muteIcon').textContent = video.muted ? '🔇' : '🔊';
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────
