@@ -7,7 +7,7 @@ startet record.js (Playwright) für jede Karte, schreibt cards.json.
 
 Ablauf:
   1. news.json einlesen → Top-N Storys nach Score
-  2. Groq API → Einordnung (2 Sätze, ScampyKI-Stimme)
+  2. Groq API → Einordnung (3–4 Sätze, ScampyKI-Stimme)
   3. Google TTS → MP3 (bestimmt Video-Länge)
   4. HTML-Template befüllen → /tmp/cards/<id>.html
   5. record.js aufrufen → assets/cards/<id>.mp4 (mit Audio)
@@ -67,7 +67,8 @@ TMP_DIR        = Path("/tmp/cards")
 
 SYSTEM_PROMPT = (
     "Du bist ScampyKI — kritischer KI-Journalist, skeptisch gegenüber Hype. "
-    "Schreib in 1–2 prägnanten deutschen Sätzen eine nüchterne Einordnung der News. "
+    "Schreib 3–4 prägnante deutsche Sätze als nüchterne Einordnung der News (ca. 25–30 Sekunden Lesezeit). "
+    "Keine Wiederholungen — jeder Satz bringt neue Information. "
     "Kein Lob, kein Marketing-Sprech. Fokus: Was bedeutet das wirklich?"
 )
 
@@ -344,20 +345,24 @@ def main() -> None:
         einordnung = groq_einordnung(headline, summary)
         kontext    = summary[:280] if summary else "–"
 
-        # TTS-Text: [OR]-Prefix entfernen, "KI" → "K I" für korrekte Aussprache
-        tts_text = re.sub(r"^\[OR\]\s*", "", einordnung)
-        tts_text = tts_text.replace("KI", "K I")
+        # [OR]-Prefix entfernen (für Karte UND TTS)
+        einordnung_clean = re.sub(r"^\[OR\]\s*", "", einordnung)
+
+        # TTS-Text: Headline zuerst, dann Einordnung — "KI" → "K I" für korrekte Aussprache
+        headline_tts   = headline.replace("KI", "K I")
+        einordnung_tts = einordnung_clean.replace("KI", "K I")
+        tts_text = f"{headline_tts}. {einordnung_tts}"
 
         # TTS generieren — bestimmt Video-Länge
         audio_path, video_dauer = generate_tts(tts_text, slug)
 
-        # HTML befüllen
+        # HTML befüllen (einordnung_clean: kein [OR]-Label auf der Karte)
         filled = fill_template(template, {
             "HEADLINE":   headline,
             "QUELLE":     source,
             "DATUM":      today,
             "KONTEXT":    kontext,
-            "EINORDNUNG": einordnung,
+            "EINORDNUNG": einordnung_clean,
         })
         html_out.write_text(filled, encoding="utf-8")
         print(f"  ✓ HTML: {html_out.name}")
@@ -381,8 +386,8 @@ def main() -> None:
 
         print(f"  ✓ MP4:  {mp4_out.name}")
 
-        # Karte direkt an Telegram schicken
-        send_card_to_telegram(mp4_out, headline, einordnung)
+        # Karte direkt an Telegram schicken (einordnung_clean: kein [OR]-Label)
+        send_card_to_telegram(mp4_out, headline, einordnung_clean)
 
         cards_meta.append({
             "id":       slug,
