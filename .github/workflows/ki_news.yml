@@ -92,7 +92,7 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
           FORCE_RENDER: ${{ github.event.inputs.force_render == 'true' && '1' || '0' }}
-        run: python3 generate_news_cards.py
+        run: python3 generate_news_cards.py 2>&1 | tee cards.log
 
       - name: Commit generated cards
         run: |
@@ -108,4 +108,6 @@ jobs:
         if: always()
         with:
           name: ki-news-log
-          path: ki_news.log
+          path: |
+            ki_news.log
+            cards.log
