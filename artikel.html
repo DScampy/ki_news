@@ -336,6 +336,9 @@ html.light .bps-counter { color:#94a3b8; }
 .bps-video-wrap { position:relative; width:100%; padding-top:157.14%; /* 660/420 */ background:var(--card,#0d1117); border:1px solid rgba(var(--neon-rgb),.2); border-radius:6px; overflow:hidden; margin-bottom:10px; }
 .bps-video-wrap video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
 .bps-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--card,#0d1117); z-index:2; }
+/* ── Unmute Button ── */
+.bps-unmute { position:absolute; bottom:10px; right:10px; z-index:10; background:rgba(0,0,0,0.65); border:1px solid rgba(var(--neon-rgb),0.4); border-radius:4px; color:var(--accent,#1d9bf0); font-size:11px; font-family:'Space Grotesk',sans-serif; font-weight:700; letter-spacing:0.1em; padding:5px 9px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:background 0.15s,border-color 0.15s; backdrop-filter:blur(4px); }
+.bps-unmute:hover { background:rgba(var(--neon-rgb),0.15); border-color:rgba(var(--neon-rgb),0.8); }
 .bps-spinner { width:28px; height:28px; border:2px solid rgba(var(--neon-rgb),.15); border-top-color:var(--accent); border-radius:50%; animation:bpsSpin .8s linear infinite; }
 @keyframes bpsSpin{ to{ transform:rotate(360deg); } }
 .bps-dots { display:flex; gap:6px; margin-bottom:10px; }
@@ -343,18 +346,18 @@ html.light .bps-counter { color:#94a3b8; }
 .bps-dot.active { background:var(--accent); box-shadow:0 0 7px rgba(var(--neon-rgb),.7); }
 .bps-dot:hover { background:rgba(var(--neon-rgb),.45); }
 .bps-meta { padding:10px 12px; border:1px solid rgba(var(--neon-rgb),.15); border-left:3px solid var(--accent); background:rgba(var(--neon-rgb),.04); border-radius:0 4px 4px 0; margin-bottom:10px; }
-.bps-meta-source { font-family:'Space Grotesk',sans-serif; font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:5px; opacity:.8; }
+.bps-meta-source { font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:5px; opacity:.8; }
 .bps-meta-headline { font-family:'Fraunces',serif; font-size:13px; line-height:1.4; color:var(--text); font-weight:600; }
 html.light .bps-meta-headline { color:#0f172a; }
-.bps-playlist { border-top:1px solid rgba(var(--neon-rgb),.1); padding-top:8px; margin-top:2px; }
-.bps-pl-item { display:flex; align-items:flex-start; gap:9px; padding:7px 6px; border-radius:4px; cursor:pointer; transition:background .15s; border-bottom:1px solid rgba(var(--neon-rgb),.06); }
+.bps-playlist { border-top:2px solid rgba(var(--neon-rgb),.18); padding-top:10px; margin-top:6px; }
+.bps-pl-item { display:flex; align-items:flex-start; gap:9px; padding:9px 6px; border-radius:4px; cursor:pointer; transition:background .15s; border-bottom:1px solid rgba(var(--neon-rgb),.08); }
 .bps-pl-item:last-child { border-bottom:none; }
 .bps-pl-item:hover { background:rgba(var(--neon-rgb),.06); }
 .bps-pl-item.active { background:rgba(var(--neon-rgb),.1); }
 .bps-pl-num { font-family:monospace; font-size:10px; font-weight:700; color:rgba(var(--neon-rgb),.4); min-width:16px; padding-top:2px; }
 .bps-pl-item.active .bps-pl-num { color:var(--accent); }
 .bps-pl-info { flex:1; min-width:0; }
-.bps-pl-date { font-family:monospace; font-size:9px; color:rgba(255,255,255,.3); margin-bottom:2px; }
+.bps-pl-date { font-family:monospace; font-size:11px; color:rgba(255,255,255,.3); margin-bottom:2px; }
 html.light .bps-pl-date { color:#94a3b8; }
 .bps-pl-hl { font-size:11px; line-height:1.35; color:var(--text); opacity:.75; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 html.light .bps-pl-hl { color:#0f172a; }
@@ -403,8 +406,8 @@ html.light .lead-meta { color:#64748b; }
 .sec-meta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-family:monospace; font-size:10px; color:rgba(255,255,255,0.5); letter-spacing:0.06em; }
 html.light .sec-meta { color:#64748b; }
 .sec-cta { display:inline-flex; align-items:center; gap:6px; font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); text-decoration:none; padding-bottom:2px; border-bottom:1px solid var(--accent); }
-.section-break { display:flex; align-items:center; gap:18px; margin:36px 0 24px; font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:rgba(var(--neon-rgb),0.7); }
-.section-break::before, .section-break::after { content:''; flex:1; height:1px; background:rgba(var(--neon-rgb),0.22); }
+.section-break { display:flex; align-items:center; gap:16px; margin:44px 0 24px; padding-top:16px; border-top:2px solid rgba(var(--neon-rgb),0.35); font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:rgba(var(--neon-rgb),0.9); }
+.section-break::after { content:''; flex:1; height:1px; background:rgba(var(--neon-rgb),0.12); }
 .art-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:24px 32px; margin-bottom:48px; }
 @media(max-width:900px){ .art-grid { grid-template-columns:repeat(2,1fr); } }
 @media(max-width:560px){ .art-grid { grid-template-columns:1fr; } }
@@ -529,7 +532,7 @@ html.light .colophon-links a { color:#64748b; }
         </article>
       </div>
 
-      <div class="section-break"><span>— Longform Analyse</span></div>
+      <div class="section-break"><span>Longform Analyse</span></div>
 
       <!-- Static longform articles -->
       <div id="longform-list" style="display:flex;flex-direction:column;gap:16px;margin-bottom:32px;">
@@ -611,18 +614,18 @@ html.light .colophon-links a { color:#64748b; }
         </a>
       </div>
 
-      <div class="section-break"><span>— Zuletzt auf X</span></div>
+      <div class="section-break"><span>Zuletzt auf X</span></div>
       <div id="x-embed-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;align-items:start;margin-bottom:32px;"></div>
       <!-- X-Beiträge werden aus media.json geladen (Sektion "xposts"), Tweets via assets/ki-embed.js erst auf Klick -->
 
-      <div class="section-break"><span>— Weitere Artikel</span></div>
+      <div class="section-break"><span>Weitere Artikel</span></div>
       <div id="art-grid" class="art-grid">
         <div class="art-item"><div class="art-skel" style="width:40%;margin-bottom:10px"></div><div class="art-skel"></div><div class="art-skel"></div></div>
         <div class="art-item"><div class="art-skel" style="width:40%;margin-bottom:10px"></div><div class="art-skel"></div><div class="art-skel"></div></div>
         <div class="art-item"><div class="art-skel" style="width:40%;margin-bottom:10px"></div><div class="art-skel"></div><div class="art-skel"></div></div>
       </div>
 
-      <div class="section-break"><span>— Im Überblick</span></div>
+      <div class="section-break"><span>Im Überblick</span></div>
       <div class="side-rail">
         <aside class="rail-card">
           <div class="rail-eyebrow">📊 Top nach Score</div>
@@ -657,6 +660,9 @@ html.light .colophon-links a { color:#64748b; }
             <div class="bps-spinner"></div>
           </div>
           <video id="bps-video" muted playsinline autoplay style="opacity:0;transition:opacity .3s;"></video>
+          <button class="bps-unmute" id="bps-unmute" onclick="bpsToggleMute()" title="Ton an/aus">
+            <span id="bps-mute-icon">🔇</span> TON
+          </button>
         </div>
 
         <div class="bps-dots" id="bps-dots"></div>
@@ -981,6 +987,14 @@ fetch('media.json?t=' + Date.now())
     })
     .catch(function() { loading.style.display = 'none'; });
 })();
+
+// ── Unmute Toggle ─────────────────────────────────────────────────────────────
+window.bpsToggleMute = function() {
+  var v    = document.getElementById('bps-video');
+  var icon = document.getElementById('bps-mute-icon');
+  v.muted  = !v.muted;
+  icon.textContent = v.muted ? '🔇' : '🔊';
+};
 </script>
 
 <script type="text/plain" id="ki-genesis-src">
