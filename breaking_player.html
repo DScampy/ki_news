@@ -453,6 +453,12 @@ function loadCard(idx) {
 
 // ── AUTO-ADVANCE ─────────────────────────────────────────────────────────────
 video.addEventListener('ended', () => {
+  // Nach einmaligem Durchlauf mit Ton automatisch wieder stummschalten
+  if (!video.muted) {
+    video.muted = true;
+    const icon = document.getElementById('muteIcon');
+    if (icon) icon.textContent = '🔇';
+  }
   if (current + 1 < topCards.length) {
     loadCard(current + 1);
   } else if (AUTOPLAY_LOOP) {
@@ -498,10 +504,17 @@ function formatDate(iso) {
   return `${d}.${m}.${y}`;
 }
 
-// ── UNMUTE TOGGLE ─────────────────────────────────────────────────────────────
+// ── TON-BUTTON: einmal ab Anfang mit Ton, danach automatisch wieder stumm ─────
 function toggleMute() {
-  video.muted = !video.muted;
-  document.getElementById('muteIcon').textContent = video.muted ? '🔇' : '🔊';
+  if (video.muted) {
+    video.muted = false;
+    video.currentTime = 0;
+    document.getElementById('muteIcon').textContent = '🔊';
+    video.play().catch(() => {});
+  } else {
+    video.muted = true;
+    document.getElementById('muteIcon').textContent = '🔇';
+  }
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────

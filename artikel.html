@@ -968,7 +968,7 @@ fetch('media.json?t=' + Date.now())
 
 /* ── Breaking Player Sidebar ───────────────────────────────────────────── */
 (function(){
-  var TOP_N   = 3;
+  var TOP_N   = 8; // alle generierten Cards anzeigen statt hart auf 3 begrenzt
   var cards   = [];
   var top     = [];
   var cur     = 0;
@@ -1035,6 +1035,12 @@ fetch('media.json?t=' + Date.now())
   }
 
   video.addEventListener('ended', function() {
+    // Nach einmaligem Durchlauf mit Ton automatisch wieder stummschalten
+    if (!video.muted) {
+      video.muted = true;
+      var icon = document.getElementById('bps-mute-icon');
+      if (icon) icon.textContent = '🔇';
+    }
     loadCard(cur + 1 < top.length ? cur + 1 : 0);
   });
 
@@ -1067,12 +1073,21 @@ fetch('media.json?t=' + Date.now())
     .catch(function() { loading.style.display = 'none'; });
 })();
 
-// ── Unmute Toggle ─────────────────────────────────────────────────────────────
+// ── Ton-Button: einmal ab Anfang mit Ton, danach automatisch wieder stumm ──────
 window.bpsToggleMute = function() {
   var v    = document.getElementById('bps-video');
   var icon = document.getElementById('bps-mute-icon');
-  v.muted  = !v.muted;
-  icon.textContent = v.muted ? '🔇' : '🔊';
+  if (v.muted) {
+    // Von vorne mit Ton starten (Browser-Autoplay-Policy erfordert diese Nutzer-Geste)
+    v.muted = false;
+    v.currentTime = 0;
+    icon.textContent = '🔊';
+    v.play().catch(function(){});
+  } else {
+    // Manueller Abbruch: sofort wieder stumm
+    v.muted = true;
+    icon.textContent = '🔇';
+  }
 };
 </script>
 

@@ -75,6 +75,25 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // Kurz warten bis Animationen anlaufen
   await page.waitForTimeout(300);
 
+  // ─── Robot ausblenden wenn Karteninhalt zu viel Text hat (Overflow) ────────
+  // .card hat eine feste Hoehe (660px); wenn der tatsaechliche Inhalt
+  // (scrollHeight) darueber liegt, ist die Einordnungs-Box so gross geworden,
+  // dass sie mit dem Mini-Roboter kollidieren wuerde → Roboter dann verstecken.
+  const robotHidden = await page.evaluate(() => {
+    const card = document.querySelector('.card');
+    const robot = document.querySelector('.robot-overlay');
+    if (!card || !robot) return false;
+    const overflowing = card.scrollHeight > card.clientHeight + 2;
+    if (overflowing) {
+      robot.classList.add('rb-hidden');
+      return true;
+    }
+    return false;
+  });
+  if (robotHidden) {
+    console.log('[record.js] Karteninhalt zu lang — Mini-Roboter ausgeblendet.');
+  }
+
   // ─── Frame-Verzeichnis anlegen ───────────────────────────────────────────
   const frameDir = path.join(path.dirname(absMp4), `_frames_${Date.now()}`);
   fs.mkdirSync(frameDir, { recursive: true });

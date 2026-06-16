@@ -55,7 +55,12 @@ TOP_N          = 5
 CARD_WIDTH     = 420
 CARD_HEIGHT    = 660
 CARD_DURATION  = 8     # Fallback-Dauer wenn kein TTS
+MAX_DURATION   = 35    # Hard-Cap: niemand hört sich eine 50s-Karte an
+MAX_SENTENCES  = 4      # Einordnung wird auf max. N Sätze gekappt (Text + TTS)
 FORCE_RENDER   = os.environ.get("FORCE_RENDER", "0") == "1"
+
+MAX_STATE_LINKS  = 60   # wie telegram_state.json: nur die juengsten Links merken
+MAX_CARDS_DISPLAY = 20  # cards.json akkumuliert ueber mehrere Laeufe statt geleert zu werden
 
 ROOT_DIR       = Path(os.environ.get("GITHUB_WORKSPACE", Path(__file__).resolve().parent))
 
@@ -64,7 +69,17 @@ ASSETS_DIR     = ROOT_DIR / "assets" / "cards"
 TEMPLATE_PATH  = Path(__file__).with_name("breaking_news_card_template.html")
 RECORD_JS      = Path(__file__).with_name("record.js")
 CARDS_JSON     = ROOT_DIR / "cards.json"
+CARD_STATE_JSON = ROOT_DIR / "card_state.json"  # Dedup-Gedaechtnis, analog telegram_state.json
 TMP_DIR        = Path("/tmp/cards")
+
+# TTS-Ausspracheliste: einzelne Buchstaben/Begriffe, die die Studio-Voice falsch betont.
+# Erweiterbar, sobald neue Faelle auffallen (z.B. ueber die Admin-Seite gepflegt).
+PRONOUNCE_FIXES = {
+    "KI":     "K I",
+    "DRAM":   "D-RAM",
+    "SpaceX": "Space X",
+    "HBM":    "H B M",
+}
 
 SYSTEM_PROMPT = (
     "Du bist ScampyKI — kritischer KI-Journalist, skeptisch gegenüber Hype. "
@@ -88,6 +103,19 @@ def clean_markdown(text: str) -> str:
     text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
     text = re.sub(r"\*(.+?)\*", r"\1", text)
     return text.strip()
+
+
+def limit_sentences(text: str, max_sentences: int = MAX_SENTENCES) -> str:
+    """Kappt Text auf max. N Saetze, damit Einordnung (und TTS-Dauer) nicht ausufern."""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    return " ".join(sentences[:max_sentences]).strip()
+
+
+def apply_pronounce_fixes(text: str) -> str:
+    """Wendet die PRONOUNCE_FIXES-Liste fuer korrekte TTS-Aussprache an (Wortgrenzen)."""
+    for original, spoken in PRONOUNCE_FIXES.items():
+        text = re.sub(rf"\b{re.escape(original)}\b", spoken, text)
+    return text
 
 
 def audio_dauer_sekunden(pfad: Path) -> float:
@@ -146,6 +174,9 @@ def generate_tts(text: str, slug: str) -> tuple:
 
         dauer = audio_dauer_sekunden(audio_path)
         video_dauer = max(int(dauer) + 1, CARD_DURATION)  # +1s Puffer
+        if video_dauer > MAX_DURATION:
+            print(f"  [WARN] TTS-Dauer {dauer:.1f}s ueberschreitet Cap ({MAX_DURATION}s) — Video wird gekappt.")
+            video_dauer = MAX_DURATION
         print(f"  ✓ TTS:  {audio_path.name} ({dauer:.1f}s → {video_dauer}s Video)")
         return audio_path, video_dauer
 
@@ -324,15 +355,36 @@ def main() -> None:
         sys.exit(1)
 
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    # ── Dedup-Gedaechtnis laden (analog telegram_state.json) ───────────────
+    card_sent = {}
+    try:
+        card_sent = json.loads(CARD_STATE_JSON.read_text(encoding="utf-8")).get("sent_links", {})
+    except Exception:
+        pass
+
+    # ── Bisherige cards.json laden, damit wir akkumulieren statt ueberschreiben ──
+    existing_cards = []
+    try:
+        existing_cards = json.loads(CARDS_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+
     cards_meta = []
 
     for i, article in enumerate(articles_sorted, start=1):
         headline = article.get("title", article.get("headline", "")).strip()
         source   = article.get("source", article.get("publisher", "Unbekannt")).strip()
         summary  = article.get("summary", article.get("description", "")).strip()
+        link     = (article.get("link") or article.get("url") or "").strip()
 
         if not headline:
             print(f"  [SKIP] Artikel {i}: kein Titel.")
+            continue
+
+        # ── Themen-Dedup: Artikel-Link schon mal verarbeitet? ──────────────
+        if link and link in card_sent:
+            print(f"  [SKIP] Artikel {i}: Thema bereits abgedeckt ({link}) — keine neue Karte.")
             continue
 
         slug     = f"{today}-{slugify(headline)}"
@@ -348,10 +400,12 @@ def main() -> None:
 
         # [OR]-Prefix entfernen (für Karte UND TTS)
         einordnung_clean = re.sub(r"^\[OR\]\s*", "", einordnung)
+        # Hard-Cap auf max. N Saetze — verhindert ausufernde TTS-Dauer strukturell
+        einordnung_clean = limit_sentences(einordnung_clean)
 
-        # TTS-Text: Headline zuerst, dann Einordnung — "KI" → "K I" für korrekte Aussprache
-        headline_tts   = headline.replace("KI", "K I")
-        einordnung_tts = einordnung_clean.replace("KI", "K I")
+        # TTS-Text: Headline zuerst, dann Einordnung — Ausspracheliste anwenden
+        headline_tts   = apply_pronounce_fixes(headline)
+        einordnung_tts = apply_pronounce_fixes(einordnung_clean)
         tts_text = f"{headline_tts}. {einordnung_tts}"
 
         # TTS generieren — bestimmt Video-Länge
@@ -378,6 +432,8 @@ def main() -> None:
                 "source":   source,
                 "duration": CARD_DURATION,
             })
+            if link:
+                card_sent[link] = today
             continue
 
         success = render_card(html_out, mp4_out, audio_path, video_dauer)
@@ -398,11 +454,30 @@ def main() -> None:
             "source":   source,
             "duration": video_dauer,
         })
+        if link:
+            card_sent[link] = today
+
+    # ── Dedup-Gedaechtnis speichern, auf juengste Links begrenzt ────────────
+    if len(card_sent) > MAX_STATE_LINKS:
+        card_sent = dict(sorted(card_sent.items(), key=lambda kv: kv[1])[-MAX_STATE_LINKS:])
+    try:
+        CARD_STATE_JSON.write_text(
+            json.dumps({"sent_links": card_sent, "stand": today}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        print(f"  [WARN] card_state.json nicht schreibbar: {e}")
+
+    # ── cards.json: neue Karten + bisherige akkumulieren statt ueberschreiben ──
+    merged = {c["id"]: c for c in existing_cards if isinstance(c, dict) and c.get("id")}
+    for c in cards_meta:
+        merged[c["id"]] = c
+    cards_final = sorted(merged.values(), key=lambda c: c.get("date", ""), reverse=True)[:MAX_CARDS_DISPLAY]
 
     with open(CARDS_JSON, "w", encoding="utf-8") as f:
-        json.dump(cards_meta, f, ensure_ascii=False, indent=2)
+        json.dump(cards_final, f, ensure_ascii=False, indent=2)
 
-    print(f"\n✅ cards.json: {len(cards_meta)} Karten → {CARDS_JSON}")
+    print(f"\n✅ cards.json: {len(cards_final)} Karten ({len(cards_meta)} neu/aktualisiert in diesem Lauf) → {CARDS_JSON}")
 
 
 if __name__ == "__main__":
