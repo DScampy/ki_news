@@ -75,23 +75,59 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // Kurz warten bis Animationen anlaufen
   await page.waitForTimeout(300);
 
-  // ─── Robot ausblenden wenn Karteninhalt zu viel Text hat (Overflow) ────────
-  // .card hat eine feste Hoehe (660px); wenn der tatsaechliche Inhalt
-  // (scrollHeight) darueber liegt, ist die Einordnungs-Box so gross geworden,
-  // dass sie mit dem Mini-Roboter kollidieren wuerde → Roboter dann verstecken.
+  // ─── Robot ausblenden wenn er den Text ueberlappt ──────────────────────────
+  // Vorherige Version pruefte card.scrollHeight > card.clientHeight — das greift
+  // praktisch nie, weil .kontext-section (flex:1, min-height:0) absichtlich
+  // schrumpft statt die Karte ueberlaufen zu lassen. Die Karte ueberlaeuft also
+  // fast nie, obwohl der Roboter trotzdem mit dem Text kollidieren kann.
+  // Direkter, robusterer Test: tatsaechliche (skalierte) Bounding-Box des
+  // Roboters gegen die Bounding-Box von Einordnungs- und Kontext-Text pruefen.
+  // Bei Ueberlappung: Roboter komplett ausblenden (kein Versuch ihn
+  // auszuweichen — eine "mitwandernde" Position waere nur ein weiterer
+  // fragiler Mechanismus auf einem Problem, das schon kippt).
   const robotHidden = await page.evaluate(() => {
-    const card = document.querySelector('.card');
-    const robot = document.querySelector('.robot-overlay');
-    if (!card || !robot) return false;
-    const overflowing = card.scrollHeight > card.clientHeight + 2;
-    if (overflowing) {
+    const robot         = document.querySelector('.robot-overlay');
+    const einordnungText = document.querySelector('.einordnung-text');
+    const kontextText    = document.querySelector('.kontext-text');
+    const card           = document.querySelector('.card');
+    if (!robot || !einordnungText || !card) return false;
+
+    function rectsOverlap(a, b) {
+      return !(a.right <= b.left || a.left >= b.right ||
+                a.bottom <= b.top  || a.top >= b.bottom);
+    }
+
+    // Vor Animationsstart steht der Roboter per CSS auf scale(0)/opacity:0 —
+    // getBoundingClientRect() wuerde sonst eine Nullgroesse liefern. Kurz in
+    // seinen finalen sichtbaren Zustand versetzen, um die echte Bounding-Box
+    // zu messen, danach bei Bedarf wieder zuruecksetzen.
+    const prevTransform = robot.style.transform;
+    const prevOpacity   = robot.style.opacity;
+    const prevAnimation = robot.style.animation;
+    robot.style.animation = 'none';
+    robot.style.transform = 'scale(0.38)';
+    robot.style.opacity   = '1';
+
+    const robotRect = robot.getBoundingClientRect();
+    const textOverlap =
+      rectsOverlap(robotRect, einordnungText.getBoundingClientRect()) ||
+      (kontextText && rectsOverlap(robotRect, kontextText.getBoundingClientRect()));
+    const cardOverflow = card.scrollHeight > card.clientHeight + 2;
+
+    if (textOverlap || cardOverflow) {
       robot.classList.add('rb-hidden');
       return true;
     }
+
+    // Kein Konflikt -> Inline-Override zuruecknehmen, normale CSS-Animation
+    // (Erscheinen bei 4.2s) laeuft wie gewohnt weiter.
+    robot.style.transform = prevTransform;
+    robot.style.opacity   = prevOpacity;
+    robot.style.animation = prevAnimation;
     return false;
   });
   if (robotHidden) {
-    console.log('[record.js] Karteninhalt zu lang — Mini-Roboter ausgeblendet.');
+    console.log('[record.js] Mini-Roboter ausgeblendet (Textueberlappung oder Karten-Overflow).');
   }
 
   // ─── Frame-Verzeichnis anlegen ───────────────────────────────────────────

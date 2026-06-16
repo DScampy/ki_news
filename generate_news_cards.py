@@ -216,8 +216,45 @@ def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str) 
         return None
 
 
-def groq_einordnung(headline: str, summary: str) -> str:
-    """Groq → OpenRouter Fallback für ScampyKI-Einordnung."""
+def _looks_invalid(text: str) -> str | None:
+    """Gibt einen Grund zurueck, wenn der Text offensichtlich kein brauchbares
+    deutsches Einordnungs-Statement ist (Meta-Kommentar-Leak oder falsche Sprache).
+    None = Text ist OK.
+
+    Hintergrund: schwache Free-Modelle antworten manchmal nicht mit der
+    Einordnung selbst, sondern mit ihrer eigenen Gedankenkette/Instruktions-
+    Wiedergabe ("We need to output 3-4 concise German sentences...") oder
+    komplett auf Englisch. Solche Antworten werden hier wie ein HTTP-Fehler
+    behandelt: verwerfen und zum naechsten Modell in der Fallback-Kette weiter.
+    """
+    if not text or len(text) < 15:
+        return "zu kurz/leer"
+    lower = text.lower()
+    leak_markers = [
+        "we need", "i need", "let me", "as an ai", "i should",
+        "concise german", "no repetitions", "here is a", "here's a",
+        "note:", "this response", "i'll write", "i will write",
+        "task is to", "instructions say",
+    ]
+    if any(marker in lower for marker in leak_markers):
+        return "Meta-Kommentar-Leak erkannt"
+    german_markers = [
+        " der ", " die ", " das ", " und ", " ist ", " nicht ", " eine ",
+        " einen ", " für ", " mit ", " auf ", " dass ", " wird ", " sich ",
+        " kein ", " keine ",
+    ]
+    padded = f" {lower} "
+    if not any(marker in padded for marker in german_markers):
+        return "keine deutschen Signalwoerter gefunden (vermutlich falsche Sprache)"
+    return None
+
+
+def groq_einordnung(headline: str, summary: str) -> tuple[str, str]:
+    """Groq → OpenRouter Fallback für ScampyKI-Einordnung.
+    Gibt (text, model_label) zurueck. model_label dokumentiert, welches
+    Modell/Provider den Text tatsaechlich geliefert hat — wird mit in
+    cards.json geschrieben, damit Groq-vs-OpenRouter-Nutzung sichtbar bleibt,
+    ohne auf (nicht committete) CI-Logs angewiesen zu sein."""
     # 1. Groq versuchen
     if GROQ_API_KEY:
         for model in GROQ_MODELS:
@@ -227,13 +264,17 @@ def groq_einordnung(headline: str, summary: str) -> str:
                 model, headline, summary
             )
             if result:
-                return result
+                invalid_reason = _looks_invalid(result)
+                if invalid_reason:
+                    print(f"  [WARN] Groq/{model} verworfen ({invalid_reason}): {result[:100]!r}")
+                    continue
+                return result, f"groq:{model}"
     else:
         print("  [INFO] GROQ_CHAT_KEY nicht gesetzt.")
 
     # 2. OpenRouter-Fallback
     if OPENROUTER_KEY:
-        print("  [INFO] Groq failed — versuche OpenRouter...")
+        print("  [INFO] Groq failed/verworfen — versuche OpenRouter...")
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {OPENROUTER_KEY}",
@@ -243,9 +284,13 @@ def groq_einordnung(headline: str, summary: str) -> str:
         for model in OPENROUTER_MODELS:
             result = _llm_call(OPENROUTER_URL, headers, model, headline, summary)
             if result:
-                return f"[OR] {result}"
+                invalid_reason = _looks_invalid(result)
+                if invalid_reason:
+                    print(f"  [WARN] OpenRouter/{model} verworfen ({invalid_reason}): {result[:100]!r}")
+                    continue
+                return result, f"openrouter:{model}"
 
-    return "Einordnung nicht verfügbar."
+    return "Einordnung nicht verfügbar.", "fallback:none"
 
 
 # ─── Template & Rendering ─────────────────────────────────────────────────────
@@ -394,14 +439,12 @@ def main() -> None:
 
         print(f"\n[{i}/{len(articles_sorted)}] {headline[:60]}...")
 
-        # Einordnung via Groq
-        einordnung = groq_einordnung(headline, summary)
+        # Einordnung via Groq → OpenRouter Fallback (mit Inhalts-Validierung)
+        einordnung, llm_used = groq_einordnung(headline, summary)
         kontext    = summary[:280] if summary else "–"
 
-        # [OR]-Prefix entfernen (für Karte UND TTS)
-        einordnung_clean = re.sub(r"^\[OR\]\s*", "", einordnung)
         # Hard-Cap auf max. N Saetze — verhindert ausufernde TTS-Dauer strukturell
-        einordnung_clean = limit_sentences(einordnung_clean)
+        einordnung_clean = limit_sentences(einordnung)
 
         # TTS-Text: Headline zuerst, dann Einordnung — Ausspracheliste anwenden
         headline_tts   = apply_pronounce_fixes(headline)
@@ -431,6 +474,7 @@ def main() -> None:
                 "date":     today,
                 "source":   source,
                 "duration": CARD_DURATION,
+                "llm_used": llm_used,
             })
             if link:
                 card_sent[link] = today
@@ -453,6 +497,7 @@ def main() -> None:
             "date":     today,
             "source":   source,
             "duration": video_dauer,
+            "llm_used": llm_used,
         })
         if link:
             card_sent[link] = today
