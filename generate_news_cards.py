@@ -2,8 +2,9 @@
 generate_news_cards.py
 ======================
 Liest news.json, ruft Groq API für Einordnung auf, befüllt das HTML-Template,
-generiert Audio via Google Cloud TTS (Studio-C weiblich),
-startet record.js (Playwright) für jede Karte, schreibt cards.json.
+generiert Audio via Google Cloud TTS (Studio-C weiblich / Studio-B männlich,
+pro Karte zufällig gewählt), startet record.js (Playwright) für jede Karte,
+schreibt cards.json.
 
 Ablauf:
   1. news.json einlesen → Top-N Storys nach Score
@@ -17,6 +18,7 @@ Ablauf:
 import base64
 import json
 import os
+import random
 import re
 import subprocess
 import sys
@@ -46,7 +48,18 @@ OPENROUTER_MODELS = [
 ]
 
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
-GOOGLE_TTS_VOICE = "de-DE-Studio-C"   # weiblich, Note 2
+# Zwei Studio-Stimmen, pro Karte zufaellig gewaehlt (random.choice in main()) —
+# kein festes Muster, keine Alternierung. (name, ssmlGender) muss zusammenpassen,
+# sonst kann die Google-API unerwartet reagieren.
+# HINWEIS: de-DE-Studio-B als MALE ist die ueblich kolportierte Zuordnung
+# (Gegenstueck zu de-DE-Studio-C FEMALE), aber NICHT 1:1 aus Googles offizieller
+# Tabelle bestaetigt (das "-B"-Suffix ist je Sprache nicht konsistent mit Gender —
+# z.B. ist bg-BG-Standard-B FEMALE). Vor Produktivlauf einmal eine Testkarte
+# mit der maennlichen Stimme anhoeren, um das zu verifizieren.
+GOOGLE_TTS_VOICES = [
+    ("de-DE-Studio-C", "FEMALE"),
+    ("de-DE-Studio-B", "MALE"),
+]
 
 TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438")
@@ -56,7 +69,9 @@ CARD_WIDTH     = 420
 CARD_HEIGHT    = 660
 CARD_DURATION  = 8     # Fallback-Dauer wenn kein TTS
 MAX_DURATION   = 35    # Hard-Cap: niemand hört sich eine 50s-Karte an
-MAX_SENTENCES  = 4      # Einordnung wird auf max. N Sätze gekappt (Text + TTS)
+MAX_SENTENCES  = 3      # Einordnung wird auf max. N Sätze gekappt (Text + TTS) — von 4 auf 3
+                         # reduziert, da 4 Saetze TTS oft ueber MAX_DURATION (35s) trieben
+                         # und den Hard-Cap mitten im Satz zuschlagen liessen
 FORCE_RENDER   = os.environ.get("FORCE_RENDER", "0") == "1"
 
 MAX_STATE_LINKS  = 60   # wie telegram_state.json: nur die juengsten Links merken
@@ -83,7 +98,7 @@ PRONOUNCE_FIXES = {
 
 SYSTEM_PROMPT = (
     "Du bist ScampyKI — kritischer KI-Journalist, skeptisch gegenüber Hype. "
-    "Schreib 3–4 prägnante deutsche Sätze als nüchterne Einordnung der News (ca. 25–30 Sekunden Lesezeit). "
+    "Schreib 2–3 prägnante deutsche Sätze als nüchterne Einordnung der News (ca. 15–20 Sekunden Lesezeit). "
     "Keine Wiederholungen — jeder Satz bringt neue Information. "
     "Kein Lob, kein Marketing-Sprech. Fokus: Was bedeutet das wirklich?"
 )
@@ -133,9 +148,10 @@ def audio_dauer_sekunden(pfad: Path) -> float:
 
 # ─── Google TTS ───────────────────────────────────────────────────────────────
 
-def generate_tts(text: str, slug: str) -> tuple:
+def generate_tts(text: str, slug: str, voice_name: str, voice_gender: str) -> tuple:
     """
-    Generiert MP3 via Google Cloud TTS (Studio-C weiblich).
+    Generiert MP3 via Google Cloud TTS.
+    voice_name/voice_gender: pro Karte zufaellig aus GOOGLE_TTS_VOICES gewaehlt (siehe main()).
     Gibt (audio_path, video_dauer_sekunden) zurück.
     Bei Fehler: (None, CARD_DURATION).
     """
@@ -151,8 +167,8 @@ def generate_tts(text: str, slug: str) -> tuple:
         "input": {"text": text},
         "voice": {
             "languageCode": "de-DE",
-            "name": GOOGLE_TTS_VOICE,
-            "ssmlGender": "FEMALE",
+            "name": voice_name,
+            "ssmlGender": voice_gender,
         },
         "audioConfig": {
             "audioEncoding": "MP3",
@@ -177,7 +193,7 @@ def generate_tts(text: str, slug: str) -> tuple:
         if video_dauer > MAX_DURATION:
             print(f"  [WARN] TTS-Dauer {dauer:.1f}s ueberschreitet Cap ({MAX_DURATION}s) — Video wird gekappt.")
             video_dauer = MAX_DURATION
-        print(f"  ✓ TTS:  {audio_path.name} ({dauer:.1f}s → {video_dauer}s Video)")
+        print(f"  ✓ TTS:  {audio_path.name} [{voice_name}] ({dauer:.1f}s → {video_dauer}s Video)")
         return audio_path, video_dauer
 
     except urllib.error.HTTPError as e:
@@ -451,8 +467,10 @@ def main() -> None:
         einordnung_tts = apply_pronounce_fixes(einordnung_clean)
         tts_text = f"{headline_tts}. {einordnung_tts}"
 
-        # TTS generieren — bestimmt Video-Länge
-        audio_path, video_dauer = generate_tts(tts_text, slug)
+        # TTS generieren — bestimmt Video-Länge. Stimme pro Karte zufaellig waehlen
+        # (kein festes Muster/Alternieren — random.choice() pro Iteration).
+        voice_name, voice_gender = random.choice(GOOGLE_TTS_VOICES)
+        audio_path, video_dauer = generate_tts(tts_text, slug, voice_name, voice_gender)
 
         # HTML befüllen (einordnung_clean: kein [OR]-Label auf der Karte)
         filled = fill_template(template, {
@@ -475,6 +493,7 @@ def main() -> None:
                 "source":   source,
                 "duration": CARD_DURATION,
                 "llm_used": llm_used,
+                "voice_used": voice_name,
             })
             if link:
                 card_sent[link] = today
@@ -498,6 +517,7 @@ def main() -> None:
             "source":   source,
             "duration": video_dauer,
             "llm_used": llm_used,
+            "voice_used": voice_name,
         })
         if link:
             card_sent[link] = today

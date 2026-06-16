@@ -80,16 +80,27 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // praktisch nie, weil .kontext-section (flex:1, min-height:0) absichtlich
   // schrumpft statt die Karte ueberlaufen zu lassen. Die Karte ueberlaeuft also
   // fast nie, obwohl der Roboter trotzdem mit dem Text kollidieren kann.
-  // Direkter, robusterer Test: tatsaechliche (skalierte) Bounding-Box des
-  // Roboters gegen die Bounding-Box von Einordnungs- und Kontext-Text pruefen.
-  // Bei Ueberlappung: Roboter komplett ausblenden (kein Versuch ihn
-  // auszuweichen — eine "mitwandernde" Position waere nur ein weiterer
-  // fragiler Mechanismus auf einem Problem, das schon kippt).
-  const robotHidden = await page.evaluate(() => {
-    const robot         = document.querySelector('.robot-overlay');
-    const einordnungText = document.querySelector('.einordnung-text');
-    const kontextText    = document.querySelector('.kontext-text');
-    const card           = document.querySelector('.card');
+  //
+  // WICHTIG: .kontext-text hat flex:1 in einem flex-direction:column Parent
+  // (.kontext-section) — die AEUSSERE Box wird dadurch immer auf die volle
+  // verfuegbare Hoehe gestreckt, unabhaengig vom tatsaechlichen Textinhalt
+  // (-webkit-line-clamp clippt nur die sichtbaren Zeilen, schrumpft aber nicht
+  // die Box selbst). Da .robot-overlay absichtlich nach oben in genau diesen
+  // Bereich hineinragt (top:-116px, "peek"-Effekt), ist ein Overlap-Check
+  // gegen .kontext-text IMMER true — das hat den Roboter beim ersten Fix-Versuch
+  // komplett verschwinden lassen. Dieser Check wurde daher entfernt.
+  //
+  // Robuster Ersatz: nur .einordnung-text pruefen (verlaesslich, da
+  // .einordnung-section flex-shrink:0 ist und sich rein am Inhalt orientiert)
+  // plus ein Hoehen-Schwellwert auf .einordnung-section selbst — waechst die Box
+  // ueber ~150px, ist das Risiko von Uberlappung/Crowding hoch genug, um den
+  // Roboter sicherheitshalber auszublenden.
+  const EINORDNUNG_HEIGHT_THRESHOLD = 150; // px, empirisch geschaetzt — ggf. nachjustieren
+  const robotHidden = await page.evaluate((heightThreshold) => {
+    const robot            = document.querySelector('.robot-overlay');
+    const einordnungText   = document.querySelector('.einordnung-text');
+    const einordnungSection = document.querySelector('.einordnung-section');
+    const card             = document.querySelector('.card');
     if (!robot || !einordnungText || !card) return false;
 
     function rectsOverlap(a, b) {
@@ -109,12 +120,12 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     robot.style.opacity   = '1';
 
     const robotRect = robot.getBoundingClientRect();
-    const textOverlap =
-      rectsOverlap(robotRect, einordnungText.getBoundingClientRect()) ||
-      (kontextText && rectsOverlap(robotRect, kontextText.getBoundingClientRect()));
+    const textOverlap = rectsOverlap(robotRect, einordnungText.getBoundingClientRect());
+    const sectionTooTall = einordnungSection &&
+      einordnungSection.getBoundingClientRect().height > heightThreshold;
     const cardOverflow = card.scrollHeight > card.clientHeight + 2;
 
-    if (textOverlap || cardOverflow) {
+    if (textOverlap || sectionTooTall || cardOverflow) {
       robot.classList.add('rb-hidden');
       return true;
     }
@@ -125,7 +136,7 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     robot.style.opacity   = prevOpacity;
     robot.style.animation = prevAnimation;
     return false;
-  });
+  }, EINORDNUNG_HEIGHT_THRESHOLD);
   if (robotHidden) {
     console.log('[record.js] Mini-Roboter ausgeblendet (Textueberlappung oder Karten-Overflow).');
   }
