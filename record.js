@@ -75,71 +75,13 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // Kurz warten bis Animationen anlaufen
   await page.waitForTimeout(300);
 
-  // ─── Robot ausblenden wenn er den Text ueberlappt ──────────────────────────
-  // Vorherige Version pruefte card.scrollHeight > card.clientHeight — das greift
-  // praktisch nie, weil .kontext-section (flex:1, min-height:0) absichtlich
-  // schrumpft statt die Karte ueberlaufen zu lassen. Die Karte ueberlaeuft also
-  // fast nie, obwohl der Roboter trotzdem mit dem Text kollidieren kann.
-  //
-  // WICHTIG: .kontext-text hat flex:1 in einem flex-direction:column Parent
-  // (.kontext-section) — die AEUSSERE Box wird dadurch immer auf die volle
-  // verfuegbare Hoehe gestreckt, unabhaengig vom tatsaechlichen Textinhalt
-  // (-webkit-line-clamp clippt nur die sichtbaren Zeilen, schrumpft aber nicht
-  // die Box selbst). Da .robot-overlay absichtlich nach oben in genau diesen
-  // Bereich hineinragt (top:-116px, "peek"-Effekt), ist ein Overlap-Check
-  // gegen .kontext-text IMMER true — das hat den Roboter beim ersten Fix-Versuch
-  // komplett verschwinden lassen. Dieser Check wurde daher entfernt.
-  //
-  // Robuster Ersatz: nur .einordnung-text pruefen (verlaesslich, da
-  // .einordnung-section flex-shrink:0 ist und sich rein am Inhalt orientiert)
-  // plus ein Hoehen-Schwellwert auf .einordnung-section selbst — waechst die Box
-  // ueber ~150px, ist das Risiko von Uberlappung/Crowding hoch genug, um den
-  // Roboter sicherheitshalber auszublenden.
-  const EINORDNUNG_HEIGHT_THRESHOLD = 150; // px, empirisch geschaetzt — ggf. nachjustieren
-  const robotHidden = await page.evaluate((heightThreshold) => {
-    const robot            = document.querySelector('.robot-overlay');
-    const einordnungText   = document.querySelector('.einordnung-text');
-    const einordnungSection = document.querySelector('.einordnung-section');
-    const card             = document.querySelector('.card');
-    if (!robot || !einordnungText || !card) return false;
-
-    function rectsOverlap(a, b) {
-      return !(a.right <= b.left || a.left >= b.right ||
-                a.bottom <= b.top  || a.top >= b.bottom);
-    }
-
-    // Vor Animationsstart steht der Roboter per CSS auf scale(0)/opacity:0 —
-    // getBoundingClientRect() wuerde sonst eine Nullgroesse liefern. Kurz in
-    // seinen finalen sichtbaren Zustand versetzen, um die echte Bounding-Box
-    // zu messen, danach bei Bedarf wieder zuruecksetzen.
-    const prevTransform = robot.style.transform;
-    const prevOpacity   = robot.style.opacity;
-    const prevAnimation = robot.style.animation;
-    robot.style.animation = 'none';
-    robot.style.transform = 'scale(0.38)';
-    robot.style.opacity   = '1';
-
-    const robotRect = robot.getBoundingClientRect();
-    const textOverlap = rectsOverlap(robotRect, einordnungText.getBoundingClientRect());
-    const sectionTooTall = einordnungSection &&
-      einordnungSection.getBoundingClientRect().height > heightThreshold;
-    const cardOverflow = card.scrollHeight > card.clientHeight + 2;
-
-    if (textOverlap || sectionTooTall || cardOverflow) {
-      robot.classList.add('rb-hidden');
-      return true;
-    }
-
-    // Kein Konflikt -> Inline-Override zuruecknehmen, normale CSS-Animation
-    // (Erscheinen bei 4.2s) laeuft wie gewohnt weiter.
-    robot.style.transform = prevTransform;
-    robot.style.opacity   = prevOpacity;
-    robot.style.animation = prevAnimation;
-    return false;
-  }, EINORDNUNG_HEIGHT_THRESHOLD);
-  if (robotHidden) {
-    console.log('[record.js] Mini-Roboter ausgeblendet (Textueberlappung oder Karten-Overflow).');
-  }
+  // ─── Robot: Opt-out jetzt zeitbasiert in der Template-CSS geloest ──────────
+  // (.robot-overlay: erscheint bei 4.2s, verschwindet fest bei 15s via
+  // robotOut-Keyframe). Die fruehere JS-Heuristik hier (Overlap-Check gegen
+  // .einordnung-text + Hoehen-Schwellwert auf .einordnung-section) hat den
+  // Roboter auf praktisch jeder echten Karte ausgeblendet, weil die Box durch
+  // variablen Einordnungstext fast immer ueber den Schwellwert wuchs. Bewusst
+  // entfernt — kein Ersatz-Check hier mehr noetig.
 
   // ─── Frame-Verzeichnis anlegen ───────────────────────────────────────────
   const frameDir = path.join(path.dirname(absMp4), `_frames_${Date.now()}`);

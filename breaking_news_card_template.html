@@ -361,12 +361,13 @@ html, body {
   gap: 5px;
 }
 
-/* ── MINI ROBOT (thinking phase 4.5 → 5.5s) ─────────────────────────────── */
-/* Haengt jetzt an der Einordnungs-Box (.einordnung-section, position:relative)
+/* ── MINI ROBOT (Opt-out: erscheint bei 4.2s, verschwindet fest bei 15s) ── */
+/* Haengt an der Einordnungs-Box (.einordnung-section, position:relative)
    statt an .card — dadurch wandert er automatisch mit nach oben, wenn die Box
-   durch mehr Text waechst (kontext-section schrumpft im Flex-Layout, die Box
-   rutscht nach oben). Wird per JS (record.js) ausgeblendet, wenn der Karteninhalt
-   insgesamt ueberlaeuft (zu viel Text). */
+   durch mehr Text waechst. Zeitbasiertes Opt-out statt dynamischer
+   Overlap-/Hoehen-Heuristik (die hat den Roboter auf fast jeder Karte
+   ausgeblendet) — robotOut laeuft bei Sekunde 15 an und blendet ihn
+   zuverlaessig aus, unabhaengig vom Textinhalt. */
 .robot-overlay {
   position: absolute;
   right: -6px;
@@ -377,7 +378,8 @@ html, body {
   opacity: 0;
   pointer-events: none;
   z-index: 20;
-  animation: robotIn .5s cubic-bezier(.16,1,.3,1) 4.2s forwards;
+  animation: robotIn .5s cubic-bezier(.16,1,.3,1) 4.2s forwards,
+             robotOut .4s ease 15s forwards;
 }
 .robot-overlay.rb-hidden {
   animation: none !important;

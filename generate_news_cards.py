@@ -112,6 +112,38 @@ def slugify(text: str, max_len: int = 50) -> str:
     return text[:max_len].rstrip("-")
 
 
+# ── Themen-Dedup: gleiches Thema von verschiedenen Quellen/Links erkennen ──
+# Link-Dedup (card_sent) greift nicht, wenn 3 Portale denselben Vorfall unter
+# 3 verschiedenen URLs melden (z.B. "Android 17" gleichzeitig bei SiliconAngle,
+# Heise, Golem). Deshalb zusaetzlich ein simpler Keyword-Overlap-Check auf der
+# Headline — analog zur Telegram-Logik, aber themenbasiert statt linkbasiert.
+_STOPWORDS_DE = {
+    "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem",
+    "einer", "eines", "und", "oder", "in", "im", "ins", "am", "an", "auf",
+    "fuer", "für", "mit", "von", "vom", "zu", "zur", "zum", "ist", "sind",
+    "sich", "nach", "ueber", "über", "aus", "bei", "als", "auch", "wird",
+    "werden", "wurde", "wurden", "hat", "haben", "hatte", "kann", "koennen",
+    "können", "soll", "sollen", "neue", "neuer", "neues", "neuen", "jetzt",
+    "wie", "was", "wer", "wo", "warum", "vor", "um", "so", "noch", "schon",
+    "nicht", "kein", "keine", "mehr", "sein", "ihre", "ihr", "alle", "alles",
+}
+
+
+def topic_keywords(headline: str) -> set:
+    """Normalisierte Schluesselwoerter einer Headline (lowercase, ohne Stopwords/
+    Kurzwoerter) — Basis fuer den Themen-Aehnlichkeits-Check."""
+    words = re.findall(r"[a-zA-ZäöüÄÖÜß0-9]+", headline.lower())
+    return {w for w in words if len(w) > 2 and w not in _STOPWORDS_DE}
+
+
+def topics_match(a: set, b: set, threshold: float = 0.45) -> bool:
+    """Jaccard-Overlap zweier Keyword-Sets — True wenn vermutlich dasselbe Thema."""
+    if not a or not b:
+        return False
+    overlap = len(a & b) / len(a | b)
+    return overlap >= threshold
+
+
 def clean_markdown(text: str) -> str:
     """Entfernt Markdown-Formatierung aus Text."""
     text = re.sub(r"~~(.+?)~~", r"\1", text)
@@ -419,10 +451,17 @@ def main() -> None:
 
     # ── Dedup-Gedaechtnis laden (analog telegram_state.json) ───────────────
     card_sent = {}
+    sent_topics = {}  # {"<keyword keyword ...>": "<datum>"} — themenbasiert, ueber Laeufe hinweg
     try:
-        card_sent = json.loads(CARD_STATE_JSON.read_text(encoding="utf-8")).get("sent_links", {})
+        _state = json.loads(CARD_STATE_JSON.read_text(encoding="utf-8"))
+        card_sent = _state.get("sent_links", {})
+        sent_topics = _state.get("sent_topics", {})
     except Exception:
         pass
+
+    # Themen, die in DIESEM Lauf schon verarbeitet wurden (faengt z.B. 3 Karten
+    # zum selben Vorfall von 3 unterschiedlichen Quellen/Links ab).
+    seen_topics_this_run = []  # Liste von (keyword_set, headline) fuer Log-Ausgabe
 
     # ── Bisherige cards.json laden, damit wir akkumulieren statt ueberschreiben ──
     existing_cards = []
@@ -443,9 +482,30 @@ def main() -> None:
             print(f"  [SKIP] Artikel {i}: kein Titel.")
             continue
 
-        # ── Themen-Dedup: Artikel-Link schon mal verarbeitet? ──────────────
+        # ── Link-Dedup: exakt dieser Artikel-Link schon mal verarbeitet? ────
         if link and link in card_sent:
-            print(f"  [SKIP] Artikel {i}: Thema bereits abgedeckt ({link}) — keine neue Karte.")
+            print(f"  [SKIP] Artikel {i}: Link bereits abgedeckt ({link}) — keine neue Karte.")
+            continue
+
+        # ── Themen-Dedup: gleiches Thema, anderer Link/andere Quelle? ──────
+        # Faengt z.B. "Android 17" gleichzeitig bei 3 Portalen ab (Telegram-Logik
+        # uebertragen: nichts doppelt posten, auch wenn der Link sich unterscheidet).
+        kw = topic_keywords(headline)
+        duplicate_topic = False
+        for prev_kw_str, prev_date in sent_topics.items():
+            if topics_match(kw, set(prev_kw_str.split())):
+                print(f"  [SKIP] Artikel {i}: Thema bereits am {prev_date} abgedeckt (Headline-Overlap) — keine neue Karte.")
+                duplicate_topic = True
+                break
+        if not duplicate_topic:
+            for prev_kw, prev_headline in seen_topics_this_run:
+                if topics_match(kw, prev_kw):
+                    print(f"  [SKIP] Artikel {i}: gleiches Thema wie bereits in diesem Lauf verarbeitet (\"{prev_headline[:50]}\") — keine neue Karte.")
+                    duplicate_topic = True
+                    break
+        if duplicate_topic:
+            if link:
+                card_sent[link] = today  # diesen Link kuenftig auch ueber Link-Dedup abfangen
             continue
 
         slug     = f"{today}-{slugify(headline)}"
@@ -497,6 +557,9 @@ def main() -> None:
             })
             if link:
                 card_sent[link] = today
+            seen_topics_this_run.append((kw, headline))
+            if kw:
+                sent_topics[" ".join(sorted(kw))] = today
             continue
 
         success = render_card(html_out, mp4_out, audio_path, video_dauer)
@@ -521,13 +584,21 @@ def main() -> None:
         })
         if link:
             card_sent[link] = today
+        seen_topics_this_run.append((kw, headline))
+        if kw:
+            sent_topics[" ".join(sorted(kw))] = today
 
-    # ── Dedup-Gedaechtnis speichern, auf juengste Links begrenzt ────────────
+    # ── Dedup-Gedaechtnis speichern, auf juengste Links/Themen begrenzt ─────
     if len(card_sent) > MAX_STATE_LINKS:
         card_sent = dict(sorted(card_sent.items(), key=lambda kv: kv[1])[-MAX_STATE_LINKS:])
+    if len(sent_topics) > MAX_STATE_LINKS:
+        sent_topics = dict(sorted(sent_topics.items(), key=lambda kv: kv[1])[-MAX_STATE_LINKS:])
     try:
         CARD_STATE_JSON.write_text(
-            json.dumps({"sent_links": card_sent, "stand": today}, ensure_ascii=False, indent=2),
+            json.dumps(
+                {"sent_links": card_sent, "sent_topics": sent_topics, "stand": today},
+                ensure_ascii=False, indent=2,
+            ),
             encoding="utf-8",
         )
     except Exception as e:
