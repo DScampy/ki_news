@@ -204,7 +204,7 @@ def generate_tts(text: str, slug: str, voice_name: str, voice_gender: str) -> tu
         },
         "audioConfig": {
             "audioEncoding": "MP3",
-            "speakingRate": 1.0,
+            "speakingRate": 1.13,
         },
     }).encode("utf-8")
 
