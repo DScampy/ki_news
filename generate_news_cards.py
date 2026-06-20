@@ -61,6 +61,22 @@ GOOGLE_TTS_VOICES = [
     ("de-DE-Studio-B", "MALE"),
 ]
 
+# ── Farb-Themes: pro Karte zufaellig gewaehlt (--bg/--cyan/--orange/--text/...) ──
+# Ueberschreibt die :root-Defaults im Template via injiziertem <style>-Block
+# (siehe THEME_CSS in fill_template-Aufruf). Erste Palette = bisheriger Standard.
+CARD_THEMES = [
+    {"bg": "#03060F", "cyan": "#00E5FF", "orange": "#FF6B00", "text": "#E8EDF8",
+     "muted": "rgba(232,237,248,.55)", "dimgrey": "rgba(232,237,248,.28)"},
+    {"bg": "#0A0414", "cyan": "#FF2E9A", "orange": "#C6FF00", "text": "#F3E8FF",
+     "muted": "rgba(243,232,255,.55)", "dimgrey": "rgba(243,232,255,.28)"},
+    {"bg": "#0B0620", "cyan": "#9D4EFF", "orange": "#FFC542", "text": "#EDE7FA",
+     "muted": "rgba(237,231,250,.55)", "dimgrey": "rgba(237,231,250,.28)"},
+    {"bg": "#020A04", "cyan": "#39FF6A", "orange": "#FF3B3B", "text": "#E4FBE9",
+     "muted": "rgba(228,251,233,.55)", "dimgrey": "rgba(228,251,233,.28)"},
+    {"bg": "#03101A", "cyan": "#2FB8FF", "orange": "#FF6F61", "text": "#E6F4FB",
+     "muted": "rgba(230,244,251,.55)", "dimgrey": "rgba(230,244,251,.28)"},
+]
+
 TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438")
 
@@ -144,6 +160,19 @@ def topics_match(a: set, b: set, threshold: float = 0.45) -> bool:
     return overlap >= threshold
 
 
+def random_theme_css() -> str:
+    """Baut einen <style>:root{...}</style>-Block mit zufaellig gewaehlter Palette,
+    der nach dem Haupt-<style> im Template eingefuegt wird und dessen Defaults
+    per Source-Order ueberschreibt (gleiche Spezifitaet, kommt aber spaeter)."""
+    t = random.choice(CARD_THEMES)
+    return (
+        "<style>:root{"
+        f"--bg:{t['bg']};--cyan:{t['cyan']};--orange:{t['orange']};"
+        f"--text:{t['text']};--muted:{t['muted']};--dimgrey:{t['dimgrey']};"
+        "}</style>"
+    )
+
+
 def clean_markdown(text: str) -> str:
     """Entfernt Markdown-Formatierung aus Text."""
     text = re.sub(r"~~(.+?)~~", r"\1", text)
@@ -204,7 +233,7 @@ def generate_tts(text: str, slug: str, voice_name: str, voice_gender: str) -> tu
         },
         "audioConfig": {
             "audioEncoding": "MP3",
-            "speakingRate": 1.13,
+            "speakingRate": 1.18,
         },
     }).encode("utf-8")
 
@@ -539,6 +568,7 @@ def main() -> None:
             "DATUM":      today,
             "KONTEXT":    kontext,
             "EINORDNUNG": einordnung_clean,
+            "THEME_CSS":  random_theme_css(),
         })
         html_out.write_text(filled, encoding="utf-8")
         print(f"  ✓ HTML: {html_out.name}")

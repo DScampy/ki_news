@@ -83,6 +83,54 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // variablen Einordnungstext fast immer ueber den Schwellwert wuchs. Bewusst
   // entfernt — kein Ersatz-Check hier mehr noetig.
 
+  // ─── Auto-Fit-Font: Kontext-Text schrumpfen statt hart abschneiden ────────
+  // .kontext-section ist flex:1 — bekommt nur den Platz, der nach Header/
+  // Headline/Source/Einordnung/Footer uebrig bleibt. Bei langer Einordnung
+  // wird dieser Rest klein, und der weisse Kontext-Text wurde bisher vom
+  // Container hart abgeschnitten (mitten im Wort, ohne Ellipse), weil
+  // -webkit-line-clamp:6 von einer Boxhoehe ausgeht, die gar nicht da ist.
+  // Fix: Clamp kurz deaktivieren, echte Texthoehe messen, Schriftgroesse in
+  // 0.5px-Schritten verkleinern bis der Text in die tatsaechlich verfuegbare
+  // Hoehe passt (Floor 9.5px). Reicht das nicht, Clamp als Notbremse wieder
+  // aktivieren (clip statt Layout-Bruch).
+  const fitInfo = await page.evaluate(() => {
+    const text    = document.querySelector('.kontext-text');
+    const section = document.querySelector('.kontext-section');
+    if (!text || !section) return null;
+
+    const MIN_FONT = 9.5;
+    const STEP     = 0.5;
+    const startFont = parseFloat(getComputedStyle(text).fontSize); // i.d.R. 13.5px
+
+    // Clamp deaktivieren, um die echte (ungeklemmte) Texthoehe messen zu koennen.
+    text.style.display          = 'block';
+    text.style.webkitBoxOrient  = 'unset';
+    text.style.webkitLineClamp  = 'unset';
+
+    const availableHeight = section.clientHeight;
+    let fontSize = startFont;
+    let fits = text.scrollHeight <= availableHeight;
+
+    while (!fits && fontSize > MIN_FONT) {
+      fontSize -= STEP;
+      text.style.fontSize = `${fontSize}px`;
+      fits = text.scrollHeight <= availableHeight;
+    }
+
+    if (!fits) {
+      // Selbst am Floor zu lang -> Notbremse: Clamp wieder rein, lieber
+      // sauber abgeschnitten mit "…" als Layout-Ueberlauf.
+      text.style.display         = '-webkit-box';
+      text.style.webkitBoxOrient = 'vertical';
+      text.style.webkitLineClamp = '6';
+    }
+
+    return { startFont, finalFont: fontSize, fits };
+  });
+  if (fitInfo && fitInfo.finalFont !== fitInfo.startFont) {
+    console.log(`[record.js] Kontext-Text verkleinert: ${fitInfo.startFont}px → ${fitInfo.finalFont}px (passt: ${fitInfo.fits})`);
+  }
+
   // ─── Frame-Verzeichnis anlegen ───────────────────────────────────────────
   const frameDir = path.join(path.dirname(absMp4), `_frames_${Date.now()}`);
   fs.mkdirSync(frameDir, { recursive: true });
