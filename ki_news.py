@@ -436,6 +436,11 @@ PENALTY_KEYWORDS = [
     ("best buy", -25), ("preis fällt", -15),
     # Gerüchte ohne Substanz
     ("rumor:", -10), ("leak:", -10), ("leaked:", -10), ("könnte kommen", -10),
+    # Persoenliche Reaktions-/Meinungs-Posts statt echter News (typisch fuer
+    # X-Aggregatoren wie AlignedNews: "Scoble Reacts to...", "X Promotes Y...").
+    # Senkt Score, filtert nicht hart raus - falls doch mal wichtig genug.
+    ("reacts to", -15), ("promotes", -20), ("offers $", -10),
+    ("aligned news", -30),
 ]
 
 # Score-Labels für Telegram-Log und news.json
@@ -467,7 +472,14 @@ def cluster_news(alle_news):
         kw = _title_keywords(item["title"])
         merged = False
         for cluster in clusters:
-            cluster_kw = _title_keywords(cluster[0]["title"])
+            # Gegen die VEREINIGUNG aller bereits geclusterten Titel-Keywords
+            # vergleichen, nicht nur gegen cluster[0]. Sonst fällt ein Artikel
+            # raus, der zwar zu einem spaeteren Cluster-Mitglied passt, aber
+            # zufaellig zu wenig mit dem allerersten Artikel teilt - Story
+            # zerfaellt in mehrere Einzel-Cluster statt einer starken Story.
+            cluster_kw = set()
+            for c_item in cluster:
+                cluster_kw |= _title_keywords(c_item["title"])
             if len(kw & cluster_kw) >= 2:
                 cluster.append(item)
                 merged = True
@@ -895,6 +907,31 @@ News:
                     antwort = json.loads(r.read())["choices"][0]["message"]["content"].strip()
                     antwort = antwort.replace("```json", "").replace("```", "").strip()
                     summaries = json.loads(antwort)
+
+                    # Validierung: kleinere/free Modelle liefern bei Batch-Uebersetzungen
+                    # manchmal doppelte oder ausserhalb-des-Bereichs ids zurueck. Ohne
+                    # Check landet ein title_de am FALSCHEN Artikel-Index - derselbe
+                    # uebersetzte Titel-Text taucht dann bei einem anderen Artikel (anderer
+                    # Link/Quelle) auf. Passt zum beobachteten Symptom wiederkehrender
+                    # "falscher" Stories im Archiv (z.B. Wired-Eintraege mit Claude-Code-
+                    # Preis-Titel, obwohl Link auf ein anderes Thema zeigt). Im Zweifel:
+                    # ganzen Batch verwerfen, naechstes Modell versuchen, statt mit
+                    # unsicherer Zuordnung weiterzumachen.
+                    seen_ids = set()
+                    ids_valid = True
+                    for item in summaries:
+                        iid = item.get("id")
+                        if not isinstance(iid, int) or not (1 <= iid <= len(batch)) or iid in seen_ids:
+                            ids_valid = False
+                            break
+                        seen_ids.add(iid)
+                    if not ids_valid:
+                        logger.warning(
+                            "Batch %d: %s lieferte doppelte/ungueltige ids - Batch verworfen, naechstes Modell",
+                            batch_start // batch_size + 1, modell
+                        )
+                        continue
+
                     for item in summaries:
                         global_index = batch_start + item["id"] - 1
                         if 0 <= global_index < len(alle_news):
