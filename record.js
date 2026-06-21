@@ -62,9 +62,15 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     ],
   });
 
+  // deviceScaleFactor:2 -> Viewport bleibt WIDTH x HEIGHT CSS-Pixel, aber jeder
+  // Screenshot wird intern in (WIDTH*2) x (HEIGHT*2) echten Pixeln gerendert
+  // (Supersampling). FFmpeg skaliert weiter unten mit Lanczos zurueck auf die
+  // Zielgroesse - das Downscale glaettet Kanten, statt nativ in Lo-Res zu
+  // rendern. Ohne das wirkte feiner Text (z.B. das Breaking-Badge) nach JPEG-
+  // Zwischenspeicherung + H264-Encoding verwaschen/unleserlich.
   const context = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT },
-    deviceScaleFactor: 1,
+    deviceScaleFactor: 2,
   });
 
   const page = await context.newPage();
@@ -143,7 +149,10 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // ─── Screenshots aufnehmen ────────────────────────────────────────────────
   for (let i = 0; i < totalFrames; i++) {
     const framePath = path.join(frameDir, `frame_${String(i).padStart(6, '0')}.jpg`);
-    const buf = await page.screenshot({ type: 'jpeg', quality: 85 });
+    // quality 95 statt 85 - weniger JPEG-Verlust in der Zwischenablage, bevor
+    // ffmpeg ueberhaupt anfasst. Kostet etwas mehr Diskspace/Zeit pro Frame,
+    // bei ~8s/8fps-Clips vernachlaessigbar.
+    const buf = await page.screenshot({ type: 'jpeg', quality: 95 });
     fs.writeFileSync(framePath, buf);
     if (i < totalFrames - 1) {
       await page.waitForTimeout(intervalMs);
@@ -168,10 +177,16 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     '-framerate', String(FPS),
     '-i', path.join(frameDir, 'frame_%06d.jpg'),
     ...(hasAudio ? ['-i', absAudio] : []),
-    '-vf', `scale=${WIDTH}:${HEIGHT}`,
+    // flags=lanczos: hochwertiger Downscale-Filter fuer den 2x-supersampelten
+    // Input (siehe deviceScaleFactor oben) - glaettet Kanten, statt nur
+    // Pixel zu droppen wie der ffmpeg-Default (bilinear).
+    '-vf', `scale=${WIDTH}:${HEIGHT}:flags=lanczos`,
     '-c:v', 'libx264',
     '-preset', 'fast',
-    '-crf', '23',
+    // crf 18 statt 23 - schaerferer Encode. Bei kurzen 8s-Clips kaum
+    // Dateigroessen-Unterschied, aber sichtbar weniger Kompressions-Matsch
+    // auf feinem Text (Badge, Einordnung).
+    '-crf', '18',
     '-pix_fmt', 'yuv420p',
     '-movflags', '+faststart',
     '-t', String(DURATION),

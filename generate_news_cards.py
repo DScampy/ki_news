@@ -561,14 +561,23 @@ def main() -> None:
         voice_name, voice_gender = random.choice(GOOGLE_TTS_VOICES)
         audio_path, video_dauer = generate_tts(tts_text, slug, voice_name, voice_gender)
 
+        # Badge-Label nach Score-Tier: nicht jede Karte ist wirklich "breaking" -
+        # bei einheitlichem Label auf allen Karten verliert das Wort seine
+        # Bedeutung (Cry-Wolf-Effekt), Leser ignorieren es nach ein paar Tagen.
+        # Schwelle 50 ist eine erste Hypothese aus der Score-Verteilung in
+        # news.json (0-85), nicht aus Klick-/Lesedaten - ggf. nachjustieren.
+        score = float(article.get("score", article.get("relevance", 0)))
+        badge_label = "BREAKING" if score >= 50 else "AKTUELL"
+
         # HTML befüllen (einordnung_clean: kein [OR]-Label auf der Karte)
         filled = fill_template(template, {
-            "HEADLINE":   headline,
-            "QUELLE":     source,
-            "DATUM":      today,
-            "KONTEXT":    kontext,
-            "EINORDNUNG": einordnung_clean,
-            "THEME_CSS":  random_theme_css(),
+            "HEADLINE":    headline,
+            "QUELLE":      source,
+            "DATUM":       today,
+            "KONTEXT":     kontext,
+            "EINORDNUNG":  einordnung_clean,
+            "THEME_CSS":   random_theme_css(),
+            "BADGE_LABEL": badge_label,
         })
         html_out.write_text(filled, encoding="utf-8")
         print(f"  ✓ HTML: {html_out.name}")

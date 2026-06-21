@@ -166,9 +166,12 @@ html, body {
   background: var(--orange);
   color: #fff;
   font-family: 'Orbitron', monospace;
-  font-size: 8px;
+  /* 11px statt vormals 8px - bei .14em Letter-Spacing war 8px selbst bei
+     scharfer Render-Qualitaet an der Grenze der Lesbarkeit ("BREAKING" wurde
+     zu "BRERKING"). */
+  font-size: 11px;
   font-weight: 900;
-  letter-spacing: .14em;
+  letter-spacing: .1em;
   padding: 5px 10px;
   flex-shrink: 0;
   animation: badgePulse 2s ease-in-out 1.2s infinite;
@@ -577,7 +580,7 @@ html, body {
 
     <!-- Header -->
     <div class="header">
-      <div class="badge-breaking">BREAKING</div>
+      <div class="badge-breaking">{{BADGE_LABEL}}</div>
       <div class="badge-brand">SCAMPY</div>
       <div class="signal">
         <div class="sb"></div>
