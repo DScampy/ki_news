@@ -596,6 +596,10 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
 SCORE_DECAY_PER_DAY = 5
 SCORE_FLOOR = 0
 MAX_AGE_DAYS = 7  # Artikel älter als 7 Tage werden aus news.json entfernt
+# Abschlag fuer Cluster-Member, die NICHT der Repraesentant ihrer Story sind.
+# Sie erben den Story-Cluster-Score minus diesen Wert, damit der Repraesentant
+# oben bleibt, die Story aber als Block zusammensteht (statt dass Member auf 0 fallen).
+CLUSTER_MEMBER_MALUS = 10
 
 def _today_iso():
     return datetime.now(BERLIN).strftime("%Y-%m-%d")
@@ -1697,16 +1701,29 @@ def main():
     for i, n in enumerate(alle_news):
         s = summaries.get(i, {})
         link = n.get("link", "")
+        cluster_info = link_to_cluster_info.get(link, {})
         scoring = score_map.get(link, {})
-        raw_score = scoring.get("score", 0)
-        # Schon mal gesehen? Dann ursprüngliches Datum + Ausgangs-Score behalten.
+        # Befund 1: score_map enthaelt nur den Cluster-Repraesentanten. Ein Nicht-rep-
+        # Member stand bisher mit raw_score 0 da -> die Story zerfiel im Ranking und der
+        # Member rutschte ans Ende, obwohl er zur selben (oft wichtigen) Story gehoert.
+        # Fix (Variante B): Member erbt den Story-Cluster-Score minus Abschlag, damit der
+        # rep oben bleibt, die Story aber als Block zusammensteht. Der 7-Tage-Verfall
+        # raeumt das Thema danach ohnehin auf 0.
+        if "score" in scoring:
+            raw_score = scoring["score"]                       # Cluster-Repraesentant
+        else:
+            cscore = cluster_info.get("story_cluster_score", 0)
+            raw_score = max(0, cscore - CLUSTER_MEMBER_MALUS) if cscore else 0
+        # Schon mal gesehen? Dann ursprüngliches Datum behalten.
         # Neuer Artikel einer bekannten Story? Cluster-Alter erben → kein Score-Revival.
         hist = history.get(link)
         first_seen = hist["first_seen"] if hist else link_to_cluster_age.get(link, heute)
-        base_score = hist["base_score"] if hist else raw_score
+        # History-Heilung: frueher faelschlich als 0 archivierte Member duerfen ausheilen,
+        # wenn ihr Cluster jetzt einen echten Score hat. Ohne max() bliebe base_score
+        # wegen hist dauerhaft 0 (Selbstvergiftung ueber archive.json).
+        base_score = max(hist["base_score"], raw_score) if hist else raw_score
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
         preview_img = resolve_preview_image(link, hist)
-        cluster_info = link_to_cluster_info.get(link, {})
         entry = {
             "title":      s.get("title_de", n["title"]),
             "summary":    s.get("summary", ""),
