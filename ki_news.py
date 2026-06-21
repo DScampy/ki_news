@@ -263,6 +263,32 @@ def _is_ki_relevant(title: str) -> bool:
         return True
     return False
 
+# -------------------------
+# Wochenzusammenfassungen (Roundups) erkennen
+# -------------------------
+# Caschy "Immer wieder sonntags KW NN", Heise "Fotonews der Woche", The Batch (weekly)
+# usw. Diese Titel sind Multi-Thema und wirken im Clustering als Keyword-Magnet, der
+# unzusammenhaengende Artikel kuenstlich in einen Cluster zieht (aufgeblaehter Score) –
+# ausserdem sind es keine Breaking-News. Wir trennen sie ab: sie bleiben als Material
+# in news.json -> "roundups", landen aber nicht in der News-Liste/Startseite/Breaking.
+_ROUNDUP_PATTERN = re.compile(
+    r'immer wieder sonntags'
+    r'|fotonews der woche'
+    r'|\bKW\s?\d{1,2}\b'
+    r'|wochenr(ü|ue)ckblick'
+    r'|week in review|this week in|the week in ai'
+    r'|weekly (recap|roundup|digest|wrap)'
+    r'|news der woche|das war die woche',
+    re.I,
+)
+_ROUNDUP_SOURCES = {"The Batch"}
+
+def _is_roundup(news_item) -> bool:
+    """True wenn der Eintrag eine Wochenzusammenfassung ist (Titel-Muster oder Quelle)."""
+    if news_item.get("source") in _ROUNDUP_SOURCES:
+        return True
+    return bool(_ROUNDUP_PATTERN.search(news_item.get("title", "")))
+
 FEEDS = [
     # Deutsch
     ("The Decoder", "https://the-decoder.de/feed/"),
@@ -1545,11 +1571,20 @@ def main():
             unique_news.append(n)
     alle_news = unique_news
 
+    # Wochenzusammenfassungen (Roundups) abtrennen, BEVOR geclustert/bewertet wird.
+    # Sonst wirken sie als Keyword-Magnet und blaehen Cluster-Scores auf. Sie bleiben
+    # als Material erhalten (news.json -> "roundups"), erscheinen aber nicht in der
+    # News-Liste, auf der Startseite oder in der Breaking-Karte.
+    roundup_items = [n for n in alle_news if _is_roundup(n)]
+    alle_news     = [n for n in alle_news if not _is_roundup(n)]
+    if roundup_items:
+        logger.info("%d Wochenzusammenfassung(en) abgetrennt (Material, nicht sichtbar)", len(roundup_items))
+
     if not alle_news:
         logger.info("Keine KI-News gefunden.")
         return
 
-    logger.info("%d KI-News gefunden (gesamt)", len(alle_news))
+    logger.info("%d KI-News gefunden (gesamt, ohne Roundups)", len(alle_news))
 
     # Zusammenfassungen fuer alle News (Dashboard links)
     summaries = summarize_news(alle_news)
@@ -1755,10 +1790,26 @@ def main():
         for p in parsed
     ]
 
+    # Roundups als separates Feld – Material zum Abgleich, nicht in der News-Liste.
+    # Frontend und Breaking-Karte lesen nur "news" und ignorieren dieses Feld.
+    roundups_list = []
+    for n in roundup_items:
+        link = n.get("link", "")
+        h = history.get(link)
+        fs = h["first_seen"] if h else heute
+        roundups_list.append({
+            "title":      n.get("title", ""),
+            "link":       link,
+            "source":     n.get("source", ""),
+            "date":       fs,
+            "first_seen": fs,
+        })
+
     news_json_data = {
-        "stand": datum,
-        "news":  news_list,
-        "posts": posts_list,
+        "stand":    datum,
+        "news":     news_list,
+        "posts":    posts_list,
+        "roundups": roundups_list,
     }
 
     if proj_dir.exists():
