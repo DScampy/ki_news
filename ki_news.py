@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import json
 import os
 import logging
+import difflib
 import webbrowser
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -859,7 +860,9 @@ def summarize_news(alle_news):
         logger.info("Kein OPENROUTER_KEY: Ueberspringe Zusammenfassungen.")
         return result
 
-    batch_size = 6
+    # Kleinere Batches: je weniger News pro Call, desto seltener verwechselt das
+    # LLM, welcher uebersetzte Titel zu welcher id gehoert (siehe Anker-Check unten).
+    batch_size = 4
     url = "https://openrouter.ai/api/v1/chat/completions"
 
     # Placeholder-Erkennung: LLMs kopieren manchmal den Beispieltext aus dem Prompt
@@ -872,6 +875,21 @@ def summarize_news(alle_news):
         t = title.lower().strip()
         return len(t) < 8 or any(p in t for p in PLACEHOLDER_PATTERNS)
 
+    def _anchor_ok(src_echo: str, orig_title: str) -> bool:
+        """Prueft ob das vom LLM zurueckgegebene src_title wirklich zum Original-
+        Artikel an diesem Index gehoert. So faellt auf, wenn das Modell title_de
+        an die falsche id gehaengt hat (Titel verrutscht -> falscher Link)."""
+        if not src_echo or not orig_title:
+            return False
+        a = src_echo.lower().strip()
+        b = orig_title.lower().strip()
+        if not a:
+            return False
+        # Schneller Treffer: Anfang stimmt ueberein (Modell soll Originalanfang kopieren)
+        if a[:18] in b or b[:18] in a:
+            return True
+        return difflib.SequenceMatcher(None, a, b).ratio() >= 0.5
+
     for batch_start in range(0, len(alle_news), batch_size):
         batch = alle_news[batch_start:batch_start + batch_size]
         news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(batch)])
@@ -880,10 +898,11 @@ Uebersetze und fasse JEDE der folgenden News auf Deutsch zusammen.
 Antworte AUSSCHLIESSLICH mit einem JSON-Array – kein Text davor oder danach, keine Backticks, kein Markdown.
 
 Format (ersetze Inhalt mit echten Werten fuer jede News):
-[{{"id": 1, "title_de": "Echter deutscher Titel der News", "summary": "2-3 Saetze: was ist passiert und warum relevant fuer KI-Interessierte."}}, ...]
+[{{"id": 1, "src_title": "die ersten Woerter des ORIGINAL-Titels exakt kopiert", "title_de": "Echter deutscher Titel der News", "summary": "2-3 Saetze: was ist passiert und warum relevant fuer KI-Interessierte."}}, ...]
 
 Wichtig:
-- title_de MUSS eine echte Uebersetzung des Originaltitels sein
+- src_title MUSS die ersten Woerter des jeweiligen Original-Titels WORTWOERTLICH (unveraendert, gleiche Sprache) kopieren – das dient der Zuordnung
+- title_de MUSS eine echte Uebersetzung GENAU DIESES Originaltitels sein
 - Jede id muss vorkommen (1 bis {len(batch)})
 - Nur das JSON-Array zurueckgeben, sonst nichts
 
@@ -928,6 +947,28 @@ News:
                     if not ids_valid:
                         logger.warning(
                             "Batch %d: %s lieferte doppelte/ungueltige ids - Batch verworfen, naechstes Modell",
+                            batch_start // batch_size + 1, modell
+                        )
+                        continue
+
+                    # Anker-Pruefung: title_de + summary werden zusammen generiert und
+                    # bleiben gepaart - aber das LLM haengt sie manchmal an die falsche
+                    # id. Dann landet eine in sich stimmige Uebersetzung am falschen
+                    # Artikel-Index (= falscher Link/Quelle). Die ID-Pruefung oben faengt
+                    # das NICHT, weil die id formal gueltig bleibt. Wir lassen das Modell
+                    # den Originaltitel zurueckgeben (src_title) und verifizieren, dass er
+                    # zum Artikel an diesem Index passt. Bei Mismatch: ganzen Batch
+                    # verwerfen statt falsche Zuordnung durchzulassen.
+                    anchors_ok = True
+                    for item in summaries:
+                        gi = batch_start + item["id"] - 1
+                        if 0 <= gi < len(alle_news):
+                            if not _anchor_ok(item.get("src_title", ""), alle_news[gi]["title"]):
+                                anchors_ok = False
+                                break
+                    if not anchors_ok:
+                        logger.warning(
+                            "Batch %d: %s Anker-Mismatch (Titel verrutscht) - Batch verworfen, naechstes Modell",
                             batch_start // batch_size + 1, modell
                         )
                         continue
@@ -1098,8 +1139,15 @@ News (genau diese 3, je eine pro Post):
 # Parsing
 # -------------------------
 def parse_posts(posts_raw):
+    """Parst die LLM-Posts in ein Dict {post_nummer: {...}}.
+
+    Frueher eine Liste in Ausgabe-Reihenfolge: gab das Modell TEASER 2 vor TEASER 1
+    aus, verband das spaetere zip() in main() News 1 mit Post 2. Jetzt wird die
+    Nummer aus 'TEASER N:' extrahiert und als Schluessel genutzt – Reihenfolge egal.
+    """
     lines = posts_raw.strip().splitlines()
-    result = []
+    result = {}
+    current_idx = None
     current = None
 
     for line in lines:
@@ -1108,9 +1156,11 @@ def parse_posts(posts_raw):
             continue
         upper = line.upper()
 
-        if re.match(r'TEASER\s+\d+\s*:', upper):
-            if current is not None:
-                result.append(current)
+        m_teaser = re.match(r'TEASER\s+(\d+)\s*:', upper)
+        if m_teaser:
+            if current is not None and current_idx is not None:
+                result[current_idx] = current
+            current_idx = int(m_teaser.group(1))
             current = {"teaser": line.split(":", 1)[1].strip(), "thread": [], "erklaerung": ""}
         elif re.match(r'THREAD\s+\d+-\d+\s*:', upper):
             if current is not None:
@@ -1119,8 +1169,8 @@ def parse_posts(posts_raw):
             if current is not None:
                 current["erklaerung"] = line.split(":", 1)[1].strip()
 
-    if current is not None:
-        result.append(current)
+    if current is not None and current_idx is not None:
+        result[current_idx] = current
 
     return result
 
@@ -1500,6 +1550,17 @@ def main():
     # Zusammenfassungen fuer alle News (Dashboard links)
     summaries = summarize_news(alle_news)
 
+    # Link->Summary-Map: summaries ist nach dem ORIGINAL-Index gekeyt. Der
+    # blocked_links-Filter weiter unten weist alle_news aber NEU zu (kuerzere Liste)
+    # -> danach passt summaries.get(i) nicht mehr zu alle_news[i] (Titel/Summary
+    # verrutschen gegen Link/Quelle). Wir merken uns die Zuordnung per LINK, bevor
+    # gefiltert wird, und richten summaries nach dem Filter wieder am Index aus.
+    _summary_by_link = {
+        alle_news[i].get("link"): summaries.get(i, {})
+        for i in range(len(alle_news))
+        if alle_news[i].get("link")
+    }
+
     # Link->Titel-DE-Map: sofort aufgebaut, bevor blocked_links die alle_news-Indizes verschiebt.
     # Wird fuer Telegram benoetigt (send_telegram_stories nutzt n['title'] direkt).
     _title_de_by_link = {
@@ -1544,6 +1605,14 @@ def main():
         alle_news = [n for n in alle_news if n.get("link") not in blocked_links]
         logger.info("Blocked-Filter: %d News entfernt", before - len(alle_news))
 
+    # summaries nach dem Filter wieder am (neuen) Index ausrichten – per Link, damit
+    # create_html und die news.json-Karten (beide nutzen summaries.get(i)) garantiert
+    # zum jeweiligen alle_news[i] passen. Idempotent wenn nichts geblockt wurde.
+    summaries = {
+        i: _summary_by_link.get(n.get("link", ""), {"title_de": n["title"], "summary": ""})
+        for i, n in enumerate(alle_news)
+    }
+
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
     top_news, score_map, link_to_cluster_info = pick_top_news(
         alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links
@@ -1556,11 +1625,12 @@ def main():
     uncached   = [n for n in top_news if n.get("link") not in post_cache]
     cached     = [n for n in top_news if n.get("link") in post_cache]
     if uncached:
-        posts_raw    = ask_llm(uncached, n=len(uncached))
-        parsed_new   = parse_posts(posts_raw)
-        logger.info("%d neue Posts geparst, %d aus Cache", len(parsed_new), len(cached))
-        for news_item, p in zip(uncached, parsed_new):
+        posts_raw       = ask_llm(uncached, n=len(uncached))
+        parsed_new_dict = parse_posts(posts_raw)  # {nummer: {...}}
+        logger.info("%d neue Posts geparst, %d aus Cache", len(parsed_new_dict), len(cached))
+        for idx, news_item in enumerate(uncached, start=1):
             link = news_item.get("link", "")
+            p = parsed_new_dict.get(idx, {"teaser": "", "erklaerung": "", "thread": []})
             if link:
                 post_cache[link] = {
                     "teaser":      p.get("teaser", ""),
