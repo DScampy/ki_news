@@ -37,7 +37,10 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GROQ_CHAT_KEY: ${{ secrets.GROQ_CHAT_KEY }}
         run: |
-          echo "=== KI NEWS START ===" > ki_news.log
+          # An die bestehende (committete) Log-Historie ANHAENGEN, nicht ueberschreiben.
+          # Jeder Lauf startet mit einem eindeutigen Marker; der Trim-Schritt unten
+          # behaelt nur die letzten 10 Laeufe.
+          echo "=== LAUF $(date -u +'%Y-%m-%dT%H:%M:%SZ') ===" >> ki_news.log
           echo "Startzeit: $(date)" >> ki_news.log
           MAX_RETRIES=3
           RETRY_DELAY=10
@@ -56,13 +59,23 @@ jobs:
           done
           echo "Endzeit: $(date)" >> ki_news.log
           echo "=== KI NEWS ENDE ===" >> ki_news.log
+          # Log auf die letzten 10 Laeufe trimmen (Trenner: "=== LAUF ").
+          # Verwirft auch Alt-Inhalt vor dem ersten Marker.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("ki_news.log")
+          if p.exists():
+              blocks = p.read_text(encoding="utf-8", errors="replace").split("=== LAUF ")
+              keep = blocks[1:][-10:]   # blocks[0] = alles vor dem 1. Marker -> verwerfen
+              p.write_text("".join("=== LAUF " + b for b in keep), encoding="utf-8")
+          PY
 
       - name: Dateien ins Repo committen
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add index.html ki_news.html news.json admin-posts.html post-cache.json 2>/dev/null || true
-          git add archive.json 2>/dev/null || true
+          git add archive.json ki_news.log 2>/dev/null || true
           git add chat-config.js 2>/dev/null || true
           git add hashtags/hashtags.json 2>/dev/null || true
           git add telegram_state.json 2>/dev/null || true
