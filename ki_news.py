@@ -905,6 +905,24 @@ def summarize_news(alle_news):
         t = title.lower().strip()
         return len(t) < 8 or any(p in t for p in PLACEHOLDER_PATTERNS)
 
+    # Bekannte KI-Firmen-/Produktnamen - bewusst klein und kuratiert, KEINE
+    # generische Grossschreibungs-Erkennung wie bei topic_keywords/entity_words
+    # in generate_news_cards.py: im Deutschen wird jedes Substantiv grossgeschrieben,
+    # eine Blacklist generischer Nomen waere hier so lang wie das halbe Vokabular.
+    # Dient nur dem Content-Blending-Check unten - bei neuen wiederkehrenden
+    # Faellen (andere Firma/Produkt wird vermischt) ergaenzen.
+    _KNOWN_AI_ENTITIES = {
+        "openai", "anthropic", "google", "deepmind", "meta", "microsoft",
+        "samsung", "spacex", "tencent", "xai", "nvidia", "apple", "amazon",
+        "chatgpt", "claude", "gemini", "codex", "reflection", "mistral",
+        "perplexity", "groq", "cohere", "stability", "midjourney", "alibaba",
+        "baidu", "huawei", "ibm", "salesforce", "oracle", "tesla",
+    }
+
+    def _entities_in(text: str) -> set:
+        t = (text or "").lower()
+        return {e for e in _KNOWN_AI_ENTITIES if e in t}
+
     def _anchor_ok(src_echo: str, orig_title: str) -> bool:
         """Prueft ob das vom LLM zurueckgegebene src_title wirklich zum Original-
         Artikel an diesem Index gehoert. So faellt auf, wenn das Modell title_de
@@ -944,7 +962,14 @@ News:
                 data = json.dumps({
                     "model": modell,
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 900
+                    # 1500 statt vormals 900: bei batch_size=4 muss das Modell pro
+                    # Item src_title (volle Kopie des Originaltitels) + title_de +
+                    # summary unterbringen. 900/4 = 225 Tokens/Item war an der
+                    # Grenze - beobachtetes Symptom in Live-Karten: title_de/summary
+                    # brechen mitten im Satz ab ("SpaceX unterzeichnet"), JSON bleibt
+                    # aber syntaktisch gueltig, daher faengt die ID-/Anker-Pruefung
+                    # das nicht ab (siehe Vollstaendigkeits-Check unten).
+                    "max_tokens": 1500
                 }).encode()
                 req = urllib.request.Request(url, data=data, headers={
                     "Authorization": f"Bearer {OPENROUTER_KEY}",
@@ -999,6 +1024,56 @@ News:
                     if not anchors_ok:
                         logger.warning(
                             "Batch %d: %s Anker-Mismatch (Titel verrutscht) - Batch verworfen, naechstes Modell",
+                            batch_start // batch_size + 1, modell
+                        )
+                        continue
+
+                    # Vollstaendigkeits-Pruefung: bei knappem max_tokens bricht das
+                    # Modell manchmal das LETZTE Feld eines Items mitten im Gedanken
+                    # ab, bleibt dabei aber JSON-valide - weder ID- noch Anker-Pruefung
+                    # faengt das ab, weil beide nur auf Index-Verrutschen pruefen, nicht
+                    # auf Vollstaendigkeit. Symptom beobachtet in Live-Karten: title_de
+                    # "SpaceX unterzeichnet" (kein Satzende), summary endet ohne
+                    # Satzzeichen mitten im Wort. Heuristik: title_de braucht >=3 Woerter
+                    # (deutsche Kurznews-Titel sind praktisch nie kuerzer), summary muss
+                    # auf Satzzeichen enden.
+                    completeness_ok = True
+                    for item in summaries:
+                        t = (item.get("title_de") or "").strip()
+                        s = (item.get("summary") or "").strip()
+                        if t and len(t.split()) < 3:
+                            completeness_ok = False
+                            break
+                        if s and s[-1] not in ".!?\"'”":
+                            completeness_ok = False
+                            break
+                    if not completeness_ok:
+                        logger.warning(
+                            "Batch %d: %s lieferte unvollstaendigen Text (vermutlich max_tokens-Abschnitt) - Batch verworfen, naechstes Modell",
+                            batch_start // batch_size + 1, modell
+                        )
+                        continue
+
+                    # Content-Blending-Check: src_title sagt uns das WIRKLICHE Thema
+                    # des Artikels an diesem Index (durch Anker-Pruefung oben schon
+                    # verifiziert). Wenn die summary NUR bekannte KI-Entitaeten nennt,
+                    # die im Original-Thema gar nicht vorkommen, hat das Modell
+                    # vermutlich Inhalte zweier verschiedener Artikel im selben Batch
+                    # vermischt (beobachtet: Titel "OpenAI startet", Text faktisch ueber
+                    # Anthropic). Anders als der Anchor-Check (Index verrutscht) bleibt
+                    # hier der Index korrekt - nur der Inhalt selbst ist vermischt.
+                    # Bewusst nur auf das kuratierte Namens-Set begrenzt (siehe oben),
+                    # sonst zu viele False Positives durch legitime Konkurrenz-Vergleiche.
+                    blending_ok = True
+                    for item in summaries:
+                        title_entities   = _entities_in(item.get("src_title", ""))
+                        summary_entities = _entities_in(item.get("summary", ""))
+                        if title_entities and summary_entities and not (title_entities & summary_entities):
+                            blending_ok = False
+                            break
+                    if not blending_ok:
+                        logger.warning(
+                            "Batch %d: %s vermischt vermutlich Inhalte verschiedener Artikel (Entitaeten in summary passen nicht zum Thema) - Batch verworfen, naechstes Modell",
                             batch_start // batch_size + 1, modell
                         )
                         continue

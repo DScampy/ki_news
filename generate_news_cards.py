@@ -144,6 +144,23 @@ _STOPWORDS_DE = {
     "nicht", "kein", "keine", "mehr", "sein", "ihre", "ihr", "alle", "alles",
 }
 
+# Im Deutschen wird JEDES Substantiv grossgeschrieben, nicht nur Eigennamen -
+# ohne diese Liste wuerde entity_words() unten staendig generische Woerter wie
+# "Partnerschaft" oder "Technologie" als "Eigenname" werten und dadurch zwei
+# voellig unterschiedliche Storys faelschlich als Duplikat erkennen (False-
+# Positive-Merge). Pragmatische, von Hand kuratierte Liste haeufiger generischer
+# Substantive aus KI-News-Headlines - kein Anspruch auf Vollstaendigkeit, bei
+# neuen Faellen ergaenzen.
+_GENERIC_NOUNS_DE = {
+    "deal", "partnerschaft", "technologie", "unternehmen", "modell", "modelle",
+    "initiative", "ankuendigung", "ankündigung", "effekt", "investition",
+    "investitionen", "milliarden", "millionen", "dollar", "euro", "computing",
+    "dienste", "dienst", "labor", "startup", "startups", "plattform", "system",
+    "systeme", "studie", "bericht", "update", "version", "funktion",
+    "funktionen", "produkt", "produkte", "release", "feature", "features",
+    "abkommen", "vertrag", "deals", "milliardendeal",
+}
+
 
 def topic_keywords(headline: str) -> set:
     """Normalisierte Schluesselwoerter einer Headline (lowercase, ohne Stopwords/
@@ -152,12 +169,38 @@ def topic_keywords(headline: str) -> set:
     return {w for w in words if len(w) > 2 and w not in _STOPWORDS_DE}
 
 
-def topics_match(a: set, b: set, threshold: float = 0.45) -> bool:
-    """Jaccard-Overlap zweier Keyword-Sets — True wenn vermutlich dasselbe Thema."""
-    if not a or not b:
-        return False
-    overlap = len(a & b) / len(a | b)
-    return overlap >= threshold
+def entity_words(headline: str) -> set:
+    """Grossgeschriebene Tokens aus dem ORIGINAL-Titel (Eigennamen: Firmen-,
+    Produkt-, Personennamen wie "SpaceX", "Reflection", "Samsung"). Zweites,
+    robusteres Dedup-Signal neben topic_keywords(): dieselbe Story wird von
+    verschiedenen Quellen oft komplett unterschiedlich formuliert
+    ("Milliardendeal" vs. "Computer-Abkommen mit Reflection AI"), nennt aber
+    fast immer dieselben Eigennamen. topic_keywords() verliert das Case-Signal
+    (alles lowercase), deshalb separat VOR dem Lowercasing extrahiert. Muss aus
+    dem Original-Titel kommen, nicht aus dem schon normalisierten Keyword-Set."""
+    words = re.findall(r"[a-zA-ZäöüÄÖÜß0-9]+", headline)
+    return {
+        w.lower() for w in words
+        if len(w) > 2 and w[0].isupper() and w.lower() not in _GENERIC_NOUNS_DE
+    }
+
+
+def topics_match(a: set, b: set, ent_a: set = None, ent_b: set = None, threshold: float = 0.45) -> bool:
+    """True wenn vermutlich dasselbe Thema. Zwei Signale, ODER-verknuepft:
+    1) Jaccard-Overlap der normalisierten Keyword-Sets (greift bei aehnlich
+       formulierten Headlines).
+    2) Mind. 2 gemeinsame Eigennamen (greift, wenn der Wort-Jaccard durch
+       komplett unterschiedliche Formulierung unter die Schwelle faellt, aber
+       z.B. "SpaceX" + "Reflection" in beiden Headlines stehen — beobachtet bei
+       3 verschiedenen Quellen, die denselben Deal meldeten, ohne dass Signal 1
+       das erkannt hat)."""
+    if a and b:
+        overlap = len(a & b) / len(a | b)
+        if overlap >= threshold:
+            return True
+    if ent_a and ent_b and len(ent_a & ent_b) >= 2:
+        return True
+    return False
 
 
 def random_theme_css() -> str:
@@ -480,17 +523,24 @@ def main() -> None:
 
     # ── Dedup-Gedaechtnis laden (analog telegram_state.json) ───────────────
     card_sent = {}
-    sent_topics = {}  # {"<keyword keyword ...>": "<datum>"} — themenbasiert, ueber Laeufe hinweg
+    # {"<keyword keyword ...>": {"date": "<datum>", "entities": [...]}}  — themenbasiert,
+    # ueber Laeufe hinweg. "entities" = Eigennamen-Signal fuer topics_match(), siehe dort.
+    sent_topics = {}
     try:
         _state = json.loads(CARD_STATE_JSON.read_text(encoding="utf-8"))
         card_sent = _state.get("sent_links", {})
-        sent_topics = _state.get("sent_topics", {})
+        _sent_topics_raw = _state.get("sent_topics", {})
+        # Rueckwaerts-kompatibel: alte Eintraege waren reine Datum-Strings ohne
+        # "entities" - ohne diese Normalisierung wuerde prev_info["date"] unten
+        # auf alten Staenden mit AttributeError/TypeError krachen.
+        for _k, _v in _sent_topics_raw.items():
+            sent_topics[_k] = _v if isinstance(_v, dict) else {"date": _v, "entities": []}
     except Exception:
         pass
 
     # Themen, die in DIESEM Lauf schon verarbeitet wurden (faengt z.B. 3 Karten
     # zum selben Vorfall von 3 unterschiedlichen Quellen/Links ab).
-    seen_topics_this_run = []  # Liste von (keyword_set, headline) fuer Log-Ausgabe
+    seen_topics_this_run = []  # Liste von (keyword_set, entity_set, headline) fuer Log-Ausgabe
 
     # ── Bisherige cards.json laden, damit wir akkumulieren statt ueberschreiben ──
     existing_cards = []
@@ -519,16 +569,19 @@ def main() -> None:
         # ── Themen-Dedup: gleiches Thema, anderer Link/andere Quelle? ──────
         # Faengt z.B. "Android 17" gleichzeitig bei 3 Portalen ab (Telegram-Logik
         # uebertragen: nichts doppelt posten, auch wenn der Link sich unterscheidet).
-        kw = topic_keywords(headline)
+        kw  = topic_keywords(headline)
+        ent = entity_words(headline)
         duplicate_topic = False
-        for prev_kw_str, prev_date in sent_topics.items():
-            if topics_match(kw, set(prev_kw_str.split())):
+        for prev_kw_str, prev_info in sent_topics.items():
+            prev_date = prev_info["date"]
+            prev_ent  = set(prev_info.get("entities", []))
+            if topics_match(kw, set(prev_kw_str.split()), ent, prev_ent):
                 print(f"  [SKIP] Artikel {i}: Thema bereits am {prev_date} abgedeckt (Headline-Overlap) — keine neue Karte.")
                 duplicate_topic = True
                 break
         if not duplicate_topic:
-            for prev_kw, prev_headline in seen_topics_this_run:
-                if topics_match(kw, prev_kw):
+            for prev_kw, prev_ent, prev_headline in seen_topics_this_run:
+                if topics_match(kw, prev_kw, ent, prev_ent):
                     print(f"  [SKIP] Artikel {i}: gleiches Thema wie bereits in diesem Lauf verarbeitet (\"{prev_headline[:50]}\") — keine neue Karte.")
                     duplicate_topic = True
                     break
@@ -596,9 +649,9 @@ def main() -> None:
             })
             if link:
                 card_sent[link] = today
-            seen_topics_this_run.append((kw, headline))
+            seen_topics_this_run.append((kw, ent, headline))
             if kw:
-                sent_topics[" ".join(sorted(kw))] = today
+                sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
             continue
 
         success = render_card(html_out, mp4_out, audio_path, video_dauer)
@@ -623,15 +676,17 @@ def main() -> None:
         })
         if link:
             card_sent[link] = today
-        seen_topics_this_run.append((kw, headline))
+        seen_topics_this_run.append((kw, ent, headline))
         if kw:
-            sent_topics[" ".join(sorted(kw))] = today
+            sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
 
     # ── Dedup-Gedaechtnis speichern, auf juengste Links/Themen begrenzt ─────
     if len(card_sent) > MAX_STATE_LINKS:
         card_sent = dict(sorted(card_sent.items(), key=lambda kv: kv[1])[-MAX_STATE_LINKS:])
     if len(sent_topics) > MAX_STATE_LINKS:
-        sent_topics = dict(sorted(sent_topics.items(), key=lambda kv: kv[1])[-MAX_STATE_LINKS:])
+        # Sortierschluessel ist jetzt verschachtelt (Migration auf dict-Format,
+        # siehe Ladelogik oben) - kv[1]["date"] statt kv[1].
+        sent_topics = dict(sorted(sent_topics.items(), key=lambda kv: kv[1]["date"])[-MAX_STATE_LINKS:])
     try:
         CARD_STATE_JSON.write_text(
             json.dumps(
