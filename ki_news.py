@@ -278,7 +278,15 @@ _ROUNDUP_PATTERN = re.compile(
     r'|wochenr(ü|ue)ckblick'
     r'|week in review|this week in|the week in ai'
     r'|weekly (recap|roundup|digest|wrap)'
-    r'|news der woche|das war die woche',
+    r'|news der woche|das war die woche'
+    # Evergreen-Tracker (z.B. TechCrunch "The Complete List of 2026 Tech
+    # Layoffs") sind keine Wochenzusammenfassung, aber dasselbe Grundproblem:
+    # Multi-Themen-Sammelartikel ohne konkretes Einzelereignis, der als
+    # Keyword-Magnet Cluster aufbläht und ohne Namen/Specifics als Breaking-
+    # Karte nichtssagend wirkt. Beobachtet: "Die fortlaufende Liste: große
+    # Entlassungen..." rutschte durch, weil kein "week"/"KW"-Muster passte.
+    r'|the (complete|full|ongoing|running) list|layoff tracker|\btracker\b'
+    r'|fortlaufende liste|laufend aktualisiert',
     re.I,
 )
 _ROUNDUP_SOURCES = {"The Batch"}
@@ -923,6 +931,16 @@ def summarize_news(alle_news):
         t = (text or "").lower()
         return {e for e in _KNOWN_AI_ENTITIES if e in t}
 
+    # Sprachreinheit: title_de/summary sollen reines Deutsch sein. Beobachtet:
+    # "AlpSemi收集 19,5 Millionen Dollar" - chinesische Zeichen aus der
+    # Original-Quelle (oder einem mehrsprachigen Modell-Output) landeten
+    # unuebersetzt im deutschen Titel. CJK-Unicode-Block reicht als Heuristik,
+    # da deutsche Texte naturgemaess keine CJK-Zeichen enthalten.
+    _CJK_PATTERN = re.compile(r'[一-鿿぀-ヿ가-힣]')
+
+    def _has_foreign_script(text: str) -> bool:
+        return bool(_CJK_PATTERN.search(text or ""))
+
     def _anchor_ok(src_echo: str, orig_title: str) -> bool:
         """Prueft ob das vom LLM zurueckgegebene src_title wirklich zum Original-
         Artikel an diesem Index gehoert. So faellt auf, wenn das Modell title_de
@@ -951,6 +969,8 @@ Format (ersetze Inhalt mit echten Werten fuer jede News):
 Wichtig:
 - src_title MUSS die ersten Woerter des jeweiligen Original-Titels WORTWOERTLICH (unveraendert, gleiche Sprache) kopieren – das dient der Zuordnung
 - title_de MUSS eine echte Uebersetzung GENAU DIESES Originaltitels sein
+- Falls der Original-Titel einen Firmen-, Produkt- oder Personennamen enthaelt, MUSS title_de diesen Namen ebenfalls enthalten – ein Titel ohne das eigentliche Subjekt ("KI-Startup sammelt Millionen" statt "Baseten sammelt Millionen") ist nutzlos
+- title_de und summary AUSSCHLIESSLICH auf Deutsch, keine Zeichen aus anderen Schriftsystemen (z.B. chinesische/japanische/koreanische Zeichen) uebernehmen, auch wenn der Original-Titel mehrsprachig ist
 - Jede id muss vorkommen (1 bis {len(batch)})
 - Nur das JSON-Array zurueckgeben, sonst nichts
 
@@ -1047,9 +1067,12 @@ News:
                         if s and s[-1] not in ".!?\"'”":
                             completeness_ok = False
                             break
+                        if _has_foreign_script(t) or _has_foreign_script(s):
+                            completeness_ok = False
+                            break
                     if not completeness_ok:
                         logger.warning(
-                            "Batch %d: %s lieferte unvollstaendigen Text (vermutlich max_tokens-Abschnitt) - Batch verworfen, naechstes Modell",
+                            "Batch %d: %s lieferte unvollstaendigen/fremdsprachigen Text (max_tokens-Abschnitt oder Sprachmix) - Batch verworfen, naechstes Modell",
                             batch_start // batch_size + 1, modell
                         )
                         continue
