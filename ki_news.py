@@ -7,6 +7,7 @@ import os
 import logging
 import difflib
 import webbrowser
+from collections import Counter
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from time import sleep
@@ -497,31 +498,63 @@ def _title_keywords(title):
     words = re.findall(r'\b\w{4,}\b', title.lower())
     return {w for w in words if w not in STOPWORDS}
 
+# Tokens für Bigram-Bildung: inkl. Zahlen/Versionen (z.B. "2.5", "gpt"), min. 3 Zeichen.
+_BIGRAM_STOP = {
+    "die","der","das","ein","eine","und","oder","mit","von","für","fur","auf","im","in",
+    "den","des","dem","zu","ist","sind","wie","sich","the","a","an","of","to","for","on",
+    "with","and","or","is","are","new","its","their","by","as","at","from","that","this",
+}
+
+def _title_tokens(title):
+    return [w for w in re.findall(r'[a-z0-9äöüß\.]{3,}', title.lower()) if w not in _BIGRAM_STOP]
+
+def _title_bigrams(title):
+    """Gemeinsame 2-Wort-Phrasen – ein distinktiverer Cluster-Anker als Einzelwörter."""
+    t = _title_tokens(title)
+    return set(zip(t, t[1:]))
+
+# Token, das in <= so vielen Titeln vorkommt, gilt als distinktiv (Produkt-/Eigenname).
+CLUSTER_RARE_DF_MAX = 3
+
 def cluster_news(alle_news):
     """
-    Gruppiert ähnliche Artikel: 2+ gemeinsame Schlüsselwörter im Titel = gleiche Story.
+    Gruppiert ähnliche Artikel zu Stories. Ein Artikel kommt in einen Cluster, wenn er
+    entweder 2+ Einzel-Keywords mit ihm teilt ODER eine gemeinsame 2-Wort-Phrase (Bigram)
+    hat, in der mindestens ein Token distinktiv (selten) ist.
+
+    Das zweite Kriterium fängt Fälle wie "Seedance 2.5" / "ByteDance Seedance", wo nur EIN
+    starkes Stichwort geteilt wird (2-Keyword-Schwelle verfehlt), OHNE generische Phrasen
+    wie "Millionen Dollar" zu unzusammenhängenden Clustern zu verketten (beide Tokens dort
+    sind häufig → kein distinktives Token → kein Merge).
+
     Gibt Liste von Clusters zurück (jeder Cluster = Liste von Artikeln).
     """
-    clusters = []
+    # Dokumentfrequenz je Token (in wie vielen Titeln kommt es vor) – Basis für "distinktiv".
+    df = Counter()
+    for item in alle_news:
+        for w in set(_title_tokens(item["title"])):
+            df[w] += 1
+
+    clusters = []  # je {"items": [...], "kw": set, "bg": set}
     for item in alle_news:
         kw = _title_keywords(item["title"])
+        bg = _title_bigrams(item["title"])
         merged = False
         for cluster in clusters:
-            # Gegen die VEREINIGUNG aller bereits geclusterten Titel-Keywords
-            # vergleichen, nicht nur gegen cluster[0]. Sonst fällt ein Artikel
-            # raus, der zwar zu einem spaeteren Cluster-Mitglied passt, aber
-            # zufaellig zu wenig mit dem allerersten Artikel teilt - Story
-            # zerfaellt in mehrere Einzel-Cluster statt einer starken Story.
-            cluster_kw = set()
-            for c_item in cluster:
-                cluster_kw |= _title_keywords(c_item["title"])
-            if len(kw & cluster_kw) >= 2:
-                cluster.append(item)
+            # Gegen die VEREINIGUNG aller Cluster-Keywords/-Bigramme vergleichen (inkrementell
+            # gepflegt), nicht nur gegen cluster[0] – sonst zerfällt eine Story in Einzel-Cluster.
+            shared_bg = bg & cluster["bg"]
+            strong_bg = any(df[a] <= CLUSTER_RARE_DF_MAX or df[b] <= CLUSTER_RARE_DF_MAX
+                            for (a, b) in shared_bg)
+            if len(kw & cluster["kw"]) >= 2 or strong_bg:
+                cluster["items"].append(item)
+                cluster["kw"] |= kw
+                cluster["bg"] |= bg
                 merged = True
                 break
         if not merged:
-            clusters.append([item])
-    return clusters
+            clusters.append({"items": [item], "kw": set(kw), "bg": set(bg)})
+    return [c["items"] for c in clusters]
 
 def score_cluster(cluster):
     """
@@ -1884,9 +1917,18 @@ def main():
     ]
 
     # Posts (Teasers) den Top-3-News zuordnen (kommt aus post_cache via parsed)
+    # Jeder Post trägt den Link (+ story_id) SEINER Story, damit das Frontend den Teaser
+    # eindeutig der richtigen Karte zuordnen kann (statt per Quelle/Position zu raten).
+    # parsed ist in top_news-Reihenfolge gebaut, daher ist zip() hier synchron.
     posts_list = [
-        {"teaser": p.get("teaser",""), "erklaerung": p.get("erklaerung",""), "thread": p.get("thread",[])}
-        for p in parsed
+        {
+            "teaser":     p.get("teaser", ""),
+            "erklaerung": p.get("erklaerung", ""),
+            "thread":     p.get("thread", []),
+            "link":       tn.get("link", ""),
+            "story_id":   link_to_cluster_info.get(tn.get("link", ""), {}).get("story_id", ""),
+        }
+        for tn, p in zip(top_news, parsed)
     ]
 
     # Roundups als separates Feld – Material zum Abgleich, nicht in der News-Liste.

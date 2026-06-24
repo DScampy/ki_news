@@ -1017,11 +1017,13 @@ Promise.all([
   nonFeatured.sort(function(a,b){ return (b.score||0)-(a.score||0); });
   var top = featured.concat(nonFeatured).slice(0,3);
   topLinks = top.map(function(n){return n.link;}).filter(Boolean);
-  // Scampy-Posts (teaser/erklaerung/thread) den Top-Storys zuordnen – per Quelle, Index als Fallback
+  // Scampy-Posts (teaser/erklaerung/thread) den Top-Storys zuordnen – exakt per Link.
+  // Kein Treffer -> kein (fremder) Teaser; die Karte faellt im Render auf die eigene
+  // Summary zurueck. Frueher per "(via Quelle)"-String + Index-Fallback -> Fehlzuordnung.
   var posts = data.posts || [];
   top.forEach(function(s, i){
-    var sameSrc = posts.filter(function(p){ return p.teaser && s.source && p.teaser.indexOf('(via ' + s.source) !== -1; });
-    s.post = (sameSrc.length === 1 ? sameSrc[0] : posts[i]) || null;
+    var byLink = posts.filter(function(p){ return p.link && p.link === s.link; });
+    s.post = byLink.length ? byLink[0] : null;
   });
   initHero(top);
   var filtered = allNews.filter(function(n){ return topLinks.indexOf(n.link) === -1; });
