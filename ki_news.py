@@ -298,6 +298,14 @@ def _is_roundup(news_item) -> bool:
         return True
     return bool(_ROUNDUP_PATTERN.search(news_item.get("title", "")))
 
+def _is_ad(news_item) -> bool:
+    """Werbung/Sponsored erkennen – z.B. Golem 'Anzeige: ...'. Nur Titel, die DAMIT
+    ANFANGEN, damit echte News wie 'Immobilienanzeigen' nicht getroffen werden."""
+    t = (news_item.get("title", "") or "").strip().lower()
+    return (t.startswith("anzeige:") or t.startswith("anzeige ")
+            or t.startswith("[anzeige]") or t.startswith("sponsored")
+            or t.startswith("werbung:"))
+
 FEEDS = [
     # Deutsch
     ("The Decoder", "https://the-decoder.de/feed/"),
@@ -474,6 +482,11 @@ PENALTY_KEYWORDS = [
     ("gaming", -20), ("esports", -30), ("playstation", -30), ("xbox", -30),
     ("nintendo", -30), ("benchmark", -5), (" fps", -20), ("game pass", -30),
     ("grafikkarte test", -20), ("monitor test", -20),
+    # Gaming/Entertainment-Genre (Spiele-News ohne echte KI-Relevanz, z.B.
+    # "Fantasy-Spiel mit KI-NPCs"). Senkt den Score, filtert nicht hart raus.
+    ("open-world", -15), ("open world", -15), ("fantasy", -15), (" rpg", -15),
+    ("videospiel", -15), ("video game", -15), ("videogame", -15),
+    ("dungeon", -15), ("spieler", -10), ("zähmen", -10),
     # Deals / Commerce
     (" sale", -20), ("deal:", -20), ("discount", -20), ("angebot:", -20),
     ("best buy", -25), ("preis fällt", -15),
@@ -1260,7 +1273,11 @@ THREAD X-5 Konsequenz: Was das fuer echte Menschen heute bedeutet
 THREAD X-6 Fazit: Ein Gedanke der nachhallt – endet mit einer persoenlichen Frage an den Leser
 Jeder Thread-Teil: mindestens 180, maximal 265 Zeichen. Kurze Antworten sind Fehler.
 
-ERKLAERUNG: max 60 Zeichen, was die News konkret bedeutet.
+ERKLAERUNG (die "Scampy-Einordnung" auf der Website): zwei bis drei VOLLSTAENDIGE,
+einfache Saetze, 90 bis 200 Zeichen. Erklaere klar und nuechtern in Alltagssprache,
+was die News konkret bedeutet – ohne Fachjargon, ohne dramatische Zuspitzung, ohne
+grosse Worte. So, als wuerdest du es einem Freund in einem Satz erklaeren. KEINE
+abgehackten Halbsaetze, kein Satz der mitten im Gedanken aufhoert.
 
 Format – EXAKT so, keine Abweichungen:
 TEASER 1: [Text]
@@ -1733,6 +1750,12 @@ def main():
     alle_news     = [n for n in alle_news if not _is_roundup(n)]
     if roundup_items:
         logger.info("%d Wochenzusammenfassung(en) abgetrennt (Material, nicht sichtbar)", len(roundup_items))
+
+    # Werbung/Sponsored ('Anzeige: ...') komplett raus – kein Material, keine Anzeige.
+    _before_ads = len(alle_news)
+    alle_news = [n for n in alle_news if not _is_ad(n)]
+    if _before_ads != len(alle_news):
+        logger.info("%d Werbung/Anzeige-Eintraege entfernt", _before_ads - len(alle_news))
 
     if not alle_news:
         logger.info("Keine KI-News gefunden.")
