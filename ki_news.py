@@ -445,15 +445,22 @@ IMPORTANCE_KEYWORDS = [
     ("billion", 15), ("milliard", 15), ("fired", 15), ("entlassen", 15),
     ("merger", 15), ("acqui", 15), ("übernimmt", 15), ("shutdown", 15),
     ("regulation", 15), ("gesetz", 15), ("verbot", 15),
-    ("valuation", 15), ("bewertung", 15), ("funding round", 15), ("raises $", 15),
+    ("valuation", 15), ("bewertung", 15),
+    # Neue Modelle / Fähigkeiten – KERN einer KI-News-Seite, höher als Finanzierung.
+    ("model", 12), ("modell", 12), ("open-weight", 12), ("open weight", 12),
+    ("state-of-the-art", 12), ("outperforms", 10), ("übertrifft", 8), ("beats", 8),
+    ("open source", 10), ("open-source", 10),
     # Wichtige Ereignisse (10 Punkte)
-    ("launch", 10), ("release", 10), ("veröffentlicht", 10),
-    ("breakthrough", 10), ("durchbruch", 10), ("funding", 10), ("investment", 10),
-    ("raises", 10), ("million", 10), ("opens", 10), ("patent", 10),
+    ("launch", 10), ("release", 10), ("veröffentlicht", 10), ("vorgestellt", 10),
+    ("unveils", 10), ("introduces", 8), ("einführung", 8),
+    ("breakthrough", 10), ("durchbruch", 10), ("opens", 8), ("patent", 10),
+    # Finanzierung ENTSCHÄRFT: kleine Seed/Series-A-Runden sind Nebengeräusch.
+    # Nur große Runden bleiben über "billion"/"valuation" oben. "million" entfernt
+    # (war Haupttreiber für No-Name-Startup-Rauschen vor Modell-News).
+    ("funding round", 5), ("raises $", 5), ("funding", 3), ("investment", 5), ("raises", 3),
     # Interessante Entwicklungen (5 Punkte)
     ("study", 5), ("studie", 5), ("research", 5), ("warnt", 5),
-    ("kritik", 5), ("beats", 5), ("übertrifft", 5), ("first", 5), ("erstmals", 5),
-    ("open source", 5), ("open-source", 5), ("kostenlos", 5),
+    ("kritik", 5), ("erstmals", 5), ("kostenlos", 5),
 ]
 
 
@@ -465,7 +472,7 @@ PENALTY_KEYWORDS = [
     ("schulung", -25), ("zertifikat", -20), ("workshop", -15),
     # Gaming / Hardware ohne KI-Relevanz
     ("gaming", -20), ("esports", -30), ("playstation", -30), ("xbox", -30),
-    ("nintendo", -30), ("benchmark", -15), (" fps", -20), ("game pass", -30),
+    ("nintendo", -30), ("benchmark", -5), (" fps", -20), ("game pass", -30),
     ("grafikkarte test", -20), ("monitor test", -20),
     # Deals / Commerce
     (" sale", -20), ("deal:", -20), ("discount", -20), ("angebot:", -20),
@@ -494,6 +501,10 @@ def _title_keywords(title):
         "the", "a", "an", "of", "in", "to", "for", "on", "with", "and", "or",
         "is", "are", "new", "its", "their", "by", "as", "at", "from", "that",
         "this", "was", "has", "have", "will", "über", "nach", "beim", "auch",
+        # Generische Finanz-/Füllwörter: clusterten unzusammenhängende Startup-/Finanz-
+        # Meldungen zu einem Müll-Cluster zusammen (z.B. alle "X sammelt Y Millionen").
+        "million", "millionen", "milliarde", "milliarden", "dollar", "euro", "startup",
+        "startups", "prozent", "percent", "raises", "funding", "sammelt", "series",
     }
     words = re.findall(r'\b\w{4,}\b', title.lower())
     return {w for w in words if w not in STOPWORDS}
@@ -503,6 +514,8 @@ _BIGRAM_STOP = {
     "die","der","das","ein","eine","und","oder","mit","von","für","fur","auf","im","in",
     "den","des","dem","zu","ist","sind","wie","sich","the","a","an","of","to","for","on",
     "with","and","or","is","are","new","its","their","by","as","at","from","that","this",
+    "million","millionen","milliarde","milliarden","dollar","euro","startup","startups",
+    "prozent","percent","raises","funding","sammelt","series",
 }
 
 def _title_tokens(title):
@@ -793,7 +806,9 @@ def fetch_feed(name, url):
 
     items = []
     candidates = list(root.iter("item")) or list(root.iter("entry"))
-    for item in candidates[:10]:
+    # Tiefer in den Feed schauen (war 10): aktive Feeds wie TechCrunch haben 15-20
+    # Items, wichtige Modell-News stehen oft erst ab Position 11.
+    for item in candidates[:20]:
         title = (item.findtext("title") or "").strip()
         link = (item.findtext("link") or "").strip()
         if not link:
@@ -802,7 +817,10 @@ def fetch_feed(name, url):
                 link = link_elem.get("href", "").strip()
         if title and _is_ki_relevant(title):
             items.append({"title": title, "link": link, "source": name})
-    return items[:3]
+    # War [:3] – das warf ~70% der relevanten News pro Feed weg (The Decoder liefert
+    # 10 KI-relevante, nur 3 kamen durch). Höher = bessere Abdeckung neuer Modelle,
+    # das Scoring + der Zeit-Verfall sortieren die Masse danach.
+    return items[:8]
 
 # -------------------------
 # Vorschaubilder (og:image) – serverseitig für externe Links / X-Posts
