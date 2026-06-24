@@ -608,17 +608,21 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
     scored = []
     for cluster in clusters:
         score, label = score_cluster(cluster)
-        # Repräsentant = Artikel aus der prestigiösten Quelle im Cluster
-        rep = max(cluster, key=lambda x: SOURCE_PRESTIGE.get(x["source"], 0))
-        # Effektiver Score: ältesten first_seen im ganzen Cluster verwenden.
-        # Verhindert dass neue Artikel über alte Storys den Cluster "verjüngen".
+        # Ältesten first_seen im Cluster als Story-Alter (Member ohne History erben ihn).
         cluster_histories = [history[item["link"]] for item in cluster if item.get("link") in history]
-        if cluster_histories:
-            oldest_first_seen = min(h["first_seen"] for h in cluster_histories)
-            best_base = max(h.get("base_score", score) for h in cluster_histories)
-            eff_score = decay_score(best_base, oldest_first_seen)
-        else:
-            eff_score = score  # komplett neue Story: heute erfasst, kein Verfall
+        oldest_first_seen = min((h["first_seen"] for h in cluster_histories), default=_today_iso())
+        # Anzeige-Score eines Artikels – GENAU wie news_list/Frontend ihn berechnen
+        # (decay_score auf base_score + History-Heilung). Dadurch wählen wir denselben
+        # Repräsentanten (höchster Score, nicht höchstes Prestige) und dieselbe Top-
+        # Reihenfolge, die die deduplizierte Startseite zeigt. Folge: der für eine Story
+        # generierte Teaser hängt immer an genau der Karte, die oben angezeigt wird.
+        def _display_score(m, _score=score, _oldest=oldest_first_seen):
+            h = history.get(m.get("link", ""))
+            fs = h["first_seen"] if h else _oldest
+            base = max(h["base_score"], _score) if h else _score
+            return decay_score(base, fs)
+        rep = max(cluster, key=_display_score)
+        eff_score = _display_score(rep)
         # Featured-Boost aus dashboard_config.json (mit Zeitverfall)
         if featured_links:
             cluster_links = {item.get("link", "") for item in cluster}
