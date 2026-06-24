@@ -283,10 +283,10 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
               Ø Score
             </button>
             <div style="width:1px;background:rgba(107,114,128,0.2);margin:0 2px"></div>
-            <button onclick="toggleSourceWindow(7)"  id="btn-w7"
+            <button onclick="toggleSourceWindow(5)"  id="btn-w5"
               class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
               style="background:rgba(var(--neon-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3)">
-              7 Tage
+              5 Tage
             </button>
             <button onclick="toggleSourceWindow(30)" id="btn-w30"
               class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
             </button>
           </div>
         </div>
-        <p class="meta-text mb-4" id="src-window-label">Artikel-Anzahl und Durchschnitts-Score je Quelle · letzte 7 Tage</p>
+        <p class="meta-text mb-4" id="src-window-label">Artikel-Anzahl und Durchschnitts-Score je Quelle · letzte 5 Tage</p>
         <div id="src-ranking" style="display:flex;flex-direction:column;gap:5px;min-height:260px;justify-content:center;"></div>
       </div>
 
@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
         <div style="background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
           <div style="font-size:9px;font-family:monospace;color:rgba(20,184,166,0.6);letter-spacing:.12em;margin-bottom:6px">ZEIT-VERFALL</div>
           <div style="font-size:20px;font-weight:900;color:#14b8a6;font-family:'Space Grotesk',sans-serif">5 Pkt./Tag</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Max. 7 Tage sichtbar</div>
+          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Max. 5 Tage sichtbar</div>
         </div>
         <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">=</div>
         <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
 
       <!-- Hinweis -->
       <p style="font-size:11px;font-family:monospace;color:#4b5563;margin-top:16px;line-height:1.6">
-        Artikel werden erst zu <strong style="color:#6b7280">Clustern</strong> gruppiert (≥ 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster – je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus. Artikel verschwinden nach <strong style="color:#14b8a6">7 Tagen</strong> von der Hauptseite und wandern ins Archiv.
+        Artikel werden erst zu <strong style="color:#6b7280">Clustern</strong> gruppiert (≥ 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster – je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus. Artikel verschwinden nach <strong style="color:#14b8a6">5 Tagen</strong> von der Hauptseite und wandern ins Archiv.
       </p>
     </div>
 
@@ -540,7 +540,7 @@ function renderAll(current, all){
 
   // ── Quellen Chart ──────────────────────────────────────────────────────────
   window._allNews = all;
-  window._sourceWindow = 7; // default: 7 Tage
+  window._sourceWindow = 5; // default: 5 Tage
 
   // Global definiert damit toggleSourceWindow darauf zugreifen kann
   window.buildSrcData = function(days) {
@@ -768,15 +768,15 @@ function toggleSourceMetric(metric){
 function toggleSourceWindow(days){
   window._sourceWindow = days;
   _refreshSourceChart();
-  const labels = { 7:'letzte 7 Tage', 30:'letzte 30 Tage', 0:'Gesamtzeitraum' };
+  const labels = { 5:'letzte 5 Tage', 30:'letzte 30 Tage', 0:'Gesamtzeitraum' };
   document.getElementById('src-window-label').textContent =
     `Artikel-Anzahl und Durchschnitts-Score je Quelle · ${labels[days]}`;
-  ['btn-w7','btn-w30','btn-wall'].forEach(id=>{
+  ['btn-w5','btn-w30','btn-wall'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     el.style.background='transparent'; el.style.color='#6b7280'; el.style.borderColor='rgba(107,114,128,0.2)';
   });
-  const activeId = days===7?'btn-w7':days===30?'btn-w30':'btn-wall';
+  const activeId = days===5?'btn-w5':days===30?'btn-w30':'btn-wall';
   const active = document.getElementById(activeId);
   if(active){ active.style.background='rgba(var(--neon-rgb),0.15)'; active.style.color='var(--accent)'; active.style.borderColor='rgba(var(--neon-rgb),0.3)'; }
 }
@@ -933,12 +933,13 @@ function renderScoreBreakdown() {
     ['The Verge', 5], ['Golem', 5], ['SiliconAngle', 5], ['TechRepublic', 5], ['Caschy Blog', 5],
   ];
   const KEYWORDS = [
-    ['ban · verboten · lawsuit · klage · shutdown', 15],
-    ['billion · milliard · fired · merger · übernimmt', 15],
-    ['launch · release · breakthrough · funding · raises', 10],
-    ['million · opens · patent · investment', 10],
-    ['study · warnt · kritik · beats · erstmals', 5],
-    ['open source · open-source · kostenlos', 5],
+    ['ban · verboten · lawsuit · klage · shutdown · regulation', 15],
+    ['billion · milliard · valuation · bewertung · merger · übernimmt', 15],
+    ['model · modell · open-weight · state-of-the-art', 12],
+    ['launch · release · unveils · breakthrough · patent · durchbruch', 10],
+    ['open source · open-source · outperforms · introduces · beats', 8],
+    ['study · warnt · kritik · erstmals · investment · kostenlos', 5],
+    ['funding · raises · funding round (kleine Runden abgewertet)', 3],
   ];
 
   const pt = document.getElementById('prestige-table');

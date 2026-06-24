@@ -679,7 +679,7 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
 # So sinken alte Stories automatisch nach unten und machen Platz für Neues.
 SCORE_DECAY_PER_DAY = 5
 SCORE_FLOOR = 0
-MAX_AGE_DAYS = 7  # Artikel älter als 7 Tage werden aus news.json entfernt
+MAX_AGE_DAYS = 5  # Artikel älter als 5 Tage werden aus news.json entfernt (Start-/Artikelseite)
 # Abschlag fuer Cluster-Member, die NICHT der Repraesentant ihrer Story sind.
 # Sie erben den Story-Cluster-Score minus diesen Wert, damit der Repraesentant
 # oben bleibt, die Story aber als Block zusammensteht (statt dass Member auf 0 fallen).

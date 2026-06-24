@@ -770,9 +770,10 @@ function germanDate(stand){
 }
 // ── Analyse-Aufklapper: Post (teaser/erklaerung/thread) zu Story matchen ──
 function matchPost(item, posts, idx){
-  if (!posts || !posts.length) return null;
-  var same = posts.filter(function(p){ return p.teaser && item.source && p.teaser.indexOf('(via ' + item.source) !== -1; });
-  return (same.length === 1 ? same[0] : posts[idx]) || null;
+  if (!posts || !posts.length || !item) return null;
+  // Exakt per Link zuordnen. Kein Treffer -> kein (fremder) Teaser/Analyse.
+  var byLink = posts.filter(function(p){ return p.link && p.link === item.link; });
+  return byLink.length ? byLink[0] : null;
 }
 function hasAnalyse(post){ return !!(post && post.thread && post.thread.length); }
 function analyseHtml(post, slot, link){
@@ -858,6 +859,16 @@ fetch('news.json?t=' + Date.now())
   .then(function(r){return r.json();})
   .then(function(data){
     var news = (data.news || []).slice();
+    // Pro Story (story_id) nur den staerksten Artikel zeigen – sonst erscheinen mehrere
+    // Karten fuer dieselbe Meldung (z.B. Oracle bei ARS/CNBC/Bloomberg/WSJ).
+    (function(){
+      var best = {};
+      news.forEach(function(n){
+        var sid = n.story_id;
+        if (sid && (!best[sid] || (n.score||0) > (best[sid].score||0))) best[sid] = n;
+      });
+      news = news.filter(function(n){ return !n.story_id || best[n.story_id] === n; });
+    })();
     var lead = document.getElementById('lead-story');
     if (!news.length) {
       if (lead) lead.innerHTML = '<p class="sec-text">Aktuell keine Artikel verfügbar.</p>';
