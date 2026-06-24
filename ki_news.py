@@ -971,6 +971,7 @@ Wichtig:
 - title_de MUSS eine echte Uebersetzung GENAU DIESES Originaltitels sein
 - Falls der Original-Titel einen Firmen-, Produkt- oder Personennamen enthaelt, MUSS title_de diesen Namen ebenfalls enthalten – ein Titel ohne das eigentliche Subjekt ("KI-Startup sammelt Millionen" statt "Baseten sammelt Millionen") ist nutzlos
 - title_de und summary AUSSCHLIESSLICH auf Deutsch, keine Zeichen aus anderen Schriftsystemen (z.B. chinesische/japanische/koreanische Zeichen) uebernehmen, auch wenn der Original-Titel mehrsprachig ist
+- title_de MUSS ein Aussagesatz sein, KEINE Frage (kein Fragezeichen, keine Frageform wie "Hat X sich...?"). Falls der Original-Titel selbst eine Frage oder reine Spekulation ist, in eine Aussage mit Unsicherheits-Marker umformulieren (z.B. "moeglicherweise", "laut Bericht") statt die Frage zu uebernehmen – das gilt nur fuer die Formulierung, nicht als Grund den Artikel zu verwerfen
 - Jede id muss vorkommen (1 bis {len(batch)})
 - Nur das JSON-Array zurueckgeben, sonst nichts
 
