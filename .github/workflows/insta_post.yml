@@ -1,0 +1,42 @@
+name: Insta-Post (manuell)
+
+# Der "GitHub-Button": Actions-Tab -> "Insta-Post (manuell)" -> "Run workflow".
+# Ohne Eingabe wird die NEUESTE Card aus cards.json gepostet.
+# Optional eine Card-ID (oder Teilstring) angeben, um eine bestimmte zu waehlen.
+
+on:
+  workflow_dispatch:
+    inputs:
+      card_id:
+        description: "Card-ID/Teilstring aus cards.json (leer = neueste Card)"
+        required: false
+        default: ""
+        type: string
+      caption:
+        description: "Caption-Override (leer = Headline der Card)"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Abhaengigkeit installieren
+        run: pip install requests
+
+      - name: Auf Instagram posten
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          CARD_ID: ${{ inputs.card_id }}
+          CAPTION: ${{ inputs.caption }}
+        run: python post_to_insta.py
