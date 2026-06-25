@@ -422,8 +422,11 @@ def fill_template(template: str, fields: dict) -> str:
     return result
 
 
-def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str) -> bool:
-    """Schickt das fertige MP4 via Telegram sendVideo."""
+def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_id: str = "") -> bool:
+    """Schickt das fertige MP4 via Telegram sendVideo.
+    Wenn card_id gesetzt ist, haengt ein Insta-Post-Button an (callback_data
+    "ip:<card_id-Praefix>"). check_insta_queue.py liest Klicks darauf beim
+    naechsten Cron-Lauf aus und postet genau diese Karte auf Instagram."""
     if not TELEGRAM_TOKEN:
         print("  [INFO] TELEGRAM_TOKEN nicht gesetzt — kein Telegram-Versand.")
         return False
@@ -432,9 +435,18 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str) -> boo
     boundary = "ScampyBoundary" + os.urandom(6).hex()
     caption  = f"🤖 {headline}\n\n{einordnung}"[:1024]
 
+    fields = [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption)]
+    if card_id:
+        # 64-Byte-Limit von Telegram fuer callback_data -> Praefix kappen.
+        cb = f"ip:{card_id}"[:64]
+        reply_markup = json.dumps({
+            "inline_keyboard": [[{"text": "📤 Auf Instagram posten", "callback_data": cb}]]
+        })
+        fields.append(("reply_markup", reply_markup))
+
     body = io.BytesIO()
     # Felder
-    for name, value in [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption)]:
+    for name, value in fields:
         body.write(f"--{boundary}\r\n".encode())
         body.write(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode())
         body.write(f"{value}\r\n".encode())
@@ -662,7 +674,8 @@ def main() -> None:
         print(f"  ✓ MP4:  {mp4_out.name}")
 
         # Karte direkt an Telegram schicken (einordnung_clean: kein [OR]-Label)
-        send_card_to_telegram(mp4_out, headline, einordnung_clean)
+        # card_id=slug -> Insta-Post-Button auf der Karte (siehe check_insta_queue.py)
+        send_card_to_telegram(mp4_out, headline, einordnung_clean, card_id=slug)
 
         cards_meta.append({
             "id":       slug,
