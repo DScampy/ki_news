@@ -103,18 +103,55 @@ CARDS_JSON     = ROOT_DIR / "cards.json"
 CARD_STATE_JSON = ROOT_DIR / "card_state.json"  # Dedup-Gedaechtnis, analog telegram_state.json
 TMP_DIR        = Path("/tmp/cards")
 
-# TTS-Ausspracheliste: einzelne Buchstaben/Begriffe, die die Studio-Voice falsch betont.
-# Erweiterbar, sobald neue Faelle auffallen (z.B. ueber die Admin-Seite gepflegt).
+# TTS-Akronyme: werden per SSML <say-as interpret-as="characters"> buchstabiert,
+# damit die Studio-Voice die DEUTSCHE Buchstabier-Aussprache nutzt statt die
+# englische zu raten. Bug 25.06.: "xAI" -> "schai" (kein Eintrag vorhanden),
+# "KI" trotz altem Text-Trick "K I" -> "kai" (reiner Text mit Leerzeichen
+# zwingt die Stimme NICHT zur Buchstabier-Phonetik - SSML-Markup schon).
+# Erweiterbar, sobald neue Faelle auffallen.
+TTS_SPELL_OUT = {"KI", "xAI", "RL", "LLM", "API", "GPU", "CPU", "NSFW", "HBM", "DRAM"}
+
+# TTS-Wortersatz: ganze Woerter mit falscher Betonung, die KEINE Buchstabier-
+# Faelle sind (z.B. "SpaceX" - kein Akronym, sondern ein Markenname mit
+# Grossbuchstaben-X mittendrin; "Space X" wird normal vorgelesen).
 PRONOUNCE_FIXES = {
-    "KI":     "K I",
-    "DRAM":   "D-RAM",
     "SpaceX": "Space X",
-    "HBM":    "H B M",
 }
 
+
+def _xml_escape(text: str) -> str:
+    return (text.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace('"', "&quot;"))
+
+
+def build_tts_ssml(text: str) -> str:
+    """Baut SSML aus Klartext fuer die Google-TTS-Synthese. Reihenfolge wichtig:
+    1) PRONOUNCE_FIXES (Wortersatz) auf Klartext anwenden
+    2) XML-Escape (Akronyme aus TTS_SPELL_OUT enthalten keine Sonderzeichen,
+       sind also escape-sicher und werden danach trotzdem korrekt gefunden)
+    3) Akronyme mit <say-as interpret-as="characters"> markieren
+    """
+    for original, spoken in PRONOUNCE_FIXES.items():
+        text = re.sub(rf"\b{re.escape(original)}\b", spoken, text)
+    text = _xml_escape(text)
+    for acro in sorted(TTS_SPELL_OUT, key=len, reverse=True):
+        text = re.sub(
+            rf"\b{re.escape(acro)}\b",
+            f'<say-as interpret-as="characters">{acro}</say-as>',
+            text,
+        )
+    return f"<speak>{text}</speak>"
+
 SYSTEM_PROMPT = (
-    "Du bist ScampyKI — kritischer KI-Journalist, skeptisch gegenüber Hype. "
-    "Schreib 2–3 prägnante deutsche Sätze als nüchterne Einordnung der News (ca. 15–20 Sekunden Lesezeit). "
+    "Du bist ScampyKI — erklärst einem Freund am Tisch, was diese News wirklich bedeutet. "
+    "Schreib 2–3 prägnante deutsche Sätze (ca. 15–20 Sekunden Lesezeit). "
+    "Umgangssprachlich, kurze direkte Sätze, kein Fachjargon-Geschwurbel — wenn ein abstrakter "
+    "Begriff nötig ist, mit einem konkreten Beispiel oder Vergleich greifbar machen. "
+    "Skeptisch gegenüber Hype, aber nicht akademisch-distanziert: lieber 'Heißt im Klartext...' "
+    "als 'Dies wirft die Frage auf, ob...'. "
+    "Beginne NICHT mit dem Firmen-/Produktnamen, wenn die Headline schon damit endet — sonst "
+    "klingt es beim Vorlesen wie eine Wiederholung (z.B. nicht 'Mistral Small 4 ist...' direkt nach "
+    "einer Headline, die mit 'Mistral Small 4' endet; stattdessen 'Das Modell...', 'Im Kern...'). "
     "Keine Wiederholungen — jeder Satz bringt neue Information. "
     "Kein Lob, kein Marketing-Sprech. Fokus: Was bedeutet das wirklich?"
 )
@@ -230,13 +267,6 @@ def limit_sentences(text: str, max_sentences: int = MAX_SENTENCES) -> str:
     return " ".join(sentences[:max_sentences]).strip()
 
 
-def apply_pronounce_fixes(text: str) -> str:
-    """Wendet die PRONOUNCE_FIXES-Liste fuer korrekte TTS-Aussprache an (Wortgrenzen)."""
-    for original, spoken in PRONOUNCE_FIXES.items():
-        text = re.sub(rf"\b{re.escape(original)}\b", spoken, text)
-    return text
-
-
 def audio_dauer_sekunden(pfad: Path) -> float:
     """Liest Audio-Dauer via ffprobe. Gibt CARD_DURATION als Fallback zurück."""
     try:
@@ -252,9 +282,11 @@ def audio_dauer_sekunden(pfad: Path) -> float:
 
 # ─── Google TTS ───────────────────────────────────────────────────────────────
 
-def generate_tts(text: str, slug: str, voice_name: str, voice_gender: str) -> tuple:
+def generate_tts(ssml: str, slug: str, voice_name: str, voice_gender: str) -> tuple:
     """
     Generiert MP3 via Google Cloud TTS.
+    ssml: fertiges SSML-Dokument (siehe build_tts_ssml) - NICHT Klartext, sonst
+    interpretiert Google die <speak>/<say-as>-Tags als wortwoertlich vorzulesenden Text.
     voice_name/voice_gender: pro Karte zufaellig aus GOOGLE_TTS_VOICES gewaehlt (siehe main()).
     Gibt (audio_path, video_dauer_sekunden) zurück.
     Bei Fehler: (None, CARD_DURATION).
@@ -268,7 +300,7 @@ def generate_tts(text: str, slug: str, voice_name: str, voice_gender: str) -> tu
         f"?key={GOOGLE_TTS_KEY}"
     )
     payload = json.dumps({
-        "input": {"text": text},
+        "input": {"ssml": ssml},
         "voice": {
             "languageCode": "de-DE",
             "name": voice_name,
@@ -616,15 +648,14 @@ def main() -> None:
         # Hard-Cap auf max. N Saetze — verhindert ausufernde TTS-Dauer strukturell
         einordnung_clean = limit_sentences(einordnung)
 
-        # TTS-Text: Headline zuerst, dann Einordnung — Ausspracheliste anwenden
-        headline_tts   = apply_pronounce_fixes(headline)
-        einordnung_tts = apply_pronounce_fixes(einordnung_clean)
-        tts_text = f"{headline_tts}. {einordnung_tts}"
+        # TTS-Text: Headline zuerst, dann Einordnung — als SSML synthetisieren
+        # (Akronym-Buchstabierung via <say-as>, siehe build_tts_ssml).
+        tts_ssml = build_tts_ssml(f"{headline}. {einordnung_clean}")
 
         # TTS generieren — bestimmt Video-Länge. Stimme pro Karte zufaellig waehlen
         # (kein festes Muster/Alternieren — random.choice() pro Iteration).
         voice_name, voice_gender = random.choice(GOOGLE_TTS_VOICES)
-        audio_path, video_dauer = generate_tts(tts_text, slug, voice_name, voice_gender)
+        audio_path, video_dauer = generate_tts(tts_ssml, slug, voice_name, voice_gender)
 
         # Badge-Label nach Score-Tier: nicht jede Karte ist wirklich "breaking" -
         # bei einheitlichem Label auf allen Karten verliert das Wort seine
