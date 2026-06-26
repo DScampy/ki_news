@@ -750,7 +750,7 @@ def _recent_titles_from_archive(existing_archive, days=3, limit=15):
             titles.append(item.get("title", ""))
     return titles[-limit:]
 
-def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_archive=None):
+def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_archive=None, already_sent=None):
     """
     Wählt die n wichtigsten Artikel nach Clustering + Scoring.
     Statt blindem [:3] aus der Feed-Reihenfolge.
@@ -829,7 +829,20 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
     # Nach verfallenem Score absteigend sortieren (bei Gleichstand: roher Score)
     scored.sort(key=lambda x: (x["eff_score"], x["score"]), reverse=True)
 
-    top = scored[:n]
+    # Bug-Fix (26.06.26): already_sent (z.B. telegram_state.json sent_links)
+    # nur HIER anwenden - bei der finalen Top-n-Auswahl fuer Telegram/LLM -
+    # NICHT vorher beim Scoring (s. Kommentar am Call-Standort in main()).
+    # Jeder Cluster wurde oben unabhaengig vom Sent-Status bewertet (eff_score
+    # inkl. Featured-Boost bleibt fuer score_map/news.json erhalten), hier
+    # werden nur bereits gesendete Reps von den n sichtbaren Telegram-Plaetzen
+    # verdraengt, damit frische Stories durchkommen statt staendig wiederholt
+    # derselben 3 Top-Score-Cluster zu weichen.
+    already_sent = already_sent or set()
+    if already_sent:
+        frisch = [item for item in scored if item["rep"].get("link", "") not in already_sent]
+        top = frisch[:n] if frisch else scored[:n]
+    else:
+        top = scored[:n]
     for item in top:
         logger.info(
             "[Scoring] %s | %s | Score: %d (akt. %d, Quelle: %s, Legacy: %d) | Quellen: %d",
@@ -2092,15 +2105,24 @@ def main():
         for i, n in enumerate(alle_news)
     }
 
-    # Bug-Fix (26.06.26): bereits per Telegram verschickte Links VOR der
-    # Top-N-Auswahl ausschliessen statt erst danach (siehe Telegram-Delta
-    # unten). Vorher: dominante Mega-Stories (Score haelt sich stundenlang)
-    # belegten alle MAX_LLM_NEWS=3 Plaetze immer wieder neu, der Dedup-Check
-    # kam erst NACH der Auswahl -> alle 3 Plaetze "verbraucht", neue/gepinnte
-    # Artikel kamen nie bis zur LLM-Analyse/Telegram durch, obwohl sie in
-    # alle_news laengst vorhanden waren. MAX_LLM_NEWS bleibt bewusst auf 3
-    # (siehe Kommentar oben - mehr macht den LLM-Output generischer); der Fix
-    # gibt den 3 Plaetzen nur frische Kandidaten statt wiederholt dieselben.
+    # Bug-Fix (26.06.26), KORRIGIERT (selber Tag, 2. Versuch): bereits per
+    # Telegram verschickte Links sollen die MAX_LLM_NEWS=3-Plaetze nicht
+    # blockieren (dominante Mega-Stories halten ihren Score stundenlang, der
+    # alte Dedup-Check kam erst NACH der Top-3-Auswahl -> alle 3 Plaetze
+    # "verbraucht", frische/gepinnte Artikel kamen nie durch).
+    # ERSTER Versuch (s.u. als Kommentar zur Erinnerung) hat _alle_news_fuer_
+    # topnews VOR pick_top_news() gefiltert - das war falsch: pick_top_news()
+    # berechnet eff_score (inkl. Featured-Boost) fuer ALLE Cluster und gibt
+    # das ueber score_map an news.json weiter (s. Kommentar bei eff_score
+    # oben in pick_top_news). Wer hier rausgefiltert wird, bekommt nie einen
+    # eff_score-Eintrag - genau das hat den gepinnten Heise-Polizeigesetz-
+    # Artikel getroffen (war schon einmal getelegramt, fiel komplett aus dem
+    # Scoring raus, news.json bekam wieder den ungeboosteten Rohscore).
+    # Fix jetzt: alle_news bleibt UNGEFILTERT fuer pick_top_news (volles
+    # Scoring fuer jeden Artikel bleibt erhalten), der Sent-Filter wirkt erst
+    # INNERHALB von pick_top_news beim Befuellen der finalen Top-n-Liste
+    # (siehe Parameter already_sent dort) - score_map/link_to_cluster_info
+    # bleiben unangetastet fuer alle Artikel.
     _tg_sent_links_early = set()
     try:
         _tg_sent_links_early = set(
@@ -2108,12 +2130,11 @@ def main():
         )
     except Exception:
         pass
-    _alle_news_fuer_topnews = [n for n in alle_news if n.get("link") not in _tg_sent_links_early]
 
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
     top_news, score_map, link_to_cluster_info = pick_top_news(
-        _alle_news_fuer_topnews, n=MAX_LLM_NEWS, history=history, featured_links=featured_links,
-        existing_archive=_existing_archive,
+        alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links,
+        existing_archive=_existing_archive, already_sent=_tg_sent_links_early,
     )
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
 
