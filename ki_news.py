@@ -506,6 +506,24 @@ SCORE_LABELS = [
     (0,  "📰 normal"),
 ]
 
+# Firmen-Namensvarianten, die im Cluster-Matching als zwei verschiedene
+# Firmen erscheinen, obwohl es dieselbe ist (Kurzname vs. offizieller Name).
+# Fund 26.06.: "ON Semiconductor" (CNBC) und "Onsemi" (SiliconAngle) teilten
+# bei derselben Synaptics-Uebernahme nur 1 Keyword ("synaptics") -> Cluster-
+# Schwelle (>=2) verfehlt, zwei Karten fuer eine Story. Liste bei Bedarf
+# erweitern (gleiches Pattern wie SACHSEN_KW).
+COMPANY_ALIASES = {
+    "onsemi": "on semiconductor",
+}
+
+
+def _normalize_company_aliases(text):
+    t = text.lower()
+    for alias, canonical in COMPANY_ALIASES.items():
+        t = re.sub(rf"\b{re.escape(alias)}\b", canonical, t)
+    return t
+
+
 def _title_keywords(title):
     """Extrahiert bedeutsame Wörter aus einem Titel (min. 4 Zeichen, keine Stopwörter)."""
     STOPWORDS = {
@@ -519,7 +537,7 @@ def _title_keywords(title):
         "million", "millionen", "milliarde", "milliarden", "dollar", "euro", "startup",
         "startups", "prozent", "percent", "raises", "funding", "sammelt", "series",
     }
-    words = re.findall(r'\b\w{4,}\b', title.lower())
+    words = re.findall(r'\b\w{4,}\b', _normalize_company_aliases(title))
     return {w for w in words if w not in STOPWORDS}
 
 # Tokens für Bigram-Bildung: inkl. Zahlen/Versionen (z.B. "2.5", "gpt"), min. 3 Zeichen.
@@ -532,7 +550,7 @@ _BIGRAM_STOP = {
 }
 
 def _title_tokens(title):
-    return [w for w in re.findall(r'[a-z0-9äöüß\.]{3,}', title.lower()) if w not in _BIGRAM_STOP]
+    return [w for w in re.findall(r'[a-z0-9äöüß\.]{3,}', _normalize_company_aliases(title)) if w not in _BIGRAM_STOP]
 
 def _title_bigrams(title):
     """Gemeinsame 2-Wort-Phrasen – ein distinktiverer Cluster-Anker als Einzelwörter."""
@@ -835,9 +853,16 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
                     "story_score_source":  item["score_source"],
                 }
 
+    # Bug 26.06.: eff_score (= score + Decay + Featured-Boost) wurde bisher NUR
+    # lokal zum Sortieren/Top-n-Auswaehlen benutzt und ging beim Return verloren -
+    # news.json bekam den UNGEBOOSTETEN "score". Folge: ein gepinnter Artikel
+    # gewann seinen Platz in der Telegram-/Dashboard-Top-Liste (wo eff_score
+    # zaehlt), aber generate_news_cards.py (liest nur news.json/"score") sah den
+    # Boost nie und sortierte die Story trotz Pin nach hinten. Jetzt wird
+    # eff_score mit zurueckgegeben, news.json uebernimmt ihn als raw_score.
     return [item["rep"] for item in top], {
         item["rep"]["link"]: {
-            "score": item["score"], "label": item["label"],
+            "score": item["score"], "eff_score": item["eff_score"], "label": item["label"],
             "score_legacy": item["score_legacy"], "score_source": item["score_source"],
         }
         for item in scored
@@ -2081,7 +2106,10 @@ def main():
         # rep oben bleibt, die Story aber als Block zusammensteht. Der 7-Tage-Verfall
         # raeumt das Thema danach ohnehin auf 0.
         if "score" in scoring:
-            raw_score = scoring["score"]                       # Cluster-Repraesentant
+            # eff_score (inkl. Featured-Boost) bevorzugen, falls vorhanden - sonst
+            # faellt ein gepinnter Artikel im persistierten Score auf den
+            # ungeboosteten Wert zurueck (siehe Kommentar oben in pick_top_news).
+            raw_score = scoring.get("eff_score", scoring["score"])  # Cluster-Repraesentant
         else:
             cscore = cluster_info.get("story_cluster_score", 0)
             raw_score = max(0, cscore - CLUSTER_MEMBER_MALUS) if cscore else 0

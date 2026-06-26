@@ -206,6 +206,20 @@ def topic_keywords(headline: str) -> set:
     return {w for w in words if len(w) > 2 and w not in _STOPWORDS_DE}
 
 
+# Firmen-Namensvarianten: gleiche Entitaet, unterschiedliches Wort (Kurzname
+# vs. offizieller Name). Fund 26.06.: "ON Semiconductor" (CNBC) vs. "Onsemi"
+# (SiliconAngle) bei derselben Synaptics-Uebernahme -> nur "synaptics" als
+# gemeinsame Entitaet, Schwelle (>=2) verfehlt, zwei Karten fuer eine Story.
+# Mapping wird NACH der Eigennamen-Extraktion angewendet (siehe entity_words),
+# damit die Gross-/Kleinschreibungs-Erkennung selbst unangetastet bleibt -
+# nur der Vergleichswert wird auf den kanonischen Namen normalisiert. Gleiches
+# Pattern/gleiche Liste wie COMPANY_ALIASES in ki_news.py - bei neuen Faellen
+# in BEIDEN Dateien ergaenzen.
+ENTITY_ALIASES = {
+    "onsemi": "semiconductor",
+}
+
+
 def entity_words(headline: str) -> set:
     """Grossgeschriebene Tokens aus dem ORIGINAL-Titel (Eigennamen: Firmen-,
     Produkt-, Personennamen wie "SpaceX", "Reflection", "Samsung"). Zweites,
@@ -216,10 +230,11 @@ def entity_words(headline: str) -> set:
     (alles lowercase), deshalb separat VOR dem Lowercasing extrahiert. Muss aus
     dem Original-Titel kommen, nicht aus dem schon normalisierten Keyword-Set."""
     words = re.findall(r"[a-zA-ZäöüÄÖÜß0-9]+", headline)
-    return {
+    raw = {
         w.lower() for w in words
         if len(w) > 2 and w[0].isupper() and w.lower() not in _GENERIC_NOUNS_DE
     }
+    return {ENTITY_ALIASES.get(w, w) for w in raw}
 
 
 def topics_match(a: set, b: set, ent_a: set = None, ent_b: set = None, threshold: float = 0.45) -> bool:
