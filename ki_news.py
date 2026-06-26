@@ -895,6 +895,51 @@ def _days_since(date_str):
     today = datetime.now(BERLIN).date()
     return max(0, (today - d0).days)
 
+def _recall_relevant_from_archive(alle_news, existing_archive, featured_links):
+    """Holt Artikel zurueck, die aus dem frischen RSS-Fenster (fetch_feed nimmt nur
+    die letzten ~20 Items pro Feed) rausgescrollt sind, aber noch sichtbar bleiben
+    sollen.
+
+    Fund 26.06.: ein gepinnter, NUR EINEN TAG alter Sachsen-Artikel (Heise) ist
+    komplett aus news.json verschwunden - nicht weil MAX_AGE_DAYS ihn purgte
+    (1 Tag << 5 Tage), sondern weil alle_news JEDEN Lauf komplett frisch aus
+    fetch_feed() aufgebaut wird (keine Verbindung zu archive.json). Heises
+    generischer Newsticker (alle Themen, nicht nur KI) hat ihn binnen Stunden aus
+    den letzten 20 RSS-Items rausgedrueckt. Ab da: kein Pin, kein Score, kein
+    Boost kann mehr greifen, weil der Artikel nie wieder in alle_news landet.
+
+    Zwei Gruppen werden aus archive.json zurueckgeholt, solange sie innerhalb von
+    MAX_AGE_DAYS liegen:
+    - featured_links (manuell gepinnt)
+    - regional_score(title) > 0 (Sachsen/D-A-CH-Prioritaet) - Daniel: gerade WEIL
+      das selten ist (oft nur 1 Quelle), darf es nicht nach ein paar Stunden im
+      generischen Feed-Rauschen untergehen, sondern soll die vollen ~5 Tage
+      sichtbar bleiben (mindestens 2, ist hier durch MAX_AGE_DAYS automatisch
+      erfuellt).
+    """
+    present = {n.get("link") for n in alle_news if n.get("link")}
+    by_link, seen = [], set()
+    for n in existing_archive or []:
+        link = n.get("link")
+        if not link or link in seen:
+            continue
+        seen.add(link)
+        by_link.append(n)
+
+    featured_set = set(featured_links or [])
+    recalled = []
+    for entry in by_link:
+        link = entry.get("link")
+        if link in present:
+            continue
+        age = _days_since(entry.get("first_seen") or entry.get("date"))
+        if age > MAX_AGE_DAYS:
+            continue
+        if link in featured_set or regional_score(entry.get("title", "")) > 0:
+            recalled.append(entry)
+    return recalled
+
+
 def decay_score(base_score, first_seen):
     """
     Deterministischer Verfall: score = max(0, base_score - 5 * Tage_seit_Erfassung).
@@ -1943,6 +1988,35 @@ def main():
     if not alle_news:
         logger.info("Keine KI-News gefunden.")
         return
+
+    # Bug 26.06.: gepinnte/regionale Artikel aus archive.json zurueckholen, falls sie
+    # aus dem frischen RSS-Fenster rausgescrollt sind (siehe Docstring der Funktion).
+    # Muss VOR summarize_news() passieren, damit recallte Items ganz normal mit-
+    # zusammengefasst, mit-geclustert und mit-bewertet werden - kein Sonderpfad danach.
+    _early_cfg_base = (Path.home() / "Documents" / "Projekte" / "ki-news")
+    _early_cfg_base = _early_cfg_base if _early_cfg_base.exists() else Path(".")
+    _early_featured_links = load_dashboard_config(_early_cfg_base).get("featured_links", [])
+    _early_archive = []
+    try:
+        _early_arch_path = _early_cfg_base / "archive.json"
+        if _early_arch_path.exists():
+            _early_archive = json.loads(_early_arch_path.read_text(encoding="utf-8"))
+    except Exception:
+        _early_archive = []
+    recalled_items = _recall_relevant_from_archive(alle_news, _early_archive, _early_featured_links)
+    if recalled_items:
+        logger.info(
+            "%d Artikel aus archive.json zurueckgeholt (Pin/regional, aus RSS-Fenster gescrollt): %s",
+            len(recalled_items), [r.get("title", "")[:50] for r in recalled_items],
+        )
+        alle_news.extend(recalled_items)
+        seen_links_recall = set()
+        _dedup_after_recall = []
+        for n in alle_news:
+            if n.get("link") and n["link"] not in seen_links_recall:
+                seen_links_recall.add(n["link"])
+                _dedup_after_recall.append(n)
+        alle_news = _dedup_after_recall
 
     logger.info("%d KI-News gefunden (gesamt, ohne Roundups)", len(alle_news))
 
