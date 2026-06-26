@@ -2222,6 +2222,15 @@ def main():
         if _days_since(n.get("first_seen")) <= MAX_AGE_DAYS
     ]
 
+    # Bug-Fix (26.06.26): news_list hatte bis hier KEINE definierte Reihenfolge –
+    # sie folgte 1:1 alle_news, also der Reihenfolge, in der fetch_feed() die
+    # Quellen abgearbeitet hat. Auf der Archiv-Seite (Archiv.html) wird diese
+    # Reihenfolge 1:1 als Anzeige-Reihenfolge übernommen (kein Sort im Frontend),
+    # dadurch standen dort scheinbar zufällige/alte Artikel "ganz oben" – es war
+    # schlicht die Quellen-Verarbeitungsreihenfolge, nie Score oder Datum.
+    # Fix: explizit nach first_seen sortieren, neueste zuerst.
+    news_list.sort(key=lambda n: n.get("first_seen", ""), reverse=True)
+
     # Posts (Teasers) den Top-3-News zuordnen (kommt aus post_cache via parsed)
     # Jeder Post trägt den Link (+ story_id) SEINER Story, damit das Frontend den Teaser
     # eindeutig der richtigen Karte zuordnen kann (statt per Quelle/Position zu raten).
