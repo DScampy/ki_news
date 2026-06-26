@@ -564,11 +564,32 @@ def main() -> None:
 
     articles = raw if isinstance(raw, list) else raw.get("news", raw.get("articles", []))
 
-    articles_sorted = sorted(
+    articles_by_score = sorted(
         articles,
         key=lambda a: float(a.get("score", a.get("relevance", 0))),
         reverse=True,
-    )[:TOP_N]
+    )
+
+    # Bug-Fix (26.06.26): TOP_N waehlte bisher die N hoechst-bewerteten ARTIKEL,
+    # nicht STORIES. Clustering (ki_news.py) vergibt story_id korrekt an Duplikate
+    # (z.B. 2 Artikel zur selben Onsemi/Synaptics-Meldung), aber hier wurden beide
+    # als getrennte Top-N-Plaetze gezaehlt - dadurch konnte 1 Story 2+ Plaetze
+    # belegen und schwaechere, aber inhaltlich eigenstaendige Stories (z.B. ein
+    # gepinnter Artikel) knapp aus dem Fenster fallen, obwohl das Clustering schon
+    # wusste, dass es Duplikate sind. Fix: pro story_id nur den ersten (= hoechst
+    # bewerteten) Artikel behalten, erst DANACH auf TOP_N kappen. Artikel ohne
+    # story_id (= "" oder fehlend) gelten als eigene Story (kein Dedup-Risiko).
+    seen_story_ids = set()
+    articles_deduped = []
+    for a in articles_by_score:
+        sid = a.get("story_id") or ""
+        if sid and sid in seen_story_ids:
+            continue
+        if sid:
+            seen_story_ids.add(sid)
+        articles_deduped.append(a)
+
+    articles_sorted = articles_deduped[:TOP_N]
 
     if not articles_sorted:
         print("[WARN] Keine Artikel in news.json gefunden — nichts zu tun.")
