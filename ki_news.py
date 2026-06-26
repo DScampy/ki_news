@@ -310,6 +310,12 @@ FEEDS = [
     # Deutsch
     ("The Decoder", "https://the-decoder.de/feed/"),
     ("Heise",       "https://www.heise.de/newsticker/heise.rdf"),
+    # Regional Sachsen, via Google News RSS (kein eigener KI-Feed vorhanden -
+    # +KI im Query filtert grob vor, regional_score() filtert danach nochmal).
+    # Quelle/Idee: Daniel, 26.06.26 (Zukunftsblog = Sächs. Staatsministerium f.
+    # Wirtschaft; live getestet, beide liefern echte KI-relevante Treffer).
+    ("Zukunftsblog Sachsen",  "https://news.google.com/rss/search?q=site:smwa.sachsen.de+KI&hl=de&gl=DE&ceid=DE:de"),
+    ("Sächsische Zeitung KI", "https://news.google.com/rss/search?q=site:saechsische.de+KI&hl=de&gl=DE&ceid=DE:de"),
     ("Golem",       "https://rss.golem.de/rss.php?feed=RSS2.0"),
     ("Caschy Blog", "https://stadt-bremerhaven.de/feed/"),
     # Englisch – AI-spezifische Feeds bevorzugt
@@ -2086,9 +2092,27 @@ def main():
         for i, n in enumerate(alle_news)
     }
 
+    # Bug-Fix (26.06.26): bereits per Telegram verschickte Links VOR der
+    # Top-N-Auswahl ausschliessen statt erst danach (siehe Telegram-Delta
+    # unten). Vorher: dominante Mega-Stories (Score haelt sich stundenlang)
+    # belegten alle MAX_LLM_NEWS=3 Plaetze immer wieder neu, der Dedup-Check
+    # kam erst NACH der Auswahl -> alle 3 Plaetze "verbraucht", neue/gepinnte
+    # Artikel kamen nie bis zur LLM-Analyse/Telegram durch, obwohl sie in
+    # alle_news laengst vorhanden waren. MAX_LLM_NEWS bleibt bewusst auf 3
+    # (siehe Kommentar oben - mehr macht den LLM-Output generischer); der Fix
+    # gibt den 3 Plaetzen nur frische Kandidaten statt wiederholt dieselben.
+    _tg_sent_links_early = set()
+    try:
+        _tg_sent_links_early = set(
+            json.loads(Path("telegram_state.json").read_text(encoding="utf-8")).get("sent_links", {}).keys()
+        )
+    except Exception:
+        pass
+    _alle_news_fuer_topnews = [n for n in alle_news if n.get("link") not in _tg_sent_links_early]
+
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
     top_news, score_map, link_to_cluster_info = pick_top_news(
-        alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links,
+        _alle_news_fuer_topnews, n=MAX_LLM_NEWS, history=history, featured_links=featured_links,
         existing_archive=_existing_archive,
     )
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
@@ -2297,8 +2321,23 @@ def main():
 
         seen_links = {n["link"] for n in existing if n.get("link")}
         new_entries = [n for n in news_list if n.get("link") and n["link"] not in seen_links]
-        # Neuestes vorne, max 2000 Eintraege
+        # Neuestes vorne
         merged = new_entries + existing
+        # Bug-Fix (26.06.26): Cap war bisher eine feste Anzahl (2000 Eintraege),
+        # KEIN Zeit-Cutoff. Bei steigender Publishing-Rate waechst die Datei in
+        # MB/Tag, und "10 Tage" war nie wirklich das Kriterium. Daniels Wunsch:
+        # explizit 10 Tage. Fix: nach first_seen filtern statt nach Anzahl
+        # abzuschneiden. ARCHIVE_MAX_AGE_DAYS bewusst getrennt von MAX_AGE_DAYS
+        # (gilt fuer news.json/Startseite, 5 Tage) - das Archiv soll laenger
+        # vorhalten als die Startseite, aber nicht unbegrenzt wachsen.
+        ARCHIVE_MAX_AGE_DAYS = 10
+        merged = [
+            n for n in merged
+            if _days_since(n.get("first_seen")) <= ARCHIVE_MAX_AGE_DAYS
+        ]
+        # Sicherheits-Cap bleibt zusaetzlich bestehen (falls an einem Tag
+        # ungewoehnlich viele Artikel durchlaufen) - 2000 ist jetzt ein reines
+        # Notfall-Limit, kein normales Verhalten mehr.
         merged = merged[:2000]
         # NEU: Score-Verfall auf das GANZE Archiv neu anwenden, damit auch alte
         # Einträge in der Statistik-Seite über die Zeit absinken (idempotent aus
