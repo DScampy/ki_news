@@ -16,6 +16,10 @@ on:
           - 'false'
           - 'true'
 
+concurrency:
+  group: ki-news-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
