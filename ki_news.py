@@ -603,7 +603,130 @@ def score_cluster(cluster):
     label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
     return total, label
 
-def pick_top_news(alle_news, n=3, history=None, featured_links=None):
+# -------------------------
+# NEU: Hybrid-Scoring (24.06. Backtest-Session)
+# LLM bewertet Substanz/Einordnungs-Spannung/Abdeckungsluecke (0-65), ein
+# deterministisches Keyword-Gate bewertet Regional-Bezug (0-35) - NICHT die
+# LLM, weil sich im Backtest gezeigt hat dass die LLM sich Regional-Punkte
+# "ausdenkt" (z.B. Sakana/Japan-Story bekam 18 Phantompunkte D-A-CH-Bezug,
+# obwohl der Prompt das explizit verbot). Regional-Bezug ist reines Pattern-
+# Matching, das macht eine Liste zuverlaessiger als ein LLM-Urteil.
+#
+# score_cluster_llm() wird der FUEHRENDE Score (treibt pick_top_news-Sortierung
+# und damit Dashboard/Telegram/Cron). score_cluster() (Keyword-System oben)
+# bleibt als Fallback: schlaegt der LLM-Call fehl (Timeout/429/Parse-Fehler),
+# wird automatisch auf den alten Score zurueckgefallen - die Pipeline blockiert
+# nie wegen eines LLM-Ausfalls.
+#
+# Staedte-/Begriffsliste ist ein Erstwurf, kein Dorf-Vollkatalog. "sachsen"
+# selbst ist in der Liste, faengt also auch Orte ohne eigenen Eintrag ab,
+# SOFERN der Artikeltext das Bundesland nennt (in deutschen Regionalmeldungen
+# fast immer der Fall). Liste bei Bedarf erweitern.
+# -------------------------
+SACHSEN_KW = [
+    "sachsen", "sächsisch", "saechsisch", "dresden", "leipzig", "chemnitz",
+    "zwickau", "görlitz", "goerlitz", "freiberg", "bautzen", "plauen",
+    "pirna", "meißen", "meissen", "torgau", "annaberg",
+]
+DACH_KW = [
+    "deutschland", "österreich", "oesterreich", "schweiz", "berlin", "münchen",
+    "muenchen", "hamburg", "frankfurt", "köln", "koeln", "stuttgart",
+    "düsseldorf", "duesseldorf", "wien", "zürich", "zuerich", "bundestag",
+    "bundesregierung", "bsi", "bafin",
+]
+EU_KW = [
+    "eu-kommission", "european commission", "europäische union", "european union",
+    "brüssel", "brussels", "ai act", "dsgvo", "gdpr", "eu-parlament",
+]
+
+def regional_score(text):
+    """Deterministisches Regional-Gate, KEIN LLM-Urteil. Sachsen > D-A-CH > EU.
+    Kein Treffer -> 0, keine Ausnahme (Plausibilitaets-Spekulation zaehlt nicht)."""
+    t = (text or "").lower()
+    if any(k in t for k in SACHSEN_KW):
+        return 33
+    if any(k in t for k in DACH_KW):
+        return 22
+    if any(k in t for k in EU_KW):
+        return 4
+    return 0
+
+LLM_SCORE_PROMPT = """Du bewertest KI-News fuer ScampyKI, einen deutschsprachigen, \
+skeptischen KI-Newskanal (kein Hype, echte Einordnung statt Pressemitteilung).
+Bewerte den folgenden Artikel nach drei Kriterien (Regional-Bezug wird NICHT von dir \
+bewertet, das macht ein separater deterministischer Check):
+
+1. Substanz statt Ankuendigung (0-30): Aendert sich real etwas (neue Faehigkeit, \
+echtes Limit, messbarer Effekt)? Reine PR ohne Inhalt = 0.
+2. Einordnungs-Spannung (0-20): Gibt es einen Widerspruch oder eine eigene These \
+zu bilden (Hype vs. Realitaet, Gewinner/Verlierer)?
+3. Abdeckungs-Luecke (0-15): Handelt es sich um ein Labor/Thema, das in den \
+"bereits abgedeckten Themen" unten NICHT vorkommt? Wenn das Thema/Labor dort \
+schon mehrfach vorkommt, 0 Punkte.
+
+Bereits abgedeckte Themen der letzten 3 Tage (Titel):
+{recent_titles}
+
+Artikel:
+Titel: {title}
+Zusammenfassung: {summary}
+
+Antworte NUR mit JSON, keine Erklaerung davor/danach. score ist die Summe der drei \
+Kriterien, also 0-65:
+{{"score": <0-65>, "begruendung": "<1 Satz>"}}"""
+
+def score_cluster_llm(cluster, recent_titles):
+    """
+    Hybrid-Score: LLM bewertet Substanz/Spannung/Abdeckungsluecke (0-65),
+    regional_score() addiert den deterministischen Regional-Bonus (0-35).
+    Gibt (None, None) zurueck wenn der LLM-Call fehlschlaegt -> Aufrufer
+    faellt dann auf score_cluster() (Keyword-System) zurueck.
+    """
+    if not OPENROUTER_KEY:
+        return None, None
+    rep = cluster[0]
+    title = rep.get("title", "")
+    summary = " ".join(i.get("title", "") for i in cluster)[:600]
+    prompt = LLM_SCORE_PROMPT.format(
+        recent_titles="\n".join(f"- {t}" for t in recent_titles[:15] if t) or "(keine)",
+        title=title,
+        summary=summary,
+    )
+    messages = [{"role": "user", "content": prompt}]
+    for modell in MODELLE_POSTS:
+        try:
+            antwort = _call_llm_api(modell, messages, max_tokens=150, timeout=30)
+            raw = (antwort or "").strip()
+            if raw.startswith("```"):
+                raw = raw.strip("`").replace("json", "", 1).strip()
+            parsed = json.loads(raw)
+            llm_part = int(parsed.get("score", 0))
+            reg_part = regional_score(title + " " + summary)
+            total = max(0, min(100, llm_part + reg_part))
+            label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
+            return total, label
+        except Exception as e:
+            logger.warning("score_cluster_llm: %s fehlgeschlagen (%s) - naechstes Modell", modell, e)
+            continue
+    return None, None
+
+def _recent_titles_from_archive(existing_archive, days=3, limit=15):
+    """Titel der letzten N Tage aus archive.json - Kontext fuer die
+    Abdeckungs-Luecke-Bewertung. Liest nur, schreibt nichts zurueck."""
+    if not existing_archive:
+        return []
+    heute = datetime.now(BERLIN).date()
+    titles = []
+    for item in existing_archive:
+        try:
+            d = datetime.strptime(str(item.get("date", ""))[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            continue
+        if 0 <= (heute - d).days <= days:
+            titles.append(item.get("title", ""))
+    return titles[-limit:]
+
+def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_archive=None):
     """
     Wählt die n wichtigsten Artikel nach Clustering + Scoring.
     Statt blindem [:3] aus der Feed-Reihenfolge.
@@ -616,11 +739,34 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
     history = history or {}
     featured_links = set(featured_links or [])
     clusters = cluster_news(alle_news)
+    recent_titles = _recent_titles_from_archive(existing_archive)
 
-    # Jeden Cluster bewerten
+    # Legacy-Score (Keyword-System) zuerst fuer ALLE Cluster - dient als
+    # (a) Auswahlkriterium, welche Cluster ueberhaupt einen teuren LLM-Call
+    #     bekommen (nur die aussichtsreichsten Kandidaten), und
+    # (b) Fallback-Wert, falls der LLM-Call fuer einen Kandidaten fehlschlaegt.
+    legacy_results = [score_cluster(cluster) for cluster in clusters]
+    LLM_SCORE_CANDIDATES = 10
+    candidate_order = sorted(
+        range(len(clusters)), key=lambda i: legacy_results[i][0], reverse=True
+    )[:LLM_SCORE_CANDIDATES]
+    candidate_set = set(candidate_order)
+
+    # Jeden Cluster bewerten: fuehrender Score = Hybrid-LLM-Score (Substanz/
+    # Spannung/Abdeckungsluecke per LLM + Regional-Bonus per Keyword-Gate).
+    # Schlaegt der LLM-Call fehl ODER ist der Cluster kein Top-Kandidat,
+    # wird auf score_cluster() (Keyword-System) zurueckgefallen.
     scored = []
-    for cluster in clusters:
-        score, label = score_cluster(cluster)
+    for idx, cluster in enumerate(clusters):
+        legacy_score, legacy_label = legacy_results[idx]
+        llm_score, llm_label = (
+            score_cluster_llm(cluster, recent_titles) if idx in candidate_set else (None, None)
+        )
+        if llm_score is not None:
+            score, label, score_source = llm_score, llm_label, "llm"
+        else:
+            score, label, score_source = legacy_score, legacy_label, "legacy_fallback"
+
         # Ältesten first_seen im Cluster als Story-Alter (Member ohne History erben ihn).
         cluster_histories = [history[item["link"]] for item in cluster if item.get("link") in history]
         oldest_first_seen = min((h["first_seen"] for h in cluster_histories), default=_today_iso())
@@ -649,6 +795,9 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
             "score": score,
             "eff_score": eff_score,
             "label": label,
+            "score_legacy": legacy_score,
+            "label_legacy": legacy_label,
+            "score_source": score_source,
             "sources_count": len({i["source"] for i in cluster}),
             "members": cluster,   # NEU: alle Artikel im Cluster für Story-Mapping
         })
@@ -659,13 +808,17 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
     top = scored[:n]
     for item in top:
         logger.info(
-            "[Scoring] %s | %s | Score: %d (akt. %d) | Quellen: %d",
-            item["label"], item["rep"]["title"][:60], item["score"], item["eff_score"], item["sources_count"]
+            "[Scoring] %s | %s | Score: %d (akt. %d, Quelle: %s, Legacy: %d) | Quellen: %d",
+            item["label"], item["rep"]["title"][:60], item["score"], item["eff_score"],
+            item["score_source"], item["score_legacy"], item["sources_count"]
         )
 
     # NEU: link → Story-Metadaten (für news.json-Anreicherung)
     # Jeder Artikel erbt story_id, story_cluster_score und story_article_count seines Clusters.
     # Damit kann die Podcast-Logik Artikel nach Story-Gewicht gruppieren statt nach Einzel-Score.
+    # score_source ("llm"/"legacy_fallback") + story_score_legacy bleiben als Vergleichswerte
+    # sichtbar in news.json/archive.json, damit man den Hybrid-Score gegen das alte
+    # Keyword-System nachvollziehen kann.
     link_to_cluster_info = {}
     for cluster_idx, item in enumerate(scored):
         story_id = f"s{cluster_idx:03d}"
@@ -678,10 +831,15 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None):
                     "story_cluster_score": item["score"],
                     "story_label":         item["label"],
                     "story_article_count": article_count,
+                    "story_score_legacy":  item["score_legacy"],
+                    "story_score_source":  item["score_source"],
                 }
 
     return [item["rep"] for item in top], {
-        item["rep"]["link"]: {"score": item["score"], "label": item["label"]}
+        item["rep"]["link"]: {
+            "score": item["score"], "label": item["label"],
+            "score_legacy": item["score_legacy"], "score_source": item["score_source"],
+        }
         for item in scored
     }, link_to_cluster_info
 
@@ -1831,7 +1989,8 @@ def main():
 
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
     top_news, score_map, link_to_cluster_info = pick_top_news(
-        alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links
+        alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links,
+        existing_archive=_existing_archive,
     )
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
 
