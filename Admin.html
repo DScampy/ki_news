@@ -725,7 +725,11 @@ Aber gleichzeitig sitzt Musk beim Staatsbankett in Peking…
       <div>
         <div class="section-header">
           <div><div class="section-title">Dashboard konfigurieren</div><div class="section-sub" id="dash-status">Token verbinden und "Laden" klicken.</div></div>
-          <button class="btn btn-ghost" onclick="loadDashConfig()">↓ Laden</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="instaCardId" placeholder="Card-ID (leer = neueste)" style="width:170px;font-size:11px;"/>
+            <button class="btn btn-ghost" id="instaPostBtn" onclick="dispatchInstaPost()" title="Triggert den bestehenden Workflow 'Insta-Post (manuell)' per GitHub-API — wie Run workflow im Actions-Tab, nur direkt von hier.">📸 Auf Instagram posten</button>
+            <button class="btn btn-ghost" onclick="loadDashConfig()">↓ Laden</button>
+          </div>
         </div>
         <div id="dash-article-list">
           <div class="empty"><h3>Noch nicht geladen</h3></div>
@@ -844,6 +848,32 @@ async function ghPut(path,content,sha,msg){
   const result=await res.json();
   if(!res.ok)throw new Error(res.status+': '+(result.message||res.statusText));
   return result;
+}
+// Triggert einen bestehenden GitHub-Actions-Workflow per workflow_dispatch —
+// macht exakt das, was man sonst im Actions-Tab via "Run workflow" klickt.
+// Braucht im Token die Berechtigung "Actions: Read and write" (PAT-Scope),
+// sonst 403/404 hier — dann reicht das contents-only-Token aus dem
+// News/Dash-Editor NICHT aus, siehe Kill-Switch in der Toast-Meldung.
+async function ghDispatchWorkflow(workflowFile,inputs){
+  const res=await fetch('https://api.github.com/repos/'+getRepo()+'/actions/workflows/'+workflowFile+'/dispatches',{
+    method:'POST',headers:{...ghHeaders(),'Content-Type':'application/json'},
+    body:JSON.stringify({ref:getBranch(),inputs:inputs||{}})
+  });
+  if(res.status===204)return true;
+  let msg=res.statusText;
+  try{const j=await res.json();msg=j.message||msg;}catch(e){}
+  throw new Error(res.status+': '+msg+(res.status===403||res.status===404?' (Token braucht ggf. die Berechtigung "Actions: Read and write")':''));
+}
+async function dispatchInstaPost(){
+  if(!document.getElementById('ghToken').value.trim()){toast('Bitte zuerst GitHub-Token eingeben','error');return;}
+  const cardId=document.getElementById('instaCardId').value.trim();
+  const btn=document.getElementById('instaPostBtn');
+  btn.disabled=true;btn.textContent='Wird ausgelöst…';
+  try{
+    await ghDispatchWorkflow('insta_post.yml',{card_id:cardId,caption:''});
+    toast('✓ Insta-Post-Workflow ausgelöst — Status im Actions-Tab auf GitHub.','success');
+  }catch(e){toast('Fehler: '+e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='📸 Auf Instagram posten';}
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1733,9 +1763,10 @@ async function loadDashConfig(){
       dashConfig=JSON.parse(decodeBase64UTF8(cData.content));
       if(!dashConfig.featured_links)dashConfig.featured_links=[];
       if(!dashConfig.blocked_links)dashConfig.blocked_links=[];
-    }catch(e){dashConfig={featured_links:[],blocked_links:[]};dashConfigSha='';}
+      if(!dashConfig.force_cards)dashConfig.force_cards=[];
+    }catch(e){dashConfig={featured_links:[],blocked_links:[],force_cards:[]};dashConfigSha='';}
     renderDashboard();
-    setDashStatus(dashArticles.length+' Artikel · '+dashConfig.featured_links.length+' angepinnt · '+dashConfig.blocked_links.length+' gesperrt');
+    setDashStatus(dashArticles.length+' Artikel · '+dashConfig.featured_links.length+' angepinnt · '+dashConfig.force_cards.length+' Karte garantiert · '+dashConfig.blocked_links.length+' gesperrt');
     toast('Dashboard geladen','success');
   }catch(e){setDashStatus('Fehler: '+e.message);toast('Fehler: '+e.message,'error');}
 }
@@ -1755,6 +1786,19 @@ function pinArticle(link){if(dashConfig.featured_links.includes(link))return;if(
 function unpinArticle(link){dashConfig.featured_links=dashConfig.featured_links.filter(l=>l!==link);markDashModified();}
 function blockArticle(link){if(dashConfig.blocked_links.includes(link))return;dashConfig.featured_links=dashConfig.featured_links.filter(l=>l!==link);dashConfig.blocked_links.push(link);markDashModified();}
 function unblockArticle(link){dashConfig.blocked_links=dashConfig.blocked_links.filter(l=>l!==link);markDashModified();}
+
+// Force-Card (27.06.26): garantierte Karte (zusaetzlicher Slot, unabhaengig vom
+// Score-Wettlauf) + optionale Ton-/Angle-Nachricht fuer den Karten-LLM-Prompt.
+// Einmalig: sobald gerendert, faengt das bestehende card_sent-Link-Dedup in
+// generate_news_cards.py jede weitere Karte fuer denselben Link automatisch ab -
+// kein manuelles Entfernen hier noetig, aber zur Uebersicht trotzdem moeglich.
+function forceCardArticle(link){
+  if(dashConfig.force_cards.some(fc=>fc.link===link))return;
+  const note=window.prompt('Hinweis fuer den Kartentext (Ton/Einordnung, optional - leer = LLM entscheidet frei):','')||'';
+  dashConfig.force_cards.push({link:link,note:note.trim()});
+  markDashModified();
+}
+function unforceCardArticle(link){dashConfig.force_cards=dashConfig.force_cards.filter(fc=>fc.link!==link);markDashModified();}
 function markDashModified(){dashConfigModified=true;document.getElementById('dashSaveBtn').disabled=false;renderDashboard();}
 function setDashStatus(msg){const el=document.getElementById('dash-status');if(el)el.textContent=msg;}
 
@@ -1782,16 +1826,19 @@ function renderDashArticleList(){
   dashArticles.forEach(art=>{
     const isPinned=dashConfig.featured_links.includes(art.link);
     const isBlocked=dashConfig.blocked_links.includes(art.link);
+    const isForced=dashConfig.force_cards.some(fc=>fc.link===art.link);
     const sc=art.score||0;
     const scoreColor=sc>=40?'var(--red)':sc>=25?'#fb923c':'var(--muted)';
     const c=document.createElement('div');
     c.className='dash-article'+(isPinned?' pinned':'')+(isBlocked?' blocked':'');
     let slotBadge='';
     if(isPinned){const pos=dashConfig.featured_links.indexOf(art.link)+1;slotBadge='<span style="font-size:9px;font-weight:700;background:rgba(34,197,94,0.12);color:#86efac;border:1px solid rgba(34,197,94,0.3);border-radius:4px;padding:1px 7px">📌 Slot '+pos+'</span>';}
+    if(isForced){slotBadge+=' <span style="font-size:9px;font-weight:700;background:rgba(250,204,21,0.12);color:#fde047;border:1px solid rgba(250,204,21,0.3);border-radius:4px;padding:1px 7px">🎬 Garantiert</span>';}
     if(isBlocked){slotBadge='<span style="font-size:9px;font-weight:700;background:rgba(248,113,113,0.12);color:#fca5a5;border:1px solid rgba(248,113,113,0.3);border-radius:4px;padding:1px 7px">🚫 Gesperrt</span>';}
     const pinBtn=isPinned?'<button class="btn btn-ghost btn-sm" style="border-color:rgba(34,197,94,0.3);color:#86efac;" data-link="'+escHtml(art.link)+'" onclick="unpinArticle(this.dataset.link)">Loslösen</button>':'<button class="btn btn-ghost btn-sm" data-link="'+escHtml(art.link)+'" onclick="pinArticle(this.dataset.link)">📌</button>';
+    const forceBtn=isForced?'<button class="btn btn-ghost btn-sm" style="border-color:rgba(250,204,21,0.3);color:#fde047;" data-link="'+escHtml(art.link)+'" onclick="unforceCardArticle(this.dataset.link)">Garantie ✕</button>':'<button class="btn btn-ghost btn-sm" data-link="'+escHtml(art.link)+'" onclick="forceCardArticle(this.dataset.link)" title="Garantierte Karte, unabhaengig vom Score">🎬</button>';
     const blockBtn=isBlocked?'<button class="btn btn-ghost btn-sm" style="border-color:rgba(34,197,94,0.3);color:#86efac;" data-link="'+escHtml(art.link)+'" onclick="unblockArticle(this.dataset.link)">✓ Freigeben</button>':'<button class="btn btn-ghost btn-sm" style="border-color:rgba(248,113,113,0.3);color:#fca5a5;" data-link="'+escHtml(art.link)+'" onclick="blockArticle(this.dataset.link)">🚫</button>';
-    c.innerHTML='<div class="dash-score" style="color:'+scoreColor+'">'+sc+'</div><div class="dash-content"><div class="dash-title">'+escHtml(art.title||'—')+'</div><div class="dash-meta"><span class="source-badge '+srcClass(art.source)+'" style="font-size:9px;padding:1px 7px">'+escHtml(art.source||'')+'</span>'+slotBadge+'</div></div><div class="dash-actions">'+(!isBlocked?pinBtn:'')+blockBtn+'</div>';
+    c.innerHTML='<div class="dash-score" style="color:'+scoreColor+'">'+sc+'</div><div class="dash-content"><div class="dash-title">'+escHtml(art.title||'—')+'</div><div class="dash-meta"><span class="source-badge '+srcClass(art.source)+'" style="font-size:9px;padding:1px 7px">'+escHtml(art.source||'')+'</span>'+slotBadge+'</div></div><div class="dash-actions">'+(!isBlocked?pinBtn+forceBtn:'')+blockBtn+'</div>';
     container.appendChild(c);
   });
 }

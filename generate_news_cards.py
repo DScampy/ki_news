@@ -101,6 +101,7 @@ TEMPLATE_PATH  = Path(__file__).with_name("breaking_news_card_template.html")
 RECORD_JS      = Path(__file__).with_name("record.js")
 CARDS_JSON     = ROOT_DIR / "cards.json"
 CARD_STATE_JSON = ROOT_DIR / "card_state.json"  # Dedup-Gedaechtnis, analog telegram_state.json
+DASHBOARD_CONFIG_JSON = ROOT_DIR / "dashboard_config.json"  # featured_links/force_cards (Admin-Pin)
 TMP_DIR        = Path("/tmp/cards")
 
 # TTS-Akronyme: werden per SSML <say-as interpret-as="characters"> buchstabiert,
@@ -143,12 +144,22 @@ def build_tts_ssml(text: str) -> str:
     return f"<speak>{text}</speak>"
 
 SYSTEM_PROMPT = (
-    "Du bist ScampyKI — erklärst einem Freund am Tisch, was diese News wirklich bedeutet. "
-    "Schreib 2–3 prägnante deutsche Sätze (ca. 15–20 Sekunden Lesezeit). "
+    "Du bist ScampyKI — erklärst einem erwachsenen Gegenüber sachlich und direkt, was diese News "
+    "wirklich bedeutet. Schreib 2–3 prägnante deutsche Sätze (ca. 15–20 Sekunden Lesezeit). "
     "Umgangssprachlich, kurze direkte Sätze, kein Fachjargon-Geschwurbel — wenn ein abstrakter "
     "Begriff nötig ist, mit einem konkreten Beispiel oder Vergleich greifbar machen. "
     "Skeptisch gegenüber Hype, aber nicht akademisch-distanziert: lieber 'Heißt im Klartext...' "
     "als 'Dies wirft die Frage auf, ob...'. "
+    # Fix 27.06.26: SYSTEM_PROMPT erlaubte zu viel Spielraum fuer Kindersprache/
+    # Personifizierung von Institutionen (Beobachtet: "Onkel Sam hat Schiss" fuer
+    # die US-Regierung - klingt nach Kinderbuch statt seriöser Einordnung).
+    # Direkt/umgangssprachlich heisst nicht "vereinfachend wie fuer Kinder" -
+    # explizit gegensteuern, ohne den direkten Ton selbst zu verlieren.
+    "WICHTIG: Direkt und umgangssprachlich heisst NICHT kindlich-vereinfacht. Keine Spitznamen "
+    "oder Personifizierungen für Länder/Behörden/Institutionen (NICHT 'Onkel Sam hat Schiss' oder "
+    "'Mutti Staat greift durch', SONDERN 'Die US-Regierung traut OpenAI nicht' oder 'Der Staat "
+    "schaltet sich ein'). Bleib bei Fakten und ihrer Bedeutung, keine Verniedlichung, keine "
+    "Kinderbuch-Metaphern, kein übertriebenes Drama. "
     "Beginne NICHT mit dem Firmen-/Produktnamen, wenn die Headline schon damit endet — sonst "
     "klingt es beim Vorlesen wie eine Wiederholung (z.B. nicht 'Mistral Small 4 ist...' direkt nach "
     "einer Headline, die mit 'Mistral Small 4' endet; stattdessen 'Das Modell...', 'Im Kern...'). "
@@ -358,13 +369,19 @@ def generate_tts(ssml: str, slug: str, voice_name: str, voice_gender: str) -> tu
 
 # ─── Groq ─────────────────────────────────────────────────────────────────────
 
-def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str) -> str | None:
-    """Generischer LLM-Aufruf. Gibt Text zurück oder None bei Fehler."""
+def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, note: str = "") -> str | None:
+    """Generischer LLM-Aufruf. Gibt Text zurück oder None bei Fehler.
+    note (27.06.26): optionale Ton-/Angle-Vorgabe vom Admin-Panel (force_cards),
+    z.B. "ernst bleiben, keine Kindersprache" - steuert nur den Stil, ersetzt
+    den Kartentext nicht (das LLM schreibt ihn weiterhin selbst)."""
+    user_content = f"News: {headline}\n\nZusammenfassung: {summary}"
+    if note:
+        user_content += f"\n\nHinweis vom Nutzer (bitte bei Ton/Einordnung beachten): {note}"
     payload = json.dumps({
         "model": model,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": f"News: {headline}\n\nZusammenfassung: {summary}"}
+            {"role": "user",   "content": user_content}
         ],
         "max_tokens": 120,
         "temperature": 0.7,
@@ -416,19 +433,20 @@ def _looks_invalid(text: str) -> str | None:
     return None
 
 
-def groq_einordnung(headline: str, summary: str) -> tuple[str, str]:
+def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, str]:
     """Groq → OpenRouter Fallback für ScampyKI-Einordnung.
     Gibt (text, model_label) zurueck. model_label dokumentiert, welches
     Modell/Provider den Text tatsaechlich geliefert hat — wird mit in
     cards.json geschrieben, damit Groq-vs-OpenRouter-Nutzung sichtbar bleibt,
-    ohne auf (nicht committete) CI-Logs angewiesen zu sein."""
+    ohne auf (nicht committete) CI-Logs angewiesen zu sein.
+    note: optionale Admin-Vorgabe (force_cards, siehe main()) fuer Ton/Angle."""
     # 1. Groq versuchen
     if GROQ_API_KEY:
         for model in GROQ_MODELS:
             result = _llm_call(
                 GROQ_URL,
                 {"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_API_KEY}"},
-                model, headline, summary
+                model, headline, summary, note
             )
             if result:
                 invalid_reason = _looks_invalid(result)
@@ -449,7 +467,7 @@ def groq_einordnung(headline: str, summary: str) -> tuple[str, str]:
             "X-Title": "KI News Cards",
         }
         for model in OPENROUTER_MODELS:
-            result = _llm_call(OPENROUTER_URL, headers, model, headline, summary)
+            result = _llm_call(OPENROUTER_URL, headers, model, headline, summary, note)
             if result:
                 invalid_reason = _looks_invalid(result)
                 if invalid_reason:
@@ -589,7 +607,47 @@ def main() -> None:
             seen_story_ids.add(sid)
         articles_deduped.append(a)
 
-    articles_sorted = articles_deduped[:TOP_N]
+    # ── Force-Cards (27.06.26): Admin-Hebel fuer garantierte Karte + Nachricht ──
+    # dashboard_config.json -> force_cards: [{"link": ..., "note": "..."}].
+    # Grund: featured_links (Pin) gibt nur einen Score-BOOST - der konkurriert
+    # weiterhin mit allen anderen Stories um die TOP_N-Plaetze und kann trotzdem
+    # verlieren (siehe Heise-Polizeigesetz-Fall 26.06., 3 Tage Anlauf gebraucht).
+    # force_cards ist bewusst ein hartes Commitment statt eines weichen Signals:
+    # garantierter ZUSAETZLICHER Slot (TOP_N bleibt fuer alle anderen unberuehrt),
+    # einmalig (kein neuer State noetig - das bestehende card_sent-Link-Dedup
+    # unten verhindert von selbst eine zweite Karte fuer denselben Link in einem
+    # spaeteren Lauf). "note" wird unten als Ton-/Angle-Vorgabe an den LLM-Prompt
+    # durchgereicht (siehe groq_einordnung-Aufruf), ersetzt den Kartentext NICHT.
+    force_cards = []
+    try:
+        _dash_cfg = json.loads(DASHBOARD_CONFIG_JSON.read_text(encoding="utf-8"))
+        force_cards = _dash_cfg.get("force_cards", []) or []
+    except Exception:
+        pass
+
+    forced_articles = []
+    forced_links = set()
+    if force_cards:
+        by_link = {(a.get("link") or "").strip(): a for a in articles}
+        for fc in force_cards:
+            f_link = (fc.get("link") or "").strip()
+            f_note = (fc.get("note") or "").strip()
+            if not f_link or f_link in forced_links:
+                continue
+            art = by_link.get(f_link)
+            if not art:
+                print(f"  [WARN] Force-Card-Link nicht in news.json gefunden: {f_link}")
+                continue
+            art = dict(art)            # Kopie - _force_note ist transient, nie zurueckschreiben
+            art["_force_note"] = f_note
+            forced_articles.append(art)
+            forced_links.add(f_link)
+
+    # Normale Top_N-Auswahl bekommt die forcierten Links nicht nochmal (sonst
+    # doppelt gezaehlt) - sie laufen als eigener, zusaetzlicher Block vorneweg.
+    articles_sorted = forced_articles + [
+        a for a in articles_deduped if (a.get("link") or "").strip() not in forced_links
+    ][:TOP_N]
 
     if not articles_sorted:
         print("[WARN] Keine Artikel in news.json gefunden — nichts zu tun.")
@@ -675,10 +733,12 @@ def main() -> None:
         mp4_out  = ASSETS_DIR / f"{slug}.mp4"
         mp4_url  = f"assets/cards/{slug}.mp4"
 
-        print(f"\n[{i}/{len(articles_sorted)}] {headline[:60]}...")
+        force_note = article.get("_force_note", "")
+        tag = " [FORCE-CARD]" if link in forced_links else ""
+        print(f"\n[{i}/{len(articles_sorted)}]{tag} {headline[:60]}...")
 
         # Einordnung via Groq → OpenRouter Fallback (mit Inhalts-Validierung)
-        einordnung, llm_used = groq_einordnung(headline, summary)
+        einordnung, llm_used = groq_einordnung(headline, summary, force_note)
         kontext    = summary[:280] if summary else "–"
 
         # Hard-Cap auf max. N Saetze — verhindert ausufernde TTS-Dauer strukturell
