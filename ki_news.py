@@ -349,6 +349,11 @@ FEEDS = [
     ("The Batch",          "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_the_batch.xml"),
     # Hardware / AI-Hardware (Computex, AI-Laptops, Server)
     ("WCCFtech",           "https://wccftech.com/feed/"),
+    # Kuratiertes Signal, kein eigener RSS-Feed, aber ueber Google News site:-Suche
+    # erreichbar (Fund 01.07.26, Daniel): Digg (Relaunch) aggregiert, was fuehrende
+    # AI/Tech-Koepfe auf X teilen (@ylecun, @levie, @nathanbenaich ua.) - fing die
+    # Fable-5-Jailbreak-Abschaltung frueher als die Presse-Feeds.
+    ("Digg AI",             "https://news.google.com/rss/search?q=site:digg.com+AI&hl=en&gl=US&ceid=US:en"),
 ]
 
 # Nur diese 3 News gehen an den LLM fuer Posts
@@ -1115,6 +1120,11 @@ def fetch_feed(name, url):
         # Fable 5" enthaelt weder "AI"/"KI" noch "Claude"/"Anthropic" im Titel und
         # fiel deshalb komplett raus, obwohl es die Story war, die den ganzen Anlass
         # fuer diese Session ausgeloest hat).
+        # Google-News-Titel bei Digg haengen " - Digg" an (Google-News-Konvention fuer
+        # site:-Suchen) - fuer alle anderen Google-News-Quellen (Reuters/Bloomberg/...)
+        # kein Problem, weil deren site-Name selten am Titelende landet, bei "Digg" schon.
+        if name == "Digg AI" and title.endswith(" - Digg"):
+            title = title[: -len(" - Digg")].strip()
         if title and (name in ALWAYS_KI_RELEVANT_SOURCES or _is_ki_relevant(title)):
             items.append({"title": title, "link": link, "source": name})
     # War [:3] – das warf ~70% der relevanten News pro Feed weg (The Decoder liefert
