@@ -48,10 +48,12 @@ jobs:
           echo "Startzeit: $(date)" >> ki_news.log
           MAX_RETRIES=3
           RETRY_DELAY=10
+          SUCCESS=false
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Versuch $i von $MAX_RETRIES" >> ki_news.log
             if python3 ki_news.py >> ki_news.log 2>&1; then
               echo "Erfolgreich!" >> ki_news.log
+              SUCCESS=true
               break
             else
               echo "Fehler im Versuch $i" >> ki_news.log
@@ -63,6 +65,14 @@ jobs:
           done
           echo "Endzeit: $(date)" >> ki_news.log
           echo "=== KI NEWS ENDE ===" >> ki_news.log
+          # Bug-Fix (01.07.26): vorher lief der Schritt nach 3 gescheiterten Versuchen
+          # trotzdem als "Success" durch -> news.json blieb wochenlang unveraendert,
+          # ohne dass irgendwo ein rotes X aufgetaucht waere. Jetzt: Job schlaegt sichtbar
+          # fehl, wenn ki_news.py in allen Versuchen gescheitert ist.
+          if [ "$SUCCESS" != "true" ]; then
+            echo "::error::ki_news.py ist in allen $MAX_RETRIES Versuchen fehlgeschlagen - siehe ki_news.log Artifact"
+            exit 1
+          fi
           # Log auf die letzten 10 Laeufe trimmen (Trenner: "=== LAUF ").
           # Verwirft auch Alt-Inhalt vor dem ersten Marker.
           python3 - <<'PY'
