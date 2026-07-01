@@ -1055,6 +1055,14 @@ def http_get_with_retry(url, headers=None, timeout=10, retries=3, backoff=2):
             break
     return None
 
+# Quellen, die per Definition NUR KI-Themen posten (Labor-Blogs, kuratierte
+# KI-News-Aggregatoren) - der _is_ki_relevant()-Titelfilter ist hier nicht nur
+# ueberfluessig, sondern schaedlich (siehe Bug-Fix-Kommentar in fetch_feed()).
+ALWAYS_KI_RELEVANT_SOURCES = {
+    "AlignedNews", "Anthropic News", "Anthropic Research", "OpenAI",
+    "Meta AI Blog", "Google AI Blog", "xAI News", "Mistral News",
+}
+
 def fetch_feed(name, url):
     # The Decoder braucht mehr Zeit – Server langsam für GitHub Actions IPs
     timeout = 20 if "the-decoder" in url else 12
@@ -1079,7 +1087,13 @@ def fetch_feed(name, url):
             link_elem = item.find("link")
             if link_elem is not None:
                 link = link_elem.get("href", "").strip()
-        if title and _is_ki_relevant(title):
+        # Bug-Fix (01.07.26): Quellen, die AUSSCHLIESSLICH KI-Themen posten (Labor-
+        # Blogs), wurden trotzdem durch _is_ki_relevant() gefiltert - der Titel allein
+        # reicht dem Wortfilter oft nicht (z.B. Anthropics eigener Post "Redeploying
+        # Fable 5" enthaelt weder "AI"/"KI" noch "Claude"/"Anthropic" im Titel und
+        # fiel deshalb komplett raus, obwohl es die Story war, die den ganzen Anlass
+        # fuer diese Session ausgeloest hat).
+        if title and (name in ALWAYS_KI_RELEVANT_SOURCES or _is_ki_relevant(title)):
             items.append({"title": title, "link": link, "source": name})
     # War [:3] – das warf ~70% der relevanten News pro Feed weg (The Decoder liefert
     # 10 KI-relevante, nur 3 kamen durch). Höher = bessere Abdeckung neuer Modelle,
