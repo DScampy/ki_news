@@ -1074,6 +1074,10 @@ ALWAYS_KI_RELEVANT_SOURCES = {
     "Meta AI Blog", "Google AI Blog", "xAI News", "Mistral News",
 }
 
+# Generische Hochvolumen-Newsticker (alle IT-Themen, nicht nur KI) brauchen ein
+# tieferes Scan-Fenster als spezialisierte AI-Feeds, siehe Kommentar in fetch_feed().
+DEEP_SCAN_SOURCES = {"Heise", "Golem", "NYT Technology", "CNet", "TechRepublic"}
+
 def fetch_feed(name, url):
     # The Decoder braucht mehr Zeit – Server langsam für GitHub Actions IPs
     timeout = 20 if "the-decoder" in url else 12
@@ -1091,7 +1095,14 @@ def fetch_feed(name, url):
     candidates = list(root.iter("item")) or list(root.iter("entry"))
     # Tiefer in den Feed schauen (war 10): aktive Feeds wie TechCrunch haben 15-20
     # Items, wichtige Modell-News stehen oft erst ab Position 11.
-    for item in candidates[:20]:
+    # Bug-Fix (01.07.26): 20 reicht bei generischen Hochvolumen-Newstickern (Heise,
+    # Golem, ...) nicht - die posten ueber ALLE IT-Themen, nicht nur KI. Fund: die
+    # Heise-Story zu Claude Sonnet 5 / Fable-5-Wiederfreigabe stand auf Position
+    # 51 von 159 im Feed (nur ~10h alt, aber Heise postet ~5 Items/Stunde ueber
+    # alle Themen) - fiel komplett aus dem 20er-Fenster, kam nie bei
+    # _is_ki_relevant() an. Fuer diese Quellen tiefer scannen.
+    scan_depth = 60 if name in DEEP_SCAN_SOURCES else 20
+    for item in candidates[:scan_depth]:
         title = (item.findtext("title") or "").strip()
         link = (item.findtext("link") or "").strip()
         if not link:
@@ -1109,7 +1120,12 @@ def fetch_feed(name, url):
     # War [:3] – das warf ~70% der relevanten News pro Feed weg (The Decoder liefert
     # 10 KI-relevante, nur 3 kamen durch). Höher = bessere Abdeckung neuer Modelle,
     # das Scoring + der Zeit-Verfall sortieren die Masse danach.
-    return items[:8]
+    # Bug-Fix (01.07.26): dieselbe Deckelung wie oben - bei DEEP_SCAN_SOURCES reicht
+    # 8 nicht, wenn im tieferen Fenster mehr als 8 KI-relevante Treffer liegen (an
+    # Tagen mit viel KI-News verdraengen die 8 neuesten sonst aeltere, aber noch
+    # relevante Treffer wie die Sonnet-5/Fable-5-Story).
+    output_cap = 15 if name in DEEP_SCAN_SOURCES else 8
+    return items[:output_cap]
 
 # -------------------------
 # Vorschaubilder (og:image) – serverseitig für externe Links / X-Posts
