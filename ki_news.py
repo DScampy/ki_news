@@ -801,7 +801,18 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
         # generierte Teaser hängt immer an genau der Karte, die oben angezeigt wird.
         def _display_score(m, _score=score, _oldest=oldest_first_seen):
             h = history.get(m.get("link", ""))
-            fs = h["first_seen"] if h else _oldest
+            if h:
+                fs = h["first_seen"]
+            elif m.get("source") in ALWAYS_KI_RELEVANT_SOURCES:
+                # Bug-Fix (01.07.26): Primaerquellen (Lab-Blogs direkt) erben nie das
+                # Cluster-Alter sekundaerer Berichterstattung - eine eigene Ankuendigung
+                # des Labors ist per Definition eine frische Entwicklung, kein Rehash
+                # einer alten Story (Fall: Anthropics "Redeploying Fable 5" clusterte
+                # mit einem 3 Tage alten, laengst verfallenen Sekundaerartikel und wurde
+                # dadurch nie Repraesentant der eigenen Story).
+                fs = _today_iso()
+            else:
+                fs = _oldest
             base = max(h["base_score"], _score) if h else _score
             return decay_score(base, fs)
         rep = max(cluster, key=_display_score)
@@ -2249,7 +2260,16 @@ def main():
         # Schon mal gesehen? Dann ursprüngliches Datum behalten.
         # Neuer Artikel einer bekannten Story? Cluster-Alter erben → kein Score-Revival.
         hist = history.get(link)
-        first_seen = hist["first_seen"] if hist else link_to_cluster_age.get(link, heute)
+        if hist:
+            first_seen = hist["first_seen"]
+        elif n.get("source") in ALWAYS_KI_RELEVANT_SOURCES:
+            # Bug-Fix (01.07.26): siehe Kommentar bei _display_score() in pick_top_news -
+            # dieselbe Logik hier fuer den finalen news.json-Score noetig, sonst wuerde
+            # der Repraesentant zwar korrekt gewaehlt, aber der Decay trotzdem auf dem
+            # alten Cluster-Alter rechnen.
+            first_seen = heute
+        else:
+            first_seen = link_to_cluster_age.get(link, heute)
         # History-Heilung: frueher faelschlich als 0 archivierte Member duerfen ausheilen,
         # wenn ihr Cluster jetzt einen echten Score hat. Ohne max() bliebe base_score
         # wegen hist dauerhaft 0 (Selbstvergiftung ueber archive.json).
