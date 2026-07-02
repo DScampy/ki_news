@@ -1717,9 +1717,14 @@ THREAD X-6 Fazit: Ein Gedanke der nachhallt – endet mit einer persoenlichen Fr
 Jeder Thread-Teil: mindestens 180, maximal 265 Zeichen. Kurze Antworten sind Fehler.
 
 ERKLAERUNG (die "Scampy-Einordnung" auf der Website): zwei bis drei VOLLSTAENDIGE,
-einfache Saetze, 90 bis 200 Zeichen. Erklaere klar und nuechtern in Alltagssprache,
-was die News konkret bedeutet – ohne Fachjargon, ohne dramatische Zuspitzung, ohne
-grosse Worte. So, als wuerdest du es einem Freund in einem Satz erklaeren. KEINE
+einfache Saetze, 90 bis 200 Zeichen. Stell dir vor, ein Kollege auf Arbeit ohne
+KI-Vorwissen fragt dich in der Pause, was das bedeutet - erklaere es ihm so, dass
+er es versteht, ohne sich dumm zu fuehlen, und weiss, warum es ihn betrifft (oder
+ehrlich: dass es ihn nicht betrifft). Alltagssprache, gern ein Vergleich aus dem
+Arbeitsleben, konkrete Zahlen. Keine Spitznamen fuer Laender/Behoerden, kein
+Fachjargon, keine dramatische Zuspitzung. Beispiel fuer den Ton: "Die KI schreibt
+jetzt Code, den man frueher einem Entwickler fuer 500 Euro am Tag gegeben haette.
+Fuer grosse Firmen heisst das sparen, fuer Entwickler heisst das umdenken." KEINE
 abgehackten Halbsaetze, kein Satz der mitten im Gedanken aufhoert.
 
 Format – EXAKT so, keine Abweichungen:
