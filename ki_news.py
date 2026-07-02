@@ -384,9 +384,15 @@ FEEDS = [
     ("Digg AI",             "https://news.google.com/rss/search?q=site:digg.com+AI&hl=en&gl=US&ceid=US:en"),
 ]
 
-# Nur diese 3 News gehen an den LLM fuer Posts
-# Mehr = generischer Fuelltext weil das Modell ueberfordert ist
-MAX_LLM_NEWS = 3
+# News, die an den LLM fuer Posts/Einordnungen gehen.
+# 02.07.26: 3 -> 5, damit jede der 5 Top-Karten der Startseite eine
+# Scampy-Einordnung bekommt (Daniels Feedback: "nicht jede News oben hat
+# eine Analyse"). Kosten sind mit dem Summary-Cache vernachlaessigbar.
+# Nebenwirkung, bewusst akzeptiert: bis zu 5 statt 3 Telegram-Nachrichten
+# pro Lauf mit neuen Stories. Der alte Hinweis "mehr = generischer
+# Fuelltext" galt fuer einen einzelnen Prompt mit vielen News - ask_llm
+# bekommt weiterhin nur die UNCACHED Stories (meist 1-2 pro Lauf).
+MAX_LLM_NEWS = 5
 
 MODELLE = [
     # Free-Modelle – Gemma zuerst (empirisch: llama/hermes dauerhaft auf 429)
@@ -728,18 +734,33 @@ def regional_score(text):
         return 4
     return 0
 
+# Scoring-Fix (02.07.26), zwei Aenderungen am Prompt:
+# (a) Kriterium 1 verlangt jetzt KI als KERN-Thema (Fall: Sony-Kopfhoerer-
+#     Firmware-Update kam mit Score 44 in die Top-Raenge - der LLM bewertete
+#     Substanz/Spannung, ohne je zu fragen, ob das ueberhaupt KI-News ist).
+# (b) Kriterium 3 hiess "Abdeckungs-Luecke" und gab 0 Punkte, sobald das Thema
+#     in den recent_titles vorkam - das BESTRAFTE Follow-ups grosser Storys
+#     aktiv (Fable-5-Relaunch: je laenger die Saga in den Titeln stand, desto
+#     tiefer wurde jede NEUE Entwicklung dazu gestuft - genau falsch herum).
+#     Jetzt: Statuswechsel/neue Entwicklung in bekanntem Thema zaehlt voll,
+#     nur substanzlose Wiederholung faellt auf 0.
 LLM_SCORE_PROMPT = """Du bewertest KI-News fuer ScampyKI, einen deutschsprachigen, \
 skeptischen KI-Newskanal (kein Hype, echte Einordnung statt Pressemitteilung).
 Bewerte den folgenden Artikel nach drei Kriterien (Regional-Bezug wird NICHT von dir \
 bewertet, das macht ein separater deterministischer Check):
 
 1. Substanz statt Ankuendigung (0-30): Aendert sich real etwas (neue Faehigkeit, \
-echtes Limit, messbarer Effekt)? Reine PR ohne Inhalt = 0.
+echtes Limit, messbarer Effekt)? Reine PR ohne Inhalt = 0. WICHTIG: Ist KI/AI nicht \
+das ZENTRALE Thema des Artikels, sondern nur Randnotiz oder Marketing-Etikett \
+(z.B. Gadget-Firmware, Gaming-Hardware, Consumer-Deals), maximal 5 Punkte.
 2. Einordnungs-Spannung (0-20): Gibt es einen Widerspruch oder eine eigene These \
 zu bilden (Hype vs. Realitaet, Gewinner/Verlierer)?
-3. Abdeckungs-Luecke (0-15): Handelt es sich um ein Labor/Thema, das in den \
-"bereits abgedeckten Themen" unten NICHT vorkommt? Wenn das Thema/Labor dort \
-schon mehrfach vorkommt, 0 Punkte.
+3. Neuigkeitswert (0-15): Volle Punkte wenn (a) das Thema in den "bereits \
+abgedeckten Themen" unten NICHT vorkommt ODER (b) es eine ECHTE NEUE ENTWICKLUNG \
+zu einem bekannten Thema ist - ein Statuswechsel zaehlt immer als neu (gesperrt -> \
+wieder freigegeben, angekuendigt -> veroeffentlicht, Geruecht -> bestaetigt, \
+Klage eingereicht -> Urteil). 0 Punkte NUR, wenn der Artikel dieselbe Meldung \
+ohne neue Substanz wiederholt.
 
 Bereits abgedeckte Themen der letzten 3 Tage (Titel):
 {recent_titles}
@@ -781,7 +802,14 @@ def score_cluster_llm(cluster, recent_titles):
             parsed = json.loads(raw)
             llm_part = int(parsed.get("score", 0))
             reg_part = regional_score(title + " " + summary)
-            total = max(0, min(100, llm_part + reg_part))
+            # Scoring-Fix (02.07.26): Multi-Source-Bonus deterministisch addieren.
+            # Vorher floss die Anzahl unabhaengiger Quellen - das staerkste
+            # "das ist eine Nachricht"-Signal - NUR in den Legacy-Fallback ein;
+            # im fuehrenden LLM-Score wurden 10 berichtende Outlets und ein
+            # einzelner Blogpost identisch behandelt (Fable-5-Relaunch-Fall).
+            # Deckel bei 4 Quellen wie in score_cluster() (Google-Duplikate).
+            src_part = min(len({i.get("source") for i in cluster}), 4) * 8
+            total = max(0, min(100, llm_part + reg_part + src_part))
             label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
             _model_note_ok(modell)
             return total, label
@@ -1661,6 +1689,15 @@ Du schreibst immer auf Deutsch, auch wenn die Quelle englisch ist.
 Du erfindest keine Fakten."""
 
     n = n or len(top_news)
+    # 02.07.26: Format-Block dynamisch fuer n Posts generieren - war vorher fest
+    # auf 3 Posts kodiert und haette bei n=5 (MAX_LLM_NEWS-Erhoehung) dem Modell
+    # ein widerspruechliches Beispiel gezeigt.
+    format_block = "\n".join(
+        f"TEASER {i}: [Text]\n"
+        + "\n".join(f"THREAD {i}-{j}: [Text]" for j in range(1, 7))
+        + f"\nERKLAERUNG {i}: [Text]"
+        for i in range(1, n + 1)
+    )
     user = f"""Schreibe GENAU {n} Posts – einen pro News. Nicht mehr, nicht weniger.
 
 TEASER-Regeln:
@@ -1686,32 +1723,9 @@ grosse Worte. So, als wuerdest du es einem Freund in einem Satz erklaeren. KEINE
 abgehackten Halbsaetze, kein Satz der mitten im Gedanken aufhoert.
 
 Format – EXAKT so, keine Abweichungen:
-TEASER 1: [Text]
-THREAD 1-1: [Text]
-THREAD 1-2: [Text]
-THREAD 1-3: [Text]
-THREAD 1-4: [Text]
-THREAD 1-5: [Text]
-THREAD 1-6: [Text]
-ERKLAERUNG 1: [Text]
-TEASER 2: [Text]
-THREAD 2-1: [Text]
-THREAD 2-2: [Text]
-THREAD 2-3: [Text]
-THREAD 2-4: [Text]
-THREAD 2-5: [Text]
-THREAD 2-6: [Text]
-ERKLAERUNG 2: [Text]
-TEASER 3: [Text]
-THREAD 3-1: [Text]
-THREAD 3-2: [Text]
-THREAD 3-3: [Text]
-THREAD 3-4: [Text]
-THREAD 3-5: [Text]
-THREAD 3-6: [Text]
-ERKLAERUNG 3: [Text]
+{format_block}
 
-News (genau diese 3, je eine pro Post):
+News (genau diese {n}, je eine pro Post):
 {news_text}"""
 
     # NEU: Ollama-Modelle an erster Stelle wenn lokal verfügbar
@@ -1726,7 +1740,10 @@ News (genau diese 3, je eine pro Post):
         if _model_blocked(modell):
             continue
         try:
-            antwort = _call_llm_api(modell, messages, max_tokens=3600, timeout=90)
+            # 02.07.26: max_tokens skaliert mit n (war fest 3600 fuer 3 Posts -
+            # 5 volle Posts a 8 Segmente waeren sonst mitten im Text abgeschnitten
+            # worden; die Vollstaendigkeits-Symptome kennen wir von summarize_news).
+            antwort = _call_llm_api(modell, messages, max_tokens=min(1200 * n, 6000), timeout=120)
             if not antwort:
                 logger.warning("Posts: %s liefert leeren Content – naechstes Modell", modell)
                 continue
@@ -2514,6 +2531,26 @@ def main():
                 existing = []
         except Exception:
             existing = []
+
+        # Scoring-Fix (02.07.26): base_score-Heilung erreicht jetzt auch das
+        # ARCHIV. Vorher heilte nur news.json (max(hist, raw) dort), aber
+        # bestehende Archiv-Eintraege behielten ihren alten base_score fuer
+        # immer - eine am Tag 0 schlecht bewertete Story (z.B. Fable-5-Relaunch
+        # am 28.06.: base 5, weil Cluster fragmentiert + Primaerquelle gefiltert)
+        # blieb im Archiv/in der Statistik dauerhaft vergiftet, und
+        # build_history_map() las den giftigen Wert bei jedem Lauf neu ein.
+        healed_by_link = {n["link"]: n for n in news_list if n.get("link")}
+        for entry in existing:
+            h = healed_by_link.get(entry.get("link"))
+            if not h:
+                continue
+            try:
+                if float(h.get("base_score", 0)) > float(entry.get("base_score", 0)):
+                    entry["base_score"] = h["base_score"]
+                    if h.get("label"):
+                        entry["label"] = h["label"]
+            except (TypeError, ValueError):
+                pass
 
         seen_links = {n["link"] for n in existing if n.get("link")}
         new_entries = [n for n in news_list if n.get("link") and n["link"] not in seen_links]
