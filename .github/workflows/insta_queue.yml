@@ -39,7 +39,35 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add insta_telegram_offset.json 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Insta-Queue: Telegram-Offset aktualisiert"
-          git pull --rebase origin main || true
-          git push origin HEAD:main || true
+
+          # Bug-Fix (02.07.26): dasselbe kaputte Muster wie in ki_news.yml vor dem
+          # 02.07.-Fix - "git pull --rebase || true" + "git push || true" verschluckte
+          # JEDEN Fehler. Kritisch hier: scheitert der Push, bleibt der Telegram-Offset
+          # auf origin alt, der naechste Lauf (frischer Checkout) verarbeitet denselben
+          # Button-Klick ERNEUT -> Doppel-Post auf Instagram. Fix: gleiche Strategie
+          # wie ki_news.yml (mixed reset auf origin/main + Recommit + Retry), und bei
+          # endgueltigem Scheitern SICHTBAR fehlschlagen statt still gruen.
+          add_and_commit() {
+            git add insta_telegram_offset.json 2>/dev/null || true
+            git diff --staged --quiet || git commit -m "Insta-Queue: Telegram-Offset aktualisiert"
+          }
+
+          add_and_commit
+
+          PUSH_OK=false
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              PUSH_OK=true
+              break
+            fi
+            echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
+            git fetch origin main
+            git reset origin/main
+            add_and_commit
+            sleep 3
+          done
+
+          if [ "$PUSH_OK" != "true" ]; then
+            echo "::error::Offset-Push nach 3 Versuchen fehlgeschlagen - Risiko Doppel-Post beim naechsten Lauf."
+            exit 1
+          fi

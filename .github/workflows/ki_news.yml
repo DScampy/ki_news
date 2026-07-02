@@ -103,9 +103,18 @@ jobs:
           # (Run #568, 01.07.26 19:09 UTC, verifiziert per Job-Log).
           #
           # Fix: kein Rebase mehr. Bei Push-Konflikt gilt "meine frisch generierte
-          # Arbeitskopie ist die Wahrheit" - per reset --soft auf den neuesten origin/main
-          # aufsetzen und neu committen, statt zeilenweise zu mergen. Das ist fuer
-          # vollstaendig neu geschriebene generierte Dateien immer die richtige Strategie.
+          # Arbeitskopie ist die Wahrheit" - auf den neuesten origin/main aufsetzen
+          # und neu committen, statt zeilenweise zu mergen. Das ist fuer vollstaendig
+          # neu geschriebene generierte Dateien immer die richtige Strategie.
+          #
+          # Nachbesserung (02.07.26): MIXED reset (ohne --soft) statt reset --soft.
+          # --soft liess den Index auf UNSEREM alten Baum stehen - der Recommit haette
+          # dann auch Dateien "zurueckgedreht", die inzwischen auf origin/main geaendert
+          # wurden, ohne dass wir sie generieren (z.B. dashboard_config.json, wenn
+          # Daniel WAEHREND des Laufs im Admin-Panel pinnt -> Pin waere still geloescht
+          # worden). Mixed reset setzt den Index auf origin/main; git add stagt danach
+          # NUR die generierten Dateien aus der Arbeitskopie - alles andere bleibt
+          # exakt auf dem Stand von origin/main.
           add_and_commit() {
             git add index.html ki_news.html news.json admin-posts.html post-cache.json 2>/dev/null || true
             git add archive.json ki_news.log 2>/dev/null || true
@@ -125,7 +134,7 @@ jobs:
             fi
             echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
             git fetch origin main
-            git reset --soft origin/main
+            git reset origin/main
             add_and_commit
             sleep 3
           done
@@ -156,7 +165,13 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
           FORCE_RENDER: ${{ github.event.inputs.force_render == 'true' && '1' || '0' }}
-        run: python3 generate_news_cards.py 2>&1 | tee cards.log
+        run: |
+          # Bug-Fix (02.07.26): die Default-Shell von GitHub Actions ist "bash -e"
+          # OHNE pipefail -> der Exit-Code von "python3 ... | tee" war immer der
+          # von tee (0). Ein kompletter Absturz der Card-Generierung blieb dadurch
+          # unsichtbar gruen (gleiche Bug-Klasse wie der Retry-Fix vom 01.07.).
+          set -o pipefail
+          python3 generate_news_cards.py 2>&1 | tee cards.log
 
       - name: Alte MP4-Cards aufräumen (>10 Tage)
         run: |
@@ -180,7 +195,7 @@ jobs:
 
           # Bug-Fix (02.07.26): dieselbe Konflikt-Strategie wie im Schritt
           # "Dateien ins Repo committen" (siehe Kommentar dort) - Rebase durch
-          # reset --soft + Recommit ersetzt, damit Konflikte auf vollstaendig
+          # mixed reset + Recommit ersetzt, damit Konflikte auf vollstaendig
           # neu geschriebenen generierten Dateien nicht mehr den Job vergiften.
           add_and_commit() {
             git add assets/cards/ cards.json card_state.json artikel.html breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
@@ -197,7 +212,7 @@ jobs:
             fi
             echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
             git fetch origin main
-            git reset --soft origin/main
+            git reset origin/main
             add_and_commit
             sleep 3
           done
