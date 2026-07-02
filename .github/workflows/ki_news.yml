@@ -88,14 +88,51 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add index.html ki_news.html news.json admin-posts.html post-cache.json 2>/dev/null || true
-          git add archive.json ki_news.log 2>/dev/null || true
-          git add chat-config.js 2>/dev/null || true
-          git add hashtags/hashtags.json 2>/dev/null || true
-          git add telegram_state.json 2>/dev/null || true
-          git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')" || echo "Keine Aenderungen"
-          git pull --rebase origin main || true
-          git push origin HEAD:main || (sleep 5 && git pull --rebase origin main && git push origin HEAD:main) || true
+
+          # Bug-Fix (02.07.26): git add/commit/push -> bei Konflikt (git pull --rebase)
+          # frueher stillschweigend mit "|| true" geschluckt. Root Cause damals: zwei
+          # Laeufe kurz hintereinander (Concurrency-Queue oder manueller Start knapp nach
+          # einem Scheduled Run) wollten beide dieselben, komplett neu geschriebenen
+          # generierten Dateien (news.json, index.html, archive.json, ...) pushen. Ein
+          # echter Rebase versucht das ZEILENWEISE zu verschmelzen - bei zwei unabhaengigen
+          # Voll-Neuschreibungen derselben Datei praktisch garantiert ein Konflikt, den Git
+          # nicht automatisch aufloesen kann. Der Rebase blieb dann mitten im Konflikt
+          # stecken (unmerged files), der Fehler wurde verschluckt, und der naechste
+          # Git-Schritt im selben Job ("Commit generated cards") ist wenig spaeter mit
+          # exit 128 gestorben, weil die alten unmerged files nie aufgeloest wurden
+          # (Run #568, 01.07.26 19:09 UTC, verifiziert per Job-Log).
+          #
+          # Fix: kein Rebase mehr. Bei Push-Konflikt gilt "meine frisch generierte
+          # Arbeitskopie ist die Wahrheit" - per reset --soft auf den neuesten origin/main
+          # aufsetzen und neu committen, statt zeilenweise zu mergen. Das ist fuer
+          # vollstaendig neu geschriebene generierte Dateien immer die richtige Strategie.
+          add_and_commit() {
+            git add index.html ki_news.html news.json admin-posts.html post-cache.json 2>/dev/null || true
+            git add archive.json ki_news.log 2>/dev/null || true
+            git add chat-config.js 2>/dev/null || true
+            git add hashtags/hashtags.json 2>/dev/null || true
+            git add telegram_state.json 2>/dev/null || true
+            git diff --staged --quiet || git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')"
+          }
+
+          add_and_commit
+
+          PUSH_OK=false
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              PUSH_OK=true
+              break
+            fi
+            echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
+            git fetch origin main
+            git reset --soft origin/main
+            add_and_commit
+            sleep 3
+          done
+
+          if [ "$PUSH_OK" != "true" ]; then
+            echo "::warning::Konnte generierte Dateien nach 3 Versuchen nicht pushen - naechster Lauf wird es erneut versuchen."
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -140,10 +177,34 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add assets/cards/ cards.json card_state.json artikel.html breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
-          git diff --staged --quiet || git commit -m "cards + template update $(date -u +%Y-%m-%d)"
-          git pull --rebase origin main || true
-          git push origin HEAD:main || true
+
+          # Bug-Fix (02.07.26): dieselbe Konflikt-Strategie wie im Schritt
+          # "Dateien ins Repo committen" (siehe Kommentar dort) - Rebase durch
+          # reset --soft + Recommit ersetzt, damit Konflikte auf vollstaendig
+          # neu geschriebenen generierten Dateien nicht mehr den Job vergiften.
+          add_and_commit() {
+            git add assets/cards/ cards.json card_state.json artikel.html breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            git diff --staged --quiet || git commit -m "cards + template update $(date -u +%Y-%m-%d)"
+          }
+
+          add_and_commit
+
+          PUSH_OK=false
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              PUSH_OK=true
+              break
+            fi
+            echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
+            git fetch origin main
+            git reset --soft origin/main
+            add_and_commit
+            sleep 3
+          done
+
+          if [ "$PUSH_OK" != "true" ]; then
+            echo "::warning::Konnte Cards nach 3 Versuchen nicht pushen - naechster Lauf wird es erneut versuchen."
+          fi
 
       - name: Log hochladen
         uses: actions/upload-artifact@v4
