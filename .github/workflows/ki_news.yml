@@ -117,6 +117,7 @@ jobs:
           # exakt auf dem Stand von origin/main.
           add_and_commit() {
             git add index.html ki_news.html news.json admin-posts.html post-cache.json 2>/dev/null || true
+            git add summary-cache.json 2>/dev/null || true
             git add archive.json ki_news.log 2>/dev/null || true
             git add chat-config.js 2>/dev/null || true
             git add hashtags/hashtags.json 2>/dev/null || true
@@ -140,7 +141,13 @@ jobs:
           done
 
           if [ "$PUSH_OK" != "true" ]; then
-            echo "::warning::Konnte generierte Dateien nach 3 Versuchen nicht pushen - naechster Lauf wird es erneut versuchen."
+            # Bug-Fix (02.07.26, Nachmittag): war nur ::warning -> Job blieb gruen,
+            # Website/news.json tagelang alt, ohne dass es jemand merkt (heute
+            # passiert: Lauf 05:00 pushte NICHTS, alles gruen). Jetzt: sichtbar rot.
+            # Der naechste Lauf regeneriert ohnehin alles - rot kostet nichts,
+            # Stille kostet Aktualitaet.
+            echo "::error::Push nach 3 Versuchen fehlgeschlagen - Website ist veraltet!"
+            exit 1
           fi
 
       - name: Set up Node.js
@@ -218,7 +225,10 @@ jobs:
           done
 
           if [ "$PUSH_OK" != "true" ]; then
-            echo "::warning::Konnte Cards nach 3 Versuchen nicht pushen - naechster Lauf wird es erneut versuchen."
+            # Siehe Kommentar im Schritt "Dateien ins Repo committen": sichtbar rot
+            # statt still gruen (02.07.26).
+            echo "::error::Cards-Push nach 3 Versuchen fehlgeschlagen - MP4s fehlen auf der Website!"
+            exit 1
           fi
 
       - name: Log hochladen
