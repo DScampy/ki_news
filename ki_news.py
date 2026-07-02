@@ -1083,6 +1083,21 @@ ALWAYS_KI_RELEVANT_SOURCES = {
 # tieferes Scan-Fenster als spezialisierte AI-Feeds, siehe Kommentar in fetch_feed().
 DEEP_SCAN_SOURCES = {"Heise", "Golem", "NYT Technology", "CNet", "TechRepublic"}
 
+# Bug-Fix (02.07.26): Atom-Feeds (z.B. The Verge) deklarieren einen XML-Namespace -
+# ElementTree-Tags heissen dann "{http://www.w3.org/2005/Atom}entry", und
+# root.iter("entry") findet NICHTS. Folge: The Verge lieferte seit Einfuehrung
+# still 0 Artikel (kein Log, weil nur ParseError geloggt wurde; verifiziert
+# 02.07.26: Feed hat 10 Entries, alter Code fand 0). Die Helfer hier vergleichen
+# nur den lokalen Tag-Namen, egal ob RSS (item) oder Atom (entry), mit/ohne Namespace.
+def _tag_local(tag):
+    return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
+
+def _first_child_text(el, name):
+    for ch in el:
+        if _tag_local(ch.tag) == name:
+            return (ch.text or "").strip()
+    return ""
+
 def fetch_feed(name, url):
     # The Decoder braucht mehr Zeit – Server langsam für GitHub Actions IPs
     timeout = 20 if "the-decoder" in url else 12
@@ -1097,7 +1112,11 @@ def fetch_feed(name, url):
         return []
 
     items = []
-    candidates = list(root.iter("item")) or list(root.iter("entry"))
+    # Namespace-agnostisch: findet RSS-<item> UND Atom-<entry> (auch mit Namespace),
+    # siehe Bug-Fix-Kommentar bei _tag_local() oben.
+    candidates = [el for el in root.iter() if _tag_local(el.tag) in ("item", "entry")]
+    if not candidates:
+        logger.warning("[%s] Feed geparst, aber 0 Items/Entries gefunden (Formatwechsel?)", name)
     # Tiefer in den Feed schauen (war 10): aktive Feeds wie TechCrunch haben 15-20
     # Items, wichtige Modell-News stehen oft erst ab Position 11.
     # Bug-Fix (01.07.26): 20 reicht bei generischen Hochvolumen-Newstickern (Heise,
@@ -1108,12 +1127,14 @@ def fetch_feed(name, url):
     # _is_ki_relevant() an. Fuer diese Quellen tiefer scannen.
     scan_depth = 60 if name in DEEP_SCAN_SOURCES else 20
     for item in candidates[:scan_depth]:
-        title = (item.findtext("title") or "").strip()
-        link = (item.findtext("link") or "").strip()
+        title = _first_child_text(item, "title")
+        link = _first_child_text(item, "link")
         if not link:
-            link_elem = item.find("link")
-            if link_elem is not None:
-                link = link_elem.get("href", "").strip()
+            # Atom: <link href="..."/> (ggf. mehrere; rel="alternate" oder ohne rel bevorzugen)
+            for ch in item:
+                if _tag_local(ch.tag) == "link" and ch.get("href") and ch.get("rel") in (None, "alternate"):
+                    link = ch.get("href", "").strip()
+                    break
         # Bug-Fix (01.07.26): Quellen, die AUSSCHLIESSLICH KI-Themen posten (Labor-
         # Blogs), wurden trotzdem durch _is_ki_relevant() gefiltert - der Titel allein
         # reicht dem Wortfilter oft nicht (z.B. Anthropics eigener Post "Redeploying
@@ -1160,7 +1181,12 @@ def fetch_og_image(url):
         if not raw:
             return ""
         # Nur den <head> durchsuchen reicht und ist schnell.
-        head = raw[:200000]
+        # Bug-Fix (02.07.26): raw ist BYTES, die _OG_PATTERNS sind str-Regexes -
+        # pat.search(bytes) wirft TypeError, der vom breiten except unten still
+        # geschluckt wurde. Folge: fetch_og_image() hat seit Einfuehrung IMMER ""
+        # zurueckgegeben (verifiziert: 0 von 955 archive.json-Eintraegen mit Bild).
+        # Fix: erst dekodieren, dann matchen.
+        head = raw[:200000].decode("utf-8", errors="replace")
         for pat in _OG_PATTERNS:
             m = pat.search(head)
             if m:

@@ -915,7 +915,12 @@ async function commitChanges(){
   finally{btn.disabled=false;btn.textContent='Committen →';}
 }
 
-function buildJSON(){return{stand:originalData.stand,news:articles.map(({_id,_modified,...rest})=>rest)};}
+// Bug-Fix (02.07.26): news.json hat neben stand/news auch posts/roundups als
+// Top-Level-Felder - die alte Version hier baute nur {stand, news} und liess
+// posts/roundups bei JEDEM Commit aus dem News-Editor stillschweigend wegfallen
+// (Teaser/Erklaerungen auf der Startseite weg bis zum naechsten Pipeline-Lauf).
+// Fix: alle uebrigen Felder aus originalData unveraendert mitnehmen.
+function buildJSON(){return{...originalData,stand:originalData.stand,news:articles.map(({_id,_modified,...rest})=>rest)};}
 
 function renderEditor(){
   const container=document.getElementById('editorContainer');
