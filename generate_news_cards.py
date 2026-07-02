@@ -309,9 +309,17 @@ def clean_markdown(text: str) -> str:
 
 
 def limit_sentences(text: str, max_sentences: int = MAX_SENTENCES) -> str:
-    """Kappt Text auf max. N Saetze, damit Einordnung (und TTS-Dauer) nicht ausufern."""
+    """Kappt Text auf max. N Saetze, damit Einordnung (und TTS-Dauer) nicht ausufern.
+
+    Bug-Fix (02.07.26, Karten-Screenshot): von max_tokens abgeschnittene LLM-
+    Antworten endeten mitten im Satz ("...wirft und wie sie") - das Fragment
+    stand auf der Karte UND wurde von der TTS vorgelesen. Ein letzter Satz ohne
+    Satzende-Zeichen faellt jetzt weg, sofern mind. ein vollstaendiger bleibt."""
     sentences = re.split(r"(?<=[.!?])\s+", text.strip())
-    return " ".join(sentences[:max_sentences]).strip()
+    kept = sentences[:max_sentences]
+    if len(kept) > 1 and kept[-1] and kept[-1][-1] not in ".!?\"'”":
+        kept = kept[:-1]
+    return " ".join(kept).strip()
 
 
 def audio_dauer_sekunden(pfad: Path) -> float:
@@ -404,7 +412,11 @@ def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, 
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user",   "content": user_content}
         ],
-        "max_tokens": 120,
+        # 02.07.26: 120 -> 220. 120 Tokens reichten fuer 3 deutsche Saetze oft
+        # nicht -> Satz 3 wurde mitten im Wort gekappt (Screenshot-Fall). Die
+        # Laengen-Kontrolle macht limit_sentences() (3-Saetze-Cap), nicht das
+        # Token-Limit; 220 ist nur die Notbremse gegen Endlos-Antworten.
+        "max_tokens": 220,
         "temperature": 0.7,
     }).encode("utf-8")
     # Bug-Fix (02.07.26): Groq lehnte ALLE Calls mit 403 "error code: 1010" ab -
