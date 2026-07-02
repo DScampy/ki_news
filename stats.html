@@ -713,7 +713,17 @@ function renderAll(current, all){
 
   // ── Creator Radar (aktuelle Session) ──────────────────────────────────────
   const curList = document.getElementById('current-top-list');
-  const cur5 = [...current].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
+  // 02.07.26: gleiche Story-Dedup wie die Startseite (pro story_id nur der
+  // staerkste Artikel). Vorher zeigte das Radar mehrere Artikel DERSELBEN
+  // Story (z.B. 2x Claude Sonnet 5) und damit "News, die auf der Startseite
+  // gar nicht auftauchen" - die Startseite dedupliziert, das Radar tat es nicht.
+  const _bestByStory = {};
+  current.forEach(n => {
+    const sid = n.story_id;
+    if (sid && (!_bestByStory[sid] || (n.score||0) > (_bestByStory[sid].score||0))) _bestByStory[sid] = n;
+  });
+  const _dedupedCurrent = current.filter(n => !n.story_id || _bestByStory[n.story_id] === n);
+  const cur5 = [..._dedupedCurrent].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
   if(cur5.length===0){
     curList.innerHTML='<p style="font-size:12px;color:#6b7280;font-family:monospace">Keine aktuellen Artikel geladen.</p>';
   } else {
