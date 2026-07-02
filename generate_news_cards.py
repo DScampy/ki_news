@@ -386,6 +386,15 @@ def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, 
         "max_tokens": 120,
         "temperature": 0.7,
     }).encode("utf-8")
+    # Bug-Fix (02.07.26): Groq lehnte ALLE Calls mit 403 "error code: 1010" ab -
+    # das ist Cloudflares User-Agent-Block auf "Python-urllib/3.x", NICHT ein
+    # Key-Problem (verifiziert: mit Browser-UA antwortet dieselbe API sauber mit
+    # 401 invalid_api_key auf einen Test-Key; 1010 kommt VOR der Auth-Schicht).
+    # Realistischer UA macht Groq wieder nutzbar - gilt fuer alle Provider-Calls.
+    headers = dict(headers)
+    headers.setdefault("User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
     req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:

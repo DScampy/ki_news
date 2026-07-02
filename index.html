@@ -1115,14 +1115,19 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-const COUNT=14000,SCALE=45,SPEED=0.8,COMPLEXITY=1.5;
+// Perf-Fix (02.07.26): 14000 Partikel wurden pro Frame (60/s) KOMPLETT in JS
+// durchgerechnet (Position+Farbe+Matrix je Instanz) - Hauptgrund, warum der
+// Rechner bei geoeffneter Seite heiss laeuft. 6000 Partikel + 30-FPS-Cap
+// (siehe animate) reduzieren die Last um ~75%, optisch mit Bloom kaum
+// unterscheidbar. Zum Zurueckdrehen: COUNT und FPS_CAP anpassen.
+const COUNT=6000,SCALE=45,SPEED=0.8,COMPLEXITY=1.5,FPS_CAP=30;
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(0x000000,0.007);
 const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,2000);
 camera.position.set(0,0,120);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
 renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5)); // Perf-Fix 02.07.26: war 2 - Bloom verwischt den Unterschied ohnehin
 renderer.setClearColor(0x000000,0);
 document.getElementById('genesis-wrap').appendChild(renderer.domElement);
 const composer=new EffectComposer(renderer);
@@ -1157,8 +1162,13 @@ function applyTheme(){
 applyTheme();
 new MutationObserver(()=>{applyTheme();})
   .observe(document.documentElement,{attributes:true,attributeFilter:['class','data-theme']});
-function animate(){
+let _lastFrame=0;
+function animate(now){
   requestAnimationFrame(animate);
+  // Perf-Fix (02.07.26): 30-FPS-Cap - halbiert CPU/GPU-Last der Animation,
+  // fuer einen langsamen Ambient-Effekt visuell nicht wahrnehmbar.
+  if(now&&now-_lastFrame<1000/FPS_CAP)return;
+  _lastFrame=now||0;
   const time=clock.getElapsedTime();
   rotY+=0.0015;group.rotation.y=rotY;
   const t=time*SPEED,coreCount=Math.floor(COUNT*0.25);

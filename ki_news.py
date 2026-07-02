@@ -187,6 +187,34 @@ def load_post_cache(base_dir):
     except Exception:
         return {}
 
+def load_summary_cache(base_dir):
+    """Laedt summary-cache.json - gespeicherte Uebersetzungen (title_de/summary)
+    pro Artikel-Link. Laufzeit-Fix (02.07.26): summarize_news() hat bisher bei
+    JEDEM Lauf ALLE ~200+ Artikel neu uebersetzt (~55 LLM-Batches, gemessen
+    47 min Wartezeit pro Lauf). title_de/summary sind pro Link stabil - einmal
+    uebersetzen reicht. Nur echte LLM-Erfolge werden gecacht (kein Fallback),
+    damit englische Titel nicht zementiert werden."""
+    path = Path(base_dir) / "summary-cache.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+def save_summary_cache(base_dir, cache):
+    """Speichert summary-cache.json, bereinigt Eintraege aelter als 30 Tage
+    (Artikel leben max. 10 Tage im Archiv, 30 ist grosszuegig)."""
+    cutoff = (datetime.now(BERLIN) - timedelta(days=30)).strftime("%Y-%m-%d")
+    pruned = {link: data for link, data in cache.items()
+              if data.get("generated_at", "9999") >= cutoff}
+    path = Path(base_dir) / "summary-cache.json"
+    try:
+        path.write_text(json.dumps(pruned, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("summary-cache.json: %d Eintraege gespeichert", len(pruned))
+    except Exception as e:
+        logger.exception("Fehler beim Schreiben summary-cache.json: %s", e)
+
 def save_post_cache(base_dir, cache):
     """Speichert post-cache.json, bereinigt Einträge älter als 90 Tage."""
     cutoff = (datetime.now(BERLIN) - timedelta(days=90)).strftime("%Y-%m-%d")
@@ -382,6 +410,26 @@ MODELLE_POSTS = [
     "meta-llama/llama-3.3-70b-instruct",               # Paid-Anker
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
+
+# 429-Circuit-Breaker (02.07.26): gemma-4-31b:free ist praktisch dauerhaft
+# rate-limited, wurde aber von JEDEM Batch erneut zuerst probiert - Messung
+# (Log 02.07., 05:00-Lauf): 47 von 55 Minuten Laufzeit waren 429-Fehlversuche
+# plus Latenz der Fallback-Modelle. Nach N aufeinanderfolgenden 429 desselben
+# Modells wird es fuer den REST DES LAUFS uebersprungen (in-memory, kein State).
+_MODEL_429_STREAK = {}
+_MODEL_429_LIMIT = 3
+
+def _model_blocked(model):
+    return _MODEL_429_STREAK.get(model, 0) >= _MODEL_429_LIMIT
+
+def _model_note_429(model):
+    _MODEL_429_STREAK[model] = _MODEL_429_STREAK.get(model, 0) + 1
+    if _MODEL_429_STREAK[model] == _MODEL_429_LIMIT:
+        logger.warning("Modell %s: %dx 429 in Folge - wird fuer den Rest des Laufs uebersprungen",
+                       model, _MODEL_429_LIMIT)
+
+def _model_note_ok(model):
+    _MODEL_429_STREAK[model] = 0
 
 # NEU: Ollama – lokaler Provider (wird automatisch erkannt, GitHub Actions ignoriert das)
 # Setup: https://ollama.ai → `ollama pull gemma3:27b` oder `ollama pull gemma2:27b`
@@ -723,6 +771,8 @@ def score_cluster_llm(cluster, recent_titles):
     )
     messages = [{"role": "user", "content": prompt}]
     for modell in MODELLE_POSTS:
+        if _model_blocked(modell):
+            continue
         try:
             antwort = _call_llm_api(modell, messages, max_tokens=150, timeout=30)
             raw = (antwort or "").strip()
@@ -733,8 +783,11 @@ def score_cluster_llm(cluster, recent_titles):
             reg_part = regional_score(title + " " + summary)
             total = max(0, min(100, llm_part + reg_part))
             label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
+            _model_note_ok(modell)
             return total, label
         except Exception as e:
+            if getattr(e, "code", None) == 429:
+                _model_note_429(modell)
             logger.warning("score_cluster_llm: %s fehlgeschlagen (%s) - naechstes Modell", modell, e)
             continue
     return None, None
@@ -1284,10 +1337,25 @@ def update_media_xpost_images(base_dir):
 # -------------------------
 # LLM – Zusammenfassungen (alle News, fuer Dashboard links)
 # -------------------------
-def summarize_news(alle_news):
+def summarize_news(alle_news, summary_cache=None):
     result = {i: {"title_de": n["title"], "summary": ""} for i, n in enumerate(alle_news)}
     if not OPENROUTER_KEY:
         logger.info("Kein OPENROUTER_KEY: Ueberspringe Zusammenfassungen.")
+        return result
+
+    # Laufzeit-Fix (02.07.26): bereits uebersetzte Artikel (per Link) aus dem
+    # Cache bedienen, nur NEUE Artikel gehen an den LLM. Siehe load_summary_cache().
+    pending = []
+    for i, n in enumerate(alle_news):
+        c = (summary_cache or {}).get(n.get("link", ""))
+        if c and c.get("title_de"):
+            result[i] = {"title_de": c["title_de"], "summary": c.get("summary", "")}
+        else:
+            pending.append(i)
+    if summary_cache is not None:
+        logger.info("Summary-Cache: %d von %d Artikeln aus Cache, %d neu zu uebersetzen",
+                    len(alle_news) - len(pending), len(alle_news), len(pending))
+    if not pending:
         return result
 
     # Kleinere Batches: je weniger News pro Call, desto seltener verwechselt das
@@ -1348,8 +1416,11 @@ def summarize_news(alle_news):
             return True
         return difflib.SequenceMatcher(None, a, b).ratio() >= 0.5
 
-    for batch_start in range(0, len(alle_news), batch_size):
-        batch = alle_news[batch_start:batch_start + batch_size]
+    # Batches laufen ueber die PENDING-Indizes (Cache-Fix 02.07.26) - lokale
+    # Batch-id 1..N wird ueber batch_indices auf den globalen Index abgebildet.
+    for batch_start in range(0, len(pending), batch_size):
+        batch_indices = pending[batch_start:batch_start + batch_size]
+        batch = [alle_news[gi] for gi in batch_indices]
         news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(batch)])
         prompt = f"""Du bist ein deutschsprachiger KI-News-Redakteur.
 Uebersetze und fasse JEDE der folgenden News auf Deutsch zusammen.
@@ -1371,6 +1442,8 @@ News:
 {news_text}"""
 
         for modell in MODELLE:
+            if _model_blocked(modell):
+                continue
             try:
                 data = json.dumps({
                     "model": modell,
@@ -1429,11 +1502,10 @@ News:
                     # verwerfen statt falsche Zuordnung durchzulassen.
                     anchors_ok = True
                     for item in summaries:
-                        gi = batch_start + item["id"] - 1
-                        if 0 <= gi < len(alle_news):
-                            if not _anchor_ok(item.get("src_title", ""), alle_news[gi]["title"]):
-                                anchors_ok = False
-                                break
+                        gi = batch_indices[item["id"] - 1]
+                        if not _anchor_ok(item.get("src_title", ""), alle_news[gi]["title"]):
+                            anchors_ok = False
+                            break
                     if not anchors_ok:
                         logger.warning(
                             "Batch %d: %s Anker-Mismatch (Titel verrutscht) - Batch verworfen, naechstes Modell",
@@ -1495,20 +1567,30 @@ News:
                         continue
 
                     for item in summaries:
-                        global_index = batch_start + item["id"] - 1
-                        if 0 <= global_index < len(alle_news):
-                            raw_title = item.get("title_de", "")
-                            # Placeholder-Schutz: falls LLM Beispieltext zurückgibt → Original behalten
-                            title_de = raw_title if raw_title and not _is_placeholder(raw_title) \
-                                       else alle_news[global_index]["title"]
-                            result[global_index] = {
+                        global_index = batch_indices[item["id"] - 1]
+                        raw_title = item.get("title_de", "")
+                        # Placeholder-Schutz: falls LLM Beispieltext zurückgibt → Original behalten
+                        title_de = raw_title if raw_title and not _is_placeholder(raw_title) \
+                                   else alle_news[global_index]["title"]
+                        result[global_index] = {
+                            "title_de": title_de,
+                            "summary": item.get("summary", "")
+                        }
+                        # Nur ECHTE LLM-Erfolge cachen (kein Placeholder-Fallback),
+                        # sonst wuerde ein englischer Originaltitel zementiert.
+                        link = alle_news[global_index].get("link", "")
+                        if link and summary_cache is not None and raw_title and not _is_placeholder(raw_title):
+                            summary_cache[link] = {
                                 "title_de": title_de,
-                                "summary": item.get("summary", "")
+                                "summary": item.get("summary", ""),
+                                "generated_at": _today_iso(),
                             }
                     logger.info("Zusammenfassungen Batch %d OK mit %s", batch_start // batch_size + 1, modell)
+                    _model_note_ok(modell)
                     break
             except HTTPError as e:
                 if e.code == 429:
+                    _model_note_429(modell)
                     logger.warning("Batch %d: %s Rate-Limit (429) – naechstes Modell",
                                    batch_start // batch_size + 1, modell)
                 else:
@@ -1641,15 +1723,19 @@ News (genau diese 3, je eine pro Post):
         {"role": "user", "content": user},
     ]
     for modell in modell_liste:
+        if _model_blocked(modell):
+            continue
         try:
             antwort = _call_llm_api(modell, messages, max_tokens=3600, timeout=90)
             if not antwort:
                 logger.warning("Posts: %s liefert leeren Content – naechstes Modell", modell)
                 continue
             logger.info("Posts OK mit Modell: %s", modell)
+            _model_note_ok(modell)
             return antwort
         except HTTPError as e:
             if e.code == 429:
+                _model_note_429(modell)
                 logger.warning("Posts: %s Rate-Limit (429) – naechstes Modell", modell)
             else:
                 logger.warning("Posts: %s fehlgeschlagen: HTTP %s", modell, e.code)
@@ -2117,7 +2203,10 @@ def main():
     logger.info("%d KI-News gefunden (gesamt, ohne Roundups)", len(alle_news))
 
     # Zusammenfassungen fuer alle News (Dashboard links)
-    summaries = summarize_news(alle_news)
+    # Laufzeit-Fix (02.07.26): Cache pro Link - nur neue Artikel gehen an den LLM.
+    _summary_cache = load_summary_cache(_early_cfg_base)
+    summaries = summarize_news(alle_news, _summary_cache)
+    save_summary_cache(_early_cfg_base, _summary_cache)
 
     # Link->Summary-Map: summaries ist nach dem ORIGINAL-Index gekeyt. Der
     # blocked_links-Filter weiter unten weist alle_news aber NEU zu (kuerzere Liste)
