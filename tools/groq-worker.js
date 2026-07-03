@@ -19,8 +19,10 @@
  *   - max. 500 Zeichen pro Frage
  */
 
-const ALLOWED_ORIGINS = ['https://ki-news.live', 'http://localhost:8000', 'http://127.0.0.1:8000'];
-const MODEL = 'llama-3.3-70b-versatile';
+const ALLOWED_ORIGINS = ['https://ki-news.live', 'https://www.ki-news.live', 'http://localhost:8000', 'http://127.0.0.1:8000'];
+// llama-3.3-70b-versatile wird am 16.08.2026 abgeschaltet (Groq-Deprecation).
+// gpt-oss-120b ist der offiziell empfohlene Ersatz (Production-Modell).
+const MODEL = 'openai/gpt-oss-120b';
 const MAX_PER_IP_HOUR = 10;
 const MAX_PER_DAY = 300;
 const MAX_QUESTION_LEN = 500;
@@ -28,6 +30,7 @@ const MAX_QUESTION_LEN = 500;
 const SYSTEM_PROMPT =
   'Du bist der KI-News-Assistent auf ki-news.live, der deutschen KI-News-Seite von Daniel (@ScampyKI). ' +
   'Antworte auf Deutsch, freundlich und kurz (maximal 3 Saetze). ' +
+  'Nur Klartext, KEIN Markdown (keine Sternchen, keine Listen) - die Seite rendert kein Markdown. ' +
   'Du beantwortest Fragen zu KI-Themen und zu den News im Kontext. ' +
   'Wenn du etwas nicht weisst, sag das ehrlich.';
 
