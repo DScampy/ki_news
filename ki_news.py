@@ -34,6 +34,31 @@ def _ssr_fmt_date(d):
     return f"{p[2]}.{p[1]}.{p[0]}" if len(p) == 3 else _html.escape(str(d))
 
 
+# Karten-/Flaggen-Symbol je Region. welt/sachsen sind Karten (mit Stadt-
+# Punkten im SVG-Symbol selbst), alle anderen sind Flaggen (card-bg--flag).
+_REGION_SYMBOL = {
+    "welt":         ("map-welt", False),
+    "sachsen":      ("map-sachsen", False),
+    "europa":       ("flag-europa", True),
+    "deutschland":  ("flag-deutschland", True),
+    "oesterreich":  ("flag-oesterreich", True),
+    "schweiz":      ("flag-schweiz", True),
+}
+
+
+def _card_bg_svg(n):
+    """SVG-Hintergrund (Karte oder Flagge) fuer eine News-Kachel, je nach
+    n['region']. Kein Feld/unbekannte Region -> keine Deko (leerer String),
+    damit ein fehlendes region-Feld nie zu einem kaputten <use> fuehrt."""
+    region = n.get("region")
+    sym = _REGION_SYMBOL.get(region)
+    if not sym:
+        return ""
+    symbol_id, is_flag = sym
+    cls = "card-bg card-bg--flag" if is_flag else "card-bg"
+    return f'<svg class="{cls}"><use href="#{symbol_id}" width="100%" height="100%"/></svg>'
+
+
 def _ssr_card(n):
     c = _html.escape(n.get("color") or "#1d9bf0", quote=True)
     src = _html.escape(n.get("source") or "")
@@ -49,6 +74,9 @@ def _ssr_card(n):
     return (
         f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" target="_blank" rel="noopener" '
         f'class="ki-card ki-border border p-4 flex flex-col h-full transition-all">'
+        f'{_card_bg_svg(n)}'
+        f'<div class="card-scrim"></div>'
+        f'<div class="card-content flex flex-col h-full">'
         f'<div class="flex items-center justify-between mb-4">'
         f'<span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" '
         f'style="background:{c}">{src}</span>'
@@ -60,6 +88,7 @@ def _ssr_card(n):
         f'<div class="pt-4 ki-border border-t flex items-center justify-between">'
         f'<span class="text-[11px] font-mono uppercase" style="color:{c}">{src}</span>'
         f'<div style="display:flex;align-items:center;gap:6px">{date_html}{score_html}</div>'
+        f'</div>'
         f'</div>'
         f'</a>'
     )
@@ -733,6 +762,35 @@ def regional_score(text):
     if any(k in t for k in EU_KW):
         return 4
     return 0
+
+# Karten-/Flaggen-Hintergrund fuer News-Kacheln (02.07.26). Getrennt von
+# regional_score(): der Score/das Ranking darf sich NICHT aendern, nur die
+# Kartendeko soll feiner aufloesen (eigene Flagge fuer AT/CH statt Sammel-
+# Deutschland-Flagge, von Daniel bestaetigt 02.07.26). ACHTUNG: AT_KW/CH_KW
+# sind KEINE Teilmengen von DACH_KW mehr — die Staedte unten stehen bewusst
+# NICHT in DACH_KW, damit der Score unveraendert bleibt. Ein Basel-Artikel
+# bekommt also die CH-Flagge, aber weiterhin 0 Regional-Bonus.
+AT_KW = ["österreich", "oesterreich", "wien", "graz", "linz", "salzburg", "innsbruck"]
+CH_KW = ["schweiz", "zürich", "zuerich", "basel", "genf", "bern", "lausanne"]
+
+
+def classify_region(text):
+    """Region fuer die Karten-/Flaggen-Deko der News-Kachel.
+    Reihenfolge wie regional_score(): Sachsen > AT/CH > Deutschland > EU > Welt.
+    Rueckgabewerte: sachsen | oesterreich | schweiz | deutschland | europa | welt.
+    """
+    t = (text or "").lower()
+    if any(k in t for k in SACHSEN_KW):
+        return "sachsen"
+    if any(k in t for k in AT_KW):
+        return "oesterreich"
+    if any(k in t for k in CH_KW):
+        return "schweiz"
+    if any(k in t for k in DACH_KW):
+        return "deutschland"
+    if any(k in t for k in EU_KW):
+        return "europa"
+    return "welt"
 
 # Scoring-Fix (02.07.26), zwei Aenderungen am Prompt:
 # (a) Kriterium 1 verlangt jetzt KI als KERN-Thema (Fall: Sony-Kopfhoerer-
@@ -2439,13 +2497,21 @@ def main():
         base_score = max(hist["base_score"], raw_score) if hist else raw_score
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
         preview_img = resolve_preview_image(link, hist)
+        title_de = s.get("title_de", n["title"])
+        summary_de = s.get("summary", "")
         entry = {
-            "title":      s.get("title_de", n["title"]),
-            "summary":    s.get("summary", ""),
+            "title":      title_de,
+            "summary":    summary_de,
             "link":       link,
             "source":     n.get("source", ""),
             "color":      SOURCE_COLORS.get(n.get("source", ""), "#555"),
             "image":      preview_img,                     # Vorschaubild für die Karte
+            # Karten-/Flaggen-Hintergrund (02.07.26): bewusst der DEUTSCHE Text
+            # (title_de/summary_de) — der Score nutzt den Originaltext, die
+            # Keywords sind aber deutsch, daher trifft die Deko hier besser.
+            # Score-Region und Deko-Region KOENNEN dadurch abweichen (ok, Deko
+            # ist rein visuell und aendert kein Ranking).
+            "region":     classify_region(title_de + " " + summary_de),
             "base_score": base_score,                      # Ausgangs-Score (verfällt nie)
             "score":      decay_score(base_score, first_seen),  # aktueller, verfallener Score
             "label":      cluster_info.get("story_label", scoring.get("label", "📰 normal")),  # NEU: aus Cluster, nicht Einzel-Artikel
