@@ -2398,6 +2398,25 @@ def main():
         for idx, news_item in enumerate(uncached, start=1):
             link = news_item.get("link", "")
             p = parsed_new_dict.get(idx, {"teaser": "", "erklaerung": "", "thread": []})
+            # Zuordnungs-Guard (03.07.26): Der Teaser MUSS laut Prompt mit
+            # "(via Quellenname)" enden - das ist ein Fingerabdruck, WORUEBER
+            # das LLM wirklich geschrieben hat. Passt er nicht zur Quelle der
+            # News an Position idx, hat das LLM die Nummerierung verwuerfelt
+            # (Vorfall 03.07.: OpenAI-Headline bekam den Mistral-Teaser und
+            # der Fehler wurde dann auch noch gecacht). Mismatch -> Post
+            # verwerfen und NICHT cachen: naechster Lauf generiert neu.
+            # Besser keine Einordnung als eine falsche.
+            _teaser = p.get("teaser", "")
+            _via = ""
+            if "(via " in _teaser:
+                _via = _teaser.rsplit("(via ", 1)[-1].rstrip(")").strip()
+            _src = (news_item.get("source") or "").strip()
+            if _via and _src and _via.lower() != _src.lower():
+                logger.warning(
+                    "Post-Zuordnung verworfen: TEASER %d nennt '(via %s)', News-Quelle ist aber '%s' (%s)",
+                    idx, _via, _src, link,
+                )
+                continue
             if link:
                 post_cache[link] = {
                     "teaser":      p.get("teaser", ""),
@@ -2427,10 +2446,15 @@ def main():
         tg_sent = json.loads(tg_state_file.read_text(encoding="utf-8")).get("sent_links", {})
     except Exception:
         pass
+    # p.get("teaser")-Filter (03.07.26): Stories ohne (oder mit verworfenem,
+    # siehe Zuordnungs-Guard oben) Post NICHT als Headline-Stummel senden -
+    # sonst steht der Link in tg_sent und die Story bekommt NIE eine richtige
+    # Nachricht. Zurueckhalten -> naechster Lauf generiert den Post neu und
+    # sendet dann komplett.
     neue_stories = [
         ({**n, "title": _title_de_by_link.get(n.get("link"), n["title"])}, p)
         for n, p in zip(top_news, parsed)
-        if n.get("link") and n["link"] not in tg_sent
+        if n.get("link") and n["link"] not in tg_sent and p.get("teaser")
     ]
     if not neue_stories:
         logger.info("Telegram: keine neuen Top-Storys – Versand uebersprungen.")
