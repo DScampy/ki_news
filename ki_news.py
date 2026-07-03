@@ -653,6 +653,10 @@ def _title_bigrams(title):
 
 # Token, das in <= so vielen Titeln vorkommt, gilt als distinktiv (Produkt-/Eigenname).
 CLUSTER_RARE_DF_MAX = 3
+# Harter Deckel gegen Schneeball-Cluster (03.07.26): mehr Artikel nimmt ein
+# Cluster nicht auf. Grosse echte Stories sind davon kaum betroffen (die
+# groesste reale Story am 03.07. hatte 6 Artikel), Transitiv-Ketten schon.
+CLUSTER_MAX_SIZE = 8
 
 def cluster_news(alle_news):
     """
