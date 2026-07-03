@@ -770,8 +770,10 @@ def regional_score(text):
 # sind KEINE Teilmengen von DACH_KW mehr — die Staedte unten stehen bewusst
 # NICHT in DACH_KW, damit der Score unveraendert bleibt. Ein Basel-Artikel
 # bekommt also die CH-Flagge, aber weiterhin 0 Regional-Bonus.
+# "bern" fehlt BEWUSST: Substring-Matching wuerde "Übernahme"/"übernimmt"
+# treffen -> jeder Uebernahme-Artikel bekaeme die CH-Flagge. "berner" ist safe.
 AT_KW = ["österreich", "oesterreich", "wien", "graz", "linz", "salzburg", "innsbruck"]
-CH_KW = ["schweiz", "zürich", "zuerich", "basel", "genf", "bern", "lausanne"]
+CH_KW = ["schweiz", "zürich", "zuerich", "basel", "genf", "berner", "lausanne"]
 
 
 def classify_region(text):
