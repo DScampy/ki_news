@@ -2449,8 +2449,14 @@ def main():
             # existiert praktisch nicht.
             if _teaser:
                 _fmt_ok = "(via " in _teaser
+                # Wortliste erweitert (03.07. 21:18): "Zuckerberg enttaeuscht
+                # VON KI-Entwicklung, interne Kritik BEI Meta" wurde als
+                # nicht-deutsch verworfen - von/bei/als/... fehlten. Nur
+                # Woerter ohne englische Doppelbedeutung ("am" fehlt bewusst:
+                # engl. "I am").
                 _de_ok = bool(re.search(
-                    r"\b(der|die|das|den|dem|des|ein|eine|und|für|fuer|mit|auf|ist|sind|wird|werden|nicht|mehr|jetzt|sich)\b",
+                    r"\b(der|die|das|den|dem|des|ein|eine|und|für|fuer|mit|auf|ist|sind|wird|werden|nicht|mehr|jetzt|sich"
+                    r"|von|bei|als|aus|zum|zur|im|um|dass|kein|keine|noch|nur|auch|schon|gegen|ohne|wenn|wie)\b",
                     _teaser.lower()))
                 if not _fmt_ok or not _de_ok:
                     logger.warning(
