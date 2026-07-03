@@ -673,25 +673,42 @@ def cluster_news(alle_news):
         for w in set(_title_tokens(item["title"])):
             df[w] += 1
 
-    clusters = []  # je {"items": [...], "kw": set, "bg": set}
+    # Schneeball-Fix (03.07.26): Vorher wurde gegen die VEREINIGUNG aller
+    # Cluster-Keywords verglichen, die mit jedem Mitglied WUCHS - in einem
+    # KI-Feed (fast jeder Titel enthaelt openai/google/ki/agenten) frass sich
+    # ein Cluster transitiv durch den Feed. Vorfall heute 17:00: EIN Cluster
+    # mit 22 Artikeln (Google-ADK-Tutorial + Microsoft-Invest + Claude Science),
+    # Cluster-Score 77 an alle vererbt -> 61 von 183 News "episch"/BREAKING.
+    # Jetzt: (a) Matching gegen JEDES Mitglied einzeln (keine wachsende Union),
+    # (b) von 2+ geteilten Keywords muss mind. 1 DISTINKTIV sein (df-Schwelle,
+    # dieselbe Regel wie beim Bigram-Kriterium), (c) harter Groessendeckel.
+    # Simulation auf den 183 News vom 03.07.: groesster Cluster 11 -> 6, und
+    # der 6er ist die echte OpenAI-5%-Story; SpaceX/Anthropic-Samsung bleiben
+    # korrekt zusammen, Themen-Ketten zerfallen.
+    clusters = []  # je {"items": [...], "sigs": [(kw, bg) pro Mitglied]}
     for item in alle_news:
         kw = _title_keywords(item["title"])
         bg = _title_bigrams(item["title"])
         merged = False
         for cluster in clusters:
-            # Gegen die VEREINIGUNG aller Cluster-Keywords/-Bigramme vergleichen (inkrementell
-            # gepflegt), nicht nur gegen cluster[0] – sonst zerfällt eine Story in Einzel-Cluster.
-            shared_bg = bg & cluster["bg"]
-            strong_bg = any(df[a] <= CLUSTER_RARE_DF_MAX or df[b] <= CLUSTER_RARE_DF_MAX
-                            for (a, b) in shared_bg)
-            if len(kw & cluster["kw"]) >= 2 or strong_bg:
-                cluster["items"].append(item)
-                cluster["kw"] |= kw
-                cluster["bg"] |= bg
-                merged = True
+            if len(cluster["items"]) >= CLUSTER_MAX_SIZE:
+                continue
+            for m_kw, m_bg in cluster["sigs"]:
+                shared_kw = kw & m_kw
+                kw_match = (len(shared_kw) >= 2
+                            and any(df[w] <= CLUSTER_RARE_DF_MAX for w in shared_kw))
+                shared_bg = bg & m_bg
+                strong_bg = any(df[a] <= CLUSTER_RARE_DF_MAX or df[b] <= CLUSTER_RARE_DF_MAX
+                                for (a, b) in shared_bg)
+                if kw_match or strong_bg:
+                    cluster["items"].append(item)
+                    cluster["sigs"].append((kw, bg))
+                    merged = True
+                    break
+            if merged:
                 break
         if not merged:
-            clusters.append({"items": [item], "kw": set(kw), "bg": set(bg)})
+            clusters.append({"items": [item], "sigs": [(kw, bg)]})
     return [c["items"] for c in clusters]
 
 def score_cluster(cluster):
@@ -2417,6 +2434,26 @@ def main():
                     idx, _via, _src, link,
                 )
                 continue
+            # Qualitaets-Gate (03.07.26 abends, OpenRouter-Brownout): Der Prompt-
+            # Vertrag verlangt "(via Quelle)" am Ende UND deutschen Text. Der
+            # Brownout lieferte drei Sorten Muell, die der via-Check oben NICHT
+            # faengt: Token-Salat ohne via ("Anth helpers uidPolicy Cain..."),
+            # englische Teaser mit korrektem via (CNBC-Fall) und Sprachmix.
+            # Regel: kein "(via " = Formatbruch; kein einziges deutsches
+            # Funktionswort im ganzen Teaser = keine deutsche Antwort. Ein
+            # echter deutscher Teaser (>=100 Zeichen) ohne der/die/das/und/...
+            # existiert praktisch nicht.
+            if _teaser:
+                _fmt_ok = "(via " in _teaser
+                _de_ok = bool(re.search(
+                    r"\b(der|die|das|den|dem|des|ein|eine|und|für|fuer|mit|auf|ist|sind|wird|werden|nicht|mehr|jetzt|sich)\b",
+                    _teaser.lower()))
+                if not _fmt_ok or not _de_ok:
+                    logger.warning(
+                        "Post verworfen (Qualitaets-Gate): via_ok=%s deutsch_ok=%s teaser=%r (%s)",
+                        _fmt_ok, _de_ok, _teaser[:60], link,
+                    )
+                    continue
             if link:
                 post_cache[link] = {
                     "teaser":      p.get("teaser", ""),
