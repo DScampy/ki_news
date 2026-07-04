@@ -594,9 +594,14 @@ PENALTY_KEYWORDS = [
 ]
 
 # Score-Labels für Telegram-Log und news.json
+# Schwellen angehoben (04.07.26, Backtest 21.06.-01.07. gegen archive.json):
+# episch>=40 gab je nach Tag 3-25% "BREAKING" (instabil, entwertet den Begriff),
+# >=55 liefert stabil 0-6/Tag - selbst an den Cluster-Inflationstagen 22.-25.06.
+# ACHTUNG: Frontend-Pendants in index.html (scoreToLevel, scoreBadge) fuehren
+# dieselben Schwellen hartkodiert - immer zusammen aendern!
 SCORE_LABELS = [
-    (40, "🔥 episch"),
-    (25, "⚡ wichtig"),
+    (55, "🔥 episch"),
+    (35, "⚡ wichtig"),
     (0,  "📰 normal"),
 ]
 
@@ -833,7 +838,10 @@ bewertet, das macht ein separater deterministischer Check):
 1. Substanz statt Ankuendigung (0-30): Aendert sich real etwas (neue Faehigkeit, \
 echtes Limit, messbarer Effekt)? Reine PR ohne Inhalt = 0. WICHTIG: Ist KI/AI nicht \
 das ZENTRALE Thema des Artikels, sondern nur Randnotiz oder Marketing-Etikett \
-(z.B. Gadget-Firmware, Gaming-Hardware, Consumer-Deals), maximal 5 Punkte.
+(z.B. Gadget-Firmware, Gaming-Hardware, Consumer-Deals), maximal 5 Punkte. Gleiches \
+Limit fuer Tutorials/Anleitungen/How-tos und Produktblog-Marketing ohne \
+Nachrichtenereignis (es wird erklaert oder beworben, aber nichts ist PASSIERT, \
+z.B. "Baue ein Multi-Agenten-Team mit Tool X"), auch wenn KI das Kern-Thema ist.
 2. Einordnungs-Spannung (0-20): Gibt es einen Widerspruch oder eine eigene These \
 zu bilden (Hype vs. Realitaet, Gewinner/Verlierer)?
 3. Neuigkeitswert (0-15): Volle Punkte wenn (a) das Thema in den "bereits \
@@ -1954,7 +1962,10 @@ def _telegram_send_message(text, buttons=None, max_retries=3, delay=5):
 def send_telegram_stories(stories, score_map=None, detailliert=False):
     """Eine Nachricht PRO neuer Story: Label + fetter Titel + Teaser +
     Erklaerung, Buttons 'Auf X posten' (Intent-Link) und 'Artikel'.
-    detailliert=True (genau 1 neue Story): Thread-Entwurf komplett anhaengen."""
+    detailliert=True (wenige neue Storys, Schwelle beim Aufrufer): Die ERSTE
+    Story der Liste (= hoechster Score) bekommt den kompletten Thread-Entwurf
+    angehaengt. Vorher (bis 04.07.26) nur bei GENAU 1 neuer Story - dadurch war
+    der Analyse-Ausbau bei Nachrichtenflaute praktisch verschwunden."""
     if not TELEGRAM_TOKEN:
         logger.warning("Kein Telegram Token. Ueberspringe Versand.")
         return False
@@ -1964,14 +1975,14 @@ def send_telegram_stories(stories, score_map=None, detailliert=False):
         return _html.escape(t or "", quote=False)
 
     ok_all = True
-    for n, p in stories:
+    for _story_idx, (n, p) in enumerate(stories):
         label = score_map.get(n.get("link", ""), {}).get("label", "")
         teile = [f"{label} <b>{esc(n.get('title', ''))}</b>".strip()]
         if p.get("teaser"):
             teile += ["", esc(p["teaser"])]
         if p.get("erklaerung"):
             teile += ["", f"<i>{esc(p['erklaerung'])}</i>"]
-        if detailliert and p.get("thread"):
+        if detailliert and _story_idx == 0 and p.get("thread"):
             teile += ["", "<b>Thread-Entwurf:</b>"]
             teile += [f"{i}/ {esc(tweet)}" for i, tweet in enumerate(p["thread"], 1)]
         buttons_row = []
@@ -2505,7 +2516,7 @@ def main():
     ]
     if not neue_stories:
         logger.info("Telegram: keine neuen Top-Storys – Versand uebersprungen.")
-    elif send_telegram_stories(neue_stories, score_map, detailliert=(len(neue_stories) == 1)):
+    elif send_telegram_stories(neue_stories, score_map, detailliert=(len(neue_stories) <= 3)):
         jetzt = datetime.now(BERLIN).isoformat()
         for n, _ in neue_stories:
             tg_sent[n["link"]] = jetzt
@@ -2612,20 +2623,34 @@ def main():
     # Fix: explizit nach first_seen sortieren, neueste zuerst.
     news_list.sort(key=lambda n: n.get("first_seen", ""), reverse=True)
 
-    # Posts (Teasers) den Top-3-News zuordnen (kommt aus post_cache via parsed)
-    # Jeder Post trägt den Link (+ story_id) SEINER Story, damit das Frontend den Teaser
-    # eindeutig der richtigen Karte zuordnen kann (statt per Quelle/Position zu raten).
-    # parsed ist in top_news-Reihenfolge gebaut, daher ist zip() hier synchron.
-    posts_list = [
-        {
-            "teaser":     p.get("teaser", ""),
-            "erklaerung": p.get("erklaerung", ""),
-            "thread":     p.get("thread", []),
-            "link":       tn.get("link", ""),
-            "story_id":   link_to_cluster_info.get(tn.get("link", ""), {}).get("story_id", ""),
-        }
-        for tn, p in zip(top_news, parsed)
-    ]
+    # Analyse-Fix (04.07.26): Posts nicht mehr NUR fuer die aktuellen top_news
+    # exportieren. Seit dem already_sent-Fix (26.06.) verdraengt der Sent-Filter
+    # bereits getelegramte Top-Storys aus top_news - deren Posts fehlten dann in
+    # news.json, der Hero (Top-5 nach SCORE) fand keinen Link-Match mehr und die
+    # "Analyse anzeigen"-Sektion verschwand ausgerechnet bei den grossen Storys.
+    # Jetzt: Kandidaten = Top-15 nach Score + top_news + featured; Posts kommen
+    # aus dem post_cache (reiner Cache-Lookup, keine LLM-Kosten). Jeder Post
+    # traegt weiterhin Link + story_id, Frontend matcht exakt per Link.
+    _post_link_cands = [n.get("link", "") for n in
+                        sorted(news_list, key=lambda x: -(x.get("score") or 0))[:15]]
+    _post_link_cands += [tn.get("link", "") for tn in top_news]
+    _post_link_cands += list(featured_links or [])
+    posts_list = []
+    _pl_seen = set()
+    for _lnk in _post_link_cands:
+        if not _lnk or _lnk in _pl_seen:
+            continue
+        _pl_seen.add(_lnk)
+        _pc = post_cache.get(_lnk, {})
+        if not _pc.get("teaser"):
+            continue
+        posts_list.append({
+            "teaser":     _pc.get("teaser", ""),
+            "erklaerung": _pc.get("erklaerung", ""),
+            "thread":     _pc.get("thread", []),
+            "link":       _lnk,
+            "story_id":   link_to_cluster_info.get(_lnk, {}).get("story_id", ""),
+        })
 
     # Roundups als separates Feld – Material zum Abgleich, nicht in der News-Liste.
     # Frontend und Breaking-Karte lesen nur "news" und ignorieren dieses Feld.

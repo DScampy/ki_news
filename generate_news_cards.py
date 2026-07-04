@@ -32,7 +32,7 @@ from pathlib import Path
 GROQ_API_KEY     = os.environ.get("GROQ_CHAT_KEY", "")
 GROQ_URL         = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODELS      = [
-    "llama-3.3-70b-versatile",   # stärkstes Groq-Modell zuerst
+    "openai/gpt-oss-120b",       # Ersatz fuer llama-3.3-70b-versatile (Groq schaltet es 16.08.2026 ab)
     "gemma2-9b-it",
     "llama-3.1-8b-instant",      # schnellstes als letzter Fallback
 ]
@@ -155,6 +155,10 @@ SYSTEM_PROMPT = (
     "fragt dich in der Pause, was diese News eigentlich bedeutet. Du erklärst es ihm in 2-3 "
     "kurzen deutschen Sätzen (ca. 15-20 Sekunden Redezeit) - so, dass er es versteht, ohne "
     "sich dumm zu fühlen, und danach weiß, warum es ihn betrifft oder eben nicht.\n"
+    "WICHTIG: Dein Text erscheint öffentlich auf einer News-Seite - der Kollege ist nur ein "
+    "Stilbild für Ton und Niveau. Schreibe NIEMALS aus einer Firmen-Wir-Perspektive: kein "
+    "'wir', 'uns', 'unser Unternehmen', 'bei uns im Betrieb' - du kennst weder den Leser "
+    "noch dessen Firma.\n"
     "\n"
     "Regeln:\n"
     "- Alltagssprache und Vergleiche aus dem Arbeits-/Alltagsleben, kein Fachjargon. Wenn ein "
@@ -687,8 +691,25 @@ def main() -> None:
 
     # Normale Top_N-Auswahl bekommt die forcierten Links nicht nochmal (sonst
     # doppelt gezaehlt) - sie laufen als eigener, zusaetzlicher Block vorneweg.
+    #
+    # Card-Hungersnot-Fix (03.07.26): Der Top-N-Schnitt passierte bisher VOR
+    # dem card_sent-Dedup (das erst in der Verarbeitungsschleife greift). Waren
+    # alle N hoechstgescorten Links schon abgedeckt - heute passiert, nachdem
+    # die OpenAI-5%-Welle + Monster-Cluster-Nachwehen die kompletten Top-5
+    # verbrannt hatten - prueften ALLE Folgelaeufe immer wieder dieselben 5
+    # toten Kandidaten: 0 neue Karten den ganzen Tag, obwohl frische Storys ab
+    # Platz 6 bereitstanden. Fix: bereits abgedeckte Links VOR dem Top-N-
+    # Schnitt ausfiltern. Das Themen-Dedup in der Schleife unten bleibt als
+    # zweite Stufe unveraendert (es braucht die teureren Keyword-Signaturen).
+    _pre_sent = set()
+    try:
+        _pre_sent = set(json.loads(CARD_STATE_JSON.read_text(encoding="utf-8")).get("sent_links", {}))
+    except Exception:
+        pass
     articles_sorted = forced_articles + [
-        a for a in articles_deduped if (a.get("link") or "").strip() not in forced_links
+        a for a in articles_deduped
+        if (a.get("link") or "").strip() not in forced_links
+        and (a.get("link") or "").strip() not in _pre_sent
     ][:TOP_N]
 
     if not articles_sorted:
