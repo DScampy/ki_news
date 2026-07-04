@@ -81,9 +81,14 @@ def _ssr_card(n):
         f'<span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" '
         f'style="background:{c}">{src}</span>'
         f'</div>'
+        # Bottom-Anchor (04.07.26): margin-top:auto schiebt Titel+Text+Footer an
+        # den Kachel-Boden, oben bleibt freie Zone fuer die Karten-/Flaggen-Deko
+        # (Kacheln einer Grid-Reihe sind gleich hoch, Inhalte unterschiedlich).
+        # flex-grow am <p> musste dafuer weg (frisst sonst den freien Raum).
+        # Pendant in index.html renderCard() - immer zusammen aendern!
         f'<h4 class="font-headline-md ki-main mb-2 leading-snug" '
-        f"style=\"font-family:'Space Grotesk',sans-serif\">{_html.escape(n.get('title') or '')}</h4>"
-        f'<p class="text-on-surface-variant font-body-sm text-body-sm mb-6 flex-grow">'
+        f"style=\"font-family:'Space Grotesk',sans-serif;margin-top:auto\">{_html.escape(n.get('title') or '')}</h4>"
+        f'<p class="text-on-surface-variant font-body-sm text-body-sm mb-6">'
         f"{_html.escape(n.get('summary') or '')}</p>"
         f'<div class="pt-4 ki-border border-t flex items-center justify-between">'
         f'<span class="text-[11px] font-mono uppercase" style="color:{c}">{src}</span>'
@@ -227,9 +232,18 @@ def load_summary_cache(base_dir):
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        cache = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return {}
+    # Einmal-Purge (04.07.26): Muse-Spark-Titel wurde trotz Eigennamen-Regel
+    # generisch uebersetzt ("...eines neuen KI-Modells mit erweiterten
+    # Codierungsfaehigkeiten"); title_de ist pro Link stabil und wuerde sich
+    # nie selbst heilen. Eintrag verwerfen -> naechster Lauf uebersetzt neu
+    # (mit verschaerfter Regel). Nach ein paar Tagen ersatzlos entfernbar.
+    _poisoned = "eines neuen KI-Modells mit erweiterten Codierungsf"
+    cache = {k: v for k, v in cache.items()
+             if _poisoned not in (v.get("title_de") or "")}
+    return cache
 
 def save_summary_cache(base_dir, cache):
     """Speichert summary-cache.json, bereinigt Eintraege aelter als 30 Tage
@@ -1161,6 +1175,22 @@ def decay_score(base_score, first_seen):
     decayed = base - SCORE_DECAY_PER_DAY * _days_since(first_seen)
     return max(SCORE_FLOOR, decayed)
 
+def _cap_inflated_base_scores(entries):
+    """Einmal-Migration (04.07.26): Die Schneeball-Cluster-Inflation vom 03.07.
+    hat base_scores bis 77 in archive.json eingefroren (und ueber die History-
+    Heilung max(hist, raw) auch AELTERE Links mit hochgezogen). Mit Decay -5/Tag
+    verstopfen diese Alt-Eintraege die Startseiten-Sortierung noch ~10 Tage und
+    tragen dabei frisch berechnete NIEDRIGE Labels (Zahl alt, Label neu ->
+    Karte mit Score 52 ohne Badge, wirkt unsortiert). Kappung auf 54 = knapp
+    unter der neuen episch-Schwelle 55. Idempotent, betrifft nur Eintraege bis
+    einschliesslich 03.07. - kann nach dem 14.07.26 ersatzlos entfernt werden."""
+    for e in entries:
+        try:
+            if str(e.get("first_seen", ""))[:10] <= "2026-07-03" and float(e.get("base_score", 0)) > 54:
+                e["base_score"] = 54
+        except (TypeError, ValueError):
+            continue
+
 def build_history_map(*archive_lists):
     """
     Baut link -> {first_seen, base_score} aus vorhandenen Archiv-Einträgen.
@@ -1549,7 +1579,7 @@ Format (ersetze Inhalt mit echten Werten fuer jede News):
 Wichtig:
 - src_title MUSS die ersten Woerter des jeweiligen Original-Titels WORTWOERTLICH (unveraendert, gleiche Sprache) kopieren – das dient der Zuordnung
 - title_de MUSS eine echte Uebersetzung GENAU DIESES Originaltitels sein
-- Falls der Original-Titel einen Firmen-, Produkt- oder Personennamen enthaelt, MUSS title_de diesen Namen ebenfalls enthalten – ein Titel ohne das eigentliche Subjekt ("KI-Startup sammelt Millionen" statt "Baseten sammelt Millionen") ist nutzlos
+- Falls der Original-Titel einen Firmen-, Produkt- oder Personennamen enthaelt, MUSS title_de diesen Namen ebenfalls enthalten – ein Titel ohne das eigentliche Subjekt ("KI-Startup sammelt Millionen" statt "Baseten sammelt Millionen") ist nutzlos. Das gilt AUCH fuer Produkt-/Modellnamen aus mehreren Woertern ("Muse Spark", "Claude Sonnet 5"): den Namen WOERTLICH uebernehmen, NIEMALS durch einen Gattungsbegriff ersetzen - "Meta plant neues KI-Modell mit besseren Coding-Faehigkeiten" statt "Meta kuendigt Muse Spark an" ist ein FEHLER, denn Leser suchen nach genau diesem Namen
 - title_de und summary AUSSCHLIESSLICH auf Deutsch, keine Zeichen aus anderen Schriftsystemen (z.B. chinesische/japanische/koreanische Zeichen) uebernehmen, auch wenn der Original-Titel mehrsprachig ist
 - title_de MUSS ein Aussagesatz sein, KEINE Frage (kein Fragezeichen, keine Frageform wie "Hat X sich...?"). Falls der Original-Titel selbst eine Frage oder reine Spekulation ist, in eine Aussage mit Unsicherheits-Marker umformulieren (z.B. "moeglicherweise", "laut Bericht") statt die Frage zu uebernehmen – das gilt nur fuer die Formulierung, nicht als Grund den Artikel zu verwerfen
 - Jede id muss vorkommen (1 bis {len(batch)})
@@ -2353,6 +2383,7 @@ def main():
             _existing_archive = json.loads(_arch_path.read_text(encoding="utf-8"))
     except Exception:
         _existing_archive = []
+    _cap_inflated_base_scores(_existing_archive)  # Einmal-Migration 04.07.26, s. Funktion
     history = build_history_map(_existing_archive)
 
     # Cluster-Membership-Map: link → ältester first_seen im Cluster (Story-Alter-Fix)
@@ -2700,6 +2731,8 @@ def main():
                 existing = []
         except Exception:
             existing = []
+
+        _cap_inflated_base_scores(existing)  # Einmal-Migration 04.07.26, s. Funktion
 
         # Scoring-Fix (02.07.26): base_score-Heilung erreicht jetzt auch das
         # ARCHIV. Vorher heilte nur news.json (max(hist, raw) dort), aber
