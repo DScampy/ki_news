@@ -312,34 +312,6 @@ def clean_markdown(text: str) -> str:
     return text.strip()
 
 
-def limit_chars_sentence_safe(text: str, max_chars: int = 320) -> str:
-    """Kuerzt Text auf max. max_chars Zeichen, OHNE mitten im Satz oder Wort
-    abzuschneiden.
-
-    Bug-Fix (05.07.26, Daniels Karten-Screenshots): `kontext = summary[:280]`
-    war ein reiner Zeichen-Cut - schnitt regelmaessig mitten im Wort/Satz ab
-    ("...im Bereich der Bildve"). limit_sentences() loest genau dieses Problem
-    schon fuer die Einordnung (Satzgrenzen statt Zeichen-Guillotine) - dieser
-    Fix ueberträgt das Muster auf KONTEXT, das bisher aussen vor war.
-    Reihenfolge: 1) letztes Satzende INNERHALB des Budgets suchen, 2) falls
-    keins vorhanden (Text ohne Satzzeichen im Budget), auf letzte Wortgrenze
-    zurueckfallen + Ellipse - nie ein hartes Wortfragment wie "Bildve".
-    """
-    text = (text or "").strip()
-    if len(text) <= max_chars:
-        return text
-    window = text[:max_chars]
-    last_sentence_end = None
-    for m in re.finditer(r'[.!?]["\'”]?(?=\s|$)', window):
-        last_sentence_end = m
-    if last_sentence_end:
-        return window[:last_sentence_end.end()].strip()
-    last_space = window.rfind(" ")
-    if last_space > 0:
-        window = window[:last_space]
-    return window.rstrip(",;:– ") + "…"
-
-
 def limit_sentences(text: str, max_sentences: int = MAX_SENTENCES) -> str:
     """Kappt Text auf max. N Saetze, damit Einordnung (und TTS-Dauer) nicht ausufern.
 
@@ -464,21 +436,7 @@ def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, 
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            choice = data["choices"][0]
-            text = clean_markdown(choice["message"]["content"].strip())
-            # Bug-Fix (05.07.26, Daniels Karten-Screenshots): Antworten, die vom
-            # max_tokens-Limit MITTEN IM ERSTEN Satz gekappt wurden ("...das",
-            # kein Satzende), rutschten bisher durch. limit_sentences() greift nur,
-            # wenn mind. 2 Saetze vorhanden sind (sonst wuerde der Text komplett
-            # verschwinden) - bei Abbruch im allerersten Satz gibt es aber nur
-            # EIN Element, die Guard-Bedingung greift nicht, das Fragment landete
-            # unveraendert auf der Karte. Statt am Text zu raten: die API sagt es
-            # uns direkt (finish_reason="length") - das als Fehlschlag behandeln,
-            # naechstes Modell in der Fallback-Kette versuchen lassen.
-            if choice.get("finish_reason") == "length":
-                print(f"  [WARN] {model}: Antwort von max_tokens abgeschnitten (finish_reason=length), verworfen: {text[:80]!r}")
-                return None
-            return text
+            return clean_markdown(data["choices"][0]["message"]["content"].strip())
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")
         print(f"  [WARN] LLM HTTP {e.code} ({url.split('/')[2]}): {body[:150]}")
@@ -501,15 +459,6 @@ def _looks_invalid(text: str) -> str | None:
     """
     if not text or len(text) < 15:
         return "zu kurz/leer"
-    # Substanz-Check (05.07.26, Daniels Beispiel "Die neuen Workflows sind
-    # vordefinierte Ablaeufe" - formal gueltiges Deutsch, aber inhaltsleer).
-    # Schwache Fallback-Modelle liefern manchmal einen validen Ein-Satz-Fragment
-    # statt der geforderten 2-3 Saetze. Schwelle bewusst strenger (Daniels Wahl):
-    # weniger als 3 Saetze UND weniger als 120 Zeichen -> zu duenn, naechstes
-    # Modell in der Fallback-Kette versuchen statt eine magere Karte zu bauen.
-    sentence_count = len([s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s])
-    if sentence_count < 3 and len(text) < 120:
-        return f"zu wenig Substanz ({sentence_count} Satz/Saetze, {len(text)} Zeichen)"
     lower = text.lower()
     leak_markers = [
         "we need", "i need", "let me", "as an ai", "i should",
@@ -853,8 +802,7 @@ def main() -> None:
 
         # Einordnung via Groq → OpenRouter Fallback (mit Inhalts-Validierung)
         einordnung, llm_used = groq_einordnung(headline, summary, force_note)
-        # 05.07.26: satzsicherer Cut statt summary[:280] (siehe limit_chars_sentence_safe)
-        kontext    = limit_chars_sentence_safe(summary, 320) if summary else "–"
+        kontext    = summary[:280] if summary else "–"
 
         # Hard-Cap auf max. N Saetze — verhindert ausufernde TTS-Dauer strukturell
         einordnung_clean = limit_sentences(einordnung)
