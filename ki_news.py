@@ -1582,6 +1582,7 @@ Wichtig:
 - Falls der Original-Titel einen Firmen-, Produkt- oder Personennamen enthaelt, MUSS title_de diesen Namen ebenfalls enthalten – ein Titel ohne das eigentliche Subjekt ("KI-Startup sammelt Millionen" statt "Baseten sammelt Millionen") ist nutzlos. Das gilt AUCH fuer Produkt-/Modellnamen aus mehreren Woertern ("Muse Spark", "Claude Sonnet 5"): den Namen WOERTLICH uebernehmen, NIEMALS durch einen Gattungsbegriff ersetzen - "Meta plant neues KI-Modell mit besseren Coding-Faehigkeiten" statt "Meta kuendigt Muse Spark an" ist ein FEHLER, denn Leser suchen nach genau diesem Namen
 - title_de und summary AUSSCHLIESSLICH auf Deutsch, keine Zeichen aus anderen Schriftsystemen (z.B. chinesische/japanische/koreanische Zeichen) uebernehmen, auch wenn der Original-Titel mehrsprachig ist
 - title_de MUSS ein Aussagesatz sein, KEINE Frage (kein Fragezeichen, keine Frageform wie "Hat X sich...?"). Falls der Original-Titel selbst eine Frage oder reine Spekulation ist, in eine Aussage mit Unsicherheits-Marker umformulieren (z.B. "moeglicherweise", "laut Bericht") statt die Frage zu uebernehmen – das gilt nur fuer die Formulierung, nicht als Grund den Artikel zu verwerfen
+- title_de MUSS GENAU EIN Satz sein (genau EIN Satzzeichen . oder ! am Ende, sonst nichts) – KEIN zweiter Satz mit weiteren Erlaeuterungen ("...ins Auge gefasst. Dies koennte..."). Alles ueber den Kern-Fakt Hinausgehende (Einordnung, Kontext, Vermutungen zur Bedeutung) gehoert in summary, NIEMALS in title_de. Card-Rendering nutzt title_de als feste Kachel-Ueberschrift – ein zweisaetziger Titel sprengt das Layout.
 - Jede id muss vorkommen (1 bis {len(batch)})
 - Nur das JSON-Array zurueckgeben, sonst nichts
 
@@ -1674,6 +1675,16 @@ News:
                         t = (item.get("title_de") or "").strip()
                         s = (item.get("summary") or "").strip()
                         if t and len(t.split()) < 3:
+                            completeness_ok = False
+                            break
+                        # Fund 06.07.26 (Daniels Karten-Screenshots): title_de kam manchmal
+                        # als 2-Satz-Mini-Absatz zurueck ("...ins Auge gefasst. Dies koennte
+                        # eine strategische Partnerschaft..."). generate_news_cards.py rendert
+                        # title_de als feste Kachel-Ueberschrift - eine ueberlange 2-Satz-
+                        # Headline sprengt dort das Flexbox-Layout und verdraengt den
+                        # kompletten "Was ist passiert"-Block. Hier an der Wurzel abfangen:
+                        # title_de darf nur EIN Satzende-Zeichen enthalten.
+                        if t and len(re.findall(r"[.!?]", t)) > 1:
                             completeness_ok = False
                             break
                         if s and s[-1] not in ".!?\"'”":

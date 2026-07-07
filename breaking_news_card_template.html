@@ -251,6 +251,15 @@ html, body {
   opacity: 0;
   filter: blur(5px);
   animation: materialize .9s cubic-bezier(.16,1,.3,1) 1.3s forwards;
+  /* Sicherheitsnetz (06.07.26): flex-shrink:0 heisst diese Box schrumpft NIE -
+     ein ueberlanger/2-saetziger Titel (siehe cap_headline() in
+     generate_news_cards.py + title_de-Fix in ki_news.py) druecke sonst die
+     komplette .kontext-section aus der fix 660px hohen Karte. Clamp als
+     zweite Verteidigungslinie, falls beide Upstream-Fixes mal versagen. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
 }
 @keyframes materialize {
   from { opacity: 0; filter: blur(5px); transform: translateY(8px); }
@@ -296,7 +305,13 @@ html, body {
 /* ── KONTEXT SECTION ── */
 .kontext-section {
   flex: 1;
-  min-height: 0;
+  /* Sicherheitsnetz (06.07.26): min-height:0 (Flexbox-Standard) erlaubt dieser
+     Box, bis auf 0px zusammengedrueckt zu werden, wenn Headline/Einordnung zu
+     viel Platz beanspruchen - genau das liess "WAS IST PASSIERT" (Label +
+     Text) komplett verschwinden statt nur den Text zu kuerzen. Mindesthoehe
+     erzwingt: das Label + mind. eine Zeile Text bleiben IMMER sichtbar, auch
+     wenn andere Boxen dadurch enger werden. */
+  min-height: 64px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -335,6 +350,10 @@ html, body {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 6;
+  /* 05.07.26: Sicherheitsnetz - falls der Clamp trotz satzsicherem Kontext-Cut
+     (limit_chars_sentence_safe in generate_news_cards.py) noch greift, wenigstens
+     sichtbar mit "…" statt kommentarlos verschluckt. */
+  text-overflow: ellipsis;
 }
 
 /* ── EINORDNUNG ── */
