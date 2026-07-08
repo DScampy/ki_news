@@ -312,6 +312,32 @@ def clean_markdown(text: str) -> str:
     return text.strip()
 
 
+# Deutsche Signalwoerter (gemeinsam genutzt von _looks_invalid() fuer die Einordnung
+# UND _looks_german() fuer Headline/Kontext, siehe unten). Bewusst keine harte
+# Sprach-ID-Bibliothek - reicht als Fangnetz gegen unuebersetzten Text.
+GERMAN_MARKERS = [
+    " der ", " die ", " das ", " und ", " ist ", " nicht ", " eine ",
+    " einen ", " für ", " mit ", " auf ", " dass ", " wird ", " sich ",
+    " kein ", " keine ", " ein ", " im ", " den ",
+]
+
+
+def _looks_german(text: str) -> bool:
+    """True wenn der Text deutsche Signalwoerter enthaelt.
+
+    Bug-Fix (08.07.26, Daniels ZML-Karten-Fund): ki_news.py setzt fuer jeden Artikel
+    zunaechst {"title_de": Originaltitel, "summary": ""} als Platzhalter (siehe
+    summarize_news()) und ueberschreibt ihn nur bei erfolgreicher Uebersetzung. Schlaegt
+    die Uebersetzung fuer einen Artikel komplett fehl (alle Modelle im Batch abgelehnt/
+    Fehler), bleibt der englische Original-Titel stehen und wurde bisher UNGEPRUEFT auf
+    die Karte gerendert ("Hot French startup ZML releases..."). generate_news_cards.py
+    prueft bisher nur die LLM-generierte Einordnung auf Sprache (_looks_invalid()),
+    nicht Headline/Kontext, die direkt aus news.json kommen. Diese Funktion schliesst
+    die Luecke, angewandt auf die Headline vor dem Rendern (siehe main())."""
+    lower = f" {(text or '').lower()} "
+    return any(marker in lower for marker in GERMAN_MARKERS)
+
+
 def cap_headline(text: str, max_chars: int = 140) -> str:
     """Sicherheitsnetz (06.07.26, Daniels Karten-Screenshots): title_de kommt aus
     ki_news.py normalerweise als EIN Satz (dort jetzt per Prompt+Check erzwungen,
@@ -540,11 +566,7 @@ def _looks_invalid(text: str) -> str | None:
     ]
     if any(marker in lower for marker in leak_markers):
         return "Meta-Kommentar-Leak erkannt"
-    german_markers = [
-        " der ", " die ", " das ", " und ", " ist ", " nicht ", " eine ",
-        " einen ", " für ", " mit ", " auf ", " dass ", " wird ", " sich ",
-        " kein ", " keine ",
-    ]
+    german_markers = GERMAN_MARKERS
     padded = f" {lower} "
     if not any(marker in padded for marker in german_markers):
         return "keine deutschen Signalwoerter gefunden (vermutlich falsche Sprache)"
@@ -832,6 +854,16 @@ def main() -> None:
 
         if not headline:
             print(f"  [SKIP] Artikel {i}: kein Titel.")
+            continue
+
+        # ── Sprach-Check (08.07.26, ZML-Fund): title_de-Uebersetzung in ki_news.py
+        # fehlgeschlagen -> englischer Original-Titel blieb stehen. Nicht als "sent"
+        # markieren, damit der naechste Lauf es erneut versucht, sobald die
+        # Uebersetzung geklappt hat (kein card_sent/sent_topics-Eintrag hier).
+        if not _looks_german(headline):
+            print(f"  [SKIP] Artikel {i}: Headline wirkt unuebersetzt/nicht Deutsch "
+                  f"({headline[:60]!r}) — ki_news.py-Uebersetzung fehlgeschlagen, "
+                  f"naechster Lauf versucht es erneut.")
             continue
 
         # ── Link-Dedup: exakt dieser Artikel-Link schon mal verarbeitet? ────
