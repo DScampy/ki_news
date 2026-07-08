@@ -1271,6 +1271,50 @@ def http_get_with_retry(url, headers=None, timeout=10, retries=3, backoff=2):
             break
     return None
 
+# Volltext-Capture fuer den Chat-Bot (Fund 08.07.26): der Bot-Kontext bestand
+# bisher NUR aus der RSS-Kurz-Summary (siehe summarize_news) - selbst bei
+# Nicht-Paywall-Quellen wurde nie der Artikel-Volltext geholt. Ausloeser: Frage
+# zur Saechsische-Zeitung-Betrugskarte, die der Bot nicht beantworten konnte.
+# Bewusst NUR fuer die Top-5 nach Score (nicht alle ~30 Feeds) - haelt Scrape-
+# Last und rechtliches Risiko (Volltext-Reproduktion fremder Inhalte) klein.
+_FULLTEXT_MAX_CHARS = 2000
+
+def _extract_readable_text(raw_html):
+    """Grobe Volltext-Extraktion, reines stdlib (kein requests/BeautifulSoup -
+    der GitHub-Actions-Workflow installiert dafuer nichts). Kein Anspruch auf
+    saubere Artikel-Extraktion (Nav/Footer/Kommentare koennen mit drin sein) -
+    Zweck ist "mehr Substanz fuer den Chat-Bot", nicht Archivqualitaet."""
+    if not raw_html:
+        return ""
+    try:
+        text = raw_html.decode("utf-8", errors="replace") if isinstance(raw_html, bytes) else raw_html
+    except Exception:
+        return ""
+    text = re.sub(r"(?is)<(script|style|nav|header|footer|noscript)[^>]*>.*?</\1>", " ", text)
+    text = re.sub(r"(?s)<[^>]+>", " ", text)
+    text = _html.unescape(text)
+    text = re.sub(r"[ \t\r\f\v]+", " ", text)
+    text = re.sub(r"\n\s*\n+", "\n", text)
+    text = text.strip()
+    return text[:_FULLTEXT_MAX_CHARS]
+
+def fetch_full_text(url):
+    """Liefert (full_text, paywalled)-Tupel. paywalled=True heisst: Fetch
+    fehlgeschlagen ODER Ausbeute verdaechtig duenn (Paywall-Teaser-Symptom) -
+    der Bot soll dann ehrlich 'nur Teaser verfuegbar' sagen statt zu raten."""
+    if not url:
+        return "", True
+    raw = http_get_with_retry(url, timeout=12, retries=1)
+    if not raw:
+        return "", True
+    text = _extract_readable_text(raw)
+    # Heuristik: ein echter Artikel liefert deutlich mehr als ein paar Zeilen
+    # Teaser/Cookie-Banner. Schwelle bewusst niedrig gehalten (lieber ein
+    # duenner Volltext als False-Positive "paywalled" bei kurzen News-Blurbs).
+    if len(text) < 200:
+        return text, True
+    return text, False
+
 # Quellen, die per Definition NUR KI-Themen posten (Labor-Blogs, kuratierte
 # KI-News-Aggregatoren) - der _is_ki_relevant()-Titelfilter ist hier nicht nur
 # ueberfluessig, sondern schaedlich (siehe Bug-Fix-Kommentar in fetch_feed()).
@@ -2649,6 +2693,17 @@ def main():
             "story_article_count": cluster_info.get("story_article_count", 1),
         }
         news_list.append(entry)
+
+    # Volltext-Capture Top-5 fuer Chat-Bot-Kontext (Fund 08.07.26, siehe
+    # fetch_full_text()-Kommentar oben). Lauf-Zeit-Kosten: max. 5 sequenzielle
+    # HTTP-Fetches mit kurzem Timeout - im Rahmen des bestehenden Job-Budgets.
+    _top5_for_fulltext = sorted(news_list, key=lambda n: -(n.get("score") or 0))[:5]
+    for _entry in _top5_for_fulltext:
+        try:
+            _entry["full_text"], _entry["paywalled"] = fetch_full_text(_entry.get("link", ""))
+        except Exception as e:
+            logger.warning("Volltext-Fetch fehlgeschlagen fuer %s: %s", _entry.get("link", ""), e)
+            _entry["full_text"], _entry["paywalled"] = "", True
 
     # Artikel älter als MAX_AGE_DAYS aus news.json entfernen
     news_list = [
