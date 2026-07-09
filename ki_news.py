@@ -2697,12 +2697,25 @@ def main():
     # Volltext-Capture Top-5 fuer Chat-Bot-Kontext (Fund 08.07.26, siehe
     # fetch_full_text()-Kommentar oben). Lauf-Zeit-Kosten: max. 5 sequenzielle
     # HTTP-Fetches mit kurzem Timeout - im Rahmen des bestehenden Job-Budgets.
+    # Diagnose-Logging (Fund 09.07.26): Lauf 2026-07-09T08:31:49Z zeigte nur 1 von
+    # 5 Top-Storys mit full_text in news.json, OHNE jede "Volltext-Fetch
+    # fehlgeschlagen"/"HTTP Fehler"-Zeile im Log - die bisherigen except-Faelle
+    # decken das nicht ab. INFO-Zeile pro Versuch (vor+nach), um beim naechsten
+    # Lauf zu sehen ob die Schleife ueberhaupt 5x durchlaeuft.
     _top5_for_fulltext = sorted(news_list, key=lambda n: -(n.get("score") or 0))[:5]
-    for _entry in _top5_for_fulltext:
+    logger.info("Volltext-Capture: %d Kandidaten (Top-5 nach Score)", len(_top5_for_fulltext))
+    for _i, _entry in enumerate(_top5_for_fulltext):
+        _link = _entry.get("link", "")
+        logger.info("Volltext-Capture [%d/%d] Start: %s", _i + 1, len(_top5_for_fulltext), _link)
         try:
-            _entry["full_text"], _entry["paywalled"] = fetch_full_text(_entry.get("link", ""))
+            _entry["full_text"], _entry["paywalled"] = fetch_full_text(_link)
+            logger.info(
+                "Volltext-Capture [%d/%d] OK: %d Zeichen, paywalled=%s, %s",
+                _i + 1, len(_top5_for_fulltext),
+                len(_entry["full_text"]), _entry["paywalled"], _link,
+            )
         except Exception as e:
-            logger.warning("Volltext-Fetch fehlgeschlagen fuer %s: %s", _entry.get("link", ""), e)
+            logger.warning("Volltext-Fetch fehlgeschlagen fuer %s: %s", _link, e)
             _entry["full_text"], _entry["paywalled"] = "", True
 
     # Artikel älter als MAX_AGE_DAYS aus news.json entfernen
