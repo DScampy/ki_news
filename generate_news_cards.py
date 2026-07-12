@@ -821,10 +821,12 @@ def main() -> None:
     # {"<keyword keyword ...>": {"date": "<datum>", "entities": [...]}}  — themenbasiert,
     # ueber Laeufe hinweg. "entities" = Eigennamen-Signal fuer topics_match(), siehe dort.
     sent_topics = {}
+    render_failures = {}  # {link: anzahl} — Render-Failure-Zaehler, Phase 1.2 (12.07.2026)
     try:
         _state = json.loads(CARD_STATE_JSON.read_text(encoding="utf-8"))
         card_sent = _state.get("sent_links", {})
         _sent_topics_raw = _state.get("sent_topics", {})
+        render_failures = _state.get("render_failures", {})
         # Rueckwaerts-kompatibel: alte Eintraege waren reine Datum-Strings ohne
         # "entities" - ohne diese Normalisierung wuerde prev_info["date"] unten
         # auf alten Staenden mit AttributeError/TypeError krachen.
@@ -963,8 +965,19 @@ def main() -> None:
 
         success = render_card(html_out, mp4_out, audio_path, video_dauer)
         if not success:
-            print(f"  [WARN] Rendering fehlgeschlagen — Karte übersprungen.")
+            tries = render_failures.get(link, 0) + 1 if link else 3
+            if tries >= 3:
+                if link:
+                    card_sent[link] = today
+                    render_failures.pop(link, None)
+                print(f"  [GIVE-UP] 3x Render-Fehler — Link dauerhaft übersprungen: {link}")
+            else:
+                if link:
+                    render_failures[link] = tries
+                print(f"  [WARN] Rendering fehlgeschlagen (Versuch {tries}/3) — nächster Lauf versucht erneut.")
             continue
+        if link:
+            render_failures.pop(link, None)  # Selbstheilung bei Erfolg
 
         print(f"  ✓ MP4:  {mp4_out.name}")
 
@@ -995,10 +1008,13 @@ def main() -> None:
         # Sortierschluessel ist jetzt verschachtelt (Migration auf dict-Format,
         # siehe Ladelogik oben) - kv[1]["date"] statt kv[1].
         sent_topics = dict(sorted(sent_topics.items(), key=lambda kv: kv[1]["date"])[-MAX_STATE_LINKS:])
+    if len(render_failures) > MAX_STATE_LINKS:
+        render_failures = dict(list(render_failures.items())[-MAX_STATE_LINKS:])
     try:
         CARD_STATE_JSON.write_text(
             json.dumps(
-                {"sent_links": card_sent, "sent_topics": sent_topics, "stand": today},
+                {"sent_links": card_sent, "sent_topics": sent_topics,
+                 "render_failures": render_failures, "stand": today},
                 ensure_ascii=False, indent=2,
             ),
             encoding="utf-8",
@@ -1016,6 +1032,7 @@ def main() -> None:
         json.dump(cards_final, f, ensure_ascii=False, indent=2)
 
     print(f"\n✅ cards.json: {len(cards_final)} Karten ({len(cards_meta)} neu/aktualisiert in diesem Lauf) → {CARDS_JSON}")
+    print(f"   Render-Fehler offen (werden erneut versucht): {len(render_failures)}")
 
 
 if __name__ == "__main__":
