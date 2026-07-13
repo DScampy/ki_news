@@ -85,14 +85,22 @@ jobs:
           PY
 
       - name: X-Reaktionen anreichern
+        env:
+          # Fuer die deutsche Kurzfassung der Reaktionen (translate_reaction()
+          # in add_reactions.py, neu 13.07.26). Ohne Key: Script laeuft
+          # trotzdem, zeigt dann nur den gekuerzten Original-Text.
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
         run: |
-          # Reichert news.json mit manuell kuratierten X-Reaktionen an
-          # (reactions.json, siehe Kommentar dort). Ruft NUR die freie,
-          # oeffentliche fxtwitter-API auf - kein X-Login, kein Scraping,
-          # daher unbedenklich in GitHub Actions. Eingefuehrt 12.07.26.
-          # Bewusst fehlertolerant: schlaegt die Anreicherung fehl (z.B.
-          # fxtwitter down), soll das NICHT den Haupt-Pipeline-Lauf killen -
-          # news.json ohne Reactions ist besser als gar kein news.json.
+          # Reichert news.json mit X-Reaktionen (manuell kuratiert, reactions.json)
+          # und Hacker-News-Reaktionen (automatisch, Top-5-Storys) an, jeweils mit
+          # deutscher LLM-Kurzfassung. Reddit bewusst NICHT dabei - blockt GitHub-
+          # Actions-IPs mit 403, siehe Kommentar in add_reactions.py. Ruft nur
+          # freie/oeffentliche APIs auf (fxtwitter, HN Algolia, OpenRouter) - kein
+          # X-Login, kein Scraping. Eingefuehrt 12.07.26, Reddit entfernt + Uebersetzung
+          # ergaenzt 13.07.26.
+          # Bewusst fehlertolerant: schlaegt die Anreicherung fehl, soll das NICHT
+          # den Haupt-Pipeline-Lauf killen - news.json ohne Reactions ist besser als
+          # gar kein news.json.
           python3 add_reactions.py || echo "::warning::add_reactions.py fehlgeschlagen - news.json bleibt ohne Reactions-Update"
 
       - name: Dateien ins Repo committen
