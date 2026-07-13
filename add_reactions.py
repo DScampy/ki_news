@@ -61,6 +61,7 @@ Aufruf: python add_reactions.py [--in pfad] [--out pfad] [--no-auto]
 """
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -78,6 +79,16 @@ UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
+
+# Fuer die deutsche Kurzfassung der Reaktionen (siehe translate_reaction()) -
+# dieselbe Free-Modell-Kette wie in ki_news.py (Gemma zuerst, empirisch am
+# zuverlaessigsten). Ohne Key: Uebersetzung wird uebersprungen, kein Fehler.
+OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "").strip()
+TRANSLATE_MODELLE = [
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+]
 
 REACTIONS_TTL_DAYS = 21
 AUTO_TOP_N = 5
@@ -122,17 +133,22 @@ def fetch_tweet_data(tweet_url, retries=2, timeout=10):
             if not t:
                 return {}
             author = t.get("author") or {}
-            return {
+            tweet_text = t.get("text", "")
+            reaction = {
                 "source": "x",
                 "url": tweet_url,
                 "author_name": author.get("name", ""),
                 "author_handle": author.get("screen_name", ""),
                 "author_avatar": author.get("avatar_url", ""),
-                "text": t.get("text", ""),
+                "text": tweet_text,
                 "likes": t.get("likes", 0),
                 "retweets": t.get("retweets", 0),
                 "views": t.get("views", 0),
             }
+            text_de = translate_reaction(tweet_text)
+            if text_de:
+                reaction["text_de"] = text_de
+            return reaction
         except (HTTPError, URLError) as e:
             print(f"  Versuch {attempt}/{retries} fehlgeschlagen fuer {tweet_url}: {e}")
             time.sleep(1.5)
@@ -167,6 +183,49 @@ def story_matches(title, entry):
     return True
 
 
+# ── Uebersetzung (X-Text/HN-Titel -> kurze deutsche Zusammenfassung) ───────
+# Neu 13.07.26 (Daniel-Feedback): Reaktionen kamen bisher 1:1 im Original
+# (meist Englisch) auf die Karte - auf einer deutschen Seite abschreckend,
+# und lange Tweet-Threads sprengen das Layout. Uebersetzung ist bewusst ein
+# Nice-to-have: schlaegt sie fehl oder fehlt OPENROUTER_KEY, faellt das
+# Frontend auf den gekuerzten Original-Text zurueck (siehe index.html
+# renderReaction()) - kein Blocker fuer den Rest der Pipeline.
+
+def translate_reaction(text):
+    if not OPENROUTER_KEY or not (text or "").strip():
+        return None
+    prompt = (
+        "Fasse die folgende Reaktion (Tweet oder Forenbeitrag, evtl. auf "
+        "Englisch) in maximal 2 kurzen deutschen Saetzen zusammen. Erhalte "
+        "den Kernpunkt/die Pointe. Nur die Zusammenfassung ausgeben, keine "
+        "Anfuehrungszeichen, kein Meta-Kommentar wie \"Der Autor schreibt\".\n\n"
+        f"Text: {text[:1500]}"
+    )
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    for modell in TRANSLATE_MODELLE:
+        try:
+            data = json.dumps({
+                "model": modell,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 200,
+            }).encode()
+            req = urllib.request.Request(url, data=data, headers={
+                "Authorization": f"Bearer {OPENROUTER_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://ki-news.live/",
+                "X-Title": "KI News Reactions",
+            })
+            with urllib.request.urlopen(req, timeout=30) as r:
+                antwort = json.loads(r.read())["choices"][0]["message"]["content"].strip()
+            antwort = antwort.strip('"').strip()
+            if antwort:
+                return antwort
+        except Exception as e:
+            print(f"  Uebersetzung fehlgeschlagen mit {modell}: {e}")
+            continue
+    return None
+
+
 # ── Hacker News (automatisch) ────────────────────────────────────────────
 # Reddit-Aequivalent bewusst entfernt (13.07.26) - siehe Modul-Docstring:
 # unauthentifizierte Reddit-JSON-API blockt GitHub-Actions-IPs mit 403,
@@ -191,13 +250,18 @@ def fetch_hn_reaction(keywords):
         if not hits:
             return None
         hit = hits[0]
-        return {
+        title = hit.get("title", "")
+        reaction = {
             "source": "hn",
-            "text": hit.get("title", ""),
+            "text": title,
             "score": hit.get("points", 0),
             "num_comments": hit.get("num_comments", 0),
             "url": f"https://news.ycombinator.com/item?id={hit.get('objectID')}",
         }
+        text_de = translate_reaction(title)
+        if text_de:
+            reaction["text_de"] = text_de
+        return reaction
     except Exception as e:
         print(f"  HN-Suche fehlgeschlagen fuer '{query}': {e}")
         return None
