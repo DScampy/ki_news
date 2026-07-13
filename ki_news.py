@@ -677,7 +677,44 @@ CLUSTER_RARE_DF_MAX = 3
 # groesste reale Story am 03.07. hatte 6 Artikel), Transitiv-Ketten schon.
 CLUSTER_MAX_SIZE = 8
 
-def cluster_news(alle_news):
+def _recent_story_anchors(existing_archive, days=3):
+    """Cross-Run-Duplikat-Fix (13.07.26): cluster_news() vergleicht bisher NUR
+    Artikel, die im SELBEN Pipeline-Lauf gleichzeitig frisch im RSS-Fenster
+    liegen. Berichten mehrere Outlets zeitlich verteilt (verschiedene Laeufe,
+    4x/Tag) ueber dasselbe Ereignis, landet jedes im eigenen Cluster - keins
+    sieht je die anderen. Fund 13.07.: Apple-vs-OpenAI-Klage lief als 5
+    separate Karten (The Decoder/TechCrunch/Caschy/Wired/NYT), 13 Artikel
+    insgesamt, obwohl die Titel massiv Vokabular teilen ("Apple verklagt
+    OpenAI wegen ... Diebstahls von ... Geheimnissen").
+
+    Liefert die letzten `days` Tage aus archive.json als "Anker"-Pseudo-
+    Mitglieder fuer cluster_news(): sie nehmen an der GLEICHEN Keyword/Bigram-
+    Pruefung teil wie frische Artikel. Matcht ein frischer Artikel gegen einen
+    Anker, landet er in dessen Cluster und erbt darueber automatisch die
+    Story-Historie (first_seen/base_score kommen ueber den bestehenden
+    history-Mechanismus - der Anker-Link ist ja bereits ein history-Eintrag).
+    Anker werden NIE selbst als news.json-Zeile ausgegeben (s. Filter am Ende
+    von cluster_news() und die _anchor-Checks bei der Repraesentanten-Wahl)."""
+    if not existing_archive:
+        return []
+    anchors, seen = [], set()
+    for entry in existing_archive:
+        link = entry.get("link")
+        if not link or link in seen:
+            continue
+        if _days_since(entry.get("first_seen") or entry.get("date")) > days:
+            continue
+        seen.add(link)
+        anchors.append({
+            "title": entry.get("title", ""),
+            "source": entry.get("source", ""),
+            "link": link,
+            "_anchor": True,
+        })
+    return anchors
+
+
+def cluster_news(alle_news, anchors=None):
     """
     Gruppiert ähnliche Artikel zu Stories. Ein Artikel kommt in einen Cluster, wenn er
     entweder 2+ Einzel-Keywords mit ihm teilt ODER eine gemeinsame 2-Wort-Phrase (Bigram)
@@ -688,9 +725,21 @@ def cluster_news(alle_news):
     wie "Millionen Dollar" zu unzusammenhängenden Clustern zu verketten (beide Tokens dort
     sind häufig → kein distinktives Token → kein Merge).
 
+    anchors (optional): Pseudo-Mitglieder aus _recent_story_anchors() - Story-Titel
+    der letzten Tage, die bei der Merge-Pruefung mitspielen (Cross-Run-Duplikat-Fix,
+    13.07.26), aber nie selbst als eigenstaendiger Artikel zurueckgegeben werden.
+
     Gibt Liste von Clusters zurück (jeder Cluster = Liste von Artikeln).
     """
-    # Dokumentfrequenz je Token (in wie vielen Titeln kommt es vor) – Basis für "distinktiv".
+    combined = list(anchors or []) + list(alle_news)
+    # Dokumentfrequenz NUR ueber alle_news (heutiger frischer Batch), NICHT ueber
+    # combined. Testfund (13.07.26): mit Ankern in der df-Zaehlung "altern" die
+    # Kern-Begriffe einer wiederkehrenden Story (z.B. "apple"/"openai"/"verklagt")
+    # nach 3-4 Anker-Treffern ueber CLUSTER_RARE_DF_MAX und gelten dann als "nicht
+    # mehr distinktiv" - die Story kann sich selbst nicht mehr weiter verschmelzen,
+    # genau umgekehrt zur Absicht. Die Distinktivitaets-Schwelle soll nur vor
+    # Ueberhaeufigkeit IM HEUTIGEN Batch schuetzen (Schneeball-Fix-Zweck), nicht
+    # vor der eigenen Story-Historie.
     df = Counter()
     for item in alle_news:
         for w in set(_title_tokens(item["title"])):
@@ -709,7 +758,7 @@ def cluster_news(alle_news):
     # der 6er ist die echte OpenAI-5%-Story; SpaceX/Anthropic-Samsung bleiben
     # korrekt zusammen, Themen-Ketten zerfallen.
     clusters = []  # je {"items": [...], "sigs": [(kw, bg) pro Mitglied]}
-    for item in alle_news:
+    for item in combined:
         kw = _title_keywords(item["title"])
         bg = _title_bigrams(item["title"])
         merged = False
@@ -732,7 +781,10 @@ def cluster_news(alle_news):
                 break
         if not merged:
             clusters.append({"items": [item], "sigs": [(kw, bg)]})
-    return [c["items"] for c in clusters]
+    # Anker-only Cluster (kein frischer Artikel hat gematcht) sind fuer DIESEN
+    # Lauf irrelevant - keine neue Entwicklung, nichts auszugeben. Anker dienen
+    # nur als Matching-Ziel, nie als eigenstaendiges Ergebnis.
+    return [c["items"] for c in clusters if any(not it.get("_anchor") for it in c["items"])]
 
 def score_cluster(cluster):
     """
@@ -885,7 +937,9 @@ def score_cluster_llm(cluster, recent_titles):
     """
     if not OPENROUTER_KEY:
         return None, None
-    rep = cluster[0]
+    # Anker (Cross-Run-Duplikat-Fix, 13.07.26) duerfen nie als Titel-Quelle
+    # dienen - sie sind alte, bereits archivierte Artikel, kein frischer Inhalt.
+    rep = next((it for it in cluster if not it.get("_anchor")), cluster[0])
     title = rep.get("title", "")
     summary = " ".join(i.get("title", "") for i in cluster)[:600]
     prompt = LLM_SCORE_PROMPT.format(
@@ -951,7 +1005,9 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
     """
     history = history or {}
     featured_links = set(featured_links or [])
-    clusters = cluster_news(alle_news)
+    # Cross-Run-Duplikat-Fix (13.07.26): letzte 3 Tage aus dem Archiv als
+    # Anker mitgeben, s. _recent_story_anchors()/cluster_news()-Docstring.
+    clusters = cluster_news(alle_news, _recent_story_anchors(existing_archive))
     recent_titles = _recent_titles_from_archive(existing_archive)
 
     # Legacy-Score (Keyword-System) zuerst fuer ALLE Cluster - dient als
@@ -1004,7 +1060,10 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
                 fs = _oldest
             base = max(h["base_score"], _score) if h and h["base_score"] <= HEAL_THRESHOLD else _score
             return decay_score(base, fs)
-        rep = max(cluster, key=_display_score)
+        # Anker (Cross-Run-Duplikat-Fix) duerfen nie Repraesentant werden - sie
+        # sind alte, bereits archivierte Artikel ohne frischen Inhalt fuer die
+        # Karte. cluster_news() garantiert mind. 1 Nicht-Anker pro Cluster.
+        rep = max((m for m in cluster if not m.get("_anchor")), key=_display_score)
         eff_score = _display_score(rep)
         # Featured-Boost aus dashboard_config.json (mit Zeitverfall)
         if featured_links:
@@ -2485,7 +2544,9 @@ def main():
 
     # Cluster-Membership-Map: link → ältester first_seen im Cluster (Story-Alter-Fix)
     # Verhindert dass neue Artikel über bekannte Storys mit frischem Datum auftauchen.
-    _clusters = cluster_news(alle_news)
+    # Cross-Run-Duplikat-Fix (13.07.26): Anker aus den letzten 3 Tagen mitgeben,
+    # s. _recent_story_anchors()/cluster_news()-Docstring.
+    _clusters = cluster_news(alle_news, _recent_story_anchors(_existing_archive))
     link_to_cluster_age = {}
     for cl in _clusters:
         cl_histories = [history[item["link"]] for item in cl if item.get("link") in history]
