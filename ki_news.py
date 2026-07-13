@@ -1005,9 +1005,14 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
     """
     history = history or {}
     featured_links = set(featured_links or [])
-    # Cross-Run-Duplikat-Fix (13.07.26): letzte 3 Tage aus dem Archiv als
-    # Anker mitgeben, s. _recent_story_anchors()/cluster_news()-Docstring.
-    clusters = cluster_news(alle_news, _recent_story_anchors(existing_archive))
+    # Cross-Run-Duplikat-Fix (13.07.26) - WIEDER DEAKTIVIERT (13.07.26, selber
+    # Abend): live Fehlverschmelzung beobachtet (Microsoft/Copilot-Meldung
+    # zog sich 7 fremde Anker rein, nur weil "microsoft"+"openai" im kleinen
+    # frischen Tagesbatch faelschlich distinktiv wirkten - s. Notizen bei
+    # _recent_story_anchors()). Df-Berechnung braucht eine Paar-Haeufigkeit
+    # statt Einzeltoken-Pruefung, bevor das wieder scharf geschaltet wird.
+    # anchors=None -> Verhalten wie vor dem 13.07., unveraendert sicher.
+    clusters = cluster_news(alle_news, None)
     recent_titles = _recent_titles_from_archive(existing_archive)
 
     # Legacy-Score (Keyword-System) zuerst fuer ALLE Cluster - dient als
@@ -2544,9 +2549,9 @@ def main():
 
     # Cluster-Membership-Map: link → ältester first_seen im Cluster (Story-Alter-Fix)
     # Verhindert dass neue Artikel über bekannte Storys mit frischem Datum auftauchen.
-    # Cross-Run-Duplikat-Fix (13.07.26): Anker aus den letzten 3 Tagen mitgeben,
-    # s. _recent_story_anchors()/cluster_news()-Docstring.
-    _clusters = cluster_news(alle_news, _recent_story_anchors(_existing_archive))
+    # Cross-Run-Duplikat-Fix (13.07.26) - WIEDER DEAKTIVIERT, s. Kommentar bei
+    # der zweiten cluster_news()-Aufrufstelle in pick_top_news() oben.
+    _clusters = cluster_news(alle_news, None)
     link_to_cluster_age = {}
     for cl in _clusters:
         cl_histories = [history[item["link"]] for item in cl if item.get("link") in history]
