@@ -1002,7 +1002,7 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
                 fs = _today_iso()
             else:
                 fs = _oldest
-            base = max(h["base_score"], _score) if h else _score
+            base = max(h["base_score"], _score) if h and h["base_score"] <= HEAL_THRESHOLD else _score
             return decay_score(base, fs)
         rep = max(cluster, key=_display_score)
         eff_score = _display_score(rep)
@@ -1094,6 +1094,14 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
 # So sinken alte Stories automatisch nach unten und machen Platz für Neues.
 SCORE_DECAY_PER_DAY = 5
 SCORE_FLOOR = 0
+# Bug-Fix (13.07.26): History-Heilung war bedingungslos max(alt, neu) - dachte
+# nur an den Ursprungsfall (faelschlich als 0 archivierte Member sollen sich
+# ausheilen koennen), heilte aber symmetrisch JEDEN einmaligen Score-Ausreisser
+# nach oben permanent fest (Fall: OnlyFans-Story bekam einmalig base_score 78,
+# jede folgende Neuberechnung kam auf ~32, wurde aber via max() 16 Tage lang
+# verworfen). Heilung jetzt nur noch erlaubt, wenn der alte Wert nahe 0 war -
+# der dokumentierte Ursprungsfall. Alles darueber: frischer Score gewinnt immer.
+HEAL_THRESHOLD = 5
 MAX_AGE_DAYS = 5  # Artikel älter als 5 Tage werden aus news.json entfernt (Start-/Artikelseite)
 # Abschlag fuer Cluster-Member, die NICHT der Repraesentant ihrer Story sind.
 # Sie erben den Story-Cluster-Score minus diesen Wert, damit der Repraesentant
@@ -2698,7 +2706,10 @@ def main():
         # History-Heilung: frueher faelschlich als 0 archivierte Member duerfen ausheilen,
         # wenn ihr Cluster jetzt einen echten Score hat. Ohne max() bliebe base_score
         # wegen hist dauerhaft 0 (Selbstvergiftung ueber archive.json).
-        base_score = max(hist["base_score"], raw_score) if hist else raw_score
+        # Bug-Fix (13.07.26): nur noch heilen wenn alter Wert <= HEAL_THRESHOLD war -
+        # sonst frisst ein einmaliger Score-Ausreisser sich fuer die gesamte
+        # Lebensdauer der Story fest (s. Kommentar bei HEAL_THRESHOLD oben).
+        base_score = max(hist["base_score"], raw_score) if hist and hist["base_score"] <= HEAL_THRESHOLD else raw_score
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
         preview_img = resolve_preview_image(link, hist)
         title_de = s.get("title_de", n["title"])
