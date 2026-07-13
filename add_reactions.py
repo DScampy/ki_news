@@ -14,14 +14,22 @@ Zwei unabhaengige Quellen, beide unattended-sicher fuer GitHub Actions:
    (Text/Autor/Likes) ueber die freie fxtwitter-API - kein Login, kein
    X-Scraping, kein Risiko.
 
-2. Reddit + Hacker News (vollautomatisch, neu 13.07.26)
-   Beide haben offene, unauthentifizierte JSON-APIs - kein Login, kein
-   Konto-Risiko, unattended-sicher. Ersetzt fuer die Top-Storys das taegliche
-   manuelle Suchen (siehe Session-Notiz 13.07.26: "es war nie vorgesehen,
-   dass man immer wieder neu suchen muss" - X ist dafuer technisch nicht
-   automatisierbar, Reddit/HN schon).
-   Nur fuer die Top-N-Storys (dieselbe Auswahl wie das Hero-Carousel auf der
-   Website, siehe top_n_stories()), um Request-Volumen klein zu halten.
+2. Hacker News (vollautomatisch, neu 13.07.26)
+   Offene, unauthentifizierte JSON-API (Algolia) - kein Login, kein Konto-
+   Risiko, unattended-sicher. Nur fuer die Top-N-Storys (dieselbe Auswahl
+   wie das Hero-Carousel auf der Website, siehe top_n_stories()).
+
+Reddit bewusst NICHT dabei (entfernt 13.07.26): Reddits unauthentifizierte
+JSON-API (search.json, r/<sub>/.json) blockt Cloud-/Datacenter-IP-Ranges mit
+HTTP 403 - bestaetigt sowohl aus einer Sandbox-IP als auch live aus einem
+echten GitHub-Actions-Lauf (Run #670, 13.07.26: 403 auf jeder Subreddit-
+Anfrage, jede Story). Kein Header- oder Query-Problem, sondern IP-basiertes
+Blocking. Fix waere OAuth (eigene Reddit-"Script"-App, oauth.reddit.com statt
+www.reddit.com), aber der Mehrwert gegenueber HN allein ist gering genug,
+dass sich ein weiteres Credential + eine weitere Fehlerquelle nicht lohnt.
+Falls das nochmal aufgegriffen wird: OAuth ist der einzige Weg, der
+tatsaechlich funktionieren wuerde - reines Retry/UA-Tuning behebt das
+IP-Blocking nicht.
 
 Matching der manuellen X-Eintraege per Stichwort im Titel, NICHT per
 Artikel-Link: Der repraesentative Link eines Story-Clusters verschiebt sich
@@ -45,15 +53,14 @@ Ablauf:
    Score, erste N)
 4. Fuer jede Top-Story: erst passenden manuellen X-Eintrag anwenden (falls
    vorhanden + nicht abgelaufen), dann - falls noch Platz (< 2 Reaktionen) -
-   automatisch Reddit, danach ggf. Hacker News abfragen
+   Hacker News abfragen
 5. news.json zurueckschreiben
 
 Aufruf: python add_reactions.py [--in pfad] [--out pfad] [--no-auto]
-(Standard: news.json im selben Ordner, in-place, Reddit/HN aktiv)
+(Standard: news.json im selben Ordner, in-place, HN-Autofetch aktiv)
 """
 import argparse
 import json
-import random
 import re
 import sys
 import time
@@ -71,17 +78,10 @@ UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
-# Reddit empfiehlt einen beschreibenden User-Agent (nicht Pflicht ohne Auth,
-# senkt aber die Wahrscheinlichkeit, pauschal als Bot geblockt zu werden).
-REDDIT_UA = "ki-news.live:community-reactions:v1 (deutscher KI-News-Aggregator, kuratiert reaktionen, kein Bulk-Scraping)"
 
 REACTIONS_TTL_DAYS = 21
 AUTO_TOP_N = 5
 MAX_REACTIONS_PER_STORY = 2
-
-REDDIT_SUBS = ["artificial", "singularity", "OpenAI", "LocalLLaMA", "MachineLearning", "ChatGPT"]
-REDDIT_MIN_POST_SCORE = 15
-REDDIT_MIN_COMMENT_SCORE = 5
 
 KNOWN_PLAYERS = [
     "OpenAI", "Anthropic", "Google", "Gemini", "DeepMind", "xAI", "Grok",
@@ -167,95 +167,16 @@ def story_matches(title, entry):
     return True
 
 
-# ── Reddit (automatisch) ─────────────────────────────────────────────────
+# ── Hacker News (automatisch) ────────────────────────────────────────────
+# Reddit-Aequivalent bewusst entfernt (13.07.26) - siehe Modul-Docstring:
+# unauthentifizierte Reddit-JSON-API blockt GitHub-Actions-IPs mit 403,
+# bestaetigt in Produktion (Run #670). OAuth waere der einzige Fix, lohnt
+# sich aber nicht fuer den Mehrwert gegenueber HN allein.
 
 def _http_json(url, headers, timeout=10):
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
-
-
-def reddit_search(query, sub=None, limit=6):
-    base = f"https://www.reddit.com/r/{sub}/search.json" if sub else "https://www.reddit.com/search.json"
-    params = {"q": query, "sort": "top", "t": "week", "limit": str(limit)}
-    if sub:
-        params["restrict_sr"] = "1"
-    url = base + "?" + urllib.parse.urlencode(params)
-    try:
-        data = _http_json(url, {"User-Agent": REDDIT_UA})
-        return [c["data"] for c in data.get("data", {}).get("children", []) if c.get("kind") == "t3"]
-    except Exception as e:
-        print(f"  Reddit-Suche fehlgeschlagen ({sub or 'all'}, '{query}'): {e}")
-        return []
-
-
-def reddit_top_comment(permalink):
-    url = f"https://www.reddit.com{permalink}.json?limit=20&sort=top"
-    try:
-        data = _http_json(url, {"User-Agent": REDDIT_UA})
-        if not isinstance(data, list) or len(data) < 2:
-            return None
-        children = data[1].get("data", {}).get("children", [])
-        best = None
-        for c in children:
-            if c.get("kind") != "t1":
-                continue
-            body = c.get("data", {})
-            author = body.get("author", "")
-            if author in ("AutoModerator", "[deleted]", "[removed]"):
-                continue
-            text = (body.get("body") or "").strip()
-            if not text or text in ("[deleted]", "[removed]"):
-                continue
-            score = body.get("score", 0)
-            if best is None or score > best.get("score", 0):
-                best = {"author": author, "text": text, "score": score}
-        return best
-    except Exception as e:
-        print(f"  Reddit-Kommentare fehlgeschlagen fuer {permalink}: {e}")
-        return None
-
-
-def fetch_reddit_reaction(keywords):
-    query = " ".join(keywords)
-    candidates = []
-    for sub in REDDIT_SUBS:
-        candidates.extend(reddit_search(query, sub=sub, limit=5))
-        time.sleep(0.6 + random.random() * 0.4)
-    if not candidates:
-        candidates = reddit_search(query, limit=8)
-    candidates = [p for p in candidates if p.get("score", 0) >= REDDIT_MIN_POST_SCORE]
-    candidates.sort(key=lambda p: p.get("score", 0), reverse=True)
-
-    for post in candidates[:3]:
-        comment = reddit_top_comment(post.get("permalink", ""))
-        time.sleep(0.6 + random.random() * 0.4)
-        if comment and comment["score"] >= REDDIT_MIN_COMMENT_SCORE:
-            return {
-                "source": "reddit",
-                "subreddit": post.get("subreddit", ""),
-                "author_name": comment["author"],
-                "text": comment["text"][:320],
-                "score": comment["score"],
-                "url": "https://reddit.com" + post.get("permalink", ""),
-                "post_title": post.get("title", ""),
-            }
-    if candidates:
-        # Kein guter Kommentar gefunden, aber ein relevanter Post - Post selbst zeigen.
-        best = candidates[0]
-        return {
-            "source": "reddit",
-            "subreddit": best.get("subreddit", ""),
-            "author_name": best.get("author", ""),
-            "text": best.get("title", ""),
-            "score": best.get("score", 0),
-            "url": "https://reddit.com" + best.get("permalink", ""),
-            "post_only": True,
-        }
-    return None
-
-
-# ── Hacker News (automatisch) ────────────────────────────────────────────
 
 def fetch_hn_reaction(keywords):
     # HN Algolia-API liefert keine verlaesslichen Kommentar-Scores -> statt
@@ -363,21 +284,12 @@ def apply_auto_reactions(news_list, config_path):
             continue
         title = story.get("title", "")
         kws = title_keywords(title)
-        print(f"Auto-Reaktionen fuer '{title[:60]}...' (Keywords: {kws})")
 
-        if len(existing) < MAX_REACTIONS_PER_STORY:
-            r = fetch_reddit_reaction(kws)
-            if r:
-                existing.append(r)
-                enriched += 1
-                print(f"  -> Reddit: r/{r['subreddit']} ({r['score']} Punkte)")
-
-        if len(existing) < MAX_REACTIONS_PER_STORY:
-            r = fetch_hn_reaction(kws)
-            if r:
-                existing.append(r)
-                enriched += 1
-                print(f"  -> HN: {r['score']} Punkte, {r['num_comments']} Kommentare")
+        r = fetch_hn_reaction(kws)
+        if r:
+            existing.append(r)
+            enriched += 1
+            print(f"Auto-Reaktion fuer '{title[:60]}...': HN, {r['score']} Punkte, {r['num_comments']} Kommentare")
 
         if existing:
             story["reactions"] = existing
@@ -390,7 +302,7 @@ def main():
     ap.add_argument("--out", dest="out_path", default=None,
                      help="Standard: gleiche Datei wie --in (in-place)")
     ap.add_argument("--no-auto", action="store_true",
-                     help="Nur manuelle X-Reaktionen anwenden, kein Reddit/HN-Autofetch")
+                     help="Nur manuelle X-Reaktionen anwenden, kein HN-Autofetch")
     args = ap.parse_args()
 
     in_path = Path(args.in_path)
@@ -414,13 +326,13 @@ def main():
     if not args.no_auto:
         auto_targets, auto_enriched = apply_auto_reactions(news_list, DASHBOARD_CONFIG)
     else:
-        print("--no-auto gesetzt - ueberspringe Reddit/HN.")
+        print("--no-auto gesetzt - ueberspringe HN.")
 
     out_path.write_text(
         json.dumps(news_data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(f"\nFertig: {matched_stories} Story(s) per manuellem X-Match, {enriched_tweets} Tweet-Abrufe. "
-          f"{auto_targets} Top-Storys fuer Auto-Reaktionen geprueft, {auto_enriched} Reddit/HN-Treffer. "
+          f"{auto_targets} Top-Storys fuer Auto-Reaktionen geprueft, {auto_enriched} HN-Treffer. "
           f"Geschrieben nach {out_path}")
 
 
