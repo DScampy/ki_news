@@ -1499,6 +1499,40 @@ def fetch_tweet_image(tweet_id):
         logger.debug("Tweet-Bild (fx) fehlgeschlagen %s: %s", tweet_id, e)
     return ""
 
+def fetch_tweet_data(tweet_url):
+    """
+    Holt die vollen Daten eines X-Beitrags über die freie fxtwitter-API
+    (Autor, Text, Likes/Retweets/Views) statt nur das Vorschaubild.
+    Grundlage fuer den "Was X dazu sagt"-Reaktionsblock (Community-Pulse,
+    Idee aus dem HuggingNews-Vergleich 12.07.26 - kein X-API-Abo noetig).
+    Gibt {} zurueck wenn nichts gefunden wurde.
+    """
+    tweet_id = _tweet_id_from_url(tweet_url)
+    if not tweet_id:
+        return {}
+    try:
+        raw = http_get_with_retry(f"https://api.fxtwitter.com/status/{tweet_id}", timeout=10, retries=1)
+        if not raw:
+            return {}
+        d = json.loads(raw)
+        t = (d or {}).get("tweet") or {}
+        if not t:
+            return {}
+        author = t.get("author") or {}
+        return {
+            "url": tweet_url,
+            "author_name": author.get("name", ""),
+            "author_handle": author.get("screen_name", ""),
+            "author_avatar": author.get("avatar_url", ""),
+            "text": t.get("text", ""),
+            "likes": t.get("likes", 0),
+            "retweets": t.get("retweets", 0),
+            "views": t.get("views", 0),
+        }
+    except Exception as e:
+        logger.debug("Tweet-Daten (fx) fehlgeschlagen %s: %s", tweet_id, e)
+    return {}
+
 def update_media_xpost_images(base_dir):
     """Ergänzt fehlende Vorschaubilder der X-Beiträge in media.json (serverseitig)."""
     path = base_dir / "media.json"
