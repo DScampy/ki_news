@@ -318,7 +318,13 @@ KI_KEYWORDS_WORD = {
 }
 KI_KEYWORDS_SUBSTR = {
     # Substring-Match ok – lang genug um keine Fehlalarme zu erzeugen
-    "kunstliche", "künstliche", "intelligenz", "model", "claude",
+    # Bug-Fix (14.07.26): "model" ENTFERNT - "modell" ist im Deutschen ein
+    # generisches Wort (Apple Pencil, Auto, Geschaeftsmodell...), keine
+    # KI-spezifische Signatur. "model" matchte als Substring sogar in "modell"
+    # und liess so einen Apple-Pencil-Stift-Artikel durch den KI-Relevanzfilter
+    # (Fall 14.07.: "...ein neues Modell" -> als "wichtig" gelabelt, obwohl
+    # kein KI-Bezug). "sprachmodell" bleibt - das IST spezifisch genug.
+    "kunstliche", "künstliche", "intelligenz", "claude",
     "chatgpt", "openai", "google", "meta ai", "agent", "nvidia",
     "anthropic", "gemini", "mistral", "deepseek", "roboter", "automation",
     "sprachmodell", "chatbot", "machine learning", "neural", "generativ",
@@ -563,7 +569,11 @@ IMPORTANCE_KEYWORDS = [
     ("regulation", 15), ("gesetz", 15), ("verbot", 15),
     ("valuation", 15), ("bewertung", 15),
     # Neue Modelle / Fähigkeiten – KERN einer KI-News-Seite, höher als Finanzierung.
-    ("model", 12), ("modell", 12), ("open-weight", 12), ("open weight", 12),
+    # Bug-Fix (14.07.26): nackte "model"/"modell"-Treffer entfernt - zu generisch
+    # (matcht Apple Pencil, Autos, Geschaeftsmodelle...), s. Kommentar bei
+    # KI_KEYWORDS_SUBSTR. Die verbleibenden Begriffe sind spezifisch genug, um
+    # echte Modell-Launches ohne Fehlalarme zu erkennen.
+    ("open-weight", 12), ("open weight", 12),
     ("state-of-the-art", 12), ("outperforms", 10), ("übertrifft", 8), ("beats", 8),
     ("open source", 10), ("open-source", 10),
     # Wichtige Ereignisse (10 Punkte)
