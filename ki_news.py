@@ -2446,6 +2446,110 @@ def create_html(alle_news, parsed, summaries):
         return pfad
 
 # -------------------------
+# Entity-Graph (Phase 2, 16.07.26) — kumulativer, unsichtbarer Daten-Step
+# -------------------------
+def update_entity_graph(base_dir, news_items):
+    """Schreibt graph.json kumulativ fort: Knoten = kuratierte Entitäten aus
+    entities.json, Kanten = Ko-Okkurrenzen zweier Entitäten in Titel+Summary
+    desselben Artikels. Zählt über Läufe hinweg weiter (kumulativ), auch wenn
+    Artikel längst aus archive.json (10 Tage) herausgealtert sind.
+
+    Vertragsregeln (ki-news-architektur-vertrag):
+    - entities.json wird NUR GELESEN — kuratierte Registry, Pflege manuell
+      per GitHub-Web-Upload (wie dashboard_config.json). Fehlt sie: Skip + WARN.
+    - graph.json hat genau EINEN Schreiber: diese Funktion (Invariante I5).
+      GENERIERTE Datei — nie manuell editieren (Invariante I6).
+    - Idempotent über "seen"-Delta-State: jeder Artikel-Link wird genau einmal
+      gezählt, egal wie oft ein Lauf wiederholt wird. seen wird nach 30 Tagen
+      geprunt — ungefährlich, weil archive.json/news.json nur max. 10 Tage
+      alte Artikel liefern, ein Link also nie nach >30 Tagen wiederkommt.
+    - Fehler blockieren NIE die Pipeline (Invariante I8): nur Log, kein Raise.
+    - Unsichtbar: kein SSR, kein Frontend-Bezug, reiner Datenaufbau.
+    """
+    ENTITY_SEEN_MAX_DAYS = 30
+    try:
+        base = Path(base_dir)
+        ent_path = base / "entities.json"
+        graph_path = base / "graph.json"
+        if not ent_path.exists():
+            logger.warning("entities.json fehlt - Entity-Graph-Step uebersprungen")
+            return
+        registry = json.loads(ent_path.read_text(encoding="utf-8")).get("entities", [])
+        meta, comp = {}, []   # id -> Registry-Eintrag | Liste (id, kompiliertes Pattern)
+        for e in registry:
+            try:
+                comp.append((e["id"], re.compile("|".join(e["aliasse"]), re.I)))
+                meta[e["id"]] = e
+            except Exception:
+                logger.warning("entities.json: Eintrag %r unbrauchbar, uebersprungen", e.get("id"))
+        if not comp:
+            logger.warning("entities.json: keine brauchbaren Eintraege - Step uebersprungen")
+            return
+
+        # Bestehenden Graph laden (kumulativer Zustand); unlesbar -> Neustart bei 0
+        nodes, edges, seen = {}, {}, {}
+        if graph_path.exists():
+            try:
+                g = json.loads(graph_path.read_text(encoding="utf-8"))
+                nodes = {n["id"]: n for n in g.get("nodes", []) if n.get("id")}
+                edges = {(ed["source"], ed["target"]): ed
+                         for ed in g.get("edges", []) if ed.get("source") and ed.get("target")}
+                if isinstance(g.get("seen"), dict):
+                    seen = g["seen"]
+            except Exception:
+                logger.exception("graph.json unlesbar - Graph startet neu bei 0")
+
+        today = datetime.now(BERLIN).strftime("%Y-%m-%d")
+        new_articles = 0
+        for it in news_items:
+            link = it.get("link")
+            if not link or link in seen:
+                continue
+            seen[link] = today
+            text = f"{it.get('title', '')} {it.get('summary', '')}"
+            found = [eid for eid, pat in comp if pat.search(text)]
+            if not found:
+                continue
+            new_articles += 1
+            for eid in found:
+                n = nodes.get(eid)
+                if n is None:
+                    n = {"id": eid, "count": 0, "first_seen": today}
+                    nodes[eid] = n
+                # typ/gehoert_zu bei jedem Lauf aus der Registry auffrischen,
+                # damit Kuratierungs-Aenderungen in entities.json durchschlagen
+                n["typ"] = meta[eid].get("typ")
+                n["gehoert_zu"] = meta[eid].get("gehoert_zu")
+                n["count"] = int(n.get("count", 0)) + 1
+                n["last_seen"] = today
+            for i, a in enumerate(found):
+                for b in found[i + 1:]:
+                    key = tuple(sorted((a, b)))
+                    ed = edges.get(key)
+                    if ed is None:
+                        ed = {"source": key[0], "target": key[1], "count": 0, "first_seen": today}
+                        edges[key] = ed
+                    ed["count"] = int(ed.get("count", 0)) + 1
+                    ed["last_seen"] = today
+
+        # seen-Delta-State prunen (Datei waechst sonst unbegrenzt)
+        seen = {k: v for k, v in seen.items() if _days_since(v) <= ENTITY_SEEN_MAX_DAYS}
+
+        out = {
+            "_hinweis": "GENERIERT von ki_news.py (update_entity_graph) - NICHT manuell editieren. Kuratierung laeuft ueber entities.json.",
+            "stand": datetime.now(BERLIN).strftime("%Y-%m-%d %H:%M"),
+            "nodes": sorted(nodes.values(), key=lambda n: -int(n.get("count", 0))),
+            "edges": sorted(edges.values(), key=lambda e: -int(e.get("count", 0))),
+            "seen": seen,
+        }
+        graph_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("graph.json aktualisiert: %d Knoten, %d Kanten (+%d neue Artikel mit Entitaeten)",
+                    len(nodes), len(edges), new_articles)
+    except Exception as e:
+        logger.exception("Entity-Graph-Step fehlgeschlagen (Pipeline laeuft weiter): %s", e)
+
+
+# -------------------------
 # Main
 # -------------------------
 def main():
@@ -2988,6 +3092,9 @@ def main():
         update_archive(proj_dir)
     else:
         update_archive(Path("."))
+
+    # ── Entity-Graph kumulativ fortschreiben (Phase 2, 16.07.26) ──────────
+    update_entity_graph(proj_dir if proj_dir.exists() else Path("."), news_list)
 
     # ── X-Beiträge: fehlende Vorschaubilder serverseitig ergänzen ──────────
     update_media_xpost_images(proj_dir if proj_dir.exists() else Path("."))
