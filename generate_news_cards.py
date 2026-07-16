@@ -51,11 +51,11 @@ GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 # Zwei Studio-Stimmen, pro Karte zufaellig gewaehlt (random.choice in main()) —
 # kein festes Muster, keine Alternierung. (name, ssmlGender) muss zusammenpassen,
 # sonst kann die Google-API unerwartet reagieren.
-# HINWEIS: de-DE-Studio-B als MALE ist die ueblich kolportierte Zuordnung
-# (Gegenstueck zu de-DE-Studio-C FEMALE), aber NICHT 1:1 aus Googles offizieller
-# Tabelle bestaetigt (das "-B"-Suffix ist je Sprache nicht konsistent mit Gender —
-# z.B. ist bg-BG-Standard-B FEMALE). Vor Produktivlauf einmal eine Testkarte
-# mit der maennlichen Stimme anhoeren, um das zu verifizieren.
+# STAND 16.07.26: de-DE-Studio-B klingt laut Daniels Hoerbeleg in Live-Karten
+# maennlich (unkontrollierter Beleg — voice_used der konkret gehoerten Karten
+# wurde nicht rekonstruiert). Fuer kontrollierte Verifikation: eine Karte mit
+# voice_used=de-DE-Studio-B aus cards.json gezielt anhoeren und dieses Datum
+# hier eintragen. Bis dahin gilt die Zuordnung als plausibel, nicht als bewiesen.
 GOOGLE_TTS_VOICES = [
     ("de-DE-Studio-C", "FEMALE"),
     ("de-DE-Studio-B", "MALE"),
@@ -822,6 +822,11 @@ def main() -> None:
     # ueber Laeufe hinweg. "entities" = Eigennamen-Signal fuer topics_match(), siehe dort.
     sent_topics = {}
     render_failures = {}  # {link: anzahl} — Render-Failure-Zaehler, Phase 1.2 (12.07.2026)
+    # Haertung 16.07.26 (Senior-Review): Give-up erst am Lauf-Ende entscheiden, damit ein
+    # global kaputtes Rendering (Node/Playwright-Ausfall) nicht alle Storys blacklistet.
+    _renders_ok_this_run = 0
+    _render_fails_this_run = 0
+    _incremented_this_run = set()
     try:
         _state = json.loads(CARD_STATE_JSON.read_text(encoding="utf-8"))
         card_sent = _state.get("sent_links", {})
@@ -965,17 +970,18 @@ def main() -> None:
 
         success = render_card(html_out, mp4_out, audio_path, video_dauer)
         if not success:
-            tries = render_failures.get(link, 0) + 1 if link else 3
-            if tries >= 3:
-                if link:
-                    card_sent[link] = today
-                    render_failures.pop(link, None)
-                print(f"  [GIVE-UP] 3x Render-Fehler — Link dauerhaft übersprungen: {link}")
-            else:
-                if link:
-                    render_failures[link] = tries
-                print(f"  [WARN] Rendering fehlgeschlagen (Versuch {tries}/3) — nächster Lauf versucht erneut.")
+            _render_fails_this_run += 1
+            if not link:
+                # Ohne Link-Schluessel kein Zaehler moeglich — ehrlich loggen, nicht
+                # faelschlich "dauerhaft uebersprungen" behaupten (Fix 16.07.26).
+                print(f"  [WARN] Rendering fehlgeschlagen (kein Link-Schluessel) — nächster Lauf versucht erneut.")
+                continue
+            tries = render_failures.get(link, 0) + 1
+            render_failures[link] = tries
+            _incremented_this_run.add(link)
+            print(f"  [WARN] Rendering fehlgeschlagen (Versuch {tries}/3) — Entscheidung am Lauf-Ende.")
             continue
+        _renders_ok_this_run += 1
         if link:
             render_failures.pop(link, None)  # Selbstheilung bei Erfolg
 
@@ -1000,6 +1006,23 @@ def main() -> None:
         seen_topics_this_run.append((kw, ent, headline))
         if kw:
             sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
+
+    # ── Render-Failure-Auswertung (16.07.26): Give-up nur bei kartenspezifischem
+    # Fehler. Sind in diesem Lauf ≥2 Renders gescheitert und KEINES gelungen, ist
+    # das ein Infrastruktur-Verdacht (Node/Playwright global kaputt) — dann die in
+    # diesem Lauf erhoehten Zaehler wieder zuruecknehmen, nichts blacklisten.
+    if _render_fails_this_run >= 2 and _renders_ok_this_run == 0:
+        print(f"  [WARN] Alle {_render_fails_this_run} Renders dieses Laufs fehlgeschlagen — Infrastruktur-Verdacht, Zähler nicht erhöht.")
+        for _l in _incremented_this_run:
+            if _l in render_failures:
+                render_failures[_l] -= 1
+                if render_failures[_l] <= 0:
+                    del render_failures[_l]
+    else:
+        for _l in [l for l, n in list(render_failures.items()) if n >= 3]:
+            card_sent[_l] = today
+            del render_failures[_l]
+            print(f"  [GIVE-UP] 3x Render-Fehler — Link dauerhaft übersprungen: {_l}")
 
     # ── Dedup-Gedaechtnis speichern, auf juengste Links/Themen begrenzt ─────
     if len(card_sent) > MAX_STATE_LINKS:
