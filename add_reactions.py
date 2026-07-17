@@ -191,16 +191,57 @@ def story_matches(title, entry):
 # Frontend auf den gekuerzten Original-Text zurueck (siehe index.html
 # renderReaction()) - kein Blocker fuer den Rest der Pipeline.
 
+
+# Bug gefunden 17.07.26 (Kimi-K3-Story): HN-Auto-Reaktionen liefern oft nur
+# eine blanke Headline (kein Kommentar, keine Meinung - siehe fetch_hn_reaction).
+# Der alte "Fasse diese Reaktion zusammen"-Prompt ging aber davon aus, dass
+# Substanz zum Zusammenfassen da ist. Bei einer 3-5-Wort-Headline hat das
+# Gratis-Modell (Gemma/Llama) stattdessen ehrlich erklaert, dass ihm der Text
+# dazu fehlt ("Das ist eine blosse Ueberschrift ohne Inhalt...") - und dieser
+# Erklaertext wurde ungeprueft als text_de uebernommen und live auf der Seite
+# angezeigt. Fix: (1) kurze Titel bekommen einen Uebersetzungs- statt
+# Zusammenfassungs-Prompt, (2) die Antwort wird gegen bekannte Refusal-Marker
+# geprueft, bevor sie akzeptiert wird - schlaegt das fehl, bleibt text_de leer
+# und das Frontend faellt auf den Original-Titel zurueck (bestehendes Verhalten).
+_META_REFUSAL_MARKERS = (
+    "keine zusammenfassung", "ohne inhalt", "es fehlt", "fehlt der",
+    "kann ich nicht", "blosse ueberschrift", "bloße überschrift",
+    "nicht zusammenfassen", "kein kontext", "kein text", "keine reaktion",
+    "as an ai", "i cannot", "i can't summarize",
+)
+
+
+def _looks_like_valid_translation(antwort, original):
+    a = antwort.lower()
+    if any(m in a for m in _META_REFUSAL_MARKERS):
+        return False
+    # Ein echtes Uebersetzungsergebnis fuer eine kurze Headline ist etwa
+    # gleich lang wie das Original - ein Vielfaches laenger heisst meist
+    # "erklaert" statt "uebersetzt".
+    if len(original.split()) <= 8 and len(antwort) > len(original) * 4:
+        return False
+    return True
+
+
 def translate_reaction(text):
     if not OPENROUTER_KEY or not (text or "").strip():
         return None
-    prompt = (
-        "Fasse die folgende Reaktion (Tweet oder Forenbeitrag, evtl. auf "
-        "Englisch) in maximal 2 kurzen deutschen Saetzen zusammen. Erhalte "
-        "den Kernpunkt/die Pointe. Nur die Zusammenfassung ausgeben, keine "
-        "Anfuehrungszeichen, kein Meta-Kommentar wie \"Der Autor schreibt\".\n\n"
-        f"Text: {text[:1500]}"
-    )
+    is_headline = len(text.split()) <= 8
+    if is_headline:
+        prompt = (
+            "Uebersetze den folgenden kurzen Titel woertlich ins Deutsche. "
+            "Nur die Uebersetzung ausgeben - keine Erklaerung, kein Hinweis "
+            "darauf, dass Kontext oder eine Meinung fehlt, kein Kommentar.\n\n"
+            f"Titel: {text[:300]}"
+        )
+    else:
+        prompt = (
+            "Fasse die folgende Reaktion (Tweet oder Forenbeitrag, evtl. auf "
+            "Englisch) in maximal 2 kurzen deutschen Saetzen zusammen. Erhalte "
+            "den Kernpunkt/die Pointe. Nur die Zusammenfassung ausgeben, keine "
+            "Anfuehrungszeichen, kein Meta-Kommentar wie \"Der Autor schreibt\".\n\n"
+            f"Text: {text[:1500]}"
+        )
     url = "https://openrouter.ai/api/v1/chat/completions"
     for modell in TRANSLATE_MODELLE:
         try:
@@ -218,8 +259,10 @@ def translate_reaction(text):
             with urllib.request.urlopen(req, timeout=30) as r:
                 antwort = json.loads(r.read())["choices"][0]["message"]["content"].strip()
             antwort = antwort.strip('"').strip()
-            if antwort:
+            if antwort and _looks_like_valid_translation(antwort, text):
                 return antwort
+            if antwort:
+                print(f"  Uebersetzung verworfen (wirkt wie Meta-Kommentar): {antwort[:80]!r}")
         except Exception as e:
             print(f"  Uebersetzung fehlgeschlagen mit {modell}: {e}")
             continue
