@@ -56,7 +56,7 @@ def _card_bg_svg(n):
         return ""
     symbol_id, is_flag = sym
     cls = "card-bg card-bg--flag" if is_flag else "card-bg"
-    return f'<svg class="{cls}"><use href="#{symbol_id}" width="100%" height="100%"/></svg>'
+    return f'<svg class="{cls}"><use href="assets/ki-maps.svg#{symbol_id}" width="100%" height="100%"/></svg>'
 
 
 def _ssr_card(n):
