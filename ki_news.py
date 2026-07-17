@@ -431,6 +431,15 @@ FEEDS = [
     # AI/Tech-Koepfe auf X teilen (@ylecun, @levie, @nathanbenaich ua.) - fing die
     # Fable-5-Jailbreak-Abschaltung frueher als die Presse-Feeds.
     ("Digg AI",             "https://news.google.com/rss/search?q=site:digg.com+AI&hl=en&gl=US&ceid=US:en"),
+    # Chinesische Labs (Luecke geschlossen 17.07.26, Anlass: Kimi K3 fehlte komplett
+    # in Top Storys, siehe Kontext-Chat). GitHub-Releases-Ansatz getestet und verworfen:
+    # MoonshotAI/zai-org/QwenLM nutzen kein GitHub-Release-Feature, nur deepseek-ai
+    # hat einen einzelnen archivarischen Tag (nicht als laufender Kanal geeignet).
+    # Kill-Switch: <2 wirklich neue (nicht schon anderweitig abgedeckte) Storys/Woche
+    # nach 7 Tagen -> Zeilen wieder raus.
+    ("China AI Labs",  "https://news.google.com/rss/search?q=%22Moonshot+AI%22+OR+%22DeepSeek%22+OR+%22Alibaba+Qwen%22+OR+%22Zhipu+AI%22+OR+%22GLM-5%22+OR+%22MiniMax%22&hl=en&gl=US&ceid=US:en"),
+    ("Qwen Blog",      "https://qwenlm.github.io/blog/index.xml"),  # nativer Hugo-RSS-Feed, verifiziert 17.07.26
+    ("Kimi Blog",      "https://news.google.com/rss/search?q=site:kimi.com/blog&hl=en&gl=US&ceid=US:en"),  # kein natives RSS an kimi.com/blog, echte Quelle verifiziert (K3-Post datiert 14.07.26)
 ]
 
 # News, die an den LLM fuer Posts/Einordnungen gehen.
