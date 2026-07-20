@@ -3105,6 +3105,16 @@ def main():
     # ── Entity-Graph kumulativ fortschreiben (Phase 2, 16.07.26) ──────────
     update_entity_graph(proj_dir if proj_dir.exists() else Path("."), news_list)
 
+    # ── Story-Registry SHADOW-MODE (20.07.26): loggt nur "haette angedockt",
+    #    veraendert NICHTS am Output. Kill-Switch = diesen Block entfernen.
+    #    Details/Vertrag: story_registry_shadow.py (Design v2 + A7-Fixes).
+    try:
+        from story_registry_shadow import update_story_registry_shadow
+        update_story_registry_shadow(proj_dir if proj_dir.exists() else Path("."),
+                                     news_list, cluster_news, _call_llm_api, MODELLE)
+    except Exception as e:
+        logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
+
     # ── X-Beiträge: fehlende Vorschaubilder serverseitig ergänzen ──────────
     update_media_xpost_images(proj_dir if proj_dir.exists() else Path("."))
 
