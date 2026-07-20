@@ -35,6 +35,28 @@ jobs:
         with:
           python-version: "3.11"
 
+      # ── Shadow-Registry (20.07.26): Embedding-Modell + Abhaengigkeiten.
+      # Beide Caches machen den Step nach dem ersten Lauf schnell (~10-20s).
+      # Kill-Switch: diesen Step + HF-Cache-Step entfernen -> ki_news.py loggt
+      # "sentence-transformers fehlt - Lauf uebersprungen" und laeuft normal weiter.
+      - name: Shadow-Registry Abhaengigkeiten (pip-Cache)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-shadow-registry-v1
+
+      - name: Shadow-Registry Modell-Cache (HuggingFace)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-minilm-multilingual-v1
+
+      - name: Shadow-Registry Abhaengigkeiten installieren
+        run: |
+          pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet sentence-transformers
+        continue-on-error: true
+
       - name: KI News ausführen
         env:
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
@@ -142,6 +164,7 @@ jobs:
             git add hashtags/hashtags.json 2>/dev/null || true
             git add telegram_state.json 2>/dev/null || true
             git add graph.json 2>/dev/null || true
+            git add story_registry_shadow.json 2>/dev/null || true
             git diff --staged --quiet || git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')"
           }
 
