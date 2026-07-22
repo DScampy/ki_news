@@ -191,10 +191,18 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
                 continue
         candidates.append((ci, best_sid, best_sim))
 
+    # A9-Fix: Kill-Switch darf nur den Judge ueberspringen, NICHT die
+    # uebersprungenen Cluster als "neue Story" behandeln - sonst dockt der
+    # Kill-Switch-Fall genau die Duplikate NICHT an, die er verhindern soll,
+    # und blaeht die Registry weiter auf (Teufelskreis: mehr Storys -> mehr
+    # Kandidaten -> Kill-Switch feuert oefter -> noch mehr Storys).
+    skipped_by_killswitch = set()
     if len(candidates) > MAX_CANDIDATES:
         logger.warning("Shadow-Registry: %d Kandidaten (> %d) - Judge uebersprungen, "
-                       "KEIN Andocken geloggt. Symptom pruefen (theta/Registry)!",
+                       "KEIN Andocken geloggt, KEINE neuen Storys fuer diese Cluster. "
+                       "Symptom pruefen (theta/Registry)!",
                        len(candidates), MAX_CANDIDATES)
+        skipped_by_killswitch = {ci for ci, sid, sim in candidates}
         candidates = []
 
     # Stufe 3: Judge (ein Call)
@@ -230,7 +238,7 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
                 judged_yes.add(ci)
     next_id = max([int(s.split("-")[-1]) for s in registry] + [0]) + 1
     for ci, c in enumerate(clusters):
-        if ci in judged_yes:
+        if ci in judged_yes or ci in skipped_by_killswitch:
             continue
         rep = c[0].get("title", "")
         if not rep:
@@ -255,5 +263,6 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
     }
     reg_path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     dt = (datetime.utcnow() - t0).total_seconds()
-    logger.info("Shadow-Registry: %d Storys, %d Kandidaten, %d haette angedockt, %.1fs",
-                len(registry), len(candidates), attached, dt)
+    logger.info("Shadow-Registry: %d Storys, %d Kandidaten, %d haette angedockt, "
+                "%d wegen Kill-Switch uebersprungen (weder Andock noch neue Story), %.1fs",
+                len(registry), len(candidates), attached, len(skipped_by_killswitch), dt)
