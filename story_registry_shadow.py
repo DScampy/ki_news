@@ -142,6 +142,29 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
     cutoff = (date.today() - timedelta(days=MAX_AGE_DAYS)).isoformat()
     registry = {sid: st for sid, st in registry.items() if st.get("last_seen", "") >= cutoff}
 
+    # Link-Dedup (23.07.2026): re-ingestierte Artikel (Link bereits Registry-Member)
+    # werden an ihre bestehende Story angedockt (last_seen auffrischen), statt jeden
+    # Lauf neu als Story angelegt / als Kandidat gezaehlt zu werden. Deterministisch,
+    # kostenlos, kein False-Merge-Risiko (gleiche URL = gleicher Artikel). Behebt die
+    # Re-Ingestion-Flut - die eigentliche Ursache fuer Kill-Switch-Dauerfeuer und
+    # Registry-Bloat (verifiziert offline: Kandidaten/Lauf ~65 -> ~2). Cross-Source-
+    # Duplikate (gleiche Story, andere URL) bleiben Sache von Gates + Judge.
+    known_links = {l: sid for sid, st in registry.items()
+                   for l in st.get("links", []) if l}
+    _reingest = 0
+    _fresh_news = []
+    for _n in news_list:
+        _l = _n.get("link") or ""
+        if _l and _l in known_links:
+            registry[known_links[_l]]["last_seen"] = today
+            _reingest += 1
+        else:
+            _fresh_news.append(_n)
+    news_list = _fresh_news
+    if _reingest:
+        logger.info("Shadow-Registry: %d re-ingestierte Artikel per Link angedockt "
+                    "(kein Duplikat, kein Kandidat)", _reingest)
+
     clusters = cluster_fn(list(news_list), None)
     model = SentenceTransformer(MODEL_NAME, device="cpu")
 
