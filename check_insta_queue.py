@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
 """
-Liest Telegram-Button-Klicks ("📤 Auf Instagram posten") ab und postet die
-passende Card auf Instagram. Laeuft per Cron (insta_queue.yml) - kein
-Dauer-Server, kein Webhook. Telegram haelt nicht abgeholte Updates bis 24h
-vor, ein Klick wird also spaetestens beim naechsten Cron-Tick verarbeitet.
+Liest Telegram-Post-Codes ("ip:<card_id>") ab und postet die passende Card
+auf Instagram. Laeuft per Cron (insta_queue.yml) - kein Dauer-Server, kein
+Webhook.
+
+Fund vom 24.07.26: Urspruenglich lief das ueber einen Inline-Button mit
+callback_data. Telegram wirft callback_query-Updates aber binnen unter einer
+Minute aus der getUpdates-Warteschlange - der Cron (alle 2h) hat dadurch
+praktisch jeden Klick verpasst (live verifiziert: Update war da, 40s spaeter
+weg). Normale Nachrichten bleiben dagegen nachweislich >10 Min stehen. Fix:
+Der Button ist jetzt ein Custom-Keyboard-Button, der beim Tippen den Code
+als GANZ NORMALE Nachricht schickt. Callback_query wird zur Sicherheit
+trotzdem noch mitgelesen (falls irgendwo noch ein alter Inline-Button
+rumliegt), ist aber nicht mehr der Haupt-Pfad.
 
 Ablauf:
   1. getUpdates ab letztem verarbeiteten update_id (offset-Datei).
-  2. Jede callback_query mit data "ip:<card_id-Praefix>" -> Card in
-     cards.json suchen (gleiche Praefix-Logik wie post_to_insta.py).
-  3. answerCallbackQuery (Spinner auf dem Button beenden, Feedback an Daniel).
+  2. Jede Nachricht/callback_query mit Text/Data "ip:<card_id-Praefix>" ->
+     Card in cards.json suchen (gleiche Praefix-Logik wie post_to_insta.py).
+  3. Feedback an Daniel: answerCallbackQuery bei Klick, sonst sendMessage.
   4. Card auf Instagram posten (gleiche Graph-API-Calls wie post_to_insta.py).
-  5. offset-Datei aktualisieren, damit der Klick nicht doppelt verarbeitet wird.
+  5. offset-Datei aktualisieren, damit der Code nicht doppelt verarbeitet wird.
 
 Env-Variablen:
   TELEGRAM_TOKEN   (Secret)
+  TELEGRAM_CHAT_ID (optional) Default 9096438
   IG_USER_ID       (Secret)
   IG_ACCESS_TOKEN  (Secret)
   SITE_BASE        (optional) Default https://ki-news.live
@@ -26,6 +36,7 @@ import time
 import requests
 
 TG_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438").strip()
 IG = os.environ.get("IG_USER_ID", "").strip()
 IG_TOKEN = os.environ.get("IG_ACCESS_TOKEN", "").strip()
 SITE_BASE = os.environ.get("SITE_BASE", "https://ki-news.live").rstrip("/")
@@ -65,6 +76,16 @@ def answer_callback(callback_id: str, text: str) -> None:
         requests.post(url, data={"callback_query_id": callback_id, "text": text[:200]}, timeout=15)
     except Exception as e:
         print(f"WARN answerCallbackQuery: {e}")
+
+
+def send_message(text: str) -> None:
+    """Feedback per normaler Nachricht - Ersatz fuer answerCallbackQuery,
+    wenn der Code per Custom-Keyboard/Handeingabe als Message ankam."""
+    url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
+    try:
+        requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": text[:4096]}, timeout=15)
+    except Exception as e:
+        print(f"WARN sendMessage: {e}")
 
 
 def find_card(prefix: str) -> dict | None:
@@ -136,32 +157,50 @@ def main() -> None:
 
     for upd in updates:
         highest_id = max(highest_id, upd.get("update_id", highest_id))
-        cq = upd.get("callback_query")
-        if not cq:
-            continue
-        data = cq.get("data", "")
-        if not data.startswith(CB_PREFIX):
+
+        # Haupt-Pfad: normale Nachricht mit Code (Custom-Keyboard-Tap oder
+        # manuell eingetippt/kopiert). Fallback: alter Inline-Button.
+        prefix = None
+        callback_id = None
+
+        msg = upd.get("message")
+        msg_text = msg.get("text") if msg else None
+        if isinstance(msg_text, str) and msg_text.startswith(CB_PREFIX):
+            prefix = msg_text[len(CB_PREFIX):]
+        else:
+            cq = upd.get("callback_query")
+            if cq:
+                data = cq.get("data", "")
+                if data.startswith(CB_PREFIX):
+                    prefix = data[len(CB_PREFIX):]
+                    callback_id = cq.get("id", "")
+
+        if prefix is None:
             continue
 
-        prefix = data[len(CB_PREFIX):]
-        callback_id = cq.get("id", "")
+        def feedback(text: str) -> None:
+            if callback_id:
+                answer_callback(callback_id, text)
+            else:
+                send_message(text)
+
         print(f"Insta-Klick erkannt: Praefix='{prefix}'")
 
         if not IG or not IG_TOKEN:
-            answer_callback(callback_id, "FEHLER: IG-Secrets fehlen im Workflow.")
+            feedback("FEHLER: IG-Secrets fehlen im Workflow.")
             print("FEHLER: IG_USER_ID/IG_ACCESS_TOKEN nicht gesetzt.")
             continue
 
         card = find_card(prefix)
         if not card:
-            answer_callback(callback_id, "FEHLER: Card nicht in cards.json gefunden.")
+            feedback("FEHLER: Card nicht in cards.json gefunden.")
             print(f"FEHLER: Keine Card zu Praefix '{prefix}' gefunden.")
             continue
 
-        answer_callback(callback_id, "📤 Wird gerade gepostet...")
+        feedback("📤 Wird gerade gepostet...")
         result = post_card_to_instagram(card)
         print(result)
-        answer_callback(callback_id, result[:200])
+        feedback(result[:200])
         processed += 1
 
     save_offset(highest_id)

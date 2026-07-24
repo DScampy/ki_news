@@ -629,23 +629,35 @@ def fill_template(template: str, fields: dict) -> str:
 
 def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_id: str = "") -> bool:
     """Schickt das fertige MP4 via Telegram sendVideo.
-    Wenn card_id gesetzt ist, haengt ein Insta-Post-Button an (callback_data
-    "ip:<card_id-Praefix>"). check_insta_queue.py liest Klicks darauf beim
-    naechsten Cron-Lauf aus und postet genau diese Karte auf Instagram."""
+    Wenn card_id gesetzt ist, haengt ein Custom-Keyboard-Button mit dem Code
+    "ip:<card_id>" an. Tippt Daniel drauf, schickt Telegram diesen Code als
+    GANZ NORMALE Nachricht (kein callback_query mehr - Fund vom 24.07.26:
+    Telegram wirft callback_query-Updates aus der getUpdates-Warteschlange
+    binnen unter einer Minute, waehrend normale Nachrichten nachweislich
+    >10 Min stehen bleiben; unser Cron laeuft nur alle 2h und hat dadurch
+    praktisch jeden Klick verpasst). check_insta_queue.py liest ab jetzt
+    Nachrichten, die mit "ip:" beginnen, statt Callback-Daten.
+    Achtung: Custom-Keyboards sind chat-weit, nicht pro Nachricht - nur die
+    juengste Karte zeigt den Button. Aeltere Karten: Code aus der Caption
+    (falls noetig manuell) als Nachricht schicken, funktioniert genauso."""
     if not TELEGRAM_TOKEN:
         print("  [INFO] TELEGRAM_TOKEN nicht gesetzt — kein Telegram-Versand.")
         return False
 
     import io
     boundary = "ScampyBoundary" + os.urandom(6).hex()
-    caption  = f"🤖 {headline}\n\n{einordnung}"[:1024]
+    code = f"ip:{card_id}" if card_id else ""
+    caption = f"🤖 {headline}\n\n{einordnung}"
+    if code:
+        caption += f"\n\nCode zum Posten: {code}"
+    caption = caption[:1024]
 
     fields = [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption)]
     if card_id:
-        # 64-Byte-Limit von Telegram fuer callback_data -> Praefix kappen.
-        cb = f"ip:{card_id}"[:64]
         reply_markup = json.dumps({
-            "inline_keyboard": [[{"text": "📤 Auf Instagram posten", "callback_data": cb}]]
+            "keyboard": [[{"text": code}]],
+            "resize_keyboard": True,
+            "one_time_keyboard": True,
         })
         fields.append(("reply_markup", reply_markup))
 
