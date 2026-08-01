@@ -85,7 +85,14 @@ def _token_df(base):
 
 
 def _judge(pairs, llm_fn, modelle):
-    """Ein gebatchter Call. Rueckgabe: dict nr->True/False. Fehler => alles False."""
+    """Ein gebatchter Call. Rueckgabe: (dict nr->True/False, verwendetes Modell|None).
+    Fehler => alles False, Modell None (Fail-safe).
+
+    Modell-Rueckgabe (01.08.2026, Addendum A11 embedding_report.md): Merge-Qualitaets-
+    Review fand 3 False-Merges; offline liess sich NICHT feststellen, welches Modell
+    aus `modelle` sie tatsaechlich geurteilt hat, weil bisher nirgends geloggt wurde,
+    welches Modell in der Fallback-Kette den Call gewonnen hat. Rein additiv - aendert
+    nichts an der Urteils-Logik, nur an dem, was zurueckgegeben/geloggt wird."""
     lines = []
     for i, (a, b) in enumerate(pairs, 1):
         lines.append(f"{i}) A: {a}\n    B: {b}")
@@ -94,22 +101,24 @@ def _judge(pairs, llm_fn, modelle):
     messages = [{"role": "system", "content": JUDGE_SYSTEM},
                 {"role": "user", "content": user}]
     content = None
+    used_model = None
     for model in modelle:
         try:
             content = llm_fn(model, messages, max_tokens=300)
             if content:
+                used_model = model
                 break
         except Exception as e:
             logger.info("Shadow-Judge: Modell %s nicht verfuegbar (%s)", model, e)
     verdicts = {i: False for i in range(1, len(pairs) + 1)}   # Fail-safe: NEIN
     if not content:
         logger.warning("Shadow-Judge: kein Modell erreichbar - alle %d Kandidaten NICHT angedockt (Fail-safe)", len(pairs))
-        return verdicts
+        return verdicts, None
     for m in re.finditer(r"(\d+)\s*[:\)]\s*(JA|NEIN)", content, re.I):
         n = int(m.group(1))
         if n in verdicts:
             verdicts[n] = m.group(2).upper() == "JA"
-    return verdicts
+    return verdicts, used_model
 
 
 def update_story_registry_shadow(base_dir, news_list, cluster_fn, llm_fn, modelle):
@@ -236,7 +245,8 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
             a_t = clusters[ci][0].get("title", "")
             pairs.append((f"{a_t} | {sum_of.get(a_t, '')}",
                           f"{registry[sid]['rep_title']} | {registry[sid].get('summary', '')}"))
-        verdicts = _judge(pairs, llm_fn, modelle)
+        verdicts, judge_model = _judge(pairs, llm_fn, modelle)
+        model_tag = judge_model or "keins (Fail-safe)"
         for i, (ci, sid, sim) in enumerate(candidates, 1):
             rep = clusters[ci][0].get("title", "")
             if verdicts.get(i):
@@ -245,13 +255,14 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
                 st["links"] = (st.get("links", []) + [m.get("link", "") for m in clusters[ci]])[-20:]
                 st["last_seen"] = today
                 st["attach_count"] = st.get("attach_count", 0) + 1
+                st["last_judge_model"] = judge_model  # A11: fuer Merge-Qualitaets-Review
                 # A7-Fix 1: Zentroid bleibt EINGEFROREN - kein Update.
                 attached += 1
-                logger.info("SHADOW-ATTACH (Judge JA): %.3f '%s' -> %s '%s'",
-                            sim, rep[:60], sid, st["rep_title"][:60])
+                logger.info("SHADOW-ATTACH (Judge JA, Modell=%s): %.3f '%s' -> %s '%s'",
+                            model_tag, sim, rep[:60], sid, st["rep_title"][:60])
             else:
-                logger.info("SHADOW-JUDGE NEIN: %.3f '%s' -> '%s'",
-                            sim, rep[:60], registry[sid]["rep_title"][:60])
+                logger.info("SHADOW-JUDGE NEIN (Modell=%s): %.3f '%s' -> '%s'",
+                            model_tag, sim, rep[:60], registry[sid]["rep_title"][:60])
 
     # Neue Storys anlegen (alle Cluster, die nicht angedockt haben)
     judged_yes = set()
