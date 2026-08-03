@@ -21,6 +21,7 @@ Vertragsregeln:
 import json
 import logging
 import re
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -30,7 +31,26 @@ MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 THETA_ATTACH = 0.75
 MAX_AGE_DAYS = 4
 MAX_CANDIDATES = 25          # Kill-Switch-Symptom: mehr => Lauf ueberspringen + WARN
+MAX_ORPHANS_FOR_PASS2 = 15   # Pass-2 (s.u.) ueberspringen, wenn mehr unangedockte
+                              # Fresh-Cluster in einem Lauf entstehen - Symptom pruefen.
 REGISTRY_FILE = "story_registry_shadow.json"
+
+# Eigene Modell-Kette NUR fuer den Judge-Call (03.08.2026, Addendum A11
+# embedding_report.md). Getrennt von ki_news.py's MODELLE (Uebersetzung/Posts) -
+# absichtlich, damit dieser Fix die Uebersetzungs-Qualitaet/-Kosten nicht anfasst.
+# gpt-oss-120b zuerst: entspricht dem in Design v2 §3 festgelegten und in A3/A4
+# offline validierten Judge-Modell (92% Genauigkeit, 0 klare False-Merges ueber
+# 3 Modellfamilien). Die bisherige Praxis (MODELLE = reine Free-Kette ohne
+# gpt-oss-120b) war Implementierungs-Drift vom eigenen Design, kein Neuentwurf.
+# Free-Modelle bleiben als Fallback, falls gpt-oss-120b (ueber OpenRouter/DeepInfra)
+# mal nicht erreichbar ist - Verhalten degradiert dann auf den bisherigen Stand,
+# wird nie schlechter (Invariante I8, Fail-safe = nicht andocken bleibt unberuehrt).
+JUDGE_MODELLE = [
+    "openai/gpt-oss-120b",
+    "google/gemma-4-31b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct",
+]
 
 _WORD = re.compile(r"[a-zA-ZäöüÄÖÜß][\w\-']+")
 PERSONALIE = re.compile(
@@ -264,17 +284,90 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
                 logger.info("SHADOW-JUDGE NEIN (Modell=%s): %.3f '%s' -> '%s'",
                             model_tag, sim, rep[:60], registry[sid]["rep_title"][:60])
 
-    # Neue Storys anlegen (alle Cluster, die nicht angedockt haben)
+    # PASS 2 (03.08.2026, Addendum A12/A13 embedding_report.md): UnionFind unter
+    # den unangedockten Fresh-Clustern DESSELBEN LAUFS, bevor jeder einzeln als
+    # neue Story angelegt wird. Herkunft: Reddit-Recherche fand ein Zwei-Pass-
+    # Muster (3mins.news-Blogpost); offline (r8, synthetisches Eval-Set) und
+    # gegen den echten Live-Snapshot (r9, 520 Storys) geprueft: 0 Mega-Entity-
+    # Fehlurteile, 3 unabhaengige reale Fragmentierungsfaelle gefunden (u.a. der
+    # Google-Earth-3x-Fall, der Daniel am 03.08. als 3x-Telegram-Spam auffiel).
+    # Nutzt DIESELBEN Signale wie Pass 1 (θ=0,75-Kosinus, R1-Entitaeten-Gate,
+    # JUDGE_MODELLE) - kein separater, laxerer Pfad. Fail-safe: jeder Fehler
+    # oder zu viele Orphans (> MAX_ORPHANS_FOR_PASS2) -> Fallback auf das
+    # bisherige Verhalten (jeder Cluster wird einzeln zur eigenen Story).
     judged_yes = set()
     if candidates:
         for i, (ci, sid, sim) in enumerate(candidates, 1):
             if verdicts.get(i):
                 judged_yes.add(ci)
+    orphans = [ci for ci in range(len(clusters))
+               if ci not in judged_yes and ci not in skipped_by_killswitch
+               and clusters[ci][0].get("title", "")]
+
+    group_of = {ci: ci for ci in orphans}   # Default: jeder Orphan seine eigene Gruppe
+    if len(orphans) >= 2:
+        try:
+            if len(orphans) > MAX_ORPHANS_FOR_PASS2:
+                logger.warning("Shadow-Registry Pass-2: %d unangedockte Cluster (> %d) - "
+                               "uebersprungen, jeder Cluster bleibt einzeln (Symptom pruefen!)",
+                               len(orphans), MAX_ORPHANS_FOR_PASS2)
+            else:
+                p2_pairs_idx, p2_pairs_text = [], []
+                for i in range(len(orphans)):
+                    for j in range(i + 1, len(orphans)):
+                        ci, cj = orphans[i], orphans[j]
+                        sim = float(cluster_vecs[ci] @ cluster_vecs[cj])
+                        if sim < THETA_ATTACH:
+                            continue
+                        ti = [m.get("title", "") for m in clusters[ci]]
+                        tj = [m.get("title", "") for m in clusters[cj]]
+                        text_i = " ".join(ti) + " " + " ".join(sum_of.get(t, "") for t in ti)
+                        text_j = " ".join(tj) + " " + " ".join(sum_of.get(t, "") for t in tj)
+                        if ent_patterns is not None and not (
+                                _entities_of(ent_patterns, text_i) & _entities_of(ent_patterns, text_j)):
+                            continue  # R1-Gate, exakt wie Pass 1
+                        p2_pairs_idx.append((ci, cj))
+                        p2_pairs_text.append((f"{ti[0]} | {sum_of.get(ti[0], '')}",
+                                              f"{tj[0]} | {sum_of.get(tj[0], '')}"))
+                if p2_pairs_text:
+                    p2_verdicts, p2_model = _judge(p2_pairs_text, llm_fn, modelle)
+                    uf = {ci: ci for ci in orphans}
+
+                    def _find(x):
+                        while uf[x] != x:
+                            uf[x] = uf[uf[x]]
+                            x = uf[x]
+                        return x
+
+                    for i, (ci, cj) in enumerate(p2_pairs_idx, 1):
+                        if p2_verdicts.get(i):
+                            ri, rj = _find(ci), _find(cj)
+                            if ri != rj:
+                                uf[ri] = rj
+                            logger.info("SHADOW-PASS2-MERGE (Modell=%s): '%s' + '%s'",
+                                        p2_model or "keins (Fail-safe)",
+                                        clusters[ci][0].get("title", "")[:60],
+                                        clusters[cj][0].get("title", "")[:60])
+                    group_of = {ci: _find(ci) for ci in orphans}
+        except Exception as e:
+            logger.warning("Shadow-Registry Pass-2 fehlgeschlagen (%s) - Fallback: "
+                           "jeder Cluster bleibt einzeln wie bisher", e)
+            group_of = {ci: ci for ci in orphans}
+
+    groups = defaultdict(list)
+    for ci in orphans:
+        groups[group_of[ci]].append(ci)
+
+    # Neue Storys anlegen: EINE Story pro Pass-2-Gruppe (statt pro Cluster).
     next_id = max([int(s.split("-")[-1]) for s in registry] + [0]) + 1
-    for ci, c in enumerate(clusters):
-        if ci in judged_yes or ci in skipped_by_killswitch:
-            continue
-        rep = c[0].get("title", "")
+    for root, members in groups.items():
+        titles, links, vecs = [], [], []
+        for ci in members:
+            c = clusters[ci]
+            titles += [m.get("title", "") for m in c]
+            links += [m.get("link", "") for m in c]
+            vecs.append(cluster_vecs[ci])
+        rep = titles[0] if titles else ""
         if not rep:
             continue
         sid = f"st-{next_id:05d}"
@@ -282,12 +375,13 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
         registry[sid] = {
             "rep_title": rep,
             "summary": sum_of.get(rep, ""),
-            "titles": [m.get("title", "") for m in c],
-            "links": [m.get("link", "") for m in c],
-            "centroid": [round(float(x), 5) for x in cluster_vecs[ci]],
+            "titles": titles,
+            "links": links,
+            "centroid": [round(float(x), 5) for x in (_centroid(vecs) if len(vecs) > 1 else vecs[0])],
             "created": today,
             "last_seen": today,
             "attach_count": 0,
+            "pass2_merged": len(members) > 1,   # Transparenz fuer den naechsten Merge-Qualitaets-Review
         }
 
     out = {

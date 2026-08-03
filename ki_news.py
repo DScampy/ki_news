@@ -3109,9 +3109,9 @@ def main():
     #    veraendert NICHTS am Output. Kill-Switch = diesen Block entfernen.
     #    Details/Vertrag: story_registry_shadow.py (Design v2 + A7-Fixes).
     try:
-        from story_registry_shadow import update_story_registry_shadow
+        from story_registry_shadow import update_story_registry_shadow, JUDGE_MODELLE
         update_story_registry_shadow(proj_dir if proj_dir.exists() else Path("."),
-                                     news_list, cluster_news, _call_llm_api, MODELLE)
+                                     news_list, cluster_news, _call_llm_api, JUDGE_MODELLE)
     except Exception as e:
         logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
 
