@@ -31,8 +31,18 @@ MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 THETA_ATTACH = 0.75
 MAX_AGE_DAYS = 4
 MAX_CANDIDATES = 25          # Kill-Switch-Symptom: mehr => Lauf ueberspringen + WARN
-MAX_ORPHANS_FOR_PASS2 = 15   # Pass-2 (s.u.) ueberspringen, wenn mehr unangedockte
+MAX_ORPHANS_FOR_PASS2 = 40   # Pass-2 (s.u.) ueberspringen, wenn mehr unangedockte
                               # Fresh-Cluster in einem Lauf entstehen - Symptom pruefen.
+                              # (04.08.2026: von 15 auf 40 angehoben - reale Orphan-Zahl
+                              # lag bei 20-29/Lauf, Cap war gegen die falsche Referenzgroesse
+                              # kalibriert (Pass-1-Kandidaten ~0-4/Lauf statt Neu-Storys
+                              # ~10-25/Lauf, A10-Fix-Stand). Pass-2 hat seit Deploy 03.08.
+                              # dadurch noch NIE gemergt - alle 3 geloggten Laeufe lagen
+                              # ueber dem alten Cap. Kill-Switch: faellt ein Pass-2-Judge-
+                              # Call bei realer Paarzahl (siehe SHADOW-PASS2-PAIRS-Log) aus
+                              # (Timeout/unparsebar), Cap zurueck auf 15 und stattdessen
+                              # einen Deckel auf die GATE-PASSING-Paarzahl einziehen, nicht
+                              # auf die rohe Orphan-Zahl.
 REGISTRY_FILE = "story_registry_shadow.json"
 
 # Eigene Modell-Kette NUR fuer den Judge-Call (03.08.2026, Addendum A11
@@ -329,6 +339,13 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
                         p2_pairs_idx.append((ci, cj))
                         p2_pairs_text.append((f"{ti[0]} | {sum_of.get(ti[0], '')}",
                                               f"{tj[0]} | {sum_of.get(tj[0], '')}"))
+                # Sichtbarkeit fuer die naechste Cap-Kalibrierung (04.08.2026):
+                # rohe Paare (n*(n-1)/2 vor jedem Filter) vs. tatsaechlich an den
+                # Judge gegangene Paare (nach θ+R1-Gate).
+                raw_pairs = len(orphans) * (len(orphans) - 1) // 2
+                logger.info("Shadow-Registry Pass-2: %d Orphans, %d rohe Paare, "
+                            "%d nach θ/R1-Gate an den Judge", len(orphans), raw_pairs,
+                            len(p2_pairs_text))
                 if p2_pairs_text:
                     p2_verdicts, p2_model = _judge(p2_pairs_text, llm_fn, modelle)
                     uf = {ci: ci for ci in orphans}
