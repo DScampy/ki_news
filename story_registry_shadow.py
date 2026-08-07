@@ -43,6 +43,17 @@ MAX_ORPHANS_FOR_PASS2 = 40   # Pass-2 (s.u.) ueberspringen, wenn mehr unangedock
                               # (Timeout/unparsebar), Cap zurueck auf 15 und stattdessen
                               # einen Deckel auf die GATE-PASSING-Paarzahl einziehen, nicht
                               # auf die rohe Orphan-Zahl.
+MAX_PASS3_PAIRS_PER_RUN = 60  # Pass-3 (s.u.): Cap auf tatsaechlich an den Judge gehende
+                              # Story-Paare (nach th+R1-Gate), NICHT auf rohe Storyzahl -
+                              # aus dem Pass-2-Kalibrierungsfehler vom 04.08. gelernt (falsche
+                              # Referenzgroesse gewaehlt). Empirisch gegen die reale Registry
+                              # gemessen (07.08.2026, 647 aktive Storys, einmaliger Vollabgleich
+                              # ohne Cache): 46 Paare ueber th=0.75 + R1-Gate. 60 gibt Puffer fuer
+                              # den ersten Lauf (Backlog); danach sollte die Zahl durch den
+                              # checked_pairs-Cache stark sinken (nur neue Storys seit dem
+                              # letzten Lauf muessen neu verglichen werden). Nach den ersten
+                              # produktiven Laeufen mit SHADOW-PASS3-PAIRS-Log neu kalibrieren,
+                              # nicht raten.
 REGISTRY_FILE = "story_registry_shadow.json"
 
 # Eigene Modell-Kette NUR fuer den Judge-Call (03.08.2026, Addendum A11
@@ -172,14 +183,22 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
     reg_path = base / REGISTRY_FILE
     today = date.today().isoformat()
     registry = {}
+    pass3_checked = set()
     if reg_path.exists():
         try:
-            registry = json.loads(reg_path.read_text(encoding="utf-8")).get("stories", {})
+            _raw = json.loads(reg_path.read_text(encoding="utf-8"))
+            registry = _raw.get("stories", {})
+            pass3_checked = set(_raw.get("_pass3_checked", []))
         except Exception:
             logger.warning("Shadow-Registry: %s unlesbar - Registry startet neu", REGISTRY_FILE)
     # Aging
     cutoff = (date.today() - timedelta(days=MAX_AGE_DAYS)).isoformat()
     registry = {sid: st for sid, st in registry.items() if st.get("last_seen", "") >= cutoff}
+    # Pass-3-Cache mit aussortieren: Eintraege, die eine inzwischen ausgealterte
+    # (oder durch Pass-3 selbst gemergte) Story referenzieren, sind wertlos und
+    # wuerden nur den Cache unbegrenzt wachsen lassen.
+    pass3_checked = {p for p in pass3_checked
+                     if all(sid in registry for sid in p.split("|"))}
 
     # Link-Dedup (23.07.2026): re-ingestierte Artikel (Link bereits Registry-Member)
     # werden an ihre bestehende Story angedockt (last_seen auffrischen), statt jeden
@@ -401,10 +420,151 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
             "pass2_merged": len(members) > 1,   # Transparenz fuer den naechsten Merge-Qualitaets-Review
         }
 
+    # PASS 3 (07.08.2026, Addendum A16 embedding_report.md): Story-vs-Story-Merge
+    # UEBER LAeUFE HINWEG. Pass-1 vergleicht neue Artikel gegen bestehende Storys,
+    # Pass-2 vergleicht unangedockte Cluster INNERHALB eines Laufs - aber sobald
+    # zwei Storys erstmal unabhaengig voneinander EXISTIEREN, wurden sie nie wieder
+    # gegeneinander geprueft. Konkreter Fund (Merge-Qualitaets-Review 07.08.): der
+    # Google/DeepMind-Fuehrungswechsel (Hassabis-Ruecktritt + Dean-Abgang, 05.-07.08.)
+    # zerfiel dadurch in 6 nie gemergte Storys ueber 3 Tage. Pass-3 vergleicht daher
+    # ALLE aktuell aktiven Storys (die Registry aged ohnehin selbst nach MAX_AGE_DAYS
+    # aus - kein eigenes Zeitfenster noetig) paarweise per bereits vorhandenem,
+    # eingefrorenem Zentroid (A7-Fix 1 - kein Re-Embedding). Gleiches θ=0.75 + R1-Gate
+    # wie Pass 1/2 - kein separater, laxerer Pfad.
+    #
+    # Modell-Entscheidung (Daniel, 07.08.): EIN starkes Modell (gpt-oss-120b zuerst
+    # in JUDGE_MODELLE, wie ueberall sonst) statt 2-Modell-Konsens. Grund: die
+    # 01.08.-Offline-Tests fanden bereits, dass 2-Modell-Konsens den Recall unter 80%
+    # drueckt (vereinigt blinde Flecken statt sie auszugleichen) - und die real
+    # betroffenen Story-Paare liegen mit 0.746-0.792 Similarity naeher an der
+    # Ablehnungsschwelle als typische Pass-1-Attaches. Konsens haette hier vermutlich
+    # genau die Faelle gekillt, fuer die Pass-3 gebaut wird. Nutzt dieselbe _judge()-
+    # Funktion wie Pass 1/2 (kein neuer Code-Pfad, kein neues Fehlerbild).
+    #
+    # checked_pairs verhindert, dass dieselbe (bereits verneinte) Paarung jeden Lauf
+    # erneut an den Judge geht - nur neue Storys seit dem letzten Lauf erzeugen neue
+    # Paare. Fail-safe: jeder Fehler -> Pass-3 wird fuer diesen Lauf uebersprungen,
+    # Registry bleibt unveraendert (Invariante I8-Analogon).
+    try:
+        sids_all = sorted(registry)
+        if len(sids_all) >= 2:
+            import numpy as _np
+            cents_all = _np.stack([_np.asarray(registry[s]["centroid"], dtype=_np.float32)
+                                    for s in sids_all])
+            sim_matrix = cents_all @ cents_all.T
+            text_of = {s: " ".join(registry[s]["titles"]) + " " + registry[s].get("summary", "")
+                       for s in sids_all}
+            ent_of = ({s: _entities_of(ent_patterns, text_of[s]) for s in sids_all}
+                      if ent_patterns is not None else None)
+
+            raw_pairs = []
+            for i in range(len(sids_all)):
+                for j in range(i + 1, len(sids_all)):
+                    a, b = sids_all[i], sids_all[j]
+                    key = "|".join(sorted((a, b)))
+                    if key in pass3_checked:
+                        continue
+                    sim = float(sim_matrix[i, j])
+                    if sim < THETA_ATTACH:
+                        continue
+                    if ent_of is not None and not (ent_of[a] & ent_of[b]):
+                        continue
+                    raw_pairs.append((a, b, sim))
+
+            logger.info("Shadow-Registry Pass-3: %d Storys aktiv, %d neue Paare nach "
+                        "θ/R1-Gate (vor Cap)", len(sids_all), len(raw_pairs))
+
+            if len(raw_pairs) > MAX_PASS3_PAIRS_PER_RUN:
+                logger.warning("Shadow-Registry Pass-3: %d Paare (> %d) - nur die "
+                               "%d aehnlichsten diesen Lauf, Rest bleibt fuer naechsten "
+                               "Lauf vorgemerkt (kein Cache-Eintrag)", len(raw_pairs),
+                               MAX_PASS3_PAIRS_PER_RUN, MAX_PASS3_PAIRS_PER_RUN)
+                raw_pairs.sort(key=lambda x: -x[2])
+                raw_pairs = raw_pairs[:MAX_PASS3_PAIRS_PER_RUN]
+
+            if raw_pairs:
+                p3_pairs_text = [
+                    (f"{registry[a]['rep_title']} | {registry[a].get('summary', '')}",
+                     f"{registry[b]['rep_title']} | {registry[b].get('summary', '')}")
+                    for a, b, sim in raw_pairs
+                ]
+                p3_verdicts, p3_model = _judge(p3_pairs_text, llm_fn, modelle)
+
+                uf3 = {s: s for s in sids_all}
+
+                def _find3(x):
+                    while uf3[x] != x:
+                        uf3[x] = uf3[uf3[x]]
+                        x = uf3[x]
+                    return x
+
+                for i, (a, b, sim) in enumerate(raw_pairs, 1):
+                    key = "|".join(sorted((a, b)))
+                    pass3_checked.add(key)  # unabhaengig vom Urteil: nicht erneut fragen
+                    if p3_verdicts.get(i):
+                        ra, rb = _find3(a), _find3(b)
+                        if ra != rb:
+                            uf3[ra] = rb
+                        logger.info("SHADOW-PASS3-MERGE (Modell=%s): %.3f '%s' <-> '%s'",
+                                    p3_model or "keins (Fail-safe)", sim,
+                                    registry[a]["rep_title"][:60],
+                                    registry[b]["rep_title"][:60])
+                    else:
+                        logger.info("SHADOW-PASS3-JUDGE NEIN (Modell=%s): %.3f '%s' <-> '%s'",
+                                    p3_model or "keins (Fail-safe)", sim,
+                                    registry[a]["rep_title"][:60],
+                                    registry[b]["rep_title"][:60])
+
+                p3_groups = defaultdict(list)
+                for s in sids_all:
+                    p3_groups[_find3(s)].append(s)
+
+                merged_count = 0
+                for root, members in p3_groups.items():
+                    if len(members) < 2:
+                        continue
+                    merged_count += len(members) - 1
+                    # AElteste (per created-Datum, dann kleinste ID) Story ueberlebt -
+                    # konsistent mit "erste Meldung gewinnt die Story-Identitaet".
+                    members_sorted = sorted(members, key=lambda s: (registry[s].get("created", ""), s))
+                    survivor = members_sorted[0]
+                    surv = registry[survivor]
+                    all_titles, all_links, all_cents = list(surv["titles"]), list(surv["links"]),                         [_np.asarray(surv["centroid"], dtype=_np.float32)]
+                    latest_seen = surv.get("last_seen", today)
+                    for absorbed_id in members_sorted[1:]:
+                        absorbed = registry[absorbed_id]
+                        all_titles += absorbed["titles"]
+                        all_links += absorbed["links"]
+                        all_cents.append(_np.asarray(absorbed["centroid"], dtype=_np.float32))
+                        latest_seen = max(latest_seen, absorbed.get("last_seen", today))
+                        surv["attach_count"] = surv.get("attach_count", 0) + absorbed.get("attach_count", 0) + 1
+                        del registry[absorbed_id]
+                    # Dedup, Reihenfolge egal - Titel/Links dienen nur Anzeige/Review.
+                    seen_t, dedup_titles = set(), []
+                    for t in all_titles:
+                        if t not in seen_t:
+                            seen_t.add(t); dedup_titles.append(t)
+                    seen_l, dedup_links = set(), []
+                    for l in all_links:
+                        if l and l not in seen_l:
+                            seen_l.add(l); dedup_links.append(l)
+                    surv["titles"] = dedup_titles[-40:]
+                    surv["links"] = dedup_links[-40:]
+                    surv["last_seen"] = latest_seen
+                    surv["centroid"] = [round(float(x), 5) for x in _centroid(all_cents)]
+                    surv["pass3_merged"] = True
+                if merged_count:
+                    logger.info("Shadow-Registry Pass-3: %d Storys durch Merge zusammengefuehrt "
+                                "(Modell=%s)", merged_count, p3_model or "keins (Fail-safe)")
+    except Exception as e:
+        logger.warning("Shadow-Registry Pass-3 fehlgeschlagen (%s) - Registry bleibt "
+                       "unveraendert wie vor Pass-3", e)
+
     out = {
         "_hinweis": "GENERIERT von story_registry_shadow.py (SHADOW-MODE) - NICHT manuell editieren.",
         "updated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "stories": registry,
+        "_pass3_checked": sorted(pass3_checked),
     }
     reg_path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     dt = (datetime.utcnow() - t0).total_seconds()

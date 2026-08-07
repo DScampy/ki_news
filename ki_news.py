@@ -398,7 +398,6 @@ FEEDS = [
     # Englisch – AI-spezifische Feeds bevorzugt
     ("TechCrunch AI",  "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("Ars Technica",   "https://feeds.arstechnica.com/arstechnica/technology-lab"),
-    ("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"),
     ("Wired",          "https://wired.com/feed/rss"),
     ("The Verge",      "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"),
     ("CNBC", 		"https://www.cnbc.com/id/19854910/device/rss/rss.html"),
@@ -527,7 +526,6 @@ def _detect_ollama_models():
 SOURCE_COLORS = {
     "The Decoder": "#1d9bf0",
     "TechCrunch AI": "#ff6b35",
-    "VentureBeat AI": "#7c3aed",
     "Ars Technica": "#16a34a",
     "MIT Tech Review": "#dc2626",
     "Heise": "#ca8a04",
@@ -545,7 +543,6 @@ SOURCE_PRESTIGE = {
     "The Decoder":    5,
     "TechCrunch AI":  5,
     "Heise":          5,
-    "VentureBeat AI": 5,
     "Ars Technica":   5,
     "Wired":          5,
     "The Verge":      5,
@@ -3137,7 +3134,6 @@ def main():
         source_tags = {
             "The Decoder": "#TheDecoder",
             "TechCrunch AI": "#TechCrunch",
-            "VentureBeat AI": "#VentureBeat",
             "Ars Technica": "#ArsTechnica",
             "MIT Tech Review": "#MITTechReview",
             "Heise": "#Heise",
