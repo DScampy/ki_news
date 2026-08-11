@@ -2454,7 +2454,7 @@ def create_html(alle_news, parsed, summaries):
 # -------------------------
 # Entity-Graph (Phase 2, 16.07.26) — kumulativer, unsichtbarer Daten-Step
 # -------------------------
-def update_entity_graph(base_dir, news_items):
+def update_entity_graph(base_dir, news_items, link_to_story=None):
     """Schreibt graph.json kumulativ fort: Knoten = kuratierte Entitäten aus
     entities.json, Kanten = Ko-Okkurrenzen zweier Entitäten in Titel+Summary
     desselben Artikels. Zählt über Läufe hinweg weiter (kumulativ), auch wenn
@@ -2471,8 +2471,21 @@ def update_entity_graph(base_dir, news_items):
       alte Artikel liefern, ein Link also nie nach >30 Tagen wiederkommt.
     - Fehler blockieren NIE die Pipeline (Invariante I8): nur Log, kein Raise.
     - Unsichtbar: kein SSR, kein Frontend-Bezug, reiner Datenaufbau.
+
+    link_to_story (11.08.2026, erste Live-Nutzung der Shadow-Registry):
+    optionale {link: story_id}-Map aus story_registry_shadow.link_to_story_map().
+    Wenn vorhanden, wird pro STORY (nicht mehr pro Link) höchstens einmal
+    gezählt — verhindert, dass dieselbe reale Meldung über mehrere Quellen-
+    Links (Cross-Source-Duplikate, von der Registry erkannt) die Kanten-
+    Gewichte künstlich vervielfacht. Fail-safe additiv: fehlt die Map oder
+    kennt sie einen Link nicht, verhält sich der Code exakt wie vorher
+    (Dedup rein über den Link). Bewusst NUR die Zähllogik hier betroffen —
+    kein SSR/Frontend-Bezug, also weiterhin "unsichtbar" im Sinne des
+    Vertrags oben; das ist der von Daniel gewünschte erste Schritt (Graph-
+    Datenqualität), noch keine sichtbare Graph-Feature auf der Website.
     """
     ENTITY_SEEN_MAX_DAYS = 30
+    link_to_story = link_to_story or {}
     try:
         base = Path(base_dir)
         ent_path = base / "entities.json"
@@ -2493,7 +2506,7 @@ def update_entity_graph(base_dir, news_items):
             return
 
         # Bestehenden Graph laden (kumulativer Zustand); unlesbar -> Neustart bei 0
-        nodes, edges, seen = {}, {}, {}
+        nodes, edges, seen, seen_stories = {}, {}, {}, {}
         if graph_path.exists():
             try:
                 g = json.loads(graph_path.read_text(encoding="utf-8"))
@@ -2502,16 +2515,27 @@ def update_entity_graph(base_dir, news_items):
                          for ed in g.get("edges", []) if ed.get("source") and ed.get("target")}
                 if isinstance(g.get("seen"), dict):
                     seen = g["seen"]
+                if isinstance(g.get("seen_stories"), dict):
+                    seen_stories = g["seen_stories"]
             except Exception:
                 logger.exception("graph.json unlesbar - Graph startet neu bei 0")
 
         today = datetime.now(BERLIN).strftime("%Y-%m-%d")
         new_articles = 0
+        story_dupes_skipped = 0
         for it in news_items:
             link = it.get("link")
             if not link or link in seen:
                 continue
             seen[link] = today
+            sid = link_to_story.get(link)
+            if sid:
+                if sid in seen_stories:
+                    # Eine andere Quelle derselben Registry-Story hat diese
+                    # Entitaeten in einem frueheren Lauf schon gezaehlt.
+                    story_dupes_skipped += 1
+                    continue
+                seen_stories[sid] = today
             text = f"{it.get('title', '')} {it.get('summary', '')}"
             found = [eid for eid, pat in comp if pat.search(text)]
             if not found:
@@ -2540,6 +2564,7 @@ def update_entity_graph(base_dir, news_items):
 
         # seen-Delta-State prunen (Datei waechst sonst unbegrenzt)
         seen = {k: v for k, v in seen.items() if _days_since(v) <= ENTITY_SEEN_MAX_DAYS}
+        seen_stories = {k: v for k, v in seen_stories.items() if _days_since(v) <= ENTITY_SEEN_MAX_DAYS}
 
         out = {
             "_hinweis": "GENERIERT von ki_news.py (update_entity_graph) - NICHT manuell editieren. Kuratierung laeuft ueber entities.json.",
@@ -2547,10 +2572,12 @@ def update_entity_graph(base_dir, news_items):
             "nodes": sorted(nodes.values(), key=lambda n: -int(n.get("count", 0))),
             "edges": sorted(edges.values(), key=lambda e: -int(e.get("count", 0))),
             "seen": seen,
+            "seen_stories": seen_stories,
         }
         graph_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-        logger.info("graph.json aktualisiert: %d Knoten, %d Kanten (+%d neue Artikel mit Entitaeten)",
-                    len(nodes), len(edges), new_articles)
+        logger.info("graph.json aktualisiert: %d Knoten, %d Kanten (+%d neue Artikel mit Entitaeten, "
+                    "%d Cross-Source-Duplikate per Story-Registry uebersprungen)",
+                    len(nodes), len(edges), new_articles, story_dupes_skipped)
     except Exception as e:
         logger.exception("Entity-Graph-Step fehlgeschlagen (Pipeline laeuft weiter): %s", e)
 
@@ -3099,18 +3126,33 @@ def main():
     else:
         update_archive(Path("."))
 
-    # ── Entity-Graph kumulativ fortschreiben (Phase 2, 16.07.26) ──────────
-    update_entity_graph(proj_dir if proj_dir.exists() else Path("."), news_list)
-
-    # ── Story-Registry SHADOW-MODE (20.07.26): loggt nur "haette angedockt",
-    #    veraendert NICHTS am Output. Kill-Switch = diesen Block entfernen.
-    #    Details/Vertrag: story_registry_shadow.py (Design v2 + A7-Fixes).
+    # ── Story-Registry SHADOW-MODE (20.07.26): loggt "haette angedockt" +
+    #    fuehrt Story-Merges (Pass 1-3). Veraendert NICHTS am Kern-Pipeline-
+    #    Output (Scoring/Karten/Telegram unberuehrt) - Kill-Switch = diesen
+    #    Block entfernen. Details/Vertrag: story_registry_shadow.py.
+    #    11.08.2026: laeuft jetzt VOR dem Entity-Graph-Schritt (statt danach),
+    #    damit dessen Story-Zuordnung fuer den heutigen Lauf schon steht, wenn
+    #    update_entity_graph() sie unten liest (link_to_story_map).
     try:
         from story_registry_shadow import update_story_registry_shadow, JUDGE_MODELLE
         update_story_registry_shadow(proj_dir if proj_dir.exists() else Path("."),
                                      news_list, cluster_news, _call_llm_api, JUDGE_MODELLE)
     except Exception as e:
         logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
+
+    # ── Entity-Graph kumulativ fortschreiben (Phase 2, 16.07.26) ──────────
+    # 11.08.2026: erste tatsaechliche LIVE-Nutzung der Shadow-Registry (bisher
+    # reiner Logger). link_to_story_map() ist read-only, fail-safe (leeres
+    # dict bei jedem Fehler -> update_entity_graph faellt automatisch auf sein
+    # bisheriges Link-only-Verhalten zurueck, siehe Docstring dort). Kill-
+    # Switch fuer NUR diesen Schritt: link_to_story wieder auf None setzen.
+    try:
+        from story_registry_shadow import link_to_story_map
+        _link_to_story = link_to_story_map(proj_dir if proj_dir.exists() else Path("."))
+    except Exception as e:
+        logger.info("link_to_story_map nicht verfuegbar (%s) - Entity-Graph zaehlt wie bisher pro Link", e)
+        _link_to_story = None
+    update_entity_graph(proj_dir if proj_dir.exists() else Path("."), news_list, link_to_story=_link_to_story)
 
     # ── X-Beiträge: fehlende Vorschaubilder serverseitig ergänzen ──────────
     update_media_xpost_images(proj_dir if proj_dir.exists() else Path("."))

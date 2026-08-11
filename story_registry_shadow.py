@@ -149,6 +149,13 @@ def _judge(pairs, llm_fn, modelle):
             if content:
                 used_model = model
                 break
+            # 11.08.2026: leerer Response OHNE Exception wurde bisher gar nicht
+            # geloggt - der Fallback griff still, ohne dass sichtbar war, WARUM
+            # das bevorzugte Modell (meist gpt-oss-120b) nicht verwendet wurde.
+            # Rein additiv (nur Log, keine Logik-Aenderung) - macht die bisher
+            # unsichtbare Fallback-Quote diagnostizierbar.
+            logger.info("Shadow-Judge: Modell %s lieferte leeren Response (kein Fehler, "
+                        "kein Inhalt) - naechstes Modell", model)
         except Exception as e:
             logger.info("Shadow-Judge: Modell %s nicht verfuegbar (%s)", model, e)
     verdicts = {i: False for i in range(1, len(pairs) + 1)}   # Fail-safe: NEIN
@@ -160,6 +167,26 @@ def _judge(pairs, llm_fn, modelle):
         if n in verdicts:
             verdicts[n] = m.group(2).upper() == "JA"
     return verdicts, used_model
+
+
+def link_to_story_map(base_dir):
+    """Oeffentlicher Lese-Zugriff (11.08.2026) fuer andere Pipeline-Schritte
+    (aktuell: update_entity_graph), die wissen wollen, welcher Artikel-Link zu
+    welcher Registry-Story gehoert - OHNE die Registry selbst zu veraendern
+    (reiner Read-Only-Helper, kein neuer Schreiber, Invariante I5 unberuehrt).
+
+    Fail-safe: bei jedem Fehler leeres dict -> Aufrufer faellt automatisch auf
+    sein bisheriges Link-only-Verhalten zurueck (Invariante I8).
+    """
+    try:
+        reg_path = Path(base_dir) / REGISTRY_FILE
+        if not reg_path.exists():
+            return {}
+        stories = json.loads(reg_path.read_text(encoding="utf-8")).get("stories", {})
+        return {link: sid for sid, st in stories.items() for link in st.get("links", []) if link}
+    except Exception as e:
+        logger.info("link_to_story_map: nicht verfuegbar (%s) - Aufrufer faellt auf Link-only zurueck", e)
+        return {}
 
 
 def update_story_registry_shadow(base_dir, news_list, cluster_fn, llm_fn, modelle):
