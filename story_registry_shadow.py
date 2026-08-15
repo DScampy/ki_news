@@ -69,7 +69,17 @@ REGISTRY_FILE = "story_registry_shadow.json"
 JUDGE_MODELLE = [
     "openai/gpt-oss-120b",
     "google/gemma-4-31b-it:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
+    # 14.08.26: meta-llama/llama-3.3-70b-instruct:free entfernt - Live-Check
+    # gegen OpenRouter /api/v1/models (14.08.26) zeigt: die :free-Variante
+    # existiert nicht mehr im Katalog, nur noch die bezahlte ID ohne
+    # ":free"-Suffix (steht unten als Fallback drin). Lieferte seit mind.
+    # 12.08. durchgehend HTTP 404. Siehe identischer Fund in ki_news.py MODELLE.
+    # gpt-oss-20b:free ergaenzt - live gegen die echte API getestet (gleiche
+    # Familie wie gpt-oss-120b oben, kein Reasoning-Zwang-Problem). NVIDIA-
+    # Nemotron-Modelle bewusst NICHT hier: brauchen reasoning:{enabled:false},
+    # dieser Datei fehlt der Schalter aus ki_news.py's _call_llm_api() - erst
+    # nachziehen, wenn diese Judge-Kette denselben Fix bekommt.
+    "openai/gpt-oss-20b:free",
     "meta-llama/llama-3.3-70b-instruct",
 ]
 

@@ -25,6 +25,28 @@ import html as _html
 #   <!-- SSR:NEWS:START --> … <!-- SSR:NEWS:END -->
 SSR_MAX = 24  # max. News-Karten im vorgerenderten HTML
 
+# Deutsche Signalwoerter (14.08.26, portiert aus generate_news_cards.py'
+# GERMAN_MARKERS/_looks_german() - dort seit 08.07.26 im Einsatz, um
+# unuebersetzte Karten-Headlines abzufangen). Gleicher Fund hier: title_de
+# ist bei fehlgeschlagener Uebersetzung schlicht der englische Original-
+# Titel (Platzhalter aus summarize_news() wurde nie ueberschrieben) - das
+# ging bisher UNGEPRUEFT in news.json und damit in Hero + Grid-Karten der
+# Website (Fund 14.08.26: Lauf 05:01 UTC, "OpenAI is losing its second
+# executive this week" lief englisch auf ki-news.live). Bewusst keine harte
+# Sprach-ID-Bibliothek - reicht als Fangnetz gegen unuebersetzten Text.
+GERMAN_MARKERS = [
+    " der ", " die ", " das ", " und ", " ist ", " nicht ", " eine ",
+    " einen ", " für ", " mit ", " auf ", " dass ", " wird ", " sich ",
+    " kein ", " keine ", " ein ", " im ", " den ",
+]
+
+
+def _looks_german(text: str) -> bool:
+    """True wenn der Text deutsche Signalwoerter enthaelt. Siehe Kommentar
+    bei GERMAN_MARKERS oben."""
+    lower = f" {(text or '').lower()} "
+    return any(marker in lower for marker in GERMAN_MARKERS)
+
 
 def _ssr_fmt_date(d):
     """'2026-05-28' -> '28.05.2026'"""
@@ -455,8 +477,26 @@ MODELLE = [
     # Free-Modelle – Gemma zuerst (empirisch: llama/hermes dauerhaft auf 429)
     "google/gemma-4-31b-it:free",                      # Gemma 4 31B – zuverlässigster Free-Slot
     "google/gemma-4-26b-a4b-it:free",                  # Gemma 4 26B Fallback
-    "meta-llama/llama-3.3-70b-instruct:free",         # Llama 3.3 70B – oft 429
-    "nousresearch/hermes-3-llama-3.1-405b:free",      # 405B – oft 429
+    # 14.08.26: meta-llama/llama-3.3-70b-instruct:free und
+    # nousresearch/hermes-3-llama-3.1-405b:free entfernt - Live-Check gegen
+    # OpenRouter /api/v1/models (14.08.26) zeigt: beide :free-Varianten
+    # existieren nicht mehr im Katalog, nur noch die bezahlten IDs ohne
+    # ":free"-Suffix. Jeder Aufruf lieferte seit mind. 12.08. durchgehend
+    # HTTP 404 (kein Rate-Limit, echtes Modell-Ende) - reiner Zeitverlust
+    # pro Batch. Siehe ki_news.log 12.-14.08.
+    # 14.08.26: neue Free-Modelle nach Live-Check gegen den echten OpenRouter-
+    # Katalog + echtem Testaufruf im Produktions-Batch-Format (4 Items,
+    # max_tokens=1500) hinzugefuegt. gpt-oss-20b lief im Test sofort sauber
+    # (JSON vollstaendig, 4/4 ids, echtes Deutsch). Die vier Nemotron-Modelle
+    # brauchten dafuer den reasoning:{enabled:false}-Schalter in
+    # _call_llm_api() (sonst verbrennen sie das ganze Token-Budget im
+    # unsichtbaren Denkprozess und liefern nie die Antwort) - siehe Kommentar
+    # dort. Alle 5 danach live verifiziert: vollstaendiges 4/4-JSON, deutsch.
+    "openai/gpt-oss-20b:free",                          # MoE, kein Reasoning-Zwang-Problem im Test
+    "nvidia/nemotron-3-super-120b-a12b:free",           # 120B/12B aktiv, mit reasoning:false getestet OK
+    "nvidia/nemotron-3-nano-30b-a3b:free",              # 30B/3B aktiv, mit reasoning:false getestet OK
+    "nvidia/nemotron-nano-9b-v2:free",                  # 9B, mit reasoning:false getestet OK
+    "nvidia/nemotron-3.5-lightning:free",               # neuestes NVIDIA (11.08.26), mit reasoning:false getestet OK
     # Kostenpflichtige Fallbacks (~$0.008/Lauf) – nur wenn alle Free-Modelle 429
     "meta-llama/llama-3.3-70b-instruct",               # Anker – immer verfügbar
     "google/gemma-3-27b-it",                            # Letzter Fallback
@@ -468,8 +508,12 @@ MODELLE = [
 MODELLE_POSTS = [
     "google/gemma-4-31b-it:free",                      # Beste Posts-Qualität (DE-Format, Scampy-6)
     "google/gemma-4-26b-a4b-it:free",                  # Gemma-Fallback
-    "meta-llama/llama-3.3-70b-instruct:free",          # Llama Free
-    "nousresearch/hermes-3-llama-3.1-405b:free",       # Hermes Free
+    # 14.08.26: :free-IDs von llama-3.3-70b-instruct/hermes-3-405b entfernt,
+    # siehe Begruendung bei MODELLE oben - identischer Befund (100% 404).
+    # gpt-oss-20b ergaenzt (live getestet, siehe MODELLE oben) - die Nemotron-
+    # Modelle bewusst NICHT hier: diese Liste bedient auch score_cluster_llm
+    # mit nur 150 Tokens Budget, dort noch nicht gegen reasoning:false getestet.
+    "openai/gpt-oss-20b:free",
     "meta-llama/llama-3.3-70b-instruct",               # Paid-Anker
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
@@ -1952,11 +1996,25 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
         }
         ollama_model = model
 
-    data = json.dumps({
+    payload = {
         "model": ollama_model,
         "messages": messages,
         "max_tokens": max_tokens,
-    }).encode()
+    }
+    # Reasoning-Schalter (14.08.26, Live-Test gegen die echte OpenRouter-API):
+    # nvidia/nemotron-*:free-Modelle sind standardmaessig "Reasoning"-Modelle -
+    # sie verbrauchen das GESAMTE max_tokens-Budget fuer unsichtbares Nachdenken
+    # (completion_tokens_details.reasoning_tokens) und liefern bei unserem eng
+    # bemessenen Budget (1500 fuer 4-Item-Batch, nur 150 fuer score_cluster_llm)
+    # NIE die eigentliche Antwort - JSON leer/kaputt. Erst reasoning:{enabled:
+    # false} schaltet das ab, live getestet: alle 4 Nemotron-Free-Modelle liefern
+    # danach sauberes JSON. ACHTUNG: Nicht global setzen - openai/gpt-oss-*
+    # (bereits im Einsatz, z.B. JUDGE_MODELLE) antwortet auf denselben Parameter
+    # mit HTTP 400 "Reasoning is mandatory for this endpoint and cannot be
+    # disabled." Deshalb bewusst nur fuer nvidia/-Modelle gesetzt.
+    if ollama_model.startswith("nvidia/"):
+        payload["reasoning"] = {"enabled": False}
+    data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())["choices"][0]["message"]["content"]
@@ -2810,6 +2868,24 @@ def main():
                     r"\b(der|die|das|den|dem|des|ein|eine|und|für|fuer|mit|auf|ist|sind|wird|werden|nicht|mehr|jetzt|sich"
                     r"|von|bei|als|aus|zum|zur|im|um|dass|kein|keine|noch|nur|auch|schon|gegen|ohne|wenn|wie)\b",
                     _teaser.lower()))
+                # Reparatur statt Verwurf (14.08.26, Fund: 05:14-Lauf verwarf
+                # alle 5 Posts von meta-llama/llama-3.3-70b-instruct - Text
+                # war inhaltlich einwandfrei deutsch, das Modell hatte nur den
+                # "(via Quelle)"-Formatvertrag ignoriert). Ist der Teaser
+                # nachweislich deutsch (_de_ok) und NUR das via-Suffix fehlt,
+                # selbst anhaengen statt den ganzen Post wegzuwerfen. Ist der
+                # Teaser gar nicht deutsch (wie am selben 14.08.-Lauf bei den
+                # 2 Faellen mit englischem Original-Titel), bleibt Verwerfen
+                # richtig - das laesst sich nicht reparieren, nur neu
+                # generieren (naechster Lauf).
+                if not _fmt_ok and _de_ok and _src:
+                    _teaser = f"{_teaser.rstrip()} (via {_src})"
+                    p["teaser"] = _teaser
+                    logger.info(
+                        "Post repariert (Qualitaets-Gate): fehlendes '(via Quelle)' ergaenzt -> %r (%s)",
+                        _teaser[:60], link,
+                    )
+                    _fmt_ok = True
                 if not _fmt_ok or not _de_ok:
                     logger.warning(
                         "Post verworfen (Qualitaets-Gate): via_ok=%s deutsch_ok=%s teaser=%r (%s)",
@@ -2887,6 +2963,23 @@ def main():
     for i, n in enumerate(alle_news):
         s = summaries.get(i, {})
         link = n.get("link", "")
+        # Sprach-Guard (14.08.26): title_de ist bei fehlgeschlagener Uebersetzung
+        # schlicht der unveraenderte englische Original-Titel (Platzhalter aus
+        # summarize_news(), nie ueberschrieben - siehe Kommentar bei
+        # GERMAN_MARKERS oben). Bisher ging das ungeprueft in news.json und damit
+        # in Hero + Grid-Karten der Website. Artikel NICHT in diesem Lauf
+        # anzeigen (kein card_sent/archive-Eintrag hier, s. update_archive()
+        # weiter unten) - taucht automatisch wieder auf, sobald ein spaeterer
+        # Lauf die Uebersetzung schafft. Analog zu generate_news_cards.py's
+        # SKIP-Logik, damit Website und Cards konsistent filtern.
+        _title_de_check = s.get("title_de", n.get("title", ""))
+        if _title_de_check and not _looks_german(_title_de_check):
+            logger.warning(
+                "news.json: Artikel uebersprungen, Titel wirkt unuebersetzt/nicht Deutsch "
+                "(%r) - ki_news.py-Uebersetzung fehlgeschlagen, naechster Lauf versucht es erneut. (%s)",
+                _title_de_check[:60], link,
+            )
+            continue
         cluster_info = link_to_cluster_info.get(link, {})
         scoring = score_map.get(link, {})
         # Befund 1: score_map enthaelt nur den Cluster-Repraesentanten. Ein Nicht-rep-
