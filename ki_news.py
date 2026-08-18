@@ -34,18 +34,80 @@ SSR_MAX = 24  # max. News-Karten im vorgerenderten HTML
 # Website (Fund 14.08.26: Lauf 05:01 UTC, "OpenAI is losing its second
 # executive this week" lief englisch auf ki-news.live). Bewusst keine harte
 # Sprach-ID-Bibliothek - reicht als Fangnetz gegen unuebersetzten Text.
+# FIX 18.08.26: Die urspruengliche Liste stammt aus generate_news_cards.py, wo
+# sie auf langen FLIESSTEXT laeuft. Am 14.08. wurde sie auf den kurzen title_de
+# portiert - deutsche Nachrichtentitel sind telegrammartig und enthalten oft
+# keinen einzigen Artikel. Ergebnis: 81 korrekt uebersetzte Titel wurden ueber
+# Tage hinweg in JEDEM Lauf verworfen (438 Verwerfungen im Log vom 16.-18.08.).
+# Marker-Heuristik skaliert nicht nach unten -> Liste erweitert + Entscheidung
+# auf englische NEGATIV-Marker umgestellt (s. _looks_german unten).
 GERMAN_MARKERS = [
     " der ", " die ", " das ", " und ", " ist ", " nicht ", " eine ",
     " einen ", " für ", " mit ", " auf ", " dass ", " wird ", " sich ",
     " kein ", " keine ", " ein ", " im ", " den ",
+    # 18.08.26 ergaenzt - haeufig in verkuerzten Titeln, alle NICHT auch englisch:
+    " von ", " zu ", " durch ", " über ", " nach ", " bei ", " als ",
+    " auch ", " wie ", " werden ", " wurde ", " hat ", " sind ", " sein ",
+    " seine ", " ihre ", " ihr ", " mehr ", " neue ", " neuen ", " neuer ",
+    " gegen ", " ohne ", " vor ", " stellt ", " bringt ", " plant ",
+    " laut ", " nun ", " uns ", " bis ", " dem ", " des ", " zur ", " zum ",
 ]
+
+# Eindeutig ENGLISCHE Funktionswoerter. Bewusst NICHT enthalten: " in ", " an ",
+# " so ", " was ", " will ", " man ", " wer " - die sind auch deutsch und haben
+# in der Erprobung deutsche Titel faelschlich als englisch markiert.
+ENGLISH_MARKERS = [
+    " the ", " of ", " this ", " that ", " with ", " from ", " and ",
+    " is ", " are ", " says ", " has ", " have ", " for ", " its ",
+    " it ", " may ", " not ", " to ", " on ", " as ", " by ", " at ",
+    " be ", " you ", " your ", " how ", " why ", " a ", " an ", " but ",
+    " they ", " their ", " we ", " our ", " more ", " new ", " into ",
+    " about ", " after ", " over ", " up ", " out ",
+]
+
+GERMAN_CHARS = frozenset("äöüÄÖÜß")
+
+# Encoding-Bug (Fund 18.08.26): einzelne Modelle liefern LaTeX-Escapes statt
+# Umlauten ('OpenAI l{"o}scht ...' statt 'loescht'). 25 Vorkommen im Log.
+# Zentral beim Einlesen der Modell-Antwort reparieren, s. summarize_news().
+_LATEX_UMLAUTS = {
+    '{"o}': "ö", '{"O}': "Ö", '{"u}': "ü", '{"U}': "Ü",
+    '{"a}': "ä", '{"A}': "Ä", '{\\ss}': "ß", "\\ss ": "ß ",
+}
+
+
+def _fix_latex_escapes(text: str) -> str:
+    """LaTeX-Umlaut-Escapes durch echte Umlaute ersetzen. No-op wenn keine da."""
+    t = text or ""
+    if "{" not in t and "\\ss" not in t:
+        return t
+    for esc, ch in _LATEX_UMLAUTS.items():
+        t = t.replace(esc, ch)
+    return t
 
 
 def _looks_german(text: str) -> bool:
-    """True wenn der Text deutsche Signalwoerter enthaelt. Siehe Kommentar
-    bei GERMAN_MARKERS oben."""
-    lower = f" {(text or '').lower()} "
-    return any(marker in lower for marker in GERMAN_MARKERS)
+    """True wenn der Text als Deutsch durchgehen darf.
+
+    Reihenfolge (erste Regel gewinnt):
+      1. Umlaut/ss vorhanden          -> deutsch
+      2. deutsches Signalwort         -> deutsch
+      3. KEIN englisches Signalwort   -> deutsch (Zweifel zugunsten des Artikels)
+      4. sonst                        -> nicht deutsch
+
+    Bewusst asymmetrisch: ein durchgerutschter englischer Titel kostet eine
+    haessliche Kachel, ein faelschlich verworfener Artikel kostet den Artikel.
+    Offline geprueft 18.08.26 gegen die 81 real verworfenen Titel (72 kommen
+    zurueck, die 9 verbliebenen sind tatsaechlich englisch) und gegen 14 echte
+    englische Titel (0 rutschen durch).
+    """
+    t = _fix_latex_escapes(text or "")
+    if any(c in GERMAN_CHARS for c in t):
+        return True
+    lower = f" {t.lower()} "
+    if any(marker in lower for marker in GERMAN_MARKERS):
+        return True
+    return not any(marker in lower for marker in ENGLISH_MARKERS)
 
 
 def _ssr_fmt_date(d):
@@ -1936,13 +1998,13 @@ News:
 
                     for item in summaries:
                         global_index = batch_indices[item["id"] - 1]
-                        raw_title = item.get("title_de", "")
+                        raw_title = _fix_latex_escapes(item.get("title_de", ""))
                         # Placeholder-Schutz: falls LLM Beispieltext zurückgibt → Original behalten
                         title_de = raw_title if raw_title and not _is_placeholder(raw_title) \
                                    else alle_news[global_index]["title"]
                         result[global_index] = {
                             "title_de": title_de,
-                            "summary": item.get("summary", "")
+                            "summary": _fix_latex_escapes(item.get("summary", ""))
                         }
                         # Nur ECHTE LLM-Erfolge cachen (kein Placeholder-Fallback),
                         # sonst wuerde ein englischer Originaltitel zementiert.
@@ -1950,7 +2012,7 @@ News:
                         if link and summary_cache is not None and raw_title and not _is_placeholder(raw_title):
                             summary_cache[link] = {
                                 "title_de": title_de,
-                                "summary": item.get("summary", ""),
+                                "summary": _fix_latex_escapes(item.get("summary", "")),
                                 "generated_at": _today_iso(),
                             }
                     logger.info("Zusammenfassungen Batch %d OK mit %s", batch_start // batch_size + 1, modell)
