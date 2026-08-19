@@ -1019,7 +1019,11 @@ def score_cluster(cluster):
 
     total = source_score + prestige_score + kw_score + penalty_score + release_score
     if release_score:
-        logger.debug("score_cluster: Release-Signatur %+d - %s", release_score, all_titles[:70])
+        # 20.08.26 bewusst auf INFO (nicht debug): der Loglevel steht auf INFO,
+        # sonst laesst sich nach dem Upload nicht unterscheiden, ob der Bonus
+        # nicht greift oder nur nicht durchschlaegt. Nach der Verifikation
+        # wieder auf logger.debug zuruecksetzen - ca. 3 Zeilen pro Lauf.
+        logger.info("score_cluster: Release-Signatur %+d - %s", release_score, all_titles[:70])
     label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
     return total, label
 
