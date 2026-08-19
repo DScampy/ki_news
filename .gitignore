@@ -1,2 +1,64 @@
-config.txt 
-config.txt 
+# ── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ── Backups & Patch-Reste ────────────────────────────────
+*.bak
+*.orig
+*.rej
+*.tmp
+*~
+*.swp
+*.diff
+
+# Einmalige Patch-/Migrationsskripte gehoeren NICHT ins Repo.
+# Bisher versehentlich hochgeladen: patch-190826.py,
+# cleanup-archive-encoding.py, scoring-modell-fix-180826.py
+patch-*.py
+*-fix-*.py
+cleanup-*.py
+_ki_tmp*.py
+
+# ── Secrets ──────────────────────────────────────────────
+config.txt
+.env
+.env.*
+.secrets.env
+cookies.txt
+*.pem
+*.key
+service-account*.json
+
+# ── Editor / OS ──────────────────────────────────────────
+.obsidian/
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ── Node (der Workflow macht npm install im Runner) ───────
+node_modules/
+package-lock.json
+package.json
+
+# ── Logs ─────────────────────────────────────────────────
+cards.log
+# ki_news.log ist BEWUSST eingecheckt - ki_news.yml haengt an
+# und trimmt auf die letzten 10 Laeufe.
+!ki_news.log
+
+# ─────────────────────────────────────────────────────────
+# NICHT eintragen: news.json, archive.json, graph.json,
+# entities.json, cards.json, card_state.json, post-cache.json,
+# summary-cache.json, story_registry_shadow.json,
+# telegram_state.json, media.json, reactions.json,
+# dashboard_config.json, hashtags/hashtags.json
+# Diese Dateien SIND das Produkt und muessen eingecheckt bleiben.
+#
+# ACHTUNG: Der GitHub-Web-Uploader ignoriert .gitignore. Diese
+# Datei schuetzt nur bei lokalem git add/commit.
+# ─────────────────────────────────────────────────────────
