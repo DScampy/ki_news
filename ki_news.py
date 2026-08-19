@@ -76,9 +76,18 @@ _LATEX_UMLAUTS = {
 }
 
 
+# Klammerlose Variante (Fund 19.08.26): 'ungesch"uzt' statt 'ungesch{"u}tzt'.
+# Bewusst eng: nur zwischen zwei Kleinbuchstaben, sonst wuerden legitime
+# Anfuehrungszeichen zerstoert (der "Ultrafast"-Modus bleibt unangetastet).
+_LATEX_INLINE = re.compile(r'(?<=[a-zäöüß])"([oua])(?=[a-zäöüß])')
+_INLINE_MAP = {"o": "ö", "u": "ü", "a": "ä"}
+
+
 def _fix_latex_escapes(text: str) -> str:
     """LaTeX-Umlaut-Escapes durch echte Umlaute ersetzen. No-op wenn keine da."""
     t = text or ""
+    if '"' in t:
+        t = _LATEX_INLINE.sub(lambda m: _INLINE_MAP[m.group(1)], t)
     if "{" not in t and "\\ss" not in t:
         return t
     for esc, ch in _LATEX_UMLAUTS.items():
@@ -702,6 +711,87 @@ IMPORTANCE_KEYWORDS = [
 ]
 
 
+# -------------------------
+# Release-Signatur (Fix 18.08.26, V2)
+# -------------------------
+# score_cluster() ist der Tuersteher fuer die LLM-Bewertung (pick_top_news:
+# nur die Top-N nach Legacy-Score bekommen einen LLM-Call). Seit dem
+# 14.07.-Fix, der "model"/"modell" als zu generisch entfernte, gibt es kein
+# Signal mehr fuer "hier erscheint ein neues Modell". Eine Hersteller-
+# Ankuendigung am Tag 0 hat 1 Quelle -> ~25 Punkte -> unter der Schwelle.
+# Gemessen an archive.json (08.-18.08.): 105 Artikel auf base_score 25,
+# darunter 12 echte Launches ("Claude Opus 5 wird vorgestellt" = Rang 114/155).
+#
+# Der Bonus ist KEIN Ranking, sondern ein Kandidatenfilter: er oeffnet die
+# Tuer zur LLM-Bewertung. Ein Fehltreffer kostet einen LLM-Call, keine
+# Sichtbarkeit — das LLM stuft ihn danach selbst zurueck.
+#
+# Bewusst NICHT wieder eingefuehrt: nacktes "model"/"modell". Die Signatur
+# verlangt ein Release-Verb UND (Modellfamilie ODER Herstellerquelle) —
+# der Apple-Pencil-Fehlalarm vom 14.07. erfuellt das nicht.
+
+FIRST_PARTY_SOURCES = {
+    "OpenAI", "Anthropic News", "Anthropic Research", "Meta AI Blog",
+    "xAI News", "Mistral News", "Qwen Blog", "Kimi Blog",
+    "Google AI Blog", "DeepMind",
+}
+
+# Trennbare Verben als Satzklammer suchen, NICHT mit fester Wortdistanz:
+# "xAI stellt Grok Build vor" hat zwei Woerter dazwischen, "Google stellt das
+# neue Gemini 3.7 Flash Modell fuer Programmierung und KI-Agenten vor" acht.
+RELEASE_TRENNBAR = re.compile(
+    r"(stellt\b.*\bvor\b|führt\b.*\bein\b|bringt\b.*\b(heraus|auf den markt)\b)", re.I)
+
+RELEASE_DIREKT = re.compile(
+    r"(vorgestellt|vorstellung von|veröffentlicht|veroeffentlicht|eingeführt|"
+    r"launcht|launches|unveils|introduc\w+|debuts|releases?|ist da|is here|"
+    r"jetzt verfügbar|now available|ab sofort verfügbar|angekündigt|startet)", re.I)
+
+MODELL_FAMILIEN = re.compile(
+    r"\b(gpt|claude|gemini|llama|mistral|qwen|deepseek|grok|kimi|glm|opus|"
+    r"sonnet|haiku|muse|sora|veo|imagen|flux|nova|command|phi|falcon|voxtral|"
+    r"nemotron|daybreak|mai-code|seedance|minimax)\b", re.I)
+
+# An echten Fehltreffern kalibriert: trotz Release-Verb kein Produkt-Launch.
+KEIN_LAUNCH = re.compile(
+    r"(preisgestaltung|preise|preis|abrechnung|tarif|"
+    r"forschungsartikel|forschungsagenda|technische blogs|whitepaper|"
+    r"bösartig|angriff|schwachstelle|sicherheitsvorfall|"
+    r"einheit|abteilung|team|stellt\s+\S+\s+ein\b|einstellung|"
+    r"meetup|hackathon|summit|konferenz|webinar)", re.I)
+
+# Hersteller-Case-Studies: Marketing im Nachrichtenkanal. Greift unabhaengig
+# davon, ob der Satz mit "Wie" beginnt. Partnerschafts- und Kooperations-
+# meldungen bekommen bewusst KEINEN Malus — die sind oft echte News.
+CASE_STUDY = re.compile(
+    r"(wie\s+\S+.*(nutzt|verwendet|transformiert|optimiert|einsetzt)|"
+    r"case study|customer story|erfahrungsbericht|customer journey|"
+    r"\b(optimiert|transformiert|automatisiert|beschleunigt)\b.*"
+    r"\bmit\s+(chatgpt|claude|gemini|copilot|mistral|grok)\b)", re.I)
+
+RELEASE_BONUS = 20
+CASE_STUDY_MALUS = -10
+
+
+def _release_signal(all_titles: str, sources=()) -> int:
+    """Punkte fuer 'hier erscheint ein neues Modell/Produkt'.
+
+    all_titles ist lowercase (kommt aus score_cluster), sources ist die Menge
+    der Quellennamen im Cluster.
+    """
+    if CASE_STUDY.search(all_titles):
+        return CASE_STUDY_MALUS
+    if KEIN_LAUNCH.search(all_titles):
+        return 0
+    if not (RELEASE_TRENNBAR.search(all_titles) or RELEASE_DIREKT.search(all_titles)):
+        return 0
+    if MODELL_FAMILIEN.search(all_titles):
+        return RELEASE_BONUS
+    if any(s in FIRST_PARTY_SOURCES for s in sources):
+        return RELEASE_BONUS
+    return 0
+
+
 # Malus-Keywords → Punkteabzug (senkt Score, filtert nicht hart aus)
 # Tuple: (keyword, punkte)
 PENALTY_KEYWORDS = [
@@ -925,7 +1015,11 @@ def score_cluster(cluster):
     kw_score = sum(pts for kw, pts in IMPORTANCE_KEYWORDS if kw in all_titles)
     penalty_score = sum(pts for kw, pts in PENALTY_KEYWORDS if kw in all_titles)
 
-    total = source_score + prestige_score + kw_score + penalty_score
+    release_score = _release_signal(all_titles, {item["source"] for item in cluster})
+
+    total = source_score + prestige_score + kw_score + penalty_score + release_score
+    if release_score:
+        logger.debug("score_cluster: Release-Signatur %+d - %s", release_score, all_titles[:70])
     label = next((lbl for threshold, lbl in SCORE_LABELS if total >= threshold), "📰 normal")
     return total, label
 
@@ -1142,7 +1236,10 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
     #     bekommen (nur die aussichtsreichsten Kandidaten), und
     # (b) Fallback-Wert, falls der LLM-Call fuer einen Kandidaten fehlschlaegt.
     legacy_results = [score_cluster(cluster) for cluster in clusters]
-    LLM_SCORE_CANDIDATES = 10
+    # 19.08.26: von 10 auf 13 angehoben. Die Release-Signatur bringt ~3,4
+    # zusaetzliche Kandidaten pro Lauf durch die Tuer - ohne diese Anhebung
+    # wuerden sie andere Storys aus der LLM-Bewertung verdraengen.
+    LLM_SCORE_CANDIDATES = 13
     candidate_order = sorted(
         range(len(clusters)), key=lambda i: legacy_results[i][0], reverse=True
     )[:LLM_SCORE_CANDIDATES]
@@ -1815,7 +1912,10 @@ def summarize_news(alle_news, summary_cache=None):
     # Original-Quelle (oder einem mehrsprachigen Modell-Output) landeten
     # unuebersetzt im deutschen Titel. CJK-Unicode-Block reicht als Heuristik,
     # da deutsche Texte naturgemaess keine CJK-Zeichen enthalten.
-    _CJK_PATTERN = re.compile(r'[一-鿿぀-ヿ가-힣]')
+    # 19.08.26 um Kyrillisch erweitert: im Summary eines Eintrags vom 16.08.
+    # stand "war fast ein Jahr lang senderстви" - der Guard griff nicht, weil
+    # er nur CJK/Kana/Hangul kannte.
+    _CJK_PATTERN = re.compile(r'[一-鿿぀-ヿ가-힣Ѐ-ӿ]')
 
     def _has_foreign_script(text: str) -> bool:
         return bool(_CJK_PATTERN.search(text or ""))
