@@ -4,7 +4,7 @@ Automatisiertes, deutschsprachiges KI-News-Dashboard. Sammelt mehrmals täglich 
 
 **Live:** https://ki-news.live/
 **Repo:** https://github.com/DScampy/ki_news
-**Von:** D. Scampy · [@ScampyKI](https://x.com/ScampyKI)
+**Von:** Scampy · [@ScampyKI](https://x.com/ScampyKI)
 
 ---
 
@@ -170,4 +170,4 @@ python ki_news.py
 
 ## Erstellt von
 
-D. Scampy ([@ScampyKI](https://x.com/ScampyKI)) · 2026 · erstellt mit Claude
+Scampy ([@ScampyKI](https://x.com/ScampyKI)) · 2026 · 
