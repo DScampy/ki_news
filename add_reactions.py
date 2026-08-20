@@ -210,15 +210,41 @@ _META_REFUSAL_MARKERS = (
     "as an ai", "i cannot", "i can't summarize",
 )
 
+# Bug gefunden 20.08.26 (Daniel im Screenshot, Top-Story China-Exportkontrollen):
+# text_de enthielt 200x "<pad>" (1000 Zeichen) live auf der Startseite. Der Guard
+# oben griff aus ZWEI Gruenden nicht:
+#   (1) Der Original-HN-Titel "Nvidia's Arm deal sparks quick backlash in chip
+#       industry" hat 9 Woerter - die Grenze stand auf <= 8. Damit fiel er weder
+#       in den Uebersetzungs-Prompt (is_headline) noch in den Laengen-Check.
+#       Eine harte Grenze, die um genau ein Wort verfehlt wurde.
+#   (2) _META_REFUSAL_MARKERS faengt nur SAETZE ab ("keine zusammenfassung",
+#       "i cannot"). "<pad>" ist kein Satz, sondern das Padding-Token des
+#       Modells - kein Marker traf.
+# Fix: Artefakt-Liste (greift vor allem anderen) + Grenze 8 -> 12.
+# Kill-Switch: bleiben danach mehr als etwa die Haelfte der Reaktionen
+# englisch, ist 12 zu scharf -> auf 10 zurueck, NICHT weiter hochschrauben.
+_MODEL_ARTEFAKTE = (
+    "<pad>", "<|endoftext|>", "<|im_end|>", "<|eot_id|>",
+    "</s>", "<s>", "<unk>", "[PAD]", "[UNK]", "\ufffd",
+)
+
+# Ab hier gilt ein Titel als "kurze Headline" (Uebersetzen statt Zusammenfassen
+# und Laengen-Plausibilitaet pruefen). War 8, siehe Bug-Notiz oben.
+_HEADLINE_MAX_WORDS = 12
+
 
 def _looks_like_valid_translation(antwort, original):
+    # Modell-Artefakte zuerst: die ueberleben jede andere Pruefung, weil sie
+    # weder Refusal-Satz noch auffaellig kurz/lang sein muessen.
+    if any(m in antwort for m in _MODEL_ARTEFAKTE):
+        return False
     a = antwort.lower()
     if any(m in a for m in _META_REFUSAL_MARKERS):
         return False
     # Ein echtes Uebersetzungsergebnis fuer eine kurze Headline ist etwa
     # gleich lang wie das Original - ein Vielfaches laenger heisst meist
     # "erklaert" statt "uebersetzt".
-    if len(original.split()) <= 8 and len(antwort) > len(original) * 4:
+    if len(original.split()) <= _HEADLINE_MAX_WORDS and len(antwort) > len(original) * 4:
         return False
     return True
 
@@ -226,7 +252,7 @@ def _looks_like_valid_translation(antwort, original):
 def translate_reaction(text):
     if not OPENROUTER_KEY or not (text or "").strip():
         return None
-    is_headline = len(text.split()) <= 8
+    is_headline = len(text.split()) <= _HEADLINE_MAX_WORDS
     if is_headline:
         prompt = (
             "Uebersetze den folgenden kurzen Titel woertlich ins Deutsche. "
@@ -280,13 +306,33 @@ def _http_json(url, headers, timeout=10):
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
+# Bug gefunden 20.08.26 (beim Nachrechnen des <pad>-Bugs, gleiche Karte):
+# Unter der China-Exportkontrollen-Story vom 19.08.2026 hing HN-Item 24467989 -
+# "Nvidia's Arm deal sparks quick backlash in chip industry" vom 14.09.2020.
+# Die Zahlen (263 Punkte / 190 Kommentare) waren echt, nur die Zuordnung war
+# fast sechs Jahre daneben. Ursache: die Suche hatte KEINEN Zeitfilter und nahm
+# hits[0] - Algolia sortiert per Default nach RELEVANZ, nicht nach Datum. Bei
+# Keywords wie "Nvidia/Chips/China" gewinnt ein alter, hoch bewerteter Post
+# gegen jede frische Diskussion; je bekannter der Akteur, desto wahrscheinlicher
+# der Griff ins Archiv.
+# Kill-Switch: bekommen danach spuerbar viele Storys GAR KEINE HN-Reaktion mehr,
+# Fenster auf 365 Tage oeffnen - aber nicht abschalten. Eine falsche Reaktion
+# ist schaedlicher als keine.
+HN_MAX_AGE_DAYS = 180
+
+
 def fetch_hn_reaction(keywords):
     # HN Algolia-API liefert keine verlaesslichen Kommentar-Scores -> statt
     # (frei erfundener) "bester Kommentar" ehrlich nur Story + Diskussion
     # zeigen, keine Kommentar-Qualitaet vortaeuschen, die die API nicht hat.
     query = " ".join(keywords)
+    _cutoff = int(time.time()) - HN_MAX_AGE_DAYS * 24 * 60 * 60
     url = ("https://hn.algolia.com/api/v1/search?"
-           + urllib.parse.urlencode({"query": query, "tags": "story", "numericFilters": "points>15"}))
+           + urllib.parse.urlencode({
+               "query": query,
+               "tags": "story",
+               "numericFilters": f"points>15,created_at_i>{_cutoff}",
+           }))
     try:
         data = _http_json(url, {"User-Agent": UA})
         hits = data.get("hits", [])
