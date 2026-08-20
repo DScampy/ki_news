@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
     <div id="registry-panel" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
       <button onclick="toggleRegistryPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
         <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-[#1d9bf0] text-base">deployed_code</span>
+          <span class="material-symbols-outlined text-[#1d9bf0] text-base">smart_toy</span>
           <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🧩 Modell-Registry</span>
           <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="registry-count">391 Modelle · 57 Anbieter</span>
         </div>
@@ -472,6 +472,13 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
     </div>
 
 -->
+    <!-- Versteckte Platzhalter fuer das entfernte Artikelraster.
+         render() schreibt weiter hier hinein und setzt dabei die Kopfzeile
+         (countLabel) sowie allNews. Sichtbar ist davon nichts. -->
+    <div id="skeleton" style="display:none"></div>
+    <div id="newsGrid" style="display:none"></div>
+    <div id="emptyState" class="hidden" style="display:none"></div>
+
     <!-- Footer -->
     <div class="mt-12 pb-12 border-t border-[#2f3336] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div>
@@ -495,7 +502,8 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
 
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
-let allNews = [];
+var allNews = [];   /* var statt let: nur so ist window.allNews dieselbe
+                       Variable, und das Registry-Panel liest sie von dort. */
 let activeSource = null;
 let searchQuery = '';
 let layout = 'grid';
@@ -724,7 +732,6 @@ function setLayout(l) {
   const activeBg = isLight ? '#e2e8f0' : '#1d1f23';
   const activeColor = '#1d9bf0';
   const grid = document.getElementById('newsGrid');
-  if (!grid) return;
   const btnGrid = document.getElementById('btnGrid');
   const btnList = document.getElementById('btnList');
   const baseClass = 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all';
@@ -762,10 +769,6 @@ function updateZeitButtons() {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
-  // Das Artikelraster wurde am 20.08.2026 entfernt (Modell-Registry oben
-  // ersetzt es). allNews bleibt gefuellt, weil die Registry darauf zugreift --
-  // gerendert wird hier aber nichts mehr.
-  if (!document.getElementById('newsGrid')) return;
   const q = searchQuery.toLowerCase();
   const filtered = allNews.filter(n => {
     if (activeSource && n.source !== activeSource) return false;
