@@ -36,6 +36,7 @@
 <link rel="stylesheet" href="assets/ki-fonts.css"/>
 <script src="assets/ki-icons.js" defer></script>
 <script src="assets/ki-embed.js" defer></script>
+<link rel="stylesheet" href="assets/registry-panel.css">
 <!-- Material Symbols lokal via assets/ki-icons.js -->
 <style>
   /* ── Light mode overrides ─────────────────────────────── */
@@ -324,6 +325,64 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       </span>
     </div>
 
+    <!-- 🧩 Modell-Registry (aus registry/registry.json) ─────────────────── -->
+    <div id="registry-panel" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
+      <button onclick="toggleRegistryPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#1d9bf0] text-base">deployed_code</span>
+          <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🧩 Modell-Registry</span>
+          <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="registry-count">391 Modelle · 57 Anbieter</span>
+        </div>
+        <span class="material-symbols-outlined text-gray-600 text-sm" id="registry-panel-icon">expand_less</span>
+      </button>
+      <div id="registry-panel-body" style="padding:0 20px 20px">
+        <div class="rg-tabs" role="tablist">
+          <button class="rg-tab on" id="rg-tab-mod" role="tab" aria-selected="true" aria-controls="rg-view-mod">Modelle</button>
+          <button class="rg-tab" id="rg-tab-art" role="tab" aria-selected="false" aria-controls="rg-view-art">Artikel</button>
+          <span class="rg-cnt" id="rg-cnt"></span>
+        </div>
+
+        <!-- Ansicht 1: Anbieter → Familie → Modell -->
+        <div id="rg-view-mod" role="tabpanel" aria-labelledby="rg-tab-mod" tabindex="-1">
+        <p class="text-[11px] text-gray-500 font-mono mb-3">Anbieter → Familie → Modell. Gezeigt wird, was im letzten Jahr ein Release hatte.</p>
+        <div class="rg-bar">
+          <input class="rg-inp" id="rg-q" placeholder="Anbieter oder Modell suchen …" aria-label="Registry durchsuchen">
+          <select class="rg-inp" id="rg-kat" aria-label="Art des Modells">
+            <option value="">Art: alle</option>
+            <option value="text">nur Sprachmodelle</option>
+            <option value="bild">nur Bild</option>
+            <option value="video">nur Video</option>
+            <option value="audio">nur Audio</option>
+          </select>
+          <select class="rg-inp" id="rg-sort" aria-label="Sortierung">
+            <option value="modelle">nach Modellzahl</option>
+            <option value="release">nach neuestem Release</option>
+            <option value="name">alphabetisch</option>
+            <option value="artikel">nach Artikeln</option>
+          </select>
+        </div>
+        <p class="rg-leer" id="rg-status"></p>
+        <div class="rg-grid" id="rg-grid"></div>
+        <button class="rg-mehr" id="rg-mehr-anb" hidden></button>
+        <div id="rg-detail"></div>
+        </div>
+
+        <!-- Ansicht 2: Artikel nach Facetten -->
+        <div id="rg-view-art" role="tabpanel" aria-labelledby="rg-tab-art" tabindex="-1" hidden>
+        <p class="text-[11px] text-gray-500 font-mono mb-3">Zwei Achsen: Anbieter und Modell sagen <em>wer</em>, die Facetten sagen <em>worüber</em>.</p>
+        <div class="rg-bar">
+          <input class="rg-inp" id="rg-aq" placeholder="Artikel durchsuchen …" aria-label="Artikel durchsuchen">
+          <select class="rg-inp" id="rg-f-re" aria-label="Ressort"><option value="">Ressort: alle</option></select>
+          <select class="rg-inp" id="rg-f-tf" aria-label="Themenfeld"><option value="">Thema: alle</option></select>
+          <select class="rg-inp" id="rg-f-rg" aria-label="Region"><option value="">Region: alle</option></select>
+          <select class="rg-inp" id="rg-f-ev" aria-label="Ereignistyp"><option value="">Ereignis: alle</option></select>
+          <span class="rg-cnt" id="rg-acnt"></span>
+        </div>
+        <div id="rg-liste"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 🎙 Podcast Archiv (dynamisch aus media.json) ───────────────────── -->
     <div id="podcast-panel" class="mb-4 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
       <button onclick="togglePodcastPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
@@ -370,7 +429,11 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       </div>
     </div>
 
-    <!-- Hashtag Panel ─────────────────────────────────────────────────── -->
+    <!-- Hashtag-Panel entfernt am 20.08.2026 auf Daniels Wunsch: die Suche
+         in der Modell-Registry deckt denselben Zweck ab. Zum Zurueckholen
+         einfach diesen Kommentarblock aufloesen. -->
+    <!--
+    <!- - Hashtag Panel ─────────────────────────────────────────────────── - ->
     <div id="hashtags" class="mb-6 border border-[#2f3336] bg-[#0d1117]" style="border-radius:6px;overflow:hidden">
       <button onclick="toggleHashtagPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
         <div class="flex items-center gap-2">
@@ -384,8 +447,13 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
         <div id="hashtag-chips-archiv" class="flex flex-wrap gap-1.5"></div>
       </div>
     </div>
+-->
 
-    <!-- Loading skeleton -->
+    <!-- Artikelraster am 20.08.2026 entfernt: die Modell-Registry oben
+         zeigt dieselben Artikel mit Facetten-Filtern. Zum Zurueckholen
+         diesen Kommentarblock aufloesen. -->
+    <!--
+    <!- - Loading skeleton - ->
     <div id="skeleton" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter">
       <div class="bg-[#16181c] border border-[#2f3336] p-4 h-48 animate-pulse"></div>
       <div class="bg-[#16181c] border border-[#2f3336] p-4 h-48 animate-pulse"></div>
@@ -393,16 +461,17 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       <div class="bg-[#16181c] border border-[#2f3336] p-4 h-48 animate-pulse"></div>
     </div>
 
-    <!-- News grid -->
+    <!- - News grid - ->
     <div id="newsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter hidden"></div>
 
-    <!-- Empty state -->
+    <!- - Empty state - ->
     <div id="emptyState" class="hidden py-24 text-center">
       <span class="material-symbols-outlined text-gray-700 text-5xl mb-4 block">search_off</span>
       <p class="text-gray-500 font-mono text-sm">Keine Artikel gefunden.</p>
       <button onclick="clearSearch(); clearFilter()" class="mt-4 text-[#1d9bf0] text-xs font-mono hover:underline">Filter zurücksetzen</button>
     </div>
 
+-->
     <!-- Footer -->
     <div class="mt-12 pb-12 border-t border-[#2f3336] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div>
@@ -421,6 +490,8 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
   <a href="Datenschutz.html" style="color:inherit;text-decoration:none;margin:0 10px;">Datenschutz</a>
 </footer>
 </main>
+
+<script src="assets/registry-panel.js" defer></script>
 
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
@@ -501,8 +572,8 @@ if (archived.length > 0) {
   allNews = archived;
   buildSourceFilters();
   render();
-  document.getElementById('skeleton').classList.add('hidden');
-  document.getElementById('newsGrid').classList.remove('hidden');
+  document.getElementById('skeleton')?.classList.add('hidden');
+  document.getElementById('newsGrid')?.classList.remove('hidden');
 }
 
 // 2. Dann aktuell von news.json nachladen und mergen
@@ -517,8 +588,8 @@ fetch('news.json?t=' + Date.now())
     saveArchive(allNews);
     buildSourceFilters();
     render();
-    document.getElementById('skeleton').classList.add('hidden');
-    document.getElementById('newsGrid').classList.remove('hidden');
+    document.getElementById('skeleton')?.classList.add('hidden');
+    document.getElementById('newsGrid')?.classList.remove('hidden');
 
     // Versuche auch archive.json zu laden (kumulatives Server-Archiv)
     fetch('archive.json?t=' + Date.now())
@@ -542,9 +613,9 @@ fetch('news.json?t=' + Date.now())
   })
   .catch(() => {
     if (archived.length === 0) {
-      document.getElementById('skeleton').classList.add('hidden');
+      document.getElementById('skeleton')?.classList.add('hidden');
       document.getElementById('countLabel').textContent = 'Fehler beim Laden.';
-      document.getElementById('emptyState').classList.remove('hidden');
+      document.getElementById('emptyState')?.classList.remove('hidden');
     }
     // Falls offline aber Archive vorhanden – weiter mit alten Daten
   });
@@ -653,6 +724,7 @@ function setLayout(l) {
   const activeBg = isLight ? '#e2e8f0' : '#1d1f23';
   const activeColor = '#1d9bf0';
   const grid = document.getElementById('newsGrid');
+  if (!grid) return;
   const btnGrid = document.getElementById('btnGrid');
   const btnList = document.getElementById('btnList');
   const baseClass = 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all';
@@ -690,6 +762,10 @@ function updateZeitButtons() {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
+  // Das Artikelraster wurde am 20.08.2026 entfernt (Modell-Registry oben
+  // ersetzt es). allNews bleibt gefuellt, weil die Registry darauf zugreift --
+  // gerendert wird hier aber nichts mehr.
+  if (!document.getElementById('newsGrid')) return;
   const q = searchQuery.toLowerCase();
   const filtered = allNews.filter(n => {
     if (activeSource && n.source !== activeSource) return false;
@@ -698,6 +774,7 @@ function render() {
   });
 
   const grid = document.getElementById('newsGrid');
+  if (!grid) return;
   const empty = document.getElementById('emptyState');
   const countLabel = document.getElementById('countLabel');
 
