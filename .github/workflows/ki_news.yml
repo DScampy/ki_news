@@ -62,6 +62,11 @@ jobs:
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GROQ_CHAT_KEY: ${{ secrets.GROQ_CHAT_KEY }}
+          # Optional, fuer den Facetten-Judge im Registry-Schritt. Ist das
+          # Secret nicht gesetzt, bleibt die Variable leer und die Kaskade in
+          # registry_bau/klassifiziere.py faellt auf Groq bzw. OpenRouter
+          # zurueck -- kein Fehler, nur ein engeres Freikontingent.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           # An die bestehende (committete) Log-Historie ANHAENGEN, nicht ueberschreiben.
           # Jeder Lauf startet mit einem eindeutigen Marker; der Trim-Schritt unten
@@ -165,6 +170,12 @@ jobs:
             git add telegram_state.json 2>/dev/null || true
             git add graph.json 2>/dev/null || true
             git add story_registry_shadow.json 2>/dev/null || true
+            # Modell-Registry (21.08.26): registry/ sind die drei Dateien, die
+            # Archiv.html laedt. registry_bau/out/facetten.json ist die Ablage
+            # des Judge -- ohne sie klassifiziert der naechste Lauf den
+            # gesamten Artikelbestand erneut, statt nur die neuen dreissig.
+            git add registry/ 2>/dev/null || true
+            git add registry_bau/out/facetten.json 2>/dev/null || true
             git diff --staged --quiet || git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')"
           }
 
@@ -249,6 +260,10 @@ jobs:
           # neu geschriebenen generierten Dateien nicht mehr den Job vergiften.
           add_and_commit() {
             git add assets/cards/ cards.json card_state.json artikel.html breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            # Auch hier, sonst ueberlebt die Registry keinen Push-Konflikt-Retry:
+            # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.
+            git add registry/ 2>/dev/null || true
+            git add registry_bau/out/facetten.json 2>/dev/null || true
             git diff --staged --quiet || git commit -m "cards + template update $(date -u +%Y-%m-%d)"
           }
 
