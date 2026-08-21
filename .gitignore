@@ -45,6 +45,21 @@ node_modules/
 package-lock.json
 package.json
 
+# ── Modell-Registry (registry_bau/) ──────────────────────
+# Arbeitsdateien des Registry-Schritts. Zwei davon MUESSEN mit,
+# der Rest wird bei jedem Lauf neu erzeugt:
+#
+#   out/facetten.json  die Ablage des Judge. Fehlt sie, faengt der
+#                      naechste Lauf bei null an und schickt den
+#                      gesamten Artikelbestand erneut an ein Modell.
+#   out/modelle.json   die Modellliste. Wird nur alle sieben Tage
+#                      erneuert, damit der taegliche Lauf nicht an
+#                      OpenRouter haengt.
+registry_bau/out/*
+!registry_bau/out/facetten.json
+!registry_bau/out/modelle.json
+registry_bau/openrouter_cache.json
+
 # ── Logs ─────────────────────────────────────────────────
 cards.log
 # ki_news.log ist BEWUSST eingecheckt - ki_news.yml haengt an
