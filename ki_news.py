@@ -3484,6 +3484,26 @@ def main():
     # ── HTML generieren ───────────────────────────────────────────────────────
     pfad = create_html(alle_news, parsed, summaries)
 
+    # ── Modell-Registry fortschreiben (21.08.26) ──────────────────────────
+    #    Fuettert das Registry-Panel in Archiv.html: Zuordnung Artikel ->
+    #    Modell/Anbieter plus die vier Facetten je Artikel. Ohne diesen
+    #    Schritt veralteten die Zuordnungen mit jedem Lauf um einen Tag und
+    #    mussten von Hand nachgezogen werden.
+    #
+    #    Bewusst die letzte Handlung des Laufs: news.json steht seit 3307,
+    #    Telegram lief bei 3102, hier kann nichts mehr kaputtgehen.
+    #    Kill-Switch = diesen Block entfernen; die Website faellt dann auf den
+    #    zuletzt gepushten Registry-Stand zurueck und bleibt bedienbar.
+    #
+    #    Auch SystemExit wird gefangen: die Bausteine unter registry_bau/ sind
+    #    Kommandozeilenwerkzeuge und melden Fehler mit `raise SystemExit`, das
+    #    ein blosses `except Exception` durchlaesst.
+    try:
+        from registry_bau.lauf import registry_schritt
+        registry_schritt(proj_dir if proj_dir.exists() else Path("."), logger)
+    except (Exception, SystemExit) as e:
+        logger.exception("Registry-Schritt uebersprungen (Pipeline unbeeinflusst): %s", e)
+
     logger.info("KI News Lauf abgeschlossen.")
 
 
