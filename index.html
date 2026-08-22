@@ -941,7 +941,14 @@ function renderCard(item) {
   var c = item.color || srcColor(item.source);
   var a = document.createElement('a');
   a.href = item.link || '#';
-  if (item.link) a.target = '_blank';
+  if (item.link) {
+    a.target = '_blank';
+    // rel fehlte hier (Fund 22.08.26), waehrend _ssr_card() in ki_news.py es
+    // laengst setzt. Ohne noopener bekommt die geoeffnete Seite ueber
+    // window.opener Zugriff auf diesen Tab und kann ihn umleiten; noreferrer
+    // haelt zusaetzlich den Referrer zurueck.
+    a.rel = 'noopener noreferrer';
+  }
   a.className = 'ki-card ki-border border p-4 flex flex-col h-full transition-all group cursor-pointer';
   a.onmouseenter = function() { a.style.borderColor = c; };
   a.onmouseleave = function() { a.style.borderColor = ''; };

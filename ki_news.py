@@ -165,7 +165,10 @@ def _ssr_card(n):
         if score else ""
     )
     return (
-        f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" target="_blank" rel="noopener" '
+        # noreferrer am 22.08.26 ergaenzt, damit diese Kachel exakt dasselbe rel
+        # setzt wie renderCard() in index.html -- die beiden erzeugen dieselbe
+        # Kachel, einmal vorgerendert und einmal im Browser.
+        f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" target="_blank" rel="noopener noreferrer" '
         f'class="ki-card ki-border border p-4 flex flex-col h-full transition-all">'
         f'{_card_bg_svg(n)}'
         f'<div class="card-scrim"></div>'
@@ -495,7 +498,12 @@ FEEDS = [
     ("The Verge",      "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"),
     ("CNBC", 		"https://www.cnbc.com/id/19854910/device/rss/rss.html"),
     ("SiliconAngle",   "https://siliconangle.com/feed"),
-    ("TechRepublic",   "https://www.techrepublic.com/rssfeeds/articles/"),
+    # 22.08.26: Direktfeed gab in 10 von 10 Laeufen HTTP 403 -- TechRepublic
+    # sperrt GitHub-Actions-IPs grundsaetzlich. Der Umweg ueber Google News
+    # funktioniert (live geprueft: 101 Eintraege), genau wie bei Bloomberg,
+    # WSJ, Reuters und FT weiter oben, die aus demselben Grund so eingebunden
+    # sind.
+    ("TechRepublic",   "https://news.google.com/rss/search?q=site:techrepublic.com+AI&hl=en&gl=US&ceid=US:en"),
     # Paywall-Quellen via Google News RSS
     ("Reuters AI",   "https://news.google.com/rss/search?q=site:reuters.com+artificial+intelligence&hl=en&gl=US&ceid=US:en"),
     ("Bloomberg AI", "https://news.google.com/rss/search?q=site:bloomberg.com+AI&hl=en&gl=US&ceid=US:en"),
@@ -563,13 +571,30 @@ MODELLE = [
     # _call_llm_api() (sonst verbrennen sie das ganze Token-Budget im
     # unsichtbaren Denkprozess und liefern nie die Antwort) - siehe Kommentar
     # dort. Alle 5 danach live verifiziert: vollstaendiges 4/4-JSON, deutsch.
-    "openai/gpt-oss-20b:free",                          # MoE, kein Reasoning-Zwang-Problem im Test
-    "nvidia/nemotron-3-super-120b-a12b:free",           # 120B/12B aktiv, mit reasoning:false getestet OK
+    # 22.08.26: openai/gpt-oss-20b:free ENTFERNT. Es war bis zum 21.08. der
+    # Arbeitspferd-Slot (die meisten "Batch N OK mit ..."-Zeilen im Log liefen
+    # darueber), ist seitdem aber aus dem OpenRouter-Katalog verschwunden --
+    # Live-Abgleich gegen /api/v1/models am 22.08.: nicht mehr vorhanden.
+    # Danach 63x HTTP 404 + 52x leere Antwort + 7x 429 in einem Log-Fenster,
+    # zusammen rund 135 Fehlaufrufe. Sein Wegfall ist auch die Ursache dafuer,
+    # dass Uebersetzungen scheiterten und Artikel still verworfen wurden.
+    "z-ai/glm-5.2:free",                                # 22.08.26 neu im Katalog, 256k Kontext
+    "nvidia/nemotron-3-super-120b-a12b:free",           # 22.08. live nachgetestet: 4/4 sauberes Deutsch
     "nvidia/nemotron-3-nano-30b-a3b:free",              # 30B/3B aktiv, mit reasoning:false getestet OK
-    "nvidia/nemotron-nano-9b-v2:free",                  # 9B, mit reasoning:false getestet OK
+    "nvidia/nemotron-nano-9b-v2:free",                  # 9B, lieferte am 21.08. mehrere Batches erfolgreich
     "nvidia/nemotron-3.5-lightning:free",               # neuestes NVIDIA (11.08.26), mit reasoning:false getestet OK
-    # Kostenpflichtige Fallbacks (~$0.008/Lauf) – nur wenn alle Free-Modelle 429
-    "meta-llama/llama-3.3-70b-instruct",               # Anker – immer verfügbar
+    # Kostenpflichtige Anker - nur wenn alle Free-Modelle 429 oder leer liefern.
+    # 22.08.26 im Batch-Format live vermessen (4 Artikel, max_tokens=1500):
+    #   qwen3.7-flash          $0.03/$0.13 je 1M   3.7s   4/4 sauber
+    #   gemini-2.5-flash-lite  $0.10/$0.40 je 1M   2.3s   4/4 sauber
+    #   llama-3.3-70b-instruct $0.10/$0.32 je 1M          bisheriger Anker
+    # qwen zuerst: rund dreimal billiger als llama bei gleicher Qualitaet.
+    # Hochgerechnet auf vier Laeufe taeglich liegt der Monatspreis bei etwa
+    # $0.40 (qwen) bzw. $1.20 (gemini-lite) -- die teureren Gemini-3.x-Modelle
+    # koennen dasselbe, kosten aber das Zehnfache und sind hier nicht noetig.
+    "qwen/qwen3.7-flash",                               # billigster verlaesslicher Anker
+    "google/gemini-2.5-flash-lite",                     # zweiter Anker, schnellster im Test
+    "meta-llama/llama-3.3-70b-instruct",               # bisheriger Anker
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
 
@@ -584,8 +609,23 @@ MODELLE_POSTS = [
     # gpt-oss-20b ergaenzt (live getestet, siehe MODELLE oben) - die Nemotron-
     # Modelle bewusst NICHT hier: diese Liste bedient auch score_cluster_llm
     # mit nur 150 Tokens Budget, dort noch nicht gegen reasoning:false getestet.
-    "openai/gpt-oss-20b:free",
-    "meta-llama/llama-3.3-70b-instruct",               # Paid-Anker
+    # 22.08.26: gpt-oss-20b:free entfernt, Begruendung bei MODELLE oben.
+    # Nemotron bleibt auch hier draussen -- diese Liste bedient score_cluster_llm
+    # mit nur 150 Tokens Budget, und dort verbrennen Reasoning-Modelle alles.
+    #
+    # qwen/qwen3.7-flash steht aus genau demselben Grund NICHT hier, obwohl es
+    # in MODELLE der billigste Anker ist. Nachgemessen am 22.08. im echten
+    # 150-Token-Pfad: Antwort leer, completion_tokens=152, davon
+    # reasoning_tokens=150 -- das gesamte Budget im unsichtbaren Denken
+    # verbraucht, wie bei den Nemotrons. Bei 1500 Tokens (MODELLE) liefert es
+    # dagegen sauber. Hier waere es ein BEZAHLTER Aufruf ohne jedes Ergebnis.
+    # Der reasoning:{enabled:false}-Schalter greift nur fuer nvidia/-Modelle,
+    # siehe _call_llm_api().
+    #
+    # gemini-2.5-flash-lite dagegen im selben Test: '85' nach 2 Tokens, 1.2s,
+    # reasoning_tokens=0. Passt.
+    "google/gemini-2.5-flash-lite",                     # 150-Token-Pfad live geprueft
+    "meta-llama/llama-3.3-70b-instruct",               # bisheriger Paid-Anker, ebenfalls geprueft
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
 
@@ -817,6 +857,22 @@ PENALTY_KEYWORDS = [
     # Senkt Score, filtert nicht hart raus - falls doch mal wichtig genug.
     ("reacts to", -15), ("promotes", -20), ("offers $", -10),
     ("aligned news", -30),
+    # Veranstaltungswerbung (Fund 22.08.26): vier "AI Tinkerers"-Meldungen zu
+    # verschiedenen Staedten (Munich, Wellington, Osaka, Seattle) und eine
+    # Peking-Barmeldung standen gleichzeitig im Bestand. Der KI-Keyword-Filter
+    # greift korrekt -- es SIND KI-Themen -- aber es sind Einladungen, keine
+    # Nachrichten. "meetup" steht bereits in KEIN_LAUNCH, das verhindert nur
+    # den Release-Bonus und senkt den Score nicht.
+    # Eng gefasst (Nachschaerfung 22.08.26 nach Pruefung): die erste Fassung
+    # hatte "teilnahme an", "meetup" und "tickets" allein stehen. Das haette
+    # echte Nachrichten getroffen -- "EU-Kommission bestaetigt Teilnahme an
+    # KI-Sicherheitsgipfel", "Support-Tickets werden von KI beantwortet",
+    # "Meetup-Plattform integriert KI-Empfehlungen". Jetzt matchen nur noch
+    # Formulierungen, die als Einladung nicht misszuverstehen sind.
+    ("ai tinkerers", -30), ("nehmen sie an", -25), ("nehmen sie am", -25),
+    ("rsvp", -30), ("jetzt anmelden", -25),
+    ("teilnahme an ai ", -25), ("teilnahme am meetup", -25),
+    ("meetup in ", -25), ("tickets sichern", -20), ("jetzt tickets", -20),
 ]
 
 # Score-Labels für Telegram-Log und news.json
@@ -1988,7 +2044,20 @@ News:
                     "X-Title": "KI News Dashboard"
                 })
                 with urllib.request.urlopen(req, timeout=60) as r:
-                    antwort = json.loads(r.read())["choices"][0]["message"]["content"].strip()
+                    _roh = json.loads(r.read())
+                    # HIER entstand das 'NoneType' object has no attribute
+                    # 'strip' aus dem Log (4x, 21.08.): Reasoning-Modelle
+                    # liefern HTTP 200 mit content=null, wenn das Token-Budget
+                    # im unsichtbaren Denken aufgebraucht wird. Dieser Pfad ruft
+                    # die API direkt auf, nicht ueber _call_llm_api() -- der
+                    # Guard dort half hier also nicht. Sauber als Fehlschlag
+                    # behandeln statt mit einer Meldung abzubrechen, die nach
+                    # Programmierfehler aussieht.
+                    antwort = (((_roh.get("choices") or [{}])[0].get("message")
+                                or {}).get("content") or "").strip()
+                    if not antwort:
+                        raise ValueError(
+                            "leerer Content (Reasoning-Budget aufgebraucht?)")
                     antwort = antwort.replace("```json", "").replace("```", "").strip()
                     summaries = json.loads(antwort)
 
@@ -2183,7 +2252,21 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read())["choices"][0]["message"]["content"]
+        antwort = json.loads(r.read())
+    inhalt = ((antwort.get("choices") or [{}])[0].get("message") or {}).get("content")
+    # Leerer Content trotz HTTP 200: Reasoning-Modelle verbrennen bei knappem
+    # Budget das ganze max_tokens im unsichtbaren Denken und liefern
+    # content=null. Die beiden Aufrufer hier (score_cluster_llm, ask_llm) waren
+    # dagegen schon abgesichert -- die NoneType-Meldungen im Log kamen aus dem
+    # direkten API-Aufruf in summarize_news(), der jetzt ebenfalls prueft.
+    # Trotzdem sinnvoll: eine Logzeile mit Modellnamen macht sichtbar, WELCHES
+    # Modell leer liefert, statt es nur als anonymen Batch-Fehler zu zaehlen.
+    if not inhalt:
+        logger.warning("%s lieferte HTTP 200 mit leerem Content "
+                       "(Reasoning-Budget aufgebraucht?) - gilt als Fehlschlag",
+                       ollama_model)
+        return ""
+    return inhalt
 
 # -------------------------
 # LLM – Posts Scampy-6
