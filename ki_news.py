@@ -583,6 +583,21 @@ MODELLE = [
     "nvidia/nemotron-3-nano-30b-a3b:free",              # 30B/3B aktiv, mit reasoning:false getestet OK
     "nvidia/nemotron-nano-9b-v2:free",                  # 9B, lieferte am 21.08. mehrere Batches erfolgreich
     "nvidia/nemotron-3.5-lightning:free",               # neuestes NVIDIA (11.08.26), mit reasoning:false getestet OK
+    # stealth/ox-alpha (22.08.26): anonymes Testmodell bei OpenRouter, gratis
+    # bei 1M Kontext. Live geprueft, Ergebnis gemischt:
+    #   Uebersetzung (1500 Tokens): 4/4, sauberes Deutsch -- aber 24,5 Sekunden.
+    #                               Zum Vergleich: gemini-lite 2,3s, qwen 3,7s.
+    #   Scoring (150 Tokens):       LEER, 150 Tokens im Reasoning verbraucht.
+    #   reasoning:{enabled:false}:  HTTP 400 "Reasoning is mandatory for this
+    #                               endpoint and cannot be disabled."
+    # Deshalb ABSICHTLICH als LETZTES Free-Modell und NICHT in MODELLE_POSTS:
+    # dort laufen die 150-Token-Aufrufe von score_cluster_llm, und der Schalter,
+    # der die Nemotrons rettet, greift hier nicht.
+    # Zwei Dinge im Blick behalten: Stealth-Modelle verschwinden ohne Ankuendigung
+    # (genau das ist gpt-oss-20b:free am 21.08. passiert), und der Anbieter ist
+    # anonym -- was hier an Prompts hingeht, sind oeffentliche Schlagzeilen,
+    # nichts Vertrauliches. Faellt es weg, greift einfach der naechste Eintrag.
+    "stealth/ox-alpha",                                 # gratis, langsam, letzte Free-Stufe
     # Kostenpflichtige Anker - nur wenn alle Free-Modelle 429 oder leer liefern.
     # 22.08.26 im Batch-Format live vermessen (4 Artikel, max_tokens=1500):
     #   qwen3.7-flash          $0.03/$0.13 je 1M   3.7s   4/4 sauber

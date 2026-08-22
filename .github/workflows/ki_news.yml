@@ -57,6 +57,16 @@ jobs:
           pip install --quiet sentence-transformers
         continue-on-error: true
 
+      # Modell-Waechter (22.08.26): meldet Modell-IDs, die aus dem
+      # OpenRouter-Katalog verschwunden sind. Dreimal in acht Tagen ist genau
+      # das passiert und fiel jedes Mal erst an den 404ern im Log auf --
+      # beim letzten Mal nach rund 135 Fehlaufrufen. Laeuft VOR dem Hauptlauf,
+      # continue-on-error, kann den Lauf also nie kippen. Das Ergebnis steht
+      # in der Actions-Ausgabe, nicht in ki_news.log.
+      - name: Modell-IDs gegen den OpenRouter-Katalog prüfen
+        run: python modell_check.py
+        continue-on-error: true
+
       - name: KI News ausführen
         env:
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
