@@ -79,7 +79,14 @@ JUDGE_MODELLE = [
     # Nemotron-Modelle bewusst NICHT hier: brauchen reasoning:{enabled:false},
     # dieser Datei fehlt der Schalter aus ki_news.py's _call_llm_api() - erst
     # nachziehen, wenn diese Judge-Kette denselben Fix bekommt.
-    "openai/gpt-oss-20b:free",
+    # 22.08.26: gpt-oss-20b:free entfernt - dasselbe Ende wie oben bei
+    # llama-3.3-70b-instruct:free, nur acht Tage spaeter. Live-Abgleich gegen
+    # /api/v1/models am 22.08.: nicht mehr im Katalog. In ki_news.py MODELLE
+    # hat dieselbe ID vorher 63x HTTP 404 produziert.
+    # Ersatz: z-ai/glm-5.2:free, am 22.08. neu im Katalog und im Batch-Format
+    # live geprueft. Nemotron bleibt auch hier draussen - dieser Datei fehlt
+    # weiterhin der reasoning:{enabled:false}-Schalter aus _call_llm_api().
+    "z-ai/glm-5.2:free",
     "meta-llama/llama-3.3-70b-instruct",
 ]
 

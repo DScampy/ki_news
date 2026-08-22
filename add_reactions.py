@@ -87,7 +87,15 @@ OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "").strip()
 TRANSLATE_MODELLE = [
     "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
+    # 22.08.26: meta-llama/llama-3.3-70b-instruct:free entfernt. Die :free-
+    # Variante ist seit dem 14.08. nicht mehr im OpenRouter-Katalog - in
+    # ki_news.py und story_registry_shadow.py wurde sie damals ausgetauscht,
+    # hier blieb sie stehen. Ersetzt durch die beiden am 22.08. live
+    # geprueften Modelle; gemini-2.5-flash-lite als bezahlter Notnagel
+    # (rund $0.40 je 1M Ausgabe-Token, hier fallen nur wenige Saetze an).
+    "z-ai/glm-5.2:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemini-2.5-flash-lite",
 ]
 
 REACTIONS_TTL_DAYS = 21

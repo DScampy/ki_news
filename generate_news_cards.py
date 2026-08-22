@@ -42,8 +42,13 @@ OPENROUTER_URL    = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODELS = [
     "google/gemma-4-31b-it:free",              # Quality 65 — bestes Free-Modell
     "nvidia/nemotron-3-super-120b-a12b:free",  # Quality 60 — Nvidia 120B, 1M ctx
-    "openai/gpt-oss-120b:free",                # Quality 55 — OpenAI OSS 120B
-    "meta-llama/llama-3.3-70b-instruct:free",  # Quality 24 — bewährter Fallback
+    # 22.08.26: openai/gpt-oss-120b:free und meta-llama/llama-3.3-70b-instruct:free
+    # entfernt. Beide :free-Varianten stehen nicht mehr im OpenRouter-Katalog
+    # (Live-Abgleich 22.08. ueber /api/v1/models). Achtung, nicht verwechseln:
+    # "openai/gpt-oss-120b" OHNE :free-Suffix in GROQ_MODELS weiter oben ist ein
+    # Groq-Modell und laeuft weiterhin - das ist ein anderer Anbieter.
+    "z-ai/glm-5.2:free",                       # 22.08. neu im Katalog, live geprueft
+    "google/gemini-2.5-flash-lite",            # bezahlter Anker, $0.10/$0.40 je 1M
     "meta-llama/llama-3.3-70b-instruct",       # paid Anker
 ]
 
