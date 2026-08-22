@@ -50,10 +50,16 @@ if HIER not in sys.path:
 # Wie alt modelle.json werden darf, bevor der Generator neu laeuft.
 MODELLE_MAX_ALTER_TAGE = 7
 
-# Artikel je Lauf fuer den Judge. Bei rund dreissig neuen Artikeln pro Tag
-# ist das reichlich; die Grenze greift nur, wenn ein Rueckstand abgearbeitet
-# wird, und deckelt dann die Laufzeit statt sie explodieren zu lassen.
-JUDGE_LIMIT = 120
+# Artikel je Lauf fuer den Judge, in Batches zu acht.
+#
+# 22.08.2026 von 120 auf 40 gesenkt. Die 120 waren an der Laufzeit bemessen
+# und nicht an den Freikontingenten -- im ersten Live-Lauf brauchte das
+# fuenfzehn Batches, wovon dreizehn an aufgebrauchten Kontingenten
+# scheiterten. Gemini erlaubt zwanzig Anfragen am Tag, Groq und OpenRouter
+# sind nach wenigen Batches ebenfalls durch. Fuenf Batches je Lauf sind das,
+# was die Kaskade sicher traegt; bei vier Laeufen taeglich sind das 160
+# Artikel, mehr als genug fuer rund dreissig neue pro Tag.
+JUDGE_LIMIT = 40
 
 
 class _Sammler:

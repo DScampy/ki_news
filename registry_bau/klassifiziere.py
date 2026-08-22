@@ -78,9 +78,11 @@ BACKENDS = [
      ["gemini-3-flash-preview", "gemini-flash-latest", "gemma-4-31b-it"]),
     ("groq", "https://api.groq.com/openai/v1/chat/completions", "GROQ_API_KEY",
      ["qwen/qwen3.6-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]),
+    # openai/gpt-oss-20b:free am 22.08.2026 entfernt -- lieferte im Live-Lauf
+    # durchgaengig HTTP 404. Das Modell gibt es bei OpenRouter nicht mehr.
     ("openrouter", "https://openrouter.ai/api/v1/chat/completions",
      "OPENROUTER_KEY",
-     ["google/gemma-4-31b-it:free", "openai/gpt-oss-20b:free"]),
+     ["google/gemma-4-31b-it:free"]),
 ]
 
 
