@@ -200,6 +200,13 @@
       (kat ? zeigen.reduce(function (n, a) { return n + a.k[kat]; }, 0) + " " + kat
            : R.modelle.length + " Modelle");
 
+    // Das Badge in der Panel-Kopfzeile stand bis 23.08.2026 statisch im HTML
+    // ("391 Modelle · 57 Anbieter") und veraltete bei jedem Registry-Lauf.
+    // Es zeigt bewusst die GESAMTZAHL (inkl. ruhender Anbieter) -- rg-cnt daneben
+    // zeigt die gefilterte Auswahl, deshalb stehen dort zwei verschiedene Zahlen.
+    var badge = $("registry-count");
+    if (badge) badge.textContent = R.modelle.length + " Modelle · " + liste.length + " Anbieter";
+
     $("rg-grid").innerHTML = zeigen.map(function (a) {
       var na = artZahlAnb[a.a] || 0;
       var farbe = na > 20 ? "var(--rg-ak)" : na > 0 ? "var(--rg-ak2)" : "var(--rg-line)";
