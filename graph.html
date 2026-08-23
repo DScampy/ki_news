@@ -83,6 +83,15 @@ main{position:fixed; top:52px; left:0; right:0; bottom:0}
   border:1px solid var(--hairline); border-radius:9px; padding:7px 10px; font-size:13px;
   font-family:'Work Sans',sans-serif;
 }
+.quelle{display:flex; gap:6px; margin-top:11px}
+.quelle button{
+  flex:1; background:var(--field); border:1px solid var(--hairline); color:var(--muted);
+  border-radius:9px; padding:6px 4px; font-size:11px; cursor:pointer;
+  font-family:ui-monospace,monospace;
+}
+.quelle button:hover{color:var(--text)}
+.quelle button.an{border-color:var(--anbieter); color:var(--anbieter)}
+#qHinweis{margin-top:7px; font-size:11px; line-height:1.45; color:var(--muted); opacity:.8}
 #search::placeholder{color:var(--muted)}
 #search:focus{outline:none; border-color:var(--anbieter)}
 .ctl{margin-top:13px}
@@ -161,6 +170,12 @@ input[type=range]{width:100%; accent-color:var(--anbieter); height:3px}
   <div id="controls">
     <h1>Wer hängt mit wem zusammen</h1>
     <div id="stand">lädt …</div>
+    <div class="quelle">
+      <button id="qLive" class="an">Live-Zählung</button>
+      <button id="qHist">Gedächtnis ab Mai</button>
+    </div>
+    <div id="qHinweis"></div>
+
     <input id="search" placeholder="Entität suchen …" autocomplete="off"/>
 
     <div class="ctl">
@@ -236,11 +251,33 @@ function tage(d){
   return t<0?0:Math.round(t);
 }
 
-Promise.all([
-  fetch("graph.json").then(function(r){return r.json()}),
-  fetch("entities.json").then(function(r){return r.json()}).catch(function(){return {entities:[]}})
-]).then(function(res){
+var QUELLEN = {
+  live: {datei:"graph.json",
+         text:"Wie die Pipeline zählt: pro Story seit 11.08., alte Links fallen nach 30 Tagen aus dem Abgleich. Beginnt am 16.07.2026."},
+  hist: {datei:"graph_historie.json",
+         text:"Einmalig zurückgerechnet aus der Repo-Historie ab 01.05.2026, gezählt pro Artikel. Zeigt mehr — aber nicht dieselbe Zählweise, im Überschneidungszeitraum rund 13 % höher."}
+};
+var aktuelleQuelle = "live";
+
+function lade(q){
+  aktuelleQuelle = q;
+  document.getElementById("qLive").className = q==="live" ? "an" : "";
+  document.getElementById("qHist").className = q==="hist" ? "an" : "";
+  document.getElementById("qHinweis").textContent = QUELLEN[q].text;
+  document.getElementById("err").style.display="none";
+  document.getElementById("legend").innerHTML="";
+  aktiv=null; zu();
+  Promise.all([
+    fetch(QUELLEN[q].datei).then(function(r){return r.json()}),
+    fetch("entities.json").then(function(r){return r.json()}).catch(function(){return {entities:[]}})
+  ]).then(aufbauen).catch(fehler);
+}
+document.getElementById("qLive").onclick=function(){ if(aktuelleQuelle!=="live") lade("live"); };
+document.getElementById("qHist").onclick=function(){ if(aktuelleQuelle!=="hist") lade("hist"); };
+
+function aufbauen(res){
   var g=res[0], ent=res[1];
+  N=[]; E=[]; byId={}; parent={};
   (ent.entities||[]).forEach(function(e){ parent[e.id]=e.gehoert_zu||null; });
 
   N = (g.nodes||[]).map(function(n){
@@ -260,8 +297,9 @@ Promise.all([
 
   // Kopfzeile aus den Daten, nicht statisch
   var typen={}; N.forEach(function(n){ typen[n.typ]=(typen[n.typ]||0)+1; });
+  var zr = g.zeitraum ? (" · ab "+g.zeitraum.von.slice(5)) : "";
   document.getElementById("stand").textContent =
-    N.length+" Entitäten · "+E.length+" Verbindungen · Stand "+(g.stand||"?").slice(0,10);
+    N.length+" Entitäten · "+E.length+" Verbindungen · Stand "+(g.stand||"?").slice(0,10)+zr;
 
   // Legende aus den vorkommenden Typen
   var leg=document.getElementById("legend");
@@ -274,14 +312,21 @@ Promise.all([
   var maxW=Math.max.apply(null,E.map(function(e){return e.count})) || 1;
   var wMin=document.getElementById("wMin");
   wMin.max = Math.min(maxW, 30);
+  if(+wMin.value > +wMin.max) wMin.value = wMin.max;
 
-  init(); resize(); filter(); lauf();
-}).catch(function(err){
-  zeigeFehler("Konnte <code>graph.json</code> nicht laden.<br><br>"+
+  init(); resize(); filter();
+  if(!laeuft){ laeuft=true; lauf(); }
+}
+
+function fehler(err){
+  zeigeFehler("Konnte <code>"+QUELLEN[aktuelleQuelle].datei+"</code> nicht laden.<br><br>"+
     "Lokal braucht die Seite einen Server:<br><code>python -m http.server 8000</code><br>"+
     "dann <code>http://localhost:8000/graph.html</code><br><br>"+
     '<span style="opacity:.6">'+err+"</span>");
-});
+}
+
+var laeuft=false;
+lade("live");
 
 function zeigeFehler(html){
   var e=document.getElementById("err"); e.innerHTML=html; e.style.display="block";
