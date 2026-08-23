@@ -1,36 +1,582 @@
 {
-  "_hinweis": "Entity-Registry für den Entity-Graph (Phase 1, kuratiert 16.07.2026 aus phase0-Messung: 28 Entitäten mit >=3 Artikeln in 1276 Artikeln, plus xAI als Parent von Grok). Wird von ki_news.py NUR GELESEN — wie dashboard_config.json. Steht bewusst in KEINER git-add-Liste der Workflows: Pflege ausschließlich manuell per GitHub-Web-Upload. Aliasse sind Python-Regex, case-insensitive.",
-  "version": 1,
-  "stand": "2026-07-16",
-  "entities": [
-    {"id": "OpenAI",       "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["open\\s?ai"]},
-    {"id": "Google",       "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["google", "deepmind"]},
-    {"id": "Anthropic",    "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["anthropic"]},
-    {"id": "Meta",         "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["\\bmeta\\b"]},
-    {"id": "Microsoft",    "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["microsoft"]},
-    {"id": "xAI",          "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["\\bxai\\b"]},
-    {"id": "Nvidia",       "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["nvidia"]},
-    {"id": "Mistral",      "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["mistral"]},
-    {"id": "DeepSeek",     "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["deepseek"]},
-    {"id": "Alibaba",      "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["alibaba"]},
-    {"id": "Tencent",      "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["tencent"]},
-    {"id": "Apple",        "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["\\bapple\\b"]},
-    {"id": "Amazon",       "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["amazon", "\\baws\\b"]},
-    {"id": "Perplexity",   "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["perplexity"]},
-    {"id": "Hugging Face", "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["hugging\\s?face"]},
-    {"id": "Suno",         "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["\\bsuno\\b"]},
-    {"id": "Tesla",        "typ": "anbieter", "gehoert_zu": null,        "aliasse": ["tesla"]},
-    {"id": "ChatGPT",      "typ": "modell",   "gehoert_zu": "OpenAI",    "aliasse": ["chatgpt"]},
-    {"id": "GPT-Serie",    "typ": "modell",   "gehoert_zu": "OpenAI",    "aliasse": ["\\bgpt-?[o0-9]"]},
-    {"id": "Gemini",       "typ": "modell",   "gehoert_zu": "Google",    "aliasse": ["gemini"]},
-    {"id": "Claude",       "typ": "modell",   "gehoert_zu": "Anthropic", "aliasse": ["claude"]},
-    {"id": "Claude Code",  "typ": "produkt",  "gehoert_zu": "Anthropic", "aliasse": ["claude\\s?code"]},
-    {"id": "MCP",          "typ": "thema",    "gehoert_zu": "Anthropic", "aliasse": ["\\bmcp\\b", "model context protocol"]},
-    {"id": "Copilot",      "typ": "produkt",  "gehoert_zu": "Microsoft", "aliasse": ["copilot"]},
-    {"id": "Grok",         "typ": "modell",   "gehoert_zu": "xAI",       "aliasse": ["\\bgrok\\b"]},
-    {"id": "Qwen",         "typ": "modell",   "gehoert_zu": "Alibaba",   "aliasse": ["\\bqwen\\b"]},
-    {"id": "AGI",          "typ": "thema",    "gehoert_zu": null,        "aliasse": ["\\bagi\\b", "superintelligenz"]},
-    {"id": "Robotik",      "typ": "thema",    "gehoert_zu": null,        "aliasse": ["roboter", "humanoid"]},
-    {"id": "Chips/GPUs",   "typ": "thema",    "gehoert_zu": null,        "aliasse": ["\\bgpu\\b", "\\bchips?\\b", "halbleiter"]}
-  ]
+ "_hinweis": "Entity-Registry fuer den Entity-Graph. Kuratiert 16.07.2026 aus phase0-Messung (28 Entitaeten mit >=3 Artikeln in 1276 Artikeln, plus xAI als Parent von Grok). ERWEITERT 23.08.2026 um 42 Eintraege: Kandidaten aus 9750 Artikeln der archive.json-git-Historie (01.05.-23.08.), jeder Alias-Regex gegen den echten Bestand auf Fehltreffer geprueft -- dabei fiel auf, dass 'ernie' ohne Wortgrenze 'BERNIE Sanders' fing. Ausgelassen: 'Agenten' (720 Artikel = 7% -- waere ein Riesenknoten mit Kanten zu allem), Uebernahme/Boersengang (Ereignisarten, gehoeren in Kantentypen statt Knoten), Llama und Poolside (je 2 Treffer, zu selten). Auswirkung auf das R1-Gate der Shadow-Registry gemessen: +3% Paare mit gemeinsamer Entitaet, Artikel ganz ohne Entitaet sinken von 90 auf 76 (Bestand 22.08., 191 Artikel). Wird von ki_news.py NUR GELESEN -- wie dashboard_config.json. Steht bewusst in KEINER git-add-Liste der Workflows: Pflege ausschliesslich manuell per Upload. Aliasse sind Python-Regex, case-insensitive.",
+ "version": 2,
+ "stand": "2026-08-23",
+ "entities": [
+  {
+   "id": "OpenAI",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "open\\s?ai"
+   ]
+  },
+  {
+   "id": "Google",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "google",
+    "deepmind"
+   ]
+  },
+  {
+   "id": "Anthropic",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "anthropic"
+   ]
+  },
+  {
+   "id": "Meta",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bmeta\\b"
+   ]
+  },
+  {
+   "id": "Microsoft",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "microsoft"
+   ]
+  },
+  {
+   "id": "xAI",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bxai\\b"
+   ]
+  },
+  {
+   "id": "Nvidia",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "nvidia"
+   ]
+  },
+  {
+   "id": "Mistral",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "mistral"
+   ]
+  },
+  {
+   "id": "DeepSeek",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "deepseek"
+   ]
+  },
+  {
+   "id": "Alibaba",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "alibaba"
+   ]
+  },
+  {
+   "id": "Tencent",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "tencent"
+   ]
+  },
+  {
+   "id": "Apple",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bapple\\b"
+   ]
+  },
+  {
+   "id": "Amazon",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "amazon",
+    "\\baws\\b"
+   ]
+  },
+  {
+   "id": "Perplexity",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "perplexity"
+   ]
+  },
+  {
+   "id": "Hugging Face",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "hugging\\s?face"
+   ]
+  },
+  {
+   "id": "Suno",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bsuno\\b"
+   ]
+  },
+  {
+   "id": "Tesla",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "tesla"
+   ]
+  },
+  {
+   "id": "ChatGPT",
+   "typ": "modell",
+   "gehoert_zu": "OpenAI",
+   "aliasse": [
+    "chatgpt"
+   ]
+  },
+  {
+   "id": "GPT-Serie",
+   "typ": "modell",
+   "gehoert_zu": "OpenAI",
+   "aliasse": [
+    "\\bgpt-?[o0-9]"
+   ]
+  },
+  {
+   "id": "Gemini",
+   "typ": "modell",
+   "gehoert_zu": "Google",
+   "aliasse": [
+    "gemini"
+   ]
+  },
+  {
+   "id": "Claude",
+   "typ": "modell",
+   "gehoert_zu": "Anthropic",
+   "aliasse": [
+    "claude"
+   ]
+  },
+  {
+   "id": "Claude Code",
+   "typ": "produkt",
+   "gehoert_zu": "Anthropic",
+   "aliasse": [
+    "claude\\s?code"
+   ]
+  },
+  {
+   "id": "MCP",
+   "typ": "thema",
+   "gehoert_zu": "Anthropic",
+   "aliasse": [
+    "\\bmcp\\b",
+    "model context protocol"
+   ]
+  },
+  {
+   "id": "Copilot",
+   "typ": "produkt",
+   "gehoert_zu": "Microsoft",
+   "aliasse": [
+    "copilot"
+   ]
+  },
+  {
+   "id": "Grok",
+   "typ": "modell",
+   "gehoert_zu": "xAI",
+   "aliasse": [
+    "\\bgrok\\b"
+   ]
+  },
+  {
+   "id": "Qwen",
+   "typ": "modell",
+   "gehoert_zu": "Alibaba",
+   "aliasse": [
+    "\\bqwen\\b"
+   ]
+  },
+  {
+   "id": "AGI",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bagi\\b",
+    "superintelligenz"
+   ]
+  },
+  {
+   "id": "Robotik",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "roboter",
+    "humanoid"
+   ]
+  },
+  {
+   "id": "Chips/GPUs",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bgpu\\b",
+    "\\bchips?\\b",
+    "halbleiter"
+   ]
+  },
+  {
+   "id": "Moonshot",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "moonshot"
+   ]
+  },
+  {
+   "id": "Zhipu",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "zhipu"
+   ]
+  },
+  {
+   "id": "MiniMax",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "minimax"
+   ]
+  },
+  {
+   "id": "Baidu",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "baidu|\\bernie\\b"
+   ]
+  },
+  {
+   "id": "ByteDance",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "bytedance|doubao"
+   ]
+  },
+  {
+   "id": "Huawei",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "huawei|ascend"
+   ]
+  },
+  {
+   "id": "Thinking Machines",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "thinking machines"
+   ]
+  },
+  {
+   "id": "Cursor",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bcursor\\b|anysphere"
+   ]
+  },
+  {
+   "id": "Cognition",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bcognition\\b|\\bdevin\\b"
+   ]
+  },
+  {
+   "id": "Unitree",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "unitree"
+   ]
+  },
+  {
+   "id": "Nscale",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "nscale"
+   ]
+  },
+  {
+   "id": "AMD",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bAMD\\b"
+   ]
+  },
+  {
+   "id": "Intel",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bintel\\b"
+   ]
+  },
+  {
+   "id": "Broadcom",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "broadcom"
+   ]
+  },
+  {
+   "id": "Marvell",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "marvell"
+   ]
+  },
+  {
+   "id": "TSMC",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bTSMC\\b"
+   ]
+  },
+  {
+   "id": "Samsung",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "samsung"
+   ]
+  },
+  {
+   "id": "SK Hynix",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "sk[\\s-]?hynix"
+   ]
+  },
+  {
+   "id": "Micron",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "micron"
+   ]
+  },
+  {
+   "id": "Arm",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bArm\\b(?=\\s|,|\\.|s\\b)|arm holdings|ARM-(?:Chip|Architektur|Prozessor)"
+   ]
+  },
+  {
+   "id": "Cerebras",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "cerebras"
+   ]
+  },
+  {
+   "id": "CoreWeave",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "coreweave"
+   ]
+  },
+  {
+   "id": "Nebius",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "nebius"
+   ]
+  },
+  {
+   "id": "Oracle",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "oracle"
+   ]
+  },
+  {
+   "id": "IBM",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "\\bIBM\\b"
+   ]
+  },
+  {
+   "id": "Qualcomm",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "qualcomm"
+   ]
+  },
+  {
+   "id": "SoftBank",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "softbank"
+   ]
+  },
+  {
+   "id": "Salesforce",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "salesforce"
+   ]
+  },
+  {
+   "id": "Adobe",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "adobe"
+   ]
+  },
+  {
+   "id": "Snowflake",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "snowflake"
+   ]
+  },
+  {
+   "id": "Databricks",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "databricks"
+   ]
+  },
+  {
+   "id": "Palantir",
+   "typ": "anbieter",
+   "gehoert_zu": null,
+   "aliasse": [
+    "palantir"
+   ]
+  },
+  {
+   "id": "Codex",
+   "typ": "modell",
+   "gehoert_zu": "OpenAI",
+   "aliasse": [
+    "\\bcodex\\b"
+   ]
+  },
+  {
+   "id": "Kimi",
+   "typ": "modell",
+   "gehoert_zu": "Moonshot",
+   "aliasse": [
+    "\\bkimi\\b"
+   ]
+  },
+  {
+   "id": "Sonnet",
+   "typ": "modell",
+   "gehoert_zu": "Anthropic",
+   "aliasse": [
+    "claude[\\s-]?sonnet|sonnet\\s?[0-9]"
+   ]
+  },
+  {
+   "id": "Rechenzentren",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "rechenzentr|data cent"
+   ]
+  },
+  {
+   "id": "Datenschutz",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "datenschutz|dsgvo"
+   ]
+  },
+  {
+   "id": "Urheberrecht",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "urheberrecht|copyright"
+   ]
+  },
+  {
+   "id": "Open Source",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "open.?source|quelloffen"
+   ]
+  },
+  {
+   "id": "Exportkontrollen",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "exportkontroll|exportbeschraenk|exportbeschränk"
+   ]
+  },
+  {
+   "id": "EU AI Act",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "ai act|ki-verordnung|ki-gesetz"
+   ]
+  },
+  {
+   "id": "Energie",
+   "typ": "thema",
+   "gehoert_zu": null,
+   "aliasse": [
+    "stromverbrauch|energiebedarf|strombedarf"
+   ]
+  }
+ ]
 }
