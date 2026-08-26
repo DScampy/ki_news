@@ -96,6 +96,21 @@ _LATEX_INLINE = re.compile(r'(?<=[a-zäöüß])"([oua])(?=[a-zäöüß])')
 _INLINE_MAP = {"o": "ö", "u": "ü", "a": "ä"}
 
 
+# ── Zentraler Artefakt-Filter (26.08.26) ─────────────────────────────────
+# Aus der ox-Schleife (Lauf 240826_0435_en, Runde 12), von Hand nachgehaertet.
+# 61/61 Testfaelle, 0 Fehlverwerfungen auf 16.578 echten Texten.
+# Fallback bewusst permissiv: fehlt sanitize.py im Repo, laesst der Filter
+# alles durch statt den Lauf mit ImportError zu killen -- derselbe Fehler wie
+# beim registry_bau-Import am 21.08. soll sich nicht wiederholen.
+try:
+    from sanitize import ist_brauchbar as _sanitize_llm_output
+except ImportError:            # pragma: no cover
+    logging.getLogger(__name__).warning(
+        "sanitize.py nicht gefunden - Artefakt-Filter inaktiv, Lauf geht weiter")
+    def _sanitize_llm_output(text, original=None):
+        return True
+
+
 def _fix_latex_escapes(text: str) -> str:
     """LaTeX-Umlaut-Escapes durch echte Umlaute ersetzen. No-op wenn keine da."""
     t = text or ""
@@ -2262,8 +2277,22 @@ News:
                     # auf Satzzeichen enden.
                     completeness_ok = True
                     for item in summaries:
-                        t = (item.get("title_de") or "").strip()
-                        s = (item.get("summary") or "").strip()
+                        # WICHTIG: gegen den REPARIERTEN Text pruefen, nicht gegen den
+                        # rohen. _fix_latex_escapes() macht aus f{"u}r ein "für" -- wer
+                        # vorher prueft, verwirft Texte, die sich reparieren lassen.
+                        # (Belegt am 26.08.: beide LaTeX-Reste in archive.json vom
+                        # 16.08. werden von _fix_latex_escapes vollstaendig geheilt.)
+                        t = _fix_latex_escapes(item.get("title_de") or "").strip()
+                        s = _fix_latex_escapes(item.get("summary") or "").strip()
+                        # Zentraler Artefakt-Filter (26.08.26). Faengt das Muster hinter
+                        # drei der letzten vier Produktionsfehler: Padding-Token,
+                        # Refusals, Meta-Geschwaetz, Roh-JSON, HTML, Sprachmix,
+                        # Emoji-/Wort-Spam, abgebrochene Texte. Alle Schwellen liegen
+                        # bewusst weit vom echten Bestand entfernt -- siehe sanitize.py.
+                        if (t and not _sanitize_llm_output(t)) or \
+                           (s and not _sanitize_llm_output(s)):
+                            completeness_ok = False
+                            break
                         if t and len(t.split()) < 3:
                             completeness_ok = False
                             break

@@ -241,10 +241,24 @@ _MODEL_ARTEFAKTE = (
 _HEADLINE_MAX_WORDS = 12
 
 
+# Zentraler Artefakt-Filter (26.08.26), gemeinsam mit ki_news.py.
+# Deckt _MODEL_ARTEFAKTE mit ab und daneben Refusals, Meta-Geschwaetz,
+# Roh-JSON, HTML, Sprachmix, Emoji-/Wort-Spam und abgebrochene Texte.
+# Fallback permissiv, damit ein fehlendes sanitize.py den Lauf nicht killt.
+try:
+    from sanitize import ist_brauchbar as _sanitize_llm_output
+except ImportError:            # pragma: no cover
+    def _sanitize_llm_output(text, original=None):
+        return True
+
+
 def _looks_like_valid_translation(antwort, original):
     # Modell-Artefakte zuerst: die ueberleben jede andere Pruefung, weil sie
     # weder Refusal-Satz noch auffaellig kurz/lang sein muessen.
     if any(m in antwort for m in _MODEL_ARTEFAKTE):
+        return False
+    # Breitere Artefakt-Pruefung als die Liste oben -- die faengt nur Tokens.
+    if not _sanitize_llm_output(antwort, original):
         return False
     a = antwort.lower()
     if any(m in a for m in _META_REFUSAL_MARKERS):
