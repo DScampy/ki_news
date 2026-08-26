@@ -41,6 +41,8 @@ import io
 import os
 import sys
 import time
+import json
+import calendar
 import contextlib
 
 HIER = os.path.dirname(os.path.abspath(__file__))
@@ -48,7 +50,14 @@ if HIER not in sys.path:
     sys.path.insert(0, HIER)
 
 # Wie alt modelle.json werden darf, bevor der Generator neu laeuft.
-MODELLE_MAX_ALTER_TAGE = 7
+#
+# 26.08.2026 von 7 auf 1 gesenkt. Die Begruendung fuer die Woche war "Modell-
+# listen aendern sich in Tagen nicht" -- das stimmt fuer den Bestand, aber
+# nicht fuer Neuzugaenge, und genau die sind der Zweck der Registry. GLM-5.3-
+# Flash erschien am 26.08. um 13:59 im Katalog und fehlte im Lauf um 19:57,
+# weil die Liste vom 20.08. stammte und noch nicht "eine Woche alt" war.
+# Kosten der Senkung: ein zusaetzlicher OpenRouter-Abruf pro Tag.
+MODELLE_MAX_ALTER_TAGE = 1
 
 # Artikel je Lauf fuer den Judge, in Batches zu acht.
 #
@@ -89,8 +98,27 @@ class _Sammler:
 
 
 def _alter_tage(pfad):
+    """Alter der Modellliste in Tagen, aus ihrem eigenen `erzeugt`-Feld.
+
+    Frueher stand hier os.path.getmtime(). Das war in GitHub Actions wertlos:
+    git setzt die mtime beim Checkout auf JETZT, die Datei war also bei jedem
+    Lauf null Tage alt und wurde nie erneuert. Belegt am 26.08.2026 -- die
+    Liste trug erzeugt=2026-08-20T16:54:25Z, waehrend der Lauf um 19:57 lief,
+    und GLM-5.3-Flash (seit 13:59 im Katalog) fehlte deshalb in der Registry.
+    Der Zeitstempel IN der Datei ueberlebt jeden Checkout.
+
+    Faellt auf mtime zurueck, wenn das Feld fehlt oder unlesbar ist.
+    """
     if not os.path.exists(pfad):
         return None
+    try:
+        with open(pfad, encoding="utf-8") as f:
+            erzeugt = json.load(f).get("erzeugt")
+        if erzeugt:
+            ts = calendar.timegm(time.strptime(erzeugt, "%Y-%m-%dT%H:%M:%SZ"))
+            return (time.time() - ts) / 86400.0
+    except Exception:
+        pass
     return (time.time() - os.path.getmtime(pfad)) / 86400.0
 
 
