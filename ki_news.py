@@ -2275,8 +2275,16 @@ News:
                     # Satzzeichen mitten im Wort. Heuristik: title_de braucht >=3 Woerter
                     # (deutsche Kurznews-Titel sind praktisch nie kuerzer), summary muss
                     # auf Satzzeichen enden.
-                    completeness_ok = True
-                    for item in summaries:
+                    #
+                    # 26.08.26: von "ein Item kaputt = ganzer Batch weg" auf eine
+                    # MEHRHEITSREGEL umgebaut. Der alte Alles-oder-nichts-Wurf hat
+                    # bei vier Items pro Batch drei gesunde Uebersetzungen an einem
+                    # kaputten haengen lassen. Ein einzelner Ausreisser ist ein
+                    # Ausreisser; erst wenn die MEHRHEIT kaputt ist, hat das Modell
+                    # als Ganzes versagt -- dann lohnt der Wechsel zum naechsten.
+                    # Verworfene Einzel-Items landen nicht in result und fallen damit
+                    # weiter unten auf den Originaltitel zurueck, statt zu verschwinden.
+                    def _item_kaputt(item):
                         # WICHTIG: gegen den REPARIERTEN Text pruefen, nicht gegen den
                         # rohen. _fix_latex_escapes() macht aus f{"u}r ein "für" -- wer
                         # vorher prueft, verwirft Texte, die sich reparieren lassen.
@@ -2291,11 +2299,9 @@ News:
                         # bewusst weit vom echten Bestand entfernt -- siehe sanitize.py.
                         if (t and not _sanitize_llm_output(t)) or \
                            (s and not _sanitize_llm_output(s)):
-                            completeness_ok = False
-                            break
+                            return "Artefakt"
                         if t and len(t.split()) < 3:
-                            completeness_ok = False
-                            break
+                            return "Titel zu kurz"
                         # Fund 06.07.26 (Daniels Karten-Screenshots): title_de kam manchmal
                         # als 2-Satz-Mini-Absatz zurueck ("...ins Auge gefasst. Dies koennte
                         # eine strategische Partnerschaft..."). generate_news_cards.py rendert
@@ -2304,20 +2310,38 @@ News:
                         # kompletten "Was ist passiert"-Block. Hier an der Wurzel abfangen:
                         # title_de darf nur EIN Satzende-Zeichen enthalten.
                         if t and len(re.findall(r"[.!?]", t)) > 1:
-                            completeness_ok = False
-                            break
+                            return "Titel mehrsatzig"
                         if s and s[-1] not in ".!?\"'”":
-                            completeness_ok = False
-                            break
+                            return "Zusammenfassung abgebrochen"
                         if _has_foreign_script(t) or _has_foreign_script(s):
-                            completeness_ok = False
-                            break
-                    if not completeness_ok:
+                            return "fremdes Schriftsystem"
+                        return None
+
+                    kaputte_ids = {}
+                    for item in summaries:
+                        grund = _item_kaputt(item)
+                        if grund:
+                            kaputte_ids[item.get("id")] = grund
+
+                    # Mehrheit kaputt -> das Modell selbst taugt fuer diesen Batch
+                    # nicht, kompletter Wurf wie bisher.
+                    if summaries and len(kaputte_ids) * 2 > len(summaries):
                         logger.warning(
-                            "Batch %d: %s lieferte unvollstaendigen/fremdsprachigen Text (max_tokens-Abschnitt oder Sprachmix) - Batch verworfen, naechstes Modell",
-                            batch_start // batch_size + 1, modell
+                            "Batch %d: %s lieferte %d von %d Items unbrauchbar (%s) - "
+                            "Batch verworfen, naechstes Modell",
+                            batch_start // batch_size + 1, modell,
+                            len(kaputte_ids), len(summaries),
+                            ", ".join(sorted(set(kaputte_ids.values())))
                         )
                         continue
+                    if kaputte_ids:
+                        logger.info(
+                            "Batch %d: %s - %d von %d Items uebersprungen (%s), "
+                            "Rest wird uebernommen",
+                            batch_start // batch_size + 1, modell,
+                            len(kaputte_ids), len(summaries),
+                            ", ".join("id %s: %s" % kv for kv in sorted(kaputte_ids.items()))
+                        )
 
                     # Content-Blending-Check: src_title sagt uns das WIRKLICHE Thema
                     # des Artikels an diesem Index (durch Anker-Pruefung oben schon
@@ -2344,6 +2368,12 @@ News:
                         continue
 
                     for item in summaries:
+                        # Einzeln aussortierte Items nicht uebernehmen: ohne Eintrag
+                        # in result greift weiter unten der Fallback auf den
+                        # Originaltitel. Auch NICHT cachen -- sonst zementiert ein
+                        # kaputter Text sich fuer alle Folgelaeufe.
+                        if item.get("id") in kaputte_ids:
+                            continue
                         global_index = batch_indices[item["id"] - 1]
                         raw_title = _fix_latex_escapes(item.get("title_de", ""))
                         # Placeholder-Schutz: falls LLM Beispieltext zurückgibt → Original behalten
