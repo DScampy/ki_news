@@ -57,14 +57,44 @@ jobs:
           pip install --quiet sentence-transformers
         continue-on-error: true
 
+      # Sprach-ID (26.08.26): py3langid ist die Grundlage des Sprach-Guards in
+      # ki_news.py und generate_news_cards.py. Reine Python-Portierung von
+      # langid.py, offline, kein Modell-Download, ein paar hundert Kilobyte.
+      # Fehlt das Paket, fallen beide Dateien auf die alte Wortlisten-Heuristik
+      # zurueck - der Lauf kippt also nicht, wird aber wieder ungenau. Die
+      # Bilanzzeile am Laufende schreibt in dem Fall
+      # "Sprach-ID: FALLBACK Wortlisten (py3langid fehlt)" ins Log.
+      # BEWUSST OHNE continue-on-error: schlaegt der Install fehl, will ich das
+      # sofort rot sehen und nicht wochenlang stillen Qualitaetsverlust.
+      - name: Sprach-ID installieren (py3langid)
+        run: pip install --quiet py3langid
+
       # Modell-Waechter (22.08.26): meldet Modell-IDs, die aus dem
       # OpenRouter-Katalog verschwunden sind. Dreimal in acht Tagen ist genau
       # das passiert und fiel jedes Mal erst an den 404ern im Log auf --
       # beim letzten Mal nach rund 135 Fehlaufrufen. Laeuft VOR dem Hauptlauf,
-      # continue-on-error, kann den Lauf also nie kippen. Das Ergebnis steht
-      # in der Actions-Ausgabe, nicht in ki_news.log.
+      # continue-on-error, kann den Lauf also nie kippen.
+      #
+      # Nachbesserung 26.08.26 -- der Waechter hat funktioniert und trotzdem
+      # nichts genuetzt: Er meldete nvidia/nemotron-3-nano-30b-a3b:free und
+      # nvidia/nemotron-nano-9b-v2:free ab dem 22.08. in JEDEM Lauf korrekt als
+      # tot. Nur stand der Befund ausschliesslich in der Actions-Ausgabe, die
+      # niemand oeffnet, waehrend die beiden IDs vier Tage lang 104 HTTP-404
+      # pro Log-Fenster produzierten. Ein Alarm, den keiner hoert, ist kein
+      # Alarm. Deshalb ab jetzt zwei Aenderungen:
+      #   1. Die Ausgabe landet zusaetzlich in ki_news.log, also genau dort,
+      #      wo der taegliche Check ohnehin hinschaut.
+      #   2. Tote IDs werden als ::error::-Annotation gesetzt, damit sie in
+      #      der Run-Zusammenfassung sichtbar sind, ohne den Lauf zu kippen.
       - name: Modell-IDs gegen den OpenRouter-Katalog prüfen
-        run: python modell_check.py
+        run: |
+          echo "=== MODELL-WAECHTER $(date -u +'%Y-%m-%dT%H:%M:%SZ') ===" >> ki_news.log
+          python modell_check.py 2>&1 | tee -a ki_news.log | tee /tmp/modellcheck.txt
+          if grep -q "^TOT" /tmp/modellcheck.txt; then
+            sed -n '/^TOT/,/^$/p' /tmp/modellcheck.txt | tail -n +2 | while read -r line; do
+              [ -n "$line" ] && echo "::error::Tote Modell-ID im Repo: $line"
+            done
+          fi
         continue-on-error: true
 
       - name: KI News ausführen
