@@ -147,28 +147,39 @@ def _looks_german(text: str, original: str = None) -> bool:
     """True wenn der Text als Deutsch durchgehen darf.
 
     Reihenfolge (erste Regel gewinnt):
-      0. text == unveraenderter Originaltitel -> NICHT deutsch (exakt, keine
-         Heuristik: title_de ist bei fehlgeschlagener Uebersetzung woertlich
-         der Platzhalter aus summarize_news(), s. dort result = {...})
-      1. Umlaut/ss vorhanden                  -> deutsch
-      2. deutsches Signalwort                 -> deutsch
-      3. py3langid sagt 'en' mit >= 0.99      -> nicht deutsch
-      4. sonst                                -> deutsch (Zweifel zugunsten
-         des Artikels); ohne py3langid greift hier die alte Marker-Heuristik
+      1. Umlaut/ss vorhanden             -> deutsch
+      2. deutsches Signalwort            -> deutsch
+      3. py3langid sagt 'en' mit >= 0.99 -> nicht deutsch
+      4. sonst                           -> deutsch (Zweifel zugunsten des
+         Artikels); ohne py3langid greift hier die alte Marker-Heuristik
 
-    Regel 0 ist der eigentliche Fortschritt: der haeufigste Fall ist nicht
-    "schlecht uebersetzt", sondern "gar nicht uebersetzt", und der ist exakt
-    entscheidbar. Sprach-ID ist nur noch das Netz fuer Sprachmix, also fuer
-    Antworten, die zwar anders lauten als das Original, aber trotzdem englisch
-    sind.
+    `original` wird nur noch entgegengenommen, damit die Aufrufstelle nicht
+    erneut angefasst werden muss, und BEWUSST nicht mehr ausgewertet:
+
+    ZURUECKGEBAUT 26.08.26 abends, wenige Stunden nach dem Einbau. Die Idee war
+    "title_de == unveraenderter Originaltitel heisst: nie uebersetzt worden" --
+    exakt statt heuristisch, und der Test gegen 13 englische Titel gab 13/13.
+    Der Test hatte nur eine Luecke: er enthielt keinen einzigen Artikel aus
+    einer DEUTSCHEN Quelle. Bei heise, golem und t3n ist title_de == Original
+    der Normalfall, weil da nichts zu uebersetzen ist. Ergebnis im Live-Lauf
+    vom 26.08. 18:11 -- die Regel lief VOR der Umlaut-Pruefung und verwarf
+    69 Artikel, davon 19 von 26 eindeutig deutschen Titeln nachgemessen
+    ("Bosch baut humanoiden Roboter in Deutschland.", "KI aus Deutschland: Ein
+    Foerdersystem, das Innovationen hemmt"). Alle 19 haetten Regel 1 oder 2
+    bestanden.
+
+    Lehre, damit das niemand neu erfindet: Identitaet sagt nichts ueber
+    Sprache. Sie ist nur dann ein Hinweis auf eine fehlgeschlagene
+    Uebersetzung, wenn das Original englisch ist -- und ob es das ist, muss
+    ohnehin die Sprach-ID entscheiden. Die Regel war also im besten Fall
+    ueberfluessig und im schlechtesten genau der Schaden, den sie verhindern
+    sollte. Nachgemessen bringt sie an den Log-Daten vom 25./26.08. auch keinen
+    Gewinn: die 7 tatsaechlich englischen Titel liegen alle bei langid-Wahr-
+    scheinlichkeit 1.00 und fallen ohne sie genauso durch.
     """
     t = _fix_latex_escapes(text or "").strip()
     if not t:
         return True
-    if original:
-        orig = _fix_latex_escapes(original).strip()
-        if orig and t == orig:
-            return False
     if any(c in GERMAN_CHARS for c in t):
         return True
     lower = f" {t.lower()} "
@@ -664,7 +675,18 @@ MODELLE = [
     # hat sie in JEDEM CI-Lauf gemeldet, aber der Schritt laeuft mit
     # continue-on-error und ohne --streng: der Befund stand nur in der
     # Actions-Ausgabe, die niemand liest. Siehe Workflow-Aenderung vom 26.08.
-    "nvidia/nemotron-3.5-lightning:free",               # neuestes NVIDIA (11.08.26), mit reasoning:false getestet OK
+    # 26.08.26 abends ENTFERNT: nvidia/nemotron-3.5-lightning:free.
+    # Bilanz ueber zwei Log-Fenster: 25./26.08. 52x "Expecting value: line 1
+    # column 1" (= leere/kaputte Antwort), 26.08. nach dem Umbau nochmal 10x
+    # derselbe Fehler. In Summe 62 Versuche, NULL erfolgreiche Batches. Der
+    # reasoning:false-Schalter greift, es liefert trotzdem nichts. Steht nur
+    # noch als Latenz in der Kaskade.
+    # Ebenfalls beobachtet, aber (noch) drin: nvidia/nemotron-3-ultra-550b-a55b:free.
+    # Im Einzeltest 3.1s und 4/4, im Produktionslauf vom 26.08. nur 1 Treffer
+    # bei 10 Versuchen (4x leerer Content, 3x abgeschnittener JSON-String,
+    # 2x Sprachmix). Lehre fuer den naechsten Modelltausch: ein Einzelaufruf
+    # sagt wenig, weil er weder Rate-Limit noch Lastspitze sieht. Erst nach
+    # einem vollen Tag beurteilen, nicht nach einem Nachmittag.
     # stealth/ox-alpha (22.08.26): anonymes Testmodell bei OpenRouter, gratis
     # bei 1M Kontext. Live geprueft, Ergebnis gemischt:
     #   Uebersetzung (1500 Tokens): 4/4, sauberes Deutsch -- aber 24,5 Sekunden.
@@ -679,7 +701,11 @@ MODELLE = [
     # (genau das ist gpt-oss-20b:free am 21.08. passiert), und der Anbieter ist
     # anonym -- was hier an Prompts hingeht, sind oeffentliche Schlagzeilen,
     # nichts Vertrauliches. Faellt es weg, greift einfach der naechste Eintrag.
-    "stealth/ox-alpha",                                 # gratis, langsam, letzte Free-Stufe
+    # 26.08.26 abends ENTFERNT: stealth/ox-alpha ist aus dem Katalog
+    # verschwunden (modell_check.py meldet es als TOT, live gegen
+    # /api/v1/models geprueft) - im Nachmittagslauf 10x HTTP-Fehler, 0 Treffer.
+    # Genau die Lebensdauer, die der Kommentar oben vorhergesagt hat: vier
+    # Tage. Stealth-Slots sind Leihgaben, keine Infrastruktur.
     # Kostenpflichtige Anker - nur wenn alle Free-Modelle 429 oder leer liefern.
     # 22.08.26 im Batch-Format live vermessen (4 Artikel, max_tokens=1500):
     #   qwen3.7-flash          $0.03/$0.13 je 1M   3.7s   4/4 sauber
@@ -3342,9 +3368,9 @@ def main():
         # Lauf die Uebersetzung schafft. Analog zu generate_news_cards.py's
         # SKIP-Logik, damit Website und Cards konsistent filtern.
         _title_de_check = s.get("title_de", n.get("title", ""))
-        # 26.08.26: Originaltitel wird jetzt mitgegeben. Damit entscheidet
-        # Regel 0 in _looks_german() den haeufigsten Fall exakt statt per
-        # Heuristik - title_de == Original heisst: nie uebersetzt worden.
+        # 26.08.26: Originaltitel wird mitgegeben, aber von _looks_german()
+        # bewusst nicht mehr ausgewertet - Begruendung im Docstring dort
+        # (deutsche Quellen liefern title_de == Original als Normalfall).
         if _title_de_check and not _looks_german(_title_de_check, n.get("title", "")):
             globals()["_GUARD_VERWORFEN"] = globals()["_GUARD_VERWORFEN"] + 1
             logger.warning(
@@ -3724,7 +3750,14 @@ def main():
             _BATCH_VERSUCHE, _ok_gesamt, _traeger, _GUARD_VERWORFEN,
             "py3langid" if _LANGID is not None else "FALLBACK Wortlisten (py3langid fehlt)",
         )
-        if _ok_gesamt and max(_BATCH_OK.values()) > _ok_gesamt / 2:
+        # Mindest-Stichprobe 8 (nachgebessert 26.08.26 abends): die erste
+        # Fassung warnte schon bei "1 von 1" und "3 von 5". Bei so wenigen
+        # Batches ist ein dominierendes Modell keine Aussage, sondern Zufall -
+        # eine Warnung, die bei jedem ruhigen Lauf angeht, wird genauso
+        # ueberlesen wie die stumme Actions-Ausgabe des Modell-Waechters.
+        # Zusaetzlich von >50% auf >=70% angehoben: dass EIN Free-Slot die
+        # Mehrheit traegt, ist bei acht Modellen mit Rate-Limit normal.
+        if _ok_gesamt >= 8 and max(_BATCH_OK.values()) >= _ok_gesamt * 0.7:
             _top = max(_BATCH_OK.items(), key=lambda kv: kv[1])
             logger.warning(
                 "BILANZ-WARNUNG: %s traegt %d von %d erfolgreichen Batches - die Modellliste "
