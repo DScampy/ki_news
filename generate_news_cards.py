@@ -324,11 +324,49 @@ GERMAN_MARKERS = [
     " der ", " die ", " das ", " und ", " ist ", " nicht ", " eine ",
     " einen ", " für ", " mit ", " auf ", " dass ", " wird ", " sich ",
     " kein ", " keine ", " ein ", " im ", " den ",
+    # 26.08.26 mit ki_news.py gleichgezogen - dort stand die erweiterte Liste
+    # seit dem 18.08., hier nicht, weshalb dieselbe Headline je nach Datei
+    # unterschiedlich beurteilt wurde.
+    " von ", " zu ", " durch ", " über ", " nach ", " bei ", " als ",
+    " auch ", " wie ", " werden ", " wurde ", " hat ", " sind ", " sein ",
+    " seine ", " ihre ", " ihr ", " mehr ", " neue ", " neuen ", " neuer ",
+    " gegen ", " ohne ", " vor ", " stellt ", " bringt ", " plant ",
+    " laut ", " nun ", " uns ", " bis ", " dem ", " des ", " zur ", " zum ",
+    " startet ", " findet ", " statt ", " kommt ", " gibt ", " macht ",
+    " zeigt ", " kauft ", " baut ", " nutzt ", " setzt ", " testet ",
+    " meldet ", " warnt ", " liefert ", " bekommt ", " steigt ", " sinkt ",
+    " senkt ", " oeffnet ", " schliesst ", " kostet ", " heisst ",
+    " sowie ", " jetzt ", " schon ", " noch ", " damit ", " dabei ",
+    " weil ", " wenn ", " aber ", " oder ", " diese ", " dieser ",
+    " dieses ", " einem ", " eines ", " keinen ", " beim ", " vom ",
+    " ins ", " zwei ", " drei ", " viele ", " eigene ", " eigenen ",
 ]
+
+GERMAN_CHARS = frozenset("äöüÄÖÜß")
+
+# Statistische Sprach-ID (26.08.26) - identisch zu ki_news.py, Begruendung
+# steht dort ausfuehrlich. Kurz: die Marker-Liste war in beide Richtungen
+# falsch (deutsche Titel mit englischem Eigennamen verworfen, kurze englische
+# Tech-Headlines durchgelassen). Ohne installiertes py3langid faellt die
+# Funktion auf die reine Marker-Pruefung zurueck.
+try:
+    from py3langid.langid import LanguageIdentifier, MODEL_FILE as _LANGID_MODEL
+    _LANGID = LanguageIdentifier.from_pickled_model(_LANGID_MODEL, norm_probs=True)
+    _LANGID.set_languages(["de", "en"])
+except Exception:          # pragma: no cover - nur ohne installiertes Paket
+    _LANGID = None
+
+_LANGID_EN_SCHWELLE = 0.99
 
 
 def _looks_german(text: str) -> bool:
-    """True wenn der Text deutsche Signalwoerter enthaelt.
+    """True wenn der Text als Deutsch durchgehen darf.
+
+    Reihenfolge: Umlaut -> deutscher Marker -> py3langid (>= 0.99 'en' faellt
+    durch) -> im Zweifel deutsch. Bis 26.08.26 stand hier nur die
+    Marker-Pruefung OHNE Zweifelsregel, also strenger als in ki_news.py:
+    ein deutscher Titel ohne Artikel ("Anthropic startet Claude for
+    Healthcare") verlor seine Karte, obwohl er auf der Website stand.
 
     Bug-Fix (08.07.26, Daniels ZML-Karten-Fund): ki_news.py setzt fuer jeden Artikel
     zunaechst {"title_de": Originaltitel, "summary": ""} als Platzhalter (siehe
@@ -339,8 +377,21 @@ def _looks_german(text: str) -> bool:
     prueft bisher nur die LLM-generierte Einordnung auf Sprache (_looks_invalid()),
     nicht Headline/Kontext, die direkt aus news.json kommen. Diese Funktion schliesst
     die Luecke, angewandt auf die Headline vor dem Rendern (siehe main())."""
-    lower = f" {(text or '').lower()} "
-    return any(marker in lower for marker in GERMAN_MARKERS)
+    t = (text or "").strip()
+    if not t:
+        return True
+    if any(c in GERMAN_CHARS for c in t):
+        return True
+    lower = f" {t.lower()} "
+    if any(marker in lower for marker in GERMAN_MARKERS):
+        return True
+    if _LANGID is not None:
+        try:
+            lang, prob = _LANGID.classify(t)
+        except Exception:
+            return True
+        return not (lang == "en" and prob >= _LANGID_EN_SCHWELLE)
+    return False
 
 
 def cap_headline(text: str, max_chars: int = 140) -> str:

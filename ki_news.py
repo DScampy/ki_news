@@ -51,6 +51,19 @@ GERMAN_MARKERS = [
     " seine ", " ihre ", " ihr ", " mehr ", " neue ", " neuen ", " neuer ",
     " gegen ", " ohne ", " vor ", " stellt ", " bringt ", " plant ",
     " laut ", " nun ", " uns ", " bis ", " dem ", " des ", " zur ", " zum ",
+    # 26.08.26 ergaenzt - deutsche Schlagzeilen haben fast immer ein finites
+    # Verb in der 3. Person, aber oft keinen Artikel ("Anthropic startet
+    # Claude for Healthcare"). Genau diese Titel fielen bisher durch: kein
+    # Marker griff, und im englischen Eigennamen stand ein ENGLISH_MARKER.
+    # Alle folgenden sind KEINE englischen Woerter (geprueft).
+    " startet ", " findet ", " statt ", " kommt ", " gibt ", " macht ",
+    " zeigt ", " kauft ", " baut ", " nutzt ", " setzt ", " testet ",
+    " meldet ", " warnt ", " liefert ", " bekommt ", " steigt ", " sinkt ",
+    " senkt ", " oeffnet ", " schliesst ", " kostet ", " heisst ",
+    " sowie ", " jetzt ", " schon ", " noch ", " damit ", " dabei ",
+    " weil ", " wenn ", " aber ", " oder ", " diese ", " dieser ",
+    " dieses ", " einem ", " eines ", " keinen ", " beim ", " vom ",
+    " ins ", " zwei ", " drei ", " viele ", " eigene ", " eigenen ",
 ]
 
 # Eindeutig ENGLISCHE Funktionswoerter. Bewusst NICHT enthalten: " in ", " an ",
@@ -95,27 +108,78 @@ def _fix_latex_escapes(text: str) -> str:
     return t
 
 
-def _looks_german(text: str) -> bool:
+# ── Statistische Sprach-ID (26.08.26) ────────────────────────────────────
+# Warum ueberhaupt: das hier ist der VIERTE Anlauf auf dasselbe Problem
+# (08.07., 14.08., 18.08., jetzt). Die drei vorherigen waren alle Wortlisten,
+# und Wortlisten erkennen keine Sprache, sondern Funktionswoerter -- genau die
+# fehlen in Tech-Schlagzeilen. Gemessen am 26.08. gegen die echte Funktion:
+#   'Hack the North gibt Studenten 36 Stunden, um ambitionierte Ideen in
+#    Demos umzusetzen.'                       -> verworfen, obwohl Deutsch
+#   'Anthropic startet Claude for Healthcare' -> verworfen, obwohl Deutsch
+#   'NVIDIA DLSS 4.5 Ray Reconstruction Tech Brings 2nd Gen Transformer'
+#                                             -> durchgelassen, obwohl Englisch
+# Also in BEIDE Richtungen falsch. py3langid ist eine reine Python-Portierung
+# von langid.py: offline, kein API-Call, kein Modell-Download, rund 0.4 ms pro
+# Titel. Auf 'de'/'en' eingeschraenkt, weil nur diese Unterscheidung zaehlt.
+#
+# Fehlt das Paket (lokaler Lauf ohne pip install), faellt die Funktion auf die
+# alte Marker-Heuristik zurueck -- schlechter, aber der Lauf kippt nicht.
+try:
+    from py3langid.langid import LanguageIdentifier, MODEL_FILE as _LANGID_MODEL
+    _LANGID = LanguageIdentifier.from_pickled_model(_LANGID_MODEL, norm_probs=True)
+    _LANGID.set_languages(["de", "en"])
+except Exception:          # pragma: no cover - nur ohne installiertes Paket
+    _LANGID = None
+
+# Schwelle offline kalibriert (26.08.26) gegen alle 3514 title_de aus
+# summary-cache.json. Umlaut- und Marker-Regel fangen 3460 davon ab, nur 54
+# erreichen langid ueberhaupt. Von diesen 54 werden bei >= 0.99 genau zwei
+# verworfen ('The Progress Guest Chef Dinner', 'The Village Pub Winter
+# Winemaker Dinner') - beide tatsaechlich unuebersetzt, also 0 Fehlverwerfungen.
+# Bei 0.90 kaemen zwei ECHTE deutsche Titel dazu ('Google rollt Nano Banana AI
+# in Earth aus' 0.939, 'KI-Experimentalprojekte Osaka September Meetup' 0.903).
+# Deshalb 0.99 und nicht tiefer: ein faelschlich verworfener Artikel ist teurer
+# als eine haessliche Kachel, und Regel 0 faengt den Hauptfall ohnehin exakt.
+_LANGID_EN_SCHWELLE = 0.99
+
+
+def _looks_german(text: str, original: str = None) -> bool:
     """True wenn der Text als Deutsch durchgehen darf.
 
     Reihenfolge (erste Regel gewinnt):
-      1. Umlaut/ss vorhanden          -> deutsch
-      2. deutsches Signalwort         -> deutsch
-      3. KEIN englisches Signalwort   -> deutsch (Zweifel zugunsten des Artikels)
-      4. sonst                        -> nicht deutsch
+      0. text == unveraenderter Originaltitel -> NICHT deutsch (exakt, keine
+         Heuristik: title_de ist bei fehlgeschlagener Uebersetzung woertlich
+         der Platzhalter aus summarize_news(), s. dort result = {...})
+      1. Umlaut/ss vorhanden                  -> deutsch
+      2. deutsches Signalwort                 -> deutsch
+      3. py3langid sagt 'en' mit >= 0.99      -> nicht deutsch
+      4. sonst                                -> deutsch (Zweifel zugunsten
+         des Artikels); ohne py3langid greift hier die alte Marker-Heuristik
 
-    Bewusst asymmetrisch: ein durchgerutschter englischer Titel kostet eine
-    haessliche Kachel, ein faelschlich verworfener Artikel kostet den Artikel.
-    Offline geprueft 18.08.26 gegen die 81 real verworfenen Titel (72 kommen
-    zurueck, die 9 verbliebenen sind tatsaechlich englisch) und gegen 14 echte
-    englische Titel (0 rutschen durch).
+    Regel 0 ist der eigentliche Fortschritt: der haeufigste Fall ist nicht
+    "schlecht uebersetzt", sondern "gar nicht uebersetzt", und der ist exakt
+    entscheidbar. Sprach-ID ist nur noch das Netz fuer Sprachmix, also fuer
+    Antworten, die zwar anders lauten als das Original, aber trotzdem englisch
+    sind.
     """
-    t = _fix_latex_escapes(text or "")
+    t = _fix_latex_escapes(text or "").strip()
+    if not t:
+        return True
+    if original:
+        orig = _fix_latex_escapes(original).strip()
+        if orig and t == orig:
+            return False
     if any(c in GERMAN_CHARS for c in t):
         return True
     lower = f" {t.lower()} "
     if any(marker in lower for marker in GERMAN_MARKERS):
         return True
+    if _LANGID is not None:
+        try:
+            lang, prob = _LANGID.classify(t)
+        except Exception:
+            return not any(marker in lower for marker in ENGLISH_MARKERS)
+        return not (lang == "en" and prob >= _LANGID_EN_SCHWELLE)
     return not any(marker in lower for marker in ENGLISH_MARKERS)
 
 
@@ -578,10 +642,28 @@ MODELLE = [
     # Danach 63x HTTP 404 + 52x leere Antwort + 7x 429 in einem Log-Fenster,
     # zusammen rund 135 Fehlaufrufe. Sein Wegfall ist auch die Ursache dafuer,
     # dass Uebersetzungen scheiterten und Artikel still verworfen wurden.
+    # 26.08.26 NEU, live im Produktions-Batch-Format vermessen (4 Titel,
+    # max_tokens=1500, derselbe Prompt-Aufbau wie summarize_news):
+    #   minimax/minimax-m3:free                2.9s  4/4  sauberes Deutsch
+    #   nvidia/nemotron-3-ultra-550b-a55b:free 3.1s  4/4  sauberes Deutsch (reasoning:false)
+    # Beide vor gemma einzusortieren waere falsch -- gemma ist im Zweifel
+    # besser im Deutschen; sie stehen hier als erste ECHTE Auffangstufe, weil
+    # gemma/glm im Messfenster 25.-26.08. zu ueber 90% auf 429 liefen.
+    # Ebenfalls im selben Test durchgefallen, deshalb NICHT aufgenommen:
+    #   dots-studio/dots-3-note-preview:free   1500 Tokens verbrannt, Antwort leer
+    #   thinkingmachines/inkling(-small):free  HTTP 403 (kein Zugang mit diesem Key)
+    #   minimax/minimax-m2.7:free              4/4, aber 22.9s -- zu langsam als Free-Slot
+    "minimax/minimax-m3:free",                          # 26.08. gemessen: 2.9s, 4/4, 1M Kontext
+    "nvidia/nemotron-3-ultra-550b-a55b:free",           # 26.08. gemessen: 3.1s, 4/4, mit reasoning:false
     "z-ai/glm-5.2:free",                                # 22.08.26 neu im Katalog, 256k Kontext
     "nvidia/nemotron-3-super-120b-a12b:free",           # 22.08. live nachgetestet: 4/4 sauberes Deutsch
-    "nvidia/nemotron-3-nano-30b-a3b:free",              # 30B/3B aktiv, mit reasoning:false getestet OK
-    "nvidia/nemotron-nano-9b-v2:free",                  # 9B, lieferte am 21.08. mehrere Batches erfolgreich
+    # 26.08.26 ENTFERNT: nvidia/nemotron-3-nano-30b-a3b:free und
+    # nvidia/nemotron-nano-9b-v2:free. Beide seit dem 22.08. nicht mehr im
+    # OpenRouter-Katalog (live gegen /api/v1/models geprueft) - im Log-Fenster
+    # 25.-26.08. zusammen 104x HTTP 404, kein einziger Treffer. modell_check.py
+    # hat sie in JEDEM CI-Lauf gemeldet, aber der Schritt laeuft mit
+    # continue-on-error und ohne --streng: der Befund stand nur in der
+    # Actions-Ausgabe, die niemand liest. Siehe Workflow-Aenderung vom 26.08.
     "nvidia/nemotron-3.5-lightning:free",               # neuestes NVIDIA (11.08.26), mit reasoning:false getestet OK
     # stealth/ox-alpha (22.08.26): anonymes Testmodell bei OpenRouter, gratis
     # bei 1M Kontext. Live geprueft, Ergebnis gemischt:
@@ -607,8 +689,14 @@ MODELLE = [
     # Hochgerechnet auf vier Laeufe taeglich liegt der Monatspreis bei etwa
     # $0.40 (qwen) bzw. $1.20 (gemini-lite) -- die teureren Gemini-3.x-Modelle
     # koennen dasselbe, kosten aber das Zehnfache und sind hier nicht noetig.
-    "qwen/qwen3.7-flash",                               # billigster verlaesslicher Anker
-    "google/gemini-2.5-flash-lite",                     # zweiter Anker, schnellster im Test
+    # 26.08.26: qwen/qwen3.7-flash ENTFERNT. Der Kommentar vom 22.08. oben
+    # sagt, es liefere bei 1500 Tokens sauber -- das Log widerlegt das:
+    # 44x "leerer Content (Reasoning-Budget aufgebraucht?)" im Fenster
+    # 25.-26.08., kein einziger Treffer. Das sind BEZAHLTE Aufrufe ohne
+    # jedes Ergebnis, im Uebersetzungs-Pfad mit vollem 1500-Token-Budget.
+    # Das reasoning:{enabled:false}-Gegenmittel greift nur fuer nvidia/.
+    # Wieder aufnehmen erst nach erneuter Live-Messung, nicht auf Verdacht.
+    "google/gemini-2.5-flash-lite",                     # Haupt-Anker: 26 von 44 erfolgreichen Batches (25.-26.08.)
     "meta-llama/llama-3.3-70b-instruct",               # bisheriger Anker
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
@@ -651,6 +739,21 @@ MODELLE_POSTS = [
 # Modells wird es fuer den REST DES LAUFS uebersprungen (in-memory, kein State).
 _MODEL_429_STREAK = {}
 _MODEL_429_LIMIT = 3
+
+# ── Lauf-Bilanz (26.08.26) ───────────────────────────────────────────────
+# Warum: die Modellliste ist zwischen dem 21. und 25.08. lautlos zerfallen --
+# sieben von zwoelf Eintraegen lieferten nichts mehr, ein einziges Modell
+# (gemini-2.5-flash-lite) trug 26 von 44 erfolgreichen Batches. Sichtbar war
+# das nur, wenn man 532 Batch-Zeilen im Log auszaehlt. Genau das hat niemand
+# getan, und die Degradation lief fuenf Tage. Diese eine Zeile am Laufende
+# macht daraus einen Blick:
+#   BILANZ: Batches 12/9 OK | Traeger: gemini-2.5-flash-lite 7x, ... | Guard verwarf 3 Artikel
+# Faustregel fuer den taeglichen Check: traegt EIN Modell mehr als die Haelfte
+# der Batches, ist die Liste schon halb tot -- unabhaengig davon, ob im Log
+# eine Exception steht.
+_BATCH_VERSUCHE = 0
+_BATCH_OK = {}          # modell -> Anzahl erfolgreicher Batches
+_GUARD_VERWORFEN = 0    # Artikel, die der Sprach-Guard aus news.json geworfen hat
 
 def _model_blocked(model):
     return _MODEL_429_STREAK.get(model, 0) >= _MODEL_429_LIMIT
@@ -2013,6 +2116,7 @@ def summarize_news(alle_news, summary_cache=None):
     # Batches laufen ueber die PENDING-Indizes (Cache-Fix 02.07.26) - lokale
     # Batch-id 1..N wird ueber batch_indices auf den globalen Index abgebildet.
     for batch_start in range(0, len(pending), batch_size):
+        globals()["_BATCH_VERSUCHE"] = globals()["_BATCH_VERSUCHE"] + 1
         batch_indices = pending[batch_start:batch_start + batch_size]
         batch = [alle_news[gi] for gi in batch_indices]
         news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(batch)])
@@ -2205,6 +2309,7 @@ News:
                             }
                     logger.info("Zusammenfassungen Batch %d OK mit %s", batch_start // batch_size + 1, modell)
                     _model_note_ok(modell)
+                    globals()["_BATCH_OK"][modell] = globals()["_BATCH_OK"].get(modell, 0) + 1
                     break
             except HTTPError as e:
                 if e.code == 429:
@@ -3237,7 +3342,11 @@ def main():
         # Lauf die Uebersetzung schafft. Analog zu generate_news_cards.py's
         # SKIP-Logik, damit Website und Cards konsistent filtern.
         _title_de_check = s.get("title_de", n.get("title", ""))
-        if _title_de_check and not _looks_german(_title_de_check):
+        # 26.08.26: Originaltitel wird jetzt mitgegeben. Damit entscheidet
+        # Regel 0 in _looks_german() den haeufigsten Fall exakt statt per
+        # Heuristik - title_de == Original heisst: nie uebersetzt worden.
+        if _title_de_check and not _looks_german(_title_de_check, n.get("title", "")):
+            globals()["_GUARD_VERWORFEN"] = globals()["_GUARD_VERWORFEN"] + 1
             logger.warning(
                 "news.json: Artikel uebersprungen, Titel wirkt unuebersetzt/nicht Deutsch "
                 "(%r) - ki_news.py-Uebersetzung fehlgeschlagen, naechster Lauf versucht es erneut. (%s)",
@@ -3601,6 +3710,29 @@ def main():
         registry_schritt(proj_dir if proj_dir.exists() else Path("."), logger)
     except (Exception, SystemExit) as e:
         logger.exception("Registry-Schritt uebersprungen (Pipeline unbeeinflusst): %s", e)
+
+    # ── Lauf-Bilanz (26.08.26, Begruendung bei _BATCH_VERSUCHE oben) ──────
+    # Eine Zeile, aus der der taegliche Check ablesen kann, ob die
+    # Modellliste noch traegt - ohne 500 Batch-Zeilen auszuzaehlen.
+    try:
+        _ok_gesamt = sum(_BATCH_OK.values())
+        _traeger = ", ".join(
+            "%s %dx" % (m, c) for m, c in sorted(_BATCH_OK.items(), key=lambda kv: -kv[1])
+        ) or "keiner"
+        logger.info(
+            "BILANZ: Batches %d versucht / %d OK | Traeger: %s | Sprach-Guard verwarf %d Artikel | Sprach-ID: %s",
+            _BATCH_VERSUCHE, _ok_gesamt, _traeger, _GUARD_VERWORFEN,
+            "py3langid" if _LANGID is not None else "FALLBACK Wortlisten (py3langid fehlt)",
+        )
+        if _ok_gesamt and max(_BATCH_OK.values()) > _ok_gesamt / 2:
+            _top = max(_BATCH_OK.items(), key=lambda kv: kv[1])
+            logger.warning(
+                "BILANZ-WARNUNG: %s traegt %d von %d erfolgreichen Batches - die Modellliste "
+                "ist halb tot. modell_check.py pruefen und Free-Slots nachbesetzen.",
+                _top[0], _top[1], _ok_gesamt,
+            )
+    except Exception as e:      # Bilanz darf den Lauf nie kippen
+        logger.warning("Bilanz-Zeile fehlgeschlagen: %s", e)
 
     logger.info("KI News Lauf abgeschlossen.")
 
