@@ -1428,6 +1428,119 @@ def _recent_titles_from_archive(existing_archive, days=3, limit=15):
             titles.append(item.get("title", ""))
     return titles[-limit:]
 
+# ── Dubletten-Filter fuer die Top-Storys (27.08.2026) ────────────────────
+#
+# Anlass: auf der Startseite standen am 26.08. "Nvidia kauft Open-Source-KI-
+# Plattform Hugging Face fuer 12,9 Milliarden Dollar" (The Decoder) und "Nvidia
+# uebernimmt Hugging Face fuer 12,9 Milliarden Dollar" (Heise) als Top Story 3
+# UND Top Story 5. Dieselbe Meldung belegte zwei von fuenf Plaetzen, weil das
+# Live-Clustering sie in getrennten Clustern haelt.
+#
+# BEWUSST NUR HIER, nicht im Clustering selbst. Am echten Bestand erreicht
+# gleiches_ereignis() allein 75-78 % Praezision -- zu wenig fuer einen Eingriff
+# in den Gesamtbestand, weil eine falsche Zusammenfuehrung eine Meldung ganz
+# verschwinden laesst. An dieser Stelle dagegen:
+#   * die Menge ist winzig (n Kandidaten statt hunderte Paare),
+#   * nichts wird geloescht -- der Zweitplatzierte rueckt nur nach hinten und
+#     bleibt in scored/news.json vollstaendig erhalten,
+#   * und ein Fehler steht auf der Startseite, wird also sofort bemerkt.
+#
+# DAS GATE ist entscheidend: gleiches_ereignis() muss True sagen UND die
+# normalisierte Textaehnlichkeit muss >= _DUB_MIN_SIM liegen. Ueber die 36
+# bestaetigten Storys des Einbau-Tests vom 27.08. gerechnet: mit Gate 7 von 7
+# richtig, ohne Gate 28 von 36. Der Hugging-Face-Fall trennt sauber -- die
+# Dublette liegt bei 0.72, der thematisch benachbarte "Nvidias Gewinn
+# verdoppelt sich"-Artikel bei 0.50 und bleibt damit stehen.
+#
+# KILL-SWITCH: verschwindet eine Top Story, die dort hingehoert, ist die
+# Schwelle zu niedrig -- _DUB_MIN_SIM anheben (0.70, 0.75), NICHT den Filter
+# ausbauen. Faellt _DUB_MAX_PRO_LAUF oefter als einmal die Woche, stimmt etwas
+# Grundsaetzliches nicht: dann Filter abschalten und nachsehen.
+_DUB_MIN_SIM = 0.62
+_DUB_MAX_PRO_LAUF = 3          # mehr Dubletten in einer Top-n gibt es nicht
+
+try:
+    from ereignis import gleiches_ereignis as _gleiches_ereignis
+except ImportError:            # pragma: no cover
+    logging.getLogger(__name__).warning(
+        "ereignis.py nicht gefunden - Top-Story-Dublettenfilter inaktiv")
+    _gleiches_ereignis = None
+
+
+def _dub_entitaeten(titel, _cache={}):
+    """Entitaeten eines Titels aus entities.json, wie im Entity-Graph."""
+    if "pats" not in _cache:
+        pats = []
+        try:
+            p = Path(__file__).resolve().parent / "entities.json"
+            for e in json.loads(p.read_text(encoding="utf-8")).get("entities", []):
+                if e.get("id") and e.get("aliasse"):
+                    pats.append((e["id"], re.compile(
+                        r"\b(?:%s)\b" % "|".join(e["aliasse"]), re.IGNORECASE)))
+        except Exception as ex:
+            logger.warning("Dublettenfilter: entities.json nicht lesbar (%s) - "
+                           "Titelvergleich laeuft ohne Entitaeten", ex)
+        _cache["pats"] = pats
+    return [i for i, p in _cache["pats"] if p.search(titel or "")]
+
+
+def _ist_dublette(titel_a, titel_b):
+    """True, wenn beide Titel dieselbe Meldung sind -- streng geprueft."""
+    if not _gleiches_ereignis or not titel_a or not titel_b:
+        return False
+    try:
+        a = {"titel": titel_a, "entitaeten": _dub_entitaeten(titel_a)}
+        b = {"titel": titel_b, "entitaeten": _dub_entitaeten(titel_b)}
+        if not _gleiches_ereignis(a, b):
+            return False
+        # Zweites, unabhaengiges Kriterium - ohne das liegt die Trefferquote
+        # bei 78 statt 100 Prozent (gemessen 27.08.).
+        sim = difflib.SequenceMatcher(
+            None, _norm_dub(titel_a), _norm_dub(titel_b)).ratio()
+        return sim >= _DUB_MIN_SIM
+    except Exception as ex:
+        logger.warning("Dublettenfilter uebersprungen (%s)", ex)
+        return False
+
+
+def _norm_dub(s):
+    s = (s or "").lower()
+    s = re.sub(r"[^a-zäöüß0-9%. ]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _top_ohne_dubletten(scored, n):
+    """Die besten n Cluster, aber keine zwei zur selben Meldung.
+
+    Ein uebersprungener Kandidat verschwindet NICHT - er bleibt in scored und
+    damit in news.json, er belegt nur keinen der n Top-Plaetze. Der naechste
+    Kandidat rueckt nach, die Top-Liste bleibt vollstaendig.
+    """
+    top, entfernt = [], 0
+    for item in scored:
+        if len(top) >= n:
+            break
+        titel = (item.get("rep") or {}).get("title", "")
+        dublette_zu = next(
+            (t for t in top if _ist_dublette(titel, (t.get("rep") or {}).get("title", ""))),
+            None)
+        if dublette_zu is not None:
+            entfernt += 1
+            logger.info(
+                "[Top-Dublette] uebersprungen: %r\n"
+                "               ist dieselbe Meldung wie: %r",
+                titel[:100], (dublette_zu.get("rep") or {}).get("title", "")[:100])
+            if entfernt > _DUB_MAX_PRO_LAUF:
+                logger.warning(
+                    "[Top-Dublette] KILL-SWITCH: %d Dubletten in einer Top-%d - "
+                    "das ist zu viel, Filter fuer diesen Lauf gestoppt. "
+                    "_DUB_MIN_SIM (%.2f) pruefen.", entfernt, n, _DUB_MIN_SIM)
+                return scored[:n]
+            continue
+        top.append(item)
+    return top
+
+
 def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_archive=None, already_sent=None):
     """
     Wählt die n wichtigsten Artikel nach Clustering + Scoring.
@@ -1542,9 +1655,9 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
     already_sent = already_sent or set()
     if already_sent:
         frisch = [item for item in scored if item["rep"].get("link", "") not in already_sent]
-        top = frisch[:n] if frisch else scored[:n]
+        top = _top_ohne_dubletten(frisch or scored, n)
     else:
-        top = scored[:n]
+        top = _top_ohne_dubletten(scored, n)
     for item in top:
         logger.info(
             "[Scoring] %s | %s | Score: %d (akt. %d, Quelle: %s, Legacy: %d) | Quellen: %d",
