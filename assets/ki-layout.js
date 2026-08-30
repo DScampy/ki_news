@@ -145,6 +145,16 @@
     '.sidebar-nav-link .material-symbols-outlined{font-size:14px;}',
     '.kl-side-extra{padding:0 16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;margin-top:8px;min-height:0;}',
     '.kl-side-spacer{flex:1 1 auto;}',
+    '.kl-search{display:flex;align-items:center;gap:8px;margin:10px 16px 0;padding:8px 12px;background:var(--field,#111827);border:1px solid rgba(var(--neon-rgb),0.18);border-radius:8px;flex-shrink:0;}',
+    '.kl-search .material-symbols-outlined{font-size:16px;color:rgba(255,255,255,0.4);flex-shrink:0;}',
+    'html.light .kl-search .material-symbols-outlined{color:rgba(15,23,42,0.4);}',
+    '.kl-search input{background:transparent;border:none;outline:none;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.85);width:100%;}',
+    '.kl-search input::placeholder{color:rgba(255,255,255,0.3);}',
+    'html.light .kl-search input{color:#0f172a;}',
+    'html.light .kl-search input::placeholder{color:rgba(15,23,42,0.35);}',
+    '.kl-search button{background:none;border:none;padding:0;cursor:pointer;color:rgba(255,255,255,0.35);display:flex;flex-shrink:0;}',
+    'html.light .kl-search button{color:rgba(15,23,42,0.35);}',
+    '.kl-search button:hover{color:var(--accent);}',
     '.kl-side-divider{margin:8px 16px 0;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0;}',
     '.kl-side-label{padding:8px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0;}',
     '.kl-side-foot{padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0;}',
@@ -173,7 +183,27 @@
     '@media (prefers-reduced-motion: reduce){.spy-eye .eye-shape,.spy-eye .eye-pupil{animation:none;}}',
     '.spy-row .spy-eye{color:var(--accent);filter:drop-shadow(0 0 5px rgba(var(--neon-rgb),0.65));flex-shrink:0;}',
     '.spy-row:hover .spy-eye .eye-shape{animation:spyWink .55s ease;}',
-    '.spy-row:hover .spy-eye{filter:drop-shadow(0 0 10px rgba(var(--neon-rgb),0.95));}'
+    '.spy-row:hover .spy-eye{filter:drop-shadow(0 0 10px rgba(var(--neon-rgb),0.95));}',
+    /* ── Artikel-Overlay (30.08.) ─────────────────────────────── */
+    '#kl-ov{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}',
+    '.kl-ov-card{position:relative;width:100%;max-width:660px;max-height:88vh;overflow-y:auto;background:var(--card,#0d1117);border:1px solid var(--hairline,#2f3336);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}',
+    'html.light .kl-ov-card{box-shadow:0 20px 60px rgba(15,23,42,0.25);}',
+    '.kl-ov-close{position:absolute;top:12px;right:12px;z-index:2;background:rgba(0,0,0,0.45);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0;}',
+    '.kl-ov-close:hover{background:var(--accent);color:#000;}',
+    'html.light .kl-ov-close{background:rgba(255,255,255,0.8);color:#0f172a;}',
+    '.kl-ov-img-wrap{position:relative;padding-top:42%;overflow:hidden;border-radius:14px 14px 0 0;background:var(--field,#111827);}',
+    '.kl-ov-img-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}',
+    '.kl-ov-body{padding:22px 24px 24px;}',
+    '.kl-ov-meta{font-size:11px;font-family:monospace;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted,#8b98a5);margin-bottom:8px;}',
+    '.kl-ov-title{font-family:\'Space Grotesk\',sans-serif;font-size:22px;font-weight:800;line-height:1.28;color:var(--text,#e8f8ff);margin:0 0 12px;}',
+    '.kl-ov-summary{font-family:\'Work Sans\',sans-serif;font-size:14.5px;line-height:1.6;color:var(--text,#e8f8ff);opacity:0.88;margin:0 0 16px;white-space:pre-line;}',
+    '.kl-ov-related{margin:0 0 18px;padding:12px 14px;background:var(--surface,rgba(255,255,255,0.04));border:1px solid var(--hairline,#2f3336);border-radius:10px;}',
+    '.kl-ov-related-label{font-size:9px;font-family:monospace;letter-spacing:0.12em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.75);margin-bottom:8px;}',
+    '.kl-ov-related-chips{display:flex;flex-wrap:wrap;gap:6px;}',
+    '.kl-chip{font-size:11px;font-family:monospace;padding:3px 9px;border-radius:20px;border:1px solid var(--hairline,#2f3336);color:var(--muted,#8b98a5);white-space:nowrap;}',
+    '.kl-chip-hit{color:var(--accent);border-color:var(--accent);}',
+    '.kl-ov-link{display:inline-flex;align-items:center;gap:6px;font-family:\'Space Grotesk\',sans-serif;font-size:14px;font-weight:700;color:#000;background:var(--accent);padding:10px 18px;border-radius:8px;text-decoration:none;}',
+    '.kl-ov-link:hover{filter:brightness(1.1);}'
   ].join('\n');
 
   /* ── Chrome-HTML ────────────────────────────────────────────── */
@@ -218,6 +248,12 @@
       '<div class="kl-side-head"><img src="' + ROOT + 's-logo.png" alt="ScampyKI"/>' +
         '<div><div class="kl-side-name">ScampyKI</div><div class="kl-side-sub">KI-NEWS.LIVE</div></div></div>' +
       '<div class="kl-side-nav">' + sideLinksHtml() + '</div>' +
+      '<div class="kl-search" id="kl-search-wrap">' +
+        '<span class="material-symbols-outlined">search</span>' +
+        '<input id="searchInput" type="text" placeholder="Suchen&hellip;" aria-label="Artikel durchsuchen" ' +
+          'oninput="klSearchInput(this.value)" onkeydown="if(event.key===\'Enter\'){klSearchSubmit();}"/>' +
+        '<button type="button" title="Suche leeren" onclick="klSearchClear()"><span class="material-symbols-outlined" style="font-size:15px;">close</span></button>' +
+      '</div>' +
       (window.KI_SIDEBAR_EXTRA ? '<div class="kl-side-extra">' + window.KI_SIDEBAR_EXTRA + '</div>' : '<div class="kl-side-spacer"></div>') +
       '<div class="kl-side-divider"></div>' +
       '<div class="kl-side-label">Kontakt &amp; Social</div>' +
@@ -228,6 +264,46 @@
       '<div class="kl-side-foot"><p>KI-News t&auml;glich auf Deutsch.<br>Kuratiert &middot; Eingeordnet &middot; Erkl&auml;rt.</p></div>' +
     '</aside>';
   }
+
+  /* ── Artikel-Overlay-HTML (einmalig injiziert) ─────────────── */
+  function overlayHtml() {
+    return '<div id="kl-ov" role="dialog" aria-modal="true" aria-labelledby="kl-ov-title" ' +
+        'onclick="if(event.target===this)window.klCloseArticle();">' +
+      '<div class="kl-ov-card">' +
+        '<button type="button" class="kl-ov-close" onclick="window.klCloseArticle()" aria-label="Schlie&szlig;en">' +
+          '<span class="material-symbols-outlined">close</span></button>' +
+        '<div id="kl-ov-img-wrap" class="kl-ov-img-wrap" hidden><img id="kl-ov-img" alt=""></div>' +
+        '<div class="kl-ov-body">' +
+          '<div id="kl-ov-meta" class="kl-ov-meta"></div>' +
+          '<h2 id="kl-ov-title" class="kl-ov-title"></h2>' +
+          '<p id="kl-ov-summary" class="kl-ov-summary"></p>' +
+          '<div id="kl-ov-related" class="kl-ov-related" hidden></div>' +
+          '<a id="kl-ov-link" class="kl-ov-link" href="#" target="_blank" rel="noopener noreferrer">Zum Original &#8599;</a>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ── Sidebar-Suche (auf jeder Seite sichtbar) ──────────────────
+     Auf Archiv.html selbst spiegelt Archiv.html's eigenes handleSearch()
+     die Eingabe live in die Modell-Registry -> Artikel-Suche (siehe dort).
+     Auf jeder anderen Seite existiert kein handleSearch() -- dort passiert
+     beim Tippen nichts, erst Enter/Such-Klick navigiert zu Archiv.html
+     mit ?such=<Begriff>, wo derselbe Mechanismus die Suche uebernimmt. */
+  window.klSearchInput = function (v) {
+    if (typeof window.handleSearch === 'function') window.handleSearch(v);
+  };
+  window.klSearchSubmit = function () {
+    var input = document.getElementById('searchInput');
+    var q = (input && input.value || '').trim();
+    if (!q || typeof window.handleSearch === 'function') return; // auf Archiv.html schon live
+    location.href = ROOT + 'Archiv.html?such=' + encodeURIComponent(q);
+  };
+  window.klSearchClear = function () {
+    var input = document.getElementById('searchInput');
+    if (input) input.value = '';
+    if (typeof window.clearSearch === 'function') window.clearSearch();
+  };
 
   /* ── Sidebar-Verhalten (Desktop-Collapse + Mobile-Drawer) ──── */
   var sidebarOpen = (function () { try { return localStorage.getItem('ki_sidebar_open') === '1'; } catch (e) { return false; } })();
@@ -271,6 +347,139 @@
     return true;
   };
 
+  /* ── Artikel-Overlay (30.08.) ───────────────────────────────────
+     window.klOpenArticle(data) oeffnet ein Overlay ueber der aktuellen
+     Seite statt wegzunavigieren. data-Felder (alle optional, defensiv
+     behandelt): title, summary, image, source, link, region, label,
+     score, first_seen/date. "Verwandte Themen" laedt entities.json +
+     graph.json EINMAL (modul-intern gecacht) und matcht Alias-Regexe
+     gegen title+summary; bei Fehlern bleibt der Bereich einfach leer. */
+  function klEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  window.klPlainClick = function (e) {
+    return !!e && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+  };
+  function klFmtDate(v) {
+    if (!v) return '';
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  var klEntitiesP = null, klGraphP = null;
+  function klLoadEntities() {
+    if (!klEntitiesP) {
+      klEntitiesP = fetch(ROOT + 'entities.json').then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      }).catch(function () { return null; });
+    }
+    return klEntitiesP;
+  }
+  function klLoadGraph() {
+    if (!klGraphP) {
+      klGraphP = fetch(ROOT + 'graph.json').then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      }).catch(function () { return null; });
+    }
+    return klGraphP;
+  }
+  /* Baut die "Verwandte Themen"-Zeile: erkannte Entitaeten + je Top-2-
+     Graph-Partner (nach Kantengewicht), max. ~6 Chips insgesamt. Liefert
+     '' wenn nichts erkannt wird oder entities.json/graph.json fehlen. */
+  function klRelatedHtml(text) {
+    return Promise.all([klLoadEntities(), klLoadGraph()]).then(function (res) {
+      var ent = res[0], graph = res[1];
+      if (!ent || !ent.entities || !graph || !graph.edges) return '';
+      var hay = text || '', found = [];
+      for (var i = 0; i < ent.entities.length; i++) {
+        var e = ent.entities[i], aliasse = e.aliasse || [], hit = false;
+        for (var j = 0; j < aliasse.length; j++) {
+          try { if (new RegExp(aliasse[j], 'i').test(hay)) { hit = true; break; } } catch (err) {}
+        }
+        if (hit && found.indexOf(e.id) === -1) found.push(e.id);
+      }
+      if (!found.length) return '';
+      var chips = [], seen = {};
+      found.forEach(function (id) {
+        chips.push('<span class="kl-chip kl-chip-hit">' + klEsc(id) + '</span>');
+        seen['hit:' + id] = true;
+      });
+      found.forEach(function (id) {
+        var edges = graph.edges.filter(function (ed) { return ed.source === id || ed.target === id; })
+          .sort(function (a, b) { return (b.count || 0) - (a.count || 0); });
+        edges.slice(0, 2).forEach(function (ed) {
+          var partner = ed.source === id ? ed.target : ed.source;
+          var key = [id, partner].sort().join('|');
+          if (seen[key] || seen['hit:' + partner]) return;
+          seen[key] = true;
+          chips.push('<span class="kl-chip">' + klEsc(id) + ' &harr; ' + klEsc(partner) + ' &middot; ' + (ed.count || 0) + '&times;</span>');
+        });
+      });
+      chips = chips.slice(0, 6);
+      if (!chips.length) return '';
+      return '<div class="kl-ov-related-label">Verwandte Themen</div>' +
+        '<div class="kl-ov-related-chips">' + chips.join('') + '</div>';
+    }).catch(function () { return ''; });
+  }
+  var klOvOpen = false, klOvReqId = 0;
+  window.klOpenArticle = function (data) {
+    data = data || {};
+    var ov = document.getElementById('kl-ov');
+    if (!ov) return; // Overlay-HTML fehlt (Injektion nicht gelaufen) -- niemals crashen
+    var titleEl = document.getElementById('kl-ov-title');
+    var summEl = document.getElementById('kl-ov-summary');
+    var metaEl = document.getElementById('kl-ov-meta');
+    var linkEl = document.getElementById('kl-ov-link');
+    var imgWrap = document.getElementById('kl-ov-img-wrap');
+    var imgEl = document.getElementById('kl-ov-img');
+    var relatedEl = document.getElementById('kl-ov-related');
+    var title = data.title || '', summary = data.summary || '';
+    titleEl.textContent = title;
+    summEl.textContent = summary;
+    var dateStr = klFmtDate(data.first_seen || data.date || '');
+    var metaParts = [];
+    if (data.source) metaParts.push(klEsc(data.source));
+    if (dateStr) metaParts.push(dateStr);
+    if (data.region) metaParts.push(klEsc(data.region));
+    metaEl.innerHTML = metaParts.join(' &middot; ');
+    if (data.image) {
+      imgEl.onerror = function () { imgWrap.hidden = true; };
+      imgEl.src = data.image;
+      imgWrap.hidden = false;
+    } else {
+      imgWrap.hidden = true;
+    }
+    if (data.link) {
+      linkEl.href = data.link;
+      linkEl.style.display = '';
+    } else {
+      linkEl.style.display = 'none';
+    }
+    relatedEl.hidden = true;
+    relatedEl.innerHTML = '';
+    ov.style.display = 'flex';
+    document.documentElement.style.overflow = 'hidden';
+    klOvOpen = true;
+    var reqId = ++klOvReqId;
+    try {
+      klRelatedHtml(title + ' ' + summary).then(function (html) {
+        if (!klOvOpen || reqId !== klOvReqId) return; // Overlay inzwischen zu/gewechselt
+        if (html) { relatedEl.innerHTML = html; relatedEl.hidden = false; }
+      });
+    } catch (e) {}
+  };
+  window.klCloseArticle = function () {
+    var ov = document.getElementById('kl-ov');
+    if (ov) ov.style.display = 'none';
+    document.documentElement.style.overflow = '';
+    klOvOpen = false;
+  };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && klOvOpen) window.klCloseArticle(); });
+
   /* ── Injection ──────────────────────────────────────────────── */
   function inject() {
     var old = document.getElementById('kl-nav');
@@ -280,6 +489,7 @@
     style.textContent = CSS;
     document.head.appendChild(style);
     document.body.insertAdjacentHTML('afterbegin', chromeHtml());
+    if (!document.getElementById('kl-ov')) document.body.insertAdjacentHTML('beforeend', overlayHtml());
     if (sidebarOpen && window.innerWidth >= 1024) {
       var s = document.getElementById('sidebar'), m = document.getElementById('main-content'),
           t = document.getElementById('sidebar-toggle'), i = document.getElementById('toggle-icon');

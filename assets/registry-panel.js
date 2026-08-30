@@ -65,6 +65,21 @@
     return /^https?:\/\//i.test(u) ? u : "";
   }
 
+  // Overlay statt Navigation bei normalem Linksklick auf einen Artikel-Link
+  // (30.08.) -- gemeinsam genutzt von #rg-detail- und #rg-liste-Delegation,
+  // da artZeile() in beiden Containern rendert. window.klOpenArticle kommt
+  // aus ki-layout.js, das immer vor dieser Datei eingebunden ist.
+  function overlayKlick(e) {
+    var a = e.target.closest("a[data-overlay-link]");
+    if (!a) return false;
+    if (typeof window.klPlainClick === "function" && !window.klPlainClick(e)) return false;
+    var x = artikel(a.getAttribute("data-overlay-link"));
+    if (!x || typeof window.klOpenArticle !== "function") return false;
+    e.preventDefault();
+    window.klOpenArticle(x);
+    return true;
+  }
+
   function neuestes(lst) {
     return lst.reduce(function (b, m) { return (m.r || "") > b ? (m.r || "") : b; }, "");
   }
@@ -336,8 +351,11 @@
     if (!x) return "";
     var f = F[link] || {};
     var url = sicherLink(x.link || link);
+    // data-overlay-link traegt den ORIGINAL-Link (Schluessel in artMap), nicht
+    // die validierte url -- so findet der Klick-Handler unten per artikel(link)
+    // exakt dieses x wieder. href bleibt die validierte url (Fallback-Navigation).
     var titel = url
-      ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' +
+      ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" data-overlay-link="' + esc(link) + '">' +
         esc(x.title) + '</a>'
       : esc(x.title) + ' <span class="rg-tg warn">ohne Link</span>';
     return '<div class="rg-art"><div style="flex:1;min-width:0">' +
@@ -459,6 +477,7 @@
 
     var det = $("rg-detail");
     det.addEventListener("click", function (e) {
+      if (overlayKlick(e)) return;
       var f = e.target.closest("[data-f]");
       if (f) {
         var nf = f.getAttribute("data-f");
@@ -495,6 +514,10 @@
 
     $("rg-tab-mod").addEventListener("click", function () { zeigeAnsicht(true); });
     $("rg-tab-art").addEventListener("click", function () { zeigeAnsicht(false); });
+    // #rg-liste hat, anders als #rg-detail, bislang keinen Klick-Listener --
+    // hier ergaenzt fuer dieselbe Overlay-statt-Navigation-Logik.
+    var liste = $("rg-liste");
+    if (liste) liste.addEventListener("click", overlayKlick);
     $("rg-aq").addEventListener("input", entprellt(zeichneListe, 160));
     ["rg-f-re", "rg-f-tf", "rg-f-rg", "rg-f-ev"].forEach(function (id) {
       $(id).addEventListener("input", zeichneListe);
