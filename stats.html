@@ -188,15 +188,10 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
 </head>
 <body>
-<script>
-/* Seitenspezifische Sidebar-Erweiterung: Quick-Stats (wird von ki-layout.js gerendert) */
-window.KI_SIDEBAR_EXTRA =
-  '<div style="padding:4px 0;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;">Schnell&uuml;berblick</div>' +
-  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">Artikel gesamt</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:var(--accent);margin:0;" id="sb-total">&mdash;</p></div>' +
-  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">Quellen</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:var(--accent);margin:0;" id="sb-sources">&mdash;</p></div>' +
-  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">&Oslash; Score</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:var(--accent);margin:0;" id="sb-avgscore">&mdash;</p></div>' +
-  '<div style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);padding:10px 12px"><p style="font-size:9px;font-family:monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 2px;">Top Score</p><p style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:20px;color:#f97316;margin:0;" id="sb-topscore">&mdash;</p></div>';
-</script>
+<!-- window.KI_SIDEBAR_EXTRA ("Schnellueberblick") am 30.08. entfernt: doppelte
+     sich mit den Hero-Kacheln oben auf der Seite und brach Daniels Wunsch nach
+     einer auf jeder Seite gleichen Sidebar (Suche + Stand-Box kommen zentral
+     aus ki-layout.js). -->
 <script src="assets/ki-layout.js"></script>
 <script src="assets/ki-custom-theme.js"></script>
 
@@ -338,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
     <!-- ── Pipeline-Gesundheit (30.08., neu, aus ki_news.log) ── -->
     <div class="chart-card mb-6">
       <p class="section-title mb-1">Pipeline-Gesundheit</p>
-      <p class="meta-text mb-4">Letzte Läufe · Batches/Träger/Sprach-Guard aus ki_news.log (Log hält die letzten ~10 Läufe)</p>
+      <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus ki_news.log (Log hält die letzten ~10 Läufe)</p>
       <div id="pipeline-health"></div>
     </div>
 
@@ -368,10 +363,25 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
 
     <!-- ── Score-Formel ── -->
     <div class="chart-card mb-8">
-      <p class="section-title mb-1">⚙️ Score-Formel</p>
+      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <p class="section-title mb-0">⚙️ Score-Formel</p>
+        <a href="score-formel-diagramm.html" target="_blank" rel="noopener noreferrer"
+           class="text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 rounded transition-all"
+           style="color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3);background:rgba(var(--neon-rgb),0.08)">
+          📊 Interaktives Diagramm ↗
+        </a>
+      </div>
       <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird</p>
 
-      <!-- Formel-Visualisierung -->
+      <!-- 30.08. (Daniels Nachfrage): diese Formel ist seit Juli nicht mehr der
+           fuehrende Score im Code -- score_cluster_llm() hat score_cluster()
+           (das Keyword-System unten) als Fallback abgeloest. -->
+      <div class="mb-5 p-4 rounded-lg" style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.25)">
+        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:#f97316">⚠️ Seit Juli nicht mehr der führende Score</p>
+        <p class="text-[12px] text-gray-400 leading-relaxed">Der Code nutzt heute primär <code style="color:#f97316">score_cluster_llm()</code>: ein LLM bewertet Substanz/Spannung/Abdeckungslücke (0–65 Pkt.), dazu kommt ein deterministischer <strong style="color:#dfe3ea">Regional-Bonus</strong> (Sachsen 33 / D-A-CH 22 / EU 4 / sonst 0) und ein <strong style="color:#dfe3ea">Quellen-Bonus</strong> (Quellen × 8, max. 4 Quellen = 32), gedeckelt auf 100. Die Formel unten (<code style="color:#818cf8">score_cluster()</code>, reines Keyword-System) läuft nur noch als <strong style="color:#dfe3ea">Fallback</strong>, wenn der LLM-Call fehlschlägt.</p>
+      </div>
+
+      <!-- Formel-Visualisierung (= score_cluster()-Fallback, s.o.) -->
       <div style="display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-bottom:24px">
         <div style="background:rgba(var(--neon-rgb),0.08);border:1px solid rgba(var(--neon-rgb),0.25);border-radius:10px;padding:12px 18px;text-align:center;min-width:150px">
           <div style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.55);letter-spacing:.12em;margin-bottom:6px">QUELLEN-BONUS</div>
@@ -558,10 +568,12 @@ function renderAll(current, all){
   document.getElementById('stats-subtitle').textContent = `${all.length} Artikel · ${sources.length} Quellen · Stand: ${document.getElementById('stats-footer-stand').textContent.replace('Stand: ','')}`;
 
   // Sidebar Metriken
-  document.getElementById('sb-total').textContent    = all.length;
-  document.getElementById('sb-sources').textContent  = sources.length;
-  document.getElementById('sb-avgscore').textContent = avgScore;
-  document.getElementById('sb-topscore').textContent = topArt?.score || '—';
+  // sb-* Elemente kamen aus dem am 30.08. entfernten Sidebar-Schnellueberblick;
+  // Zuweisungen bleiben defensiv falls die IDs irgendwo wieder auftauchen.
+  if (document.getElementById('sb-total')) document.getElementById('sb-total').textContent = all.length;
+  if (document.getElementById('sb-sources')) document.getElementById('sb-sources').textContent = sources.length;
+  if (document.getElementById('sb-avgscore')) document.getElementById('sb-avgscore').textContent = avgScore;
+  if (document.getElementById('sb-topscore')) document.getElementById('sb-topscore').textContent = topArt?.score || '—';
 
   // ── Quellen Chart ──────────────────────────────────────────────────────────
   window._allNews = all;
@@ -1007,6 +1019,31 @@ function renderThemeTrends(all) {
 // ── Pipeline-Gesundheit (30.08.) ────────────────────────────────────────────
 // Parst ki_news.log clientseitig (keine Server-/Python-Aenderung noetig) --
 // Log traegt sich selbst auf die letzten ~10 Laeufe zurueck, siehe ki_news.yml.
+// Kategorisiert WARNING-Zeilen eines Laufs, statt nur zu zaehlen (30.08.,
+// Daniels Wunsch: "warum/wieso/weshalb" statt nur einer nackten Zahl).
+// Traeger-Modellnamen werden bewusst NICHT gezeigt (Daniels Wunsch).
+function categorizeWarnings(chunk) {
+  const lines = chunk.match(/^.*\bWARNING\b.*$/gm) || [];
+  const b = { rateLimit: 0, unusable: 0, feedBlocked: 0, translation: 0, other: 0 };
+  lines.forEach(line => {
+    if (/Rate-Limit \(429\)|429 in Folge|HTTP Error 429/i.test(line)) b.rateLimit++;
+    else if (/unbrauchbar|leerem Content|fehlgeschlagen/i.test(line)) b.unusable++;
+    else if (/Feed blockiert|HTTP (Error )?(403|400|404)/i.test(line)) b.feedBlocked++;
+    else if (/unuebersetzt|nicht Deutsch/i.test(line)) b.translation++;
+    else b.other++;
+  });
+  return b;
+}
+function warnLabel(b) {
+  const parts = [];
+  if (b.rateLimit)    parts.push(`${b.rateLimit}&times; Rate-Limit`);
+  if (b.unusable)     parts.push(`${b.unusable}&times; Modell-Ausgabe unbrauchbar`);
+  if (b.feedBlocked)  parts.push(`${b.feedBlocked}&times; Quelle blockiert`);
+  if (b.translation)  parts.push(`${b.translation}&times; &Uuml;bersetzung fehlgeschlagen`);
+  if (b.other)        parts.push(`${b.other}&times; Sonstige`);
+  return parts.join(' &middot; ') || 'keine Auffaelligkeiten';
+}
+
 function renderPipelineHealth(logText) {
   const container = document.getElementById('pipeline-health');
   if (!container) return;
@@ -1021,9 +1058,9 @@ function renderPipelineHealth(logText) {
       ts: tsMatch ? tsMatch[1] : null,
       attempted: bilanzMatch ? +bilanzMatch[1] : null,
       ok: bilanzMatch ? +bilanzMatch[2] : null,
-      traeger: bilanzMatch ? bilanzMatch[3].trim() : null,
       guardRejects: bilanzMatch ? +bilanzMatch[4] : null,
-      warnCount
+      warnCount,
+      warnBuckets: categorizeWarnings(chunk)
     };
   }).filter(r => r.ts).reverse(); // neuester Lauf zuerst
 
@@ -1034,12 +1071,14 @@ function renderPipelineHealth(logText) {
     const label = isNaN(d) ? r.ts : d.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     const incomplete = r.attempted != null && r.ok != null && r.ok < r.attempted;
     const flagged = incomplete || r.warnCount > 15;
-    return `<div style="display:flex;align-items:center;gap:14px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;flex-wrap:wrap;${flagged ? 'background:rgba(249,115,22,0.06)' : ''}">
-      <span style="font-family:monospace;color:var(--accent);width:100px;flex-shrink:0">${label}</span>
-      <span style="font-family:monospace;color:${incomplete ? '#f97316' : '#6b7280'}">${r.attempted != null ? r.attempted + ' versucht / ' + r.ok + ' OK' : '—'}</span>
-      ${r.traeger ? `<span style="font-family:monospace;color:#6b7280">Träger: ${escapeHtml(r.traeger)}</span>` : ''}
-      <span style="font-family:monospace;color:${r.guardRejects ? '#f97316' : '#6b7280'}">Sprach-Guard: ${r.guardRejects ?? '—'}</span>
-      <span style="font-family:monospace;color:${r.warnCount > 15 ? '#f87171' : '#6b7280'};margin-left:auto">${r.warnCount} Warnungen</span>
+    return `<div style="display:flex;flex-direction:column;gap:3px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;${flagged ? 'background:rgba(249,115,22,0.06)' : ''}">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <span style="font-family:monospace;color:var(--accent);width:100px;flex-shrink:0">${label}</span>
+        <span style="font-family:monospace;color:${incomplete ? '#f97316' : '#6b7280'}">${r.attempted != null ? r.attempted + ' versucht / ' + r.ok + ' OK' : '—'}</span>
+        <span style="font-family:monospace;color:${r.guardRejects ? '#f97316' : '#6b7280'}">Sprach-Guard: ${r.guardRejects ?? '—'}</span>
+        <span style="font-family:monospace;color:${r.warnCount > 15 ? '#f87171' : '#6b7280'};margin-left:auto">${r.warnCount} Warnungen</span>
+      </div>
+      <div style="font-family:monospace;font-size:10px;color:#6b7280;padding-left:114px">${warnLabel(r.warnBuckets)}</div>
     </div>`;
   }).join('');
 }
