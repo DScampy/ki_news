@@ -758,6 +758,23 @@ function srcColor(s){ return SRC[s] || '#1d9bf0'; }
 function scoreToLevel(score){ if(score>=40)return 5;if(score>=30)return 4;if(score>=20)return 3;if(score>=10)return 2;return 1; }
 var PRIO = { 1:{label:'INFO',color:'rgba(148,163,184,0.7)'}, 2:{label:'AKTUELL',color:'#1d9bf0'}, 3:{label:'WICHTIG',color:'#ca8a04'}, 4:{label:'TOP',color:'#ea580c'}, 5:{label:'BREAKING',color:'#dc2626'} };
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+// Link -> Artikel-Objekt, fuer den Overlay-Klick-Handler unten (30.08.). Wird
+// gefuellt, sobald news.json geladen ist (siehe fetch weiter unten).
+var ART_BY_LINK = {};
+// Overlay statt Navigation bei normalem Linksklick auf einen Artikel-Link
+// (lead-cta/sec-cta/Headline/"Quelle ↗"/"Originalartikel lesen ↗" tragen alle
+// data-overlay-link). window.klOpenArticle kommt aus ki-layout.js (vor diesem
+// Script eingebunden). Ein einziger Delegations-Listener auf document deckt
+// alle Fundstellen ab, auch nachtraeglich per innerHTML gerenderte.
+document.addEventListener('click', function(e){
+  var a = e.target.closest('a[data-overlay-link]');
+  if (!a) return;
+  if (typeof window.klPlainClick === 'function' && !window.klPlainClick(e)) return;
+  var item = ART_BY_LINK[a.getAttribute('data-overlay-link')];
+  if (!item || typeof window.klOpenArticle !== 'function') return;
+  e.preventDefault();
+  window.klOpenArticle(item);
+});
 function readMinutes(text){ var wc = String(text||'').trim().split(/\s+/).length; return Math.max(1, Math.round(wc / 200)); }
 function germanDate(stand){
   if (!stand) return '';
@@ -779,7 +796,7 @@ function hasAnalyse(post){ return !!(post && post.thread && post.thread.length);
 function analyseHtml(post, slot, link){
   if (!hasAnalyse(post)) return '';
   var items = post.thread.map(function(t){ return '<li>'+escapeHtml(t)+'</li>'; }).join('');
-  if (link) items += '<li><a href="'+escapeHtml(link)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700;text-decoration:none;">Originalartikel lesen ↗</a></li>';
+  if (link) items += '<li><a href="'+escapeHtml(link)+'" target="_blank" rel="noopener" data-overlay-link="'+escapeHtml(link)+'" style="color:var(--accent);font-weight:700;text-decoration:none;">Originalartikel lesen ↗</a></li>';
   return '<div class="art-analyse" id="aa-panel-'+slot+'" hidden>'+
       (post.erklaerung ? '<div class="art-analyse-lead">'+escapeHtml(post.erklaerung)+'</div>' : '')+
       '<ol class="art-analyse-thread">'+items+'</ol>'+
@@ -808,7 +825,7 @@ function renderLead(item, post){
       '<span class="dot"></span>'+
       (hasAnalyse(post)
         ? '<button class="art-analyse-toggle lead-cta" id="aa-toggle-lead" onclick="toggleArtAnalyse(\'lead\')">Analyse anzeigen ▾</button>'
-        : (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="lead-cta">Originalartikel ↗</a>' : '')) +
+        : (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="lead-cta" data-overlay-link="'+escapeHtml(item.link)+'">Originalartikel ↗</a>' : '')) +
     '</div>' +
     analyseHtml(post, 'lead', item.link);
 }
@@ -823,7 +840,7 @@ function renderSec(item, target, post, slot){
       '<span style="color:'+prio.color+';font-weight:700">'+prio.label+'</span>'+
       (hasAnalyse(post)
         ? '<button class="art-analyse-toggle sec-cta" id="aa-toggle-'+slot+'" onclick="toggleArtAnalyse(\''+slot+'\')">Analyse ▾</button>'
-        : (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="sec-cta">Weiter ↗</a>' : '')) +
+        : (item.link ? '<a href="'+escapeHtml(item.link)+'" target="_blank" class="sec-cta" data-overlay-link="'+escapeHtml(item.link)+'">Weiter ↗</a>' : '')) +
     '</div>' +
     analyseHtml(post, slot, item.link);
 }
@@ -833,9 +850,9 @@ function renderGrid(items){
     var summary = item.summary || '';
     return '<article class="art-item">'+
       '<span class="art-source" style="background:'+c+'">'+escapeHtml(item.source)+'</span>'+
-      '<h4 class="art-headline"><a href="'+escapeHtml(item.link||'#')+'" target="_blank">'+escapeHtml(item.title)+'</a></h4>'+
+      '<h4 class="art-headline"><a href="'+escapeHtml(item.link||'#')+'" target="_blank"'+(item.link?' data-overlay-link="'+escapeHtml(item.link)+'"':'')+'>'+escapeHtml(item.title)+'</a></h4>'+
       '<p class="art-text">'+escapeHtml(summary.slice(0,160) + (summary.length>160?'…':''))+'</p>'+
-      '<div class="art-meta">'+(item.label||'')+(item.link?' · <a href="'+escapeHtml(item.link)+'" target="_blank" style="color:inherit;text-decoration:underline">Quelle ↗</a>':'')+'</div>'+
+      '<div class="art-meta">'+(item.label||'')+(item.link?' · <a href="'+escapeHtml(item.link)+'" target="_blank" data-overlay-link="'+escapeHtml(item.link)+'" style="color:inherit;text-decoration:underline">Quelle ↗</a>':'')+'</div>'+
     '</article>';
   }).join('');
 }
@@ -869,6 +886,8 @@ fetch('news.json?t=' + Date.now())
       });
       news = news.filter(function(n){ return !n.story_id || best[n.story_id] === n; });
     })();
+    ART_BY_LINK = {};
+    news.forEach(function(n){ if (n.link) ART_BY_LINK[n.link] = n; });
     var lead = document.getElementById('lead-story');
     if (!news.length) {
       if (lead) lead.innerHTML = '<p class="sec-text">Aktuell keine Artikel verfügbar.</p>';

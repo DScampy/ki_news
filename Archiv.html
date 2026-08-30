@@ -234,32 +234,12 @@
 </head>
 <body class="font-body-lg">
 <script>
-/* Seitenspezifische Sidebar-Erweiterung: Suche + Quellen-Filter + Stand (wird von ki-layout.js gerendert) */
-window._archivDays = 14; /* Standard: letzte 14 Tage */
+/* Seitenspezifische Sidebar-Erweiterung: nur noch der Stand-Kasten.
+   Die Suche selbst kommt seit 30.08. zentral aus ki-layout.js (auf jeder
+   Seite sichtbar, nicht nur hier) -- id="searchInput" waere sonst doppelt
+   im DOM. Zeitraum-/Quellen-Filter sind seit 30.08. ganz raus: sie
+   steuerten das Artikelraster, das am 20.08. entfernt wurde. */
 window.KI_SIDEBAR_EXTRA =
-  /* ── Zeitraum-Filter ── */
-  '<div style="flex-shrink:0;margin-bottom:12px">' +
-    '<p style="font-size:10px;font-family:monospace;text-transform:uppercase;letter-spacing:0.12em;color:rgba(var(--neon-rgb),0.5);margin:0 0 6px">Zeitraum</p>' +
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">' +
-      '<button id="zBtn7"   onclick="setArchivDays(7)"  style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.2);background:transparent;color:var(--muted,#6b7280);cursor:pointer;transition:all .15s">7T</button>' +
-      '<button id="zBtn14"  onclick="setArchivDays(14)" style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.5);background:rgba(var(--neon-rgb),0.15);color:var(--accent);cursor:pointer;transition:all .15s">14T</button>' +
-      '<button id="zBtn30"  onclick="setArchivDays(30)" style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.2);background:transparent;color:var(--muted,#6b7280);cursor:pointer;transition:all .15s">30T</button>' +
-      '<button id="zBtnAll" onclick="setArchivDays(0)"  style="font-size:10px;font-family:monospace;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(var(--neon-rgb),0.2);background:transparent;color:var(--muted,#6b7280);cursor:pointer;transition:all .15s">Alles</button>' +
-    '</div>' +
-  '</div>' +
-  /* ── Suche ── */
-  '<div id="searchWrap" class="flex items-center gap-2 px-3 py-2" style="background:var(--field,#111827);border:1px solid rgba(var(--neon-rgb),0.18);border-radius:8px;flex-shrink:0">' +
-    '<span class="material-symbols-outlined text-gray-500 text-base">search</span>' +
-    '<input id="searchInput" type="text" placeholder="Suchen&hellip;" class="bg-transparent border-none outline-none text-xs text-gray-300 placeholder-gray-600 w-full font-mono" oninput="handleSearch(this.value)"/>' +
-    '<button class="search-clear text-gray-600 hover:text-white" onclick="clearSearch()"><span class="material-symbols-outlined text-base">close</span></button>' +
-  '</div>' +
-  '<div class="overflow-y-auto" style="flex:1;min-height:60px;margin-top:10px">' +
-    '<button onclick="toggleSources()" class="flex items-center justify-between w-full mb-2 group" id="sourcesToggleBtn" style="background:transparent;border:none;padding:0;">' +
-      '<p class="text-[10px] font-mono uppercase tracking-widest" style="color:rgba(var(--neon-rgb),0.5)">Quellen</p>' +
-      '<span class="material-symbols-outlined text-gray-600 group-hover:text-gray-400 transition-colors" style="font-size:14px" id="sourcesToggleIcon">expand_less</span>' +
-    '</button>' +
-    '<div class="flex flex-col gap-1" id="sourceFilters"></div>' +
-  '</div>' +
   '<div style="flex-shrink:0;margin-top:10px">' +
     '<div id="stand-box" class="p-3" style="border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520)">' +
       '<p class="text-[10px] font-mono mb-1" style="color:rgba(var(--neon-rgb),0.4)">LETZTES UPDATE</p>' +
@@ -569,8 +549,26 @@ function mergeNews(existing, incoming) {
   // Deduplizierung per Link
   const seen = new Set(existing.map(n => n.link));
   const newOnes = incoming.filter(n => n.link && !seen.has(n.link));
-  // Neue vorne, alte hinten – max 500 Einträge gesamt
-  return [...incoming, ...existing.filter(n => !incoming.find(i => i.link === n.link))].slice(0, 500);
+  // Neue vorne, alte hinten – max 1000 Einträge gesamt (30.08. von 500 erhöht;
+  // ~1 KB/Artikel im Schnitt, 1000 Einträge ~940 KB, weit unter dem
+  // Browser-localStorage-Limit von 5-10 MB)
+  return [...incoming, ...existing.filter(n => !incoming.find(i => i.link === n.link))].slice(0, 1000);
+}
+
+// ── Suche aus der URL übernehmen ─────────────────────────────────────────────
+// Kommt jemand über die Sidebar-Suche einer ANDEREN Seite hierher
+// (?such=<Begriff>, siehe klSearchSubmit() in ki-layout.js), wird die Suche
+// hier automatisch ausgeführt, sobald Artikel geladen sind (weiter unten).
+function pendingSearchFromUrl() {
+  try { return new URLSearchParams(location.search).get('such') || ''; }
+  catch (e) { return ''; }
+}
+const _pendingSearch = pendingSearchFromUrl().trim();
+function applyPendingSearch() {
+  if (!_pendingSearch) return;
+  const input = document.getElementById('searchInput');
+  if (input) input.value = _pendingSearch;
+  handleSearch(_pendingSearch);
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
@@ -582,6 +580,7 @@ if (archived.length > 0) {
   render();
   document.getElementById('skeleton')?.classList.add('hidden');
   document.getElementById('newsGrid')?.classList.remove('hidden');
+  applyPendingSearch();
 }
 
 // 2. Dann aktuell von news.json nachladen und mergen
@@ -598,6 +597,7 @@ fetch('news.json?t=' + Date.now())
     render();
     document.getElementById('skeleton')?.classList.add('hidden');
     document.getElementById('newsGrid')?.classList.remove('hidden');
+    applyPendingSearch();
 
     // Versuche auch archive.json zu laden (kumulatives Server-Archiv)
     fetch('archive.json?t=' + Date.now())
@@ -608,6 +608,7 @@ fetch('news.json?t=' + Date.now())
           saveArchive(allNews);
           buildSourceFilters();
           render();
+          applyPendingSearch();
         }
       })
       .catch(() => {}); // archive.json optional
@@ -630,9 +631,13 @@ fetch('news.json?t=' + Date.now())
 
 // ── Source filters ────────────────────────────────────────────────────────────
 function buildSourceFilters() {
+  // Quellen-Filter in der Sidebar entfernt (30.08.) -- Element existiert
+  // nicht mehr, Funktion bleibt als No-Op stehen (wird noch aus der
+  // news.json/archive.json-Ladekette aufgerufen).
+  const container = document.getElementById('sourceFilters');
+  if (!container) return;
   const isLight = document.documentElement.classList.contains('light');
   const sources = [...new Set(allNews.map(n => n.source).filter(Boolean))];
-  const container = document.getElementById('sourceFilters');
   container.innerHTML = '';
 
   const allBtn = document.createElement('button');
@@ -710,19 +715,39 @@ function clearFilter() {
   render();
 }
 
+// Sidebar-Suche hat seit dem 20.08. kein eigenes Artikelraster mehr zum
+// Anzeigen (newsGrid ist versteckter Platzhalter) -- sie spiegelt ihre
+// Eingabe darum in die Modell-Registry -> Artikel-Suche (#rg-aq), die
+// tatsaechlich eine Trefferliste zeigt (registry-panel.js).
+function syncSearchToRegistry(q) {
+  const rgInput = document.getElementById('rg-aq');
+  if (!rgInput) return;
+  const body = document.getElementById('registry-panel-body');
+  if (body && body.style.display === 'none') toggleRegistryPanel();
+  const artTab = document.getElementById('rg-tab-art');
+  if (artTab && !artTab.classList.contains('on')) artTab.click();
+  rgInput.value = q;
+  rgInput.dispatchEvent(new Event('input', { bubbles: true }));
+  if (q) document.getElementById('registry-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function handleSearch(q) {
   searchQuery = q.trim();
+  // #searchWrap gab es nur in der alten, seit 30.08. entfernten Sidebar-Box
+  // (die Suche kommt jetzt zentral aus ki-layout.js) -- optional halten.
   const wrap = document.getElementById('searchWrap');
-  if (searchQuery) wrap.classList.add('has-search');
-  else wrap.classList.remove('has-search');
+  if (wrap) wrap.classList.toggle('has-search', !!searchQuery);
   render();
+  syncSearchToRegistry(searchQuery);
 }
 
 function clearSearch() {
   searchQuery = '';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchWrap').classList.remove('has-search');
+  const input = document.getElementById('searchInput');
+  if (input) input.value = '';
+  document.getElementById('searchWrap')?.classList.remove('has-search');
   render();
+  syncSearchToRegistry('');
 }
 
 function setLayout(l) {
@@ -745,26 +770,6 @@ function setLayout(l) {
     btnGrid.className = baseClass; btnGrid.style.background = 'transparent'; btnGrid.style.color = isLight ? '#64748b' : '#6b7280'; btnGrid.style.border = 'none';
   }
   render();
-}
-
-// ── Zeitraum-Filter ──────────────────────────────────────────────────────────
-function setArchivDays(n) {
-  window._archivDays = n;
-  updateZeitButtons();
-  render();
-}
-
-function updateZeitButtons() {
-  const days = window._archivDays;
-  const map = { 7: 'zBtn7', 14: 'zBtn14', 30: 'zBtn30', 0: 'zBtnAll' };
-  Object.entries(map).forEach(([d, id]) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    const active = Number(d) === days;
-    btn.style.background = active ? 'rgba(var(--neon-rgb),0.15)' : 'transparent';
-    btn.style.color = active ? 'var(--accent)' : 'var(--muted,#6b7280)';
-    btn.style.borderColor = active ? 'rgba(var(--neon-rgb),0.5)' : 'rgba(var(--neon-rgb),0.2)';
-  });
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
