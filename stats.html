@@ -363,83 +363,18 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
 
     <!-- ── Score-Formel ── -->
     <div class="chart-card mb-8">
-      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
-        <p class="section-title mb-0">⚙️ Score-Formel</p>
-        <a href="score-formel-diagramm.html" target="_blank" rel="noopener noreferrer"
-           class="text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 rounded transition-all"
-           style="color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3);background:rgba(var(--neon-rgb),0.08)">
-          📊 Interaktives Diagramm ↗
-        </a>
-      </div>
-      <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird</p>
+      <p class="section-title mb-1">⚙️ Score-Formel</p>
+      <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird – live-editierbares Diagramm, siehe <code style="color:var(--accent)">score-formel-diagramm.html</code></p>
 
-      <!-- 30.08. (Daniels Nachfrage): diese Formel ist seit Juli nicht mehr der
-           fuehrende Score im Code -- score_cluster_llm() hat score_cluster()
-           (das Keyword-System unten) als Fallback abgeloest. -->
-      <div class="mb-5 p-4 rounded-lg" style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.25)">
-        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:#f97316">⚠️ Seit Juli nicht mehr der führende Score</p>
-        <p class="text-[12px] text-gray-400 leading-relaxed">Der Code nutzt heute primär <code style="color:#f97316">score_cluster_llm()</code>: ein LLM bewertet Substanz/Spannung/Abdeckungslücke (0–65 Pkt.), dazu kommt ein deterministischer <strong style="color:#dfe3ea">Regional-Bonus</strong> (Sachsen 33 / D-A-CH 22 / EU 4 / sonst 0) und ein <strong style="color:#dfe3ea">Quellen-Bonus</strong> (Quellen × 8, max. 4 Quellen = 32), gedeckelt auf 100. Die Formel unten (<code style="color:#818cf8">score_cluster()</code>, reines Keyword-System) läuft nur noch als <strong style="color:#dfe3ea">Fallback</strong>, wenn der LLM-Call fehlschlägt.</p>
-      </div>
-
-      <!-- Formel-Visualisierung (= score_cluster()-Fallback, s.o.) -->
-      <div style="display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-bottom:24px">
-        <div style="background:rgba(var(--neon-rgb),0.08);border:1px solid rgba(var(--neon-rgb),0.25);border-radius:10px;padding:12px 18px;text-align:center;min-width:150px">
-          <div style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.55);letter-spacing:.12em;margin-bottom:6px">QUELLEN-BONUS</div>
-          <div style="font-size:20px;font-weight:900;color:var(--accent);font-family:'Space Grotesk',sans-serif">Quellen × 15</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Mehrere Quellen → wichtig</div>
-        </div>
-        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">+</div>
-        <div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
-          <div style="font-size:9px;font-family:monospace;color:rgba(249,115,22,0.6);letter-spacing:.12em;margin-bottom:6px">PRESTIGE</div>
-          <div style="font-size:20px;font-weight:900;color:#f97316;font-family:'Space Grotesk',sans-serif">5 Pkt.</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Alle Quellen gleich</div>
-        </div>
-        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">+</div>
-        <div style="background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
-          <div style="font-size:9px;font-family:monospace;color:rgba(234,179,8,0.6);letter-spacing:.12em;margin-bottom:6px">KEYWORDS</div>
-          <div style="font-size:20px;font-weight:900;color:#eab308;font-family:'Space Grotesk',sans-serif">0 – ∞ Pkt.</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Wichtigkeits-Keywords</div>
-        </div>
-        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">−</div>
-        <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.25);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
-          <div style="font-size:9px;font-family:monospace;color:rgba(99,102,241,0.6);letter-spacing:.12em;margin-bottom:6px">MALUS</div>
-          <div style="font-size:20px;font-weight:900;color:#818cf8;font-family:'Space Grotesk',sans-serif">0 – ∞ Pkt.</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Gaming / Deals / Werbung</div>
-        </div>
-        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">−</div>
-        <div style="background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
-          <div style="font-size:9px;font-family:monospace;color:rgba(20,184,166,0.6);letter-spacing:.12em;margin-bottom:6px">ZEIT-VERFALL</div>
-          <div style="font-size:20px;font-weight:900;color:#14b8a6;font-family:'Space Grotesk',sans-serif">5 Pkt./Tag</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">Max. 5 Tage sichtbar</div>
-        </div>
-        <div style="display:flex;align-items:center;font-size:22px;color:#4b5563;font-weight:300">=</div>
-        <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.22);border-radius:10px;padding:12px 18px;text-align:center;min-width:130px">
-          <div style="font-size:9px;font-family:monospace;color:rgba(239,68,68,0.6);letter-spacing:.12em;margin-bottom:6px">SCORE</div>
-          <div style="font-size:20px;font-weight:900;color:#ef4444;font-family:'Space Grotesk',sans-serif">Gesamt</div>
-          <div style="font-size:10px;font-family:monospace;color:#6b7280;margin-top:5px">≥ 40 = BREAKING</div>
-        </div>
-      </div>
-
-      <!-- Prestige + Keywords + Malus -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div>
-          <p style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.45);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Quellen-Prestige (max im Cluster)</p>
-          <div id="prestige-table"></div>
-        </div>
-        <div>
-          <p style="font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.45);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Keyword-Boni (kumulativ)</p>
-          <div id="keyword-table"></div>
-        </div>
-        <div>
-          <p style="font-size:9px;font-family:monospace;color:rgba(99,102,241,0.6);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Malus-Keywords (Abzug)</p>
-          <div style="display:flex;flex-direction:column;gap:4px;font-family:monospace;font-size:11px">
-            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">webinar / academy</span><span style="color:#818cf8">−30</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">gaming / esports</span><span style="color:#818cf8">−20 / −30</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">playstation / xbox</span><span style="color:#818cf8">−30</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">sale / deal / discount</span><span style="color:#818cf8">−20</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:5px"><span style="color:#9ca3af">rumor / leak</span><span style="color:#818cf8">−10</span></div>
-          </div>
-        </div>
+      <!-- 30.08.: Diagramm (Archify) direkt eingebettet statt nur verlinkt.
+           Die alte Box-Darstellung + Quellen-Prestige/Keyword-Boni/Malus-
+           Tabellen (score_cluster()-Fallback im Detail) sind raus -- das
+           Diagramm selbst zeigt Haupt- UND Fallback-Pfad, die Detailtabellen
+           waren auf Daniels Wunsch zu viel/zu alt. -->
+      <div style="border:1px solid rgba(var(--neon-rgb),0.15);border-radius:10px;overflow:hidden">
+        <iframe src="score-formel-diagramm.html" title="Score-Formel-Diagramm"
+                style="width:100%;height:720px;border:none;display:block;background:var(--card,#0d1520)"
+                loading="lazy"></iframe>
       </div>
 
       <!-- Hinweis -->
@@ -784,9 +719,8 @@ function renderAll(current, all){
     });
   }
 
-  // ── Tagesverlauf + Score-Formel ──────────────────────────────────────────
+  // ── Tagesverlauf ──────────────────────────────────────────────────────────
   renderDailyStats(all);
-  renderScoreBreakdown();
 }
 
 // ── Source Metric Toggle ─────────────────────────────────────────────────────
@@ -1083,45 +1017,9 @@ function renderPipelineHealth(logText) {
   }).join('');
 }
 
-// ── Score-Formel Tabellen ─────────────────────────────────────────────────────
-function renderScoreBreakdown() {
-  const PRESTIGE = [
-    ['Bloomberg', 5], ['The Decoder', 5], ['TechCrunch AI', 5], ['Heise', 5],
-    ['VentureBeat AI', 5], ['Ars Technica', 5], ['Wired', 5],
-    ['The Verge', 5], ['Golem', 5], ['SiliconAngle', 5], ['TechRepublic', 5], ['Caschy Blog', 5],
-  ];
-  const KEYWORDS = [
-    ['ban · verboten · lawsuit · klage · shutdown · regulation', 15],
-    ['billion · milliard · valuation · bewertung · merger · übernimmt', 15],
-    ['model · modell · open-weight · state-of-the-art', 12],
-    ['launch · release · unveils · breakthrough · patent · durchbruch', 10],
-    ['open source · open-source · outperforms · introduces · beats', 8],
-    ['study · warnt · kritik · erstmals · investment · kostenlos', 5],
-    ['funding · raises · funding round (kleine Runden abgewertet)', 3],
-  ];
-
-  const pt = document.getElementById('prestige-table');
-  if (pt) pt.innerHTML = PRESTIGE.map(([name, pts]) => {
-    const col = srcColor(name);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.06)">
-      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:11px;font-weight:600;color:#dfe3ea;font-family:'Space Grotesk',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
-        <div style="height:2px;background:rgba(var(--neon-rgb),0.07);border-radius:2px;margin-top:4px">
-          <div style="height:2px;background:${col};border-radius:2px;width:${Math.round(pts/10*100)}%;opacity:0.75"></div>
-        </div>
-      </div>
-      <div style="font-family:monospace;font-size:13px;font-weight:900;color:${col};flex-shrink:0;width:24px;text-align:right">${pts}</div>
-    </div>`;
-  }).join('');
-
-  const kt = document.getElementById('keyword-table');
-  if (kt) kt.innerHTML = KEYWORDS.map(([kw, pts]) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.06)">
-      <span style="font-size:10px;font-family:monospace;color:#94a3b8;line-height:1.4">${kw}</span>
-      <span style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:13px;color:#eab308;flex-shrink:0">+${pts}</span>
-    </div>`).join('');
-}
+// renderScoreBreakdown() (Quellen-Prestige/Keyword-Boni/Malus-Tabellen) am
+// 30.08. entfernt: Score-Formel-Sektion zeigt jetzt das eingebettete Archify-
+// Diagramm (score-formel-diagramm.html) statt der alten Detailtabellen.
 
 // ── Chart Theme Update ────────────────────────────────────────────────────────
 function updateChartTheme(chart){
