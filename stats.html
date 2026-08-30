@@ -323,18 +323,20 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       </div>
     </div>
 
-    <!-- ── Themen-Trend (30.08., neu) ── -->
-    <div class="chart-card mb-6">
-      <p class="section-title mb-1">Themen-Trend</p>
-      <p class="meta-text mb-4">Verlauf der letzten 10 Tage je Thema · absteigend nach Erwähnungen</p>
-      <div id="theme-trends"></div>
-    </div>
+    <!-- ── Themen-Trend + Pipeline-Gesundheit (30.08., neu) ──
+         Nebeneinander auf Desktop (Daniels Wunsch), gestapelt auf Mobil. ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="chart-card">
+        <p class="section-title mb-1">Themen-Trend</p>
+        <p class="meta-text mb-4">Verlauf der letzten 10 Tage je Thema · absteigend nach Erwähnungen</p>
+        <div id="theme-trends"></div>
+      </div>
 
-    <!-- ── Pipeline-Gesundheit (30.08., neu, aus ki_news.log) ── -->
-    <div class="chart-card mb-6">
-      <p class="section-title mb-1">Pipeline-Gesundheit</p>
-      <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus dem internen Betriebs-Log (die letzten ~10 Läufe)</p>
-      <div id="pipeline-health"></div>
+      <div class="chart-card">
+        <p class="section-title mb-1">Pipeline-Gesundheit</p>
+        <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus dem internen Betriebs-Log (die letzten ~10 Läufe)</p>
+        <div id="pipeline-health"></div>
+      </div>
     </div>
 
     <!-- ── Row 3: Creator Dashboard ── -->
@@ -364,17 +366,20 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
     <!-- ── Score-Formel ── -->
     <div class="chart-card mb-8">
       <p class="section-title mb-1">⚙️ Score-Formel</p>
-      <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird – live-editierbares Diagramm, siehe <code style="color:var(--accent)">score-formel-diagramm.html</code></p>
+      <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird</p>
 
       <!-- 30.08.: Diagramm (Archify) direkt eingebettet statt nur verlinkt.
            Die alte Box-Darstellung + Quellen-Prestige/Keyword-Boni/Malus-
-           Tabellen (score_cluster()-Fallback im Detail) sind raus -- das
-           Diagramm selbst zeigt Haupt- UND Fallback-Pfad, die Detailtabellen
-           waren auf Daniels Wunsch zu viel/zu alt. -->
+           Tabellen sind raus -- das Diagramm selbst zeigt Haupt- UND
+           Fallback-Pfad, die Detailtabellen waren auf Daniels Wunsch zu
+           viel/zu alt. Onload-Skript blendet Bedienelemente aus, die
+           Besucher hier nicht brauchen (Visual-Style/Export/Path/Map/Lens) --
+           die Diagramm-Datei selbst bleibt unangetastet voll ausgestattet,
+           nur diese eine Einbettung ist bewusst reduziert. -->
       <div style="border:1px solid rgba(var(--neon-rgb),0.15);border-radius:10px;overflow:hidden">
         <iframe src="score-formel-diagramm.html" title="Score-Formel-Diagramm"
                 style="width:100%;height:720px;border:none;display:block;background:var(--card,#0d1520)"
-                loading="lazy"></iframe>
+                loading="lazy" onload="simplifyScoreFormelViewer(this)"></iframe>
       </div>
 
       <!-- Hinweis -->
@@ -1020,6 +1025,26 @@ function renderPipelineHealth(logText) {
 // renderScoreBreakdown() (Quellen-Prestige/Keyword-Boni/Malus-Tabellen) am
 // 30.08. entfernt: Score-Formel-Sektion zeigt jetzt das eingebettete Archify-
 // Diagramm (score-formel-diagramm.html) statt der alten Detailtabellen.
+
+// Blendet in der eingebetteten Diagramm-Vorschau die Bedienelemente aus, die
+// normale Besucher nicht brauchen (Daniels Wunsch: "richtig minimal halten").
+// Same-Origin-Iframe, daher per JS aus der Elternseite erlaubt. Die Datei
+// score-formel-diagramm.html selbst bleibt unveraendert voll ausgestattet.
+function simplifyScoreFormelViewer(iframe) {
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    const style = doc.createElement('style');
+    style.textContent = `
+      button[aria-label*="Visual style"],
+      button[aria-label="Export diagram"],
+      button[aria-label*="Trace a directed route"],
+      button[aria-label*="Open semantic radar"],
+      button[aria-label*="Open semantic lens"] { display: none !important; }
+    `;
+    doc.head.appendChild(style);
+  } catch (e) { /* falls sich der Viewer aendert: Iframe bleibt einfach voll ausgestattet */ }
+}
 
 // ── Chart Theme Update ────────────────────────────────────────────────────────
 function updateChartTheme(chart){
