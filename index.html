@@ -1132,17 +1132,20 @@ function heroRender(animate) {
     } else {
       toggle.style.display = 'none';
     }
-    // "Was die Community dazu sagt" - Reaktionen aus 3 Quellen (siehe add_reactions.py):
-    // "x" = manuell kuratiert (reactions.json), "reddit"/"hn" = automatisch (Top-5-Storys).
+    // "Was die Community dazu sagt" am 30.08. auf Daniels Wunsch ausgeblendet
+    // ("bislang kein Mehrwert") -- Logik/Markup bleiben, nur das Anzeigen ist
+    // abgeschaltet. Zum Zurueckholen: die if/else unten wieder durch den
+    // urspruenglichen reactions.length-Zweig ersetzen (siehe Kommentar).
     var reactWrap = document.getElementById('c-reactions');
-    var reactList = document.getElementById('c-reactions-list');
+    reactWrap.hidden = true;
+    /* var reactList = document.getElementById('c-reactions-list');
     var reactions = s.reactions || [];
     if (reactions.length) {
       reactList.innerHTML = reactions.map(renderReaction).join('');
       reactWrap.hidden = false;
     } else {
       reactWrap.hidden = true;
-    }
+    } */
     document.getElementById('c-plabel').textContent = p.label;
     document.getElementById('c-plabel').style.color  = p.color;
     buildPBars(document.getElementById('c-pbars'), level, p.color);
