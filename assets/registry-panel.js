@@ -465,8 +465,15 @@
       if (!k) return;
       var a = k.getAttribute("data-a");
       offenMod = null; offeneFam = null; zeigeAlteFamilien = false;
-      offenAnb = offenAnb === a ? null : a;
+      var wurdeGeoeffnet = offenAnb !== a;
+      offenAnb = wurdeGeoeffnet ? a : null;
       zeichneAnbieter();
+      // 30.08. (Daniels Wunsch): aufgeklapptes Detail liegt unterhalb der
+      // Anbieter-Kacheln, ohne das hier musste man von Hand runterscrollen.
+      if (wurdeGeoeffnet) {
+        var det = $("rg-detail");
+        if (det) det.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     });
     grid.addEventListener("keydown", function (e) {
       if (e.key !== "Enter" && e.key !== " ") return;

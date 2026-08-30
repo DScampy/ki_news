@@ -155,6 +155,10 @@
     '.kl-search button{background:none;border:none;padding:0;cursor:pointer;color:rgba(255,255,255,0.35);display:flex;flex-shrink:0;}',
     'html.light .kl-search button{color:rgba(15,23,42,0.35);}',
     '.kl-search button:hover{color:var(--accent);}',
+    '.kl-stand{margin:10px 16px 0;padding:10px 12px;border:1px solid rgba(var(--neon-rgb),0.12);border-radius:6px;background:var(--card,#0d1520);flex-shrink:0;}',
+    '.kl-stand-label{font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.4);letter-spacing:.08em;margin:0 0 2px;}',
+    '.kl-stand-value{font-size:11px;font-family:monospace;color:rgba(255,255,255,0.55);margin:0;}',
+    'html.light .kl-stand-value{color:#475569;}',
     '.kl-side-divider{margin:8px 16px 0;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0;}',
     '.kl-side-label{padding:8px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0;}',
     '.kl-side-foot{padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0;}',
@@ -253,6 +257,10 @@
         '<input id="searchInput" type="text" placeholder="Suchen&hellip;" aria-label="Artikel durchsuchen" ' +
           'oninput="klSearchInput(this.value)" onkeydown="if(event.key===\'Enter\'){klSearchSubmit();}"/>' +
         '<button type="button" title="Suche leeren" onclick="klSearchClear()"><span class="material-symbols-outlined" style="font-size:15px;">close</span></button>' +
+      '</div>' +
+      '<div class="kl-stand" id="stand-box">' +
+        '<p class="kl-stand-label">LETZTES UPDATE</p>' +
+        '<p class="kl-stand-value" id="standLabel">&mdash;</p>' +
       '</div>' +
       (window.KI_SIDEBAR_EXTRA ? '<div class="kl-side-extra">' + window.KI_SIDEBAR_EXTRA + '</div>' : '<div class="kl-side-spacer"></div>') +
       '<div class="kl-side-divider"></div>' +
@@ -480,6 +488,23 @@
   };
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && klOvOpen) window.klCloseArticle(); });
 
+  /* ── "Letztes Update" (30.08.) ─────────────────────────────────
+     Auf jeder Seite an derselben Stelle in der Sidebar, statt nur auf
+     Archiv.html -- Daniel wollte dieselbe Reihenfolge/Position ueberall,
+     damit man schneller durchscrollen kann. Eigener Fetch (einmal pro
+     Seitenaufruf, gecacht), damit auch Seiten ohne eigenen news.json-Abruf
+     (stats.html, profil.html, artikel/*.html) den Stand zeigen koennen. */
+  var klStandP = null;
+  function klLoadStand() {
+    if (!klStandP) {
+      klStandP = fetch(ROOT + 'news.json?t=' + Date.now()).then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      }).then(function (d) { return (d && d.stand) || null; }).catch(function () { return null; });
+    }
+    return klStandP;
+  }
+
   /* ── Injection ──────────────────────────────────────────────── */
   function inject() {
     var old = document.getElementById('kl-nav');
@@ -499,6 +524,10 @@
       if (i) i.textContent = 'chevron_left';
     }
     applyAll();
+    klLoadStand().then(function (stand) {
+      var el = document.getElementById('standLabel');
+      if (el && stand) el.textContent = stand;
+    });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') window.closeDrawer(); });
     var sb = document.getElementById('sidebar');
     if (sb) sb.addEventListener('click', function (e) { if (e.target.closest('a')) window.closeDrawer(); });
