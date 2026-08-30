@@ -64,8 +64,8 @@
   .stat-card {
     background:#111827;
     border:1px solid rgba(var(--neon-rgb),0.30);
-    border-radius:12px;
-    padding:20px;
+    border-radius:10px;
+    padding:12px 14px;
     box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.06),0 0 16px rgba(var(--neon-rgb),0.10);
     transition:all 0.2s;
   }
@@ -227,41 +227,45 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       <p class="text-gray-500 text-sm font-mono" id="stats-subtitle">Wird geladen…</p>
     </div>
 
-    <!-- ── Hero Metriken ── -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- ── Hero Metriken (30.08. verkleinert: waren mit 20px Padding + 36px-
+         Zahlen deutlich zu ausladend fuer vier reine Kennzahlen-Kacheln) ── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       <div class="stat-card">
-        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(var(--neon-rgb),0.5)">Artikel gesamt</p>
-        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-total">—</p>
-        <p class="text-[11px] text-gray-500 font-mono">news.json + archive.json</p>
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Artikel gesamt</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-total">—</p>
+        <p class="text-[10px] text-gray-500 font-mono">news.json + archive.json</p>
       </div>
       <div class="stat-card">
-        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(var(--neon-rgb),0.5)">Quellen aktiv</p>
-        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-sources">—</p>
-        <p class="text-[11px] text-gray-500 font-mono" id="m-sources-names">—</p>
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Quellen aktiv</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-sources">—</p>
+        <p class="text-[10px] text-gray-500 font-mono truncate" id="m-sources-names">—</p>
       </div>
       <div class="stat-card">
-        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(var(--neon-rgb),0.5)">Ø Score gesamt</p>
-        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-avgscore">—</p>
-        <p class="text-[11px] text-gray-500 font-mono">Relevanz-Durchschnitt</p>
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Ø Score gesamt</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-avgscore">—</p>
+        <p class="text-[10px] text-gray-500 font-mono">Relevanz-Durchschnitt</p>
       </div>
       <div class="stat-card">
-        <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(var(--neon-rgb),0.5)">Höchster Score</p>
-        <p class="font-black text-4xl mb-1" style="font-family:'Space Grotesk',sans-serif;color:#f97316" id="m-topscore">—</p>
-        <p class="text-[11px] text-gray-500 font-mono truncate" id="m-topscore-title">—</p>
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Höchster Score</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:#f97316" id="m-topscore">—</p>
+        <p class="text-[10px] text-gray-500 font-mono truncate" id="m-topscore-title">—</p>
       </div>
     </div>
 
-    <!-- ── Wöchentliche Statistik ── -->
+    <!-- ── Tagesverlauf (bis 30.08. "Wöchentliche Statistik": nur 17% Abdeckung,
+         weil sie ein Datum aus der Artikel-URL zu raten versuchte statt das
+         vorhandene first_seen-Feld zu nutzen -- jetzt 100% Abdeckung, taeglich
+         statt woechentlich, weil die Pipeline eh 4x/Tag laeuft) ── -->
     <div class="chart-card mb-6">
       <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
-        <p class="section-title">Wöchentliche Statistik</p>
-        <span class="meta-text" id="weekly-coverage" style="font-size:11px"></span>
+        <p class="section-title">Tagesverlauf</p>
+        <span class="meta-text" id="daily-summary" style="font-size:11px"></span>
       </div>
-      <p class="meta-text mb-4">Artikel pro Kalenderwoche · Linie = Ø Score (rechte Achse)</p>
+      <p class="meta-text mb-4">Artikel pro Tag (letzte 10 Tage) · Linie = Ø Score (rechte Achse)</p>
       <div style="position:relative;height:220px">
-        <canvas id="chart-weekly"></canvas>
+        <canvas id="chart-daily"></canvas>
       </div>
-      <div id="weekly-table" class="mt-4"></div>
+      <div id="daily-table" class="mt-4"></div>
     </div>
 
     <!-- ── Row 1: Quellen + Score-Verteilung ── -->
@@ -322,6 +326,20 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       <div style="position:relative;height:220px">
         <canvas id="chart-topics"></canvas>
       </div>
+    </div>
+
+    <!-- ── Themen-Trend (30.08., neu) ── -->
+    <div class="chart-card mb-6">
+      <p class="section-title mb-1">Themen-Trend</p>
+      <p class="meta-text mb-4">Verlauf der letzten 10 Tage je Thema · absteigend nach Erwähnungen</p>
+      <div id="theme-trends"></div>
+    </div>
+
+    <!-- ── Pipeline-Gesundheit (30.08., neu, aus ki_news.log) ── -->
+    <div class="chart-card mb-6">
+      <p class="section-title mb-1">Pipeline-Gesundheit</p>
+      <p class="meta-text mb-4">Letzte Läufe · Batches/Träger/Sprach-Guard aus ki_news.log (Log hält die letzten ~10 Läufe)</p>
+      <div id="pipeline-health"></div>
     </div>
 
     <!-- ── Row 3: Creator Dashboard ── -->
@@ -507,12 +525,19 @@ async function loadData(){
     if(!Array.isArray(archive)) archive = [];
   } catch(e){}
 
+  let logText = '';
+  try {
+    const r = await fetch('ki_news.log?t='+Date.now());
+    logText = await r.text();
+  } catch(e){}
+
   // Deduplizieren per Link
   const seen = new Set(current.map(a=>a.link));
   const merged = [...current, ...archive.filter(a=>!seen.has(a.link))];
   allArticles = merged;
 
   renderAll(current, merged);
+  renderPipelineHealth(logText);
 }
 
 function renderAll(current, all){
@@ -684,6 +709,7 @@ function renderAll(current, all){
     }
   });
   window._charts.push(chartTopics);
+  renderThemeTrends(all);
 
   // ── Top Artikel ────────────────────────────────────────────────────────────
   const top10 = [...all].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,8);
@@ -746,8 +772,8 @@ function renderAll(current, all){
     });
   }
 
-  // ── Wöchentliche Stats + Score-Formel ────────────────────────────────────
-  renderWeeklyStats(all);
+  // ── Tagesverlauf + Score-Formel ──────────────────────────────────────────
+  renderDailyStats(all);
   renderScoreBreakdown();
 }
 
@@ -791,64 +817,58 @@ function toggleSourceWindow(days){
   if(active){ active.style.background='rgba(var(--neon-rgb),0.15)'; active.style.color='var(--accent)'; active.style.borderColor='rgba(var(--neon-rgb),0.3)'; }
 }
 
-// ── Wöchentliche Statistik ───────────────────────────────────────────────────
-function extractDateFromUrl(url) {
-  if (!url) return null;
-  // /YYYY/MM/DD/ – TechCrunch, SiliconAngle, Ars Technica, VentureBeat, Wired
-  const m = url.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//);
-  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
-  return null;
-}
+// ── Tagesverlauf ──────────────────────────────────────────────────────────────
+// Bis 30.08. versuchte dieser Chart, ein Datum aus der Artikel-URL zu raten
+// (nur TechCrunch/SiliconAngle/Ars Technica/Wired haben /YYYY/MM/DD/ im Pfad) --
+// gemessen 17% Abdeckung (188 von 1075 Artikeln). Jedes Archiv-/News-Objekt hat
+// aber first_seen/date direkt -- 100% Abdeckung, kein Raten mehr noetig.
+const DAILY_WINDOW = 10; // Tage
 
-function getISOWeekInfo(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - day);
-  const year = d.getUTCFullYear();
-  const yearStart = new Date(Date.UTC(year, 0, 1));
-  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return {
-    key: `${year}-W${String(week).padStart(2,'0')}`,
-    label: `KW ${String(week).padStart(2,'0')} /${String(year).slice(2)}`
-  };
-}
+function renderDailyStats(all) {
+  const dated = all
+    .map(a => ({ ...a, _day: (a.first_seen || a.date || '').slice(0, 10) }))
+    .filter(a => a._day);
 
-function renderWeeklyStats(all) {
-  const dated = all.map(a => ({ ...a, _date: extractDateFromUrl(a.link) })).filter(a => a._date);
-  const pct = all.length ? Math.round(dated.length / all.length * 100) : 0;
-  const covEl = document.getElementById('weekly-coverage');
-  if (covEl) covEl.textContent = `${dated.length} von ${all.length} Artikeln mit erkennbarem Datum (${pct}%)`;
+  const summaryEl = document.getElementById('daily-summary');
 
-  if (dated.length < 3) return;
+  if (dated.length < 3) { if (summaryEl) summaryEl.textContent = ''; return; }
 
-  // Gruppieren nach KW
-  const weeks = {};
+  // Gruppieren nach Kalendertag
+  const days = {};
   dated.forEach(a => {
-    const { key, label } = getISOWeekInfo(a._date);
-    if (!weeks[key]) weeks[key] = { label, count: 0, scoreSum: 0, scored: 0, scoredSum: 0, sources: {} };
-    weeks[key].count++;
-    weeks[key].scoreSum += (a.score || 0);
-    if ((a.score || 0) > 0) { weeks[key].scored++; weeks[key].scoredSum += a.score; }
-    weeks[key].sources[a.source] = (weeks[key].sources[a.source] || 0) + 1;
+    const key = a._day;
+    if (!days[key]) days[key] = { count: 0, scoreSum: 0, scored: 0, scoredSum: 0, sources: {} };
+    days[key].count++;
+    days[key].scoreSum += (a.score || 0);
+    if ((a.score || 0) > 0) { days[key].scored++; days[key].scoredSum += a.score; }
+    days[key].sources[a.source] = (days[key].sources[a.source] || 0) + 1;
   });
 
-  const sorted = Object.entries(weeks).sort(([a], [b]) => a.localeCompare(b));
+  const sorted = Object.entries(days).sort(([a], [b]) => a.localeCompare(b)).slice(-DAILY_WINDOW);
   if (!sorted.length) return;
 
-  const labels = sorted.map(([, v]) => v.label);
+  if (summaryEl) {
+    const totalArt = sorted.reduce((s, [, v]) => s + v.count, 0);
+    summaryEl.textContent = `${sorted.length} Tage · ${totalArt} Artikel`;
+  }
+
+  const labels = sorted.map(([key]) => {
+    const d = new Date(key + 'T00:00:00');
+    return isNaN(d) ? key : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  });
   const counts = sorted.map(([, v]) => v.count);
-  /* Ø nur über tatsächlich gescorte Artikel — Wochen ohne Scores (Alt-Archiv)
+  /* Ø nur über tatsächlich gescorte Artikel — Tage ohne Scores (Alt-Archiv)
      bekommen null und die Linie setzt dort aus, statt auf 0 zu stürzen */
   const avgs   = sorted.map(([, v]) => v.scored ? +(v.scoredSum / v.scored).toFixed(1) : null);
 
-  const ctx = document.getElementById('chart-weekly');
+  const ctx = document.getElementById('chart-daily');
   if (!ctx) return;
 
-  // Wöchentliches Chart immer in Cyan – unabhängig vom aktiven Theme
+  // Tages-Chart immer in Cyan – unabhängig vom aktiven Theme
   const barFill   = 'rgba(0,212,255,0.35)';
   const barStroke = 'rgba(0,212,255,0.85)';
 
-  const weekChart = new Chart(ctx.getContext('2d'), {
+  const dailyChart = new Chart(ctx.getContext('2d'), {
     data: {
       labels,
       datasets: [
@@ -917,20 +937,109 @@ function renderWeeklyStats(all) {
       }
     }
   });
-  window._charts.push(weekChart);
+  window._charts.push(dailyChart);
 
-  // Wochentabelle (letzte 6 KW)
-  const tableEl = document.getElementById('weekly-table');
+  // Tagestabelle (letzte 6 Tage)
+  const tableEl = document.getElementById('daily-table');
   if (!tableEl) return;
   const recent = sorted.slice(-6).reverse();
-  tableEl.innerHTML = recent.map(([, v]) => {
+  tableEl.innerHTML = recent.map(([key, v]) => {
+    const d = new Date(key + 'T00:00:00');
+    const label = isNaN(d) ? key : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
     const avg = v.count ? (v.scoreSum / v.count).toFixed(1) : '—';
     const topSrc = Object.entries(v.sources).sort(([,a],[,b]) => b - a)[0];
     return `<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;flex-wrap:wrap">
-      <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;color:var(--accent);width:80px;flex-shrink:0">${v.label}</span>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;color:var(--accent);width:80px;flex-shrink:0">${label}</span>
       <span style="font-family:monospace;color:#6b7280">${v.count} Artikel</span>
       <span style="font-family:monospace;color:#f97316">Ø ${avg} Score</span>
       ${topSrc ? `<span style="font-family:monospace;color:${srcColor(topSrc[0])};margin-left:auto">Top-Quelle: ${topSrc[0]} (${topSrc[1]})</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Themen-Trend (30.08.) ──────────────────────────────────────────────────────
+// Wiederverwendet KEY_TERMS + dieselbe Match-Logik wie das Themen-Radar, nur
+// pro Kalendertag statt als Gesamtsumme gebrochen -- keine zweite Begriffsliste,
+// kein zusaetzlicher Fetch. Fenster = DAILY_WINDOW, wie beim Tagesverlauf.
+function renderThemeTrends(all) {
+  const container = document.getElementById('theme-trends');
+  if (!container) return;
+  const dated = all
+    .map(a => ({ ...a, _day: (a.first_seen || a.date || '').slice(0, 10) }))
+    .filter(a => a._day);
+  const days = [...new Set(dated.map(a => a._day))].sort().slice(-DAILY_WINDOW);
+  if (days.length < 3) { container.innerHTML = ''; return; }
+  const dayIndex = {}; days.forEach((d, i) => dayIndex[d] = i);
+
+  const rows = KEY_TERMS.map(term => {
+    const re = new RegExp(term, 'i');
+    const counts = new Array(days.length).fill(0);
+    let total = 0;
+    dated.forEach(a => {
+      const idx = dayIndex[a._day];
+      if (idx === undefined) return;
+      if (re.test(a.title || '') || re.test(a.summary || '')) { counts[idx]++; total++; }
+    });
+    return { term, counts, total };
+  }).filter(r => r.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
+
+  if (!rows.length) { container.innerHTML = ''; return; }
+
+  const w = 120, h = 26;
+  container.innerHTML = rows.map(r => {
+    const max = Math.max(...r.counts, 1);
+    const step = r.counts.length > 1 ? w / (r.counts.length - 1) : 0;
+    const points = r.counts.map((c, i) => `${(i * step).toFixed(1)},${(h - (c / max) * h).toFixed(1)}`).join(' ');
+    const mid = Math.floor(r.counts.length / 2);
+    const firstHalf = r.counts.slice(0, mid).reduce((a, b) => a + b, 0);
+    const secondHalf = r.counts.slice(mid).reduce((a, b) => a + b, 0);
+    const trendColor = secondHalf > firstHalf ? '#34d399' : secondHalf < firstHalf ? '#f87171' : '#6b7280';
+    const trendIcon  = secondHalf > firstHalf ? '▲' : secondHalf < firstHalf ? '▼' : '▬';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px">
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;width:100px;flex-shrink:0;color:var(--text,#dfe3ea)" class="truncate">${escapeHtml(r.term)}</span>
+      <svg width="${w}" height="${h}" style="flex-shrink:0;overflow:visible"><polyline points="${points}" fill="none" stroke="var(--accent,#00d4ff)" stroke-width="1.5"/></svg>
+      <span style="font-family:monospace;color:#6b7280;width:26px;text-align:right;flex-shrink:0">${r.total}</span>
+      <span style="color:${trendColor};flex-shrink:0">${trendIcon}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Pipeline-Gesundheit (30.08.) ────────────────────────────────────────────
+// Parst ki_news.log clientseitig (keine Server-/Python-Aenderung noetig) --
+// Log traegt sich selbst auf die letzten ~10 Laeufe zurueck, siehe ki_news.yml.
+function renderPipelineHealth(logText) {
+  const container = document.getElementById('pipeline-health');
+  if (!container) return;
+  if (!logText) { container.innerHTML = '<p class="meta-text">ki_news.log nicht erreichbar.</p>'; return; }
+
+  const chunks = logText.split(/(?===+ LAUF )/).filter(c => /^=+\s*LAUF/.test(c.trim()));
+  const runs = chunks.map(chunk => {
+    const tsMatch = chunk.match(/LAUF\s+(\S+)\s*=+/);
+    const bilanzMatch = chunk.match(/BILANZ:\s*Batches\s+(\d+)\s+versucht\s*\/\s*(\d+)\s+OK\s*\|\s*Traeger:\s*(.+?)\s*\|\s*Sprach-Guard verwarf\s+(\d+)\s+Artikel/i);
+    const warnCount = (chunk.match(/\bWARNING\b/g) || []).length;
+    return {
+      ts: tsMatch ? tsMatch[1] : null,
+      attempted: bilanzMatch ? +bilanzMatch[1] : null,
+      ok: bilanzMatch ? +bilanzMatch[2] : null,
+      traeger: bilanzMatch ? bilanzMatch[3].trim() : null,
+      guardRejects: bilanzMatch ? +bilanzMatch[4] : null,
+      warnCount
+    };
+  }).filter(r => r.ts).reverse(); // neuester Lauf zuerst
+
+  if (!runs.length) { container.innerHTML = '<p class="meta-text">Keine Lauf-Marker im Log gefunden.</p>'; return; }
+
+  container.innerHTML = runs.map(r => {
+    const d = new Date(r.ts);
+    const label = isNaN(d) ? r.ts : d.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const incomplete = r.attempted != null && r.ok != null && r.ok < r.attempted;
+    const flagged = incomplete || r.warnCount > 15;
+    return `<div style="display:flex;align-items:center;gap:14px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;flex-wrap:wrap;${flagged ? 'background:rgba(249,115,22,0.06)' : ''}">
+      <span style="font-family:monospace;color:var(--accent);width:100px;flex-shrink:0">${label}</span>
+      <span style="font-family:monospace;color:${incomplete ? '#f97316' : '#6b7280'}">${r.attempted != null ? r.attempted + ' versucht / ' + r.ok + ' OK' : '—'}</span>
+      ${r.traeger ? `<span style="font-family:monospace;color:#6b7280">Träger: ${escapeHtml(r.traeger)}</span>` : ''}
+      <span style="font-family:monospace;color:${r.guardRejects ? '#f97316' : '#6b7280'}">Sprach-Guard: ${r.guardRejects ?? '—'}</span>
+      <span style="font-family:monospace;color:${r.warnCount > 15 ? '#f87171' : '#6b7280'};margin-left:auto">${r.warnCount} Warnungen</span>
     </div>`;
   }).join('');
 }
