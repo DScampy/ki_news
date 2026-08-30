@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
     <!-- ── Pipeline-Gesundheit (30.08., neu, aus ki_news.log) ── -->
     <div class="chart-card mb-6">
       <p class="section-title mb-1">Pipeline-Gesundheit</p>
-      <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus ki_news.log (Log hält die letzten ~10 Läufe)</p>
+      <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus dem internen Betriebs-Log (die letzten ~10 Läufe)</p>
       <div id="pipeline-health"></div>
     </div>
 
@@ -981,7 +981,7 @@ function warnLabel(b) {
 function renderPipelineHealth(logText) {
   const container = document.getElementById('pipeline-health');
   if (!container) return;
-  if (!logText) { container.innerHTML = '<p class="meta-text">ki_news.log nicht erreichbar.</p>'; return; }
+  if (!logText) { container.innerHTML = '<p class="meta-text">Betriebs-Log nicht erreichbar.</p>'; return; }
 
   const chunks = logText.split(/(?===+ LAUF )/).filter(c => /^=+\s*LAUF/.test(c.trim()));
   const runs = chunks.map(chunk => {
