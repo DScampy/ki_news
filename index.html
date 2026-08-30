@@ -1023,7 +1023,16 @@ function buildSPBars(el, n, color) {
 }
 function renderSideCard(el, idx) {
   var s = heroStories[idx], level = scoreToLevel(s.score||0), p = PRIO[level], c = s.color||srcColor(s.source);
-  el.onclick = function() { heroCur = idx; heroRender(true); heroStartAuto(); };
+  // Ganze Karte oeffnet das Artikel-Overlay (30.08., Daniels Wunsch: ueberall
+  // in den Top-5-Kaestchen klickbar, nicht nur ein kleiner Button). Vorher
+  // sprang ein Klick hier nur zum Hero-Slot -- das uebernehmen jetzt Pfeile
+  // + Auto-Advance alleine.
+  el.onclick = function(e) {
+    if (typeof window.klPlainClick === 'function' && !window.klPlainClick(e)) return;
+    if (typeof window.klOpenArticle === 'function') { window.klOpenArticle(s); return; }
+    heroCur = idx; heroRender(true); heroStartAuto();
+  };
+  el.style.cursor = 'pointer';
   el.innerHTML =
     '<div class="side-top"><span class="side-card-badge" style="background:' + c + '">' + escapeHtml(s.source) + '</span><div class="side-priority" id="hsp-' + idx + '"></div></div>' +
     '<div class="side-card-title">' + escapeHtml(s.title) + '</div>' +
@@ -1098,6 +1107,17 @@ function heroRender(animate) {
       e.preventDefault();
       window.klOpenArticle(s);
     };
+    // Ganze Hero-Karte klickbar (30.08., Daniels Wunsch) -- bisher gab es
+    // nur den kleinen "Artikel lesen"-Link, waehrend die Grid-Karten weiter
+    // unten (renderCard()) komplett klickbar sind. Ausgenommen: Analyse-
+    // Toggle/-Panel und Reaktionen, die haben eigene Klick-Ziele.
+    feat.onclick = function (e) {
+      if (e.target.closest('#c-analyse-toggle, #c-analyse, #c-reactions, #c-link')) return;
+      if (typeof window.klPlainClick === 'function' && !window.klPlainClick(e)) return;
+      if (typeof window.klOpenArticle !== 'function') return;
+      window.klOpenArticle(s);
+    };
+    feat.style.cursor = 'pointer';
     // Analyse-Thread (Scampy-6) – ausklappbar, bei jedem Wechsel eingeklappt
     var toggle = document.getElementById('c-analyse-toggle');
     var panel  = document.getElementById('c-analyse');
