@@ -159,6 +159,13 @@
     '.kl-stand-label{font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.4);letter-spacing:.08em;margin:0 0 2px;}',
     '.kl-stand-value{font-size:11px;font-family:monospace;color:rgba(255,255,255,0.55);margin:0;}',
     'html.light .kl-stand-value{color:#475569;}',
+    '.kl-ov-analyse{margin:14px 0;padding:12px 14px;border-left:2px solid var(--accent);background:var(--field,#111827);border-radius:0 6px 6px 0;}',
+    '.kl-ov-analyse-label{font-size:10px;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 6px;}',
+    '.kl-ov-analyse p{font-size:13px;line-height:1.6;color:rgba(255,255,255,0.75);margin:0 0 8px;}',
+    '.kl-ov-analyse ol{margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.75);}',
+    '.kl-ov-analyse ol li{margin-bottom:4px;}',
+    'html.light .kl-ov-analyse{background:#f1f5f9;}',
+    'html.light .kl-ov-analyse p,html.light .kl-ov-analyse ol{color:#334155;}',
     '.kl-side-divider{margin:8px 16px 0;height:1px;background:rgba(var(--neon-rgb),0.10);flex-shrink:0;}',
     '.kl-side-label{padding:8px 16px 4px;font-size:9px;font-family:monospace;color:rgba(var(--neon-rgb),0.5);letter-spacing:0.12em;text-transform:uppercase;flex-shrink:0;}',
     '.kl-side-foot{padding:12px 20px;border-top:1px solid rgba(var(--neon-rgb),0.10);flex-shrink:0;}',
@@ -285,6 +292,7 @@
           '<div id="kl-ov-meta" class="kl-ov-meta"></div>' +
           '<h2 id="kl-ov-title" class="kl-ov-title"></h2>' +
           '<p id="kl-ov-summary" class="kl-ov-summary"></p>' +
+          '<div id="kl-ov-analyse" class="kl-ov-analyse" hidden></div>' +
           '<div id="kl-ov-related" class="kl-ov-related" hidden></div>' +
           '<a id="kl-ov-link" class="kl-ov-link" href="#" target="_blank" rel="noopener noreferrer">Zum Original &#8599;</a>' +
         '</div>' +
@@ -466,6 +474,22 @@
       linkEl.style.display = '';
     } else {
       linkEl.style.display = 'none';
+    }
+    // Scampy-6-Analyse (30.08., Daniels Wunsch) -- nur Top-5-Storys haben
+    // `post.erklaerung`/`post.thread`, alle anderen Artikel zeigen nichts.
+    var analyseEl = document.getElementById('kl-ov-analyse');
+    var post = data.post;
+    var thread = (post && post.thread) || [];
+    if (post && (post.erklaerung || thread.length)) {
+      var lead = post.erklaerung ? '<p>' + klEsc(post.erklaerung) + '</p>' : '';
+      var list = thread.length
+        ? '<ol>' + thread.map(function (t) { return '<li>' + klEsc(t) + '</li>'; }).join('') + '</ol>'
+        : '';
+      analyseEl.innerHTML = '<div class="kl-ov-analyse-label">Analyse</div>' + lead + list;
+      analyseEl.hidden = false;
+    } else {
+      analyseEl.innerHTML = '';
+      analyseEl.hidden = true;
     }
     relatedEl.hidden = true;
     relatedEl.innerHTML = '';
