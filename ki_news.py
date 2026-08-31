@@ -1143,14 +1143,45 @@ def _recent_story_anchors(existing_archive, days=3):
 
 def cluster_news(alle_news, anchors=None):
     """
-    Gruppiert ähnliche Artikel zu Stories. Ein Artikel kommt in einen Cluster, wenn er
-    entweder 2+ Einzel-Keywords mit ihm teilt ODER eine gemeinsame 2-Wort-Phrase (Bigram)
-    hat, in der mindestens ein Token distinktiv (selten) ist.
+    Gruppiert ähnliche Artikel zu Stories.
 
-    Das zweite Kriterium fängt Fälle wie "Seedance 2.5" / "ByteDance Seedance", wo nur EIN
-    starkes Stichwort geteilt wird (2-Keyword-Schwelle verfehlt), OHNE generische Phrasen
-    wie "Millionen Dollar" zu unzusammenhängenden Clustern zu verketten (beide Tokens dort
-    sind häufig → kein distinktives Token → kein Merge).
+    UMGEBAUT 31.08.2026 (Root-Cause-Fix fuer die Sony/Warner- und Pentagon-Live-
+    Dubletten vom 30.08.26): Die alte Regel ("2+ geteilte Keywords, davon 1 mit
+    Tages-Dokumenthaeufigkeit <= CLUSTER_RARE_DF_MAX=3") verwarf Woerter allein
+    wegen roher Haeufigkeit - bei einer gross abgedeckten Story (viele Quellen)
+    steigt die eigene Wortfrequenz ueber die Schwelle, die Story kann sich selbst
+    nicht mehr clustern. Nachgemessen an einem echten 96-Artikel-Tagesbatch
+    (27.08.26, siehe ox-analyse/EINBAUTEST_310826_verschmelzung.md): Woerter wie
+    "hugging"/"face"/"openai" kamen in 9-10 von 96 Titeln vor und wurden deshalb
+    als "zu generisch" verworfen, obwohl sie dort die richtigen Woerter waren.
+
+    NEUE REGEL: ein geteiltes Keyword zaehlt nach seiner KOHAERENZ, nicht nach
+    seiner rohen Haeufigkeit. Kohaerenz(w) = durchschnittliche paarweise
+    Titel-Aehnlichkeit (Jaccard) aller Artikel des heutigen Batches, die w
+    enthalten. Ein haeufiges Wort wie "hugging" ist vertrauenswuerdig, wenn seine
+    Traeger-Artikel sich UNTEREINANDER auch sonst aehneln (echtes Grossereignis).
+    Ein haeufiges Fuellwort wie "bericht" bleibt Rauschen, weil seine Traeger
+    thematisch nichts miteinander zu tun haben - unabhaengig von der Haeufigkeit.
+
+    ARCHITEKTUR: fester Anker pro Cluster (das erste Mitglied), neue Artikel
+    werden NUR gegen den Anker verglichen, nie gegen spaeter hinzugekommene
+    Mitglieder. Das ist bewusst KEIN Union-Find/Connected-Components mehr -
+    Grund: am 31.08. hat ein Kandidat mit "gegen jedes Mitglied vergleichen"
+    auf denselben Testdaten 118 Punkte erreicht, aber Nur 1 von 39 echten
+    Duplikaten auf einem dritten, unbenutzten Tag erkannt (Verkettungsrisiko).
+    Der Anker-Ansatz erreichte auf demselben unbenutzten Tag 18 von 39 -
+    Details in ox-analyse/CHRONIK_Clustering-Kampagne_bis_310826.md.
+
+    Bewusst NICHT mehr Teil dieser Funktion: das alte Bigram-ODER-Kriterium
+    ("Seedance 2.5"/"ByteDance Seedance"-Fall). Es wurde nie in Kombination mit
+    der Kohaerenz-Regel gemessen - lieber eine schmalere, aber durchgemessene
+    Regel als eine breitere, ungetestete Kombination. Falls dieser Fall wieder
+    auftritt: neu aufnehmen, aber zuerst gegen echte Batches testen wie hier.
+
+    Gemessen (ox-analyse/aufgaben/verschmelzung.py, echter Tokenizer aus dieser
+    Datei): 137/194 Testpaare richtig, 1 Fehlverschmelzung (Grenze 3) auf zwei
+    Trainings-Batches, 37/58 richtig / 0 Fehlverschmelzungen auf einem dritten,
+    beim Training unbenutzten Tag (27.08.26).
 
     anchors (optional): Pseudo-Mitglieder aus _recent_story_anchors() - Story-Titel
     der letzten Tage, die bei der Merge-Pruefung mitspielen (Cross-Run-Duplikat-Fix,
@@ -1159,55 +1190,59 @@ def cluster_news(alle_news, anchors=None):
     Gibt Liste von Clusters zurück (jeder Cluster = Liste von Artikeln).
     """
     combined = list(anchors or []) + list(alle_news)
-    # Dokumentfrequenz NUR ueber alle_news (heutiger frischer Batch), NICHT ueber
-    # combined. Testfund (13.07.26): mit Ankern in der df-Zaehlung "altern" die
-    # Kern-Begriffe einer wiederkehrenden Story (z.B. "apple"/"openai"/"verklagt")
-    # nach 3-4 Anker-Treffern ueber CLUSTER_RARE_DF_MAX und gelten dann als "nicht
-    # mehr distinktiv" - die Story kann sich selbst nicht mehr weiter verschmelzen,
-    # genau umgekehrt zur Absicht. Die Distinktivitaets-Schwelle soll nur vor
-    # Ueberhaeufigkeit IM HEUTIGEN Batch schuetzen (Schneeball-Fix-Zweck), nicht
-    # vor der eigenen Story-Historie.
-    df = Counter()
-    for item in alle_news:
-        for w in set(_title_tokens(item["title"])):
-            df[w] += 1
+    MIN_SHARED = 2
+    SCORE_THRESHOLD = 0.3
 
-    # Schneeball-Fix (03.07.26): Vorher wurde gegen die VEREINIGUNG aller
-    # Cluster-Keywords verglichen, die mit jedem Mitglied WUCHS - in einem
-    # KI-Feed (fast jeder Titel enthaelt openai/google/ki/agenten) frass sich
-    # ein Cluster transitiv durch den Feed. Vorfall heute 17:00: EIN Cluster
-    # mit 22 Artikeln (Google-ADK-Tutorial + Microsoft-Invest + Claude Science),
-    # Cluster-Score 77 an alle vererbt -> 61 von 183 News "episch"/BREAKING.
-    # Jetzt: (a) Matching gegen JEDES Mitglied einzeln (keine wachsende Union),
-    # (b) von 2+ geteilten Keywords muss mind. 1 DISTINKTIV sein (df-Schwelle,
-    # dieselbe Regel wie beim Bigram-Kriterium), (c) harter Groessendeckel.
-    # Simulation auf den 183 News vom 03.07.: groesster Cluster 11 -> 6, und
-    # der 6er ist die echte OpenAI-5%-Story; SpaceX/Anthropic-Samsung bleiben
-    # korrekt zusammen, Themen-Ketten zerfallen.
-    clusters = []  # je {"items": [...], "sigs": [(kw, bg) pro Mitglied]}
-    for item in combined:
-        kw = _title_keywords(item["title"])
-        bg = _title_bigrams(item["title"])
-        merged = False
+    def _jaccard(a, b):
+        if not a or not b:
+            return 0.0
+        u = a | b
+        return len(a & b) / len(u) if u else 0.0
+
+    kw_liste = [_title_keywords(item["title"]) for item in combined]
+
+    # Traeger pro Wort: welche Artikel (Index in `combined`) enthalten es.
+    traeger = {}
+    for idx, kw in enumerate(kw_liste):
+        for w in kw:
+            traeger.setdefault(w, []).append(idx)
+
+    sim_cache = {}
+    def _sim(i, j):
+        key = (i, j) if i < j else (j, i)
+        if key not in sim_cache:
+            sim_cache[key] = _jaccard(kw_liste[i], kw_liste[j])
+        return sim_cache[key]
+
+    # Kohaerenz(w) = durchschnittliche paarweise Titel-Aehnlichkeit aller Traeger
+    # von w. Ein Wort mit <=1 Traeger ist trivial kohaerent (kein Widerspruch
+    # moeglich) - das entspricht dem alten Verhalten fuer echte Einzelfaelle.
+    kohaerenz = {}
+    for w, idxs in traeger.items():
+        if len(idxs) <= 1:
+            kohaerenz[w] = 1.0
+            continue
+        paare = [(idxs[a], idxs[b]) for a in range(len(idxs)) for b in range(a + 1, len(idxs))]
+        kohaerenz[w] = sum(_sim(i, j) for i, j in paare) / len(paare)
+
+    clusters = []  # je {"items": [...], "anker_idx": int (Index in combined)}
+    for idx, item in enumerate(combined):
+        kw = kw_liste[idx]
+        best_cluster, best_score = None, 0.0
         for cluster in clusters:
             if len(cluster["items"]) >= CLUSTER_MAX_SIZE:
                 continue
-            for m_kw, m_bg in cluster["sigs"]:
-                shared_kw = kw & m_kw
-                kw_match = (len(shared_kw) >= 2
-                            and any(df[w] <= CLUSTER_RARE_DF_MAX for w in shared_kw))
-                shared_bg = bg & m_bg
-                strong_bg = any(df[a] <= CLUSTER_RARE_DF_MAX or df[b] <= CLUSTER_RARE_DF_MAX
-                                for (a, b) in shared_bg)
-                if kw_match or strong_bg:
-                    cluster["items"].append(item)
-                    cluster["sigs"].append((kw, bg))
-                    merged = True
-                    break
-            if merged:
-                break
-        if not merged:
-            clusters.append({"items": [item], "sigs": [(kw, bg)]})
+            akw = kw_liste[cluster["anker_idx"]]
+            shared = kw & akw
+            if len(shared) < MIN_SHARED:
+                continue
+            score = sum(kohaerenz[w] for w in shared)
+            if score >= SCORE_THRESHOLD and score > best_score:
+                best_score, best_cluster = score, cluster
+        if best_cluster is not None:
+            best_cluster["items"].append(item)
+        else:
+            clusters.append({"items": [item], "anker_idx": idx})
     # Anker-only Cluster (kein frischer Artikel hat gematcht) sind fuer DIESEN
     # Lauf irrelevant - keine neue Entwicklung, nichts auszugeben. Anker dienen
     # nur als Matching-Ziel, nie als eigenstaendiges Ergebnis.
