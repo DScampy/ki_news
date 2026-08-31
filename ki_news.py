@@ -1099,10 +1099,16 @@ def _title_bigrams(title):
 
 # Token, das in <= so vielen Titeln vorkommt, gilt als distinktiv (Produkt-/Eigenname).
 CLUSTER_RARE_DF_MAX = 3
-# Harter Deckel gegen Schneeball-Cluster (03.07.26): mehr Artikel nimmt ein
-# Cluster nicht auf. Grosse echte Stories sind davon kaum betroffen (die
-# groesste reale Story am 03.07. hatte 6 Artikel), Transitiv-Ketten schon.
-CLUSTER_MAX_SIZE = 8
+# Harter Deckel gegen Schneeball-Cluster (03.07.26, auf 20 angehoben 31.08.26).
+# War urspruenglich fuer die alte Union-Find-Logik gedacht (mehr Artikel nimmt
+# ein Cluster nicht auf). Mit der Kohaerenz-Regel unten ist echtes Schneeballen
+# strukturell verhindert, ein Deckel bei 8 hat aber am echten 96-Artikel-
+# Holdout (27.08.26) einen echten 9+-Artikel-Cluster künstlich abgeschnitten,
+# der 9. Artikel waere als Duplikat auf die Startseite gegangen. 20 verhaelt
+# sich auf allen bisher gemessenen Batches identisch zu "kein Deckel" (siehe
+# ox-analyse/CHRONIK...), bleibt aber als Sicherheitsnetz gegen einen
+# unbekannten Pathologiefall.
+CLUSTER_MAX_SIZE = 20
 
 def _recent_story_anchors(existing_archive, days=3):
     """Cross-Run-Duplikat-Fix (13.07.26): cluster_news() vergleicht bisher NUR
@@ -1198,6 +1204,18 @@ def cluster_news(alle_news, anchors=None):
             return 0.0
         u = a | b
         return len(a & b) / len(u) if u else 0.0
+
+    # NACHTRAG 31.08.26 (noch am selben Tag, nach Review): der Anker eines
+    # Clusters ist immer dessen ERSTES Mitglied. Ist der erste Artikel zu einer
+    # Story kurz/generisch betitelt, muessen spaetere, detailreichere Artikel
+    # zufaellig genau 2 von dessen wenigen Woertern treffen - ein reichhaltiger
+    # zweiter Artikel mit mehr Kontext (mehr Woertern) faellt sonst durch, weil
+    # er *relativ* zum schwachen Anker wenig teilt. Fix: nach Keyword-Anzahl
+    # absteigend sortieren, bevor Cluster gebildet werden - der Artikel mit den
+    # meisten Keywords wird bevorzugt Anker. Gemessen: 30/86 -> 51/86 erkannte
+    # Verschmelzungen auf den Trainingsdaten, bei weiterhin nur 1 Fehlverschmelzung
+    # (siehe ox-analyse/CHRONIK_Clustering-Kampagne_bis_310826.md).
+    combined = sorted(combined, key=lambda item: len(_title_keywords(item["title"])), reverse=True)
 
     kw_liste = [_title_keywords(item["title"]) for item in combined]
 
