@@ -1167,7 +1167,7 @@ def _recent_story_anchors(existing_archive, days=3):
     return anchors
 
 
-def cluster_news(alle_news, anchors=None):
+def cluster_news(alle_news, anchors=None, log_diag=True):
     """
     Gruppiert ähnliche Artikel zu Stories.
 
@@ -1302,9 +1302,14 @@ def cluster_news(alle_news, anchors=None):
     # abschliessend geklaert) beim naechsten Mal nachvollziehbar ist, statt nur
     # noch das Endergebnis in news.json zu haben. Bewusst auf INFO, nicht DEBUG -
     # nach ausreichend Beobachtungszeit ggf. wieder auf DEBUG zuruecksetzen.
+    # log_diag (01.09.26, abends): cluster_news() wird pro Lauf ZWEIMAL gerufen
+    # (main() fuer link_to_cluster_age, pick_top_news() fuer die Auswahl) - ohne
+    # Schalter stand jeder Cluster doppelt im Log und machte die s073-Spurensuche
+    # unnoetig schwer. Der Aufruf in main() setzt log_diag=False, geloggt wird nur
+    # noch der Lauf, der die Story-Auswahl treibt.
     for cluster in clusters:
         echte = [it for it in cluster["items"] if not it.get("_anchor")]
-        if len(echte) >= 2:
+        if log_diag and len(echte) >= 2:
             logger.info(
                 "[cluster_news] Cluster mit %d Artikeln (Quellen: %s): %s",
                 len(echte), sorted(cluster["quellen"]),
@@ -3449,7 +3454,9 @@ def main():
     # Verhindert dass neue Artikel über bekannte Storys mit frischem Datum auftauchen.
     # Cross-Run-Duplikat-Fix (13.07.26) - WIEDER DEAKTIVIERT, s. Kommentar bei
     # der zweiten cluster_news()-Aufrufstelle in pick_top_news() oben.
-    _clusters = cluster_news(alle_news, None)
+    # log_diag=False: dieser Aufruf dient nur der Alters-Map, die Diagnose-Zeilen
+    # schreibt der Aufruf in pick_top_news() (sonst steht alles doppelt im Log).
+    _clusters = cluster_news(alle_news, None, log_diag=False)
     link_to_cluster_age = {}
     for cl in _clusters:
         cl_histories = [history[item["link"]] for item in cl if item.get("link") in history]
