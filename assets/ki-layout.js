@@ -289,12 +289,13 @@
           '<span class="material-symbols-outlined">close</span></button>' +
         '<div id="kl-ov-img-wrap" class="kl-ov-img-wrap" hidden><img id="kl-ov-img" alt="">' +
           /* Fallback-Video (01.09.), Daniels Wunsch: Artikel ohne eigenes og:image
-             zeigen im Overlay statt eines leeren Slots den Marken-Clip. Nur hier
+             zeigen im Overlay statt eines leeren Slots einen Marken-Clip. Nur hier
              (Overlay), nicht im Karten-Grid -- sonst wuerden bei vielen bildlosen
-             Karten gleichzeitig etliche Videos autoplayen. */
-          '<video id="kl-ov-video" muted loop playsinline preload="none" hidden>' +
-            '<source src="' + ROOT + 'assets/fallback-artikel.mp4" type="video/mp4">' +
-          '</video></div>' +
+             Karten gleichzeitig etliche Videos autoplayen. Quelle (src) wird NICHT
+             hier fest verdrahtet, sondern erst in klPlayFallbackVideo() gesetzt --
+             Daniel hat mehrere Clips zur Auswahl (siehe FALLBACK_VIDEOS unten),
+             es soll bei jedem Oeffnen zufaellig genau einer laufen. */
+          '<video id="kl-ov-video" muted loop playsinline preload="none" hidden></video></div>' +
         '<div class="kl-ov-body">' +
           '<div id="kl-ov-meta" class="kl-ov-meta"></div>' +
           '<h2 id="kl-ov-title" class="kl-ov-title"></h2>' +
@@ -449,6 +450,19 @@
     }).catch(function () { return ''; });
   }
   var klOvOpen = false, klOvReqId = 0;
+  // Fallback-Clips fuer Artikel ohne eigenes og:image (01.09., erweitert um
+  // 3 weitere Daniel-Clips). Bei jedem Oeffnen wird EINER zufaellig gewaehlt --
+  // nie mehrere gleichzeitig, absichtlich nur Varianz statt Dauerschleife
+  // desselben Videos.
+  var FALLBACK_VIDEOS = ['fallback-artikel.mp4', 'fallback-schrifthell.mp4', 'fallback-space.mp4', 'fallback-drache.mp4'];
+  function klPlayFallbackVideo(videoEl) {
+    if (!videoEl) return;
+    var pick = FALLBACK_VIDEOS[Math.floor(Math.random() * FALLBACK_VIDEOS.length)];
+    videoEl.src = ROOT + 'assets/' + pick;
+    videoEl.hidden = false;
+    videoEl.currentTime = 0;
+    videoEl.play().catch(function () {}); // Autoplay-Block ignorieren, ist eh muted
+  }
   window.klOpenArticle = function (data) {
     data = data || {};
     var ov = document.getElementById('kl-ov');
@@ -474,19 +488,17 @@
       if (videoEl) { videoEl.pause(); videoEl.hidden = true; }
       imgEl.hidden = false;
       imgEl.onerror = function () {
-        // Eigenes Bild kaputt (404 o.ä.) -> auf den Fallback-Clip ausweichen
+        // Eigenes Bild kaputt (404 o.ä.) -> auf einen Fallback-Clip ausweichen
         // statt den ganzen Slot zu verstecken.
         imgEl.hidden = true;
-        if (videoEl) { videoEl.hidden = false; videoEl.currentTime = 0; videoEl.play().catch(function () {}); }
-        else { imgWrap.hidden = true; }
+        if (videoEl) klPlayFallbackVideo(videoEl);
+        else imgWrap.hidden = true;
       };
       imgEl.src = data.image;
       imgWrap.hidden = false;
     } else if (videoEl) {
       imgEl.hidden = true;
-      videoEl.hidden = false;
-      videoEl.currentTime = 0;
-      videoEl.play().catch(function () {}); // Autoplay-Block ignorieren, ist eh muted
+      klPlayFallbackVideo(videoEl);
       imgWrap.hidden = false;
     } else {
       imgWrap.hidden = true;
