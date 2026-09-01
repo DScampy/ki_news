@@ -24,6 +24,7 @@ import subprocess
 import sys
 import urllib.request
 import urllib.error
+import urllib.parse
 from datetime import date
 from pathlib import Path
 
@@ -695,7 +696,16 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
     Nachrichten, die mit "ip:" beginnen, statt Callback-Daten.
     Achtung: Custom-Keyboards sind chat-weit, nicht pro Nachricht - nur die
     juengste Karte zeigt den Button. Aeltere Karten: Code aus der Caption
-    (falls noetig manuell) als Nachricht schicken, funktioniert genauso."""
+    (falls noetig manuell) als Nachricht schicken, funktioniert genauso.
+
+    X-Quick-Share (01.09., Daniels Wunsch): bewusst KEIN API-Auto-Post wie bei
+    Insta -- die X-API hat seit Februar 2026 keinen kostenlosen Tier mehr
+    (Pay-per-Use, eigener Developer-Account mit Zahlungsmethode noetig).
+    Stattdessen ein simpler X-Web-Intent-Link (twitter.com/intent/tweet) in
+    der Caption: oeffnet X mit vorausgefuelltem Text, kein API/Account noetig,
+    kein Kostenrisiko. Nachteil: das Video haengt X-seitig NICHT automatisch
+    dran -- Daniel laedt es manuell aus genau dieser Telegram-Nachricht hoch
+    (hat er ja eh schon vor sich), Web-Intents koennen keine Medien anhaengen."""
     if not TELEGRAM_TOKEN:
         print("  [INFO] TELEGRAM_TOKEN nicht gesetzt — kein Telegram-Versand.")
         return False
@@ -703,9 +713,18 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
     import io
     boundary = "ScampyBoundary" + os.urandom(6).hex()
     code = f"ip:{card_id}" if card_id else ""
-    caption = f"🤖 {headline}\n\n{einordnung}"
+    x_intent_url = "https://twitter.com/intent/tweet?text=" + urllib.parse.quote(headline[:200])
+
+    # Suffix (Insta-Code + X-Link) ZUERST bauen und von der 1024-Caption-Grenze
+    # abziehen, statt hinterher blind zu kappen -- sonst fressen lange
+    # Einordnungen den X-Link einfach weg (Bug-Klasse aus der Insta-Zeile oben).
+    suffix = ""
     if code:
-        caption += f"\n\nCode zum Posten: {code}"
+        suffix += f"\n\nCode zum Posten (Insta): {code}"
+    suffix += f"\n\nAuf X posten (Text vorausgefüllt, Video manuell anhängen):\n{x_intent_url}"
+
+    body_text = f"🤖 {headline}\n\n{einordnung}"
+    caption = body_text[:1024 - len(suffix)] + suffix
     caption = caption[:1024]
 
     fields = [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption)]
