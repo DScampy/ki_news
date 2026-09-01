@@ -1087,6 +1087,15 @@ def _title_keywords(title):
         # beobachteten Floskeln - eine andere generische Phrase koennte denselben
         # Fehler mit anderem Wortlaut wieder auslösen.
         "bedrohung", "bedrohungen", "generation", "naechste", "nächste",
+        # Live gefunden (01.09.26): AlignedNews trackt jeden einzelnen Social-
+        # Media-Mikro-Post von Robert Scoble als eigenen "Artikel" - 8 voellig
+        # unabhaengige Kurzmeldungen (Linkliste teilen, Glueckwunsch, Podcast-
+        # Angebot, Link korrigiert, ...) teilten sich nur "Robert"+"Scoble" als
+        # Vorname+Nachname und wurden faelschlich zu einem Cluster. Ein
+        # zweiteiliger Eigenname erfuellt die 2-Wort-Mindestgrenze komplett von
+        # selbst, unabhaengig vom eigentlichen Ereignis - dieselbe Falle wie
+        # "Anthropic", nur diesmal ohne dass ein zweites Wort noetig waere.
+        "scoble",
     }
     words = re.findall(r'\b\w{4,}\b', _normalize_company_aliases(title))
     return {w for w in words if w not in STOPWORDS}
@@ -1208,6 +1217,17 @@ def cluster_news(alle_news, anchors=None):
     """
     combined = list(anchors or []) + list(alle_news)
     MIN_SHARED = 2
+    # NACHTRAG 01.09.26: Artikel derselben Quelle brauchen 3 statt 2 geteilte
+    # Woerter. Live gefunden: 8 verschiedene AlignedNews-Kurzmeldungen ueber
+    # Robert Scoble verschmolzen nur ueber "Robert"+"Scoble" (Vor-/Nachname
+    # erfuellt MIN_SHARED=2 von selbst, unabhaengig vom Ereignis). Eine
+    # unabhaengige zweite Quelle, die dieselben 2 Woerter teilt, ist ein
+    # staerkeres Signal als dieselbe Quelle zweimal - deshalb hoehere Huerde
+    # nur fuer den Gleiche-Quelle-Fall. Gemessen: 0 Kosten auf Trainings-/
+    # Holdout-Daten (der echte WCCFtech-DLSS5-Cluster und ein Heise-Pentagon-
+    # Paar teilen 3+ Woerter und bleiben bestehen), siehe
+    # ox-analyse/CHRONIK_Clustering-Kampagne_bis_310826.md.
+    MIN_SHARED_GLEICHE_QUELLE = 3
     SCORE_THRESHOLD = 0.3
 
     def _jaccard(a, b):
@@ -1254,24 +1274,43 @@ def cluster_news(alle_news, anchors=None):
         paare = [(idxs[a], idxs[b]) for a in range(len(idxs)) for b in range(a + 1, len(idxs))]
         kohaerenz[w] = sum(_sim(i, j) for i, j in paare) / len(paare)
 
-    clusters = []  # je {"items": [...], "anker_idx": int (Index in combined)}
+    clusters = []  # je {"items": [...], "anker_idx": int, "quellen": set()}
     for idx, item in enumerate(combined):
         kw = kw_liste[idx]
+        q = item.get("source", "")
         best_cluster, best_score = None, 0.0
         for cluster in clusters:
             if len(cluster["items"]) >= CLUSTER_MAX_SIZE:
                 continue
             akw = kw_liste[cluster["anker_idx"]]
             shared = kw & akw
-            if len(shared) < MIN_SHARED:
+            noetig = MIN_SHARED_GLEICHE_QUELLE if q in cluster["quellen"] else MIN_SHARED
+            if len(shared) < noetig:
                 continue
             score = sum(kohaerenz[w] for w in shared)
             if score >= SCORE_THRESHOLD and score > best_score:
                 best_score, best_cluster = score, cluster
         if best_cluster is not None:
             best_cluster["items"].append(item)
+            best_cluster["quellen"].add(q)
         else:
-            clusters.append({"items": [item], "anker_idx": idx})
+            clusters.append({"items": [item], "anker_idx": idx, "quellen": {q}})
+
+    # Diagnose-Log (01.09.26): jeder Mehrfach-Cluster wird protokolliert, damit
+    # ein kuenftiger Ratsel-Fall wie s073 (8 FT-AI-Artikel, die live verschmolzen,
+    # obwohl kein Paar 2 Keywords teilt - Ursache trotz Log-Analyse nicht
+    # abschliessend geklaert) beim naechsten Mal nachvollziehbar ist, statt nur
+    # noch das Endergebnis in news.json zu haben. Bewusst auf INFO, nicht DEBUG -
+    # nach ausreichend Beobachtungszeit ggf. wieder auf DEBUG zuruecksetzen.
+    for cluster in clusters:
+        echte = [it for it in cluster["items"] if not it.get("_anchor")]
+        if len(echte) >= 2:
+            logger.info(
+                "[cluster_news] Cluster mit %d Artikeln (Quellen: %s): %s",
+                len(echte), sorted(cluster["quellen"]),
+                [it.get("title", "")[:60] for it in echte],
+            )
+
     # Anker-only Cluster (kein frischer Artikel hat gematcht) sind fuer DIESEN
     # Lauf irrelevant - keine neue Entwicklung, nichts auszugeben. Anker dienen
     # nur als Matching-Ziel, nie als eigenstaendiges Ergebnis.
