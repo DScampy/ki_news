@@ -203,7 +203,7 @@
     '.kl-ov-close:hover{background:var(--accent);color:#000;}',
     'html.light .kl-ov-close{background:rgba(255,255,255,0.8);color:#0f172a;}',
     '.kl-ov-img-wrap{position:relative;padding-top:42%;overflow:hidden;border-radius:14px 14px 0 0;background:var(--field,#111827);}',
-    '.kl-ov-img-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}',
+    '.kl-ov-img-wrap img,.kl-ov-img-wrap video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}',
     '.kl-ov-body{padding:22px 24px 24px;}',
     '.kl-ov-meta{font-size:11px;font-family:monospace;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted,#8b98a5);margin-bottom:8px;}',
     '.kl-ov-title{font-family:\'Space Grotesk\',sans-serif;font-size:22px;font-weight:800;line-height:1.28;color:var(--text,#e8f8ff);margin:0 0 12px;}',
@@ -287,13 +287,20 @@
       '<div class="kl-ov-card">' +
         '<button type="button" class="kl-ov-close" onclick="window.klCloseArticle()" aria-label="Schlie&szlig;en">' +
           '<span class="material-symbols-outlined">close</span></button>' +
-        '<div id="kl-ov-img-wrap" class="kl-ov-img-wrap" hidden><img id="kl-ov-img" alt=""></div>' +
+        '<div id="kl-ov-img-wrap" class="kl-ov-img-wrap" hidden><img id="kl-ov-img" alt="">' +
+          /* Fallback-Video (01.09.), Daniels Wunsch: Artikel ohne eigenes og:image
+             zeigen im Overlay statt eines leeren Slots den Marken-Clip. Nur hier
+             (Overlay), nicht im Karten-Grid -- sonst wuerden bei vielen bildlosen
+             Karten gleichzeitig etliche Videos autoplayen. */
+          '<video id="kl-ov-video" muted loop playsinline preload="none" hidden>' +
+            '<source src="' + ROOT + 'assets/fallback-artikel.mp4" type="video/mp4">' +
+          '</video></div>' +
         '<div class="kl-ov-body">' +
           '<div id="kl-ov-meta" class="kl-ov-meta"></div>' +
           '<h2 id="kl-ov-title" class="kl-ov-title"></h2>' +
           '<p id="kl-ov-summary" class="kl-ov-summary"></p>' +
-          '<div id="kl-ov-analyse" class="kl-ov-analyse" hidden></div>' +
           '<div id="kl-ov-related" class="kl-ov-related" hidden></div>' +
+          '<div id="kl-ov-analyse" class="kl-ov-analyse" hidden></div>' +
           '<a id="kl-ov-link" class="kl-ov-link" href="#" target="_blank" rel="noopener noreferrer">Zum Original &#8599;</a>' +
         '</div>' +
       '</div>' +
@@ -452,6 +459,7 @@
     var linkEl = document.getElementById('kl-ov-link');
     var imgWrap = document.getElementById('kl-ov-img-wrap');
     var imgEl = document.getElementById('kl-ov-img');
+    var videoEl = document.getElementById('kl-ov-video');
     var relatedEl = document.getElementById('kl-ov-related');
     var title = data.title || '', summary = data.summary || '';
     titleEl.textContent = title;
@@ -463,8 +471,22 @@
     if (data.region) metaParts.push(klEsc(data.region));
     metaEl.innerHTML = metaParts.join(' &middot; ');
     if (data.image) {
-      imgEl.onerror = function () { imgWrap.hidden = true; };
+      if (videoEl) { videoEl.pause(); videoEl.hidden = true; }
+      imgEl.hidden = false;
+      imgEl.onerror = function () {
+        // Eigenes Bild kaputt (404 o.ä.) -> auf den Fallback-Clip ausweichen
+        // statt den ganzen Slot zu verstecken.
+        imgEl.hidden = true;
+        if (videoEl) { videoEl.hidden = false; videoEl.currentTime = 0; videoEl.play().catch(function () {}); }
+        else { imgWrap.hidden = true; }
+      };
       imgEl.src = data.image;
+      imgWrap.hidden = false;
+    } else if (videoEl) {
+      imgEl.hidden = true;
+      videoEl.hidden = false;
+      videoEl.currentTime = 0;
+      videoEl.play().catch(function () {}); // Autoplay-Block ignorieren, ist eh muted
       imgWrap.hidden = false;
     } else {
       imgWrap.hidden = true;
@@ -507,6 +529,8 @@
   window.klCloseArticle = function () {
     var ov = document.getElementById('kl-ov');
     if (ov) ov.style.display = 'none';
+    var v = document.getElementById('kl-ov-video');
+    if (v) v.pause(); // laeuft sonst im Hintergrund weiter (muted, aber unnoetig)
     document.documentElement.style.overflow = '';
     klOvOpen = false;
   };
