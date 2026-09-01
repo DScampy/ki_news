@@ -454,7 +454,10 @@
   // 3 weitere Daniel-Clips). Bei jedem Oeffnen wird EINER zufaellig gewaehlt --
   // nie mehrere gleichzeitig, absichtlich nur Varianz statt Dauerschleife
   // desselben Videos.
-  var FALLBACK_VIDEOS = ['fallback-artikel.mp4', 'fallback-schrifthell.mp4', 'fallback-space.mp4', 'fallback-drache.mp4'];
+  var FALLBACK_VIDEOS = [
+    'fallback-artikel.mp4', 'fallback-schrifthell.mp4', 'fallback-space.mp4', 'fallback-drache.mp4',
+    'fallback-eule.mp4', 'fallback-weltraum.mp4', 'fallback-wasserwellen.mp4', 'fallback-buchaufschlagen.mp4'
+  ];
   function klPlayFallbackVideo(videoEl) {
     if (!videoEl) return;
     var pick = FALLBACK_VIDEOS[Math.floor(Math.random() * FALLBACK_VIDEOS.length)];
