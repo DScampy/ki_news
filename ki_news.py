@@ -9,6 +9,7 @@ import difflib
 import webbrowser
 from collections import Counter
 from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from time import sleep
 from urllib.error import URLError, HTTPError
@@ -1076,6 +1077,16 @@ def _title_keywords(title):
         # Meldungen zu einem Müll-Cluster zusammen (z.B. alle "X sammelt Y Millionen").
         "million", "millionen", "milliarde", "milliarden", "dollar", "euro", "startup",
         "startups", "prozent", "percent", "raises", "funding", "sammelt", "series",
+        # Generische Presse-Floskeln (01.09.26): live gefunden, verschmolzen ueber
+        # das gemeinsame Wort drei bzw. zwei tatsaechlich unabhaengige Meldungen
+        # (s014 "KI-Bedrohung" fuer G20/Beratungsbranche/Software-Investitionen,
+        # s016 "naechste Generation der..." fuer Polimill/Japan vs. OpenAI/Thailand).
+        # Gegen Trainings-/Holdout-Daten geprueft: 0 Aenderung an bestehenden
+        # Ergebnissen (ox-analyse/CHRONIK_Clustering-Kampagne_bis_310826.md).
+        # Kein struktureller Fix, nur ein gezielter Flicken fuer diese beiden
+        # beobachteten Floskeln - eine andere generische Phrase koennte denselben
+        # Fehler mit anderem Wortlaut wieder auslösen.
+        "bedrohung", "bedrohungen", "generation", "naechste", "nächste",
     }
     words = re.findall(r'\b\w{4,}\b', _normalize_company_aliases(title))
     return {w for w in words if w not in STOPWORDS}
@@ -2066,6 +2077,29 @@ def fetch_feed(name, url):
         # kein Problem, weil deren site-Name selten am Titelende landet, bei "Digg" schon.
         if name == "Digg AI" and title.endswith(" - Digg"):
             title = title[: -len(" - Digg")].strip()
+        # Altinhalt-Filter (01.09.26): manche Google-News-SEARCH-Feeds (z.B.
+        # "site:smwa.sachsen.de KI") liefern Jahre alte Seiten, sobald Google sie neu
+        # indiziert - unser first_seen kennt aber nur "wann WIR den Link zuerst sahen",
+        # nicht das echte Alter. Live gefunden: 3 Zukunftsblog-Sachsen-Artikel von
+        # 2023/2024 liefen als "heutige" News durch die Pipeline und wurden von der
+        # Kohaerenz-Cluster-Logik faelschlich zu einer Story verschmolzen, weil sie
+        # gleichzeitig als "neu" auftauchten (ox-analyse/CHRONIK...). Fix: die vom
+        # Feed selbst gelieferte pubDate nutzen, falls vorhanden - fehlt sie (viele
+        # Feeds liefern keine), bleibt das Verhalten unveraendert (kein Fehlalarm
+        # durch Abwesenheit des Felds).
+        pubdate_raw = _first_child_text(item, "pubDate") or _first_child_text(item, "published")
+        if pubdate_raw:
+            try:
+                pubdate = parsedate_to_datetime(pubdate_raw)
+                if pubdate.tzinfo is None:
+                    pubdate = pubdate.replace(tzinfo=timezone.utc)
+                alter_tage = (datetime.now(timezone.utc) - pubdate).days
+                if alter_tage > MAX_AGE_DAYS:
+                    logger.info("[%s] Altinhalt uebersprungen (%d Tage alt): %s",
+                                name, alter_tage, (title or "")[:70])
+                    continue
+            except Exception:
+                pass  # Datum nicht parsebar -> wie bisher behandeln, nicht raten
         if title and (name in ALWAYS_KI_RELEVANT_SOURCES or _is_ki_relevant(title)):
             items.append({"title": title, "link": link, "source": name})
     # War [:3] – das warf ~70% der relevanten News pro Feed weg (The Decoder liefert
