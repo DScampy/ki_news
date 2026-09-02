@@ -16,6 +16,7 @@ Ablauf:
 """
 
 import base64
+import html
 import json
 import os
 import random
@@ -695,17 +696,36 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
     praktisch jeden Klick verpasst). check_insta_queue.py liest ab jetzt
     Nachrichten, die mit "ip:" beginnen, statt Callback-Daten.
     Achtung: Custom-Keyboards sind chat-weit, nicht pro Nachricht - nur die
-    juengste Karte zeigt den Button. Aeltere Karten: Code aus der Caption
-    (falls noetig manuell) als Nachricht schicken, funktioniert genauso.
+    juengste Karte zeigt den Button.
+    Tap-to-Copy fuer AELTERE Karten (01.09., Daniels Feedback: "muss bislang
+    immer frimmeln und kopieren"): der Code steht zusaetzlich als <code>-
+    Textabschnitt in der Caption (parse_mode=HTML) -- Telegram macht daraus
+    auf allen Clients antippbaren, automatisch kopierten Monospace-Text. Das
+    ist NICHT chat-weit wie das Keyboard, sondern haengt an genau dieser
+    Nachricht und funktioniert dauerhaft, auch Wochen spaeter. Ablauf fuer
+    alte Karten dann: Code antippen (kopiert), Chat-Eingabe antippen,
+    einfuegen, senden -- kein Abtippen mehr noetig. Bei parse_mode=HTML
+    muessen Headline/Einordnung escaped werden (< > & sind sonst ungueltiges
+    HTML), der Code-Teil bleibt bewusst unescaped fuer die <code>-Tags.
 
-    X-Quick-Share (01.09., Daniels Wunsch): bewusst KEIN API-Auto-Post wie bei
-    Insta -- die X-API hat seit Februar 2026 keinen kostenlosen Tier mehr
-    (Pay-per-Use, eigener Developer-Account mit Zahlungsmethode noetig).
-    Stattdessen ein simpler X-Web-Intent-Link (twitter.com/intent/tweet) in
-    der Caption: oeffnet X mit vorausgefuelltem Text, kein API/Account noetig,
-    kein Kostenrisiko. Nachteil: das Video haengt X-seitig NICHT automatisch
-    dran -- Daniel laedt es manuell aus genau dieser Telegram-Nachricht hoch
-    (hat er ja eh schon vor sich), Web-Intents koennen keine Medien anhaengen."""
+    X-Quick-Share (01.09., Daniels Wunsch, dann auf "richtiger Button" umgebaut):
+    bewusst KEIN API-Auto-Post wie bei Insta -- die X-API hat seit Februar 2026
+    keinen kostenlosen Tier mehr (Pay-per-Use, eigener Developer-Account mit
+    Zahlungsmethode noetig). Stattdessen ein X-Web-Intent-Link
+    (twitter.com/intent/tweet), der X mit vorausgefuelltem (aber frei
+    editierbarem) Text oeffnet -- kein API/Account, kein Kostenrisiko. Das
+    Video haengt X-seitig NICHT automatisch dran -- Daniel laedt es manuell
+    aus genau dieser Telegram-Nachricht hoch, Web-Intents koennen keine Medien
+    anhaengen.
+    ALS ECHTER BUTTON statt Text-Link: Telegram erlaubt pro Nachricht nur
+    EIN reply_markup, und der Insta-Code-Button braucht die ReplyKeyboard-Form
+    (schickt seinen Text als normale Nachricht zurueck -- das ist der ganze
+    Grund fuer den Custom-Keyboard-Umweg oben, siehe Docstring-Anfang). Ein
+    InlineKeyboard mit "url" dagegen oeffnet den Link direkt am Geraet, KEIN
+    callback_query, KEIN Warteschlangen-Problem -- fuer einen reinen Link
+    eigentlich die robustere Variante von beiden. Da nicht beides auf einer
+    Nachricht geht: Video+Insta-Button wie bisher, direkt danach eine zweite,
+    schlanke Nachricht NUR mit dem X-Inline-Button (_send_x_button unten)."""
     if not TELEGRAM_TOKEN:
         print("  [INFO] TELEGRAM_TOKEN nicht gesetzt — kein Telegram-Versand.")
         return False
@@ -713,21 +733,23 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
     import io
     boundary = "ScampyBoundary" + os.urandom(6).hex()
     code = f"ip:{card_id}" if card_id else ""
-    x_intent_url = "https://twitter.com/intent/tweet?text=" + urllib.parse.quote(headline[:200])
 
-    # Suffix (Insta-Code + X-Link) ZUERST bauen und von der 1024-Caption-Grenze
-    # abziehen, statt hinterher blind zu kappen -- sonst fressen lange
-    # Einordnungen den X-Link einfach weg (Bug-Klasse aus der Insta-Zeile oben).
-    suffix = ""
-    if code:
-        suffix += f"\n\nCode zum Posten (Insta): {code}"
-    suffix += f"\n\nAuf X posten (Text vorausgefüllt, Video manuell anhängen):\n{x_intent_url}"
-
-    body_text = f"🤖 {headline}\n\n{einordnung}"
-    caption = body_text[:1024 - len(suffix)] + suffix
+    # Suffix (Insta-Code, als <code> antippbar/kopierbar) ZUERST bauen und von
+    # der 1024-Caption-Grenze abziehen, statt hinterher blind zu kappen --
+    # sonst frisst eine lange Einordnung den Code einfach weg. Headline/
+    # Einordnung sind Fremdtext (LLM-Ausgabe) -> HTML-escapen, sonst kann ein
+    # zufaelliges "<" die parse_mode=HTML-Nachricht kaputt machen.
+    suffix = f"\n\nCode zum Posten (Insta, antippen zum Kopieren):\n<code>{html.escape(code)}</code>" if code else ""
+    body_text = f"🤖 {html.escape(headline)}\n\n{html.escape(einordnung)}"
+    caption = body_text[:1024 - len(suffix)]
+    # Schnitt kann mitten in einer escapten Entity landen ("...KI &am") -- das
+    # waere kaputtes HTML und liesse parse_mode=HTML die ganze Nachricht
+    # ablehnen. Eine unvollstaendige Entity am Ende (kein abschliessendes ";")
+    # wird darum abgeschnitten statt riskiert.
+    caption = re.sub(r'&[#a-zA-Z0-9]*$', '', caption) + suffix
     caption = caption[:1024]
 
-    fields = [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption)]
+    fields = [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption), ("parse_mode", "HTML")]
     if card_id:
         reply_markup = json.dumps({
             "keyboard": [[{"text": code}]],
@@ -760,13 +782,50 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             result = json.loads(resp.read())
-            if result.get("ok"):
-                print(f"  ✓ Telegram: Video gesendet")
-                return True
-            print(f"  [WARN] Telegram: {result}")
-            return False
+            if not result.get("ok"):
+                print(f"  [WARN] Telegram: {result}")
+                return False
+            print(f"  ✓ Telegram: Video gesendet")
     except Exception as e:
         print(f"  [WARN] Telegram sendVideo Fehler: {e}")
+        return False
+
+    # X-Button als eigene Folgenachricht (siehe Docstring oben, wieso nicht
+    # auf derselben Nachricht) -- best effort: schlaegt das fehl, bleibt das
+    # Video trotzdem verschickt, darum eigener try/except statt den Erfolg
+    # der Hauptfunktion davon abhaengig zu machen.
+    _send_x_button(headline)
+    return True
+
+
+def _send_x_button(headline: str) -> bool:
+    """Schickt eine schlanke Folgenachricht mit einem echten Inline-Button
+    ('Auf X posten'), der den X-Web-Intent-Link direkt oeffnet (url-Button,
+    kein callback_query noetig -- siehe Docstring von send_card_to_telegram)."""
+    if not TELEGRAM_TOKEN:
+        return False
+    x_intent_url = "https://twitter.com/intent/tweet?text=" + urllib.parse.quote(headline[:200])
+    reply_markup = json.dumps({
+        "inline_keyboard": [[{"text": "🐦 Auf X posten", "url": x_intent_url}]]
+    })
+    payload = json.dumps({
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": "Video oben manuell anhängen, Text ist editierbar:",
+        "reply_markup": json.loads(reply_markup),
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+        data=payload, headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+            if result.get("ok"):
+                return True
+            print(f"  [WARN] Telegram X-Button: {result}")
+            return False
+    except Exception as e:
+        print(f"  [WARN] Telegram X-Button Fehler: {e}")
         return False
 
 
