@@ -2329,6 +2329,15 @@ def summarize_news(alle_news, summary_cache=None):
         c = (summary_cache or {}).get(n.get("link", ""))
         if c and c.get("title_de"):
             result[i] = {"title_de": c["title_de"], "summary": c.get("summary", "")}
+            # title_orig nachtragen (02.09.26): Bestandseintraege aus der Zeit vor
+            # diesem Feld bekommen den Originaltitel beim naechsten Sehen ergaenzt -
+            # sonst waere der Datensatz erst nach dem 30-Tage-Pruning vollstaendig.
+            # Die Bedingung title != title_de schliesst Archiv-Recalls aus:
+            # _recall_relevant_from_archive() haengt Artikel mit dem bereits
+            # PUBLIZIERTEN (deutschen) Titel an alle_news an - deren "title" ist
+            # kein Originaltitel und wuerde den Datensatz verderben.
+            if not c.get("title_orig") and n.get("title") and n["title"] != c["title_de"]:
+                c["title_orig"] = n["title"]
         else:
             pending.append(i)
     if summary_cache is not None:
@@ -2635,6 +2644,15 @@ News:
                                 "title_de": title_de,
                                 "summary": _fix_latex_escapes(item.get("summary", "")),
                                 "generated_at": _today_iso(),
+                                # title_orig (02.09.26): der unuebersetzte RSS-Titel.
+                                # Grund: cluster_news() arbeitet auf den Originaltiteln,
+                                # alle Offline-Testdaten enthalten aber nur die deutschen.
+                                # Ohne Ablage ist dieser Unterschied nicht messbar - die
+                                # Originaltitel sind nach Stunden aus den Feeds
+                                # verschwunden (deutsche Quellen rotieren am schnellsten,
+                                # Heise: 3 von 155 Feed-Artikeln noch matchbar).
+                                # Beleg: ox-analyse/EXPERIMENT_020926_Sprachregime.md
+                                "title_orig": alle_news[global_index].get("title", ""),
                             }
                     logger.info("Zusammenfassungen Batch %d OK mit %s", batch_start // batch_size + 1, modell)
                     _model_note_ok(modell)
