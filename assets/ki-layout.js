@@ -214,7 +214,11 @@
     '.kl-chip{font-size:11px;font-family:monospace;padding:3px 9px;border-radius:20px;border:1px solid var(--hairline,#2f3336);color:var(--muted,#8b98a5);white-space:nowrap;}',
     '.kl-chip-hit{color:var(--accent);border-color:var(--accent);}',
     '.kl-ov-link{display:inline-flex;align-items:center;gap:6px;font-family:\'Space Grotesk\',sans-serif;font-size:14px;font-weight:700;color:#000;background:var(--accent);padding:10px 18px;border-radius:8px;text-decoration:none;}',
-    '.kl-ov-link:hover{filter:brightness(1.1);}'
+    '.kl-ov-link:hover{filter:brightness(1.1);}',
+    '.kl-ov-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
+    '.kl-ov-share{display:inline-flex;align-items:center;gap:6px;font-family:\'Space Grotesk\',sans-serif;font-size:14px;font-weight:700;color:var(--text,#e8f8ff);background:transparent;border:1px solid var(--hairline,#2f3336);padding:9px 16px;border-radius:8px;cursor:pointer;transition:border-color .15s,color .15s;}',
+    '.kl-ov-share:hover{border-color:var(--accent);color:var(--accent);}',
+    '.kl-ov-share.done{border-color:var(--accent);color:var(--accent);}'
   ].join('\n');
 
   /* ── Chrome-HTML ────────────────────────────────────────────── */
@@ -302,7 +306,13 @@
           '<p id="kl-ov-summary" class="kl-ov-summary"></p>' +
           '<div id="kl-ov-related" class="kl-ov-related" hidden></div>' +
           '<div id="kl-ov-analyse" class="kl-ov-analyse" hidden></div>' +
-          '<a id="kl-ov-link" class="kl-ov-link" href="#" target="_blank" rel="noopener noreferrer">Zum Original &#8599;</a>' +
+          '<div class="kl-ov-actions">' +
+            '<a id="kl-ov-link" class="kl-ov-link" href="#" target="_blank" rel="noopener noreferrer">Zum Original &#8599;</a>' +
+            '<button type="button" id="kl-ov-share" class="kl-ov-share" onclick="window.klShareArticle()">' +
+              '<span class="material-symbols-outlined" style="font-size:17px">ios_share</span>' +
+              '<span id="kl-ov-share-label">Teilen</span>' +
+            '</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -466,8 +476,64 @@
     videoEl.currentTime = 0;
     videoEl.play().catch(function () {}); // Autoplay-Block ignorieren, ist eh muted
   }
+  /* -- Teilen (03.09.26) -------------------------------------------------
+     Bis hierhin gab es keinen Weg, EINE gelesene Meldung weiterzuschicken --
+     nur die ganze Seite als Link. klHashId() macht aus dem Artikel-Link eine
+     kurze, stabile ID (djb2, base36); index.html oeffnet beim Laden das
+     Overlay, wenn die Adresse auf #a=<id> endet. Der Teilen-Knopf nutzt die
+     native Share-Sheet (Handy) und faellt sonst auf "Link kopiert" zurueck. */
+  window.klHashId = function (str) {
+    var key = String(str == null ? '' : str), h = 5381;
+    for (var i = 0; i < key.length; i++) h = ((h * 33) ^ key.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  };
+  var klCurrent = null;
+  function klShareUrl() {
+    var base = location.origin + location.pathname;
+    if (!klCurrent || !klCurrent.link) return base;
+    return base + '#a=' + window.klHashId(klCurrent.link);
+  }
+  function klShareFeedback(text) {
+    var lab = document.getElementById('kl-ov-share-label'),
+        btn = document.getElementById('kl-ov-share');
+    if (!lab) return;
+    lab.textContent = text;
+    if (btn) btn.classList.add('done');
+    setTimeout(function () {
+      lab.textContent = 'Teilen';
+      if (btn) btn.classList.remove('done');
+    }, 1900);
+  }
+  window.klShareArticle = function () {
+    var url = klShareUrl(), title = (klCurrent && klCurrent.title) || 'KI News';
+    if (navigator.share) {
+      navigator.share({ title: title, text: title, url: url }).catch(function () {});
+      return;
+    }
+    var done = function () { klShareFeedback('Link kopiert'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { klCopyFallback(url, done); });
+    } else {
+      klCopyFallback(url, done);
+    }
+  };
+  function klCopyFallback(url, done) {
+    // execCommand ist veraltet, aber der einzige Weg ohne Clipboard-API
+    // (aeltere Browser, http-Kontext). Schlaegt auch das fehl: URL anzeigen.
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = url; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:absolute;left:-9999px;top:0';
+      document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) { done(); return; }
+    } catch (e) {}
+    window.prompt('Link zum Kopieren:', url);
+  }
   window.klOpenArticle = function (data) {
     data = data || {};
+    klCurrent = data;
     var ov = document.getElementById('kl-ov');
     if (!ov) return; // Overlay-HTML fehlt (Injektion nicht gelaufen) -- niemals crashen
     var titleEl = document.getElementById('kl-ov-title');
@@ -533,6 +599,11 @@
     ov.style.display = 'flex';
     document.documentElement.style.overflow = 'hidden';
     klOvOpen = true;
+    // replaceState statt location.hash: kein Sprung, kein History-Eintrag pro
+    // geoeffnetem Artikel -- die Adresszeile ist trotzdem sofort teilbar.
+    if (data.link && window.history && history.replaceState) {
+      try { history.replaceState(null, '', '#a=' + window.klHashId(data.link)); } catch (e) {}
+    }
     var reqId = ++klOvReqId;
     try {
       klRelatedHtml(title + ' ' + summary).then(function (html) {
@@ -544,6 +615,10 @@
   window.klCloseArticle = function () {
     var ov = document.getElementById('kl-ov');
     if (ov) ov.style.display = 'none';
+    klCurrent = null;
+    if (location.hash.indexOf('#a=') === 0 && window.history && history.replaceState) {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    }
     var v = document.getElementById('kl-ov-video');
     if (v) v.pause(); // laeuft sonst im Hintergrund weiter (muted, aber unnoetig)
     document.documentElement.style.overflow = '';
