@@ -1,14 +1,36 @@
 name: Insta-Queue (Telegram-Button)
 
-# Kein Webhook, kein Dauer-Server: laeuft per Cron alle 15 Min und holt ab,
-# ob seit dem letzten Lauf ein "📤 Auf Instagram posten"-Button in Telegram
-# gedrueckt wurde (check_insta_queue.py). Telegram haelt Updates bis 24h vor,
-# ein verpasster Tick ist also kein Problem.
+# Kein Webhook, kein Dauer-Server: der Lauf holt ab, ob seit dem letzten Mal ein
+# "📤 Auf Instagram posten"-Button in Telegram gedrueckt wurde
+# (check_insta_queue.py). Telegram haelt Updates bis 24h vor, ein verpasster
+# Tick ist also kein Problem.
+#
+# Trigger-Erweiterung 03.09.26: Der 2h-Cron allein reichte nicht. GitHub verwirft
+# geplante Laeufe unter Last - gemessene Ist-Zahlen aus der Run-Historie statt der
+# geplanten 12 Laeufe/Tag: 31.08. = 3, 01.09. = 5, 02.09. = 6, groesste Luecke ~8h.
+# Dadurch lagen zwischen Button-Klick und Abholung bis zu 6 Stunden (belegter Fall:
+# Klick 02.09. 06:26, Abholung erst 10:16). Deshalb zusaetzlich workflow_run: direkt
+# nach jedem "KI News"-Lauf wird die Queue geprueft - genau der Moment, in dem
+# frische Karten in Telegram landen und der Button gedrueckt wird.
+# Bewusst NICHT auf */15 hochgedreht (96 Laeufe/Tag fuer im Schnitt <1 Klick).
 
 on:
   schedule:
     - cron: "0 */2 * * *"
+  workflow_run:
+    workflows: ["KI News"]
+    types: [completed]
   workflow_dispatch: {}
+
+# Pflicht seit dem workflow_run-Trigger: Cron-Tick und Karten-Lauf koennen jetzt
+# zeitlich zusammenfallen. check_insta_queue.py schreibt den Telegram-Offset erst
+# am ENDE des Laufs, ein IG-Post darf bis 90s dauern - zwei parallele Laeufe
+# wuerden denselben Klick lesen und DOPPELT auf Instagram posten.
+# cancel-in-progress: false, damit ein laufender Post nie mittendrin abgebrochen
+# wird (Container erstellt, publish nicht mehr ausgefuehrt).
+concurrency:
+  group: insta-queue
+  cancel-in-progress: false
 
 jobs:
   check:
@@ -19,6 +41,12 @@ jobs:
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
+        with:
+          # Bei workflow_run zeigt GITHUB_SHA auf den Stand des ausloesenden Laufs
+          # - das kann VOR dessen eigenem cards.json-Commit liegen. Explizit main
+          # auschecken, sonst sucht find_card() in einer veralteten cards.json und
+          # der Klick geht mit "Card nicht gefunden" verloren.
+          ref: main
 
       - name: Python einrichten
         uses: actions/setup-python@v5
