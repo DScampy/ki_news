@@ -98,7 +98,16 @@ MAX_SENTENCES  = 3      # Einordnung wird auf max. N Sätze gekappt (Text + TTS)
 FORCE_RENDER   = os.environ.get("FORCE_RENDER", "0") == "1"
 
 MAX_STATE_LINKS  = 60   # wie telegram_state.json: nur die juengsten Links merken
-MAX_CARDS_DISPLAY = 20  # cards.json akkumuliert ueber mehrere Laeufe statt geleert zu werden
+# 20 -> 150 (01.09., Daniels Fund: "Insta-Links werden nicht gefunden"). Ursache
+# war NICHT ein Bug im Code-Abgleich, sondern die Retention selbst: cards.json
+# diente bisher als Doppelzweck-Datei (Anzeige-Feed + Nachschlagewerk fuer
+# check_insta_queue.py/post_to_insta.py/_send_x_button), und bei ~11-12 Karten/
+# Tag deckten 20 Eintraege nur ~1.5 Tage ab -- aeltere Codes fanden schlicht
+# keine Karte mehr (find_card() sucht NUR in dieser Datei). Display-Seiten sind
+# unbetroffen, die zeigen ohnehin nur ihre eigene TOP_N-Auswahl (artikel.html:
+# 8, breaking_player.html: 3), nie die volle Liste. 150 Eintraege ~ 2 Wochen
+# Rueckgriff, JSON bleibt klein (Karten-Metadaten, keine Videodaten).
+MAX_CARDS_DISPLAY = 150
 
 ROOT_DIR       = Path(os.environ.get("GITHUB_WORKSPACE", Path(__file__).resolve().parent))
 
