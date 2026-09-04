@@ -562,6 +562,27 @@ def _is_roundup(news_item) -> bool:
         return True
     return bool(_ROUNDUP_PATTERN.search(news_item.get("title", "")))
 
+# Social-Echo (03.09.26): AlignedNews aggregiert X-Beitraege. Neben echten
+# Meldungen (Gemini-3.8-Reihe u.a.) kommen dabei reine Reaktions-Posts einer
+# einzelnen Person herein - Titel wie "Scoble reagiert mit einem kurzen Ausruf
+# und einem Smiley auf eine Nachricht von @GregoryNimer" oder "Scoble Records
+# zeigt sich von AniC_dev begeistert". Das sind X-Links auf Aeusserungen, keine
+# Nachrichten: kein Ereignis, keine Quelle, nichts zu verifizieren.
+# Ausgezaehlt in archive.json am 03.09.26: 111 AlignedNews-Eintraege, davon 30
+# mit "scoble" im Titel - und ALLE 30 beginnen damit. Die restlichen ~80 sind
+# echte Meldungen, deshalb KEIN Quellen-Hardfilter, sondern ein Titelmuster.
+# Bewusst eng: nur "scoble". Die bestehenden PENALTY_KEYWORDS ("reacts to" -15,
+# "promotes" -20, "aligned news" -30) senken den Score, verhindern aber nicht,
+# dass die Meldungen in Bestand und Clustering landen - genau dort waren sie am
+# 01.09. Ausloeser fuer Fehlverschmelzungen (Vor-/Nachname erfuellt MIN_SHARED
+# von selbst, siehe MIN_SHARED_GLEICHE_QUELLE in cluster_news()).
+_SOCIAL_ECHO_MUSTER = ("scoble",)
+
+def _is_social_echo(news_item) -> bool:
+    """True bei reinen Social-Media-Reaktionsposts ohne Nachrichtenwert."""
+    t = (news_item.get("title", "") or "").lower()
+    return any(m in t for m in _SOCIAL_ECHO_MUSTER)
+
 def _is_ad(news_item) -> bool:
     """Werbung/Sponsored erkennen – z.B. Golem 'Anzeige: ...'. Nur Titel, die DAMIT
     ANFANGEN, damit echte News wie 'Immobilienanzeigen' nicht getroffen werden."""
@@ -3392,6 +3413,13 @@ def main():
     alle_news = [n for n in alle_news if not _is_ad(n)]
     if _before_ads != len(alle_news):
         logger.info("%d Werbung/Anzeige-Eintraege entfernt", _before_ads - len(alle_news))
+
+    # Social-Echo NACH der Werbe-Bilanz, sonst zaehlt deren Logzeile die hier
+    # entfernten Eintraege als Werbung mit.
+    _vor_echo = len(alle_news)
+    alle_news = [n for n in alle_news if not _is_social_echo(n)]
+    if len(alle_news) < _vor_echo:
+        logger.info("Social-Echo-Filter: %d Reaktions-Posts entfernt", _vor_echo - len(alle_news))
 
     if not alle_news:
         logger.info("Keine KI-News gefunden.")
