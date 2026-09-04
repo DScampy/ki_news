@@ -309,7 +309,7 @@
           '<div class="kl-ov-actions">' +
             '<a id="kl-ov-link" class="kl-ov-link" href="#" target="_blank" rel="noopener noreferrer">Zum Original &#8599;</a>' +
             '<button type="button" id="kl-ov-share" class="kl-ov-share" onclick="window.klShareArticle()">' +
-              '<span class="material-symbols-outlined" style="font-size:17px">ios_share</span>' +
+              '<span class="material-symbols-outlined" style="font-size:17px">share</span>' +
               '<span id="kl-ov-share-label">Teilen</span>' +
             '</button>' +
           '</div>' +
@@ -466,7 +466,8 @@
   // desselben Videos.
   var FALLBACK_VIDEOS = [
     'fallback-artikel.mp4', 'fallback-schrifthell.mp4', 'fallback-space.mp4', 'fallback-drache.mp4',
-    'fallback-eule.mp4', 'fallback-weltraum.mp4', 'fallback-wasserwellen.mp4', 'fallback-buchaufschlagen.mp4'
+    'fallback-eule.mp4', 'fallback-weltraum.mp4', 'fallback-wasserwellen.mp4', 'fallback-buchaufschlagen.mp4',
+    'fallback-schriftzug.mp4', 'fallback-leinwand.mp4'  // 04.09.26 dazu
   ];
   function klPlayFallbackVideo(videoEl) {
     if (!videoEl) return;
