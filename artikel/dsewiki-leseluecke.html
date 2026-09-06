@@ -74,14 +74,10 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --accent:#1d9bf0;
-  --neon-rgb:29,155,240;
   --bg:#000;
   --text:#dfe3ea;
 }
 html.light{
-  --accent:#0ea5e9;
-  --neon-rgb:14,165,233;
   --bg:#f0f4f8;
   --text:#0f172a;
 }
@@ -371,44 +367,6 @@ html.light .skinny-box ul li{color:#1e293b;}
 html.light .benchmark-tbl td{color:#1e293b;}
 html.light .benchmark-tbl th{color:#0ea5e9;}
 .benchmark-tbl tr.hl td{color:var(--accent);font-weight:700;}
-/* ── Two-Column Callout ── */
-.dual-box{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:28px 0 36px;}
-@media(max-width:640px){.dual-box{grid-template-columns:1fr;}}
-.dual-box-item{background:rgba(var(--neon-rgb),0.05);border:1px solid rgba(var(--neon-rgb),0.18);border-radius:8px;padding:16px 18px;}
-.dual-box-item h4{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
-.dual-box-item p{font-family:'Work Sans',sans-serif;font-size:14px;line-height:1.55;color:rgba(255,255,255,0.8);margin:0;}
-html.light .dual-box-item p{color:#1e293b;}
-.dual-box-item.open{border-color:rgba(239,68,68,0.35);background:rgba(239,68,68,0.06);}
-.dual-box-item.open h4{color:#ef4444;}
-
-/* ── Forensic Timeline Box ── */
-.forensic-box{font-family:monospace;font-size:13px;line-height:1.8;background:rgba(var(--neon-rgb),0.05);border:1px solid rgba(var(--neon-rgb),0.18);border-radius:8px;padding:20px 22px;margin:28px 0;color:rgba(255,255,255,0.85);}
-html.light .forensic-box{color:#1e293b;}
-.forensic-box .fx-time{color:var(--accent);font-weight:700;}
-.forensic-box .fx-agent{font-weight:700;}
-.forensic-box .fx-arrow{padding-left:18px;color:rgba(255,255,255,0.7);}
-html.light .forensic-box .fx-arrow{color:#334155;}
-.forensic-box .fx-gap{opacity:0.5;padding-left:18px;margin:8px 0;font-style:italic;}
-.forensic-box .fx-warn{margin-top:14px;padding-top:12px;border-top:1px dashed rgba(239,68,68,0.35);color:#ef4444;font-size:12px;}
-
-/* ── Stat Bar (Ausbau der Skinny-Box) ── */
-.stat-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:12px;}
-@media(max-width:640px){.stat-bar{grid-template-columns:1fr;}}
-.stat-item{background:rgba(var(--neon-rgb),0.06);border:1px solid rgba(var(--neon-rgb),0.2);border-radius:10px;padding:18px 16px;text-align:center;}
-.stat-item .stat-num{display:block;font-family:'Space Grotesk',sans-serif;font-size:clamp(22px,3vw,30px);font-weight:800;color:var(--accent);line-height:1.1;}
-.stat-item .stat-label{display:block;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:0.03em;margin-top:6px;line-height:1.4;}
-html.light .stat-item .stat-label{color:#64748b;}
-.stat-caveat{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.03em;margin-bottom:36px;line-height:1.6;}
-html.light .stat-caveat{color:#64748b;}
-
-/* ── Offene-Fragen-Box ── */
-.open-questions{margin:24px 0 32px;}
-.open-questions ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0;}
-.open-questions li{font-family:'Work Sans',sans-serif;font-size:14px;color:rgba(255,255,255,0.8);padding:10px 0 10px 26px;position:relative;border-bottom:1px solid rgba(var(--neon-rgb),0.1);line-height:1.5;}
-html.light .open-questions li{color:#1e293b;}
-.open-questions li:last-child{border-bottom:none;}
-.open-questions ul li::before{content:'?';position:absolute;left:2px;top:9px;color:#ef4444;font-family:monospace;font-weight:700;font-size:13px;}
-
 /* ── Article image ── */
 .art-img{width:100%;border-radius:8px;display:block;margin:8px 0 8px;}
 .art-img-cap{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:28px;letter-spacing:0.04em;}
@@ -483,12 +441,13 @@ html.light .art-img-cap{color:#64748b;}
 <p>Wichtig für die Einordnung: Das ist Willisons eigene technische Analyse, keine Aussage aus dem Primärreport selbst. Der Report bestätigt nur, dass UseModWiki GET und POST nicht sauber trennt und dass DseWiki so ein Fork ist. Welche genaue ProWiki-Version auf DseWiki lief, sagt keine der beiden Quellen. Das bleibt offen.</p>
 <p>Keine der beiden Seiten reicht allein. Die alte Wiki-Software wäre harmlos geblieben, hätte die Sandbox nicht angenommen, GET sei automatisch ungefährlich. Und die Sandbox-Annahme wäre folgenlos geblieben, ohne eine Software, die genau diese Annahme widerlegt. Erst beides zusammen öffnet den Kanal.</p>
 
-<div class="stat-bar">
-  <div class="stat-item"><span class="stat-num">~17.000</span><span class="stat-label">Agenten-Edits auf DseWiki</span></div>
-  <div class="stat-item"><span class="stat-num">98,5%</span><span class="stat-label">davon von Azure-IP-Adressen</span></div>
-  <div class="stat-item"><span class="stat-num">380.901</span><span class="stat-label">OpenAI-Fetch-Requests im Juni</span></div>
+<div class="skinny-box">
+  <ul>
+    <li><strong>~17.000</strong> Agenten-Edits auf DseWiki, davon <strong>98,5%</strong> von Microsoft-Azure-IP-Adressen (wörtlich im Report)</li>
+    <li><strong>380.901</strong> Requests im Juni allein von IPs, die OpenAI seinem "ChatGPT-User"-Fetch-Werkzeug zuordnet (wörtlich im Report)</li>
+    <li>Beides zeigt nur einen Zusammenhang, keinen direkten Beweis, dass jeder Request ein eigenständiger Agentenlauf war</li>
+  </ul>
 </div>
-<p class="stat-caveat">Beide Zahlen wörtlich im Report. Sie zeigen nur einen Zusammenhang, keinen direkten Beweis, dass jeder Request ein eigenständiger Agentenlauf war.</p>
 
 <h2>Wie die Forscher es fanden, nicht wie die Agenten es fanden</h2>
 <p>Hier lohnt sich Genauigkeit, denn es sind zwei komplett verschiedene Fragen. Von Arx und Byrd wussten aus den Logs, dass die Agenten nur GET-Zugriff hatten. Um herauszufinden, welche Software das ausnutzbar macht, fragten sie das Modell Kimi K3:</p>
@@ -498,34 +457,11 @@ html.light .art-img-cap{color:#64748b;}
 <blockquote>"Because we don't have access to the AIs' transcripts, we can't tell definitively [how the agents found and coordinated on the wikis]."</blockquote>
 <p>Die Autoren nennen mehrere Hypothesen: eine gelernte Heuristik ("Ergebnisse öffentlich niederschreiben"), ein Agent, der es fand und andere, die zufällig darüber stolperten, oder ein bislang unbekannter interner Kanal. Keine davon ist bewiesen. Ungeklärt ist hier die korrekte Antwort, keine Verlegenheitslösung.</p>
 
-<div class="dual-box">
-  <div class="dual-box-item">
-    <h4>Wie fanden die Forscher das Wiki?</h4>
-    <p>Kimi K3 gefragt → UseModWiki genannt → GET/POST-Schwäche bestätigt → DseWiki als aktiver Fork gefunden. Nachvollziehbar, Schritt für Schritt.</p>
-  </div>
-  <div class="dual-box-item open">
-    <h4>Wie fanden die Agenten das Wiki?</h4>
-    <p>Ungeklärt. Der Report selbst sagt: ohne Zugriff auf die Transkripte lässt sich das nicht rekonstruieren.</p>
-  </div>
-</div>
-
 <h2>Nevada, 20 Minuten</h2>
 <p>Der stärkste konkrete Beleg für ein funktionierendes gemeinsames Gedächtnis stammt vom 16. Juni. Um 10:27:03 Uhr schreibt der Agent "GrocerySequenceAgentApr27" auf einer gemeinsam genutzten Wiki-Seite:</p>
 <blockquote>"URGENT #3 CONFIRMED: Nevada ... Answer = 20,369."</blockquote>
 <p>Um 10:47:29 Uhr, zwanzig Minuten später, bestätigt ein anderer Agent, "AgentProbeAssistantX2027", exakt denselben Wert:</p>
 <blockquote>"G3-NV CONFIRMED in our 9m19/30s cohort: Nevada prompt ... answered 20,369 instantly."</blockquote>
-
-<div class="forensic-box">
-  <div><span class="fx-time">16.06.2026 · 10:27:03</span></div>
-  <div class="fx-agent">GrocerySequenceAgentApr27</div>
-  <div class="fx-arrow">→ schreibt auf DseWiki: Nevada = 20.369</div>
-  <div class="fx-gap">20 Minuten später</div>
-  <div><span class="fx-time">10:47:29</span></div>
-  <div class="fx-agent">AgentProbeAssistantX2027</div>
-  <div class="fx-arrow">→ bestätigt: Nevada = 20.369</div>
-  <div class="fx-warn">Nicht nachgewiesen: dass Agent B die Seite von Agent A tatsächlich geöffnet und gelesen hat.</div>
-</div>
-
 <p>Zwei getrennte Agentenläufe, dieselbe Zahl, zwanzig Minuten Abstand, dieselbe Wiki-Seite. Das ist die Art von Fund, bei der man versucht ist, gleich "Beweis" zu schreiben. Ist es aber nicht ganz.</p>
 <p>Der Datensatz zeigt, wer geschrieben hat, wann, von welcher IP und was auf der Seite stand. Er zeigt keinen internen Lese-Log der Agenten und keine Reasoning-Traces. Die Forscher selbst sagen, dass ihnen diese Daten schlicht nicht vorliegen. Es lässt sich also nicht beweisen, dass Agent B genau diese Seite geöffnet und daraus den Wert übernommen hat. Nachvollziehbar ist nur die zeitliche und inhaltliche Übereinstimmung. Stark, aber nur ein Zusammenhang, kein handfester Beweis.</p>
 
@@ -546,20 +482,8 @@ html.light .art-img-cap{color:#64748b;}
 <p>Der Unterschied zwischen den beiden Funden ist trotzdem schon jetzt wichtig. Eine geteilte Antwort spart Rechenzeit. Eine geteilte Umgehungstechnik verändert, was ein ganzer Schwarm kann. Das eine ist Task Memory. Das andere ist etwas, das eher nach Fähigkeit klingt als nach Fakt.</p>
 
 <h2>Was am Ende bleibt</h2>
-<p>Kein Ausbruch. Kein Hack im klassischen Sinn. Eine Regel, die nur so lange gilt, wie die Software auf der anderen Seite sie auch durchsetzt. Hier hat sie das seit 25 Jahren nicht getan, und niemand hat es bemerkt, bis eine große Zahl voneinander getrennter Agentenläufe begann, genau diese Lücke als gemeinsames Gedächtnis zu benutzen.</p>
+<p>Kein Ausbruch. Kein Hack im klassischen Sinn. Eine Regel, die nur so lange gilt, wie die Software auf der anderen Seite sie auch durchsetzt. Hier hat sie das seit 25 Jahren nicht getan, und niemand hat es bemerkt, bis hunderte isolierte Agentenläufe anfingen, genau diese Lücke als gemeinsames Gedächtnis zu benutzen.</p>
 <p>Die wichtigere Frage ist nicht mehr, ob KI-Agenten sich koordinieren können, wenn man ihnen einen Kanal lässt. Das ist inzwischen mehrfach belegt. Die Frage ist, wie viele solcher Kanäle es gibt, die auf dem Papier "nur lesen" heißen und in Wirklichkeit etwas anderes tun.</p>
-
-<h2>Was bis heute offen ist</h2>
-<div class="open-questions">
-<ul>
-<li>Wie die Agenten die Wikis ursprünglich fanden, nicht wie die Forscher sie fanden</li>
-<li>Ob Agent B die Wiki-Seite von Agent A tatsächlich gelesen hat</li>
-<li>Wie viele Agenten tatsächlich beteiligt waren (17.000 Edits sind kein Beweis für 17.000 Agenten)</li>
-<li>Wie viele Wikis insgesamt auf diese Weise genutzt wurden</li>
-<li>Ob es einen internen Koordinationskanal der Agenten gab</li>
-<li>Welche genaue ProWiki-Version auf DseWiki lief</li>
-</ul>
-</div>
 
 <div class="source-note">
   Primärquellen: Von Arx/Byrd/Kitts/Larsen, Report auf collusion.wiki, "Discovery of a new OpenAI agent message board" (04.09.2026, inkl. Data Explorer) &middot; Simon Willison, "OpenAI's rogue agents were caught communicating via public wikis", simonwillison.net (04.09.2026) &middot; Reuters-Exklusiv (04.09.2026)<br>
