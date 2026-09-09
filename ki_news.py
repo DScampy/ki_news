@@ -26,6 +26,13 @@ import html as _html
 #   <!-- SSR:NEWS:START --> … <!-- SSR:NEWS:END -->
 SSR_MAX = 24  # max. News-Karten im vorgerenderten HTML
 
+# Morgenlage / Tagesueberblick (09.09.26): Der ERSTE Lauf eines Tages friert die
+# damalige Top-Lage ein, spaetere Laeufe ruehren sie nicht mehr an. Damit steht auf
+# der Startseite nebeneinander: "so sah der Morgen aus" (unveraenderlich) und die
+# Karten, die sich ueber den Tag weiterdrehen. Ohne diese Ablage laesst sich der
+# Tagesverlauf nicht zeigen - news.json kennt immer nur den aktuellen Stand.
+BRIEFING_MAX = 5
+
 # Deutsche Signalwoerter (14.08.26, portiert aus generate_news_cards.py'
 # GERMAN_MARKERS/_looks_german() - dort seit 08.07.26 im Einsatz, um
 # unuebersetzte Karten-Headlines abzufangen). Gleicher Fund hier: title_de
@@ -286,6 +293,67 @@ def _ssr_card(n):
     )
 
 
+def _tagesbriefing(news_list, base_dir, heute, stand):
+    """Morgenlage des Tages: einmal pro Tag gesetzt, danach unveraendert.
+
+    Liest die news.json des VORIGEN Laufs. Steht dort schon ein Briefing mit dem
+    heutigen Datum, wird es unveraendert durchgereicht - sonst wuerde jeder der
+    vier Tageslaeufe die Morgenlage ueberschreiben und der Sinn waere weg.
+    """
+    try:
+        p = Path(base_dir) / "news.json"
+        if p.exists():
+            alt = (json.loads(p.read_text(encoding="utf-8")) or {}).get("briefing") or {}
+            if alt.get("datum") == heute and alt.get("stories"):
+                return alt
+    except Exception as e:
+        logger.debug("Morgenlage: alte news.json nicht lesbar (%s)", e)
+
+    top = sorted(news_list, key=lambda n: -(n.get("score") or 0))[:BRIEFING_MAX]
+    logger.info("Morgenlage fuer %s gesetzt: %d Storys (Stand %s)", heute, len(top), stand)
+    return {
+        "datum": heute,
+        "stand": stand,
+        "stories": [
+            {
+                "title":    n.get("title", ""),
+                "link":     n.get("link", ""),
+                "source":   n.get("source", ""),
+                "label":    n.get("label", ""),
+                "score":    n.get("score", 0),
+                "story_id": n.get("story_id", ""),
+            }
+            for n in top
+        ],
+    }
+
+
+def _ssr_briefing_block(briefing):
+    """Die Morgenlage als schmale Zeile ueber dem News-Grid."""
+    stories = (briefing or {}).get("stories") or []
+    if not stories:
+        return ("<!-- SSR:BRIEFING:START -->\n"
+                "      <!-- SSR:BRIEFING:END -->")
+    uhrzeit = (briefing.get("stand") or "").split(" ")[-1]
+    teile = [
+        "<!-- SSR:BRIEFING:START -->",
+        '      <div class="mb-6 flex items-center gap-3 overflow-x-auto whitespace-nowrap '
+        'border-y border-white/10 py-2 text-sm" aria-label="Morgenlage">',
+        '        <span class="shrink-0 font-mono text-xs uppercase tracking-widest ki-muted">'
+        f"Morgenlage {_html.escape(uhrzeit)}</span>",
+    ]
+    for i, s in enumerate(stories, 1):
+        titel = _html.escape((s.get("title") or "")[:90])
+        link = _html.escape(s.get("link") or "#", quote=True)
+        teile.append(
+            f'        <a href="{link}" target="_blank" rel="noopener noreferrer" '
+            f'class="shrink-0 hover:underline"><span class="ki-muted">{i}.</span> {titel}</a>'
+        )
+    teile.append("      </div>")
+    teile.append("      <!-- SSR:BRIEFING:END -->")
+    return "\n".join(teile)
+
+
 def inject_ssr(base_dir, news_json_data):
     """Schreibt Hero + News-Grid + JSON-LD als statisches HTML in index.html."""
     base_dir = Path(base_dir)
@@ -352,6 +420,14 @@ def inject_ssr(base_dir, news_json_data):
     html_txt, n_news = re.subn(
         r"<!-- SSR:NEWS:START -->.*?<!-- SSR:NEWS:END -->",
         lambda _m: news_block, html_txt, flags=re.DOTALL,
+    )
+    # Morgenlage: bewusst TOLERANT - fehlt der Marker (index.html noch nicht
+    # nachgezogen), bleibt alles andere trotzdem korrekt. Deshalb geht n_brief
+    # auch nicht in die Schreibbedingung unten ein.
+    briefing_block = _ssr_briefing_block(news_json_data.get("briefing"))
+    html_txt, n_brief = re.subn(
+        r"<!-- SSR:BRIEFING:START -->.*?<!-- SSR:BRIEFING:END -->",
+        lambda _m: briefing_block, html_txt, flags=re.DOTALL,
     )
     # Stand-Label-Default (vor JS-Hydration)
     html_txt = re.sub(
@@ -3989,6 +4065,8 @@ def main():
         "news":     news_list,
         "posts":    posts_list,
         "roundups": roundups_list,
+        "briefing": _tagesbriefing(news_list, proj_dir if proj_dir.exists() else Path("."),
+                                   heute, datum),
     }
 
     if proj_dir.exists():
