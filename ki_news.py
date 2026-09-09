@@ -1121,6 +1121,43 @@ def _title_keywords(title):
     words = re.findall(r'\b\w{4,}\b', _normalize_company_aliases(title))
     return {w for w in words if w not in STOPWORDS}
 
+# Outlet-Anhang in Feed-Titeln (09.09.26): Google-News-Titel tragen die Quelle im
+# Titel (" - Financial Times", " - Reuters", " - Bloomberg.com"). An einem echten
+# 157-Artikel-Batch gemessen (ox-analyse/EXPERIMENT_090926_Sprachregime.md): 32 %
+# aller Originaltitel tragen so einen Anhang, und er allein erzeugte dort 10
+# Fehlverschmelzungen - vier voellig unabhaengige FT-Meldungen (UBS-Juniorbanker,
+# OpenAI-Mathe-Streit, Anthropic/UK-Testbehoerde, IPO-Ratings) landeten in EINEM
+# Cluster, weil "financial"+"times" MIN_SHARED=2 schon von selbst erfuellt.
+#
+# WARUM NICHT jeden " - ..."-Anhang abschneiden: an 942 gesammelten Originaltiteln
+# nachgezaehlt waeren dabei auch echte Titelteile weggefallen ("... - und machen
+# trotzdem weiter", "... - im Talk mit Randy Shoup"). Deshalb die Frequenzschranke:
+# abgeschnitten wird nur ein Anhang, der im SELBEN Batch mehrfach vorkommt. Das
+# trifft genau den Schadensfall - ein Anhang, den nur ein Artikel traegt, kann per
+# Definition keine zwei Artikel verschmelzen - und laesst einzelne deutsche
+# Untertitel unangetastet. Betrifft ausschliesslich das Clustering: _title_keywords
+# wird nur von cluster_news() benutzt, Anzeige und Scoring sehen den vollen Titel.
+_TITEL_ANHANG = re.compile(r"\s+[-\u2013\u2014|]\s+([^-\u2013\u2014|]{2,40})$")
+
+
+def _haeufige_anhaenge(titel, min_vorkommen=2):
+    """Anhaenge, die im Batch mehrfach vorkommen - praktisch immer Outlet-Namen."""
+    zaehler = {}
+    for t in titel:
+        m = _TITEL_ANHANG.search(t or "")
+        if m:
+            k = m.group(1).strip().lower()
+            zaehler[k] = zaehler.get(k, 0) + 1
+    return {k for k, v in zaehler.items() if v >= min_vorkommen}
+
+
+def _ohne_anhang(title, anhaenge):
+    """Schneidet den Outlet-Anhang ab, wenn er zu den haeufigen des Batches zaehlt."""
+    m = _TITEL_ANHANG.search(title or "")
+    if m and m.group(1).strip().lower() in anhaenge:
+        return title[:m.start()].strip()
+    return title
+
 # Tokens für Bigram-Bildung: inkl. Zahlen/Versionen (z.B. "2.5", "gpt"), min. 3 Zeichen.
 _BIGRAM_STOP = {
     "die","der","das","ein","eine","und","oder","mit","von","für","fur","auf","im","in",
@@ -1237,6 +1274,15 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
     Gibt Liste von Clusters zurück (jeder Cluster = Liste von Artikeln).
     """
     combined = list(anchors or []) + list(alle_news)
+
+    # Outlet-Anhaenge dieses Batches bestimmen (09.09.26, siehe _haeufige_anhaenge
+    # oben). Vor dem Sortieren berechnet - die Titelmenge aendert sich dadurch nicht.
+    _anhaenge = _haeufige_anhaenge([it.get("title", "") for it in combined])
+
+    def _kw(item):
+        """Keywords eines Artikels, ohne den Outlet-Anhang im Titel."""
+        return _title_keywords(_ohne_anhang(item.get("title", ""), _anhaenge))
+
     MIN_SHARED = 2
     # NACHTRAG 01.09.26: Artikel derselben Quelle brauchen 3 statt 2 geteilte
     # Woerter. Live gefunden: 8 verschiedene AlignedNews-Kurzmeldungen ueber
@@ -1267,9 +1313,9 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
     # meisten Keywords wird bevorzugt Anker. Gemessen: 30/86 -> 51/86 erkannte
     # Verschmelzungen auf den Trainingsdaten, bei weiterhin nur 1 Fehlverschmelzung
     # (siehe ox-analyse/CHRONIK_Clustering-Kampagne_bis_310826.md).
-    combined = sorted(combined, key=lambda item: len(_title_keywords(item["title"])), reverse=True)
+    combined = sorted(combined, key=lambda item: len(_kw(item)), reverse=True)
 
-    kw_liste = [_title_keywords(item["title"]) for item in combined]
+    kw_liste = [_kw(item) for item in combined]
 
     # Traeger pro Wort: welche Artikel (Index in `combined`) enthalten es.
     traeger = {}
