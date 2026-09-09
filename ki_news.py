@@ -2009,17 +2009,23 @@ def build_history_map(*archive_lists):
             entry = {"first_seen": first_seen, "base_score": base_score}
             if "image" in n:
                 entry["image"] = n.get("image") or ""
+            if n.get("img_try"):
+                entry["img_try"] = n["img_try"]
             # Frühestes Datum gewinnt (echtes Erst-Sichten)
             if prev is None or str(first_seen) < str(prev["first_seen"]):
                 # Bild aus dem vorherigen Eintrag retten, falls neuer keins hat
                 if prev and "image" in prev and "image" not in entry:
                     entry["image"] = prev["image"]
+                if prev and prev.get("img_try") and not entry.get("img_try"):
+                    entry["img_try"] = prev["img_try"]
                 hist[link] = entry
             else:
                 if base_score and not prev.get("base_score"):
                     prev["base_score"] = base_score
                 if "image" in entry and "image" not in prev:
                     prev["image"] = entry["image"]
+                if entry.get("img_try") and not prev.get("img_try"):
+                    prev["img_try"] = entry["img_try"]
     return hist
 
 def apply_decay_to_entries(entries):
@@ -2271,16 +2277,63 @@ def fetch_og_image(url):
         logger.debug("og:image-Abruf fehlgeschlagen für %s: %s", url, e)
     return ""
 
+# Bild-Nachfass (09.09.26). Vorher galt ein einmal leer gespeichertes `image`-Feld
+# DAUERHAFT als "gibt kein Bild" - ein einziger Fehlversuch (Timeout, kurzzeitiger
+# 5xx, Bot-Sperre) hat den Artikel fuer immer ohne Bild festgeschrieben. Gemessen
+# am Live-Archiv 09.09.: 473 von 1201 Eintraegen mit leerem Feld, und auf der
+# Startseite 72 von 159 Artikeln (45 %) ohne Bild.
+#
+# Stichprobe vor dem Bau (10 Links aus dem Archiv, alle mit leerem Feld):
+#   - 5 von 5 news.google.com-Links liefern auch beim erneuten Versuch nichts
+#     (Weiterleitungsseite ohne og:image) -> werden gar nicht erst nachgefasst,
+#     das sind 384 der 473 leeren Felder.
+#   - 3 von 5 uebrigen liefern jetzt sehr wohl ein Bild (openai.com), 2 nicht
+#     (nytimes.com, Bot-Sperre) -> der Nachfass lohnt sich.
+#
+# Budget statt Vollgas: hoechstens IMG_RETRY_BUDGET zusaetzliche HTTP-Abrufe pro
+# Lauf, jeder Artikel fruehestens nach IMG_RETRY_DAYS erneut. Bei 4 Laeufen/Tag
+# sind die ~89 echten Kandidaten in rund zwei Tagen abgearbeitet, ohne dass ein
+# einzelner Lauf spuerbar laenger wird.
+IMG_RETRY_DAYS = 2
+IMG_RETRY_BUDGET = 12
+
+# Zaehler fuer den laufenden Prozess (ein Pipeline-Lauf = ein Prozess).
+_img_nachfass = {"genutzt": 0}
+
+
+def _darf_bild_nachfassen(link, history_entry):
+    """Entscheidet, ob ein leeres Bildfeld in diesem Lauf erneut versucht wird."""
+    if _img_nachfass["genutzt"] >= IMG_RETRY_BUDGET:
+        return False
+    # Google-News-Links sind Weiterleitungsseiten ohne og:image (5/5 in der
+    # Stichprobe) - jeder Versuch waere verbrannte Lauf-Zeit.
+    if "news.google.com" in (link or ""):
+        return False
+    letzter = (history_entry or {}).get("img_try") or (history_entry or {}).get("first_seen")
+    if letzter and _days_since(letzter) < IMG_RETRY_DAYS:
+        return False
+    _img_nachfass["genutzt"] += 1
+    return True
+
+
 def resolve_preview_image(link, history_entry):
     """
     Liefert das Vorschaubild für einen Link. Nutzt den Cache (history_entry aus
     archive.json) und holt nur dann neu, wenn noch keins gespeichert ist – das
     spart HTTP-Abrufe bei jedem Lauf. Leerer String = kein Bild gefunden.
+
+    Rueckgabe: (bild_url, versucht) - `versucht` sagt, ob in DIESEM Lauf ein
+    HTTP-Abruf stattgefunden hat. Nur dann darf `img_try` neu gestempelt werden,
+    sonst wuerde der Zeitstempel bei jedem Lauf vorruecken und die Wartezeit
+    IMG_RETRY_DAYS liefe nie ab.
     """
     if history_entry and "image" in history_entry:
-        # Schon einmal versucht (auch wenn Ergebnis leer war) → nicht erneut abrufen
-        return history_entry.get("image") or ""
-    return fetch_og_image(link)
+        img = history_entry.get("image") or ""
+        if img:
+            return img, False
+        if not _darf_bild_nachfassen(link, history_entry):
+            return "", False
+    return fetch_og_image(link), True
 
 # -------------------------
 # X-Beiträge: Vorschaubild serverseitig holen (kein CORS-Problem)
@@ -3813,7 +3866,7 @@ def main():
         # Lebensdauer der Story fest (s. Kommentar bei HEAL_THRESHOLD oben).
         base_score = max(hist["base_score"], raw_score) if hist and hist["base_score"] <= HEAL_THRESHOLD else raw_score
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
-        preview_img = resolve_preview_image(link, hist)
+        preview_img, img_versucht = resolve_preview_image(link, hist)
         title_de = s.get("title_de", n["title"])
         summary_de = s.get("summary", "")
         entry = {
@@ -3839,6 +3892,13 @@ def main():
             "story_cluster_score": cluster_info.get("story_cluster_score", 0),
             "story_article_count": cluster_info.get("story_article_count", 1),
         }
+        # Bild-Nachfass-Stempel (09.09.26): nur fortschreiben, wenn in diesem Lauf
+        # wirklich abgerufen wurde - sonst verschoebe sich die Wartezeit endlos.
+        if not preview_img:
+            _letzter = _today_iso() if img_versucht else ((hist or {}).get("img_try") or "")
+            if _letzter:
+                entry["img_try"] = _letzter
+
         news_list.append(entry)
 
     # Volltext-Capture Top-5 fuer Chat-Bot-Kontext (Fund 08.07.26, siehe
@@ -3979,6 +4039,16 @@ def main():
                         entry["label"] = h["label"]
             except (TypeError, ValueError):
                 pass
+            # Bild-Heilung (09.09.26): update_archive() legt nur NEUE Links an,
+            # bestehende Eintraege wurden nie aktualisiert. Ein per Nachfass
+            # gefundenes Bild landete deshalb zwar in news.json, aber nie im
+            # Archiv - beim naechsten Lauf las build_history_map() wieder das
+            # leere Feld ein und der Artikel war erneut ohne Bild. Genau daran
+            # haben sich die 473 leeren Felder festgesetzt.
+            if h.get("image") and not entry.get("image"):
+                entry["image"] = h["image"]
+            if h.get("img_try"):
+                entry["img_try"] = h["img_try"]
 
         seen_links = {n["link"] for n in existing if n.get("link")}
         new_entries = [n for n in news_list if n.get("link") and n["link"] not in seen_links]
