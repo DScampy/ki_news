@@ -394,34 +394,58 @@ def _ssr_briefing_block(briefing):
     # schieben, und alles mit position:fixed - Navigation und Artikel-Overlay -
     # steht dann verschoben und rechts abgeschnitten da. Der Rest des SSR-Codes
     # arbeitet aus genau diesem Grund ebenfalls mit style="...".
-    style_zeile = (
+    # LAUFBAND statt statischer Zeile (10.09.26). Am 09.09. war das bewusst
+    # anders entschieden ("ein bewegtes Band zeigt immer nur einen Eintrag").
+    # Daniel hat es am 10.09. am fertigen Ergebnis gesehen und umentschieden:
+    # von fuenf Eintraegen waren auf dem Handy zwei zu sehen, der Rest lag
+    # hinter einer Wischgeste, die niemand vermutet. Sichtbar schlaegt statisch.
+    #
+    # Umsetzung ohne JavaScript: der Rahmen schneidet ab, das Band laeuft per
+    # CSS-Transform. Die Eintraege stehen ZWEIMAL im Band, die zweite Haelfte
+    # aria-hidden - so springt der Uebergang bei translateX(-50%) nicht.
+    # Vorlesen und Suchmaschinen sehen die Eintraege trotzdem genau einmal.
+    # Anhalten bei Maus und Tastatur-Fokus; wer im System "weniger Bewegung"
+    # gesetzt hat, bekommt die alte, von Hand scrollbare Zeile.
+    # Tempo: rund 55 Pixel je Sekunde. Bei 7 s je Eintrag waren es 82 - eine
+    # Schlagzeile war dann in 6 s durchgelaufen, zu schnell zum Mitlesen.
+    dauer = max(30, 10 * len(stories))
+    style_rahmen = (
         "display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:8px 0;"
         "border-top:1px solid var(--hairline,#2f3336);"
         "border-bottom:1px solid var(--hairline,#2f3336);"
-        "overflow-x:auto;white-space:nowrap;font-size:14px;"
+        "overflow:hidden;white-space:nowrap;font-size:14px;"
     )
     style_label = ("flex:0 0 auto;font-family:monospace;font-size:11px;text-transform:uppercase;"
                    "letter-spacing:0.14em;color:var(--muted,#8b98a5);")
-    teile = [
-        "<!-- SSR:BRIEFING:START -->",
-        f'      <div style="{style_zeile}" aria-label="Morgenlage">',
-        f'        <span style="{style_label}">Morgenlage {_html.escape(uhrzeit)}</span>',
-    ]
-    # Ziel ist die eigene Seite (#a=<hash>), nicht die Fremdquelle (10.09.26,
-    # Daniels Wunsch): der Klick oeffnet das Artikel-Overlay mit Einordnung und
-    # verwandten Themen. index.html haengt am hashchange-Ereignis (Z. ~1272),
-    # der Wechsel funktioniert also auch bei schon offener Seite. Rollt die
-    # Meldung aus news.json, findet das Frontend nichts und laesst die Startseite
-    # stehen -- kein Fehlerzustand.
+    eintraege = []
     for i, s in enumerate(stories, 1):
         titel = _html.escape((s.get("title") or "")[:90])
         ziel = _deep_link(s.get("link") or "") if s.get("link") else "#"
         link = _html.escape(ziel, quote=True)
-        teile.append(
-            f'        <a href="{link}" '
-            f'style="flex:0 0 auto;text-decoration:none;color:inherit;">'
+        eintraege.append(
+            f'<a href="{link}" style="flex:0 0 auto;text-decoration:none;color:inherit;">'
             f'<span style="color:var(--muted,#8b98a5);">{i}.</span> {titel}</a>'
         )
+    band = "".join(eintraege)
+    kopie = band.replace('<a href=', '<a aria-hidden="true" tabindex="-1" href=')
+    teile = [
+        "<!-- SSR:BRIEFING:START -->",
+        "      <style>",
+        "        @keyframes kiMorgenlage{from{transform:translateX(0)}to{transform:translateX(-50%)}}",
+        "        .ki-morgenlage-band{display:flex;gap:12px;flex:0 0 auto;"
+        f"animation:kiMorgenlage {dauer}s linear infinite;will-change:transform;}}",
+        "        .ki-morgenlage-rahmen:hover .ki-morgenlage-band,",
+        "        .ki-morgenlage-rahmen:focus-within .ki-morgenlage-band{animation-play-state:paused}",
+        "        @media (prefers-reduced-motion:reduce){",
+        "          .ki-morgenlage-band{animation:none}",
+        "          .ki-morgenlage-rahmen{overflow-x:auto}",
+        "          .ki-morgenlage-band a[aria-hidden]{display:none}",
+        "        }",
+        "      </style>",
+        f'      <div class="ki-morgenlage-rahmen" style="{style_rahmen}" aria-label="Morgenlage">',
+        f'        <span style="{style_label}">Morgenlage {_html.escape(uhrzeit)}</span>',
+        f'        <div class="ki-morgenlage-band">{band}{kopie}</div>',
+    ]
     teile.append("      </div>")
     teile.append("      <!-- SSR:BRIEFING:END -->")
     return "\n".join(teile)
