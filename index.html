@@ -979,6 +979,17 @@ function cardThumb(item) {
 }
 
 // ── News card ────────────────────────────────────────────────────────────
+// Zeile "auch bei: Bloomberg, WSJ" -- erst ab zwei weiteren Quellen, bei einer
+// einzelnen waere sie mehr Rauschen als Information. Pendant: _ssr_auch_bei()
+// in ki_news.py, immer zusammen aendern.
+function auchBei(item) {
+  var q = (item.dub_quellen || []).filter(Boolean);
+  if (q.length < 2) return '';
+  var t = q.slice(0, 4).join(', ');
+  if (q.length > 4) t += ' +' + (q.length - 4);
+  return '<p class="text-[11px] font-mono ki-faint mb-4" style="margin-top:-16px">auch bei: ' + escapeHtml(t) + '</p>';
+}
+
 function renderCard(item) {
   var c = item.color || srcColor(item.source);
   var a = document.createElement('a');
@@ -1022,6 +1033,7 @@ function renderCard(item) {
        musste dafuer weg. Pendant in _ssr_card() (ki_news.py) - zusammen aendern! */
     '<h4 class="font-headline-md ki-main mb-2 leading-snug" style="font-family:\'Space Grotesk\',sans-serif;margin-top:auto">' + escapeHtml(item.title) + '</h4>' +
     '<p class="text-on-surface-variant font-body-sm text-body-sm mb-6">' + escapeHtml(item.summary||'') + '</p>' +
+    auchBei(item) +
     '<div class="pt-4 ki-border border-t flex items-center justify-between">' +
       '<div class="flex items-center gap-2 min-w-0">' +
         '<span class="text-[11px] font-mono uppercase" style="color:' + c + '">' + escapeHtml(item.source) + '</span>' +
@@ -1247,6 +1259,16 @@ Promise.all([
       return !n.story_id || fset.has(n.link) || best[n.story_id] === n;
     });
   })();
+  // Dieselbe Meldung in ZWEI Clustern (10.09.26): den Fall faengt der Filter
+  // oben nicht, story_id ist ja verschieden. ki_news.py::_markiere_dubletten()
+  // setzt dafuer dub_von auf dem schwaecheren Artikel; die Quellennamen stehen
+  // als dub_quellen auf dem sichtbaren. Gepinnte Artikel bleiben immer stehen.
+  // Nur die Anzeige: allNews fuer den Deep-Link (#a=) wird weiter unten aus
+  // data.news gelesen, verdeckte Meldungen bleiben also direkt erreichbar.
+  (function(){
+    var fset2 = new Set(featuredLinks);
+    allNews = allNews.filter(function(n){ return !n.dub_von || fset2.has(n.link); });
+  })();
   var featured = featuredLinks.map(function(link){ return allNews.find(function(n){ return n.link === link; }); }).filter(Boolean);
   var nonFeatured = allNews.filter(function(n){ return featuredLinks.indexOf(n.link) === -1; });
   nonFeatured.sort(function(a,b){ return (b.score||0)-(a.score||0); });
@@ -1270,7 +1292,7 @@ Promise.all([
   window.__kiOpenFromHash = function(){
     var m = /^#a=([a-z0-9]+)$/.exec(location.hash || '');
     if (!m || typeof window.klHashId !== 'function' || typeof window.klOpenArticle !== 'function') return;
-    var hit = allNews.filter(function(n){ return n.link && window.klHashId(n.link) === m[1]; })[0];
+    var hit = (data.news || []).filter(function(n){ return n.link && window.klHashId(n.link) === m[1]; })[0];
     if (hit) window.klOpenArticle(hit);
   };
   setTimeout(window.__kiOpenFromHash, 60);
