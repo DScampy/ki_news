@@ -1449,6 +1449,7 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
     # ox-analyse/CHRONIK_Clustering-Kampagne_bis_310826.md.
     MIN_SHARED_GLEICHE_QUELLE = 3
     SCORE_THRESHOLD = 0.3
+    ZWEIT_THRESHOLD = 0.30
 
     def _jaccard(a, b):
         if not a or not b:
@@ -1494,6 +1495,31 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
         paare = [(idxs[a], idxs[b]) for a in range(len(idxs)) for b in range(a + 1, len(idxs))]
         kohaerenz[w] = sum(_sim(i, j) for i, j in paare) / len(paare)
 
+    # ── Zweitvergleich auf Stammformen (Kandidat 10.09.26) ─────────────────
+    # Zweck: Paare retten, die nur an Beugungsformen scheitern -- "Anthropic-
+    # Forscher kuendigt" gegen "Ruecktritt eines Anthropic-Forschers" teilen
+    # ohne Normalisierung genau ein Wort. Eine globale Normalisierung in
+    # _title_keywords() wurde am 10.09. gemessen und VERWORFEN (Training
+    # 51->48 erkannt, 0->3 Fehlverschmelzungen). Darum hier nur als zweiter
+    # Versuch fuer Paare, die die erste Regel knapp verfehlen.
+    kw_stamm = [{_dub_stamm(w) for w in kw} for kw in kw_liste]
+    traeger_s = {}
+    for idx_s, kw_s in enumerate(kw_stamm):
+        for w in kw_s:
+            traeger_s.setdefault(w, []).append(idx_s)
+    sim_cache_s = {}
+    def _sim_s(i, j):
+        key = (i, j) if i < j else (j, i)
+        if key not in sim_cache_s:
+            sim_cache_s[key] = _jaccard(kw_stamm[i], kw_stamm[j])
+        return sim_cache_s[key]
+    kohaerenz_s = {}
+    for w, idxs in traeger_s.items():
+        if len(idxs) <= 1:
+            kohaerenz_s[w] = 1.0
+            continue
+        paare_s = [(idxs[a], idxs[b]) for a in range(len(idxs)) for b in range(a + 1, len(idxs))]
+        kohaerenz_s[w] = sum(_sim_s(i, j) for i, j in paare_s) / len(paare_s)
     clusters = []  # je {"items": [...], "anker_idx": int, "quellen": set()}
     for idx, item in enumerate(combined):
         kw = kw_liste[idx]
@@ -1506,6 +1532,13 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
             shared = kw & akw
             noetig = MIN_SHARED_GLEICHE_QUELLE if q in cluster["quellen"] else MIN_SHARED
             if len(shared) < noetig:
+                # Zweitversuch auf Stammformen, mit eigener (haerterer) Schwelle.
+                s_shared = kw_stamm[idx] & kw_stamm[cluster["anker_idx"]]
+                if len(s_shared) < noetig:
+                    continue
+                score_s = sum(kohaerenz_s[w] for w in s_shared)
+                if score_s >= ZWEIT_THRESHOLD and score_s > best_score:
+                    best_score, best_cluster = score_s, cluster
                 continue
             score = sum(kohaerenz[w] for w in shared)
             if score >= SCORE_THRESHOLD and score > best_score:
