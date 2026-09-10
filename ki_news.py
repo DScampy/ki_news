@@ -3106,6 +3106,40 @@ def _x_intent_url(text):
     """X mit vorbefuelltem Post-Text oeffnen (ein Tap vom Ticker zum Posting)."""
     return "https://x.com/intent/post?text=" + urllib.parse.quote(text or "", safe="")
 
+def _kl_hash_id(link: str) -> str:
+    """Portiert klHashId() aus assets/ki-layout.js 1:1 (djb2, base36) - MUSS
+    exakt gleich bleiben, sonst passt der hier gebaute Deep-Link nicht mehr
+    zur ID, die __kiOpenFromHash() im Frontend erwartet."""
+    h = 5381
+    for ch in (link or ""):
+        h = ((h * 33) ^ ord(ch)) & 0xFFFFFFFF
+    if h == 0:
+        return "0"
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    out = []
+    while h:
+        h, r = divmod(h, 36)
+        out.append(digits[r])
+    return "".join(reversed(out))
+
+def _deep_link(link: str) -> str:
+    """Kurzer, klickbarer Link zur Story auf ki-news.live (#a=<hash>, siehe
+    klOpenArticle()/__kiOpenFromHash() in index.html + ki-layout.js). Ist die
+    Story inzwischen aus news.json gerollt, findet das Frontend keinen Treffer
+    und zeigt einfach die normale Startseite - kein Fehlerzustand, kein
+    zusaetzlicher Code hier noetig."""
+    return f"https://ki-news.live/#a={_kl_hash_id(link)}" if link else "https://ki-news.live/"
+
+def _x_post_text(teaser: str, link: str) -> str:
+    """Text fuer den X-Intent-Button (09.09.26, Daniels Wunsch): das Pflicht-
+    Suffix '(via Quelle)' -- das ist NUR ein Qualitaets-Gate-Fingerabdruck fuer
+    die Redaktions-Zuordnung (siehe Kommentar bei parse_posts()), kein Text,
+    der auf X einen Mehrwert hat -- wird hier durch den Deep-Link zur Story auf
+    ki-news.live ersetzt. p['teaser'] selbst bleibt unveraendert (Anzeige in
+    Telegram, Post-Cache, Qualitaets-Gate lesen weiter den Original-Teaser)."""
+    base = re.sub(r"\s*\(via [^)]*\)\s*$", "", teaser or "").rstrip()
+    return f"{base}\n{_deep_link(link)}" if base else _deep_link(link)
+
 def _telegram_send_message(text, buttons=None, max_retries=3, delay=5):
     """Einzelnachricht mit HTML-Formatierung + optionalen Inline-Buttons.
     Faellt bei HTML-Parse-Fehlern automatisch auf plain text zurueck."""
@@ -3164,7 +3198,7 @@ def send_telegram_stories(stories, score_map=None, detailliert=False):
             teile += [f"{i}/ {esc(tweet)}" for i, tweet in enumerate(p["thread"], 1)]
         buttons_row = []
         if p.get("teaser"):
-            buttons_row.append({"text": "Auf X posten", "url": _x_intent_url(p["teaser"])})
+            buttons_row.append({"text": "Auf X posten", "url": _x_intent_url(_x_post_text(p["teaser"], n.get("link", "")))})
         if n.get("link"):
             buttons_row.append({"text": "Artikel", "url": n["link"]})
         ok = _telegram_send_message("\n".join(teile), [buttons_row] if buttons_row else None)

@@ -694,7 +694,30 @@ def fill_template(template: str, fields: dict) -> str:
     return result
 
 
-def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_id: str = "") -> bool:
+def _kl_hash_id(link: str) -> str:
+    """Portiert klHashId() aus assets/ki-layout.js 1:1 (djb2, base36) - siehe
+    identische Kopie + ausfuehrlicher Kommentar in ki_news.py::_kl_hash_id().
+    Muss exakt gleich bleiben, sonst passt der Deep-Link nicht zur ID, die
+    __kiOpenFromHash() im Frontend erwartet."""
+    h = 5381
+    for ch in (link or ""):
+        h = ((h * 33) ^ ord(ch)) & 0xFFFFFFFF
+    if h == 0:
+        return "0"
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    out = []
+    while h:
+        h, r = divmod(h, 36)
+        out.append(digits[r])
+    return "".join(reversed(out))
+
+def _deep_link(link: str) -> str:
+    """Kurzer, klickbarer Link zur Story auf ki-news.live (#a=<hash>). Ist die
+    Story inzwischen aus news.json gerollt, zeigt das Frontend einfach die
+    normale Startseite (siehe _deep_link() in ki_news.py)."""
+    return f"https://ki-news.live/#a={_kl_hash_id(link)}" if link else "https://ki-news.live/"
+
+def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_id: str = "", link: str = "") -> bool:
     """Schickt das fertige MP4 via Telegram sendVideo.
     Wenn card_id gesetzt ist, haengt ein Custom-Keyboard-Button mit dem Code
     "ip:<card_id>" an. Tippt Daniel drauf, schickt Telegram diesen Code als
@@ -803,23 +826,27 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
     # auf derselben Nachricht) -- best effort: schlaegt das fehl, bleibt das
     # Video trotzdem verschickt, darum eigener try/except statt den Erfolg
     # der Hauptfunktion davon abhaengig zu machen.
-    _send_x_button(headline)
+    _send_x_button(headline, link)
     return True
 
 
-def _send_x_button(headline: str) -> bool:
+def _send_x_button(headline: str, link: str = "") -> bool:
     """Schickt eine schlanke Folgenachricht mit einem echten Inline-Button
     ('Auf X posten'), der den X-Web-Intent-Link direkt oeffnet (url-Button,
-    kein callback_query noetig -- siehe Docstring von send_card_to_telegram)."""
+    kein callback_query noetig -- siehe Docstring von send_card_to_telegram).
+    Zusaetzlich (09.09.26, Daniels Wunsch) ein anklickbarer Deep-Link zur
+    Story auf ki-news.live in derselben Nachricht, damit der Artikel nicht
+    erst gesucht werden muss."""
     if not TELEGRAM_TOKEN:
         return False
     x_intent_url = "https://twitter.com/intent/tweet?text=" + urllib.parse.quote(headline[:200])
     reply_markup = json.dumps({
         "inline_keyboard": [[{"text": "🐦 Auf X posten", "url": x_intent_url}]]
     })
+    text = "Video oben manuell anhängen, Text ist editierbar:\n" + _deep_link(link)
     payload = json.dumps({
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": "Video oben manuell anhängen, Text ist editierbar:",
+        "text": text,
         "reply_markup": json.loads(reply_markup),
     }).encode("utf-8")
     req = urllib.request.Request(
@@ -1144,7 +1171,7 @@ def main() -> None:
 
         # Karte direkt an Telegram schicken (einordnung_clean: kein [OR]-Label)
         # card_id=slug -> Insta-Post-Button auf der Karte (siehe check_insta_queue.py)
-        send_card_to_telegram(mp4_out, headline, einordnung_clean, card_id=slug)
+        send_card_to_telegram(mp4_out, headline, einordnung_clean, card_id=slug, link=link)
 
         cards_meta.append({
             "id":       slug,
