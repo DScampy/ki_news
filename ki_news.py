@@ -1953,15 +1953,59 @@ def _dub_stamm(wort):
     return wort
 
 
+# Presse-Floskeln, die kein Ereignis bezeichnen. NUR fuer den Dublettenvergleich,
+# nicht fuer das Clustering: "Anthropic zieht sich von einem ANGEBLICHEN 6-Mrd-Deal
+# zurueck" und "Anthropic entdeckt ANGEBLICH neue Antibiotika" teilen sonst zwei
+# Stammwoerter (anthropic + angeblich) und erfuellen die Schranke von selbst -
+# live gesehen am 10.09. Dieselbe Klasse Fehler wie der Outlet-Anhang vom 09.09.,
+# nur am Satzanfang statt am Ende.
+_DUB_FLOSKELN = None
+
+
 def _dub_kw(titel):
-    return {_dub_stamm(w) for w in _title_keywords(titel or "")}
+    global _DUB_FLOSKELN
+    if _DUB_FLOSKELN is None:
+        _DUB_FLOSKELN = {_dub_stamm(w) for w in (
+            "angeblich", "offenbar", "berichten", "bericht", "berichte", "medienbericht",
+            "exklusiv", "kommentar", "breakingviews", "analyse", "update", "laut",
+        )}
+    return {_dub_stamm(w) for w in _title_keywords(titel or "")} - _DUB_FLOSKELN
 
 
-def _markiere_dubletten(news_list):
-    """Setzt dub_von / dub_quellen. Aendert sonst nichts am Bestand."""
+def _markiere_dubletten(news_list, base_dir=None):
+    """Setzt dub_von / dub_quellen. Aendert sonst nichts am Bestand.
+
+    Drei Stufen (10.09.26, nach der Auszaehlung in
+    ox-analyse/MESSUNG_100926_Registry-vs-Heuristik.md):
+      1. story_id  -- das Clustering selbst, war schon da
+      2. Registry  -- story_registry_shadow.json: Embedding-Kandidat ab
+         Cosinus 0,75, Entitaeten-Gate, LLM-Judge. Sagt sie ja, wird ohne
+         jede Titelrechnung verdeckt; sagt sie fuer BEIDE Artikel aktiv
+         etwas Verschiedenes (je eine Story mit mehreren Mitgliedern), ist
+         das ein Veto gegen das Verdecken.
+      3. Titel-Heuristik -- nur noch dort, wo die Registry schweigt.
+
+    Warum in dieser Reihenfolge: ueber 8 news.json-Staende und 1232 Karten
+    gemessen bestaetigt die Registry 20 der 124 Heuristik-Paare, spricht in
+    25 Faellen aktiv dagegen und erkennt 13 Dubletten zusaetzlich -- darunter
+    die deutsche und die englische Fassung derselben DeepSeek-Meldung, die
+    eine Zeichen-Aehnlichkeit prinzipiell nicht finden kann.
+
+    Fail-safe: fehlt die Registry oder ist sie unlesbar, bleibt genau das
+    Verhalten von heute frueh uebrig (nur Stufe 1 und 3)."""
     for n in news_list:
         n.pop("dub_von", None)
         n.pop("dub_quellen", None)
+    reg_map, reg_gross = {}, set()
+    try:
+        from story_registry_shadow import link_to_story_map
+        reg_map = link_to_story_map(base_dir or Path("."))
+        _zaehler = {}
+        for _sid in reg_map.values():
+            _zaehler[_sid] = _zaehler.get(_sid, 0) + 1
+        reg_gross = {sid for sid, k in _zaehler.items() if k > 1}
+    except Exception as e:
+        logger.info("Entdopplung ohne Registry (%s) - nur Cluster und Titelvergleich", e)
     sortiert = sorted(news_list, key=lambda n: -(n.get("score") or 0))
 
     # Stufe 1: innerhalb eines Clusters fuehrt der bestbewertete Artikel.
@@ -1983,7 +2027,15 @@ def _markiere_dubletten(news_list):
         titel = n.get("title") or ""
         norm, ents, kws = _norm_dub(titel), set(_dub_entitaeten(titel)), _dub_kw(titel)
         treffer = None
+        sid_n = reg_map.get(n.get("link") or "")
         for f, f_norm, f_ents, f_kws in fuehrer:
+            sid_f = reg_map.get(f.get("link") or "")
+            if sid_n and sid_f:
+                if sid_n == sid_f:
+                    treffer = f          # Registry sagt ja - keine Titelrechnung noetig
+                    break
+                if sid_n in reg_gross and sid_f in reg_gross:
+                    continue             # Registry-Veto: beide aktiv anders zugeordnet
             if not (f_ents & ents):
                 continue
             if len(f_kws & kws) < _GRID_MIN_WORTE:
@@ -4382,7 +4434,7 @@ def main():
             "first_seen": fs,
         })
 
-    _markiere_dubletten(news_list)
+    _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
     news_json_data = {
         "stand":    datum,
         "news":     news_list,
