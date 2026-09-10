@@ -250,6 +250,21 @@ def _card_bg_svg(n):
     return f'<svg class="{cls}"><use href="assets/ki-maps.svg#{symbol_id}" width="100%" height="100%"/></svg>'
 
 
+def _ssr_auch_bei(n):
+    """Zeile "auch bei: Bloomberg, WSJ" unter der Zusammenfassung -- nur wenn
+    mindestens _GRID_HINWEIS_AB andere Quellen dieselbe Meldung hatten. Bei
+    einer einzelnen Zweitquelle waere die Zeile mehr Rauschen als Information.
+    Pendant in index.html renderCard() - immer zusammen aendern."""
+    quellen = [q for q in (n.get("dub_quellen") or []) if q]
+    if len(quellen) < _GRID_HINWEIS_AB:
+        return ""
+    text = ", ".join(quellen[:_GRID_HINWEIS_MAX])
+    if len(quellen) > _GRID_HINWEIS_MAX:
+        text += f" +{len(quellen) - _GRID_HINWEIS_MAX}"
+    return (f'<p class="text-[11px] font-mono ki-faint mb-4" style="margin-top:-16px">'
+            f'auch bei: {_html.escape(text)}</p>')
+
+
 def _ssr_card(n):
     c = _html.escape(n.get("color") or "#1d9bf0", quote=True)
     src = _html.escape(n.get("source") or "")
@@ -284,6 +299,7 @@ def _ssr_card(n):
         f"style=\"font-family:'Space Grotesk',sans-serif;margin-top:auto\">{_html.escape(n.get('title') or '')}</h4>"
         f'<p class="text-on-surface-variant font-body-sm text-body-sm mb-6">'
         f"{_html.escape(n.get('summary') or '')}</p>"
+        f"{_ssr_auch_bei(n)}"
         f'<div class="pt-4 ki-border border-t flex items-center justify-between">'
         f'<span class="text-[11px] font-mono uppercase" style="color:{c}">{src}</span>'
         f'<div style="display:flex;align-items:center;gap:6px">{date_html}{score_html}</div>'
@@ -391,11 +407,18 @@ def _ssr_briefing_block(briefing):
         f'      <div style="{style_zeile}" aria-label="Morgenlage">',
         f'        <span style="{style_label}">Morgenlage {_html.escape(uhrzeit)}</span>',
     ]
+    # Ziel ist die eigene Seite (#a=<hash>), nicht die Fremdquelle (10.09.26,
+    # Daniels Wunsch): der Klick oeffnet das Artikel-Overlay mit Einordnung und
+    # verwandten Themen. index.html haengt am hashchange-Ereignis (Z. ~1272),
+    # der Wechsel funktioniert also auch bei schon offener Seite. Rollt die
+    # Meldung aus news.json, findet das Frontend nichts und laesst die Startseite
+    # stehen -- kein Fehlerzustand.
     for i, s in enumerate(stories, 1):
         titel = _html.escape((s.get("title") or "")[:90])
-        link = _html.escape(s.get("link") or "#", quote=True)
+        ziel = _deep_link(s.get("link") or "") if s.get("link") else "#"
+        link = _html.escape(ziel, quote=True)
         teile.append(
-            f'        <a href="{link}" target="_blank" rel="noopener noreferrer" '
+            f'        <a href="{link}" '
             f'style="flex:0 0 auto;text-decoration:none;color:inherit;">'
             f'<span style="color:var(--muted,#8b98a5);">{i}.</span> {titel}</a>'
         )
@@ -411,8 +434,12 @@ def inject_ssr(base_dir, news_json_data):
     if not index_path.exists():
         return  # Kein index.html in diesem Verzeichnis (z.B. lokal) – nichts zu tun.
 
+    # dub_von-Artikel raus (10.09.26): das Browser-Frontend filtert Cluster-
+    # Dubletten laengst (index.html, "Pro Story nur den staerksten Artikel"),
+    # das vorgerenderte HTML tat es nicht. Crawler und der erste Seitenaufbau
+    # sahen damit eine andere, dublettenreichere Startseite als der Leser.
     news = sorted(
-        list(news_json_data.get("news") or []),
+        [n for n in (news_json_data.get("news") or []) if not n.get("dub_von")],
         key=lambda n: n.get("score", 0),
         reverse=True,
     )[:SSR_MAX]
@@ -1819,6 +1846,119 @@ def _norm_dub(s):
     s = (s or "").lower()
     s = re.sub(r"[^a-zäöüß0-9%. ]", " ", s)
     return re.sub(r"\s+", " ", s).strip()
+
+# ── Dubletten auf der Startseite (10.09.26) ────────────────────────────────
+# Das Frontend zeigt seit laengerem pro story_id nur den staerksten Artikel.
+# Was es NICHT faengt: dieselbe Meldung in zwei verschiedenen Clustern. Am
+# 10.09. standen deshalb drei Karten zum selben Anthropic-Ruecktritt auf der
+# Startseite (TechCrunch s001, Wired s018, SiliconAngle s019) -- s019 teilt mit
+# s001 genau EIN Schlagwort ("anthropic"), weil "Forscher" und "Forschers" zwei
+# verschiedene Tokens sind.
+#
+# Diese Funktion markiert nur, sie loescht nichts: der schwaechere Artikel
+# bekommt dub_von (Link des sichtbaren), der sichtbare sammelt in dub_quellen
+# die Namen der verdeckten Quellen. Beide Renderer (hier _ssr_card/inject_ssr,
+# im Browser renderCard/index.html) blenden dub_von aus und zeigen ab
+# _GRID_HINWEIS_AB verdeckten Quellen eine Zeile "auch bei: ...". In news.json,
+# Archiv, Suche und ueber den Deep-Link bleibt jeder Artikel erreichbar.
+#
+# DREI GATES, alle muessen zutreffen: gemeinsame Entitaet, _GRID_MIN_WORTE
+# gemeinsame Stammwoerter, Titel-Aehnlichkeit >= _GRID_MIN_SIM plus das Urteil
+# von gleiches_ereignis(). Am Bestand vom 10.09. (133 Karten nach dem
+# Cluster-Filter) von Hand nachgesehen:
+#   0.45 + 2 Worte ->  9 Karten weg, ~2 davon falsch, SiliconAngle bleibt
+#   0.40 + 2 Worte -> 14 Karten weg, ~3 davon falsch (Decart-Deal gegen
+#                     Sammelklage, NYT-Prozess gegen Vorstandsberufung)
+#   0.38 + 3 Worte ->  9 Karten weg, ~1 falsch, dafuer bleibt SiliconAngle
+#   0.38 + 2 Worte -> 17 Karten weg, dieselben ~3 Fehlgriffe wie bei 0.40 plus
+#                     drei richtige (Wired-Ruecktritt, Decoder-Angestellte,
+#                     TechRepublic-Boersengang) -- keine neuen Fehler
+# Gewaehlt: 0.38/2, weil genau die Karten verschwinden, die Daniel am 10.09.
+# gemeldet hat, und der Schritt von 0.40 auf 0.38 keinen neuen Fehlgriff
+# gekostet hat. KILL-SWITCH: zu viel verschwindet -> _GRID_MIN_SIM auf 0.45
+# anheben oder _GRID_MIN_WORTE auf 3; die Funktion selbst kann bleiben.
+# Das ist ein Anzeige-Pflaster. Die eigentliche Reparatur ist das Clustering
+# (Beugungsformen im Tokenizer) -- die gehoert gemessen, nicht geraten.
+_GRID_MIN_SIM = 0.38
+_GRID_MIN_WORTE = 2
+_GRID_HINWEIS_AB = 2      # ab so vielen verdeckten Quellen steht "auch bei:" auf der Karte
+_GRID_HINWEIS_MAX = 4     # mehr Quellennamen passen nicht auf eine Kachel
+
+
+def _dub_stamm(wort):
+    """Grobe Endungs-Normalisierung, nur fuer den Dublettenvergleich.
+    Absichtlich NICHT in _title_keywords: das benutzt cluster_news(), dort
+    wuerde dieselbe Aenderung das komplette Clustering verschieben und
+    gehoert gegen Trainings- und Holdout-Menge gemessen."""
+    for endung in ("innen", "enden", "ern", "ers", "en", "er", "es", "s", "e"):
+        if len(wort) - len(endung) >= 4 and wort.endswith(endung):
+            return wort[:-len(endung)]
+    return wort
+
+
+def _dub_kw(titel):
+    return {_dub_stamm(w) for w in _title_keywords(titel or "")}
+
+
+def _markiere_dubletten(news_list):
+    """Setzt dub_von / dub_quellen. Aendert sonst nichts am Bestand."""
+    for n in news_list:
+        n.pop("dub_von", None)
+        n.pop("dub_quellen", None)
+    sortiert = sorted(news_list, key=lambda n: -(n.get("score") or 0))
+
+    # Stufe 1: innerhalb eines Clusters fuehrt der bestbewertete Artikel.
+    cluster_kopf = {}
+    verdeckt = {}          # id(Artikel) -> Kopf-Artikel
+    kopfe = []
+    for n in sortiert:
+        sid = (n.get("story_id") or "").strip()
+        if sid and sid in cluster_kopf:
+            verdeckt[id(n)] = cluster_kopf[sid]
+            continue
+        if sid:
+            cluster_kopf[sid] = n
+        kopfe.append(n)
+
+    # Stufe 2: dieselbe Meldung in verschiedenen Clustern.
+    fuehrer = []
+    for n in kopfe:
+        titel = n.get("title") or ""
+        norm, ents, kws = _norm_dub(titel), set(_dub_entitaeten(titel)), _dub_kw(titel)
+        treffer = None
+        for f, f_norm, f_ents, f_kws in fuehrer:
+            if not (f_ents & ents):
+                continue
+            if len(f_kws & kws) < _GRID_MIN_WORTE:
+                continue
+            if difflib.SequenceMatcher(None, f_norm, norm).ratio() < _GRID_MIN_SIM:
+                continue
+            if _ist_dublette(f.get("title") or "", titel, _GRID_MIN_SIM):
+                treffer = f
+                break
+        if treffer is None:
+            fuehrer.append((n, norm, ents, kws))
+        else:
+            verdeckt[id(n)] = treffer
+
+    # Ketten aufloesen: jeder Verdeckte zeigt auf einen sichtbaren Artikel.
+    sichtbar = {id(f[0]) for f in fuehrer}
+    for n in sortiert:
+        ziel = verdeckt.get(id(n))
+        tiefe = 0
+        while ziel is not None and id(ziel) not in sichtbar and tiefe < 10:
+            ziel = verdeckt.get(id(ziel))
+            tiefe += 1
+        if ziel is None or ziel is n:
+            continue
+        n["dub_von"] = ziel.get("link") or ""
+        quelle = (n.get("source") or "").strip()
+        liste = ziel.setdefault("dub_quellen", [])
+        if quelle and quelle != (ziel.get("source") or "").strip() and quelle not in liste:
+            liste.append(quelle)
+
+    n_weg = sum(1 for n in news_list if n.get("dub_von"))
+    logger.info("Startseite: %d von %d Karten als Dublette markiert", n_weg, len(news_list))
 
 
 def _top_ohne_dubletten(scored, n):
@@ -4185,6 +4325,7 @@ def main():
             "first_seen": fs,
         })
 
+    _markiere_dubletten(news_list)
     news_json_data = {
         "stand":    datum,
         "news":     news_list,
