@@ -826,11 +826,44 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
     # auf derselben Nachricht) -- best effort: schlaegt das fehl, bleibt das
     # Video trotzdem verschickt, darum eigener try/except statt den Erfolg
     # der Hauptfunktion davon abhaengig zu machen.
-    _send_x_button(headline, link)
+    _send_x_button(headline, link, einordnung)
     return True
 
 
-def _send_x_button(headline: str, link: str = "") -> bool:
+X_MAX_ZEICHEN = 265   # Redaktionsregel (00 Kontext/CLAUDE.md): nicht auf 280 planen
+X_LINK_KOSTEN = 23    # X kuerzt jede URL auf t.co: 23 Zeichen, egal wie lang sie ist.
+                      # Mit der echten Laenge gerechnet fiel die Ueberschrift bei
+                      # ChatGPT Images 2.5 um EIN Zeichen raus (266 statt 259).
+
+
+def _x_karten_text(headline: str, einordnung: str, link: str) -> str:
+    """Vorbelegter X-Text einer Karte: Ueberschrift, Leerzeile, Einordnung,
+    Deep-Link. Vorher (bis 10.09.26) stand dort nur headline[:200] -- Daniel
+    stand damit vor einem leeren Post und musste alles selbst tippen, waehrend
+    die fertige Einordnung eine Nachricht darueber in Telegram lag.
+
+    Gekuerzt wird satzweise und nur die Einordnung: lieber zwei ganze Saetze
+    als drei angeschnittene (Redaktions-Doktrin 4.6, der letzte Satz soll
+    landen). Passt nicht einmal der erste Satz, bleibt es bei Ueberschrift
+    plus Link -- also mindestens dem alten Verhalten."""
+    kopf = (headline or "").strip()
+    dl = _deep_link(link)
+    rest = X_MAX_ZEICHEN - len(kopf) - X_LINK_KOSTEN - 3   # zwei Umbrueche + Puffer
+    text = (einordnung or "").strip()
+    if text and len(text) > rest:
+        gekuerzt = ""
+        for satz in re.split(r"(?<=[.!?])\s+", text):
+            kandidat = (gekuerzt + " " + satz).strip()
+            if len(kandidat) > rest:
+                break
+            gekuerzt = kandidat
+        text = gekuerzt
+    if text:
+        return kopf + "\n\n" + text + "\n" + dl
+    return (kopf + "\n" + dl).strip()
+
+
+def _send_x_button(headline: str, link: str = "", einordnung: str = "") -> bool:
     """Schickt eine schlanke Folgenachricht mit einem echten Inline-Button
     ('Auf X posten'), der den X-Web-Intent-Link direkt oeffnet (url-Button,
     kein callback_query noetig -- siehe Docstring von send_card_to_telegram).
@@ -839,7 +872,8 @@ def _send_x_button(headline: str, link: str = "") -> bool:
     erst gesucht werden muss."""
     if not TELEGRAM_TOKEN:
         return False
-    x_intent_url = "https://twitter.com/intent/tweet?text=" + urllib.parse.quote(headline[:200])
+    x_intent_url = ("https://twitter.com/intent/tweet?text="
+                    + urllib.parse.quote(_x_karten_text(headline, einordnung, link)))
     reply_markup = json.dumps({
         "inline_keyboard": [[{"text": "🐦 Auf X posten", "url": x_intent_url}]]
     })
