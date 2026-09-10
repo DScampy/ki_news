@@ -309,8 +309,43 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
     except Exception as e:
         logger.debug("Morgenlage: alte news.json nicht lesbar (%s)", e)
 
-    top = sorted(news_list, key=lambda n: -(n.get("score") or 0))[:BRIEFING_MAX]
-    logger.info("Morgenlage fuer %s gesetzt: %d Storys (Stand %s)", heute, len(top), stand)
+    # Entdopplung (10.09.26): vorher waren es stumpf die Top-5 nach Score - am
+    # 10.09. standen dadurch VIER Meldungen desselben Clusters s001 (TechCrunch,
+    # Bloomberg, WSJ, FT zum Anthropic-Ruecktritt) in der Morgenlage, am 09.09.
+    # viermal dieselbe Meta-Agenten-Meldung. Zwei Stufen:
+    #   1. story_id -- greift, wenn cluster_news() die Meldung erkannt hat
+    #      (Fall 10.09.), es bleibt der bestbewertete Vertreter stehen.
+    #   2. Titel-Schlagwoerter -- greift, wenn das Clustering die Verbindung
+    #      verpasst hat (Fall 09.09.: s000 und s002 waren beide "Meta stellt
+    #      KI-Agenten vor"). Dieselbe Schranke wie im Clustering (MIN_SHARED=2).
+    # Die Morgenlage ist mit BRIEFING_MAX=5 der engste Platz der Seite - hier ist
+    # eine zu strenge Entdopplung billiger als eine Zeile mit einer Meldung drin.
+    top, gesehen_ids, gesehen_kw, gesehen_titel = [], set(), [], []
+    for n in sorted(news_list, key=lambda n: -(n.get("score") or 0)):
+        sid = (n.get("story_id") or "").strip()
+        if sid and sid in gesehen_ids:
+            continue
+        kw = _title_keywords(n.get("title", "") or "")
+        if any(len(kw & frueher) >= 2 for frueher in gesehen_kw):
+            continue
+        # Stufe 3: Ereignis-Erkenner. Faengt die Faelle, in denen sich zwei
+        # Fassungen nicht einmal zwei Schlagwoerter teilen -- am 10.09. etwa
+        # "Anthropic-Forscher kuendigt und warnt ..." (TechCrunch) gegen
+        # "Ruecktritt eines Anthropic-Forschers loest ... aus" (SiliconAngle):
+        # gemeinsam ist nur "anthropic", weil "Forscher" und "Forschers" zwei
+        # verschiedene Tokens sind.
+        titel = n.get("title", "") or ""
+        if any(_ist_dublette(titel, t, _BRIEFING_MIN_SIM) for t in gesehen_titel):
+            continue
+        top.append(n)
+        if sid:
+            gesehen_ids.add(sid)
+        gesehen_kw.append(kw)
+        gesehen_titel.append(titel)
+        if len(top) >= BRIEFING_MAX:
+            break
+    logger.info("Morgenlage fuer %s gesetzt: %d Storys aus %d Artikeln (Stand %s)",
+                heute, len(top), len(news_list), stand)
     return {
         "datum": heute,
         "stand": stand,
@@ -335,19 +370,34 @@ def _ssr_briefing_block(briefing):
         return ("<!-- SSR:BRIEFING:START -->\n"
                 "      <!-- SSR:BRIEFING:END -->")
     uhrzeit = (briefing.get("stand") or "").split(" ")[-1]
+    # INLINE-STYLES, keine Tailwind-Klassen (Fund 10.09.26): assets/ki-tw.css ist
+    # ein ausgeduennter Build. overflow-x-auto, whitespace-nowrap, shrink-0 und
+    # border-y stehen dort NICHT drin (nachgezaehlt: 0 Treffer je Klasse). Die
+    # Zeile hat deshalb nicht in sich gescrollt, sondern die ganze Seite auf 623 px
+    # aufgeblasen (Viewport 375 px). Auf dem Handy laesst sich die Seite seitlich
+    # schieben, und alles mit position:fixed - Navigation und Artikel-Overlay -
+    # steht dann verschoben und rechts abgeschnitten da. Der Rest des SSR-Codes
+    # arbeitet aus genau diesem Grund ebenfalls mit style="...".
+    style_zeile = (
+        "display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:8px 0;"
+        "border-top:1px solid var(--hairline,#2f3336);"
+        "border-bottom:1px solid var(--hairline,#2f3336);"
+        "overflow-x:auto;white-space:nowrap;font-size:14px;"
+    )
+    style_label = ("flex:0 0 auto;font-family:monospace;font-size:11px;text-transform:uppercase;"
+                   "letter-spacing:0.14em;color:var(--muted,#8b98a5);")
     teile = [
         "<!-- SSR:BRIEFING:START -->",
-        '      <div class="mb-6 flex items-center gap-3 overflow-x-auto whitespace-nowrap '
-        'border-y border-white/10 py-2 text-sm" aria-label="Morgenlage">',
-        '        <span class="shrink-0 font-mono text-xs uppercase tracking-widest ki-muted">'
-        f"Morgenlage {_html.escape(uhrzeit)}</span>",
+        f'      <div style="{style_zeile}" aria-label="Morgenlage">',
+        f'        <span style="{style_label}">Morgenlage {_html.escape(uhrzeit)}</span>',
     ]
     for i, s in enumerate(stories, 1):
         titel = _html.escape((s.get("title") or "")[:90])
         link = _html.escape(s.get("link") or "#", quote=True)
         teile.append(
             f'        <a href="{link}" target="_blank" rel="noopener noreferrer" '
-            f'class="shrink-0 hover:underline"><span class="ki-muted">{i}.</span> {titel}</a>'
+            f'style="flex:0 0 auto;text-decoration:none;color:inherit;">'
+            f'<span style="color:var(--muted,#8b98a5);">{i}.</span> {titel}</a>'
         )
     teile.append("      </div>")
     teile.append("      <!-- SSR:BRIEFING:END -->")
@@ -1710,6 +1760,17 @@ def _recent_titles_from_archive(existing_archive, days=3, limit=15):
 _DUB_MIN_SIM = 0.62
 _DUB_MAX_PRO_LAUF = 3          # mehr Dubletten in einer Top-n gibt es nicht
 
+# Morgenlage: eigene, niedrigere Schwelle (10.09.26). Dort stehen nur fuenf
+# Zeilen, und eine zweite Fassung derselben Meldung kostet 20 % der Flaeche --
+# teurer als eine Meldung, die eine Zeile spaeter erscheint. An den gelabelten
+# Paaren aus ox-analyse/material/ereignis_daten.json gemessen:
+#   Schwelle 0.62 (Top-Story):  Gegenprobe 20/74 gefunden, 0/528 falsch
+#   Schwelle 0.45 (hier):       Gegenprobe 55/74 gefunden, 0/528 falsch
+#                               harte Negativfaelle: 2 von 40 falsch
+# Tiefer als 0.45 nicht ohne neue Messung: bei 0.40 kippen 4 von 40 harten
+# Negativfaellen (Trainingsmenge) bzw. 4 von 528 der Gegenprobe.
+_BRIEFING_MIN_SIM = 0.45
+
 try:
     from ereignis import gleiches_ereignis as _gleiches_ereignis
 except ImportError:            # pragma: no cover
@@ -1735,7 +1796,7 @@ def _dub_entitaeten(titel, _cache={}):
     return [i for i, p in _cache["pats"] if p.search(titel or "")]
 
 
-def _ist_dublette(titel_a, titel_b):
+def _ist_dublette(titel_a, titel_b, min_sim=None):
     """True, wenn beide Titel dieselbe Meldung sind -- streng geprueft."""
     if not _gleiches_ereignis or not titel_a or not titel_b:
         return False
@@ -1748,7 +1809,7 @@ def _ist_dublette(titel_a, titel_b):
         # bei 78 statt 100 Prozent (gemessen 27.08.).
         sim = difflib.SequenceMatcher(
             None, _norm_dub(titel_a), _norm_dub(titel_b)).ratio()
-        return sim >= _DUB_MIN_SIM
+        return sim >= (_DUB_MIN_SIM if min_sim is None else min_sim)
     except Exception as ex:
         logger.warning("Dublettenfilter uebersprungen (%s)", ex)
         return False
@@ -3130,15 +3191,44 @@ def _deep_link(link: str) -> str:
     zusaetzlicher Code hier noetig."""
     return f"https://ki-news.live/#a={_kl_hash_id(link)}" if link else "https://ki-news.live/"
 
-def _x_post_text(teaser: str, link: str) -> str:
+X_MAX_ZEICHEN = 265   # Redaktionsregel (00 Kontext/CLAUDE.md): nicht auf 280 planen
+X_LINK_KOSTEN = 23    # X kuerzt jede URL auf t.co: 23 Zeichen, egal wie lang sie ist.
+                      # Mit der echten Laenge gerechnet fiel die Ueberschrift bei
+                      # ChatGPT Images 2.5 um EIN Zeichen raus (266 statt 259).
+
+def _x_post_text(teaser: str, link: str, titel: str = "") -> str:
     """Text fuer den X-Intent-Button (09.09.26, Daniels Wunsch): das Pflicht-
     Suffix '(via Quelle)' -- das ist NUR ein Qualitaets-Gate-Fingerabdruck fuer
     die Redaktions-Zuordnung (siehe Kommentar bei parse_posts()), kein Text,
     der auf X einen Mehrwert hat -- wird hier durch den Deep-Link zur Story auf
     ki-news.live ersetzt. p['teaser'] selbst bleibt unveraendert (Anzeige in
-    Telegram, Post-Cache, Qualitaets-Gate lesen weiter den Original-Teaser)."""
+    Telegram, Post-Cache, Qualitaets-Gate lesen weiter den Original-Teaser).
+
+    Ueberschrift + Leerzeile (10.09.26): Genau das hat Daniel am 10.09. von Hand
+    ergaenzt, bevor er einen Vorschlag gepostet hat. Der Teaser allein laesst
+    offen, worum es ueberhaupt geht, und schoepft das Limit nicht aus (Beispiel
+    ChatGPT Images 2.5: 168 von 265 Zeichen). Passt beides nicht zusammen ins
+    Limit, faellt die UEBERSCHRIFT weg und nicht der Teaser: der Teaser ist der
+    redigierte Post, sein letzter Satz soll landen (Redaktions-Doktrin 4.6) --
+    ein Schnitt mittendrin waere schlechter als gar keine Ueberschrift."""
     base = re.sub(r"\s*\(via [^)]*\)\s*$", "", teaser or "").rstrip()
-    return f"{base}\n{_deep_link(link)}" if base else _deep_link(link)
+    dl = _deep_link(link)
+    kopf = (titel or "").strip()
+    if not base:
+        passt = kopf and len(kopf) + 1 + X_LINK_KOSTEN <= X_MAX_ZEICHEN
+        return f"{kopf}\n{dl}" if passt else dl
+    # Ueberschrift weglassen, wenn der Teaser sie ohnehin wiederholt (10.09.26 an
+    # den 9 Live-Posts gesehen: Titel "Google investiert Milliarden in KI-Infra-
+    # struktur in Finnland." + Teaser "Google investiert Milliarden in KI-Hardware
+    # in Finnland - ..." waere zweimal derselbe Satz gewesen). Schranke: 70 % der
+    # Titel-Schlagwoerter stehen schon im Teaser.
+    if kopf:
+        kw_kopf = _title_keywords(kopf)
+        if kw_kopf and len(kw_kopf & _title_keywords(base)) / len(kw_kopf) >= 0.7:
+            kopf = ""
+    if kopf and len(kopf) + 2 + len(base) + 1 + X_LINK_KOSTEN <= X_MAX_ZEICHEN:
+        return f"{kopf}\n\n{base}\n{dl}"
+    return f"{base}\n{dl}"
 
 def _telegram_send_message(text, buttons=None, max_retries=3, delay=5):
     """Einzelnachricht mit HTML-Formatierung + optionalen Inline-Buttons.
@@ -3198,7 +3288,8 @@ def send_telegram_stories(stories, score_map=None, detailliert=False):
             teile += [f"{i}/ {esc(tweet)}" for i, tweet in enumerate(p["thread"], 1)]
         buttons_row = []
         if p.get("teaser"):
-            buttons_row.append({"text": "Auf X posten", "url": _x_intent_url(_x_post_text(p["teaser"], n.get("link", "")))})
+            buttons_row.append({"text": "Auf X posten",
+                                "url": _x_intent_url(_x_post_text(p["teaser"], n.get("link", ""), n.get("title", "")))})
         if n.get("link"):
             buttons_row.append({"text": "Artikel", "url": n["link"]})
         ok = _telegram_send_message("\n".join(teile), [buttons_row] if buttons_row else None)
