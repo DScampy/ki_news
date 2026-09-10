@@ -135,6 +135,12 @@ input[type=range]{width:100%; accent-color:var(--anbieter); height:3px}
 .nb .ct{font-family:ui-monospace,monospace; font-size:11px; color:var(--muted)}
 .nb .age{font-family:ui-monospace,monospace; font-size:10px; color:var(--muted); opacity:.75}
 .nb.stale .nm,.nb.stale .ct{opacity:.5}
+/* Meldungen hinter einer Verbindung (10.09.26) */
+.mld{margin:-2px 0 9px 25px; display:flex; flex-direction:column; gap:3px}
+.mld a{font-size:11.5px; line-height:1.35; color:var(--muted); text-decoration:none;
+  border-left:2px solid var(--hairline); padding-left:7px}
+.mld a:hover{color:var(--text); border-left-color:var(--text)}
+.mld .mehr{font-size:10px; color:var(--muted); opacity:.7; padding-left:9px}
 .tag{display:inline-block; font-size:10px; font-family:ui-monospace,monospace;
   padding:1px 6px; border-radius:999px; border:1px solid var(--hairline); color:var(--muted)}
 
@@ -269,14 +275,47 @@ function lade(q){
   aktiv=null; zu();
   Promise.all([
     fetch(QUELLEN[q].datei).then(function(r){return r.json()}),
-    fetch("entities.json").then(function(r){return r.json()}).catch(function(){return {entities:[]}})
+    fetch("entities.json").then(function(r){return r.json()}).catch(function(){return {entities:[]}}),
+    // news.json ist optional: faellt der Abruf aus, zeigt das Panel wie bisher
+    // nur Zahlen statt Schlagzeilen - der Graph funktioniert unveraendert weiter.
+    fetch("news.json").then(function(r){return r.json()}).catch(function(){return {news:[]}})
   ]).then(aufbauen).catch(fehler);
 }
 document.getElementById("qLive").onclick=function(){ if(aktuelleQuelle!=="live") lade("live"); };
 document.getElementById("qHist").onclick=function(){ if(aktuelleQuelle!=="hist") lade("hist"); };
 
+// ── Aktuelle Meldungen hinter einer Verbindung (10.09.26) ──────────────────
+// Der Graph sagte bisher nur "14x, zuletzt 2 Tage her" - aber nicht, WELCHE
+// Meldung das war. Genau der Schritt fehlte: erst die Verbindung sehen, dann
+// nachsehen ob da gerade etwas laeuft oder ob es ein halbes Jahr alt ist.
+// Zugeordnet wird mit denselben entities.json-Regexen, die auch die Pipeline
+// benutzt (update_entity_graph) - keine zweite Wahrheit.
+// Quelle ist news.json: der aktuelle Bestand (max. MAX_AGE_DAYS=5 Tage). Fuer
+// aeltere Verbindungen bleibt es bei Anzahl + "zuletzt X Tage her", und das
+// IST die Antwort auf "gibt es dazu gerade etwas?".
+var ARTIKEL = [];
+
+function indexiereArtikel(ent, news){
+  var muster = [];
+  (ent.entities||[]).forEach(function(e){
+    try { muster.push({id:e.id, re:new RegExp((e.aliasse||[]).join("|"), "i")}); }
+    catch(err){ /* kaputte Regex in der Registry: Eintrag ueberspringen */ }
+  });
+  ARTIKEL = (news||[]).map(function(n){
+    var text=(n.title||"")+" "+(n.summary||""), ids={};
+    muster.forEach(function(m){ if(m.re.test(text)) ids[m.id]=1; });
+    return {titel:n.title||"", link:n.link||"", datum:n.first_seen||n.date||"", ids:ids};
+  });
+}
+
+function meldungenFuer(a, b){
+  return ARTIKEL.filter(function(x){ return x.ids[a] && x.ids[b]; })
+                .sort(function(p,q){ return (q.datum||"").localeCompare(p.datum||""); });
+}
+
 function aufbauen(res){
   var g=res[0], ent=res[1];
+  indexiereArtikel(ent, (res[2]||{}).news);
   N=[]; E=[]; byId={}; parent={};
   (ent.entities||[]).forEach(function(e){ parent[e.id]=e.gehoert_zu||null; });
 
@@ -630,6 +669,26 @@ function oeffne(n){
     d.title = "gemeinsam in "+o.e.count+" Meldungen · erstmals "+o.e.first+" · zuletzt "+o.e.last;
     d.onclick=function(){ oeffne(o.n); draw(); };
     box.appendChild(d);
+
+    // Schlagzeilen zur Verbindung, hoechstens zwei - das Panel soll eine
+    // Antwort geben, keine Artikelliste werden.
+    var mld = meldungenFuer(n.id, o.n.id);
+    if(mld.length){
+      var w=document.createElement("div"); w.className="mld";
+      mld.slice(0,2).forEach(function(m){
+        var a=document.createElement("a");
+        a.href=m.link; a.target="_blank"; a.rel="noopener noreferrer";
+        a.textContent=m.titel;
+        a.title=m.datum;
+        w.appendChild(a);
+      });
+      if(mld.length>2){
+        var r=document.createElement("span"); r.className="mehr";
+        r.textContent="+"+(mld.length-2)+" weitere aktuelle";
+        w.appendChild(r);
+      }
+      box.appendChild(w);
+    }
   });
   draw();
 }
