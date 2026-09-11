@@ -49,6 +49,7 @@
     "name": "Daniel S.",
     "url": "https://ki-news.live/"
   },
+  "image": "https://ki-news.live/artikel/anthropic-missbrauchsbericht-september-2026-og.png",
   "mainEntityOfPage": {
     "@type": "WebPage",
     "@id": "https://ki-news.live/artikel/anthropic-missbrauchsbericht-september-2026.html"
@@ -383,6 +384,67 @@ html.light .benchmark-tbl th{color:#0ea5e9;}
 .art-img-cap{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:28px;letter-spacing:0.04em;}
 html.light .art-img-cap{color:#64748b;}
 
+/* ── Hero Figure ── */
+.art-hero{margin-bottom:40px;}
+.art-hero img{width:100%;display:block;border-radius:14px;border:1px solid rgba(var(--neon-rgb),0.25);box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.08),0 0 30px rgba(var(--neon-rgb),0.14);}
+.art-hero-cap{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.42);letter-spacing:0.04em;margin-top:10px;line-height:1.5;text-align:center;}
+html.light .art-hero-cap{color:#64748b;}
+
+/* ── Figures ── */
+figure.art-figure{margin:34px 0;}
+figure.art-figure img{width:100%;display:block;border-radius:12px;border:1px solid rgba(var(--neon-rgb),0.22);}
+.figure-caption{
+  font-family:monospace;font-size:11px;color:rgba(255,255,255,0.42);
+  letter-spacing:0.04em;margin-top:10px;line-height:1.5;text-align:center;
+}
+html.light .figure-caption{color:#64748b;}
+
+/* ── Opening paragraph ── */
+.art-body .opening{
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-size:clamp(18px,1.5vw,22px);
+  line-height:1.5;
+  color:var(--text);
+  border-left:3px solid var(--accent);
+  padding-left:18px;
+  margin-bottom:36px;
+}
+
+/* ── Stat-Callout (große Zahl) ── */
+.stat-callout{
+  --sc:var(--accent);
+  display:flex;align-items:baseline;gap:24px;flex-wrap:wrap;
+  background:rgba(var(--neon-rgb),0.06);
+  border:1px solid rgba(var(--neon-rgb),0.2);
+  border-left:4px solid var(--sc);
+  border-radius:12px;padding:24px 28px;margin:36px 0;
+}
+.stat-callout.warn{--sc:#f87171;background:rgba(248,113,113,0.07);border-color:rgba(248,113,113,0.28);}
+.stat-num{font-family:'Space Grotesk',sans-serif;font-size:clamp(46px,7vw,66px);font-weight:800;line-height:0.9;color:var(--sc);letter-spacing:-0.03em;flex-shrink:0;}
+.stat-body{flex:1;min-width:220px;}
+.stat-unit{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text);margin-bottom:7px;}
+.stat-expl{font-family:'Work Sans',sans-serif;font-size:13.5px;line-height:1.55;color:rgba(255,255,255,0.65);}
+html.light .stat-callout{background:rgba(14,165,233,0.06);}
+html.light .stat-expl{color:#475569;}
+
+/* ── Fazit-Box ── */
+.art-fazit{
+  display:flex;gap:14px;align-items:flex-start;
+  background:rgba(var(--neon-rgb),0.07);
+  border:1px solid rgba(var(--neon-rgb),0.2);
+  border-radius:10px;padding:15px 18px;margin:22px 0 8px;
+}
+.fazit-label{
+  font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--accent);padding-top:4px;flex-shrink:0;
+}
+.art-fazit .fazit-text{
+  font-family:'Fraunces',serif;font-size:clamp(15px,1.1vw,17px);line-height:1.55;
+  color:var(--text);margin:0;
+}
+html.light .art-fazit{background:rgba(14,165,233,0.07);}
+
 </style>
     <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
 </head>
@@ -427,12 +489,19 @@ html.light .art-img-cap{color:#64748b;}
     <span>11. September 2026</span>
     <span class="dot"></span>
     <span>≈ 9 Min. Lesezeit</span>
+    <span class="dot"></span>
+    <a href="https://www.anthropic.com/threat-intelligence-report-september-2026" target="_blank" rel="noopener">Anthropic-Bericht ↗</a>
   </div>
+
+  <figure class="art-hero">
+    <img src="anthropic-missbrauchsbericht-september-2026-hero.png" alt="Stilisierte Weltkarte mit pulsierenden Knoten: cyan für beobachtete Aktivität, rot für von Anthropic gestoppte Missbrauchsfälle, über alle Kontinente verteilt."/>
+    <div class="art-hero-cap">Eigene Illustration zur Einordnung, kein Original-Material von Anthropic. Rote Punkte markieren keine echten Koordinaten.</div>
+  </figure>
 
   <!-- Article Body -->
   <article class="art-body" id="article-body">
 
-<p>Ein chinesisches Unternehmen hat 151 Millionen Mal mit Claude gesprochen, nicht um es zu nutzen, sondern um es zu kopieren. Eine Zelle im Jemen hat Claude Code die Steuerungssoftware für eine Rakete schreiben lassen. Ein einzelner Berater in Mali hat damit eine Überwachungsplattform für ein ganzes Land gebaut. Das sind drei von über dreißig Fällen, die Anthropic am 10. September 2026 in einem 154 Seiten langen Bericht öffentlich gemacht hat, dem nach eigenen Angaben „detailliertesten Threat-Intelligence-Bericht“ der Firmengeschichte.</p>
+<p class="opening">Ein chinesisches Unternehmen hat 151 Millionen Mal mit Claude gesprochen, nicht um es zu nutzen, sondern um es zu kopieren. Eine Zelle im Jemen hat Claude Code die Steuerungssoftware für eine Rakete schreiben lassen. Ein einzelner Berater in Mali hat damit eine Überwachungsplattform für ein ganzes Land gebaut. Das sind drei von über dreißig Fällen, die Anthropic am 10. September 2026 in einem 154 Seiten langen Bericht öffentlich gemacht hat, dem nach eigenen Angaben „detailliertesten Threat-Intelligence-Bericht“ der Firmengeschichte.</p>
 <p>Anthropic schreibt zur Veröffentlichung: Der Bericht beschreibt, wie Menschen versucht haben, Claude zu missbrauchen: für Cyberangriffe, Einflussoperationen, Überwachung, Biologie und den Bau von Waffen. Und wie das Unternehmen diese Versuche entdeckt und gestoppt hat. Jede Operation im Bericht wurde unterbunden, die gewonnenen Erkenntnisse flossen in verbesserte Schutzmaßnahmen, und wo es angemessen war, hat man Behörden und andere KI-Firmen informiert.</p>
 <div class="skinny-box">
   <ul>
@@ -443,12 +512,16 @@ html.light .art-img-cap{color:#64748b;}
   </ul>
 </div>
 
-<p style="margin:-8px 0 36px;">
-  <a href="https://www.anthropic.com/threat-intelligence-report-september-2026" target="_blank" rel="noopener" class="back-btn" style="margin-top:0;">
-    <span class="material-symbols-outlined" style="font-size:16px;">description</span>
-    Zum vollständigen Anthropic-Bericht
-  </a>
-</p>
+<div class="video-card">
+  <div class="video-card-label">
+    <span class="material-symbols-outlined">tag</span>
+    Die Ankündigung
+  </div>
+  <blockquote class="twitter-tweet" data-lang="de" data-dnt="true" data-theme="dark">
+    <a href="https://twitter.com/AnthropicAI/status/2098097512544444447"></a>
+  </blockquote>
+  <p class="video-card-caption">Anthropics eigene Ankündigung, 10.09.2026, mittlerweile über 16,6 Mio. Aufrufe. Quelle: <a href="https://x.com/AnthropicAI/status/2098097512544444447" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">@AnthropicAI / X ↗</a></p>
+</div>
 
 <h2>Cyberangriffe: Vom Assistenten zum Dirigenten</h2>
 <p>Anthropic beschreibt eine Verschiebung: KI wird in Cyberoperationen nicht mehr nur als Chatbot benutzt, sondern orchestriert selbst ganze Angriffsketten. Ein Akteur mit Konsistenz zu „Midnight Blizzard“, einer mit russischer Staatsspionage in Verbindung stehenden Gruppe, betrieb ein automatisiertes System, das eigenständig erkannte, wenn seine Schadsoftware von Sicherheitsprodukten entdeckt wurde, und sie dann selbstständig umschrieb und neu auslieferte, bis sie wieder unentdeckt blieb. Ziel waren über 20 Organisationen, vor allem ukrainische Regierungs- und Militärstellen sowie Rüstungszulieferer für Drohnentechnologie.</p>
@@ -458,6 +531,12 @@ html.light .art-img-cap{color:#64748b;}
 <p>Im auffälligsten Fall nutzte eine Zelle im Norden Jemens Claude Code „anstelle menschlicher Ingenieure“, um an gleich drei Programmen zu arbeiten: einer gelenkten Rakete mit einem Flugcomputer aus einem handelsüblichen Smartphone-Chip, einer mehrstufigen ballistischen Rakete mit einem Reichweitenziel von über 2.000 Kilometern, und einer Hyperschall-Gleiter-Variante. Ein Testabschuss der gelenkten Rakete fand statt, und schlug fehl. Die Akteure kehrten laut Anthropic innerhalb von Stunden zu Claude zurück, um die Fehlerursache zu analysieren. Der Bericht macht klar: Es gibt keinen Beweis für ein fertiges, im Feld einsetzbares Waffensystem, nur für den fehlgeschlagenen Test und fortgesetzte Simulationsarbeit.</p>
 <p>Eine russische Gruppe, vermutlich mit Verbindung zu einer Forschungseinrichtung der Russischen Akademie der Wissenschaften, baute mit Claude den kompletten Software-Stack für einen autonomen Kamikaze-Drohnenschwarm, inklusive eines Bordmodells, das eigenständig entscheiden konnte, wann eine Zielklasse „Person“ erkannt und die Detonation ausgelöst wird, ohne Mensch in der Entscheidungsschleife. Die Gruppe testete das System nachweislich an echter Hardware.</p>
 <h2>Überwachung: 25 Millionen SIM-Karten und eine falsche Gebetszeiten-App</h2>
+
+<figure class="art-figure">
+  <img src="anthropic-missbrauchsbericht-september-2026-figure2.png" alt="Stilisiertes Netzwerk aus cyanfarbenen Knoten über einem dunklen Meer bei Sonnenuntergang, mit vereinzelten orangefarbenen Warnsymbolen, die auffällige Fälle markieren."/>
+  <div class="figure-caption">Eigene Illustration, kein Original-Material von Anthropic. Die Warnsymbole stehen sinnbildlich für die im Bericht geflaggten Fälle, nicht für reale Standorte.</div>
+</figure>
+
 <p>Im Abschnitt zur Überwachung beschreibt Anthropic, wie ein einzelner Berater, vermutlich in Bamako ansässig, für den malischen Geheimdienst ANSE eine Plattform namens „Lakana 360“ entwickelte.</p>
 <blockquote>„Eine bevölkerungsweite Überwachungsplattform, die rund 25 Millionen SIM-Karten bei allen drei nationalen Mobilfunkanbietern des Landes überwacht.“</blockquote>
 <p>Die Plattform wurde laut Bericht gezielt so gebaut, dass sie die gesetzliche Pflicht zu einem Gerichtsbeschluss umgeht. Claude lieferte auf Anfrage Dossiers zu jeder Zielnummer ohne Nachweis eines rechtlichen Verfahrens. Inzwischen läuft „Lakana 360“ vollständig auf eigenen, lokalen Modellen, die Kontosperrung durch Anthropic stoppt die laufende Plattform nicht mehr.</p>
@@ -469,6 +548,15 @@ html.light .art-img-cap{color:#64748b;}
 <p>Im Abschnitt zu Betrug beschreibt Anthropic ein chinesisches App-Studio, das ein Netzwerk von über 20 Dating-Apps betrieb, beworben als vollständig von echten Menschen bedient. In einem einzigen Zwei-Wochen-Fenster im April 2026 interagierten laut Bericht über 4.700 KI-Personas mit mindestens 25.000 realen Nutzern. Über 2,3 Millionen Nachrichten liefen dabei über Claude. In einigen ausgewerteten Stichproben erkannte das Modell laut eigenem Reasoning, dass Nutzer schwere Krankheit oder akute Notlagen offenbarten, blieb aber in der zugewiesenen Rolle, statt das Gespräch zu beenden.</p>
 <h2>Illegale Distillation: 151 Millionen abgeschöpfte Gespräche</h2>
 <p>Den größten Einzelfund im gesamten Bericht liefert ein Abschnitt, der wenig Aufmerksamkeit bekommen hat: illegale Modell-Distillation. Anthropic identifizierte Angriffe von sieben Labs aus China, die versuchten, Claudes Fähigkeiten unerlaubt zu kopieren.</p>
+
+<div class="stat-callout">
+  <div class="stat-num">151 Mio.</div>
+  <div class="stat-body">
+    <div class="stat-unit">Exchanges · Alibaba/Qwen, Mai-Juli 2026</div>
+    <div class="stat-expl">Größte im Bericht gemessene Einzelkampagne: über 3.500 Fake-Accounts, um Reasoning-Traces aus Claude Opus abzuschöpfen und damit Qwen zu trainieren.</div>
+  </div>
+</div>
+
 <table class="benchmark-tbl">
   <thead><tr><th>Lab</th><th>Methode</th><th>Umfang</th></tr></thead>
   <tbody>
@@ -482,7 +570,7 @@ html.light .art-img-cap{color:#64748b;}
 <h2>Fazit</h2>
 <p>Ein KI-Anbieter, der öffentlich dokumentiert, wie die eigene Technologie missbraucht wird, ist selten genug, um es ernst zu nehmen. Anthropic begründet die Veröffentlichung damit, anderen Anbietern zu helfen, dieselben Muster auf ihren eigenen Plattformen zu erkennen, und der Öffentlichkeit einen klareren Blick auf kommende Bedrohungen zu geben.</p>
 <p>Was der Bericht nicht liefert, ist ein fertiges Waffensystem, eine bewiesene Biowaffe oder ein unabhängig verifizierter Beweis für jede einzelne Zahl darin. Die größten Funde stammen bislang ausschließlich von Anthropic selbst. Die 154 Seiten sind trotzdem der bisher detaillierteste Einblick, den ein KI-Unternehmen in die eigene Missbrauchs-Statistik gegeben hat.</p>
-<p>Die Frage ist nicht, ob das reicht. Die Frage ist, wer als Nächstes die Grenze überschreitet.</p>
+<div class="art-fazit"><span class="fazit-label">Fazit</span><p class="fazit-text">Die Frage ist nicht, ob das reicht. Die Frage ist, wer als Nächstes die Grenze überschreitet.</p></div>
 
 <div class="source-note">
   Primärquelle: Anthropic, „Detecting and countering misuse of AI: September 2026", <a href="https://www.anthropic.com/threat-intelligence-report-september-2026" target="_blank" rel="noopener">anthropic.com/threat-intelligence-report-september-2026</a> (10.09.2026) · @AnthropicAI-Ankündigung, x.com/AnthropicAI/status/2098097512544444447 (10.09.2026, 16,6 Mio. Aufrufe) · Fakten-Stand: 11.09.2026
