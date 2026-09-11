@@ -112,7 +112,9 @@ def main():
     leftover = re.findall(r"\{\{[A-Z_]+\}\}", page)
     if leftover: fail("Unersetzte Platzhalter: %s" % set(leftover))
 
+    print("DEBUG: Writing article to", out_path)
     io.open(out_path, "w", encoding="utf-8").write(page)
+    print("DEBUG: Article written")
     print("✓ artikel/%s.html geschrieben" % a.slug)
 
     # ── Karte in artikel.html (#longform-list, neueste zuerst) ──
