@@ -299,7 +299,15 @@ jobs:
           # mixed reset + Recommit ersetzt, damit Konflikte auf vollstaendig
           # neu geschriebenen generierten Dateien nicht mehr den Job vergiften.
           add_and_commit() {
-            git add assets/cards/ cards.json card_state.json artikel.html breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            # artikel.html am 11.09.2026 entfernt: generate_news_cards.py schreibt diese
+            # Datei nicht (verifiziert, kein open()/write auf artikel.html im Skript).
+            # Der git add hier stagte trotzdem den beim Checkout eingefrorenen (u.U.
+            # veralteten) Stand. Folge: Daniels manueller Upload einer neuen Longform-
+            # Karte in artikel.html (Commit c032ddf) wurde vom naechsten Bot-Commit
+            # dieses Workflow-Schritts (1edd40f, "cards + template update") wieder
+            # entfernt, ca. 3 Stunden nach dem Upload. Fix: Datei nicht mehr in diesem
+            # Schritt anfassen, dafuer gibt es hier keinen Generierungsgrund.
+            git add assets/cards/ cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
             # Auch hier, sonst ueberlebt die Registry keinen Push-Konflikt-Retry:
             # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.
             git add registry/ 2>/dev/null || true
