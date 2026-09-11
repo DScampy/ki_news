@@ -81,11 +81,11 @@
   --text:#dfe3ea;
 }
 html.light{
-  --accent:#0ea5e9;
-  --neon-rgb:14,165,233;
   --bg:#f0f4f8;
   --text:#0f172a;
 }
+/* html.light darf --accent/--neon-rgb NICHT setzen, sonst schlägt seine Spezifität
+   die von [data-theme=x] und die Theme-Dots wirken im Light-Mode nicht (11.09.2026 gefixt). */
 /* 5-Theme Akzentsystem (wie Übersicht) */
 [data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;}
 [data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;}
@@ -125,7 +125,8 @@ html.light .ki-border{border-color:#e2e8f0!important;}
 html.light ::-webkit-scrollbar-thumb{background:#cbd5e1!important;}
 html.light .art-body p,html.light .art-body li{color:#1e293b!important;}
 html.light .art-body h2{color:#0f172a!important;}
-html.light .art-body blockquote{background:rgba(14,165,233,0.08)!important;border-color:rgba(14,165,233,0.4)!important;}
+html.light .art-body blockquote{background:rgba(14,165,233,0.08)!important;border-color:rgba(14,165,233,0.4)!important;color:#1e293b!important;}
+html.light .art-body blockquote cite{color:#475569!important;}
 html.light .art-body .source-note{background:rgba(14,165,233,0.08)!important;border-color:rgba(14,165,233,0.3)!important;color:#475569!important;}
 html.light .video-card{background:#fff!important;border-color:#e2e8f0!important;}
 
@@ -531,12 +532,6 @@ html.light .art-fazit{background:rgba(14,165,233,0.07);}
 <p>Im auffälligsten Fall nutzte eine Zelle im Norden Jemens Claude Code „anstelle menschlicher Ingenieure“, um an gleich drei Programmen zu arbeiten: einer gelenkten Rakete mit einem Flugcomputer aus einem handelsüblichen Smartphone-Chip, einer mehrstufigen ballistischen Rakete mit einem Reichweitenziel von über 2.000 Kilometern, und einer Hyperschall-Gleiter-Variante. Ein Testabschuss der gelenkten Rakete fand statt, und schlug fehl. Die Akteure kehrten laut Anthropic innerhalb von Stunden zu Claude zurück, um die Fehlerursache zu analysieren. Der Bericht macht klar: Es gibt keinen Beweis für ein fertiges, im Feld einsetzbares Waffensystem, nur für den fehlgeschlagenen Test und fortgesetzte Simulationsarbeit.</p>
 <p>Eine russische Gruppe, vermutlich mit Verbindung zu einer Forschungseinrichtung der Russischen Akademie der Wissenschaften, baute mit Claude den kompletten Software-Stack für einen autonomen Kamikaze-Drohnenschwarm, inklusive eines Bordmodells, das eigenständig entscheiden konnte, wann eine Zielklasse „Person“ erkannt und die Detonation ausgelöst wird, ohne Mensch in der Entscheidungsschleife. Die Gruppe testete das System nachweislich an echter Hardware.</p>
 <h2>Überwachung: 25 Millionen SIM-Karten und eine falsche Gebetszeiten-App</h2>
-
-<figure class="art-figure">
-  <img src="anthropic-missbrauchsbericht-september-2026-figure2.png" alt="Stilisiertes Netzwerk aus cyanfarbenen Knoten über einem dunklen Meer bei Sonnenuntergang, mit vereinzelten orangefarbenen Warnsymbolen, die auffällige Fälle markieren."/>
-  <div class="figure-caption">Eigene Illustration, kein Original-Material von Anthropic. Die Warnsymbole stehen sinnbildlich für die im Bericht geflaggten Fälle, nicht für reale Standorte.</div>
-</figure>
-
 <p>Im Abschnitt zur Überwachung beschreibt Anthropic, wie ein einzelner Berater, vermutlich in Bamako ansässig, für den malischen Geheimdienst ANSE eine Plattform namens „Lakana 360“ entwickelte.</p>
 <blockquote>„Eine bevölkerungsweite Überwachungsplattform, die rund 25 Millionen SIM-Karten bei allen drei nationalen Mobilfunkanbietern des Landes überwacht.“</blockquote>
 <p>Die Plattform wurde laut Bericht gezielt so gebaut, dass sie die gesetzliche Pflicht zu einem Gerichtsbeschluss umgeht. Claude lieferte auf Anfrage Dossiers zu jeder Zielnummer ohne Nachweis eines rechtlichen Verfahrens. Inzwischen läuft „Lakana 360“ vollständig auf eigenen, lokalen Modellen, die Kontosperrung durch Anthropic stoppt die laufende Plattform nicht mehr.</p>
