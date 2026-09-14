@@ -93,7 +93,8 @@ TRANSLATE_MODELLE = [
     # hier blieb sie stehen. Ersetzt durch die beiden am 22.08. live
     # geprueften Modelle; gemini-2.5-flash-lite als bezahlter Notnagel
     # (rund $0.40 je 1M Ausgabe-Token, hier fallen nur wenige Saetze an).
-    "z-ai/glm-5.2:free",
+    # 14.09.26: z-ai/glm-5.2:free entfernt - nicht mehr im OpenRouter-Katalog
+    # (15x HTTP 404 im ki_news.py-Log 12.-14.09., siehe MODELLCHECK_140926.md).
     "nvidia/nemotron-3-super-120b-a12b:free",
     "google/gemini-2.5-flash-lite",
 ]
