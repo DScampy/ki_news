@@ -67,8 +67,16 @@ def katalog():
         return {m["id"]: m for m in json.load(r)["data"]}
 
 
-def sammeln():
-    """Alle Modell-IDs aus den Python-Dateien des Repos, mit Fundstelle."""
+def sammeln(kat=None):
+    """Alle Modell-IDs aus den Python-Dateien des Repos, mit Fundstelle.
+
+    Luecke bis 14.09.26: nur IDs mit einem Praefix aus PRAEFIXE wurden geprueft.
+    "minimax/" stand nicht drin - minimax/minimax-m3:free verschwand aus dem
+    Katalog und produzierte im Log-Fenster 12.-14.09. 34x HTTP 404, ohne dass
+    der Waechter es je meldete. Jetzt zaehlt eine ID zusaetzlich, wenn sie auf
+    ":free" endet oder ihr Anbieter-Praefix irgendwo im Katalog vorkommt -
+    neue Anbieter rutschen damit nicht mehr durch."""
+    anbieter = {m.split("/")[0] + "/" for m in (kat or {}) if "/" in m}
     treffer = []
     dateien = sorted(glob.glob(os.path.join(HIER, "*.py"))
                      + glob.glob(os.path.join(HIER, "registry_bau", "*.py")))
@@ -81,7 +89,8 @@ def sammeln():
                 if zeile.lstrip().startswith("#"):
                     continue
                 for mid in ID.findall(zeile):
-                    if mid.startswith(PRAEFIXE):
+                    if (mid.startswith(PRAEFIXE) or mid.endswith(":free")
+                            or mid.split("/")[0] + "/" in anbieter):
                         treffer.append((rel, nr, mid))
     return treffer
 
@@ -99,7 +108,7 @@ def main():
         return 0
     print("OpenRouter-Katalog: %d Modelle\n" % len(kat))
 
-    treffer = sammeln()
+    treffer = sammeln(kat)
     tot, fremd, ok = [], [], []
     for rel, nr, mid in treffer:
         if rel in FREMDE_ANBIETER:
@@ -112,7 +121,13 @@ def main():
     if tot:
         print("TOT -- nicht mehr im Katalog:")
         for rel, nr, mid in tot:
-            print("   %-38s %s" % ("%s:%d" % (rel, nr), mid))
+            hinweis = ""
+            bezahlt = kat.get(mid[:-5]) if mid.endswith(":free") else None
+            if bezahlt:
+                pr = bezahlt.get("pricing", {})
+                hinweis = "   (nur noch bezahlt: $%.2f / $%.2f je Mio. Tokens ein/aus)" % (
+                    float(pr.get("prompt", 0)) * 1e6, float(pr.get("completion", 0)) * 1e6)
+            print("   %-38s %s%s" % ("%s:%d" % (rel, nr), mid, hinweis))
         print()
 
     # Gratis-Modelle koennen ohne Vorwarnung kostenpflichtig werden oder
