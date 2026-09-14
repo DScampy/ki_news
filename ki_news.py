@@ -2375,6 +2375,41 @@ def _cap_inflated_base_scores(entries):
         except (TypeError, ValueError):
             continue
 
+def _uebernehme_ausgefallene_feeds(alle_news, vorige_news, ausgefallene_feeds):
+    """Artikel von Quellen, deren Feed in DIESEM Lauf hart ausgefallen ist, aus der
+    VORIGEN news.json uebernehmen (14.09.26).
+
+    Fund: am 10.09. 18:27 und am 13.09. 10:01 UTC lieferte news.google.com
+    HTTP 503 fuer alle elf Feeds, die darueber laufen (Bloomberg, China AI Labs,
+    Digg, Economist, FT, Kimi Blog, Reuters, Saechsische Zeitung, TechRepublic,
+    WSJ, Zukunftsblog Sachsen). Weil alle_news jeden Lauf frisch aus den Feeds
+    entsteht, fielen deren schon veroeffentlichte Artikel fuer genau einen Lauf
+    von der Seite: 151 -> 102 bzw. 164 -> 114 Artikel.
+
+    Warum die vorige news.json und NICHT archive.json: das Archiv haelt alles, was
+    je gesehen wurde, auch bewusst nicht Veroeffentlichtes. Am Einbruch vom 13.09.
+    nachgespielt haette eine Uebernahme aus dem Archiv 96 Artikel zurueckgeholt,
+    39 davon allein von Bloomberg - sichtbar waren vorher 8. Uebernommen wird nur,
+    was schon auf der Seite stand.
+
+    Die Artikel laufen danach ganz normal durch Zusammenfassung, Clustering und
+    Bewertung und fallen wie jeder andere nach MAX_AGE_DAYS heraus."""
+    ausfall = set(ausgefallene_feeds or ())
+    if not ausfall:
+        return []
+    present = {n.get("link") for n in alle_news if n.get("link")}
+    uebernommen = []
+    for n in vorige_news or []:
+        link = n.get("link")
+        if not link or link in present or n.get("source") not in ausfall:
+            continue
+        if _days_since(n.get("first_seen") or n.get("date")) > MAX_AGE_DAYS:
+            continue
+        eintrag = {k: v for k, v in n.items() if k not in ("dub_von", "dub_quellen")}
+        uebernommen.append(eintrag)
+        present.add(link)
+    return uebernommen
+
 def build_history_map(*archive_lists):
     """
     Baut link -> {first_seen, base_score} aus vorhandenen Archiv-Einträgen.
@@ -2532,17 +2567,25 @@ def _first_child_text(el, name):
             return (ch.text or "").strip()
     return ""
 
+# Feeds, die im laufenden Lauf HART ausgefallen sind (kein Inhalt / kaputtes XML).
+# main() leert die Menge vor der Feed-Schleife. Ein Feed, der antwortet, aber 0
+# Items liefert, zaehlt bewusst NICHT dazu - das kann eine echte leere Lage sein.
+_FEED_AUSFAELLE = set()
+
+
 def fetch_feed(name, url):
     # The Decoder braucht mehr Zeit – Server langsam für GitHub Actions IPs
     timeout = 20 if "the-decoder" in url else 12
     raw = http_get_with_retry(url, timeout=timeout, retries=2, backoff=3)
     if not raw:
         logger.error("[%s] Kein Inhalt erhalten.", name)
+        _FEED_AUSFAELLE.add(name)
         return []
     try:
         root = ET.fromstring(raw)
     except ET.ParseError as e:
         logger.warning("[%s] XML ParseError: %s", name, e)
+        _FEED_AUSFAELLE.add(name)
         return []
 
     items = []
@@ -3932,6 +3975,7 @@ def update_entity_graph(base_dir, news_items, link_to_story=None):
 def main():
     logger.info("Starte KI News Lauf")
     alle_news = []
+    _FEED_AUSFAELLE.clear()
     for name, url in FEEDS:
         try:
             items = fetch_feed(name, url)
@@ -3989,9 +4033,33 @@ def main():
     except Exception:
         _early_archive = []
     recalled_items = _recall_relevant_from_archive(alle_news, _early_archive, _early_featured_links)
+    # Feed-Ausfall (14.09.26): Artikel hart ausgefallener Feeds aus der vorigen
+    # news.json uebernehmen, siehe Docstring von _uebernehme_ausgefallene_feeds().
+    # Auswertbar ueber zwei Wege:
+    #   1. Log-Zeile mit festem Praefix "Feed-Ausfall" je Quelle -> grep in ki_news.log
+    #   2. news.json-Feld "feed_uebernahme" {Quelle: Anzahl} -> ueber die news.json-
+    #      Historie auszaehlbar (ox-analyse/entdopplung_wirkung.py, Spalte "uebern.")
+    feed_uebernahme = {}
+    if _FEED_AUSFAELLE:
+        _vorige_news = []
+        try:
+            _vorige_pfad = _early_cfg_base / "news.json"
+            if _vorige_pfad.exists():
+                _vorige_news = (json.loads(_vorige_pfad.read_text(encoding="utf-8")) or {}).get("news") or []
+        except Exception as e:
+            logger.warning("Feed-Ausfall: vorige news.json nicht lesbar (%s) - keine Uebernahme", e)
+        _present_recall = {n.get("link") for n in recalled_items}
+        for _r in _uebernehme_ausgefallene_feeds(alle_news, _vorige_news, _FEED_AUSFAELLE):
+            if _r.get("link") in _present_recall:
+                continue
+            recalled_items.append(_r)
+            feed_uebernahme[_r.get("source")] = feed_uebernahme.get(_r.get("source"), 0) + 1
+        for _q in sorted(_FEED_AUSFAELLE):
+            logger.warning("Feed-Ausfall [%s]: %d Artikel aus voriger news.json uebernommen",
+                           _q, feed_uebernahme.get(_q, 0))
     if recalled_items:
         logger.info(
-            "%d Artikel aus archive.json zurueckgeholt (Pin/regional, aus RSS-Fenster gescrollt): %s",
+            "%d Artikel zurueckgeholt (Pin/regional aus archive.json, Feed-Ausfall aus voriger news.json): %s",
             len(recalled_items), [r.get("title", "")[:50] for r in recalled_items],
         )
         alle_news.extend(recalled_items)
@@ -4440,6 +4508,7 @@ def main():
         "news":     news_list,
         "posts":    posts_list,
         "roundups": roundups_list,
+        "feed_uebernahme": feed_uebernahme,
         "briefing": _tagesbriefing(news_list, proj_dir if proj_dir.exists() else Path("."),
                                    heute, datum),
     }
