@@ -86,7 +86,8 @@ JUDGE_MODELLE = [
     # Ersatz: z-ai/glm-5.2:free, am 22.08. neu im Katalog und im Batch-Format
     # live geprueft. Nemotron bleibt auch hier draussen - dieser Datei fehlt
     # weiterhin der reasoning:{enabled:false}-Schalter aus _call_llm_api().
-    "z-ai/glm-5.2:free",
+    # 14.09.26: z-ai/glm-5.2:free entfernt - nicht mehr im OpenRouter-Katalog
+    # (15x HTTP 404 im ki_news.py-Log 12.-14.09., siehe MODELLCHECK_140926.md).
     "meta-llama/llama-3.3-70b-instruct",
 ]
 
