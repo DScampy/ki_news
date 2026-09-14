@@ -1378,6 +1378,9 @@ CLUSTER_RARE_DF_MAX = 3
 # ox-analyse/CHRONIK...), bleibt aber als Sicherheitsnetz gegen einen
 # unbekannten Pathologiefall.
 CLUSTER_MAX_SIZE = 20
+# 14.09.26 (Daniel): hoechstens 2 Tage zwischen aeltestem und neuestem Artikel
+# eines Clusters - ein Nachzuegler soll keine alte Story an die Spitze holen.
+CLUSTER_MAX_ALTERSSPANNE_TAGE = 2
 
 def _recent_story_anchors(existing_archive, days=3):
     """Cross-Run-Duplikat-Fix (13.07.26): cluster_news() vergleicht bisher NUR
@@ -1416,7 +1419,7 @@ def _recent_story_anchors(existing_archive, days=3):
     return anchors
 
 
-def cluster_news(alle_news, anchors=None, log_diag=True):
+def cluster_news(alle_news, anchors=None, log_diag=True, erstdatum=None):
     """
     Gruppiert ähnliche Artikel zu Stories.
 
@@ -1461,6 +1464,13 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
     anchors (optional): Pseudo-Mitglieder aus _recent_story_anchors() - Story-Titel
     der letzten Tage, die bei der Merge-Pruefung mitspielen (Cross-Run-Duplikat-Fix,
     13.07.26), aber nie selbst als eigenstaendiger Artikel zurueckgegeben werden.
+
+    erstdatum (optional, 14.09.26): {link: "YYYY-MM-DD"} Erst-Erfassung je Artikel,
+    Artikel ohne Eintrag gelten als heute. Gesetzt, liegen in einem Cluster
+    hoechstens CLUSTER_MAX_ALTERSSPANNE_TAGE zwischen aeltestem und neuestem
+    Mitglied. Fall 14.09.: ein Golem-Artikel von heute verband einen Verge-Artikel
+    (13.09.) mit einem FT-Artikel (11.09.), die Story sprang von Score 10 auf 64 an
+    die Spitze. Ohne erstdatum (Analyse-Werkzeuge in ox-analyse) keine Grenze.
 
     Gibt Liste von Clusters zurück (jeder Cluster = Liste von Artikeln).
     """
@@ -1558,13 +1568,28 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
             continue
         paare_s = [(idxs[a], idxs[b]) for a in range(len(idxs)) for b in range(a + 1, len(idxs))]
         kohaerenz_s[w] = sum(_sim_s(i, j) for i, j in paare_s) / len(paare_s)
-    clusters = []  # je {"items": [...], "anker_idx": int, "quellen": set()}
+    # Nur mit erstdatum rechnen: die Analyse-Werkzeuge in ox-analyse ziehen
+    # cluster_news() per AST heraus und haben kein datetime im Namensraum.
+    heute_d = datetime.now(BERLIN).date() if erstdatum is not None else None
+
+    def _tag(item):
+        if erstdatum is None:
+            return None
+        try:
+            return datetime.strptime(str(erstdatum.get(item.get("link", ""), ""))[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return heute_d
+
+    clusters = []  # je {"items": [...], "anker_idx": int, "quellen": set(), "von": date, "bis": date}
     for idx, item in enumerate(combined):
         kw = kw_liste[idx]
         q = item.get("source", "")
+        tag = _tag(item)
         best_cluster, best_score = None, 0.0
         for cluster in clusters:
             if len(cluster["items"]) >= CLUSTER_MAX_SIZE:
+                continue
+            if erstdatum is not None and (max(cluster["bis"], tag) - min(cluster["von"], tag)).days > CLUSTER_MAX_ALTERSSPANNE_TAGE:
                 continue
             akw = kw_liste[cluster["anker_idx"]]
             shared = kw & akw
@@ -1584,8 +1609,11 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
         if best_cluster is not None:
             best_cluster["items"].append(item)
             best_cluster["quellen"].add(q)
+            if tag is not None:
+                best_cluster["von"] = min(best_cluster["von"], tag)
+                best_cluster["bis"] = max(best_cluster["bis"], tag)
         else:
-            clusters.append({"items": [item], "anker_idx": idx, "quellen": {q}})
+            clusters.append({"items": [item], "anker_idx": idx, "quellen": {q}, "von": tag, "bis": tag})
 
     # Diagnose-Log (01.09.26): jeder Mehrfach-Cluster wird protokolliert, damit
     # ein kuenftiger Ratsel-Fall wie s073 (8 FT-AI-Artikel, die live verschmolzen,
@@ -1594,7 +1622,8 @@ def cluster_news(alle_news, anchors=None, log_diag=True):
     # noch das Endergebnis in news.json zu haben. Bewusst auf INFO, nicht DEBUG -
     # nach ausreichend Beobachtungszeit ggf. wieder auf DEBUG zuruecksetzen.
     # log_diag (01.09.26, abends): cluster_news() wird pro Lauf ZWEIMAL gerufen
-    # (main() fuer link_to_cluster_age, pick_top_news() fuer die Auswahl) - ohne
+    # (main() fuer link_to_cluster_age, pick_top_news() fuer die Auswahl; der
+    # Aufruf in main() ist seit 14.09.26 entfallen, der Schalter bleibt) - ohne
     # Schalter stand jeder Cluster doppelt im Log und machte die s073-Spurensuche
     # unnoetig schwer. Der Aufruf in main() setzt log_diag=False, geloggt wird nur
     # noch der Lauf, der die Story-Auswahl treibt.
@@ -2135,7 +2164,8 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
     # _recent_story_anchors()). Df-Berechnung braucht eine Paar-Haeufigkeit
     # statt Einzeltoken-Pruefung, bevor das wieder scharf geschaltet wird.
     # anchors=None -> Verhalten wie vor dem 13.07., unveraendert sicher.
-    clusters = cluster_news(alle_news, None)
+    clusters = cluster_news(alle_news, None,
+                            erstdatum={l: h["first_seen"] for l, h in history.items()})
     recent_titles = _recent_titles_from_archive(existing_archive)
 
     # Legacy-Score (Keyword-System) zuerst fuer ALLE Cluster - dient als
@@ -2167,34 +2197,27 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
         else:
             score, label, score_source = legacy_score, legacy_label, "legacy_fallback"
 
-        # Ältesten first_seen im Cluster als Story-Alter (Member ohne History erben ihn).
-        cluster_histories = [history[item["link"]] for item in cluster if item.get("link") in history]
-        oldest_first_seen = min((h["first_seen"] for h in cluster_histories), default=_today_iso())
         # Anzeige-Score eines Artikels – GENAU wie news_list/Frontend ihn berechnen
-        # (decay_score auf base_score + History-Heilung). Dadurch wählen wir denselben
-        # Repräsentanten (höchster Score, nicht höchstes Prestige) und dieselbe Top-
-        # Reihenfolge, die die deduplizierte Startseite zeigt. Folge: der für eine Story
-        # generierte Teaser hängt immer an genau der Karte, die oben angezeigt wird.
-        def _display_score(m, _score=score, _oldest=oldest_first_seen):
+        # (decay_score auf base_score + History-Heilung), damit der für eine Story
+        # generierte Teaser an genau der Karte hängt, die oben angezeigt wird.
+        # 14.09.26: jeder Artikel verfaellt nach SEINEM Erst-Erfassungstag, neue
+        # Artikel gelten als heute. Das fruehere Erben des aeltesten Cluster-Datums
+        # ("kein Score-Revival") uebernimmt jetzt CLUSTER_MAX_ALTERSSPANNE_TAGE in
+        # cluster_news() - das Erbe wurde gespeichert und machte einen Golem-Artikel
+        # vom 14.09. nach Zerfall seines Clusters dauerhaft 3 Tage alt (Score 0).
+        def _erst(m):
             h = history.get(m.get("link", ""))
-            if h:
-                fs = h["first_seen"]
-            elif m.get("source") in ALWAYS_KI_RELEVANT_SOURCES:
-                # Bug-Fix (01.07.26): Primaerquellen (Lab-Blogs direkt) erben nie das
-                # Cluster-Alter sekundaerer Berichterstattung - eine eigene Ankuendigung
-                # des Labors ist per Definition eine frische Entwicklung, kein Rehash
-                # einer alten Story (Fall: Anthropics "Redeploying Fable 5" clusterte
-                # mit einem 3 Tage alten, laengst verfallenen Sekundaerartikel und wurde
-                # dadurch nie Repraesentant der eigenen Story).
-                fs = _today_iso()
-            else:
-                fs = _oldest
+            return h["first_seen"] if h else _today_iso()
+
+        def _display_score(m, _score=score):
+            h = history.get(m.get("link", ""))
             base = max(h["base_score"], _score) if h and h["base_score"] <= HEAL_THRESHOLD else _score
-            return decay_score(base, fs)
-        # Anker (Cross-Run-Duplikat-Fix) duerfen nie Repraesentant werden - sie
-        # sind alte, bereits archivierte Artikel ohne frischen Inhalt fuer die
-        # Karte. cluster_news() garantiert mind. 1 Nicht-Anker pro Cluster.
-        rep = max((m for m in cluster if not m.get("_anchor")), key=_display_score)
+            return decay_score(base, _erst(m))
+        # Karte = neuester Artikel der Story (14.09.26, Daniel), bei gleichem Tag
+        # der mit dem hoeheren Score. Anker (Cross-Run-Duplikat-Fix) duerfen nie
+        # Repraesentant werden; cluster_news() garantiert mind. 1 Nicht-Anker.
+        rep = max((m for m in cluster if not m.get("_anchor")),
+                  key=lambda m: (str(_erst(m))[:10], _display_score(m)))
         eff_score = _display_score(rep)
         # Featured-Boost aus dashboard_config.json (mit Zeitverfall)
         if featured_links:
@@ -4397,21 +4420,9 @@ def main():
     _cap_inflated_base_scores(_existing_archive)  # Einmal-Migration 04.07.26, s. Funktion
     history = build_history_map(_existing_archive)
 
-    # Cluster-Membership-Map: link → ältester first_seen im Cluster (Story-Alter-Fix)
-    # Verhindert dass neue Artikel über bekannte Storys mit frischem Datum auftauchen.
-    # Cross-Run-Duplikat-Fix (13.07.26) - WIEDER DEAKTIVIERT, s. Kommentar bei
-    # der zweiten cluster_news()-Aufrufstelle in pick_top_news() oben.
-    # log_diag=False: dieser Aufruf dient nur der Alters-Map, die Diagnose-Zeilen
-    # schreibt der Aufruf in pick_top_news() (sonst steht alles doppelt im Log).
-    _clusters = cluster_news(alle_news, None, log_diag=False)
-    link_to_cluster_age = {}
-    for cl in _clusters:
-        cl_histories = [history[item["link"]] for item in cl if item.get("link") in history]
-        if cl_histories:
-            oldest = min(h["first_seen"] for h in cl_histories)
-            for item in cl:
-                if item.get("link"):
-                    link_to_cluster_age[item["link"]] = oldest
+    # Die Alters-Map link -> aeltester first_seen im Cluster (und damit der zweite
+    # cluster_news()-Aufruf pro Lauf) ist seit 14.09.26 entfallen, siehe
+    # CLUSTER_MAX_ALTERSSPANNE_TAGE und den Kommentar bei _erst() in pick_top_news().
 
     # Dashboard-Config laden (featured + blocked links)
     _cfg_base = proj_dir if proj_dir.exists() else Path(".")
@@ -4647,19 +4658,10 @@ def main():
         else:
             cscore = cluster_info.get("story_cluster_score", 0)
             raw_score = max(0, cscore - CLUSTER_MEMBER_MALUS) if cscore else 0
-        # Schon mal gesehen? Dann ursprüngliches Datum behalten.
-        # Neuer Artikel einer bekannten Story? Cluster-Alter erben → kein Score-Revival.
+        # Schon mal gesehen? Dann ursprüngliches Datum behalten, sonst heute.
+        # Kein Erben des Cluster-Alters mehr (14.09.26), siehe _erst() in pick_top_news.
         hist = history.get(link)
-        if hist:
-            first_seen = hist["first_seen"]
-        elif n.get("source") in ALWAYS_KI_RELEVANT_SOURCES:
-            # Bug-Fix (01.07.26): siehe Kommentar bei _display_score() in pick_top_news -
-            # dieselbe Logik hier fuer den finalen news.json-Score noetig, sonst wuerde
-            # der Repraesentant zwar korrekt gewaehlt, aber der Decay trotzdem auf dem
-            # alten Cluster-Alter rechnen.
-            first_seen = heute
-        else:
-            first_seen = link_to_cluster_age.get(link, heute)
+        first_seen = hist["first_seen"] if hist else heute
         # History-Heilung: frueher faelschlich als 0 archivierte Member duerfen ausheilen,
         # wenn ihr Cluster jetzt einen echten Score hat. Ohne max() bliebe base_score
         # wegen hist dauerhaft 0 (Selbstvergiftung ueber archive.json).
