@@ -49,7 +49,8 @@ OPENROUTER_MODELS = [
     # (Live-Abgleich 22.08. ueber /api/v1/models). Achtung, nicht verwechseln:
     # "openai/gpt-oss-120b" OHNE :free-Suffix in GROQ_MODELS weiter oben ist ein
     # Groq-Modell und laeuft weiterhin - das ist ein anderer Anbieter.
-    "z-ai/glm-5.2:free",                       # 22.08. neu im Katalog, live geprueft
+    # 14.09.26: z-ai/glm-5.2:free entfernt - nicht mehr im OpenRouter-Katalog, im
+    # ki_news.py-Log 12.-14.09. 15x HTTP 404 (siehe MODELLCHECK_140926.md).
     "google/gemini-2.5-flash-lite",            # bezahlter Anker, $0.10/$0.40 je 1M
     "meta-llama/llama-3.3-70b-instruct",       # paid Anker
 ]
