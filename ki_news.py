@@ -2836,6 +2836,159 @@ def verlagslink(link, source, history_entry):
     return "", False
 
 
+# ── Belegarchiv (14.09.26) ────────────────────────────────────────────────
+# Zweck: fuer jede Top-Story einen datierten Nachweis, worauf sich die Einordnung
+# bezog. Artikel werden nachtraeglich geaendert oder verschwinden - dann steht
+# in belegarchiv.json ein Wayback-Machine-Snapshot vom Tag der Veroeffentlichung.
+# Passt zur Tavily-First-Regel. Es wird NICHTS vom Inhalt auf die Seite
+# uebernommen, und gesperrte Verlage werden nicht eingereicht.
+#
+# Schnittstelle: Save Page Now 2 (offizielle SPN2-Doku von archive.org):
+#   POST https://web.archive.org/save   Authorization: LOW <access>:<secret>
+#   -> {"url": ..., "job_id": ...}
+#   GET  https://web.archive.org/save/status/<job_id>
+#   -> {"status": "success"|"pending"|"error", "timestamp": ..., "status_ext": ...}
+# Snapshot-Adresse: https://web.archive.org/web/<timestamp>/<original_url>
+# Limits laut Doku: 7 Captures/Minute und 30.000/Tag mit Schluessel, 5 je URL/Tag.
+#
+# Schluessel kommen als GitHub-Secrets IA_ACCESS_KEY / IA_SECRET_KEY (erzeugt
+# unter archive.org/account/s3.php). Fehlen sie, wird der Schritt still
+# uebersprungen - kein anonymer Betrieb, der waere auf 3/Minute gedrosselt.
+# Eine Aufnahme dauert Sekunden bis Minuten; darum wird hier nur eingereicht und
+# der Status erst im naechsten Lauf abgeholt. Der Lauf wartet nie darauf.
+#
+# KILL-SWITCH: BELEG_JE_LAUF = 0 (dann werden nur noch offene Jobs abgeschlossen).
+BELEG_DATEI = "belegarchiv.json"
+BELEG_JE_LAUF = 5            # Top-Storys, die je Lauf geprueft werden
+BELEG_STATUS_JE_LAUF = 15    # offene Aufnahmen, deren Status je Lauf abgefragt wird
+BELEG_ABSTAND_S = 9          # 7 Captures je Minute erlaubt -> knapp darunter bleiben
+BELEG_OFFEN_MAX_TAGE = 2     # laenger "pending" gilt als gescheitert
+BELEG_MAX_VERSUCHE = 3       # Einreichungen je Artikel bei voruebergehender Ablehnung
+
+
+def _ia_kopf():
+    a = os.environ.get("IA_ACCESS_KEY", "").strip()
+    k = os.environ.get("IA_SECRET_KEY", "").strip()
+    if not (a and k):
+        return None
+    return {"Accept": "application/json", "Authorization": "LOW %s:%s" % (a, k),
+            "User-Agent": "ki-news.live Belegarchiv (+https://ki-news.live)"}
+
+
+def _beleg_einreichen(url, kopf):
+    """(job_id, fehler) - genau eines ist gesetzt."""
+    try:
+        body = urllib.parse.urlencode({"url": url, "skip_first_archive": "1"}).encode()
+        req = urllib.request.Request("https://web.archive.org/save", data=body, headers=kopf)
+        with urllib.request.urlopen(req, timeout=20) as r:
+            d = json.loads(r.read().decode("utf-8", "replace") or "{}")
+        if d.get("job_id"):
+            return d["job_id"], ""
+        return "", (d.get("status_ext") or d.get("message") or "keine job_id")[:120]
+    except HTTPError as e:
+        return "", "HTTP %s" % e.code
+    except Exception as e:
+        return "", str(e)[:120]
+
+
+def _beleg_status(job_id, kopf):
+    try:
+        req = urllib.request.Request("https://web.archive.org/save/status/%s" % job_id, headers=kopf)
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read().decode("utf-8", "replace") or "{}")
+    except Exception as e:
+        return {"status": "abruf-fehler", "message": str(e)[:120]}
+
+
+def belegarchiv_aktualisieren(base_dir, news_list):
+    """Schliesst offene Aufnahmen ab und reicht neue Top-Storys ein. Gibt eine
+    Zaehlung fuer news.json zurueck. Wirft nie - jeder Fehler nur ins Log."""
+    stat = {"aktiv": False, "eingereicht": 0, "gesichert": 0, "fehler": 0,
+            "offen": 0, "uebersprungen": 0}
+    kopf = _ia_kopf()
+    if not kopf:
+        logger.info("Belegarchiv: IA_ACCESS_KEY/IA_SECRET_KEY nicht gesetzt - uebersprungen")
+        return stat
+    stat["aktiv"] = True
+    pfad = Path(base_dir) / BELEG_DATEI
+    try:
+        liste = json.loads(pfad.read_text(encoding="utf-8")) if pfad.exists() else []
+    except Exception as e:
+        logger.warning("Belegarchiv: %s nicht lesbar (%s) - Schritt uebersprungen", BELEG_DATEI, e)
+        return stat
+    jetzt = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # 1. offene Aufnahmen aus frueheren Laeufen abschliessen
+    offen = [e for e in liste if e.get("status") == "pending" and e.get("job_id")]
+    for e in offen[:BELEG_STATUS_JE_LAUF]:
+        r = _beleg_status(e["job_id"], kopf)
+        if r.get("status") == "success" and r.get("timestamp"):
+            e["status"] = "gesichert"
+            e["snapshot"] = "https://web.archive.org/web/%s/%s" % (
+                r["timestamp"], r.get("original_url") or e.get("quelle", ""))
+            e["gesichert_am"] = jetzt
+            stat["gesichert"] += 1
+        elif r.get("status") == "error":
+            e["status"] = "fehler"
+            e["fehler"] = (r.get("status_ext") or r.get("message") or "")[:120]
+            stat["fehler"] += 1
+        elif _days_since((e.get("eingereicht") or "")[:10]) > BELEG_OFFEN_MAX_TAGE:
+            e["status"] = "fehler"
+            e["fehler"] = "zeitueberschreitung (%s)" % r.get("status", "?")
+            stat["fehler"] += 1
+
+    # 2. neue Top-Storys einreichen. Voruebergehende Ablehnungen (Drosselung,
+    # Sitzungslimit - naheliegend, weil je Slot zwei Laeufe kurz hintereinander
+    # starten) duerfen bis zu BELEG_MAX_VERSUCHE mal erneut eingereicht werden.
+    voruebergehend = ("HTTP 429", "error:too-many-requests", "error:user-session-limit",
+                      "error:too-many-daily-captures")
+    erneut = {e.get("link") for e in liste
+              if e.get("status") == "fehler" and (e.get("fehler") or "").startswith(voruebergehend)
+              and e.get("versuche", 1) < BELEG_MAX_VERSUCHE}
+    alte_versuche = {e.get("link"): e.get("versuche", 1) for e in liste if e.get("link") in erneut}
+    liste = [e for e in liste if e.get("link") not in erneut]
+    bekannt = {e.get("link") for e in liste}
+    top = sorted(news_list, key=lambda n: -(n.get("score") or 0))[:BELEG_JE_LAUF]
+    erster = True
+    for n in top:
+        link = n.get("link") or ""
+        if not link or link in bekannt:
+            continue
+        quelle = n.get("link_verlag") or link
+        eintrag = {"link": link, "quelle": quelle, "titel": n.get("title", ""),
+                   "source": n.get("source", ""), "score": n.get("score", 0),
+                   "veroeffentlicht": n.get("first_seen", ""), "eingereicht": jetzt,
+                   "versuche": alte_versuche.get(link, 0) + 1}
+        if "news.google.com" in quelle:
+            eintrag.update(status="uebersprungen", grund="Google-News-Link nicht aufgeloest")
+            stat["uebersprungen"] += 1
+        elif _ist_gesperrt(quelle):
+            eintrag.update(status="uebersprungen", grund="gesperrter Verlag")
+            stat["uebersprungen"] += 1
+        else:
+            if not erster:
+                sleep(BELEG_ABSTAND_S)
+            erster = False
+            job, fehler = _beleg_einreichen(quelle, kopf)
+            if job:
+                eintrag.update(status="pending", job_id=job)
+                stat["eingereicht"] += 1
+            else:
+                eintrag.update(status="fehler", fehler=fehler)
+                stat["fehler"] += 1
+        liste.append(eintrag)
+        bekannt.add(link)
+
+    stat["offen"] = sum(1 for e in liste if e.get("status") == "pending")
+    try:
+        pfad.write_text(json.dumps(liste[-20000:], ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception as e:
+        logger.warning("Belegarchiv: %s nicht schreibbar (%s)", BELEG_DATEI, e)
+    logger.info("Belegarchiv: %d eingereicht, %d gesichert, %d Fehler, %d offen, %d uebersprungen",
+                stat["eingereicht"], stat["gesichert"], stat["fehler"], stat["offen"],
+                stat["uebersprungen"])
+    return stat
+
 IMG_RETRY_DAYS = 2
 IMG_RETRY_BUDGET = 12
 
@@ -4647,6 +4800,11 @@ def main():
             "first_seen": fs,
         })
 
+    try:
+        beleg_stat = belegarchiv_aktualisieren(proj_dir if proj_dir.exists() else Path("."), news_list)
+    except Exception as e:                      # Invariante: nie die Pipeline blockieren
+        logger.warning("Belegarchiv-Schritt fehlgeschlagen (%s) - Pipeline laeuft weiter", e)
+        beleg_stat = {"aktiv": False, "fehler_schritt": str(e)[:120]}
     _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
     news_json_data = {
         "stand":    datum,
@@ -4655,6 +4813,7 @@ def main():
         "roundups": roundups_list,
         "feed_uebernahme": feed_uebernahme,
         "gn_aufloesung": dict(_gn_stat),
+        "belegarchiv": beleg_stat,
         "briefing": _tagesbriefing(news_list, proj_dir if proj_dir.exists() else Path("."),
                                    heute, datum),
     }
