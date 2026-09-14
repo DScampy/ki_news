@@ -843,8 +843,23 @@ MAX_LLM_NEWS = 5
 
 MODELLE = [
     # Free-Modelle – Gemma zuerst (empirisch: llama/hermes dauerhaft auf 429)
-    "google/gemma-4-31b-it:free",                      # Gemma 4 31B – zuverlässigster Free-Slot
-    "google/gemma-4-26b-a4b-it:free",                  # Gemma 4 26B Fallback
+    # 14.09.26 NEU GEORDNET (ox-analyse/MODELLCHECK_140926.md). Log-Bilanz 10 Laeufe
+    # 12.-14.09.: gemma-4-31b 1 Erfolg bei 26x 429, gemma-4-26b 0 Erfolge bei 26x 429,
+    # minimax-m3:free 34x HTTP 404 und glm-5.2:free 15x HTTP 404 (beide aus dem
+    # OpenRouter-Katalog verschwunden, nur noch bezahlt), nemotron-3-super 0 Erfolge
+    # bei 15x kaputtem JSON. Getragen haben nur nemotron-3-ultra (19 OK) und das
+    # bezahlte gemini-2.5-flash-lite. Produktionsformat-Test 14.09. (8 Artikel,
+    # 4er-Batches, summarize_news-Pfad): nex-agi/nex-n2.5-pro:free 8/8 (111 s),
+    # poolside/laguna-s-2.1:free 4/8 (18 s), alle bisherigen Gratis-Slots 0/8.
+    # Gemma bleibt als letzter Gratis-Slot, weil es an ruhigen Stunden durchkommt.
+    # Ebenfalls getestet und NICHT aufgenommen: nex-n2.5-mini, nemotron-3.5-lightning,
+    # ling-3.0-flash-vl (je 0/8, kaputtes JSON). Bezahlt getestet, NICHT aufgenommen:
+    # deepseek/deepseek-v4.1-flash - 4/8 (ein Batch leer, auch mit reasoning:false),
+    # 19-92 s, und mit $0.30/$1.20 dreimal so teuer wie gemini-2.5-flash-lite (8/8, 5 s).
+    "nvidia/nemotron-3-ultra-550b-a55b:free",           # traegt heute die Gratis-Batches (19 OK / 10 Laeufe)
+    "nex-agi/nex-n2.5-pro:free",                         # 14.09. neu: 8/8 im Produktionsformat, langsam (~55 s/Batch)
+    "poolside/laguna-s-2.1:free",                        # 14.09. neu: 4/8, schnell (18 s), gelegentlich 429
+    "google/gemma-4-31b-it:free",                      # Gemma 4 31B – gutes Deutsch, aber meist 429
     # 14.08.26: meta-llama/llama-3.3-70b-instruct:free und
     # nousresearch/hermes-3-llama-3.1-405b:free entfernt - Live-Check gegen
     # OpenRouter /api/v1/models (14.08.26) zeigt: beide :free-Varianten
@@ -878,10 +893,9 @@ MODELLE = [
     #   dots-studio/dots-3-note-preview:free   1500 Tokens verbrannt, Antwort leer
     #   thinkingmachines/inkling(-small):free  HTTP 403 (kein Zugang mit diesem Key)
     #   minimax/minimax-m2.7:free              4/4, aber 22.9s -- zu langsam als Free-Slot
-    "minimax/minimax-m3:free",                          # 26.08. gemessen: 2.9s, 4/4, 1M Kontext
-    "nvidia/nemotron-3-ultra-550b-a55b:free",           # 26.08. gemessen: 3.1s, 4/4, mit reasoning:false
-    "z-ai/glm-5.2:free",                                # 22.08.26 neu im Katalog, 256k Kontext
-    "nvidia/nemotron-3-super-120b-a12b:free",           # 22.08. live nachgetestet: 4/4 sauberes Deutsch
+    # 14.09.26 ENTFERNT an dieser Stelle: minimax/minimax-m3:free und z-ai/glm-5.2:free
+    # (aus dem Katalog verschwunden), nvidia/nemotron-3-super-120b-a12b:free (0 Erfolge);
+    # nemotron-3-ultra steht jetzt oben. Messwerte siehe Block am Listenanfang.
     # 26.08.26 ENTFERNT: nvidia/nemotron-3-nano-30b-a3b:free und
     # nvidia/nemotron-nano-9b-v2:free. Beide seit dem 22.08. nicht mehr im
     # OpenRouter-Katalog (live gegen /api/v1/models geprueft) - im Log-Fenster
