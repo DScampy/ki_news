@@ -111,6 +111,9 @@ jobs:
           # Optional - fehlen die Secrets, ueberspringt ki_news.py den Schritt still.
           IA_ACCESS_KEY: ${{ secrets.IA_ACCESS_KEY }}
           IA_SECRET_KEY: ${{ secrets.IA_SECRET_KEY }}
+          # Themenkette (14.09.26, Schattenbetrieb): HuggingNews-API-Key.
+          # Optional - fehlt das Secret, ueberspringt themenkette_shadow.py den Schritt still.
+          HUGGINGNEWS_API_KEY: ${{ secrets.HUGGINGNEWS_API }}
         run: |
           # An die bestehende (committete) Log-Historie ANHAENGEN, nicht ueberschreiben.
           # Jeder Lauf startet mit einem eindeutigen Marker; der Trim-Schritt unten
@@ -217,6 +220,8 @@ jobs:
             # Belegarchiv (14.09.26): Wayback-Snapshots der Top-Story-Quellen, waechst
             # dauerhaft - ohne diese Zeile ginge jeder Eintrag mit dem Runner verloren.
             git add belegarchiv.json 2>/dev/null || true
+            # Themenkette (14.09.26): Schattendatei, Urteils-Cache fuer den naechsten Lauf.
+            git add themenketten.json 2>/dev/null || true
             # Modell-Registry (21.08.26): registry/ sind die drei Dateien, die
             # Archiv.html laedt. registry_bau/out/facetten.json ist die Ablage
             # des Judge -- ohne sie klassifiziert der naechste Lauf den
