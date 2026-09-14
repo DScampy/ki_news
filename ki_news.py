@@ -4944,6 +4944,16 @@ def main():
     except Exception as e:
         logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
 
+    # ── Themenkette SHADOW-MODE (14.09.26): ordnet Artikel den Entwicklungslinien
+    #    von HuggingNews zu, schreibt NUR themenketten.json. Kill-Switch = diesen
+    #    Block entfernen oder Secret HUGGINGNEWS_API loeschen. Details:
+    #    themenkette_shadow.py, Plan ox-analyse/PLAN_140926_Themenkette.md.
+    try:
+        from themenkette_shadow import update_themenketten_shadow
+        update_themenketten_shadow(proj_dir if proj_dir.exists() else Path("."), news_list, _call_llm_api)
+    except Exception as e:
+        logger.exception("Themenkette uebersprungen (Pipeline unbeeinflusst): %s", e)
+
     # ── Entity-Graph kumulativ fortschreiben (Phase 2, 16.07.26) ──────────
     # 11.08.2026: erste tatsaechliche LIVE-Nutzung der Shadow-Registry (bisher
     # reiner Logger). link_to_story_map() ist read-only, fail-safe (leeres
