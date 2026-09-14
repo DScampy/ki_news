@@ -107,6 +107,10 @@ jobs:
           # registry_bau/klassifiziere.py faellt auf Groq bzw. OpenRouter
           # zurueck -- kein Fehler, nur ein engeres Freikontingent.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Belegarchiv (14.09.26): S3-Schluessel von archive.org/account/s3.php.
+          # Optional - fehlen die Secrets, ueberspringt ki_news.py den Schritt still.
+          IA_ACCESS_KEY: ${{ secrets.IA_ACCESS_KEY }}
+          IA_SECRET_KEY: ${{ secrets.IA_SECRET_KEY }}
         run: |
           # An die bestehende (committete) Log-Historie ANHAENGEN, nicht ueberschreiben.
           # Jeder Lauf startet mit einem eindeutigen Marker; der Trim-Schritt unten
@@ -210,6 +214,9 @@ jobs:
             git add telegram_state.json 2>/dev/null || true
             git add graph.json 2>/dev/null || true
             git add story_registry_shadow.json 2>/dev/null || true
+            # Belegarchiv (14.09.26): Wayback-Snapshots der Top-Story-Quellen, waechst
+            # dauerhaft - ohne diese Zeile ginge jeder Eintrag mit dem Runner verloren.
+            git add belegarchiv.json 2>/dev/null || true
             # Modell-Registry (21.08.26): registry/ sind die drei Dateien, die
             # Archiv.html laedt. registry_bau/out/facetten.json ist die Ablage
             # des Judge -- ohne sie klassifiziert der naechste Lauf den
