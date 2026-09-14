@@ -2432,6 +2432,8 @@ def build_history_map(*archive_lists):
                 entry["image"] = n.get("image") or ""
             if n.get("img_try"):
                 entry["img_try"] = n["img_try"]
+            if n.get("link_verlag"):
+                entry["link_verlag"] = n["link_verlag"]
             # Frühestes Datum gewinnt (echtes Erst-Sichten)
             if prev is None or str(first_seen) < str(prev["first_seen"]):
                 # Bild aus dem vorherigen Eintrag retten, falls neuer keins hat
@@ -2439,6 +2441,8 @@ def build_history_map(*archive_lists):
                     entry["image"] = prev["image"]
                 if prev and prev.get("img_try") and not entry.get("img_try"):
                     entry["img_try"] = prev["img_try"]
+                if prev and prev.get("link_verlag") and not entry.get("link_verlag"):
+                    entry["link_verlag"] = prev["link_verlag"]
                 hist[link] = entry
             else:
                 if base_score and not prev.get("base_score"):
@@ -2447,6 +2451,8 @@ def build_history_map(*archive_lists):
                     prev["image"] = entry["image"]
                 if entry.get("img_try") and not prev.get("img_try"):
                     prev["img_try"] = entry["img_try"]
+                if entry.get("link_verlag") and not prev.get("link_verlag"):
+                    prev["link_verlag"] = entry["link_verlag"]
     return hist
 
 def apply_decay_to_entries(entries):
@@ -2723,6 +2729,113 @@ def fetch_og_image(url):
 # Lauf, jeder Artikel fruehestens nach IMG_RETRY_DAYS erneut. Bei 4 Laeufen/Tag
 # sind die ~89 echten Kandidaten in rund zwei Tagen abgearbeitet, ohne dass ein
 # einzelner Lauf spuerbar laenger wird.
+# ── Google-News-Links aufloesen (14.09.26) ───────────────────────────────
+# Elf Feeds laufen ueber news.google.com. Deren Links zeigen auf eine Google-
+# Weiterleitung, nie auf den Verlag. Gemessen am 14.09. (ox-analyse/
+# MESSUNG_140926_Bilder-Volltext-GoogleNews.md): alle 55 Google-News-Karten
+# ohne Bild, Volltext-Capture 19 Versuche auf news.google.com, 0 brauchbar.
+#
+# Verfahren nachgebaut nach github.com/SSujitX/google-news-url-decoder (MIT)
+# bzw. dem Ursprungs-Gist von huksley - bewusst NUR mit der Standardbibliothek,
+# keine neue Abhaengigkeit im Workflow: Signatur + Zeitstempel von der
+# Google-Artikelseite lesen, dann POST an Googles batchexecute. Im Test 18 von
+# 18 aufgeloest. Danach lieferten TechRepublic und die offenen Ziele von China
+# AI Labs Bild und Volltext; Bloomberg (403), Reuters (401), WSJ (401),
+# Saechsische (403), FT und Economist lieferten nichts.
+#
+# WICHTIG: das Ergebnis steht in einem EIGENEN Feld link_verlag. `link` bleibt
+# unveraendert - er ist Schluessel fuer archive.json, summary-cache, die
+# Dublettenerkennung und die Deep-Link-ID (_kl_hash_id). Ein Tausch wuerde jeden
+# geteilten #a=-Link brechen und jeden Artikel einmal doppelt ins Archiv legen.
+#
+# Aufgeloest wird einmal je Artikel; das Ergebnis wandert ueber archive.json
+# in die naechsten Laeufe (wie img_try). Google hat am 10. und 13.09. schon mit
+# 503 abgelehnt - jeder Lauf soll so wenige Abrufe wie noetig machen.
+#
+# RISIKO: batchexecute ist ein undokumentierter Endpunkt. Aendert Google ihn,
+# schlaegt jede Aufloesung fehl und alles bleibt wie vor dem 14.09. Die Log-
+# Zeile "Google-News-Aufloesung:" und das news.json-Feld "gn_aufloesung" zeigen
+# das sofort. KILL-SWITCH: GN_AUFLOESEN_BUDGET = 0.
+GN_AUFLOESEN_BUDGET = 30          # neue Aufloesungen je Lauf
+GN_ABSTAND_S = 0.8                # Pause zwischen zwei Google-Abrufen
+# Feeds, deren Ziele den Abruf ohnehin sperren - gar nicht erst bei Google anfragen.
+GN_PREMIUM_FEEDS = {"Bloomberg AI", "Reuters AI", "WSJ AI", "FT AI", "Economist AI",
+                    "Sächsische Zeitung KI"}
+# Verlage, die jeden automatischen Abruf sperren (401/403 bzw. leer, 14.09.26
+# gemessen; NYT laut Volltext-Log 0 von 2). Fuer Bild, Nachfass und Volltext
+# uebersprungen - spart Laufzeit und gibt die Volltext-Plaetze an Artikel frei,
+# bei denen es klappt.
+GESPERRTE_VERLAGE = ("bloomberg.com", "reuters.com", "wsj.com", "ft.com",
+                     "economist.com", "saechsische.de", "nytimes.com")
+_gn_stat = {"neu": 0, "archiv": 0, "fehler": 0, "premium": 0, "budget": 0}
+
+
+def _ist_gesperrt(url):
+    try:
+        host = urllib.parse.urlparse(url or "").netloc.lower()
+    except Exception:
+        return False
+    return any(host == d or host.endswith("." + d) for d in GESPERRTE_VERLAGE)
+
+
+def _gn_aufloesen(link):
+    """Verlagsadresse eines news.google.com-Links oder "" bei jedem Fehler."""
+    m = re.search(r"news\.google\.com/(?:rss/)?articles/([^?/]+)", link or "")
+    if not m:
+        return ""
+    gid = m.group(1)
+    ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/128.0 Safari/537.36")
+    try:
+        req = urllib.request.Request("https://news.google.com/rss/articles/%s" % gid,
+                                     headers={"User-Agent": ua})
+        with urllib.request.urlopen(req, timeout=12) as r:
+            html = r.read().decode("utf-8", "replace")
+        sg = re.search(r'data-n-a-sg="([^"]+)"', html)
+        ts = re.search(r'data-n-a-ts="([^"]+)"', html)
+        if not (sg and ts):
+            return ""
+        innen = ('["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,null,null,'
+                 'null,null,null,0,1],"X","X",1,[1,1,1],1,1,null,0,0,null,0],"%s",%s,"%s"]'
+                 % (gid, ts.group(1), sg.group(1)))
+        body = urllib.parse.urlencode({"f.req": json.dumps([[["Fbv4je", innen]]])}).encode()
+        req = urllib.request.Request(
+            "https://news.google.com/_/DotsSplashUi/data/batchexecute", data=body,
+            headers={"User-Agent": ua,
+                     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"})
+        with urllib.request.urlopen(req, timeout=12) as r:
+            text = r.read().decode("utf-8", "replace")
+        ziel = json.loads(json.loads(text.split("\n\n")[1])[:-2][0][2])[1]
+        return ziel if isinstance(ziel, str) and ziel.startswith("http") else ""
+    except Exception as e:
+        logger.debug("Google-News-Aufloesung fehlgeschlagen fuer %s: %s", link, e)
+        return ""
+
+
+def verlagslink(link, source, history_entry):
+    """(link_verlag, neu_aufgeloest). Nur fuer news.google.com-Links; fuer alle
+    anderen ("", False). Erst Archiv, dann - im Budget - ein neuer Abruf."""
+    if "news.google.com" not in (link or ""):
+        return "", False
+    alt = (history_entry or {}).get("link_verlag")
+    if alt:
+        _gn_stat["archiv"] += 1
+        return alt, False
+    if source in GN_PREMIUM_FEEDS:
+        _gn_stat["premium"] += 1
+        return "", False
+    if _gn_stat["neu"] + _gn_stat["fehler"] >= GN_AUFLOESEN_BUDGET:
+        _gn_stat["budget"] += 1
+        return "", False
+    ziel = _gn_aufloesen(link)
+    sleep(GN_ABSTAND_S)
+    if ziel:
+        _gn_stat["neu"] += 1
+        return ziel, True
+    _gn_stat["fehler"] += 1
+    return "", False
+
+
 IMG_RETRY_DAYS = 2
 IMG_RETRY_BUDGET = 12
 
@@ -2737,6 +2850,8 @@ def _darf_bild_nachfassen(link, history_entry):
     # Google-News-Links sind Weiterleitungsseiten ohne og:image (5/5 in der
     # Stichprobe) - jeder Versuch waere verbrannte Lauf-Zeit.
     if "news.google.com" in (link or ""):
+        return False
+    if _ist_gesperrt(link):          # 14.09.26: 401/403 garantiert, siehe GESPERRTE_VERLAGE
         return False
     letzter = (history_entry or {}).get("img_try") or (history_entry or {}).get("first_seen")
     if letzter and _days_since(letzter) < IMG_RETRY_DAYS:
@@ -2762,6 +2877,8 @@ def resolve_preview_image(link, history_entry):
             return img, False
         if not _darf_bild_nachfassen(link, history_entry):
             return "", False
+    if _ist_gesperrt(link):
+        return "", False
     return fetch_og_image(link), True
 
 # -------------------------
@@ -4383,8 +4500,16 @@ def main():
         # sonst frisst ein einmaliger Score-Ausreisser sich fuer die gesamte
         # Lebensdauer der Story fest (s. Kommentar bei HEAL_THRESHOLD oben).
         base_score = max(hist["base_score"], raw_score) if hist and hist["base_score"] <= HEAL_THRESHOLD else raw_score
-        # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen
-        preview_img, img_versucht = resolve_preview_image(link, hist)
+        # Google-News-Link aufloesen (14.09.26, siehe GN_AUFLOESEN_BUDGET)
+        link_verlag, gn_neu = verlagslink(link, n.get("source", ""), hist)
+        # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen.
+        # Frisch aufgeloest und noch ohne Bild: SOFORT ueber die Verlagsadresse
+        # versuchen, nicht erst nach IMG_RETRY_DAYS - bisher gab es fuer diese
+        # Artikel ja nie eine abrufbare Adresse.
+        if gn_neu and not (hist or {}).get("image") and not _ist_gesperrt(link_verlag):
+            preview_img, img_versucht = fetch_og_image(link_verlag), True
+        else:
+            preview_img, img_versucht = resolve_preview_image(link_verlag or link, hist)
         title_de = s.get("title_de", n["title"])
         summary_de = s.get("summary", "")
         entry = {
@@ -4410,6 +4535,8 @@ def main():
             "story_cluster_score": cluster_info.get("story_cluster_score", 0),
             "story_article_count": cluster_info.get("story_article_count", 1),
         }
+        if link_verlag:
+            entry["link_verlag"] = link_verlag
         # Bild-Nachfass-Stempel (09.09.26): nur fortschreiben, wenn in diesem Lauf
         # wirklich abgerufen wurde - sonst verschoebe sich die Wartezeit endlos.
         if not preview_img:
@@ -4427,10 +4554,28 @@ def main():
     # fehlgeschlagen"/"HTTP Fehler"-Zeile im Log - die bisherigen except-Faelle
     # decken das nicht ab. INFO-Zeile pro Versuch (vor+nach), um beim naechsten
     # Lauf zu sehen ob die Schleife ueberhaupt 5x durchlaeuft.
-    _top5_for_fulltext = sorted(news_list, key=lambda n: -(n.get("score") or 0))[:5]
-    logger.info("Volltext-Capture: %d Kandidaten (Top-5 nach Score)", len(_top5_for_fulltext))
+    logger.info("Google-News-Aufloesung: %d neu aufgeloest, %d aus Archiv, %d fehlgeschlagen, "
+                "%d Premium-Feed uebersprungen, %d ueber Budget",
+                _gn_stat["neu"], _gn_stat["archiv"], _gn_stat["fehler"],
+                _gn_stat["premium"], _gn_stat["budget"])
+
+    # 14.09.26: die Top-5 nach Score bleiben der Kern, aber ein Artikel ohne
+    # abrufbare Adresse (unaufgeloester Google-News-Link oder gesperrter Verlag)
+    # wird NICHT mehr angefragt, sondern direkt als paywalled markiert - der Bot
+    # sagt dann ehrlich "nur Teaser". Die frei gewordenen Abrufe gehen an die
+    # naechsten abrufbaren Artikel (Rang 6-15). Vorher gingen 19 von 50 Versuchen
+    # an news.google.com, ohne einen einzigen Treffer.
+    def _volltext_ziel(e):
+        ziel = e.get("link_verlag") or e.get("link", "")
+        return "" if ("news.google.com" in ziel or _ist_gesperrt(ziel)) else ziel
+    _nach_score = sorted(news_list, key=lambda n: -(n.get("score") or 0))
+    for _e in _nach_score[:5]:
+        if not _volltext_ziel(_e):
+            _e["full_text"], _e["paywalled"] = "", True
+    _top5_for_fulltext = [_e for _e in _nach_score[:15] if _volltext_ziel(_e)][:5]
+    logger.info("Volltext-Capture: %d Kandidaten (abrufbare Artikel aus den Top-15)", len(_top5_for_fulltext))
     for _i, _entry in enumerate(_top5_for_fulltext):
-        _link = _entry.get("link", "")
+        _link = _volltext_ziel(_entry)
         logger.info("Volltext-Capture [%d/%d] Start: %s", _i + 1, len(_top5_for_fulltext), _link)
         try:
             _entry["full_text"], _entry["paywalled"] = fetch_full_text(_link)
@@ -4509,6 +4654,7 @@ def main():
         "posts":    posts_list,
         "roundups": roundups_list,
         "feed_uebernahme": feed_uebernahme,
+        "gn_aufloesung": dict(_gn_stat),
         "briefing": _tagesbriefing(news_list, proj_dir if proj_dir.exists() else Path("."),
                                    heute, datum),
     }
@@ -4571,6 +4717,8 @@ def main():
                 entry["image"] = h["image"]
             if h.get("img_try"):
                 entry["img_try"] = h["img_try"]
+            if h.get("link_verlag") and not entry.get("link_verlag"):
+                entry["link_verlag"] = h["link_verlag"]
 
         seen_links = {n["link"] for n in existing if n.get("link")}
         new_entries = [n for n in news_list if n.get("link") and n["link"] not in seen_links]
