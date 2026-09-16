@@ -14,12 +14,15 @@ Plan und Messung: KIVault/02 Projekte/Wissen aufbauen/ox-analyse/
 Ablauf je Lauf
   1. HN-Feed (3 ET-Tage) + Detail je Story; /chain nur fuer Storys, deren Kette
      noch unbekannt ist. Ketten-ID = Slug des aeltesten Glieds.
-  2. Stufe A (Ereignis): 5 naechste Artikel je HN-Story (Embedding >= 0,45),
-     Richter "dasselbe konkrete Ereignis?". Gemessen 14.09.: Praezision 100 %,
-     Trefferquote 78 % (gpt-oss-120b gegen Handpruefung).
+  2. Stufe A (Ereignis): 5 naechste Artikel je HN-Story (Embedding >= 0,38),
+     Richter "dasselbe konkrete Ereignis?", seit 16.09. als Zwei-Modell-Votum -
+     ein einzelner Richter verwechselte in den dichten Debatten-Ketten drei
+     benachbarte Ereignisse (Aehnlichkeit 0,71 bis 0,86).
   3. Stufe B (Thema, Daniels Regel): Artikel ohne Ereignis-Treffer, aber nah am
      Schwerpunkt einer Kette mit mind. 2 zugeordneten Artikeln, kommen nur nach
      eigener Pruefung rein ("behandelt DIESE Debatte direkt?"). rolle = "thema".
+     16.09.26 nachgeschaerft (Handpruefung: 19 % Fehlgriffe): Schwelle 0,62,
+     Entitaeten-Gate, geschaerfter Prompt, Zwei-Modell-Votum.
   4. themenketten.json schreiben. Urteile sind je (Story/Kette, Link) gecacht,
      jeder Lauf fragt nur neue Paare.
 
@@ -41,15 +44,18 @@ from pathlib import Path
 
 logger = logging.getLogger("ki_news")
 
+NL = chr(10)
+
 DATEI = "themenketten.json"
 HN_API = "https://api.huggingnews.com/api/stories"
 MODELL = "paraphrase-multilingual-MiniLM-L12-v2"
 RICHTER = ["openai/gpt-oss-120b", "google/gemini-2.5-flash-lite"]
-MIN_SIM_EREIGNIS = 0.45      # Kandidat fuer Stufe A (gemessen 14.09.)
+MIN_SIM_EREIGNIS = 0.38      # 16.09.: von 0,45 gesenkt - 13 Ereignisse kamen erst ueber Stufe B rein
 KANDIDATEN_JE_STORY = 5
-MIN_SIM_THEMA = 0.55         # Kandidat fuer Stufe B - geschaetzt, Schattendaten pruefen
+MIN_SIM_THEMA = 0.62         # 16.09.: von 0,55 angehoben (Stufe B hatte 19 % Fehlgriffe)
 THEMA_JE_KETTE = 8
-ZEIT_BUDGET_S = 300          # danach keine neuen Richter-Aufrufe mehr
+ZEIT_BUDGET_S = 420          # danach keine neuen Richter-Aufrufe mehr (16.09.: 300 war beim
+                             # Kaltstart mit 101 neuen Ketten zu knapp)
 PARALLEL = 6
 AUFBEWAHREN_TAGE = 10
 
@@ -78,19 +84,23 @@ def _json_antwort(text):
     return nummern if isinstance(nummern, list) else None
 
 
-def _richter(llm_fn, prompt, anzahl):
-    """Nummern (0-basiert) oder None bei Ausfall aller Modelle."""
+def _richter_votum(llm_fn, prompt, anzahl):
+    """Stufe B (16.09.26): beide Richter muessen zustimmen. Faellt einer aus,
+    zaehlt das Urteil des anderen allein - nie mehr als vorher, aber auch kein
+    Totalausfall der Stufe."""
+    stimmen = []
     for modell in RICHTER:
         try:
-            # 2000 statt 800: gpt-oss-120b denkt mit (Reasoning nicht abschaltbar) und
-            # lieferte im Test 14.09. dreimal leeren Content bei 800.
             nummern = _json_antwort(llm_fn(modell, [{"role": "user", "content": prompt}], max_tokens=2000))
         except Exception as e:
-            logger.info("Themenkette: Richter %s fehlgeschlagen (%s)", modell, e.__class__.__name__)
+            logger.info("Themenkette: Votum %s fehlgeschlagen (%s)", modell, e.__class__.__name__)
             continue
         if nummern is not None:
-            return [int(n) - 1 for n in nummern if str(n).isdigit() and 0 < int(n) <= anzahl]
-    return None
+            stimmen.append({int(n) - 1 for n in nummern if str(n).isdigit() and 0 < int(n) <= anzahl})
+    if not stimmen:
+        return None
+    einig = set.intersection(*stimmen) if len(stimmen) > 1 else stimmen[0]
+    return sorted(einig)
 
 
 def _artikelzeile(i, a):
@@ -106,13 +116,23 @@ def _prompt_ereignis(story, artikel):
 
 
 def _prompt_thema(glieder_titel, artikel):
-    return ("Eine Entwicklungslinie in den KI-Nachrichten besteht aus diesen Ereignissen:\n- %s\n\n"
-            "Artikel:\n%s\n\n"
-            "Welche Artikel behandeln DIREKT diese Debatte bzw. Entwicklungslinie - als Analyse, "
-            "Einordnung, Reaktion oder Pro/Contra? NICHT dazu zaehlen: Artikel, die nur allgemein "
-            "ueber KI, Sicherheit oder dieselbe Firma schreiben, ohne sich auf diese Linie zu beziehen. "
-            "Antworte nur mit JSON: {\"gleich\": [Nummern]} - leere Liste, wenn keiner."
-            % ("\n- ".join(glieder_titel[:12]), "\n".join(_artikelzeile(i, a) for i, a in enumerate(artikel))))
+    """16.09.26 geschaerft: die vier Fehlermuster der Handpruefung stehen jetzt
+    ausdruecklich im Prompt (konkurrierendes Geruecht zur selben Firma, anderes
+    Produkt derselben Marke, Sammel-Newsletter, blosse Stichwortnaehe)."""
+    regeln = (
+        "Welche Artikel behandeln DIREKT diese Entwicklungslinie - als Analyse, Einordnung, "
+        "Reaktion, Pro/Contra oder als weiteres Ereignis derselben Linie?" + NL +
+        "NICHT dazu zaehlen:" + NL +
+        "- Artikel ueber ein anderes Produkt oder eine andere Meldung derselben Firma" + NL +
+        "- konkurrierende Geruechte oder Spekulationen zu einem anderen Verlauf derselben Sache" + NL +
+        "- Sammelmeldungen, Newsletter oder Wochenrueckblicke mit vielen Themen" + NL +
+        "- Artikel, die nur dieselben Stichwoerter oder dieselbe Branche teilen" + NL +
+        "Im Zweifel NICHT zuordnen. "
+        "Antworte nur mit JSON: {\"gleich\": [Nummern]} - leere Liste, wenn keiner.")
+    return ("Eine Entwicklungslinie in den KI-Nachrichten besteht aus diesen Ereignissen:" + NL +
+            "- " + (NL + "- ").join(glieder_titel[:12]) + NL + NL +
+            "Artikel:" + NL +
+            NL.join(_artikelzeile(i, a) for i, a in enumerate(artikel)) + NL + NL + regeln)
 
 
 def _lade(pfad):
@@ -153,7 +173,7 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
             return slug, None
 
     storys = []
-    with ThreadPoolExecutor(4) as pool:
+    with ThreadPoolExecutor(8) as pool:
         for slug, d in pool.map(_detail, slugs):
             if d is None:
                 stat["fehler"] += 1
@@ -169,7 +189,7 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
             return slug, None
 
     offen = [s["slug"] for s in storys if s["slug"] not in ketten_von]
-    with ThreadPoolExecutor(4) as pool:
+    with ThreadPoolExecutor(8) as pool:
         ergebnisse = list(pool.map(_kette, offen))
     for slug, glieder in ergebnisse:
         if glieder is None:
@@ -225,7 +245,7 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
         si, neu = auftrag
         if time.time() - start > ZEIT_BUDGET_S:
             return si, neu, "zeit"
-        return si, neu, _richter(llm_fn, _prompt_ereignis(storys[si], [artikel[j] for j in neu]), len(neu))
+        return si, neu, _richter_votum(llm_fn, _prompt_ereignis(storys[si], [artikel[j] for j in neu]), len(neu))
 
     with ThreadPoolExecutor(PARALLEL) as pool:
         for si, neu, nr in pool.map(_a, auftraege):
@@ -254,6 +274,12 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
                                "sim": round(float(sim[si, j]), 3), "seit": (alt or {}).get("seit", heute)}
 
     # 3. Stufe B - Ketten mit mind. 2 zugeordneten Artikeln
+    try:
+        from story_registry_shadow import _load_entities, _entities_of
+        ent_muster = _load_entities(base)
+    except Exception as e:
+        logger.info("Themenkette: Entitaeten-Gate inaktiv (%s)", e.__class__.__name__)
+        ent_muster = None
     je_kette = {}
     for link, z in zuordnung.items():
         if z["rolle"] == "ereignis" and link in idx_von:
@@ -266,8 +292,19 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
         schwerpunkt = np.mean(np.vstack([v_ar[mitglieder]] + ([v_hn[hn_idx]] if hn_idx else [])), axis=0)
         schwerpunkt /= (np.linalg.norm(schwerpunkt) or 1.0)
         u = urteile_b.setdefault(root, {"geprueft": [], "ja": []})
+        # Entitaeten-Gate (16.09.26, wie Gate R1 der Shadow-Registry): ein Artikel
+        # kommt nur vor den Richter, wenn er mindestens eine Entitaet mit der Kette
+        # teilt. Ohne entities.json entfaellt das Gate (fail-open).
+        kette_ents = set()
+        if ent_muster:
+            for si in hn_idx:
+                kette_ents |= _entities_of(ent_muster, storys[si]["title"] + " " + storys[si]["summary"][:250])
+            for j in mitglieder:
+                kette_ents |= _entities_of(ent_muster, artikel[j]["titel"] + " " + artikel[j]["summary"])
         nah = sorted(((float(v_ar[j] @ schwerpunkt), j) for j in range(len(artikel))
-                      if artikel[j]["link"] not in zuordnung and artikel[j]["link"] not in u["geprueft"]),
+                      if artikel[j]["link"] not in zuordnung and artikel[j]["link"] not in u["geprueft"]
+                      and (not kette_ents
+                           or _entities_of(ent_muster, artikel[j]["titel"] + " " + artikel[j]["summary"]) & kette_ents)),
                      reverse=True)
         neu = [j for s_, j in nah if s_ >= MIN_SIM_THEMA][:THEMA_JE_KETTE]
         if neu:
@@ -278,7 +315,7 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
         root, neu, titel = auftrag
         if time.time() - start > ZEIT_BUDGET_S:
             return root, neu, "zeit"
-        return root, neu, _richter(llm_fn, _prompt_thema(titel, [artikel[j] for j in neu]), len(neu))
+        return root, neu, _richter_votum(llm_fn, _prompt_thema(titel, [artikel[j] for j in neu]), len(neu))
 
     with ThreadPoolExecutor(PARALLEL) as pool:
         for root, neu, nr in pool.map(_b, auftraege_b):
