@@ -23,7 +23,9 @@ Ablauf je Lauf
      eigener Pruefung rein ("behandelt DIESE Debatte direkt?"). rolle = "thema".
      16.09.26 nachgeschaerft (Handpruefung: 19 % Fehlgriffe): Schwelle 0,62,
      Entitaeten-Gate, geschaerfter Prompt, Zwei-Modell-Votum.
-  4. themenketten.json schreiben. Urteile sind je (Story/Kette, Link) gecacht,
+  4. Kettenfamilien (18.09.26): HN-Ketten derselben Grossdebatte werden per Anker
+     zusammengefasst (Aehnlichkeit >= 0,55, gemeinsame Entitaet, Zwei-Modell-Votum).
+  5. themenketten.json schreiben. Urteile sind je (Story/Kette, Link) gecacht,
      jeder Lauf fragt nur neue Paare.
 
 Invarianten: ein Schreiber (diese Datei), nie blockieren (jeder Fehler -> Log,
@@ -54,6 +56,7 @@ MIN_SIM_EREIGNIS = 0.38      # 16.09.: von 0,45 gesenkt - 13 Ereignisse kamen er
 KANDIDATEN_JE_STORY = 5
 MIN_SIM_THEMA = 0.62         # 16.09.: von 0,55 angehoben (Stufe B hatte 19 % Fehlgriffe)
 THEMA_JE_KETTE = 8
+MIN_SIM_FAMILIE = 0.55       # 18.09.: Kandidat fuer Kettenfamilie (dazu Entitaet + Votum)
 ZEIT_BUDGET_S = 420          # danach keine neuen Richter-Aufrufe mehr (16.09.: 300 war beim
                              # Kaltstart mit 101 neuen Ketten zu knapp)
 PARALLEL = 6
@@ -133,6 +136,15 @@ def _prompt_thema(glieder_titel, artikel):
             "- " + (NL + "- ").join(glieder_titel[:12]) + NL + NL +
             "Artikel:" + NL +
             NL.join(_artikelzeile(i, a) for i, a in enumerate(artikel)) + NL + NL + regeln)
+
+
+def _prompt_familie(titel_a, titel_b):
+    return ("Linie A besteht aus diesen KI-Nachrichten:" + NL + "- " + (NL + "- ").join(titel_a[:10]) + NL + NL +
+            "Linie B besteht aus diesen KI-Nachrichten:" + NL + "- " + (NL + "- ").join(titel_b[:10]) + NL + NL +
+            "Gehoeren beide Linien zu DERSELBEN uebergeordneten Debatte oder Entwicklung, sodass ein Leser "
+            "sie als ein Thema verfolgen wuerde? NICHT ausreichend: dieselbe Firma, dieselbe Branche oder "
+            "dasselbe Grossthema allgemein (etwa 'KI-Sicherheit' oder 'KI-Chips'). Im Zweifel nein. "
+            "Antworte nur mit JSON: {\"gleich\": [1]} fuer ja, {\"gleich\": []} fuer nein.")
 
 
 def _lade(pfad):
@@ -333,7 +345,56 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
                 if link not in zuordnung:
                     zuordnung[link] = {"kette": root, "rolle": "thema", "seit": heute}
 
-    # 4. Aufraeumen + schreiben
+    # 4. Kettenfamilien (18.09.26): benachbarte HN-Ketten derselben Grossdebatte
+    #    zusammenfassen (Messung 16.-18.09.: 3 von 4 Stufe-B-Fehlgriffen gehoerten
+    #    in eine Nachbarkette derselben Debatte). Anker statt Verkettung - jede Kette
+    #    wird nur gegen den ANKER einer Familie geprueft, nie gegen spaetere Mitglieder
+    #    (Schneeball-Lehre 03.07., Invariante I7). Kandidat nur mit Aehnlichkeit
+    #    >= MIN_SIM_FAMILIE UND gemeinsamer Entitaet, dann Zwei-Modell-Votum.
+    urteile_f = zustand.get("urteile_familie", {})       # "a|b" -> true/false
+    aktiv = {}
+    for link, z in zuordnung.items():
+        if z["rolle"] == "ereignis" and link in idx_von:
+            aktiv.setdefault(z["kette"], []).append(idx_von[link])
+    k_vec, k_ents, k_titel = {}, {}, {}
+    for root, mitglieder in aktiv.items():
+        hn_idx = [si for si, s in enumerate(storys) if ketten_von.get(s["slug"]) == root]
+        v = np.mean(np.vstack([v_ar[mitglieder]] + ([v_hn[hn_idx]] if hn_idx else [])), axis=0)
+        k_vec[root] = v / (np.linalg.norm(v) or 1.0)
+        k_titel[root] = [storys[si]["title"] for si in hn_idx] or [artikel[j]["titel"] for j in mitglieder]
+        text = " ".join(k_titel[root]) + " " + " ".join(artikel[j]["titel"] for j in mitglieder)
+        k_ents[root] = _entities_of(ent_muster, text) if ent_muster else frozenset()
+    familien = []                                         # [{"anker": root, "ketten": [...]}]
+    for root in sorted(aktiv, key=lambda r: -len(aktiv[r])):
+        ziel = None
+        for fam in familien:
+            a = fam["anker"]
+            schluessel = "|".join(sorted([a, root]))
+            if schluessel not in urteile_f:
+                if float(k_vec[a] @ k_vec[root]) < MIN_SIM_FAMILIE:
+                    continue
+                if ent_muster and not (k_ents[a] & k_ents[root]):
+                    continue
+                if time.time() - start > ZEIT_BUDGET_S:
+                    stat["zeitgrenze"] = True
+                    continue
+                nr = _richter_votum(llm_fn, _prompt_familie(k_titel[a], k_titel[root]), 1)
+                stat["richter_f"] = stat.get("richter_f", 0) + 1
+                if nr is None:
+                    stat["fehler"] += 1
+                    continue
+                urteile_f[schluessel] = bool(nr)
+            if urteile_f[schluessel]:
+                ziel = fam
+                break
+        if ziel:
+            ziel["ketten"].append(root)
+        else:
+            familien.append({"anker": root, "ketten": [root]})
+    familie_von = {r: f["anker"] for f in familien for r in f["ketten"]}
+    stat["familien_mehrere_ketten"] = sum(len(f["ketten"]) > 1 for f in familien)
+
+    # 5. Aufraeumen + schreiben
     grenze = (datetime.now(timezone.utc) - timedelta(days=AUFBEWAHREN_TAGE)).date().isoformat()
     aktuell = set(idx_von)
     zuordnung = {l: z for l, z in zuordnung.items() if l in aktuell or z.get("seit", heute) >= grenze}
@@ -342,6 +403,7 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
     ketten_von = {sl: r for sl, r in ketten_von.items() if r in ketten}
     urteile_a = {sl: u for sl, u in urteile_a.items() if sl in ketten_von}
     urteile_b = {r: u for r, u in urteile_b.items() if r in ketten}
+    urteile_f = {k: v for k, v in urteile_f.items() if all(x in ketten for x in k.split("|"))}
     for u in list(urteile_a.values()) + list(urteile_b.values()):
         u["geprueft"] = [l for l in u["geprueft"] if l in aktuell]
         u["ja"] = [l for l in u["ja"] if l in aktuell]
@@ -357,6 +419,8 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
         "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "lauf": stat, "ketten": ketten, "kette_von": ketten_von, "zuordnung": zuordnung,
         "urteile_ereignis": urteile_a, "urteile_thema": urteile_b,
+        "familien": [f for f in familien if len(f["ketten"]) > 1], "familie_von": familie_von,
+        "urteile_familie": urteile_f,
     }
     pfad.write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
     logger.info("THEMENKETTE: %s", json.dumps(stat, ensure_ascii=False))
