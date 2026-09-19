@@ -4821,10 +4821,30 @@ def main():
     except Exception as e:                      # Invariante: nie die Pipeline blockieren
         logger.warning("Belegarchiv-Schritt fehlgeschlagen (%s) - Pipeline laeuft weiter", e)
         beleg_stat = {"aktiv": False, "fehler_schritt": str(e)[:120]}
+    # ── Themenkette (14.09.26 Schatten, 19.09.26 Anzeige): ordnet Artikel den
+    #    Entwicklungslinien von HuggingNews zu und schreibt themenketten.json.
+    #    19.09.: laeuft jetzt VOR news.json, damit die Linien fuer die Anzeige aus
+    #    DIESEM Lauf stammen (vorher erst danach -> ein Lauf Verzug). Kill-Switch
+    #    = diesen Block entfernen oder Secret HUGGINGNEWS_API loeschen. Details:
+    #    themenkette_shadow.py, Plan ox-analyse/PLAN_140926_Themenkette.md.
+    try:
+        from themenkette_shadow import update_themenketten_shadow
+        update_themenketten_shadow(proj_dir if proj_dir.exists() else Path("."), news_list, _call_llm_api)
+    except Exception as e:
+        logger.exception("Themenkette uebersprungen (Pipeline unbeeinflusst): %s", e)
     _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
+    # Linien fuer Startseite/Overlay (19.09.26): setzt n["linie"], liefert die Linien
+    # als eigenes Feld. Nur lesen, nie blockieren. Kill-Switch: linien = {} setzen.
+    try:
+        from themenkette_shadow import linien_fuer_anzeige
+        linien = linien_fuer_anzeige(proj_dir if proj_dir.exists() else Path("."), news_list)
+    except Exception as e:
+        logger.exception("Linien-Anzeige uebersprungen (Pipeline unbeeinflusst): %s", e)
+        linien = {}
     news_json_data = {
         "stand":    datum,
         "news":     news_list,
+        "linien":   linien,
         "posts":    posts_list,
         "roundups": roundups_list,
         "feed_uebernahme": feed_uebernahme,
@@ -4943,16 +4963,6 @@ def main():
                                      news_list, cluster_news, _call_llm_api, JUDGE_MODELLE)
     except Exception as e:
         logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
-
-    # ── Themenkette SHADOW-MODE (14.09.26): ordnet Artikel den Entwicklungslinien
-    #    von HuggingNews zu, schreibt NUR themenketten.json. Kill-Switch = diesen
-    #    Block entfernen oder Secret HUGGINGNEWS_API loeschen. Details:
-    #    themenkette_shadow.py, Plan ox-analyse/PLAN_140926_Themenkette.md.
-    try:
-        from themenkette_shadow import update_themenketten_shadow
-        update_themenketten_shadow(proj_dir if proj_dir.exists() else Path("."), news_list, _call_llm_api)
-    except Exception as e:
-        logger.exception("Themenkette uebersprungen (Pipeline unbeeinflusst): %s", e)
 
     # ── Entity-Graph kumulativ fortschreiben (Phase 2, 16.07.26) ──────────
     # 11.08.2026: erste tatsaechliche LIVE-Nutzung der Shadow-Registry (bisher
