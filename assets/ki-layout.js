@@ -218,7 +218,25 @@
     '.kl-ov-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
     '.kl-ov-share{display:inline-flex;align-items:center;gap:6px;font-family:\'Space Grotesk\',sans-serif;font-size:14px;font-weight:700;color:var(--text,#e8f8ff);background:transparent;border:1px solid var(--hairline,#2f3336);padding:9px 16px;border-radius:8px;cursor:pointer;transition:border-color .15s,color .15s;}',
     '.kl-ov-share:hover{border-color:var(--accent);color:var(--accent);}',
-    '.kl-ov-share.done{border-color:var(--accent);color:var(--accent);}'
+    '.kl-ov-share.done{border-color:var(--accent);color:var(--accent);}',
+    /* ── Entwicklungslinie im Overlay (19.09.26): eingeklappt, erst Antippen zeigt sie ── */
+    '.kl-ov-linie{margin:0 0 16px;}',
+    '.kl-ov-linie-knopf{display:flex;flex-direction:column;gap:7px;width:100%;background:none;border:none;border-top:1px solid var(--hairline,#2f3336);border-bottom:1px solid var(--hairline,#2f3336);padding:10px 0;cursor:pointer;text-align:left;color:var(--muted,#8b98a5);font-family:\'Work Sans\',sans-serif;font-size:12.5px;}',
+    '.kl-ov-linie-strich{position:relative;display:block;height:3px;background:var(--hairline,#2f3336);border-radius:2px;}',
+    '.kl-ov-linie-strich i{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);}',
+    '.kl-ov-linie-zeile{display:flex;align-items:center;gap:6px;}',
+    '.kl-ov-linie-zeile b{flex:1;font-weight:400;}',
+    '.kl-ov-linie-pfeil{color:var(--accent);transition:transform .15s;}',
+    '.kl-ov-linie-knopf[aria-expanded="true"] .kl-ov-linie-pfeil{transform:rotate(180deg);}',
+    '.kl-ov-linie-knopf:hover .kl-ov-linie-zeile b{color:var(--text,#e8f8ff);}',
+    '.kl-ov-linie-liste{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:9px;}',
+    '.kl-ov-linie-liste li{border-left:2px solid var(--hairline,#2f3336);padding-left:10px;}',
+    '.kl-ov-linie-liste li.aktuell{border-left-color:var(--accent);}',
+    '.kl-ov-linie-meta{font-family:monospace;font-size:10px;color:var(--muted,#8b98a5);}',
+    '.kl-ov-linie-start{color:var(--accent);}',
+    '.kl-ov-linie-titel{display:block;background:none;border:none;padding:0;margin:2px 0 0;text-align:left;cursor:pointer;font-family:\'Work Sans\',sans-serif;font-size:13px;line-height:1.35;color:var(--text,#e8f8ff);}',
+    '.kl-ov-linie-titel:hover{color:var(--accent);}',
+    '.kl-ov-linie-liste li.aktuell .kl-ov-linie-titel{font-weight:600;cursor:default;color:var(--text,#e8f8ff);}'
   ].join('\n');
 
   /* ── Chrome-HTML ────────────────────────────────────────────── */
@@ -306,6 +324,7 @@
           '<p id="kl-ov-summary" class="kl-ov-summary"></p>' +
           '<div id="kl-ov-related" class="kl-ov-related" hidden></div>' +
           '<div id="kl-ov-analyse" class="kl-ov-analyse" hidden></div>' +
+          '<div id="kl-ov-linie" class="kl-ov-linie" hidden></div>' +
           '<div class="kl-ov-actions">' +
             '<a id="kl-ov-link" class="kl-ov-link" href="#" target="_blank" rel="noopener noreferrer">Zum Original &#8599;</a>' +
             '<button type="button" id="kl-ov-share" class="kl-ov-share" onclick="window.klShareArticle()">' +
@@ -532,6 +551,67 @@
     } catch (e) {}
     window.prompt('Link zum Kopieren:', url);
   }
+  /* Entwicklungslinie (19.09.26, Themenkette Phase 2): Die Startseite legt die
+     Linien aus news.json in window.KI_LINIEN ab (Artikel tragen data.linie /
+     data.linie_k). Andere Seiten setzen nichts -> der Bereich bleibt leer.
+     Eingeklappt (Daniels Wunsch 18.09.): erst Antippen zeigt die Zeitleiste. */
+  function klLinieDatum(d) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
+    return m ? m[3] + '.' + m[2] + '.' : '';
+  }
+  function klLinieArtikel(e, linieId) {
+    var alle = window.KI_NEWS || [];
+    for (var i = 0; i < alle.length; i++) if (alle[i].link === e.l && alle[i].linie) return alle[i];
+    // Aelter als news.json (nur noch im Archiv): Titel/Quelle/Datum reichen fuers Overlay
+    return { title: e.t, summary: e.z || '', link: e.l, source: e.q, first_seen: e.d, linie: linieId, linie_k: e.k };
+  }
+  function klLinieRender(data) {
+    var el = document.getElementById('kl-ov-linie');
+    if (!el) return;
+    var linie = data.linie && window.KI_LINIEN ? window.KI_LINIEN[data.linie] : null;
+    var eintraege = (linie && linie.e) || [];
+    if (eintraege.length < 2) { el.hidden = true; el.innerHTML = ''; return; }
+    var chrono = eintraege.slice().reverse();
+    var pos = 0;
+    chrono.forEach(function (e, i) { if (e.k === data.linie_k) pos = i; });
+    var prozent = chrono.length > 1 ? Math.round(4 + 92 * pos / (chrono.length - 1)) : 50;
+    var li = eintraege.map(function (e, i) {
+      var aktuell = e.k === data.linie_k;
+      var start = i === eintraege.length - 1;
+      return '<li' + (aktuell ? ' class="aktuell"' : '') + '>' +
+        '<div class="kl-ov-linie-meta">' + klLinieDatum(e.d) + (e.q ? ' &middot; ' + klEsc(e.q) : '') +
+          (start ? ' &middot; <span class="kl-ov-linie-start">Hier fing es an</span>' : '') + '</div>' +
+        '<button type="button" class="kl-ov-linie-titel" data-i="' + i + '"' + (aktuell ? ' disabled' : '') + '>' +
+          klEsc(e.t) + '</button></li>';
+    }).join('');
+    el.innerHTML =
+      '<button type="button" class="kl-ov-linie-knopf" aria-expanded="false">' +
+        '<span class="kl-ov-linie-strich"><i style="left:' + prozent + '%"></i></span>' +
+        '<span class="kl-ov-linie-zeile"><b>Teil einer Entwicklungslinie &middot; ' + linie.n +
+          ' Entwicklungen seit ' + klLinieDatum(linie.seit) + '</b>' +
+          '<span class="kl-ov-linie-pfeil">&#9662;</span></span>' +
+      '</button>' +
+      '<ol class="kl-ov-linie-liste" hidden>' + li + '</ol>';
+    var knopf = el.querySelector('.kl-ov-linie-knopf');
+    var liste = el.querySelector('.kl-ov-linie-liste');
+    knopf.onclick = function () {
+      var auf = knopf.getAttribute('aria-expanded') !== 'true';
+      knopf.setAttribute('aria-expanded', auf ? 'true' : 'false');
+      liste.hidden = !auf;
+    };
+    liste.onclick = function (ev) {
+      var b = ev.target.closest('.kl-ov-linie-titel');
+      if (!b || b.disabled) return;
+      var ziel = klLinieArtikel(eintraege[+b.getAttribute('data-i')], data.linie);
+      window.klOpenArticle(ziel);
+      var karte = document.querySelector('#kl-ov .kl-ov-card');
+      if (karte) karte.scrollTop = 0;
+    };
+    el.hidden = false;
+  }
+  window.klLinieDatum = klLinieDatum;
+  window.klLinieArtikel = klLinieArtikel;
+
   window.klOpenArticle = function (data) {
     data = data || {};
     klCurrent = data;
@@ -595,6 +675,7 @@
       analyseEl.innerHTML = '';
       analyseEl.hidden = true;
     }
+    klLinieRender(data);
     relatedEl.hidden = true;
     relatedEl.innerHTML = '';
     ov.style.display = 'flex';
