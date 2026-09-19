@@ -294,6 +294,25 @@ html.light #carousel-featured h2{color:#0f172a;}
 html.light #carousel-featured p{color:#64748b;}
 .c-actions{display:flex;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap;}
 .c-read-link{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+/* Entwicklungslinie an der Top-Story (19.09.26, Themenkette Phase 2, Entwurf A+):
+   Faden-Rahmen + wischbares Zeitband. Nur sichtbar, wenn die Story zu einer Linie
+   mit mind. 3 Ereignissen gehoert (themenkette_shadow.linien_fuer_anzeige). */
+#carousel-featured.hat-linie::after{content:'';position:absolute;inset:0;border-radius:16px;padding:1.5px;pointer-events:none;
+  background:linear-gradient(120deg,var(--accent),#f43f5e 50%,var(--accent));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;}
+.c-linie{margin-top:16px;padding-top:12px;border-top:1px solid rgba(var(--neon-rgb),0.18);}
+.c-linie-kopf{display:flex;align-items:center;gap:8px;font-family:monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.9);margin-bottom:8px;}
+.c-linie-kopf span{flex:1;}
+.c-linie-band{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch;}
+.c-linie-glied{flex:0 0 172px;scroll-snap-align:start;text-align:left;background:rgba(var(--neon-rgb),0.04);border:1px solid var(--hairline,#2f3336);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--text,#e8f8ff);font-family:'Work Sans',sans-serif;}
+.c-linie-glied:hover{border-color:rgba(var(--neon-rgb),0.6);}
+.c-linie-glied.aktuell{border-color:var(--accent);background:rgba(var(--neon-rgb),0.12);cursor:default;}
+.c-linie-datum{display:block;font-family:monospace;font-size:10px;color:var(--muted,#8b98a5);}
+.c-linie-glied.aktuell .c-linie-datum{color:var(--accent);}
+.c-linie-titel{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.35;margin-top:3px;}
+html.light .c-linie-glied{color:#0f172a;}
+.c-linie-kopf em{font-style:normal;flex:0 0 auto;}
+@media(max-width:767px){.c-linie-kopf{letter-spacing:0.05em;}.c-linie-kopf em{display:none;}.c-linie-glied{flex-basis:78%;}}
 .c-read-link:hover{text-decoration:underline;}
 .c-analyse-toggle{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,0.5);background:none;border:none;cursor:pointer;padding:0;transition:color .15s;}
 .c-analyse-toggle:hover{color:var(--accent);}
@@ -511,6 +530,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
              Overlay-Umbau vollstaendig im Overlay (Klick auf die Karte). Der
              verbleibende Link ist jetzt das, was er verspricht: der Sprung zur
              Originalquelle in einem neuen Tab. -->
+        <div id="c-linie" class="c-linie" hidden></div>
         <div class="c-actions">
           <a href="#" id="c-link" class="c-read-link" target="_blank" rel="noopener noreferrer">Artikel lesen ↗</a>
         </div>
@@ -1139,6 +1159,36 @@ function renderReaction(r) {
       '<div class="c-reaction-meta">' + metaLine + '</div>' +
     '</div></div>';
 }
+// Entwicklungslinie an der Top-Story (19.09.26, Entwurf A+): chronologisch von
+// links (Anfang) nach rechts, die aktuelle Meldung markiert und ins Bild gescrollt.
+// Antippen eines anderen Glieds oeffnet dessen Artikel im Overlay.
+function heroLinie(feat, s) {
+  var box = document.getElementById('c-linie');
+  var linie = s.linie && window.KI_LINIEN ? window.KI_LINIEN[s.linie] : null;
+  var ee = (linie && linie.e) || [];
+  feat.classList.toggle('hat-linie', ee.length >= 2);
+  if (!box) return;
+  if (ee.length < 2) { box.hidden = true; box.innerHTML = ''; return; }
+  var chrono = ee.slice().reverse(), datum = window.klLinieDatum || function(d){ return d; };
+  box.innerHTML =
+    '<div class="c-linie-kopf"><span>Linie &middot; ' + linie.n + ' Entwicklungen seit ' + escapeHtml(datum(linie.seit)) +
+    '</span><em>&lsaquo; wischen &rsaquo;</em></div><div class="c-linie-band">' +
+    chrono.map(function(e, i){
+      var akt = e.k === s.linie_k;
+      return '<button type="button" class="c-linie-glied' + (akt ? ' aktuell' : '') + '" data-i="' + i + '">' +
+        '<span class="c-linie-datum">' + (i === 0 ? 'Start &middot; ' : '') + escapeHtml(datum(e.d)) + (akt ? ' &middot; diese Meldung' : '') + '</span>' +
+        '<span class="c-linie-titel">' + escapeHtml(e.t) + '</span></button>';
+    }).join('') + '</div>';
+  box.hidden = false;
+  var band = box.querySelector('.c-linie-band'), akt = box.querySelector('.c-linie-glied.aktuell');
+  if (akt) band.scrollLeft = Math.max(0, akt.offsetLeft - band.offsetLeft - 40);
+  band.onclick = function(ev) {
+    var b = ev.target.closest('.c-linie-glied');
+    if (!b || b.classList.contains('aktuell') || typeof window.klOpenArticle !== 'function') return;
+    var e = chrono[+b.getAttribute('data-i')];
+    window.klOpenArticle(window.klLinieArtikel ? window.klLinieArtikel(e, s.linie) : { title: e.t, link: e.l, source: e.q });
+  };
+}
 function heroRender(animate) {
   var feat = document.getElementById('carousel-featured');
   if (animate) feat.style.opacity = '0';
@@ -1164,12 +1214,13 @@ function heroRender(animate) {
     // unten (renderCard()) komplett klickbar sind. Ausgenommen: Reaktionen und
     // der Quell-Link, die haben eigene Klick-Ziele.
     feat.onclick = function (e) {
-      if (e.target.closest('#c-reactions, #c-link')) return;
+      if (e.target.closest('#c-reactions, #c-link, #c-linie')) return;
       if (typeof window.klPlainClick === 'function' && !window.klPlainClick(e)) return;
       if (typeof window.klOpenArticle !== 'function') return;
       window.klOpenArticle(s);
     };
     feat.style.cursor = 'pointer';
+    heroLinie(feat, s);
     // "Was die Community dazu sagt" am 30.08. auf Daniels Wunsch ausgeblendet
     // ("bislang kein Mehrwert") -- Logik/Markup bleiben, nur das Anzeigen ist
     // abgeschaltet. Zum Zurueckholen: die if/else unten wieder durch den
@@ -1282,6 +1333,9 @@ Promise.all([
   // 02.07.26: 3 -> 5, passend zu MAX_LLM_NEWS=5 in der Pipeline (alle 5 Top-
   // Karten haben jetzt Posts/Einordnungen). Carousel/Dots/Seitenkarten passen
   // sich automatisch an die Anzahl an (heroStories.length).
+  // Entwicklungslinien (19.09.26): fuer Hero-Band und Artikel-Overlay (assets/ki-layout.js)
+  window.KI_LINIEN = data.linien || {};
+  window.KI_NEWS = data.news || [];
   var top = featured.concat(nonFeatured).slice(0,5);
   topLinks = top.map(function(n){return n.link;}).filter(Boolean);
   // Scampy-Posts (teaser/erklaerung/thread) den Top-Storys zuordnen – exakt per Link.
