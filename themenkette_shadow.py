@@ -425,3 +425,85 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
     pfad.write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
     logger.info("THEMENKETTE: %s", json.dumps(stat, ensure_ascii=False))
     return stat
+
+
+# ── Anzeige (19.09.26, Phase 2) ──────────────────────────────────────────────
+# Baut aus themenketten.json die Linien fuer Startseite und Artikel-Overlay.
+# Nur Stufe A (rolle "ereignis"), Einheit ist die Kettenfamilie (Daniels Entscheidung
+# 18.09.). Ein Eintrag = ein konkretes Ereignis (die HN-Story, der Stufe A den Artikel
+# zugeordnet hat) - mehrere Verlage zur selben Meldung zaehlen einmal. Eine Linie
+# erscheint erst ab LINIE_MIN_EREIGNISSE verschiedenen Ereignissen. Titel sind ausschliesslich unsere
+# eigenen deutschen Titel aus news.json / archive.json, nichts von HuggingNews.
+# Liest nur, schreibt nichts in themenketten.json; Fehler -> leer (Invariante I8).
+LINIE_MIN_EREIGNISSE = 3          # 19.09.: bei 2 oft nur HN-Updates derselben Meldung
+LINIE_MAX_EINTRAEGE = 12
+
+
+def _kurz(text):
+    import hashlib
+    return hashlib.md5(text.encode("utf-8")).hexdigest()[:8]
+
+
+def linien_fuer_anzeige(base_dir, news_list):
+    """Setzt n["linie"] / n["linie_k"] auf Artikeln in news_list, gibt {id: linie} zurueck."""
+    base = Path(base_dir)
+    zustand = _lade(base / DATEI)
+    zuordnung = zustand.get("zuordnung", {})
+    familie_von = zustand.get("familie_von", {})
+    if not zuordnung:
+        return {}
+    try:
+        archiv = json.loads((base / "archive.json").read_text(encoding="utf-8"))
+        archiv = {a["link"]: a for a in archiv if isinstance(a, dict) and a.get("link")}
+    except Exception:
+        archiv = {}
+    aktuell = {n["link"]: n for n in news_list if n.get("link")}
+
+    # je Familie: Ereignis (hn_slug) -> bester eigener Artikel (aktuelle vor Archiv, dann Score)
+    roh, ereignis_von_link = {}, {}
+    for link, z in zuordnung.items():
+        if z.get("rolle") != "ereignis" or not z.get("hn_slug"):
+            continue
+        fid = familie_von.get(z["kette"], z["kette"])
+        n, ist_aktuell = aktuell.get(link), True
+        if n is None:
+            n, ist_aktuell = archiv.get(link), False
+        if not n or not n.get("title"):
+            continue
+        ek = _kurz(z["hn_slug"])
+        ereignis_von_link[link] = (fid, ek)
+        rang = (ist_aktuell and not n.get("dub_von"), n.get("score") or 0)
+        bisher = roh.setdefault(fid, {}).get(ek)
+        if bisher is None or rang > bisher["_rang"]:
+            d = (n.get("first_seen") or n.get("date") or z.get("seit") or "")[:10]
+            roh[fid][ek] = {"t": n["title"], "l": link, "q": n.get("source", ""), "d": d,
+                            "k": ek, "_rang": rang}
+            if not ist_aktuell and n.get("summary"):
+                roh[fid][ek]["z"] = n["summary"][:400]   # nur Archiv: fuers Overlay
+
+    linien, id_von = {}, {}
+    for fid, ereignisse in roh.items():
+        liste = sorted(ereignisse.values(), key=lambda e: (e["d"], e["_rang"][1]), reverse=True)
+        if len(liste) < LINIE_MIN_EREIGNISSE:
+            continue
+        lid = _kurz(fid)
+        id_von[fid] = lid
+        gezeigt = liste if len(liste) <= LINIE_MAX_EINTRAEGE else liste[:LINIE_MAX_EINTRAEGE - 1] + [liste[-1]]
+        linien[lid] = {"n": len(liste), "seit": liste[-1]["d"],
+                       "e": [{k: v for k, v in e.items() if k != "_rang"} for e in gezeigt]}
+
+    # Artikel markieren; Cluster-Geschwister ohne eigene Zuordnung erben die Linie
+    sid_linie = {}
+    for n in news_list:
+        fid, ek = ereignis_von_link.get(n.get("link"), (None, None))
+        if fid in id_von:
+            n["linie"], n["linie_k"] = id_von[fid], ek
+            sid = n.get("story_id")
+            if sid and (sid not in sid_linie or linien[id_von[fid]]["n"] > linien[sid_linie[sid][0]]["n"]):
+                sid_linie[sid] = (id_von[fid], ek)
+    for n in news_list:
+        if "linie" not in n and n.get("story_id") in sid_linie:
+            n["linie"], n["linie_k"] = sid_linie[n["story_id"]]
+    logger.info("THEMENKETTE-ANZEIGE: %d Linien, %d Artikel markiert",
+                len(linien), sum(1 for n in news_list if n.get("linie")))
+    return linien
