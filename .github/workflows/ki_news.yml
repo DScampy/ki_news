@@ -240,6 +240,8 @@ jobs:
             git add registry_bau/out/modelle.json 2>/dev/null || true
             # Sprach-Guard-Protokoll (25.09.26, D4): welche Artikel wegen fehlender Uebersetzung fielen.
             git add verworfen.json 2>/dev/null || true
+            # Jev-Veto (25.09.26): Urteils-Cache 'gleiches Ereignis', spart Aufrufe im naechsten Lauf.
+            git add jev_urteile.json 2>/dev/null || true
             git diff --staged --quiet || git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')"
           }
 
@@ -341,6 +343,8 @@ jobs:
             git add registry_bau/out/modelle.json 2>/dev/null || true
             # Sprach-Guard-Protokoll (25.09.26, D4): welche Artikel wegen fehlender Uebersetzung fielen.
             git add verworfen.json 2>/dev/null || true
+            # Jev-Veto (25.09.26): Urteils-Cache 'gleiches Ereignis', spart Aufrufe im naechsten Lauf.
+            git add jev_urteile.json 2>/dev/null || true
             git diff --staged --quiet || git commit -m "cards + template update $(date -u +%Y-%m-%d)"
           }
 
