@@ -43,7 +43,8 @@ OPENROUTER_KEY    = os.environ.get("OPENROUTER_KEY", "")
 OPENROUTER_URL    = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODELS = [
     "google/gemma-4-31b-it:free",              # Quality 65 — bestes Free-Modell
-    "nvidia/nemotron-3-super-120b-a12b:free",  # Quality 60 — Nvidia 120B, 1M ctx
+    # 25.09.26 entfernt: "nvidia/nemotron-3-super-120b-a12b:free" - 0 von 150 Karten in cards.json,
+    # 12x "von max_tokens abgeschnitten" im cards.log (Reasoning frisst das Budget).
     # 22.08.26: openai/gpt-oss-120b:free und meta-llama/llama-3.3-70b-instruct:free
     # entfernt. Beide :free-Varianten stehen nicht mehr im OpenRouter-Katalog
     # (Live-Abgleich 22.08. ueber /api/v1/models). Achtung, nicht verwechseln:
