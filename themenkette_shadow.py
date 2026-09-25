@@ -25,6 +25,9 @@ Ablauf je Lauf
      Entitaeten-Gate, geschaerfter Prompt, Zwei-Modell-Votum.
   4. Kettenfamilien (18.09.26): HN-Ketten derselben Grossdebatte werden per Anker
      zusammengefasst (Aehnlichkeit >= 0,55, gemeinsame Entitaet, Zwei-Modell-Votum).
+  4b. Ereignis-Dubletten (25.09.26): HN-Storys derselben Familie, die dasselbe
+     Ereignis melden (Original + UPDATE), per Embedding + Jev-Votum zu einer Gruppe
+     (gruppe_von) - die Linie zaehlt Gruppen statt HN-Storys.
   5. themenketten.json schreiben. Urteile sind je (Story/Kette, Link) gecacht,
      jeder Lauf fragt nur neue Paare.
 
@@ -61,6 +64,29 @@ ZEIT_BUDGET_S = 420          # danach keine neuen Richter-Aufrufe mehr (16.09.: 
                              # Kaltstart mit 101 neuen Ketten zu knapp)
 PARALLEL = 6
 AUFBEWAHREN_TAGE = 10
+# Ereignis-Dubletten (25.09.26): HuggingNews fuehrt zu einem Ereignis oft mehrere
+# Storys (Original + UPDATE), die Linie zaehlte sie als getrennte Entwicklungen
+# (Handpruefung: 16 von 74 Eintraegen doppelt, nur 7 von 17 Linien zeigbar).
+# Gemessen gegen die Handurteile (MESSUNG_250926b): Embedding + Jev-Votum erkennt
+# 9/16 ohne echten Fehlalarm; Embedding allein >= 0,85 nur 7/16 und strich eine
+# echte Folgemeldung (SoftBank-Aktie). Ohne Jev-Key/-Antwort gilt nur >= 0,85.
+DUBLETTE_SICHER = 0.85       # ab hier Dublette, wenn Jev nicht klar widerspricht
+DUBLETTE_GRAU = 0.70         # darunter nie Dublette
+JEV_JA_SICHER = 0.5          # Jev-Schwelle ab DUBLETTE_SICHER
+JEV_JA_GRAU = 0.6            # Jev-Schwelle im Graubereich
+JEV_MAX_JE_LAUF = 80
+JEV_API = "https://api.typesafe.ai/v1/systemone"
+JEV_FRAGE = {
+    "type": "noul",
+    "instructions": "Berichtet `meldung_b` über dasselbe konkrete Ereignis wie `meldung_a`, "
+                    "ohne eine wesentliche neue Entwicklung hinzuzufügen?",
+    "criteria": {
+        "true": "Dasselbe Ereignis, nur andere Quelle, Formulierung, Bestätigung oder späterer "
+                "Bericht ohne neuen Kernfakt (Dublette).",
+        "false": "Ein eigenes, neues Ereignis oder eine echte Weiterentwicklung (neue Handlung, neue "
+                 "Reaktion eines anderen Akteurs, neue Zahl mit eigenem Nachrichtenwert).",
+    },
+}
 
 
 def _hn_holen(url, key, versuche=2):
@@ -155,6 +181,114 @@ def _lade(pfad):
     except Exception:
         pass
     return {}
+
+
+def _rang(n, ist_aktuell):
+    """Welcher eigene Artikel ein Ereignis vertritt: aktuelle vor Archiv, dann Score."""
+    return (ist_aktuell and not n.get("dub_von"), n.get("score") or 0)
+
+
+def _datum(n, z):
+    return (n.get("first_seen") or n.get("date") or z.get("seit") or "")[:10]
+
+
+def _jev_dublette(key, a, b):
+    """Jev-Noul 'b ist Dublette von a' (0..1) oder None bei Fehler."""
+    def meldung(n, d):
+        return {"titel": n.get("title", ""), "quelle": n.get("source", ""), "datum": d,
+                "inhalt": (n.get("summary") or "")[:300]}
+    body = json.dumps({"model": "jev-latest",
+                       "state": {"meldung_a": meldung(*a), "meldung_b": meldung(*b)},
+                       "questions": {"dublette": JEV_FRAGE}}).encode("utf-8")
+    kopf = {"Authorization": "Bearer " + key, "Content-Type": "application/json"}
+    try:
+        with urllib.request.urlopen(urllib.request.Request(JEV_API, data=body, headers=kopf), timeout=20) as r:
+            return float(json.loads(r.read())["answers"]["dublette"]["noul"])
+    except Exception as e:
+        logger.info("Themenkette: Jev fehlgeschlagen (%s)", e.__class__.__name__)
+        return None
+
+
+def _ist_dublette(sim, jev):
+    if jev is None:
+        return sim >= DUBLETTE_SICHER
+    if sim >= DUBLETTE_SICHER:
+        return jev >= JEV_JA_SICHER
+    return sim >= DUBLETTE_GRAU and jev >= JEV_JA_GRAU
+
+
+def _ereignis_dubletten(zuordnung, familie_von, news_list, archiv, cache, modell,
+                        urteile_d, jev_key, start, stat):
+    """Fasst innerhalb einer Kettenfamilie HN-Storys zusammen, die dasselbe Ereignis
+    melden. Anker statt Verkettung (Invariante I7): jedes Ereignis wird chronologisch
+    nur gegen die Anker bestehender Gruppen geprueft. Liefert {hn_slug: anker_slug}."""
+    import numpy as np
+    aktuell = {n["link"]: n for n in news_list if n.get("link")}
+    vertreter = {}                                   # fid -> slug -> (rang, datum, artikel)
+    for link, z in zuordnung.items():
+        if z.get("rolle") != "ereignis" or not z.get("hn_slug"):
+            continue
+        n, ist_aktuell = aktuell.get(link), True
+        if n is None:
+            n, ist_aktuell = archiv.get(link), False
+        if not n or not n.get("title"):
+            continue
+        fid = familie_von.get(z["kette"], z["kette"])
+        rang = _rang(n, ist_aktuell)
+        alt = vertreter.setdefault(fid, {}).get(z["hn_slug"])
+        if alt is None or rang > alt[0]:
+            vertreter[fid][z["hn_slug"]] = (rang, _datum(n, z), n)
+    familien = {fid: sorted(ev.items(), key=lambda x: (x[1][1], x[0]))
+                for fid, ev in vertreter.items() if len(ev) >= 2}
+    if not familien:
+        return {}
+
+    def _orig(n):
+        c = cache.get(n["link"])
+        return ((c.get("title_orig") if isinstance(c, dict) else None) or n["title"]) + ". " + (n.get("summary") or "")[:250]
+    slugs = [s for ev in familien.values() for s, _ in ev]
+    idx = {s: i for i, s in enumerate(slugs)}
+    v = np.asarray(modell.encode([_orig(x[2]) for ev in familien.values() for _, x in ev],
+                                 batch_size=64, show_progress_bar=False, normalize_embeddings=True))
+    sim = v @ v.T
+
+    # Jev nur fuer ungepruefte Paare ab DUBLETTE_GRAU, parallel und gedeckelt
+    offen = []
+    if jev_key:
+        for ev in familien.values():
+            for i in range(len(ev)):
+                for j in range(i):
+                    a, b = ev[j], ev[i]
+                    schluessel = "|".join(sorted([a[0], b[0]]))
+                    if float(sim[idx[a[0]], idx[b[0]]]) >= DUBLETTE_GRAU and schluessel not in urteile_d:
+                        offen.append((schluessel, (a[1][2], a[1][1]), (b[1][2], b[1][1])))
+        offen = offen[:JEV_MAX_JE_LAUF]
+        if offen and time.time() - start <= ZEIT_BUDGET_S:
+            with ThreadPoolExecutor(PARALLEL) as pool:
+                for schluessel, p in zip([o[0] for o in offen],
+                                         pool.map(lambda o: _jev_dublette(jev_key, o[1], o[2]), offen)):
+                    stat["richter_d"] = stat.get("richter_d", 0) + 1
+                    if p is None:
+                        stat["fehler"] += 1
+                    else:
+                        urteile_d[schluessel] = round(p, 3)
+        elif offen:
+            stat["zeitgrenze"] = True
+
+    gruppe_von = {}
+    for ev in familien.values():
+        anker = []
+        for slug, _ in ev:
+            nah = sorted(((float(sim[idx[a], idx[slug]]), a) for a in anker), reverse=True)
+            ziel = next((a for s_, a in nah
+                         if _ist_dublette(s_, urteile_d.get("|".join(sorted([a, slug]))) if jev_key else None)),
+                        None)
+            if ziel:
+                gruppe_von[slug] = ziel
+            else:
+                anker.append(slug)
+    stat["dubletten"] = len(gruppe_von)
+    return gruppe_von
 
 
 def update_themenketten_shadow(base_dir, news_list, llm_fn):
@@ -394,6 +528,22 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
     familie_von = {r: f["anker"] for f in familien for r in f["ketten"]}
     stat["familien_mehrere_ketten"] = sum(len(f["ketten"]) > 1 for f in familien)
 
+    # 4b. Ereignis-Dubletten (25.09.26) - siehe DUBLETTE_SICHER. Fehler hier kosten
+    #     nur die Entdopplung, nie den Lauf.
+    urteile_d = zustand.get("urteile_dublette", {})      # "slugA|slugB" -> Jev-Noul
+    gruppe_von = zustand.get("gruppe_von", {})
+    try:
+        try:
+            archiv = json.loads((base / "archive.json").read_text(encoding="utf-8"))
+            archiv = {a["link"]: a for a in archiv if isinstance(a, dict) and a.get("link")}
+        except Exception:
+            archiv = {}
+        gruppe_von = _ereignis_dubletten(zuordnung, familie_von, news_list, archiv, cache, modell,
+                                         urteile_d, os.environ.get("TYPESAFE_API_KEY", "").strip(),
+                                         start, stat)
+    except Exception as e:
+        logger.info("Themenkette: Entdopplung uebersprungen (%s: %s)", e.__class__.__name__, e)
+
     # 5. Aufraeumen + schreiben
     grenze = (datetime.now(timezone.utc) - timedelta(days=AUFBEWAHREN_TAGE)).date().isoformat()
     aktuell = set(idx_von)
@@ -404,6 +554,8 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
     urteile_a = {sl: u for sl, u in urteile_a.items() if sl in ketten_von}
     urteile_b = {r: u for r, u in urteile_b.items() if r in ketten}
     urteile_f = {k: v for k, v in urteile_f.items() if all(x in ketten for x in k.split("|"))}
+    urteile_d = {k: v for k, v in urteile_d.items() if all(x in ketten_von for x in k.split("|"))}
+    gruppe_von = {s: a for s, a in gruppe_von.items() if s in ketten_von and a in ketten_von}
     for u in list(urteile_a.values()) + list(urteile_b.values()):
         u["geprueft"] = [l for l in u["geprueft"] if l in aktuell]
         u["ja"] = [l for l in u["ja"] if l in aktuell]
@@ -421,6 +573,7 @@ def update_themenketten_shadow(base_dir, news_list, llm_fn):
         "urteile_ereignis": urteile_a, "urteile_thema": urteile_b,
         "familien": [f for f in familien if len(f["ketten"]) > 1], "familie_von": familie_von,
         "urteile_familie": urteile_f,
+        "urteile_dublette": urteile_d, "gruppe_von": gruppe_von,
     }
     pfad.write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
     logger.info("THEMENKETTE: %s", json.dumps(stat, ensure_ascii=False))
@@ -450,6 +603,7 @@ def linien_fuer_anzeige(base_dir, news_list):
     zustand = _lade(base / DATEI)
     zuordnung = zustand.get("zuordnung", {})
     familie_von = zustand.get("familie_von", {})
+    gruppe_von = zustand.get("gruppe_von", {})       # 25.09.: HN-Dubletten -> Anker-Story
     if not zuordnung:
         return {}
     try:
@@ -470,12 +624,12 @@ def linien_fuer_anzeige(base_dir, news_list):
             n, ist_aktuell = archiv.get(link), False
         if not n or not n.get("title"):
             continue
-        ek = _kurz(z["hn_slug"])
+        ek = _kurz(gruppe_von.get(z["hn_slug"], z["hn_slug"]))
         ereignis_von_link[link] = (fid, ek)
-        rang = (ist_aktuell and not n.get("dub_von"), n.get("score") or 0)
+        rang = _rang(n, ist_aktuell)
         bisher = roh.setdefault(fid, {}).get(ek)
         if bisher is None or rang > bisher["_rang"]:
-            d = (n.get("first_seen") or n.get("date") or z.get("seit") or "")[:10]
+            d = _datum(n, z)
             roh[fid][ek] = {"t": n["title"], "l": link, "q": n.get("source", ""), "d": d,
                             "k": ek, "_rang": rang}
             if not ist_aktuell and n.get("summary"):
@@ -492,7 +646,12 @@ def linien_fuer_anzeige(base_dir, news_list):
         linien[lid] = {"n": len(liste), "seit": liste[-1]["d"],
                        "e": [{k: v for k, v in e.items() if k != "_rang"} for e in gezeigt]}
 
-    # Artikel markieren; Cluster-Geschwister ohne eigene Zuordnung erben die Linie
+    # Artikel markieren; Cluster-Geschwister ohne eigene Zuordnung erben die Linie.
+    # 25.09.: "ohne eigene Zuordnung" war nicht geprueft - am 22.09. legte das Clustering
+    # "Trump benennt KI in Superintelligenz um" zu drei Opus-5.5-Artikeln, die trotz
+    # eigener (richtiger) Stufe-A-Zuordnung die Trump-Linie erbten (Daniels Screenshot).
+    # Jetzt: wer selbst (Ereignis oder Thema) einer ANDEREN Familie zugeordnet ist, erbt nicht.
+    eigene = {l: _kurz(familie_von.get(z["kette"], z["kette"])) for l, z in zuordnung.items() if z.get("kette")}
     sid_linie = {}
     for n in news_list:
         fid, ek = ereignis_von_link.get(n.get("link"), (None, None))
@@ -502,7 +661,8 @@ def linien_fuer_anzeige(base_dir, news_list):
             if sid and (sid not in sid_linie or linien[id_von[fid]]["n"] > linien[sid_linie[sid][0]]["n"]):
                 sid_linie[sid] = (id_von[fid], ek)
     for n in news_list:
-        if "linie" not in n and n.get("story_id") in sid_linie:
+        if ("linie" not in n and n.get("story_id") in sid_linie
+                and eigene.get(n.get("link"), sid_linie[n["story_id"]][0]) == sid_linie[n["story_id"]][0]):
             n["linie"], n["linie_k"] = sid_linie[n["story_id"]]
     logger.info("THEMENKETTE-ANZEIGE: %d Linien, %d Artikel markiert",
                 len(linien), sum(1 for n in news_list if n.get("linie")))
