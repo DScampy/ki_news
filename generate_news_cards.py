@@ -1221,6 +1221,9 @@ def main() -> None:
             "duration": video_dauer,
             "llm_used": llm_used,
             "voice_used": voice_name,
+            # 25.09.26: Einordnungstext mitspeichern - Gate 4 (Phase-4-Watchlist)
+            # ist sonst nur an der Headline pruefbar, der Text stand nirgends.
+            "einordnung": einordnung_clean,
         })
         if link:
             card_sent[link] = today
