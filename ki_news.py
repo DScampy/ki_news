@@ -1048,8 +1048,10 @@ MODELLE = [
 # Gemma-4-31b schreibt bessere deutsche Posts als Llama – empirisch aus Logs bestätigt.
 # Reihenfolge bewusst anders als MODELLE: Gemma zuerst, Llama als Fallback.
 MODELLE_POSTS = [
-    "google/gemma-4-31b-it:free",                      # Beste Posts-Qualität (DE-Format, Scampy-6)
-    "google/gemma-4-26b-a4b-it:free",                  # Gemma-Fallback
+    # 25.09.26 entfernt: "google/gemma-4-31b-it:free" - letzte 10 Laeufe (ki_news.log)
+    # 224 Nennungen, 0 Erfolge (502/504/429); kostete je Lauf ~10 Fehlversuche in
+    # score_cluster_llm. gemma-4-26b lieferte am 24.09. noch Posts, bleibt.
+    "google/gemma-4-26b-a4b-it:free",                  # Gemma (DE-Format, Scampy-6)
     # 14.08.26: :free-IDs von llama-3.3-70b-instruct/hermes-3-405b entfernt,
     # siehe Begruendung bei MODELLE oben - identischer Befund (100% 404).
     # gpt-oss-20b ergaenzt (live getestet, siehe MODELLE oben) - die Nemotron-
@@ -1755,6 +1757,154 @@ def cluster_news(alle_news, anchors=None, log_diag=True, erstdatum=None):
     # nur als Matching-Ziel, nie als eigenstaendiges Ergebnis.
     return [c["items"] for c in clusters if any(not it.get("_anchor") for it in c["items"])]
 
+# ── Jev-Veto nach dem Clustering (25.09.26, Kampagne Phase 3) ────────────────
+# cluster_news() verschmilzt ueber geteilte Woerter und kann nicht sehen, WAS fuer
+# ein Ereignis gemeldet wird. Fall 22.09.: "Trump benennt KI in Superintelligenz
+# um" landete im Cluster der Opus-5.5-Meldungen; Meta Muse sammelte tagelang
+# Charm-Geraet, Amazon-Sperre, Sicherheitsluecke und Downloadzahlen in EINER Story.
+# Jev (TypeSafe) beantwortet "dasselbe konkrete Ereignis?" als Wahrscheinlichkeit.
+# Gemessen (ox-analyse/MESSUNG_250926c_Jev-Ereignis.md):
+#   Handpaare ereignis_daten.json: Jev>=0.2 -> 106/106 gleich behalten, 36/40 False
+#   Merges erkannt, 1/74 Gegenprobe zerrissen (Live-Funktion: 28/40, 0/74).
+#   Einbautest 189 echte Cluster-Mitglieder 21.-25.09.: <0.2 trennt 72 ab, davon
+#   nach Durchsicht ~2 fraglich.
+# Ablauf je Cluster: jedes Mitglied gegen den Anker (erstes Mitglied); wer unter
+# JEV_VETO_SCHWELLE liegt, faellt raus. Die Abgetrennten werden untereinander wieder
+# per Anker gruppiert (Anker statt Verkettung, Invariante I7), damit fuenf Meldungen
+# zu "Amazon blockiert Muse" eine Story bleiben. Fail-open: ohne Key, bei Fehlern
+# oder erschoepftem Budget bleibt der Cluster, wie cluster_news() ihn gebaut hat.
+# Kill-Switch: JEV_VETO_AKTIV = False.
+JEV_VETO_AKTIV = True
+JEV_VETO_SCHWELLE = 0.2
+JEV_VETO_MAX_AUFRUFE = 150
+JEV_VETO_ZEIT_S = 90
+JEV_URTEILE_DATEI = "jev_urteile.json"
+JEV_URTEILE_TAGE = 7
+_JEV_FRAGE_EREIGNIS = {
+    "type": "noul",
+    "instructions": "Berichten `meldung_a` und `meldung_b` über dasselbe konkrete Ereignis?",
+    "criteria": {
+        "true": "Ja: derselbe konkrete Vorgang (dieselbe Ankündigung, derselbe Deal, dieselbe Klage, "
+                "derselbe Vorfall, dieselbe Zahl), auch wenn Quelle, Formulierung, Detailtiefe oder "
+                "Blickwinkel sich unterscheiden.",
+        "false": "Nein: zwei verschiedene Vorgänge, auch wenn dieselbe Firma, dieselbe Person, dasselbe "
+                 "Produkt oder dasselbe Thema vorkommt (z. B. Klage vs. Produktstart, zwei verschiedene "
+                 "Deals, zwei verschiedene Personalien).",
+    },
+}
+_jev_stat = {"aufrufe": 0, "cache": 0, "fehler": 0, "abgetrennt": 0, "neue_storys": 0, "cluster": 0}
+
+
+def _jev_gleich(titel_a, titel_b, key):
+    body = json.dumps({"model": "jev-latest", "state": {"meldung_a": titel_a, "meldung_b": titel_b},
+                       "questions": {"gleich": _JEV_FRAGE_EREIGNIS}}).encode("utf-8")
+    req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                 headers={"Authorization": "Bearer " + key,
+                                          "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return float(json.loads(r.read())["answers"]["gleich"]["noul"])
+
+
+def _jev_veto(clusters, base_dir):
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not JEV_VETO_AKTIV or not key:
+        return clusters
+    import time as _time
+    from concurrent.futures import ThreadPoolExecutor
+    start = _time.time()
+    pfad = Path(base_dir) / JEV_URTEILE_DATEI
+    try:
+        cache = json.loads(pfad.read_text(encoding="utf-8")).get("urteile", {})
+    except Exception:
+        cache = {}
+    heute = datetime.now(timezone.utc).date().isoformat()
+
+    def schluessel(a, b):
+        return "|".join(sorted([a.get("link", ""), b.get("link", "")]))
+
+    def urteile(paare):
+        """paare: [(a, b)] -> {schluessel: p oder None}; Cache zuerst, Rest parallel."""
+        erg, offen = {}, []
+        for a, b in paare:
+            k = schluessel(a, b)
+            if k in cache:
+                erg[k] = cache[k]["p"]
+                _jev_stat["cache"] += 1
+            elif k not in [x[0] for x in offen]:
+                offen.append((k, a, b))
+        frei = JEV_VETO_MAX_AUFRUFE - _jev_stat["aufrufe"]
+        if _time.time() - start > JEV_VETO_ZEIT_S:
+            frei = 0
+        offen = offen[:max(frei, 0)]
+
+        def frage(x):
+            k, a, b = x
+            try:
+                return k, _jev_gleich(a.get("title", ""), b.get("title", ""), key)
+            except Exception as e:
+                logger.info("JEV-VETO: Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+                return k, None
+        if offen:
+            with ThreadPoolExecutor(6) as pool:
+                for k, p in pool.map(frage, offen):
+                    _jev_stat["aufrufe"] += 1
+                    if p is None:
+                        _jev_stat["fehler"] += 1
+                    else:
+                        cache[k] = {"p": round(p, 3), "d": heute}
+                    erg[k] = p
+        return erg
+
+    ergebnis = []
+    for cl in clusters:
+        echte = [it for it in cl if not it.get("_anchor")]
+        if len(echte) < 2 or len(echte) != len(cl):
+            ergebnis.append(cl)
+            continue
+        _jev_stat["cluster"] += 1
+        anker, rest = cl[0], cl[1:]
+        u = urteile([(anker, it) for it in rest])
+        bleibt, raus = [anker], []
+        for it in rest:
+            p = u.get(schluessel(anker, it))
+            (raus if (p is not None and p < JEV_VETO_SCHWELLE) else bleibt).append(it)
+        ergebnis.append(bleibt)
+        if not raus:
+            continue
+        _jev_stat["abgetrennt"] += len(raus)
+        for it in raus:
+            logger.info("JEV-VETO: %.2f trennt %r von Anker %r", u.get(schluessel(anker, it)),
+                        it.get("title", "")[:70], anker.get("title", "")[:70])
+        # Abgetrennte untereinander wieder gruppieren (Anker je Gruppe)
+        gruppen = []
+        for it in raus:
+            ziel = None
+            if gruppen:
+                ug = urteile([(g[0], it) for g in gruppen])
+                for g in gruppen:
+                    p = ug.get(schluessel(g[0], it))
+                    if p is not None and p >= JEV_VETO_SCHWELLE:
+                        ziel = g
+                        break
+            if ziel is not None:
+                ziel.append(it)
+            else:
+                gruppen.append([it])
+        _jev_stat["neue_storys"] += len(gruppen)
+        ergebnis.extend(gruppen)
+
+    grenze = (datetime.now(timezone.utc) - timedelta(days=JEV_URTEILE_TAGE)).date().isoformat()
+    try:
+        pfad.write_text(json.dumps({"_hinweis": "Jev-Urteile 'gleiches Ereignis' (ki_news.py _jev_veto), Cache %d Tage"
+                                    % JEV_URTEILE_TAGE,
+                                    "urteile": {k: v for k, v in cache.items() if v.get("d", "") >= grenze}},
+                                   ensure_ascii=False), encoding="utf-8")
+    except Exception as e:
+        logger.info("JEV-VETO: Cache nicht geschrieben (%s)", e)
+    logger.info("JEV-VETO: %s, %.1f s", json.dumps(_jev_stat), _time.time() - start)
+    return ergebnis
+
+
 def score_cluster(cluster):
     """
     Berechnet Relevanz-Score für einen Story-Cluster.
@@ -2280,6 +2430,11 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
     # anchors=None -> Verhalten wie vor dem 13.07., unveraendert sicher.
     clusters = cluster_news(alle_news, None,
                             erstdatum={l: h["first_seen"] for l, h in history.items()})
+    try:                                   # 25.09.26, siehe JEV_VETO_AKTIV - nie blockierend
+        _basis = Path.home() / "Documents" / "Projekte" / "ki-news"
+        clusters = _jev_veto(clusters, _basis if _basis.exists() else Path("."))
+    except Exception as e:
+        logger.warning("JEV-VETO uebersprungen (Pipeline unbeeinflusst): %s", e)
     recent_titles = _recent_titles_from_archive(existing_archive)
 
     # Legacy-Score (Keyword-System) zuerst fuer ALLE Cluster - dient als
@@ -2793,6 +2948,8 @@ def fetch_feed(name, url):
     scan_depth = 60 if name in DEEP_SCAN_SOURCES else 20
     for item in candidates[:scan_depth]:
         title = _first_child_text(item, "title")
+        if "&" in title:        # 25.09.26: doppelt kodierte Entitaeten ("Google&#8217;s") aufloesen
+            title = _html.unescape(title)
         link = _first_child_text(item, "link")
         if not link:
             # Atom: <link href="..."/> (ggf. mehrere; rel="alternate" oder ohne rel bevorzugen)
