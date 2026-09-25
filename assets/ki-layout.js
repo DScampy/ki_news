@@ -654,7 +654,10 @@
       imgWrap.hidden = true;
     }
     if (data.link) {
-      linkEl.href = data.link;
+      // 25.09.26 (F2): direkt zum Verlag, wenn ki_news.py die Google-News-
+      // Weiterleitung aufgeloest hat (link_verlag). data.link bleibt Schluessel
+      // fuer Hash/Linien, nur das Sprungziel aendert sich.
+      linkEl.href = data.link_verlag || data.link;
       linkEl.style.display = '';
     } else {
       linkEl.style.display = 'none';
