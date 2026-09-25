@@ -66,8 +66,12 @@ jobs:
       # "Sprach-ID: FALLBACK Wortlisten (py3langid fehlt)" ins Log.
       # BEWUSST OHNE continue-on-error: schlaegt der Install fehl, will ich das
       # sofort rot sehen und nicht wochenlang stillen Qualitaetsverlust.
+      # 25.09.26: auf 0.3.0 gepinnt. py3langid 0.4.0 hat from_pickled_model()
+      # entfernt - der Install lief gruen, der Import scheiterte still und JEDER
+      # Lauf fiel auf die Wortlisten zurueck (Log: "FALLBACK Wortlisten"). Die
+      # Schwelle 0,99 ist gegen 0.3.x kalibriert, darum pinnen statt umbauen.
       - name: Sprach-ID installieren (py3langid)
-        run: pip install --quiet py3langid
+        run: pip install --quiet "py3langid==0.3.0"
 
       # Modell-Waechter (22.08.26): meldet Modell-IDs, die aus dem
       # OpenRouter-Katalog verschwunden sind. Dreimal in acht Tagen ist genau
@@ -231,6 +235,11 @@ jobs:
             # gesamten Artikelbestand erneut, statt nur die neuen dreissig.
             git add registry/ 2>/dev/null || true
             git add registry_bau/out/facetten.json 2>/dev/null || true
+            # 25.09.26: Modellliste mitcommitten - ihr Alter steht in der Datei (erzeugt),
+            # ohne Commit rief jeder Lauf nach einer Woche OpenRouter neu ab (D5).
+            git add registry_bau/out/modelle.json 2>/dev/null || true
+            # Sprach-Guard-Protokoll (25.09.26, D4): welche Artikel wegen fehlender Uebersetzung fielen.
+            git add verworfen.json 2>/dev/null || true
             git diff --staged --quiet || git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')"
           }
 
@@ -327,6 +336,11 @@ jobs:
             # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.
             git add registry/ 2>/dev/null || true
             git add registry_bau/out/facetten.json 2>/dev/null || true
+            # 25.09.26: Modellliste mitcommitten - ihr Alter steht in der Datei (erzeugt),
+            # ohne Commit rief jeder Lauf nach einer Woche OpenRouter neu ab (D5).
+            git add registry_bau/out/modelle.json 2>/dev/null || true
+            # Sprach-Guard-Protokoll (25.09.26, D4): welche Artikel wegen fehlender Uebersetzung fielen.
+            git add verworfen.json 2>/dev/null || true
             git diff --staged --quiet || git commit -m "cards + template update $(date -u +%Y-%m-%d)"
           }
 
