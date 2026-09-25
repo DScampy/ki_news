@@ -265,6 +265,85 @@ def _ssr_auch_bei(n):
             f'auch bei: {_html.escape(text)}</p>')
 
 
+ARTIKEL_AUF_STARTSEITE = 3
+
+
+def _ssr_artikel_block(base_dir):
+    """Rubrik "Neueste Analysen" (25.09.26, F1): die jüngsten eigenen Artikel aus
+    artikel/artikel-index.json als Kacheln auf der Startseite - bis heute verlinkte
+    index.html keinen einzigen eigenen Artikel. Bild = og:image des Artikels."""
+    base = Path(base_dir)
+    idx = json.loads((base / "artikel" / "artikel-index.json").read_text(encoding="utf-8"))
+    idx = sorted([a for a in idx if isinstance(a, dict) and a.get("slug")],
+                 key=lambda a: a.get("datum", ""), reverse=True)[:ARTIKEL_AUF_STARTSEITE]
+    kacheln = []
+    for a in idx:
+        pfad = base / "artikel" / (a["slug"] + ".html")
+        if not pfad.exists():
+            continue
+        kopf = pfad.read_text(encoding="utf-8")[:20000]
+        m = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', kopf)
+        bild = m.group(1) if m else ""
+        if bild.startswith("https://ki-news.live/"):
+            bild = bild[len("https://ki-news.live/"):]
+        try:
+            datum = datetime.strptime(a.get("datum", ""), "%Y-%m-%d").strftime("%d.%m.%Y")
+        except ValueError:
+            datum = ""
+        tag = (a.get("tags") or ["Analyse"])[0]
+        e = lambda t: _html.escape(str(t or ""), quote=True)
+        kacheln.append(
+            f'<a href="artikel/{e(a["slug"])}.html" class="ki-card ki-border border flex flex-col h-full" '
+            'style="overflow:hidden;text-decoration:none;border-radius:12px">'
+            + (f'<div style="position:relative;padding-top:52.5%;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)">'
+               f'<img src="{e(bild)}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div>'
+               if bild else "")
+            + '<div style="padding:16px;display:flex;flex-direction:column;gap:8px;flex:1">'
+            f'<span style="font-family:monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,#00d4ff)">{e(tag)}</span>'
+            f'<h4 class="ki-main" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px;font-weight:700;line-height:1.25;margin:0">{e(a.get("titel"))}</h4>'
+            f'<p class="ki-muted" style="font-size:13px;line-height:1.5;margin:0;flex:1">{e(a.get("desc"))}</p>'
+            f'<span class="ki-faint" style="font-family:monospace;font-size:11px">{e(datum)}'
+            + (f' · {int(a["lesezeit"])} Min.' if str(a.get("lesezeit", "")).isdigit() else "")
+            + '</span></div></a>')
+    if not kacheln:
+        return ""
+    return ("<!-- SSR:ARTIKEL:START -->\n"
+            '    <section class="mt-12" aria-labelledby="neueste-analysen">\n'
+            '      <div class="mb-6 flex items-center justify-between gap-3 flex-wrap">\n'
+            '        <h3 id="neueste-analysen" class="ki-main font-bold" style="font-family:\'Space Grotesk\',sans-serif;font-size:24px">Neueste Analysen</h3>\n'
+            '        <a href="artikel.html" class="text-xs font-mono" style="color:var(--accent,#00d4ff);text-decoration:none">alle Artikel &rarr;</a>\n'
+            '      </div>\n'
+            '      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">\n        '
+            + "\n        ".join(kacheln) +
+            "\n      </div>\n    </section>\n    <!-- SSR:ARTIKEL:END -->")
+
+
+_PH_COUNT = 29      # Pendant: PH_COUNT in index.html
+
+
+def _ssr_thumb(n):
+    """Vorschaubild der Kachel wie cardThumb() in index.html (25.09.26, D6).
+    Bisher fehlte es in der vorgerenderten Kachel ganz - beim ersten Paint war
+    oben eine leere Zone, das Bild kam erst mit JS. Gleicher Platzhalter-Hash
+    wie phFor() (djb2-xor ueber UTF-16-Einheiten), damit das Bild beim
+    JS-Rendern nicht wechselt. Immer zusammen mit cardThumb() aendern!"""
+    key = str(n.get("link") or n.get("title") or "")
+    h = 5381
+    b = key.encode("utf-16-le")
+    for i in range(0, len(b), 2):
+        h = ((h * 33) ^ (b[i] | (b[i + 1] << 8))) & 0xFFFFFFFF
+    ph = "assets/ph/ph-%02d.jpg" % (h % _PH_COUNT + 1)
+    bild = n.get("image") or ""
+    src = _html.escape(bild or ph, quote=True)
+    onerr = ("this.onerror=function(){this.parentNode.style.display='none'};this.src='%s'" % ph
+             if bild else "this.parentNode.style.display='none'")
+    return ('<div class="ki-card-thumb" style="margin:-16px -16px 14px;position:relative;padding-top:52%;'
+            'overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)">'
+            f'<img src="{src}" alt="" loading="lazy" referrerpolicy="no-referrer" '
+            f'onerror="{_html.escape(onerr, quote=True)}" '
+            'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div>')
+
+
 def _ssr_card(n):
     c = _html.escape(n.get("color") or "#1d9bf0", quote=True)
     src = _html.escape(n.get("source") or "")
@@ -286,6 +365,7 @@ def _ssr_card(n):
         f'{_card_bg_svg(n)}'
         f'<div class="card-scrim"></div>'
         f'<div class="card-content flex flex-col h-full">'
+        f'{_ssr_thumb(n)}'
         f'<div class="flex items-center justify-between mb-4">'
         f'<span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" '
         f'style="background:{c}">{src}</span>'
@@ -530,6 +610,14 @@ def inject_ssr(base_dir, news_json_data):
         r"<!-- SSR:BRIEFING:START -->.*?<!-- SSR:BRIEFING:END -->",
         lambda _m: briefing_block, html_txt, flags=re.DOTALL,
     )
+    # Neueste Analysen (25.09.26, F1): ebenfalls tolerant, fehlt der Marker, passiert nichts.
+    try:
+        artikel_block = _ssr_artikel_block(base_dir)
+        if artikel_block:
+            html_txt = re.sub(r"<!-- SSR:ARTIKEL:START -->.*?<!-- SSR:ARTIKEL:END -->",
+                              lambda _m: artikel_block, html_txt, flags=re.DOTALL)
+    except Exception as e:
+        logger.info("SSR: Neueste Analysen uebersprungen (%s)", e)
     # Stand-Label-Default (vor JS-Hydration)
     html_txt = re.sub(
         r'(<span id="stand-label"[^>]*>)[^<]*(</span>)',
@@ -1009,6 +1097,31 @@ _MODEL_429_LIMIT = 3
 _BATCH_VERSUCHE = 0
 _BATCH_OK = {}          # modell -> Anzahl erfolgreicher Batches
 _GUARD_VERWORFEN = 0    # Artikel, die der Sprach-Guard aus news.json geworfen hat
+_VERWORFEN_LISTE = []   # 25.09.26 (D4): dieselben Artikel einzeln, -> verworfen.json
+
+
+def _verworfen_schreiben(pfad, liste, tage=14):
+    """Haengt die im Lauf verworfenen Artikel an verworfen.json an (je Link ein
+    Eintrag mit Zaehler, erstes/letztes Datum), haelt `tage` Tage. Nur Protokoll -
+    wer verworfen wurde, kommt im naechsten Lauf wieder dran; die Datei zeigt, ob
+    und wie lange Artikel wiederholt an der Uebersetzung scheitern."""
+    try:
+        alt = json.loads(Path(pfad).read_text(encoding="utf-8")) if Path(pfad).exists() else {}
+    except Exception:
+        alt = {}
+    eintraege = alt.get("eintraege", {}) if isinstance(alt, dict) else {}
+    jetzt = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for v in liste:
+        e = eintraege.setdefault(v["link"], {"quelle": v["quelle"], "titel": v["titel"],
+                                             "erstmals": jetzt, "anzahl": 0})
+        e["anzahl"] += 1
+        e["zuletzt"] = jetzt
+        e["titel"] = v["titel"]
+    grenze = (datetime.now(timezone.utc) - timedelta(days=tage)).isoformat(timespec="seconds")
+    eintraege = {l: e for l, e in eintraege.items() if e.get("zuletzt", "") >= grenze}
+    Path(pfad).write_text(json.dumps({"_hinweis": "Sprach-Guard-Protokoll (ki_news.py), %d Tage" % tage,
+                                      "stand": jetzt, "eintraege": eintraege},
+                                     ensure_ascii=False, indent=1), encoding="utf-8")
 
 def _model_blocked(model):
     return _MODEL_429_STREAK.get(model, 0) >= _MODEL_429_LIMIT
@@ -2616,6 +2729,37 @@ def _first_child_text(el, name):
 # Items liefert, zaehlt bewusst NICHT dazu - das kann eine echte leere Lage sein.
 _FEED_AUSFAELLE = set()
 
+# Bild direkt aus dem Feed (25.09.26). Golem leitet jeden Seitenabruf auf eine
+# Zustimmungsseite um (0 von 87 Bildern), liefert das Bild aber im Feed selbst
+# (<img> in der description). Reihenfolge: enclosure > media:content/thumbnail >
+# erstes <img> in description/content. 1x1-Zaehlpixel werden uebersprungen.
+_FEED_IMG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']([^>]*)>', re.I)
+_BILD_ENDUNG = (".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif")
+
+
+def _feed_bild(item):
+    try:
+        for ch in item:
+            tag = _tag_local(ch.tag)
+            url = (ch.get("url") or "").strip()
+            if not url.startswith("https://"):
+                continue
+            typ = (ch.get("type") or ch.get("medium") or "").lower()
+            if tag == "enclosure" and typ.startswith("image"):
+                return url
+            if tag in ("content", "thumbnail") and (typ.startswith("image") or
+                                                    url.lower().split("?")[0].endswith(_BILD_ENDUNG)):
+                return url
+        for ch in item:
+            if _tag_local(ch.tag) in ("description", "encoded", "content", "summary") and ch.text:
+                for m in _FEED_IMG_RE.finditer(ch.text):
+                    url, rest = m.group(1).strip(), m.group(2)
+                    if url.startswith("https://") and not re.search(r'width=["\']1["\']', rest):
+                        return url
+    except Exception:
+        pass
+    return ""
+
 
 def fetch_feed(name, url):
     # The Decoder braucht mehr Zeit – Server langsam für GitHub Actions IPs
@@ -2691,7 +2835,11 @@ def fetch_feed(name, url):
             except Exception:
                 pass  # Datum nicht parsebar -> wie bisher behandeln, nicht raten
         if title and (name in ALWAYS_KI_RELEVANT_SOURCES or _is_ki_relevant(title)):
-            items.append({"title": title, "link": link, "source": name})
+            eintrag = {"title": title, "link": link, "source": name}
+            bild = _feed_bild(item)
+            if bild:
+                eintrag["feed_image"] = bild
+            items.append(eintrag)
     # War [:3] – das warf ~70% der relevanten News pro Feed weg (The Decoder liefert
     # 10 KI-relevante, nur 3 kamen durch). Höher = bessere Abdeckung neuer Modelle,
     # das Scoring + der Zeit-Verfall sortieren die Masse danach.
@@ -2803,8 +2951,11 @@ GN_PREMIUM_FEEDS = {"Bloomberg AI", "Reuters AI", "WSJ AI", "FT AI", "Economist 
 # gemessen; NYT laut Volltext-Log 0 von 2). Fuer Bild, Nachfass und Volltext
 # uebersprungen - spart Laufzeit und gibt die Volltext-Plaetze an Artikel frei,
 # bei denen es klappt.
+# 25.09.26: techrepublic.com (0 von 58 Bildern, jeder Abruf 403) und openai.com
+# (0 von 35, 403) ergaenzt - Log-Zeilen "HTTP Error 403: Forbidden" je Lauf.
 GESPERRTE_VERLAGE = ("bloomberg.com", "reuters.com", "wsj.com", "ft.com",
-                     "economist.com", "saechsische.de", "nytimes.com")
+                     "economist.com", "saechsische.de", "nytimes.com",
+                     "techrepublic.com", "openai.com")
 _gn_stat = {"neu": 0, "archiv": 0, "fehler": 0, "premium": 0, "budget": 0}
 
 
@@ -3038,7 +3189,7 @@ def belegarchiv_aktualisieren(base_dir, news_list):
                 stat["uebersprungen"])
     return stat
 
-IMG_RETRY_DAYS = 2
+IMG_RETRY_DAYS = 1       # 25.09.26: von 2 (Daniel abgenickt 09.09., D3)
 IMG_RETRY_BUDGET = 12
 
 # Zaehler fuer den laufenden Prozess (ein Pipeline-Lauf = ein Prozess).
@@ -3059,6 +3210,7 @@ def _darf_bild_nachfassen(link, history_entry):
     if letzter and _days_since(letzter) < IMG_RETRY_DAYS:
         return False
     _img_nachfass["genutzt"] += 1
+    logger.info("Bild-Nachfass %d/%d: %s", _img_nachfass["genutzt"], IMG_RETRY_BUDGET, (link or "")[:100])
     return True
 
 
@@ -4660,6 +4812,8 @@ def main():
         # (deutsche Quellen liefern title_de == Original als Normalfall).
         if _title_de_check and not _looks_german(_title_de_check, n.get("title", "")):
             globals()["_GUARD_VERWORFEN"] = globals()["_GUARD_VERWORFEN"] + 1
+            _VERWORFEN_LISTE.append({"link": link, "quelle": n.get("source", ""),
+                                     "titel": _title_de_check[:160]})
             logger.warning(
                 "news.json: Artikel uebersprungen, Titel wirkt unuebersetzt/nicht Deutsch "
                 "(%r) - ki_news.py-Uebersetzung fehlgeschlagen, naechster Lauf versucht es erneut. (%s)",
@@ -4703,6 +4857,8 @@ def main():
             preview_img, img_versucht = fetch_og_image(link_verlag), True
         else:
             preview_img, img_versucht = resolve_preview_image(link_verlag or link, hist)
+        if not preview_img and n.get("feed_image"):     # 25.09.26, siehe _feed_bild()
+            preview_img = n["feed_image"]
         title_de = s.get("title_de", n["title"])
         summary_de = s.get("summary", "")
         entry = {
@@ -4882,6 +5038,11 @@ def main():
         write_json_file(proj_dir / "news.json", news_json_data)
     else:
         write_json_file(Path("news.json"), news_json_data)
+    try:                                   # 25.09.26 (D4), nie blockierend
+        _verworfen_schreiben((proj_dir if proj_dir.exists() else Path(".")) / "verworfen.json",
+                             _VERWORFEN_LISTE)
+    except Exception as e:
+        logger.info("verworfen.json nicht geschrieben: %s", e)
 
     # ── SSR / Pre-Rendering: aktuelle News als echtes HTML in index.html ──
     # (für Crawler & KI-Bots, die kein JavaScript ausführen)
