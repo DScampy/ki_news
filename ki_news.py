@@ -859,7 +859,8 @@ MODELLE = [
     "nvidia/nemotron-3-ultra-550b-a55b:free",           # traegt heute die Gratis-Batches (19 OK / 10 Laeufe)
     "nex-agi/nex-n2.5-pro:free",                         # 14.09. neu: 8/8 im Produktionsformat, langsam (~55 s/Batch)
     "poolside/laguna-s-2.1:free",                        # 14.09. neu: 4/8, schnell (18 s), gelegentlich 429
-    "google/gemma-4-31b-it:free",                      # Gemma 4 31B – gutes Deutsch, aber meist 429
+    # 25.09.26 entfernt: "google/gemma-4-31b-it:free" - Modell-Check 15.09.: 0 von 30 Versuchen
+    # in MODELLE, nur Wartezeit als Fallback-Slot. In MODELLE_POSTS bleibt es (eigenes Thema).
     # 14.08.26: meta-llama/llama-3.3-70b-instruct:free und
     # nousresearch/hermes-3-llama-3.1-405b:free entfernt - Live-Check gegen
     # OpenRouter /api/v1/models (14.08.26) zeigt: beide :free-Varianten
@@ -2901,6 +2902,7 @@ BELEG_STATUS_JE_LAUF = 15    # offene Aufnahmen, deren Status je Lauf abgefragt 
 BELEG_ABSTAND_S = 9          # 7 Captures je Minute erlaubt -> knapp darunter bleiben
 BELEG_OFFEN_MAX_TAGE = 2     # laenger "pending" gilt als gescheitert
 BELEG_MAX_VERSUCHE = 3       # Einreichungen je Artikel bei voruebergehender Ablehnung
+BELEG_NACHHOLEN_JE_LAUF = 5  # gescheiterte Aufnahmen, die je Lauf erneut eingereicht werden
 
 
 def _ia_kopf():
@@ -2977,15 +2979,25 @@ def belegarchiv_aktualisieren(base_dir, news_list):
     # 2. neue Top-Storys einreichen. Voruebergehende Ablehnungen (Drosselung,
     # Sitzungslimit - naheliegend, weil je Slot zwei Laeufe kurz hintereinander
     # starten) duerfen bis zu BELEG_MAX_VERSUCHE mal erneut eingereicht werden.
+    # 25.09.26: Netzfehler (Zeitueberschreitung, Verbindung abgelehnt, 5xx) und zu lange
+    # "pending" gelten ebenfalls als voruebergehend - Stand 19.09.: 33 von 37 Fehlern waren
+    # genau das, 36 nach nur EINEM Versuch aufgegeben. Und: Nachholen haengt nicht mehr
+    # davon ab, ob der Artikel noch in den Top-n steht. Vorher flog ein solcher Eintrag
+    # aus der Liste und wurde nie gesichert. Hoechstens BELEG_NACHHOLEN_JE_LAUF je Lauf.
     voruebergehend = ("HTTP 429", "error:too-many-requests", "error:user-session-limit",
-                      "error:too-many-daily-captures")
-    erneut = {e.get("link") for e in liste
-              if e.get("status") == "fehler" and (e.get("fehler") or "").startswith(voruebergehend)
-              and e.get("versuche", 1) < BELEG_MAX_VERSUCHE}
-    alte_versuche = {e.get("link"): e.get("versuche", 1) for e in liste if e.get("link") in erneut}
+                      "error:too-many-daily-captures", "<urlopen error", "HTTP 50",
+                      "zeitueberschreitung (pending)")
+    nachhol = [e for e in liste
+               if e.get("status") == "fehler" and (e.get("fehler") or "").startswith(voruebergehend)
+               and e.get("versuche", 1) < BELEG_MAX_VERSUCHE][:BELEG_NACHHOLEN_JE_LAUF]
+    erneut = {e.get("link") for e in nachhol}
+    alte_versuche = {e.get("link"): e.get("versuche", 1) for e in nachhol}
     liste = [e for e in liste if e.get("link") not in erneut]
     bekannt = {e.get("link") for e in liste}
     top = sorted(news_list, key=lambda n: -(n.get("score") or 0))[:BELEG_JE_LAUF]
+    top += [{"link": e.get("link"), "link_verlag": e.get("quelle"), "title": e.get("titel", ""),
+             "source": e.get("source", ""), "score": e.get("score", 0),
+             "first_seen": e.get("veroeffentlicht", "")} for e in nachhol]
     erster = True
     for n in top:
         link = n.get("link") or ""
@@ -3243,6 +3255,8 @@ def summarize_news(alle_news, summary_cache=None):
     # 19.08.26 um Kyrillisch erweitert: im Summary eines Eintrags vom 16.08.
     # stand "war fast ein Jahr lang senderстви" - der Guard griff nicht, weil
     # er nur CJK/Kana/Hangul kannte.
+    _TITEL_ABKUERZUNG_AM_ENDE = re.compile(
+        r"\b(?:Dr|Prof|Nr|St|bzw|ca|vs|Mio|Mrd|Inc|Corp|Ltd|Jr|Sr|z\.\s?B|u\.\s?a|d\.\s?h)\.$")
     _CJK_PATTERN = re.compile(r'[一-鿿぀-ヿ가-힣Ѐ-ӿ]')
 
     def _has_foreign_script(text: str) -> bool:
@@ -3281,6 +3295,7 @@ Wichtig:
 - src_title MUSS die ersten Woerter des jeweiligen Original-Titels WORTWOERTLICH (unveraendert, gleiche Sprache) kopieren – das dient der Zuordnung
 - title_de MUSS eine echte Uebersetzung GENAU DIESES Originaltitels sein
 - Falls der Original-Titel einen Firmen-, Produkt- oder Personennamen enthaelt, MUSS title_de diesen Namen ebenfalls enthalten – ein Titel ohne das eigentliche Subjekt ("KI-Startup sammelt Millionen" statt "Baseten sammelt Millionen") ist nutzlos. Das gilt AUCH fuer Produkt-/Modellnamen aus mehreren Woertern ("Muse Spark", "Claude Sonnet 5"): den Namen WOERTLICH uebernehmen, NIEMALS durch einen Gattungsbegriff ersetzen - "Meta plant neues KI-Modell mit besseren Coding-Faehigkeiten" statt "Meta kuendigt Muse Spark an" ist ein FEHLER, denn Leser suchen nach genau diesem Namen
+- Namen BUCHSTABENGETREU uebernehmen: keinen Buchstaben verdoppeln oder weglassen, an Modell- und Produktnamen KEIN Genitiv-s haengen ("die Architektur von Hy3" statt "Hy3s Architektur"; "Anthropic" bleibt "Anthropic")
 - title_de und summary AUSSCHLIESSLICH auf Deutsch, keine Zeichen aus anderen Schriftsystemen (z.B. chinesische/japanische/koreanische Zeichen) uebernehmen, auch wenn der Original-Titel mehrsprachig ist
 - title_de MUSS ein Aussagesatz sein, KEINE Frage (kein Fragezeichen, keine Frageform wie "Hat X sich...?"). Falls der Original-Titel selbst eine Frage oder reine Spekulation ist, in eine Aussage mit Unsicherheits-Marker umformulieren (z.B. "moeglicherweise", "laut Bericht") statt die Frage zu uebernehmen – das gilt nur fuer die Formulierung, nicht als Grund den Artikel zu verwerfen
 - title_de MUSS GENAU EIN Satz sein (genau EIN Satzzeichen . oder ! am Ende, sonst nichts) – KEIN zweiter Satz mit weiteren Erlaeuterungen ("...ins Auge gefasst. Dies koennte..."). Alles ueber den Kern-Fakt Hinausgehende (Einordnung, Kontext, Vermutungen zur Bedeutung) gehoert in summary, NIEMALS in title_de. Card-Rendering nutzt title_de als feste Kachel-Ueberschrift – ein zweisaetziger Titel sprengt das Layout.
@@ -3420,6 +3435,11 @@ News:
                         # title_de darf nur EIN Satzende-Zeichen enthalten.
                         if t and len(re.findall(r"[.!?]", t)) > 1:
                             return "Titel mehrsatzig"
+                        # Phase 4 (25.09.26), Watchlist 09.08.: "... vertrauen oft auf Dr." -
+                        # ein Titel, der nach einer Abkuerzung abbricht, hat nur EIN Satzzeichen
+                        # und rutschte durch. Rueckwaerts gegen 2919 Cache-Titel: 0 Fehltreffer.
+                        if t and _TITEL_ABKUERZUNG_AM_ENDE.search(t):
+                            return "Titel endet auf Abkuerzung"
                         if s and s[-1] not in ".!?\"'”":
                             return "Zusammenfassung abgebrochen"
                         if _has_foreign_script(t) or _has_foreign_script(s):
@@ -4588,6 +4608,10 @@ def main():
         ({**n, "title": _title_de_by_link.get(n.get("link"), n["title"])}, p)
         for n, p in zip(top_news, parsed)
         if n.get("link") and n["link"] not in tg_sent and p.get("teaser")
+        # Phase 4 (25.09.26), Watchlist 10.08.: Telegram lief VOR dem Sprach-Guard und
+        # fiel bei gescheiterter Uebersetzung auf den englischen Originaltitel zurueck.
+        # Zurueckhalten statt senden -> nicht in tg_sent, naechster Lauf versucht es.
+        and _looks_german(_title_de_by_link.get(n.get("link"), n["title"]), n["title"])
     ]
     if not neue_stories:
         logger.info("Telegram: keine neuen Top-Storys – Versand uebersprungen.")
