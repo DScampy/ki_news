@@ -114,6 +114,9 @@ jobs:
           # Themenkette (14.09.26, Schattenbetrieb): HuggingNews-API-Key.
           # Optional - fehlt das Secret, ueberspringt themenkette_shadow.py den Schritt still.
           HUGGINGNEWS_API_KEY: ${{ secrets.HUGGINGNEWS_API }}
+          # Linien-Entdopplung (25.09.26): Jev (TypeSafe) als Richter im Graubereich.
+          # Optional - fehlt das Secret, entdoppelt themenkette_shadow.py nur per Embedding >= 0,85.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFEAI }}
         run: |
           # An die bestehende (committete) Log-Historie ANHAENGEN, nicht ueberschreiben.
           # Jeder Lauf startet mit einem eindeutigen Marker; der Trim-Schritt unten
