@@ -1,0 +1,72 @@
+# Instagram-Token verlaengern (25.09.26, Offene Punkte 0.2 / G1)
+#
+# Der langlebige Instagram-Token (Secret IG_ACCESS_TOKEN) gilt 60 Tage und wurde
+# am 30.08. gesetzt -> Ablauf ca. 29.10. Bisher gab es keinen Refresh im Code.
+# Instagram verlaengert per GET /refresh_access_token (grant_type=ig_refresh_token)
+# um weitere 60 Tage; der Token muss dafuer mindestens 24 h alt und noch gueltig sein.
+#
+# Die Antwort kann einen NEUEN Token-String enthalten. Den kann nur ein Schluessel
+# mit Schreibrecht auf Repo-Secrets zurueckschreiben - GITHUB_TOKEN darf das nicht.
+# Dafuer braucht es das Secret SECRETS_PAT (Daniel legt es einmal an: Fine-grained
+# PAT, nur dieses Repo, Berechtigung "Secrets: Read and write").
+#   - SECRETS_PAT gesetzt  -> neuer Token wird verschluesselt nach IG_ACCESS_TOKEN geschrieben.
+#   - SECRETS_PAT fehlt    -> Lauf wird ROT, sobald ein neuer Token-String kommt (sonst
+#                             waere die Verlaengerung verloren). Gleicher String -> gruen.
+# Der Token selbst erscheint nie im Log (nur Laufzeit in Tagen).
+name: Insta-Token verlaengern
+
+on:
+  schedule:
+    - cron: "17 6 1,15 * *"     # am 1. und 15. jedes Monats, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: PyNaCl fuer die Secret-Verschluesselung
+        run: pip install --quiet pynacl requests
+      - name: Token verlaengern
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'EOF'
+          import base64, os, sys, requests
+          from nacl import encoding, public
+          alt = os.environ.get("IG_ACCESS_TOKEN", "").strip()
+          if not alt:
+              sys.exit("IG_ACCESS_TOKEN fehlt")
+          r = requests.get("https://graph.instagram.com/refresh_access_token",
+                           params={"grant_type": "ig_refresh_token", "access_token": alt}, timeout=30)
+          if r.status_code != 200:
+              # Fehlertext ohne Token ausgeben
+              sys.exit("Refresh fehlgeschlagen: HTTP %d %s" % (r.status_code, r.text[:300].replace(alt, "***")))
+          d = r.json()
+          neu, tage = d.get("access_token", ""), int(d.get("expires_in", 0)) // 86400
+          print("Refresh OK, gueltig fuer weitere %d Tage" % tage)
+          if not neu or neu == alt:
+              print("Token-String unveraendert - nichts zurueckzuschreiben.")
+              sys.exit(0)
+          pat = os.environ.get("SECRETS_PAT", "").strip()
+          if not pat:
+              sys.exit("NEUER Token-String erhalten, aber SECRETS_PAT fehlt - kann IG_ACCESS_TOKEN nicht "
+                       "aktualisieren. Secret SECRETS_PAT anlegen (siehe Kopf dieser Datei) und Lauf wiederholen.")
+          h = {"Authorization": "Bearer " + pat, "Accept": "application/vnd.github+json"}
+          api = "https://api.github.com/repos/%s/actions/secrets" % os.environ["REPO"]
+          k = requests.get(api + "/public-key", headers=h, timeout=30).json()
+          box = public.SealedBox(public.PublicKey(k["key"].encode(), encoding.Base64Encoder()))
+          wert = base64.b64encode(box.encrypt(neu.encode())).decode()
+          w = requests.put(api + "/IG_ACCESS_TOKEN", headers=h, timeout=30,
+                           json={"encrypted_value": wert, "key_id": k["key_id"]})
+          if w.status_code not in (201, 204):
+              sys.exit("Secret nicht geschrieben: HTTP %d" % w.status_code)
+          print("IG_ACCESS_TOKEN aktualisiert.")
+          EOF
