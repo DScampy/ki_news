@@ -31,7 +31,11 @@ if (!htmlPath || !mp4Path) {
 const WIDTH    = parseInt(widthArg    || '420', 10);
 const HEIGHT   = parseInt(heightArg   || '660', 10);
 const DURATION = parseInt(durationArg || '8',   10);
-const FPS      = 8;   // 8 fps genügt für animierte Newskarten
+const FPS_ECHT = 8;   // 8 fps genügt für CSS-animierte Newskarten (altes Template)
+// Karten v2 (26.09.26): stellt die Karte window.KI_RENDER_AT(t) bereit, wird jedes Bild
+// exakt bei t = i/FPS gezeichnet und dann fotografiert (kein Echtzeit-Warten -> kein
+// Ruckeln/Drift). Ohne KI_RENDER_AT bleibt alles beim alten Echtzeit-Verhalten.
+const FPS_GENAU = parseInt(process.env.CARD_FPS || '24', 10);
 
 const absHtml  = path.resolve(htmlPath);
 const absMp4   = path.resolve(mp4Path);
@@ -49,7 +53,7 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
 
 (async () => {
   console.log(`[record.js] Start: ${path.basename(absHtml)} → ${path.basename(absMp4)}`);
-  console.log(`            Viewport: ${WIDTH}×${HEIGHT}, Dauer: ${DURATION}s, ${FPS}fps${hasAudio ? ', +Audio' : ''}`);
+  console.log(`            Viewport: ${WIDTH}×${HEIGHT}, Dauer: ${DURATION}s${hasAudio ? ', +Audio' : ''}`);
 
   const browser = await chromium.launch({
     headless: true,
@@ -75,8 +79,18 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
 
   const page = await context.newPage();
 
-  const fileUrl = `file://${absHtml.replace(/\\/g, '/')}`;
+  // ?rec=1: v2-Vorlage startet dann keine eigene Endlos-Animation (altes Template ignoriert es)
+  const fileUrl = `file://${absHtml.replace(/\\/g, '/')}?rec=1`;
   await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 30000 });
+
+  const GENAU = await page.evaluate(() => typeof window.KI_RENDER_AT === 'function');
+  const FPS   = GENAU ? FPS_GENAU : FPS_ECHT;
+  if (GENAU) {
+    await page.evaluate(() => document.fonts.ready);
+    console.log(`[record.js] Modus: bildgenau (KI_RENDER_AT), ${FPS}fps`);
+  } else {
+    console.log(`[record.js] Modus: Echtzeit, ${FPS}fps`);
+  }
 
   // Kurz warten bis Animationen anlaufen
   await page.waitForTimeout(300);
@@ -147,17 +161,20 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   console.log(`[record.js] Capturing ${totalFrames} frames @ ${FPS}fps (interval ${intervalMs}ms)...`);
 
   // ─── Screenshots aufnehmen ────────────────────────────────────────────────
+  const t0 = Date.now();
   for (let i = 0; i < totalFrames; i++) {
+    if (GENAU) await page.evaluate(t => window.KI_RENDER_AT(t), i / FPS);
     const framePath = path.join(frameDir, `frame_${String(i).padStart(6, '0')}.jpg`);
     // quality 95 statt 85 - weniger JPEG-Verlust in der Zwischenablage, bevor
     // ffmpeg ueberhaupt anfasst. Kostet etwas mehr Diskspace/Zeit pro Frame,
     // bei ~8s/8fps-Clips vernachlaessigbar.
     const buf = await page.screenshot({ type: 'jpeg', quality: 95 });
     fs.writeFileSync(framePath, buf);
-    if (i < totalFrames - 1) {
+    if (!GENAU && i < totalFrames - 1) {
       await page.waitForTimeout(intervalMs);
     }
   }
+  console.log(`[record.js] Aufnahme: ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
   await browser.close();
 

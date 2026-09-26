@@ -29,6 +29,14 @@ import urllib.parse
 from datetime import date
 from pathlib import Path
 
+# Karten v2 (26.09.26): gezeichnete Szene, Felder aus karten_v2.py. Import darf die
+# Pipeline nie stoppen - ohne Modul rendert das alte Template.
+try:
+    import karten_v2
+except Exception as _e:  # noqa: BLE001
+    karten_v2 = None
+    print(f"[KARTE v2] Modul nicht ladbar ({_e.__class__.__name__}) - altes Template.")
+
 # ─── Konfiguration ────────────────────────────────────────────────────────────
 
 GROQ_API_KEY     = os.environ.get("GROQ_CHAT_KEY", "")
@@ -116,6 +124,10 @@ ROOT_DIR       = Path(os.environ.get("GITHUB_WORKSPACE", Path(__file__).resolve(
 NEWS_JSON      = ROOT_DIR / "news.json"
 ASSETS_DIR     = ROOT_DIR / "assets" / "cards"
 TEMPLATE_PATH  = Path(__file__).with_name("breaking_news_card_template.html")
+# Kill-Switch Karten v2: False -> nur altes Template. Jede Ausnahme beim Befuellen
+# oder Rendern von v2 faellt pro Karte automatisch auf das alte Template zurueck.
+CARD_V2        = True
+TEMPLATE_V2_PATH = Path(__file__).with_name("breaking_news_card_v2.html")
 RECORD_JS      = Path(__file__).with_name("record.js")
 CARDS_JSON     = ROOT_DIR / "cards.json"
 CARD_STATE_JSON = ROOT_DIR / "card_state.json"  # Dedup-Gedaechtnis, analog telegram_state.json
@@ -178,6 +190,11 @@ SYSTEM_PROMPT = (
     "'wir', 'uns', 'unser Unternehmen', 'bei uns im Betrieb' - du kennst weder den Leser "
     "noch dessen Firma.\n"
     "\n"
+    "HAUPTREGEL: Du weisst NUR, was in Titel und Zusammenfassung steht. Erfinde KEINE Gruende, "
+    "Ursachen, Motive, Folgen oder Zahlen. Steht in der Meldung kein Grund, nennst du keinen, "
+    "auch nicht mit 'wohl', 'vermutlich' oder 'weil es zu teuer war'. Dann sag lieber offen: "
+    "'Warum, steht nicht in der Meldung.'\n"
+    "\n"
     "Regeln:\n"
     "- Alltagssprache und Vergleiche aus dem Arbeits-/Alltagsleben, kein Fachjargon. Wenn ein "
     "Fachbegriff sein muss, sofort mit einem greifbaren Vergleich erklären.\n"
@@ -207,6 +224,9 @@ SYSTEM_PROMPT = (
     "GUT: 'Ein Startup bekommt 65 Millionen Dollar, um Videos per KI zu bauen. Klingt riesig, ist "
     "in der Branche gerade aber eher Standard als Sensation. Spannend wird es erst, wenn daraus "
     "ein Produkt wird, das du und ich wirklich benutzen.'\n"
+    "News: Startup beendet 1,25-Milliarden-Dollar-Deal fuer Gasturbinen.\n"
+    "SCHLECHT: 'Das Projekt war wohl zu teuer und zu unsicher.' (Grund erfunden, steht nicht in "
+    "der Meldung) / GUT: 'Warum der Deal geplatzt ist, sagt die Meldung nicht.'\n"
     "SCHLECHT (so NICHT): 'Onkel Sam hat Schiss vor der schlauen Maschine.' (Kinderbuch-Ton, "
     "Personifizierung) / 'Dies wirft die Frage auf, inwiefern regulatorische Rahmenbedingungen...' "
     "(Akademiker-Sprech).\n"
@@ -700,6 +720,18 @@ def fill_template(template: str, fields: dict) -> str:
     return result
 
 
+def fill_template_v2(template_v2: str, headline: str, einordnung: str, summary: str,
+                     source: str, datum: str, dauer: int, badge: str) -> tuple[str, dict]:
+    """Karten v2: Felder via karten_v2.karte_daten() als JSON in {{KARTE_JSON}}.
+    Wirft bei jedem Problem - der Aufrufer faellt dann auf das alte Template zurueck."""
+    k = karten_v2.karte_daten(headline, einordnung, summary, source, datum, dauer, badge)
+    # "</" escapen: das JSON steht in einem <script>-Block
+    js = json.dumps(k, ensure_ascii=False).replace("</", "<\\/")
+    if "{{KARTE_JSON}}" not in template_v2:
+        raise ValueError("Platzhalter {{KARTE_JSON}} fehlt")
+    return template_v2.replace("{{KARTE_JSON}}", js), k
+
+
 def _kl_hash_id(link: str) -> str:
     """Portiert klHashId() aus assets/ki-layout.js 1:1 (djb2, base36) - siehe
     identische Kopie + ausfuehrlicher Kommentar in ki_news.py::_kl_hash_id().
@@ -918,7 +950,8 @@ def render_card(html_path: Path, mp4_path: Path,
         cmd.append(str(audio_path))
 
     print(f"  → render ({duration}s{', +audio' if audio_path else ''})")
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    # 24 fps bildgenau (v2) braucht mehr Zeit als 8 fps Echtzeit - 180 s reichten nur fuer v1
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=420)
     if result.returncode != 0:
         print(f"  [ERROR] record.js:\n{result.stderr[-500:]}")
         return False
@@ -1037,6 +1070,12 @@ def main() -> None:
         sys.exit(1)
 
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
+    template_v2 = ""
+    if CARD_V2 and karten_v2 is not None and TEMPLATE_V2_PATH.exists():
+        template_v2 = TEMPLATE_V2_PATH.read_text(encoding="utf-8")
+        print(f"[KARTE v2] aktiv ({TEMPLATE_V2_PATH.name})")
+    elif CARD_V2:
+        print("[KARTE v2] nicht verfuegbar (Modul/Vorlage fehlt) - altes Template.")
 
     # ── Dedup-Gedaechtnis laden (analog telegram_state.json) ───────────────
     card_sent = {}
@@ -1171,6 +1210,21 @@ def main() -> None:
         html_out.write_text(filled, encoding="utf-8")
         print(f"  ✓ HTML: {html_out.name}")
 
+        # Karten v2: eigene HTML daneben; bei Fehler bleibt es beim alten Template
+        html_v2, karte_v2_info = None, None
+        if template_v2:
+            try:
+                filled_v2, karte_v2_info = fill_template_v2(
+                    template_v2, headline, einordnung_clean, summary, source,
+                    date.today().strftime("%d.%m.%Y"), int(video_dauer), badge_label)
+                html_v2 = TMP_DIR / f"{slug}.v2.html"
+                html_v2.write_text(filled_v2, encoding="utf-8")
+                print(f"  ✓ v2: {karte_v2_info['motiv']}/{karte_v2_info['stil']}"
+                      f"{' negativ' if karte_v2_info.get('negativ') else ''} ({karte_v2_info.get('wahl')})")
+            except Exception as e:  # noqa: BLE001
+                html_v2, karte_v2_info = None, None
+                print(f"  [KARTE v2] Befuellen fehlgeschlagen ({e.__class__.__name__}: {e}) - altes Template.")
+
         if mp4_out.exists() and not FORCE_RENDER:
             print(f"  → {mp4_out.name} existiert bereits — überspringe (force_render=false).")
             cards_meta.append({
@@ -1190,7 +1244,14 @@ def main() -> None:
                 sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
             continue
 
-        success = render_card(html_out, mp4_out, audio_path, video_dauer)
+        success = False
+        if html_v2 is not None:
+            success = render_card(html_v2, mp4_out, audio_path, video_dauer)
+            if not success:
+                print("  [KARTE v2] Render fehlgeschlagen - Rueckfall altes Template.")
+                karte_v2_info = None
+        if not success:
+            success = render_card(html_out, mp4_out, audio_path, video_dauer)
         if not success:
             _render_fails_this_run += 1
             if not link:
@@ -1225,6 +1286,8 @@ def main() -> None:
             # 25.09.26: Einordnungstext mitspeichern - Gate 4 (Phase-4-Watchlist)
             # ist sonst nur an der Headline pruefbar, der Text stand nirgends.
             "einordnung": einordnung_clean,
+            # 26.09.26: welche Vorlage/Szene - fuer Gate P1 (10 Karten sichten)
+            "karte": ("v2:%s/%s" % (karte_v2_info["motiv"], karte_v2_info["stil"])) if karte_v2_info else "v1",
         })
         if link:
             card_sent[link] = today
