@@ -50,6 +50,7 @@ jobs:
           import os, re, shutil, sys
           sys.path.insert(0, ".")
           import generate_news_cards as g
+          g.TMP_DIR.mkdir(parents=True, exist_ok=True)   # legt sonst main() an
           name = re.sub(r"[^a-z0-9-]", "-", os.environ["NAME"].lower())[:60] or "karte"
           geschlecht = dict(g.GOOGLE_TTS_VOICES).get(os.environ["STIMME"], "MALE")
           pfad, dauer = g.generate_tts(g.build_tts_ssml(os.environ["TEXT"]), name, os.environ["STIMME"], geschlecht)
