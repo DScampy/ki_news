@@ -36,6 +36,12 @@ const FPS_ECHT = 8;   // 8 fps genügt für CSS-animierte Newskarten (altes Temp
 // exakt bei t = i/FPS gezeichnet und dann fotografiert (kein Echtzeit-Warten -> kein
 // Ruckeln/Drift). Ohne KI_RENDER_AT bleibt alles beim alten Echtzeit-Verhalten.
 const FPS_GENAU = parseInt(process.env.CARD_FPS || '24', 10);
+// CARD_SCALE (26.09.26): Default "1" = heutiges Verhalten unveraendert (ffmpeg
+// skaliert auf WIDTH x HEIGHT herunter). "2" liefert die Ausgabe in
+// 2*WIDTH x 2*HEIGHT (z.B. 840x1320) - nur die ffmpeg-Zielgroesse aendert sich,
+// der Playwright-Viewport (WIDTH x HEIGHT CSS-Pixel, siehe deviceScaleFactor
+// oben) bleibt unangetastet.
+const CARD_SCALE = parseInt(process.env.CARD_SCALE || '1', 10);
 
 const absHtml  = path.resolve(htmlPath);
 const absMp4   = path.resolve(mp4Path);
@@ -196,8 +202,10 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     ...(hasAudio ? ['-i', absAudio] : []),
     // flags=lanczos: hochwertiger Downscale-Filter fuer den 2x-supersampelten
     // Input (siehe deviceScaleFactor oben) - glaettet Kanten, statt nur
-    // Pixel zu droppen wie der ffmpeg-Default (bilinear).
-    '-vf', `scale=${WIDTH}:${HEIGHT}:flags=lanczos`,
+    // Pixel zu droppen wie der ffmpeg-Default (bilinear). Zielgroesse skaliert
+    // mit CARD_SCALE (siehe oben) - bei "2" faellt weniger Downscale an bzw.
+    // wird sogar hochskaliert, je nach Supersampling-Faktor 2 oben.
+    '-vf', `scale=${WIDTH * CARD_SCALE}:${HEIGHT * CARD_SCALE}:flags=lanczos`,
     '-c:v', 'libx264',
     '-preset', 'fast',
     // crf 18 statt 23 - schaerferer Encode. Bei kurzen 8s-Clips kaum

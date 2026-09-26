@@ -90,6 +90,15 @@ EINORDNUNG_KETTE = (
     + [("openrouter", m) for m in OPENROUTER_MODELS[2:]]
 )
 
+# 26.09.26: Jev-Deckungspruefung (TypeSafe) fuer groq_einordnung(). Modelle erfinden
+# gelegentlich einen Grund/eine Ursache, die in der Meldung gar nicht steht (Beispiel:
+# "Crusoe stoppt Plan, weil es zu teuer war" - der Grund stand nicht in der Meldung).
+# Kill-Switch: False -> Pruefung komplett aus, altes Verhalten.
+TYPESAFE_API_KEY     = os.environ.get("TYPESAFE_API_KEY", "").strip()
+JEV_API              = "https://api.typesafe.ai/v1/systemone"
+JEV_DECKUNG_AKTIV    = True
+JEV_DECKUNG_SCHWELLE = 0.5   # p >= Schwelle -> Einordnung gilt als vermutlich erfunden
+
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 # Zwei Studio-Stimmen, pro Karte zufaellig gewaehlt (random.choice in main()) —
 # kein festes Muster, keine Alternierung. (name, ssmlGender) muss zusammenpassen,
@@ -175,6 +184,20 @@ PRONOUNCE_FIXES = {
     "SpaceX": "Space X",
 }
 
+# 26.09.26 (Daniel: "IKEA" wurde I-K-E-A vorgelesen): Google-TTS buchstabiert jedes Wort
+# in Grossbuchstaben. Sprechbare Markennamen (>= 4 Zeichen, >= 2 Vokale: IKEA, NVIDIA,
+# NASA, CUDA) werden fuers Vorlesen klein geschrieben ("Ikea"). Abkuerzungen ohne Vokal-
+# paar (ASML, HTTP) und TTS_SPELL_OUT bleiben unberuehrt; Ausnahmen hier eintragen.
+TTS_CAPS_AUSNAHMEN = {"IEEE"}
+_CAPS_WORT = re.compile(r"\b[A-ZÄÖÜ]{4,}\b")
+
+
+def _caps_sprechbar(m: re.Match) -> str:
+    w = m.group(0)
+    if w in TTS_SPELL_OUT or w in TTS_CAPS_AUSNAHMEN or sum(ch in "AEIOUÄÖÜ" for ch in w) < 2:
+        return w
+    return w.capitalize()
+
 
 def _xml_escape(text: str) -> str:
     return (text.replace("&", "&amp;").replace("<", "&lt;")
@@ -190,6 +213,7 @@ def build_tts_ssml(text: str) -> str:
     """
     for original, spoken in PRONOUNCE_FIXES.items():
         text = re.sub(rf"\b{re.escape(original)}\b", spoken, text)
+    text = _CAPS_WORT.sub(_caps_sprechbar, text)
     text = _xml_escape(text)
     for acro in sorted(TTS_SPELL_OUT, key=len, reverse=True):
         text = re.sub(
@@ -693,6 +717,50 @@ def _looks_invalid(text: str) -> str | None:
     return None
 
 
+def _jev_gedeckt(headline: str, summary: str, text: str) -> float | None:
+    """Jev-Deckungspruefung (TypeSafe, 26.09.26): Wahrscheinlichkeit (0..1), dass
+    `text` (die generierte Einordnung) eine Tatsachenbehauptung enthaelt - Grund,
+    Ursache, Motiv, Zahl, Folge als Fakt -, die weder in `headline` noch in
+    `summary` steht. Hoch = vermutlich erfunden.
+
+    Allgemeine Vergleiche/Alltagsbeispiele ("das ist so, als ob...") und Aussagen,
+    die die Einordnung selbst ausdruecklich als offen markiert ("warum, steht nicht
+    in der Meldung"), zaehlen NICHT als erfunden - siehe criteria["false"] unten.
+
+    None = Pruefung uebersprungen (kein Key oder irgendein Fehler/Timeout). Das
+    blockiert NIE eine Karte - der Aufrufer behandelt None wie "nicht geprueft"."""
+    if not TYPESAFE_API_KEY:
+        return None
+    body = json.dumps({
+        "model": "jev-latest",
+        "state": {"titel": headline or "", "zusammenfassung": (summary or "")[:600],
+                  "einordnung": text or ""},
+        "questions": {"erfunden": {
+            "type": "noul",
+            "instructions": "Enthaelt `einordnung` eine Tatsachenbehauptung (Grund, Ursache, "
+                            "Motiv, Zahl, Folge als Fakt), die weder in `titel` noch in "
+                            "`zusammenfassung` steht?",
+            "criteria": {
+                "true": "Ja: `einordnung` nennt einen konkreten Grund/eine Ursache/ein Motiv/"
+                        "eine Zahl/eine Folge als Tatsache, die in `titel` und `zusammenfassung` "
+                        "nirgends vorkommt (auch nicht sinngemaess).",
+                "false": "Nein: jede Tatsachenbehauptung in `einordnung` steht so oder sinngemaess "
+                         "schon in `titel`/`zusammenfassung`. Allgemeine Vergleiche und "
+                         "Alltagsbeispiele (\"das ist so, als ob...\") zaehlen NICHT als erfunden, "
+                         "ebenso wenig Aussagen, die `einordnung` selbst ausdruecklich als offen "
+                         "oder unbekannt markiert (z.B. \"warum, steht nicht in der Meldung\").",
+            }}}
+    }).encode("utf-8")
+    req = urllib.request.Request(JEV_API, data=body, headers={
+        "Authorization": "Bearer " + TYPESAFE_API_KEY, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            antwort = json.loads(r.read())["answers"]
+        return float(antwort["erfunden"]["noul"])
+    except Exception:
+        return None
+
+
 def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, str]:
     """Groq → OpenRouter Fallback für ScampyKI-Einordnung.
     Gibt (text, model_label) zurueck. model_label dokumentiert, welches
@@ -714,6 +782,9 @@ def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, s
     key_je_anbieter = {"groq": GROQ_API_KEY, "openrouter": OPENROUTER_KEY}
     if not GROQ_API_KEY:
         print("  [INFO] GROQ_CHAT_KEY nicht gesetzt.")
+    # 26.09.26: bester Kandidat, der zwar _looks_invalid() bestand, aber die
+    # JEV-DECKUNG nicht (kleinstes p) - Rueckfallnetz, falls KEIN Modell besteht.
+    bester_kandidat = None  # (p, result, "anbieter:model")
     for anbieter, model in EINORDNUNG_KETTE:
         if not key_je_anbieter[anbieter]:
             continue
@@ -724,7 +795,23 @@ def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, s
             if invalid_reason:
                 print(f"  [WARN] {anbieter}/{model} verworfen ({invalid_reason}): {result[:100]!r}")
                 continue
+            if JEV_DECKUNG_AKTIV:
+                p = _jev_gedeckt(headline, summary, result)
+                if p is not None and p >= JEV_DECKUNG_SCHWELLE:
+                    print(f"  [WARN] {anbieter}/{model} JEV-DECKUNG nicht bestanden "
+                          f"(p={p:.2f}): {result[:100]!r}")
+                    if bester_kandidat is None or p < bester_kandidat[0]:
+                        bester_kandidat = (p, result, f"{anbieter}:{model}")
+                    continue
+                if p is not None:
+                    print(f"  [INFO] JEV-DECKUNG ok {p:.2f}")
             return result, f"{anbieter}:{model}"
+
+    if bester_kandidat is not None:
+        p, result, label = bester_kandidat
+        print(f"  [WARN] keine Einordnung bestand die JEV-DECKUNG - nehme besten "
+              f"Kandidaten (p={p:.2f}): {label}")
+        return result, f"{label}+jev-ungeprueft"
 
     return "Einordnung nicht verfügbar.", "fallback:none"
 
@@ -977,6 +1064,31 @@ def render_card(html_path: Path, mp4_path: Path,
         print(f"  {result.stdout.strip()}")
     return True
 
+
+
+def make_poster(mp4_path: Path, slug: str, video_dauer_val: float) -> str | None:
+    """Standbild (JPG) aus dem fertigen MP4 ziehen - fuer die Website-Karte,
+    bevor das Video laedt/abspielt. Bei Sekunde 6, bei kuerzeren Videos auf
+    halber Laenge (26.09.26). Darf eine erfolgreich gerenderte Karte NIE zu
+    Fall bringen - daher hart try/except mit WARN-Zeile, kein Raise.
+    Gibt die relative poster_url zurueck, oder None wenn nichts entstand.
+    """
+    poster_path = ASSETS_DIR / f"{slug}.jpg"
+    try:
+        poster_sec = 6 if video_dauer_val >= 12 else video_dauer_val / 2
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-ss", str(poster_sec), "-i", str(mp4_path),
+             "-frames:v", "1", "-q:v", "3", str(poster_path)],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0 or not poster_path.exists():
+            print(f"  [WARN] Standbild fehlgeschlagen: {result.stderr[-300:]}")
+            return None
+        print(f"  ✓ JPG:  {poster_path.name}")
+        return f"assets/cards/{slug}.jpg"
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] Standbild-Erzeugung fehlgeschlagen ({e.__class__.__name__}: {e}).")
+        return None
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -1245,7 +1357,14 @@ def main() -> None:
 
         if mp4_out.exists() and not FORCE_RENDER:
             print(f"  → {mp4_out.name} existiert bereits — überspringe (force_render=false).")
-            cards_meta.append({
+            # 26.09.26: fehlendes Poster optional nachziehen (z.B. wenn das MP4
+            # aus einem Lauf vor Einfuehrung des Posters stammt) - rein optional,
+            # Fehler hier duerfen den Skip-Zweig nicht stoeren (make_poster faengt
+            # selbst ab).
+            existing_poster = ASSETS_DIR / f"{slug}.jpg"
+            poster_url = (f"assets/cards/{slug}.jpg" if existing_poster.exists()
+                          else make_poster(mp4_out, slug, video_dauer))
+            meta_entry = {
                 "id":       slug,
                 "headline": headline,
                 "mp4_url":  mp4_url,
@@ -1254,7 +1373,10 @@ def main() -> None:
                 "duration": CARD_DURATION,
                 "llm_used": llm_used,
                 "voice_used": voice_name,
-            })
+            }
+            if poster_url:
+                meta_entry["poster_url"] = poster_url
+            cards_meta.append(meta_entry)
             if link:
                 card_sent[link] = today
             seen_topics_this_run.append((kw, ent, headline))
@@ -1288,6 +1410,11 @@ def main() -> None:
 
         print(f"  ✓ MP4:  {mp4_out.name}")
 
+        # 26.09.26: Standbild fuers Web ziehen - siehe make_poster(). Darf die
+        # Karte nie zu Fall bringen, deshalb ist der Fehlerfall in make_poster()
+        # selbst abgefangen (WARN statt Exception).
+        poster_url = make_poster(mp4_out, slug, video_dauer)
+
         # Karte direkt an Telegram schicken (einordnung_clean: kein [OR]-Label)
         # card_id=slug -> Insta-Post-Button auf der Karte (siehe check_insta_queue.py)
         send_card_to_telegram(mp4_out, headline, einordnung_clean, card_id=slug, link=link)
@@ -1307,6 +1434,8 @@ def main() -> None:
             # 26.09.26: welche Vorlage/Szene - fuer Gate P1 (10 Karten sichten)
             "karte": ("v2:%s/%s" % (karte_v2_info["motiv"], karte_v2_info["stil"])) if karte_v2_info else "v1",
         })
+        if poster_url:
+            cards_meta[-1]["poster_url"] = poster_url
         if link:
             card_sent[link] = today
         seen_topics_this_run.append((kw, ent, headline))
