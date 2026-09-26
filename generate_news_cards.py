@@ -41,16 +41,26 @@ except Exception as _e:  # noqa: BLE001
 
 GROQ_API_KEY     = os.environ.get("GROQ_CHAT_KEY", "")
 GROQ_URL         = "https://api.groq.com/openai/v1/chat/completions"
+# 26.09.26: gemma2-9b-it (abgeschaltet, HTTP 400) und llama-3.1-8b-instant (nur noch
+# Enterprise, HTTP 404) entfernt. gpt-oss-120b lief nur scheinbar: das Reasoning frass die
+# 220 max_tokens, finish_reason=length -> verworfen. Mit reasoning_effort=low (MODEL_EXTRA)
+# antwortet es in <1 s sauber. Live kamen deshalb 38 von 40 Karten von OpenRouter.
 GROQ_MODELS      = [
-    "openai/gpt-oss-120b",       # Ersatz fuer llama-3.3-70b-versatile (Groq schaltet es 16.08.2026 ab)
-    "gemma2-9b-it",
-    "llama-3.1-8b-instant",      # schnellstes als letzter Fallback
+    "openai/gpt-oss-120b",
 ]
 
 OPENROUTER_KEY    = os.environ.get("OPENROUTER_KEY", "")
 OPENROUTER_URL    = "https://openrouter.ai/api/v1/chat/completions"
+# 26.09.26 Modellvergleich (4 Meldungen x 10 Modelle, gleicher Prompt; Protokoll in
+# KIVault/02 Projekte/KI-News/MODELLVERGLEICH_260926_Einordnung.md): deepseek-v4-flash und
+# gemma-4-31b (bezahlt) hielten die HAUPTREGEL (keine erfundenen Gruende) in 4/4 und klingen
+# am natuerlichsten. Kosten bei ~20 Karten/Tag: deutlich unter 1 Cent.
+# Reihenfolge der Gesamtkette: EINORDNUNG_KETTE unten (OpenRouter-Spitze vor Groq).
 OPENROUTER_MODELS = [
-    "google/gemma-4-31b-it:free",              # Quality 65 — bestes Free-Modell
+    "deepseek/deepseek-v4-flash",              # $0.05/$0.09 je 1M, 4/4 regelkonform
+    "google/gemma-4-31b-it",                   # $0.09/$0.34, 4/4 regelkonform
+    # 26.09.26 entfernt: "google/gemma-4-31b-it:free" - 4/4 HTTP 504 (Google AI Studio 429),
+    # live nur 2 von 40 Karten. nemotron-3-ultra:free getestet: 6-22 s und erfand Gruende.
     # 25.09.26 entfernt: "nvidia/nemotron-3-super-120b-a12b:free" - 0 von 150 Karten in cards.json,
     # 12x "von max_tokens abgeschnitten" im cards.log (Reasoning frisst das Budget).
     # 22.08.26: openai/gpt-oss-120b:free und meta-llama/llama-3.3-70b-instruct:free
@@ -63,6 +73,22 @@ OPENROUTER_MODELS = [
     "google/gemini-2.5-flash-lite",            # bezahlter Anker, $0.10/$0.40 je 1M
     "meta-llama/llama-3.3-70b-instruct",       # paid Anker
 ]
+
+# Modell-spezifische Zusatzparameter (26.09.26). Reasoning-Modelle zaehlen die Denk-Tokens
+# in max_tokens mit -> Reasoning drosseln/aus und mehr Luft geben; die Textlaenge begrenzt
+# weiterhin limit_sentences(), nicht max_tokens.
+MODEL_EXTRA = {
+    "openai/gpt-oss-120b": {"reasoning_effort": "low", "max_tokens": 700},
+    "deepseek/deepseek-v4-flash": {"reasoning": {"enabled": False}},
+}
+
+# Reihenfolge der Einordnungs-Kette: (Anbieter, Modell). Erst die zwei besten OpenRouter-
+# Modelle, dann Groq (schnell, etwas trockener), dann die OpenRouter-Anker.
+EINORDNUNG_KETTE = (
+    [("openrouter", m) for m in OPENROUTER_MODELS[:2]]
+    + [("groq", m) for m in GROQ_MODELS]
+    + [("openrouter", m) for m in OPENROUTER_MODELS[2:]]
+)
 
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 # Zwei Studio-Stimmen, pro Karte zufaellig gewaehlt (random.choice in main()) —
@@ -590,6 +616,7 @@ def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, 
         # Token-Limit; 220 ist nur die Notbremse gegen Endlos-Antworten.
         "max_tokens": 220,
         "temperature": 0.7,
+        **MODEL_EXTRA.get(model, {}),
     }).encode("utf-8")
     # Bug-Fix (02.07.26): Groq lehnte ALLE Calls mit 403 "error code: 1010" ab -
     # das ist Cloudflares User-Agent-Block auf "Python-urllib/3.x", NICHT ein
@@ -673,40 +700,31 @@ def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, s
     cards.json geschrieben, damit Groq-vs-OpenRouter-Nutzung sichtbar bleibt,
     ohne auf (nicht committete) CI-Logs angewiesen zu sein.
     note: optionale Admin-Vorgabe (force_cards, siehe main()) fuer Ton/Angle."""
-    # 1. Groq versuchen
-    if GROQ_API_KEY:
-        for model in GROQ_MODELS:
-            result = _llm_call(
-                GROQ_URL,
-                {"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_API_KEY}"},
-                model, headline, summary, note
-            )
-            if result:
-                invalid_reason = _looks_invalid(result)
-                if invalid_reason:
-                    print(f"  [WARN] Groq/{model} verworfen ({invalid_reason}): {result[:100]!r}")
-                    continue
-                return result, f"groq:{model}"
-    else:
-        print("  [INFO] GROQ_CHAT_KEY nicht gesetzt.")
-
-    # 2. OpenRouter-Fallback
-    if OPENROUTER_KEY:
-        print("  [INFO] Groq failed/verworfen — versuche OpenRouter...")
-        headers = {
+    # 26.09.26: feste Kette EINORDNUNG_KETTE statt "erst alle Groq, dann alle OpenRouter"
+    headers_je_anbieter = {
+        "groq": {"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_API_KEY}"},
+        "openrouter": {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {OPENROUTER_KEY}",
             "HTTP-Referer": "https://ki-news.live",
             "X-Title": "KI News Cards",
-        }
-        for model in OPENROUTER_MODELS:
-            result = _llm_call(OPENROUTER_URL, headers, model, headline, summary, note)
-            if result:
-                invalid_reason = _looks_invalid(result)
-                if invalid_reason:
-                    print(f"  [WARN] OpenRouter/{model} verworfen ({invalid_reason}): {result[:100]!r}")
-                    continue
-                return result, f"openrouter:{model}"
+        },
+    }
+    url_je_anbieter = {"groq": GROQ_URL, "openrouter": OPENROUTER_URL}
+    key_je_anbieter = {"groq": GROQ_API_KEY, "openrouter": OPENROUTER_KEY}
+    if not GROQ_API_KEY:
+        print("  [INFO] GROQ_CHAT_KEY nicht gesetzt.")
+    for anbieter, model in EINORDNUNG_KETTE:
+        if not key_je_anbieter[anbieter]:
+            continue
+        result = _llm_call(url_je_anbieter[anbieter], headers_je_anbieter[anbieter],
+                           model, headline, summary, note)
+        if result:
+            invalid_reason = _looks_invalid(result)
+            if invalid_reason:
+                print(f"  [WARN] {anbieter}/{model} verworfen ({invalid_reason}): {result[:100]!r}")
+                continue
+            return result, f"{anbieter}:{model}"
 
     return "Einordnung nicht verfügbar.", "fallback:none"
 
