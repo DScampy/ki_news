@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ki-news – Hintergrund</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script>
+// ── Ambient-Drache – Hintergrund für ki-news.live ──────────────────
+// Keine UI. Kein Hunting. ~4000 Partikel → Intel Xe tauglich.
+// Per <iframe> oder direkter <script>-Einbettung nutzbar.
+// Preset: Drache (dx:35, dy:6, r:65, vs:50, tw:20)
+// ──────────────────────────────────────────────────────────────────
+
+const P = {
+  dx: 35, dy: 6, r: 65, vs: 50, tw: 20,
+  tr: 0.055,        // Schlier-Alpha – niedrig = lang nachleuchtend
+  particles: 4000,
+  t: 0,
+};
+
+// Organisches Atmen: A/R/W pulsieren intern
+function getBreath(t) {
+  return {
+    A: 9   + 3.5 * Math.sin(t * 0.48),
+    R: P.r + 14  * Math.sin(t * 0.33),
+    W: 2   + 1.2 * Math.sin(t * 0.39 + 1.1),
+  };
+}
+
+// ── Fisch-Bewegung: Heading-Winkel statt Velocity-Lerp ────────────
+// Konstante Drehrate → keine 90°-Rucke, gleichmäßige Kurven wie Snake/Fisch
+const SPEED    = 1.1;
+const MAX_TURN = 0.009;   // ~0.5° pro Frame – sehr sanft
+const EDGE_PAD = 150;
+
+let cx, cy, heading = Math.PI * 0.3, formAngle = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  colorMode(HSB, 360, 100, 100, 1);
+  frameRate(60);
+  cx = width / 2;
+  cy = height / 2;
+}
+
+function draw() {
+  P.t += PI / 240;
+  const t = P.t;
+
+  // Lissajous-Wanderziel (sehr langsam, breite Amplitude)
+  let tx = width  * 0.5 + sin(t * 0.11) * width  * 0.38;
+  let ty = height * 0.5 + sin(t * 0.07) * height * 0.36;
+
+  // Rand-Override: zu nah an Kante → Mitte als Ziel
+  if (cx < EDGE_PAD || cx > width - EDGE_PAD ||
+      cy < EDGE_PAD || cy > height - EDGE_PAD) {
+    tx = width / 2; ty = height / 2;
+  }
+
+  // Gewünschter Winkel, begrenzte Drehrate → keine Rucke
+  const desiredH = atan2(ty - cy, tx - cx);
+  let dH = desiredH - heading;
+  while (dH >  PI) dH -= TWO_PI;
+  while (dH < -PI) dH += TWO_PI;
+  heading += constrain(dH, -MAX_TURN, MAX_TURN);
+
+  // Konstante Geschwindigkeit entlang Heading
+  const vx = cos(heading) * SPEED;
+  const vy = sin(heading) * SPEED;
+  cx += vx; cy += vy;
+
+  // Visueller Winkel folgt Heading mit leichtem Verzug (Körper folgt Kopf)
+  const targetAngle = heading + PI / 2;
+  let aDiff = targetAngle - formAngle;
+  while (aDiff >  PI) aDiff -= TWO_PI;
+  while (aDiff < -PI) aDiff += TWO_PI;
+  formAngle += aDiff * 0.04;
+
+  const spd = SPEED;
+  const sf  = min(width, height) / 500 * 1.15;
+
+  // Hintergrund-Fade (kein voller Clear → Schlieren-Effekt)
+  background(5, 0, 3, P.tr);
+  noStroke();
+
+  // Dynamische Zentrierung
+  const avgE   = (P.particles / 235 / 2) / P.dy - 20;
+  const offsetY = abs(avgE) * P.vs - 475;
+
+  // Atmen
+  const { A, R, W } = getBreath(t);
+
+  // Farbe: warmes Orange-Rot, langsam zyklisch
+  const baseH = (t * 8) % 360;   // sehr langsamer Farbwechsel
+
+  push();
+  translate(cx, cy);
+  rotate(formAngle);
+  scale(sf * (1 + spd * 0.012), sf);
+  translate(-200, -offsetY);
+
+  for (let i = P.particles; i > 0; i--) {
+    const x = i, y = i / 235;
+    const k = 4 * cos(x / P.dx);
+    const e = y / P.dy - 20;
+    const d = mag(k, e);
+    const q = 3 * sin(k * 2) + 0.3 / k
+            + sin(y / 19) * k * (A + W * sin(e * P.tw - d * 3 + t * 2));
+    const c2 = d - t;
+    const px = q + R * cos(c2) + 200;
+    const py = q * sin(c2) + d * P.vs - 475;
+
+    // fill() nur alle 60 Partikel → 66 Aufrufe/Frame statt 4000
+    if (i % 60 === 0) {
+      const hShift = (i / P.particles) * 55;
+      // Gedämpfte Sättigung + etwas geringere Helligkeit für Hintergrund-Wirkung
+      fill((baseH + hShift) % 360, 75, 90, 0.38);
+    }
+    circle(px, py, k * k > 15 ? 2 : 1);
+  }
+  pop();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>

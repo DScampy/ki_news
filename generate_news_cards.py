@@ -1,0 +1,1514 @@
+"""
+generate_news_cards.py
+======================
+Liest news.json, ruft Groq API für Einordnung auf, befüllt das HTML-Template,
+generiert Audio via Google Cloud TTS (Studio-C weiblich / Studio-B männlich,
+pro Karte zufällig gewählt), startet record.js (Playwright) für jede Karte,
+schreibt cards.json.
+
+Ablauf:
+  1. news.json einlesen → Top-N Storys nach Score
+  2. Groq API → Einordnung (3–4 Sätze, ScampyKI-Stimme)
+  3. Google TTS → MP3 (bestimmt Video-Länge)
+  4. HTML-Template befüllen → /tmp/cards/<id>.html
+  5. record.js aufrufen → assets/cards/<id>.mp4 (mit Audio)
+  6. cards.json schreiben
+"""
+
+import base64
+import html
+import json
+import os
+import random
+import re
+import subprocess
+import sys
+import urllib.request
+import urllib.error
+import urllib.parse
+from datetime import date
+from pathlib import Path
+
+# Karten v2 (26.09.26): gezeichnete Szene, Felder aus karten_v2.py. Import darf die
+# Pipeline nie stoppen - ohne Modul rendert das alte Template.
+try:
+    import karten_v2
+except Exception as _e:  # noqa: BLE001
+    karten_v2 = None
+    print(f"[KARTE v2] Modul nicht ladbar ({_e.__class__.__name__}) - altes Template.")
+
+# ─── Konfiguration ────────────────────────────────────────────────────────────
+
+GROQ_API_KEY     = os.environ.get("GROQ_CHAT_KEY", "")
+GROQ_URL         = "https://api.groq.com/openai/v1/chat/completions"
+# 26.09.26: gemma2-9b-it (abgeschaltet, HTTP 400) und llama-3.1-8b-instant (nur noch
+# Enterprise, HTTP 404) entfernt. gpt-oss-120b lief nur scheinbar: das Reasoning frass die
+# 220 max_tokens, finish_reason=length -> verworfen. Mit reasoning_effort=low (MODEL_EXTRA)
+# antwortet es in <1 s sauber. Live kamen deshalb 38 von 40 Karten von OpenRouter.
+GROQ_MODELS      = [
+    "openai/gpt-oss-120b",
+]
+
+OPENROUTER_KEY    = os.environ.get("OPENROUTER_KEY", "")
+OPENROUTER_URL    = "https://openrouter.ai/api/v1/chat/completions"
+# 26.09.26 Modellvergleich (4 Meldungen x 10 Modelle, gleicher Prompt; Protokoll in
+# KIVault/02 Projekte/KI-News/MODELLVERGLEICH_260926_Einordnung.md): deepseek-v4-flash und
+# gemma-4-31b (bezahlt) hielten die HAUPTREGEL (keine erfundenen Gruende) in 4/4 und klingen
+# am natuerlichsten. Kosten bei ~20 Karten/Tag: deutlich unter 1 Cent.
+# Reihenfolge der Gesamtkette: EINORDNUNG_KETTE unten (OpenRouter-Spitze vor Groq).
+OPENROUTER_MODELS = [
+    "deepseek/deepseek-v4-flash",              # $0.05/$0.09 je 1M, 4/4 regelkonform
+    "google/gemma-4-31b-it",                   # $0.09/$0.34, 4/4 regelkonform
+    # 26.09.26 entfernt: "google/gemma-4-31b-it:free" - 4/4 HTTP 504 (Google AI Studio 429),
+    # live nur 2 von 40 Karten. nemotron-3-ultra:free getestet: 6-22 s und erfand Gruende.
+    # 25.09.26 entfernt: "nvidia/nemotron-3-super-120b-a12b:free" - 0 von 150 Karten in cards.json,
+    # 12x "von max_tokens abgeschnitten" im cards.log (Reasoning frisst das Budget).
+    # 22.08.26: openai/gpt-oss-120b:free und meta-llama/llama-3.3-70b-instruct:free
+    # entfernt. Beide :free-Varianten stehen nicht mehr im OpenRouter-Katalog
+    # (Live-Abgleich 22.08. ueber /api/v1/models). Achtung, nicht verwechseln:
+    # "openai/gpt-oss-120b" OHNE :free-Suffix in GROQ_MODELS weiter oben ist ein
+    # Groq-Modell und laeuft weiterhin - das ist ein anderer Anbieter.
+    # 14.09.26: z-ai/glm-5.2:free entfernt - nicht mehr im OpenRouter-Katalog, im
+    # ki_news.py-Log 12.-14.09. 15x HTTP 404 (siehe MODELLCHECK_140926.md).
+    "google/gemini-2.5-flash-lite",            # bezahlter Anker, $0.10/$0.40 je 1M
+    "meta-llama/llama-3.3-70b-instruct",       # paid Anker
+]
+
+# Modell-spezifische Zusatzparameter (26.09.26). Reasoning-Modelle zaehlen die Denk-Tokens
+# in max_tokens mit -> Reasoning drosseln/aus und mehr Luft geben; die Textlaenge begrenzt
+# weiterhin limit_sentences(), nicht max_tokens.
+MODEL_EXTRA = {
+    "openai/gpt-oss-120b": {"reasoning_effort": "low", "max_tokens": 700},
+    "deepseek/deepseek-v4-flash": {"reasoning": {"enabled": False}},
+}
+
+# Reihenfolge der Einordnungs-Kette: (Anbieter, Modell). Erst die zwei besten OpenRouter-
+# Modelle, dann Groq (schnell, etwas trockener), dann die OpenRouter-Anker.
+EINORDNUNG_KETTE = (
+    [("openrouter", m) for m in OPENROUTER_MODELS[:2]]
+    + [("groq", m) for m in GROQ_MODELS]
+    + [("openrouter", m) for m in OPENROUTER_MODELS[2:]]
+)
+
+# 26.09.26: Jev-Deckungspruefung (TypeSafe) fuer groq_einordnung(). Modelle erfinden
+# gelegentlich einen Grund/eine Ursache, die in der Meldung gar nicht steht (Beispiel:
+# "Crusoe stoppt Plan, weil es zu teuer war" - der Grund stand nicht in der Meldung).
+# Kill-Switch: False -> Pruefung komplett aus, altes Verhalten.
+TYPESAFE_API_KEY     = os.environ.get("TYPESAFE_API_KEY", "").strip()
+JEV_API              = "https://api.typesafe.ai/v1/systemone"
+JEV_DECKUNG_AKTIV    = True
+JEV_DECKUNG_SCHWELLE = 0.5   # p >= Schwelle -> Einordnung gilt als vermutlich erfunden
+
+GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
+# Zwei Studio-Stimmen, pro Karte zufaellig gewaehlt (random.choice in main()) —
+# kein festes Muster, keine Alternierung. (name, ssmlGender) muss zusammenpassen,
+# sonst kann die Google-API unerwartet reagieren.
+# STAND 16.07.26: de-DE-Studio-B klingt laut Daniels Hoerbeleg in Live-Karten
+# maennlich (unkontrollierter Beleg — voice_used der konkret gehoerten Karten
+# wurde nicht rekonstruiert). Fuer kontrollierte Verifikation: eine Karte mit
+# voice_used=de-DE-Studio-B aus cards.json gezielt anhoeren und dieses Datum
+# hier eintragen. Bis dahin gilt die Zuordnung als plausibel, nicht als bewiesen.
+GOOGLE_TTS_VOICES = [
+    ("de-DE-Studio-C", "FEMALE"),
+    ("de-DE-Studio-B", "MALE"),
+]
+
+# ── Farb-Themes: pro Karte zufaellig gewaehlt (--bg/--cyan/--orange/--text/...) ──
+# Ueberschreibt die :root-Defaults im Template via injiziertem <style>-Block
+# (siehe THEME_CSS in fill_template-Aufruf). Erste Palette = bisheriger Standard.
+CARD_THEMES = [
+    {"bg": "#03060F", "cyan": "#00E5FF", "orange": "#FF6B00", "text": "#E8EDF8",
+     "muted": "rgba(232,237,248,.55)", "dimgrey": "rgba(232,237,248,.28)"},
+    {"bg": "#0A0414", "cyan": "#FF2E9A", "orange": "#C6FF00", "text": "#F3E8FF",
+     "muted": "rgba(243,232,255,.55)", "dimgrey": "rgba(243,232,255,.28)"},
+    {"bg": "#0B0620", "cyan": "#9D4EFF", "orange": "#FFC542", "text": "#EDE7FA",
+     "muted": "rgba(237,231,250,.55)", "dimgrey": "rgba(237,231,250,.28)"},
+    {"bg": "#020A04", "cyan": "#39FF6A", "orange": "#FF3B3B", "text": "#E4FBE9",
+     "muted": "rgba(228,251,233,.55)", "dimgrey": "rgba(228,251,233,.28)"},
+    {"bg": "#03101A", "cyan": "#2FB8FF", "orange": "#FF6F61", "text": "#E6F4FB",
+     "muted": "rgba(230,244,251,.55)", "dimgrey": "rgba(230,244,251,.28)"},
+]
+
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "9096438")
+
+TOP_N          = 5
+CARD_WIDTH     = 420
+CARD_HEIGHT    = 660
+CARD_DURATION  = 8     # Fallback-Dauer wenn kein TTS
+MAX_DURATION   = 35    # Hard-Cap: niemand hört sich eine 50s-Karte an
+MAX_SENTENCES  = 3      # Einordnung wird auf max. N Sätze gekappt (Text + TTS) — von 4 auf 3
+                         # reduziert, da 4 Saetze TTS oft ueber MAX_DURATION (35s) trieben
+                         # und den Hard-Cap mitten im Satz zuschlagen liessen
+FORCE_RENDER   = os.environ.get("FORCE_RENDER", "0") == "1"
+
+MAX_STATE_LINKS  = 60   # wie telegram_state.json: nur die juengsten Links merken
+# 20 -> 150 (01.09., Daniels Fund: "Insta-Links werden nicht gefunden"). Ursache
+# war NICHT ein Bug im Code-Abgleich, sondern die Retention selbst: cards.json
+# diente bisher als Doppelzweck-Datei (Anzeige-Feed + Nachschlagewerk fuer
+# check_insta_queue.py/post_to_insta.py/_send_x_button), und bei ~11-12 Karten/
+# Tag deckten 20 Eintraege nur ~1.5 Tage ab -- aeltere Codes fanden schlicht
+# keine Karte mehr (find_card() sucht NUR in dieser Datei). Display-Seiten sind
+# unbetroffen, die zeigen ohnehin nur ihre eigene TOP_N-Auswahl (artikel.html:
+# 8, breaking_player.html: 3), nie die volle Liste. 150 Eintraege ~ 2 Wochen
+# Rueckgriff, JSON bleibt klein (Karten-Metadaten, keine Videodaten).
+MAX_CARDS_DISPLAY = 150
+
+ROOT_DIR       = Path(os.environ.get("GITHUB_WORKSPACE", Path(__file__).resolve().parent))
+
+NEWS_JSON      = ROOT_DIR / "news.json"
+ASSETS_DIR     = ROOT_DIR / "assets" / "cards"
+TEMPLATE_PATH  = Path(__file__).with_name("breaking_news_card_template.html")
+# Kill-Switch Karten v2: False -> nur altes Template. Jede Ausnahme beim Befuellen
+# oder Rendern von v2 faellt pro Karte automatisch auf das alte Template zurueck.
+CARD_V2        = True
+TEMPLATE_V2_PATH = Path(__file__).with_name("breaking_news_card_v2.html")
+RECORD_JS      = Path(__file__).with_name("record.js")
+CARDS_JSON     = ROOT_DIR / "cards.json"
+CARD_STATE_JSON = ROOT_DIR / "card_state.json"  # Dedup-Gedaechtnis, analog telegram_state.json
+DASHBOARD_CONFIG_JSON = ROOT_DIR / "dashboard_config.json"  # featured_links/force_cards (Admin-Pin)
+TMP_DIR        = Path("/tmp/cards")
+# 26.09.26: Karten-Medien liegen im eigenen Repo DScampy/ki_news_media (GitHub Pages), damit
+# ki_news nicht mit jedem MP4 waechst (Repo war 1,9 GB). Der Workflow setzt CARD_MEDIA_BASE
+# nur, wenn das Hochladen dorthin moeglich ist (Secret SECRETS_PAT); ohne Variable bleiben
+# die URLs relativ ("assets/cards/...") wie bisher.
+CARD_MEDIA_BASE = os.environ.get("CARD_MEDIA_BASE", "").strip().rstrip("/")
+
+
+def _media_url(url: str) -> str:
+    """assets/cards/<datei> -> <CARD_MEDIA_BASE>/<datei>, sonst unveraendert."""
+    if CARD_MEDIA_BASE and isinstance(url, str) and url.startswith("assets/cards/"):
+        return CARD_MEDIA_BASE + "/" + url.rsplit("/", 1)[-1]
+    return url
+
+# TTS-Akronyme: werden per SSML <say-as interpret-as="characters"> buchstabiert,
+# damit die Studio-Voice die DEUTSCHE Buchstabier-Aussprache nutzt statt die
+# englische zu raten. Bug 25.06.: "xAI" -> "schai" (kein Eintrag vorhanden),
+# "KI" trotz altem Text-Trick "K I" -> "kai" (reiner Text mit Leerzeichen
+# zwingt die Stimme NICHT zur Buchstabier-Phonetik - SSML-Markup schon).
+# Erweiterbar, sobald neue Faelle auffallen.
+TTS_SPELL_OUT = {"KI", "xAI", "RL", "LLM", "API", "GPU", "CPU", "NSFW", "HBM", "DRAM"}
+
+# TTS-Wortersatz: ganze Woerter mit falscher Betonung, die KEINE Buchstabier-
+# Faelle sind (z.B. "SpaceX" - kein Akronym, sondern ein Markenname mit
+# Grossbuchstaben-X mittendrin; "Space X" wird normal vorgelesen).
+PRONOUNCE_FIXES = {
+    "SpaceX": "Space X",
+}
+
+# 26.09.26 (Daniel: "IKEA" wurde I-K-E-A vorgelesen): Google-TTS buchstabiert jedes Wort
+# in Grossbuchstaben. Sprechbare Markennamen (>= 4 Zeichen, >= 2 Vokale: IKEA, NVIDIA,
+# NASA, CUDA) werden fuers Vorlesen klein geschrieben ("Ikea"). Abkuerzungen ohne Vokal-
+# paar (ASML, HTTP) und TTS_SPELL_OUT bleiben unberuehrt; Ausnahmen hier eintragen.
+TTS_CAPS_AUSNAHMEN = {"IEEE"}
+_CAPS_WORT = re.compile(r"\b[A-ZÄÖÜ]{4,}\b")
+
+
+def _caps_sprechbar(m: re.Match) -> str:
+    w = m.group(0)
+    if w in TTS_SPELL_OUT or w in TTS_CAPS_AUSNAHMEN or sum(ch in "AEIOUÄÖÜ" for ch in w) < 2:
+        return w
+    return w.capitalize()
+
+
+def _xml_escape(text: str) -> str:
+    return (text.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace('"', "&quot;"))
+
+
+def build_tts_ssml(text: str) -> str:
+    """Baut SSML aus Klartext fuer die Google-TTS-Synthese. Reihenfolge wichtig:
+    1) PRONOUNCE_FIXES (Wortersatz) auf Klartext anwenden
+    2) XML-Escape (Akronyme aus TTS_SPELL_OUT enthalten keine Sonderzeichen,
+       sind also escape-sicher und werden danach trotzdem korrekt gefunden)
+    3) Akronyme mit <say-as interpret-as="characters"> markieren
+    """
+    for original, spoken in PRONOUNCE_FIXES.items():
+        text = re.sub(rf"\b{re.escape(original)}\b", spoken, text)
+    text = _CAPS_WORT.sub(_caps_sprechbar, text)
+    text = _xml_escape(text)
+    for acro in sorted(TTS_SPELL_OUT, key=len, reverse=True):
+        text = re.sub(
+            rf"\b{re.escape(acro)}\b",
+            f'<say-as interpret-as="characters">{acro}</say-as>',
+            text,
+        )
+    return f"<speak>{text}</speak>"
+
+# Ton-Umbau (02.07.26, Daniels Vorgabe): Persona-Muster statt Verbotsliste.
+# Vorher war der Prompt fast nur "was NICHT" (nicht kindlich, kein Drama, ...) -
+# schwache Free-Modelle brauchen aber POSITIV-Anker. Neues Muster (wie in den
+# bekannten Persona-Prompt-Sammlungen, z.B. f/awesome-chatgpt-prompts):
+# 1) WER spricht MIT WEM in WELCHER Situation, 2) kompakte Regeln,
+# 3) Few-Shot-Beispiele. Die Guardrails vom 27.06. (keine Spitznamen fuer
+# Institutionen) bleiben erhalten - als Regel UND im Negativ-Beispiel.
+SYSTEM_PROMPT = (
+    "Du bist ScampyKI. Stell dir vor: Ein Kollege auf Arbeit, der mit KI nichts am Hut hat, "
+    "fragt dich in der Pause, was diese News eigentlich bedeutet. Du erklärst es ihm in 2-3 "
+    "kurzen deutschen Sätzen (ca. 15-20 Sekunden Redezeit) - so, dass er es versteht, ohne "
+    "sich dumm zu fühlen, und danach weiß, warum es ihn betrifft oder eben nicht.\n"
+    "WICHTIG: Dein Text erscheint öffentlich auf einer News-Seite - der Kollege ist nur ein "
+    "Stilbild für Ton und Niveau. Schreibe NIEMALS aus einer Firmen-Wir-Perspektive: kein "
+    "'wir', 'uns', 'unser Unternehmen', 'bei uns im Betrieb' - du kennst weder den Leser "
+    "noch dessen Firma.\n"
+    "\n"
+    "HAUPTREGEL: Du weisst NUR, was in Titel und Zusammenfassung steht. Erfinde KEINE Gruende, "
+    "Ursachen, Motive, Folgen oder Zahlen. Steht in der Meldung kein Grund, nennst du keinen, "
+    "auch nicht mit 'wohl', 'vermutlich' oder 'weil es zu teuer war'. Dann sag lieber offen: "
+    "'Warum, steht nicht in der Meldung.'\n"
+    "\n"
+    "Regeln:\n"
+    "- Alltagssprache und Vergleiche aus dem Arbeits-/Alltagsleben, kein Fachjargon. Wenn ein "
+    "Fachbegriff sein muss, sofort mit einem greifbaren Vergleich erklären.\n"
+    "- Erwachsenensprache: KEINE Spitznamen oder Personifizierungen für Länder/Behörden/Firmen "
+    "(nicht 'Onkel Sam hat Schiss', sondern 'Die US-Regierung traut dem Modell nicht').\n"
+    "- Skeptisch gegenüber Hype: sag ehrlich, wenn etwas nur PR oder Branchen-Standard ist "
+    "(eine Finanzierungsrunde ist KEINE Sensation, nur weil die Zahl gross ist).\n"
+    "- Konkrete Zahlen statt vager Worte. Jeder Satz bringt neue Information.\n"
+    "- KEINE Weichmacher-Kette: 'möglicherweise', 'könnte', 'eventuell' höchstens EINMAL, "
+    "wenn wirklich etwas offen ist - sonst klare Aussagen. Ein Kollege, der auf jede Frage "
+    "'vielleicht' sagt, hilft niemandem.\n"
+    "- Beginne NICHT mit dem Firmen-/Produktnamen, wenn die Headline schon damit endet "
+    "(klingt beim Vorlesen wie eine Wiederholung - stattdessen 'Das Modell...', 'Im Kern...').\n"
+    "- Kein Lob, kein Marketing-Sprech, kein übertriebenes Drama, kein Gedankenstrich.\n"
+    "- Nennst du eine Person, dann beim ersten Mal mit ihrer Rolle ('Sam Altman, Chef von OpenAI'). "
+    "Ein Name ohne Einordnung sagt dem Kollegen nichts.\n"
+    "- Firmen-, Modell- und Produktnamen buchstabengetreu, kein Genitiv-s an Modellnamen "
+    "('das Modell von Hy3', nicht 'Hy3s Modell').\n"
+    "\n"
+    "So klingt das (Beispiele fuer den Ton, Inhalte NICHT kopieren):\n"
+    "News: US-Regierung hebt Sperre fuer KI-Modell auf.\n"
+    "GUT: 'Die US-Regierung hatte das staerkste Modell von Anthropic monatelang gesperrt, jetzt "
+    "ist es wieder da. Das ist ungefaehr so, als duerfte BMW seinen schnellsten Motor ploetzlich "
+    "wieder verkaufen. Heisst konkret: Der Werkzeugkasten, mit dem gerade halb Amerika arbeitet, "
+    "ist wieder komplett.'\n"
+    "News: Startup sammelt 65 Millionen Dollar fuer KI-Videos.\n"
+    "GUT: 'Ein Startup bekommt 65 Millionen Dollar, um Videos per KI zu bauen. Klingt riesig, ist "
+    "in der Branche gerade aber eher Standard als Sensation. Spannend wird es erst, wenn daraus "
+    "ein Produkt wird, das du und ich wirklich benutzen.'\n"
+    "News: Startup beendet 1,25-Milliarden-Dollar-Deal fuer Gasturbinen.\n"
+    "SCHLECHT: 'Das Projekt war wohl zu teuer und zu unsicher.' (Grund erfunden, steht nicht in "
+    "der Meldung) / GUT: 'Warum der Deal geplatzt ist, sagt die Meldung nicht.'\n"
+    "SCHLECHT (so NICHT): 'Onkel Sam hat Schiss vor der schlauen Maschine.' (Kinderbuch-Ton, "
+    "Personifizierung) / 'Dies wirft die Frage auf, inwiefern regulatorische Rahmenbedingungen...' "
+    "(Akademiker-Sprech).\n"
+    "\n"
+    "Fokus immer: Was bedeutet das wirklich, und warum sollte es meinen Kollegen interessieren?"
+)
+
+# ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
+
+def slugify(text: str, max_len: int = 50) -> str:
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s-]", "", text)
+    text = re.sub(r"\s+", "-", text.strip())
+    return text[:max_len].rstrip("-")
+
+
+# ── Themen-Dedup: gleiches Thema von verschiedenen Quellen/Links erkennen ──
+# Link-Dedup (card_sent) greift nicht, wenn 3 Portale denselben Vorfall unter
+# 3 verschiedenen URLs melden (z.B. "Android 17" gleichzeitig bei SiliconAngle,
+# Heise, Golem). Deshalb zusaetzlich ein simpler Keyword-Overlap-Check auf der
+# Headline — analog zur Telegram-Logik, aber themenbasiert statt linkbasiert.
+_STOPWORDS_DE = {
+    "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem",
+    "einer", "eines", "und", "oder", "in", "im", "ins", "am", "an", "auf",
+    "fuer", "für", "mit", "von", "vom", "zu", "zur", "zum", "ist", "sind",
+    "sich", "nach", "ueber", "über", "aus", "bei", "als", "auch", "wird",
+    "werden", "wurde", "wurden", "hat", "haben", "hatte", "kann", "koennen",
+    "können", "soll", "sollen", "neue", "neuer", "neues", "neuen", "jetzt",
+    "wie", "was", "wer", "wo", "warum", "vor", "um", "so", "noch", "schon",
+    "nicht", "kein", "keine", "mehr", "sein", "ihre", "ihr", "alle", "alles",
+}
+
+# Im Deutschen wird JEDES Substantiv grossgeschrieben, nicht nur Eigennamen -
+# ohne diese Liste wuerde entity_words() unten staendig generische Woerter wie
+# "Partnerschaft" oder "Technologie" als "Eigenname" werten und dadurch zwei
+# voellig unterschiedliche Storys faelschlich als Duplikat erkennen (False-
+# Positive-Merge). Pragmatische, von Hand kuratierte Liste haeufiger generischer
+# Substantive aus KI-News-Headlines - kein Anspruch auf Vollstaendigkeit, bei
+# neuen Faellen ergaenzen.
+_GENERIC_NOUNS_DE = {
+    "deal", "partnerschaft", "technologie", "unternehmen", "modell", "modelle",
+    "initiative", "ankuendigung", "ankündigung", "effekt", "investition",
+    "investitionen", "milliarden", "millionen", "dollar", "euro", "computing",
+    "dienste", "dienst", "labor", "startup", "startups", "plattform", "system",
+    "systeme", "studie", "bericht", "update", "version", "funktion",
+    "funktionen", "produkt", "produkte", "release", "feature", "features",
+    "abkommen", "vertrag", "deals", "milliardendeal",
+}
+
+
+def topic_keywords(headline: str) -> set:
+    """Normalisierte Schluesselwoerter einer Headline (lowercase, ohne Stopwords/
+    Kurzwoerter) — Basis fuer den Themen-Aehnlichkeits-Check."""
+    words = re.findall(r"[a-zA-ZäöüÄÖÜß0-9]+", headline.lower())
+    return {w for w in words if len(w) > 2 and w not in _STOPWORDS_DE}
+
+
+# Firmen-Namensvarianten: gleiche Entitaet, unterschiedliches Wort (Kurzname
+# vs. offizieller Name). Fund 26.06.: "ON Semiconductor" (CNBC) vs. "Onsemi"
+# (SiliconAngle) bei derselben Synaptics-Uebernahme -> nur "synaptics" als
+# gemeinsame Entitaet, Schwelle (>=2) verfehlt, zwei Karten fuer eine Story.
+# Mapping wird NACH der Eigennamen-Extraktion angewendet (siehe entity_words),
+# damit die Gross-/Kleinschreibungs-Erkennung selbst unangetastet bleibt -
+# nur der Vergleichswert wird auf den kanonischen Namen normalisiert. Gleiches
+# Pattern/gleiche Liste wie COMPANY_ALIASES in ki_news.py - bei neuen Faellen
+# in BEIDEN Dateien ergaenzen.
+ENTITY_ALIASES = {
+    "onsemi": "semiconductor",
+}
+
+
+def entity_words(headline: str) -> set:
+    """Grossgeschriebene Tokens aus dem ORIGINAL-Titel (Eigennamen: Firmen-,
+    Produkt-, Personennamen wie "SpaceX", "Reflection", "Samsung"). Zweites,
+    robusteres Dedup-Signal neben topic_keywords(): dieselbe Story wird von
+    verschiedenen Quellen oft komplett unterschiedlich formuliert
+    ("Milliardendeal" vs. "Computer-Abkommen mit Reflection AI"), nennt aber
+    fast immer dieselben Eigennamen. topic_keywords() verliert das Case-Signal
+    (alles lowercase), deshalb separat VOR dem Lowercasing extrahiert. Muss aus
+    dem Original-Titel kommen, nicht aus dem schon normalisierten Keyword-Set."""
+    words = re.findall(r"[a-zA-ZäöüÄÖÜß0-9]+", headline)
+    raw = {
+        w.lower() for w in words
+        if len(w) > 2 and w[0].isupper() and w.lower() not in _GENERIC_NOUNS_DE
+    }
+    return {ENTITY_ALIASES.get(w, w) for w in raw}
+
+
+def topics_match(a: set, b: set, ent_a: set = None, ent_b: set = None, threshold: float = 0.45) -> bool:
+    """True wenn vermutlich dasselbe Thema. Zwei Signale, ODER-verknuepft:
+    1) Jaccard-Overlap der normalisierten Keyword-Sets (greift bei aehnlich
+       formulierten Headlines).
+    2) Mind. 2 gemeinsame Eigennamen (greift, wenn der Wort-Jaccard durch
+       komplett unterschiedliche Formulierung unter die Schwelle faellt, aber
+       z.B. "SpaceX" + "Reflection" in beiden Headlines stehen — beobachtet bei
+       3 verschiedenen Quellen, die denselben Deal meldeten, ohne dass Signal 1
+       das erkannt hat)."""
+    if a and b:
+        overlap = len(a & b) / len(a | b)
+        if overlap >= threshold:
+            return True
+    if ent_a and ent_b and len(ent_a & ent_b) >= 2:
+        return True
+    return False
+
+
+def random_theme_css() -> str:
+    """Baut einen <style>:root{...}</style>-Block mit zufaellig gewaehlter Palette,
+    der nach dem Haupt-<style> im Template eingefuegt wird und dessen Defaults
+    per Source-Order ueberschreibt (gleiche Spezifitaet, kommt aber spaeter)."""
+    t = random.choice(CARD_THEMES)
+    return (
+        "<style>:root{"
+        f"--bg:{t['bg']};--cyan:{t['cyan']};--orange:{t['orange']};"
+        f"--text:{t['text']};--muted:{t['muted']};--dimgrey:{t['dimgrey']};"
+        "}</style>"
+    )
+
+
+def clean_markdown(text: str) -> str:
+    """Entfernt Markdown-Formatierung aus Text."""
+    text = re.sub(r"~~(.+?)~~", r"\1", text)
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"\*(.+?)\*", r"\1", text)
+    return text.strip()
+
+
+# Deutsche Signalwoerter (gemeinsam genutzt von _looks_invalid() fuer die Einordnung
+# UND _looks_german() fuer Headline/Kontext, siehe unten). Bewusst keine harte
+# Sprach-ID-Bibliothek - reicht als Fangnetz gegen unuebersetzten Text.
+GERMAN_MARKERS = [
+    " der ", " die ", " das ", " und ", " ist ", " nicht ", " eine ",
+    " einen ", " für ", " mit ", " auf ", " dass ", " wird ", " sich ",
+    " kein ", " keine ", " ein ", " im ", " den ",
+    # 26.08.26 mit ki_news.py gleichgezogen - dort stand die erweiterte Liste
+    # seit dem 18.08., hier nicht, weshalb dieselbe Headline je nach Datei
+    # unterschiedlich beurteilt wurde.
+    " von ", " zu ", " durch ", " über ", " nach ", " bei ", " als ",
+    " auch ", " wie ", " werden ", " wurde ", " hat ", " sind ", " sein ",
+    " seine ", " ihre ", " ihr ", " mehr ", " neue ", " neuen ", " neuer ",
+    " gegen ", " ohne ", " vor ", " stellt ", " bringt ", " plant ",
+    " laut ", " nun ", " uns ", " bis ", " dem ", " des ", " zur ", " zum ",
+    " startet ", " findet ", " statt ", " kommt ", " gibt ", " macht ",
+    " zeigt ", " kauft ", " baut ", " nutzt ", " setzt ", " testet ",
+    " meldet ", " warnt ", " liefert ", " bekommt ", " steigt ", " sinkt ",
+    " senkt ", " oeffnet ", " schliesst ", " kostet ", " heisst ",
+    " sowie ", " jetzt ", " schon ", " noch ", " damit ", " dabei ",
+    " weil ", " wenn ", " aber ", " oder ", " diese ", " dieser ",
+    " dieses ", " einem ", " eines ", " keinen ", " beim ", " vom ",
+    " ins ", " zwei ", " drei ", " viele ", " eigene ", " eigenen ",
+]
+
+GERMAN_CHARS = frozenset("äöüÄÖÜß")
+
+# Statistische Sprach-ID (26.08.26) - identisch zu ki_news.py, Begruendung
+# steht dort ausfuehrlich. Kurz: die Marker-Liste war in beide Richtungen
+# falsch (deutsche Titel mit englischem Eigennamen verworfen, kurze englische
+# Tech-Headlines durchgelassen). Ohne installiertes py3langid faellt die
+# Funktion auf die reine Marker-Pruefung zurueck.
+try:
+    from py3langid.langid import LanguageIdentifier, MODEL_FILE as _LANGID_MODEL
+    _LANGID = LanguageIdentifier.from_pickled_model(_LANGID_MODEL, norm_probs=True)
+    _LANGID.set_languages(["de", "en"])
+except Exception:          # pragma: no cover - nur ohne installiertes Paket
+    _LANGID = None
+
+_LANGID_EN_SCHWELLE = 0.99
+
+
+def _looks_german(text: str) -> bool:
+    """True wenn der Text als Deutsch durchgehen darf.
+
+    Reihenfolge: Umlaut -> deutscher Marker -> py3langid (>= 0.99 'en' faellt
+    durch) -> im Zweifel deutsch. Bis 26.08.26 stand hier nur die
+    Marker-Pruefung OHNE Zweifelsregel, also strenger als in ki_news.py:
+    ein deutscher Titel ohne Artikel ("Anthropic startet Claude for
+    Healthcare") verlor seine Karte, obwohl er auf der Website stand.
+
+    Bug-Fix (08.07.26, Daniels ZML-Karten-Fund): ki_news.py setzt fuer jeden Artikel
+    zunaechst {"title_de": Originaltitel, "summary": ""} als Platzhalter (siehe
+    summarize_news()) und ueberschreibt ihn nur bei erfolgreicher Uebersetzung. Schlaegt
+    die Uebersetzung fuer einen Artikel komplett fehl (alle Modelle im Batch abgelehnt/
+    Fehler), bleibt der englische Original-Titel stehen und wurde bisher UNGEPRUEFT auf
+    die Karte gerendert ("Hot French startup ZML releases..."). generate_news_cards.py
+    prueft bisher nur die LLM-generierte Einordnung auf Sprache (_looks_invalid()),
+    nicht Headline/Kontext, die direkt aus news.json kommen. Diese Funktion schliesst
+    die Luecke, angewandt auf die Headline vor dem Rendern (siehe main())."""
+    t = (text or "").strip()
+    if not t:
+        return True
+    if any(c in GERMAN_CHARS for c in t):
+        return True
+    lower = f" {t.lower()} "
+    if any(marker in lower for marker in GERMAN_MARKERS):
+        return True
+    if _LANGID is not None:
+        try:
+            lang, prob = _LANGID.classify(t)
+        except Exception:
+            return True
+        return not (lang == "en" and prob >= _LANGID_EN_SCHWELLE)
+    return False
+
+
+def cap_headline(text: str, max_chars: int = 140) -> str:
+    """Sicherheitsnetz (06.07.26, Daniels Karten-Screenshots): title_de kommt aus
+    ki_news.py normalerweise als EIN Satz (dort jetzt per Prompt+Check erzwungen,
+    siehe title_de-Fix 06.07.), aber diese Datei sollte sich nicht blind auf die
+    Upstream-Garantie verlassen. Falls doch mal ein 2-Satz-Titel durchrutscht
+    (oder ein Force-Card-Link/Alt-Cache-Eintrag einen alten Titel hat): nur den
+    ERSTEN Satz behalten, zusaetzlich hart auf max_chars kappen. Grund: .headline
+    im Template hat flex-shrink:0 (schrumpft nie) - ein ueberlanger Titel druecke
+    sonst die komplette kontext-section (WAS IST PASSIERT) aus der fix 660px
+    hohen Karte."""
+    text = (text or "").strip()
+    first_sentence = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)[0]
+    if len(first_sentence) > max_chars:
+        cut = first_sentence[:max_chars].rstrip()
+        last_space = cut.rfind(" ")
+        if last_space > 0:
+            cut = cut[:last_space]
+        first_sentence = cut + "…"
+    return first_sentence
+
+
+def limit_chars_sentence_safe(text: str, max_chars: int = 320) -> str:
+    """Kuerzt Text auf max. max_chars Zeichen, OHNE mitten im Satz oder Wort
+    abzuschneiden.
+
+    Bug-Fix (05.07.26, Daniels Karten-Screenshots): `kontext = summary[:280]`
+    war ein reiner Zeichen-Cut - schnitt regelmaessig mitten im Wort/Satz ab
+    ("...im Bereich der Bildve"). limit_sentences() loest genau dieses Problem
+    schon fuer die Einordnung (Satzgrenzen statt Zeichen-Guillotine) - dieser
+    Fix ueberträgt das Muster auf KONTEXT, das bisher aussen vor war.
+    Reihenfolge: 1) letztes Satzende INNERHALB des Budgets suchen, 2) falls
+    keins vorhanden (Text ohne Satzzeichen im Budget), auf letzte Wortgrenze
+    zurueckfallen + Ellipse - nie ein hartes Wortfragment wie "Bildve".
+    """
+    text = (text or "").strip()
+    if len(text) <= max_chars:
+        return text
+    window = text[:max_chars]
+    last_sentence_end = None
+    for m in re.finditer(r'[.!?]["\'”]?(?=\s|$)', window):
+        last_sentence_end = m
+    if last_sentence_end:
+        return window[:last_sentence_end.end()].strip()
+    last_space = window.rfind(" ")
+    if last_space > 0:
+        window = window[:last_space]
+    return window.rstrip(",;:– ") + "…"
+
+
+def limit_sentences(text: str, max_sentences: int = MAX_SENTENCES) -> str:
+    """Kappt Text auf max. N Saetze, damit Einordnung (und TTS-Dauer) nicht ausufern.
+
+    Bug-Fix (02.07.26, Karten-Screenshot): von max_tokens abgeschnittene LLM-
+    Antworten endeten mitten im Satz ("...wirft und wie sie") - das Fragment
+    stand auf der Karte UND wurde von der TTS vorgelesen. Ein letzter Satz ohne
+    Satzende-Zeichen faellt jetzt weg, sofern mind. ein vollstaendiger bleibt."""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    kept = sentences[:max_sentences]
+    if len(kept) > 1 and kept[-1] and kept[-1][-1] not in ".!?\"'”":
+        kept = kept[:-1]
+    return " ".join(kept).strip()
+
+
+def audio_dauer_sekunden(pfad: Path) -> float:
+    """Liest Audio-Dauer via ffprobe. Gibt CARD_DURATION als Fallback zurück."""
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", str(pfad)],
+            capture_output=True, text=True, timeout=10
+        )
+        return float(result.stdout.strip())
+    except Exception:
+        return float(CARD_DURATION)
+
+
+# ─── Google TTS ───────────────────────────────────────────────────────────────
+
+def generate_tts(ssml: str, slug: str, voice_name: str, voice_gender: str) -> tuple:
+    """
+    Generiert MP3 via Google Cloud TTS.
+    ssml: fertiges SSML-Dokument (siehe build_tts_ssml) - NICHT Klartext, sonst
+    interpretiert Google die <speak>/<say-as>-Tags als wortwoertlich vorzulesenden Text.
+    voice_name/voice_gender: pro Karte zufaellig aus GOOGLE_TTS_VOICES gewaehlt (siehe main()).
+    Gibt (audio_path, video_dauer_sekunden) zurück.
+    Bei Fehler: (None, CARD_DURATION).
+    """
+    if not GOOGLE_TTS_KEY:
+        print("  [INFO] GOOGLE_TTS_KEY nicht gesetzt — kein Audio.")
+        return None, CARD_DURATION
+
+    url = (
+        "https://texttospeech.googleapis.com/v1/text:synthesize"
+        f"?key={GOOGLE_TTS_KEY}"
+    )
+    payload = json.dumps({
+        "input": {"ssml": ssml},
+        "voice": {
+            "languageCode": "de-DE",
+            "name": voice_name,
+            "ssmlGender": voice_gender,
+        },
+        "audioConfig": {
+            "audioEncoding": "MP3",
+            "speakingRate": 1.18,
+        },
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        url, data=payload,
+        headers={"Content-Type": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            result = json.loads(resp.read())
+
+        audio_data = base64.b64decode(result["audioContent"])
+        audio_path = TMP_DIR / f"{slug}.mp3"
+        audio_path.write_bytes(audio_data)
+
+        dauer = audio_dauer_sekunden(audio_path)
+        video_dauer = max(int(dauer) + 1, CARD_DURATION)  # +1s Puffer
+        if video_dauer > MAX_DURATION:
+            print(f"  [WARN] TTS-Dauer {dauer:.1f}s ueberschreitet Cap ({MAX_DURATION}s) — Video wird gekappt.")
+            video_dauer = MAX_DURATION
+        print(f"  ✓ TTS:  {audio_path.name} [{voice_name}] ({dauer:.1f}s → {video_dauer}s Video)")
+        return audio_path, video_dauer
+
+    except urllib.error.HTTPError as e:
+        fehler = e.read().decode("utf-8", errors="replace")
+        print(f"  [WARN] TTS HTTP {e.code}: {fehler[:200]} — fahre ohne Audio fort.")
+        return None, CARD_DURATION
+    except Exception as e:
+        print(f"  [WARN] TTS Fehler: {e} — fahre ohne Audio fort.")
+        return None, CARD_DURATION
+
+
+# ─── Groq ─────────────────────────────────────────────────────────────────────
+
+def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, note: str = "") -> str | None:
+    """Generischer LLM-Aufruf. Gibt Text zurück oder None bei Fehler.
+    note (27.06.26): optionale Ton-/Angle-Vorgabe vom Admin-Panel (force_cards),
+    z.B. "ernst bleiben, keine Kindersprache" - steuert nur den Stil, ersetzt
+    den Kartentext nicht (das LLM schreibt ihn weiterhin selbst)."""
+    user_content = f"News: {headline}\n\nZusammenfassung: {summary}"
+    if note:
+        user_content += f"\n\nHinweis vom Nutzer (bitte bei Ton/Einordnung beachten): {note}"
+    payload = json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user",   "content": user_content}
+        ],
+        # 02.07.26: 120 -> 220. 120 Tokens reichten fuer 3 deutsche Saetze oft
+        # nicht -> Satz 3 wurde mitten im Wort gekappt (Screenshot-Fall). Die
+        # Laengen-Kontrolle macht limit_sentences() (3-Saetze-Cap), nicht das
+        # Token-Limit; 220 ist nur die Notbremse gegen Endlos-Antworten.
+        "max_tokens": 220,
+        "temperature": 0.7,
+        **MODEL_EXTRA.get(model, {}),
+    }).encode("utf-8")
+    # Bug-Fix (02.07.26): Groq lehnte ALLE Calls mit 403 "error code: 1010" ab -
+    # das ist Cloudflares User-Agent-Block auf "Python-urllib/3.x", NICHT ein
+    # Key-Problem (verifiziert: mit Browser-UA antwortet dieselbe API sauber mit
+    # 401 invalid_api_key auf einen Test-Key; 1010 kommt VOR der Auth-Schicht).
+    # Realistischer UA macht Groq wieder nutzbar - gilt fuer alle Provider-Calls.
+    headers = dict(headers)
+    headers.setdefault("User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            choice = data["choices"][0]
+            text = clean_markdown(choice["message"]["content"].strip())
+            # Bug-Fix (05.07.26, Daniels Karten-Screenshots): Antworten, die vom
+            # max_tokens-Limit MITTEN IM ERSTEN Satz gekappt wurden ("...das",
+            # kein Satzende), rutschten bisher durch. limit_sentences() greift nur,
+            # wenn mind. 2 Saetze vorhanden sind (sonst wuerde der Text komplett
+            # verschwinden) - bei Abbruch im allerersten Satz gibt es aber nur
+            # EIN Element, die Guard-Bedingung greift nicht, das Fragment landete
+            # unveraendert auf der Karte. Statt am Text zu raten: die API sagt es
+            # uns direkt (finish_reason="length") - das als Fehlschlag behandeln,
+            # naechstes Modell in der Fallback-Kette versuchen lassen.
+            if choice.get("finish_reason") == "length":
+                print(f"  [WARN] {model}: Antwort von max_tokens abgeschnitten (finish_reason=length), verworfen: {text[:80]!r}")
+                return None
+            return text
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"  [WARN] LLM HTTP {e.code} ({url.split('/')[2]}): {body[:150]}")
+        return None
+    except Exception as e:
+        print(f"  [WARN] LLM Fehler ({url.split('/')[2]}): {e}")
+        return None
+
+
+def _looks_invalid(text: str) -> str | None:
+    """Gibt einen Grund zurueck, wenn der Text offensichtlich kein brauchbares
+    deutsches Einordnungs-Statement ist (Meta-Kommentar-Leak oder falsche Sprache).
+    None = Text ist OK.
+
+    Hintergrund: schwache Free-Modelle antworten manchmal nicht mit der
+    Einordnung selbst, sondern mit ihrer eigenen Gedankenkette/Instruktions-
+    Wiedergabe ("We need to output 3-4 concise German sentences...") oder
+    komplett auf Englisch. Solche Antworten werden hier wie ein HTTP-Fehler
+    behandelt: verwerfen und zum naechsten Modell in der Fallback-Kette weiter.
+    """
+    if not text or len(text) < 15:
+        return "zu kurz/leer"
+    # Substanz-Check (05.07.26, Daniels Beispiel "Die neuen Workflows sind
+    # vordefinierte Ablaeufe" - formal gueltiges Deutsch, aber inhaltsleer).
+    # Schwache Fallback-Modelle liefern manchmal einen validen Ein-Satz-Fragment
+    # statt der geforderten 2-3 Saetze. Schwelle bewusst strenger (Daniels Wahl):
+    # weniger als 3 Saetze UND weniger als 120 Zeichen -> zu duenn, naechstes
+    # Modell in der Fallback-Kette versuchen statt eine magere Karte zu bauen.
+    sentence_count = len([s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s])
+    if sentence_count < 3 and len(text) < 120:
+        return f"zu wenig Substanz ({sentence_count} Satz/Saetze, {len(text)} Zeichen)"
+    lower = text.lower()
+    leak_markers = [
+        "we need", "i need", "let me", "as an ai", "i should",
+        "concise german", "no repetitions", "here is a", "here's a",
+        "note:", "this response", "i'll write", "i will write",
+        "task is to", "instructions say",
+    ]
+    if any(marker in lower for marker in leak_markers):
+        return "Meta-Kommentar-Leak erkannt"
+    german_markers = GERMAN_MARKERS
+    padded = f" {lower} "
+    if not any(marker in padded for marker in german_markers):
+        return "keine deutschen Signalwoerter gefunden (vermutlich falsche Sprache)"
+    return None
+
+
+def _jev_gedeckt(headline: str, summary: str, text: str) -> float | None:
+    """Jev-Deckungspruefung (TypeSafe, 26.09.26): Wahrscheinlichkeit (0..1), dass
+    `text` (die generierte Einordnung) eine Tatsachenbehauptung enthaelt - Grund,
+    Ursache, Motiv, Zahl, Folge als Fakt -, die weder in `headline` noch in
+    `summary` steht. Hoch = vermutlich erfunden.
+
+    Allgemeine Vergleiche/Alltagsbeispiele ("das ist so, als ob...") und Aussagen,
+    die die Einordnung selbst ausdruecklich als offen markiert ("warum, steht nicht
+    in der Meldung"), zaehlen NICHT als erfunden - siehe criteria["false"] unten.
+
+    None = Pruefung uebersprungen (kein Key oder irgendein Fehler/Timeout). Das
+    blockiert NIE eine Karte - der Aufrufer behandelt None wie "nicht geprueft"."""
+    if not TYPESAFE_API_KEY:
+        return None
+    body = json.dumps({
+        "model": "jev-latest",
+        "state": {"titel": headline or "", "zusammenfassung": (summary or "")[:600],
+                  "einordnung": text or ""},
+        "questions": {"erfunden": {
+            "type": "noul",
+            "instructions": "Enthaelt `einordnung` eine Tatsachenbehauptung (Grund, Ursache, "
+                            "Motiv, Zahl, Folge als Fakt), die weder in `titel` noch in "
+                            "`zusammenfassung` steht?",
+            "criteria": {
+                "true": "Ja: `einordnung` nennt einen konkreten Grund/eine Ursache/ein Motiv/"
+                        "eine Zahl/eine Folge als Tatsache, die in `titel` und `zusammenfassung` "
+                        "nirgends vorkommt (auch nicht sinngemaess).",
+                "false": "Nein: jede Tatsachenbehauptung in `einordnung` steht so oder sinngemaess "
+                         "schon in `titel`/`zusammenfassung`. Allgemeine Vergleiche und "
+                         "Alltagsbeispiele (\"das ist so, als ob...\") zaehlen NICHT als erfunden, "
+                         "ebenso wenig Aussagen, die `einordnung` selbst ausdruecklich als offen "
+                         "oder unbekannt markiert (z.B. \"warum, steht nicht in der Meldung\").",
+            }}}
+    }).encode("utf-8")
+    req = urllib.request.Request(JEV_API, data=body, headers={
+        "Authorization": "Bearer " + TYPESAFE_API_KEY, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            antwort = json.loads(r.read())["answers"]
+        return float(antwort["erfunden"]["noul"])
+    except Exception:
+        return None
+
+
+def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, str]:
+    """Groq → OpenRouter Fallback für ScampyKI-Einordnung.
+    Gibt (text, model_label) zurueck. model_label dokumentiert, welches
+    Modell/Provider den Text tatsaechlich geliefert hat — wird mit in
+    cards.json geschrieben, damit Groq-vs-OpenRouter-Nutzung sichtbar bleibt,
+    ohne auf (nicht committete) CI-Logs angewiesen zu sein.
+    note: optionale Admin-Vorgabe (force_cards, siehe main()) fuer Ton/Angle."""
+    # 26.09.26: feste Kette EINORDNUNG_KETTE statt "erst alle Groq, dann alle OpenRouter"
+    headers_je_anbieter = {
+        "groq": {"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_API_KEY}"},
+        "openrouter": {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENROUTER_KEY}",
+            "HTTP-Referer": "https://ki-news.live",
+            "X-Title": "KI News Cards",
+        },
+    }
+    url_je_anbieter = {"groq": GROQ_URL, "openrouter": OPENROUTER_URL}
+    key_je_anbieter = {"groq": GROQ_API_KEY, "openrouter": OPENROUTER_KEY}
+    if not GROQ_API_KEY:
+        print("  [INFO] GROQ_CHAT_KEY nicht gesetzt.")
+    # 26.09.26: bester Kandidat, der zwar _looks_invalid() bestand, aber die
+    # JEV-DECKUNG nicht (kleinstes p) - Rueckfallnetz, falls KEIN Modell besteht.
+    bester_kandidat = None  # (p, result, "anbieter:model")
+    for anbieter, model in EINORDNUNG_KETTE:
+        if not key_je_anbieter[anbieter]:
+            continue
+        result = _llm_call(url_je_anbieter[anbieter], headers_je_anbieter[anbieter],
+                           model, headline, summary, note)
+        if result:
+            invalid_reason = _looks_invalid(result)
+            if invalid_reason:
+                print(f"  [WARN] {anbieter}/{model} verworfen ({invalid_reason}): {result[:100]!r}")
+                continue
+            if JEV_DECKUNG_AKTIV:
+                p = _jev_gedeckt(headline, summary, result)
+                if p is not None and p >= JEV_DECKUNG_SCHWELLE:
+                    print(f"  [WARN] {anbieter}/{model} JEV-DECKUNG nicht bestanden "
+                          f"(p={p:.2f}): {result[:100]!r}")
+                    if bester_kandidat is None or p < bester_kandidat[0]:
+                        bester_kandidat = (p, result, f"{anbieter}:{model}")
+                    continue
+                if p is not None:
+                    print(f"  [INFO] JEV-DECKUNG ok {p:.2f}")
+            return result, f"{anbieter}:{model}"
+
+    if bester_kandidat is not None:
+        p, result, label = bester_kandidat
+        print(f"  [WARN] keine Einordnung bestand die JEV-DECKUNG - nehme besten "
+              f"Kandidaten (p={p:.2f}): {label}")
+        return result, f"{label}+jev-ungeprueft"
+
+    return "Einordnung nicht verfügbar.", "fallback:none"
+
+
+# ─── Template & Rendering ─────────────────────────────────────────────────────
+
+def fill_template(template: str, fields: dict) -> str:
+    result = template
+    for key, value in fields.items():
+        result = result.replace(f"{{{{{key}}}}}", str(value))
+    return result
+
+
+def fill_template_v2(template_v2: str, headline: str, einordnung: str, summary: str,
+                     source: str, datum: str, dauer: int, badge: str) -> tuple[str, dict]:
+    """Karten v2: Felder via karten_v2.karte_daten() als JSON in {{KARTE_JSON}}.
+    Wirft bei jedem Problem - der Aufrufer faellt dann auf das alte Template zurueck."""
+    k = karten_v2.karte_daten(headline, einordnung, summary, source, datum, dauer, badge)
+    # "</" escapen: das JSON steht in einem <script>-Block
+    js = json.dumps(k, ensure_ascii=False).replace("</", "<\\/")
+    if "{{KARTE_JSON}}" not in template_v2:
+        raise ValueError("Platzhalter {{KARTE_JSON}} fehlt")
+    return template_v2.replace("{{KARTE_JSON}}", js), k
+
+
+def _kl_hash_id(link: str) -> str:
+    """Portiert klHashId() aus assets/ki-layout.js 1:1 (djb2, base36) - siehe
+    identische Kopie + ausfuehrlicher Kommentar in ki_news.py::_kl_hash_id().
+    Muss exakt gleich bleiben, sonst passt der Deep-Link nicht zur ID, die
+    __kiOpenFromHash() im Frontend erwartet."""
+    h = 5381
+    for ch in (link or ""):
+        h = ((h * 33) ^ ord(ch)) & 0xFFFFFFFF
+    if h == 0:
+        return "0"
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    out = []
+    while h:
+        h, r = divmod(h, 36)
+        out.append(digits[r])
+    return "".join(reversed(out))
+
+def _deep_link(link: str) -> str:
+    """Kurzer, klickbarer Link zur Story auf ki-news.live (#a=<hash>). Ist die
+    Story inzwischen aus news.json gerollt, zeigt das Frontend einfach die
+    normale Startseite (siehe _deep_link() in ki_news.py)."""
+    return f"https://ki-news.live/#a={_kl_hash_id(link)}" if link else "https://ki-news.live/"
+
+def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_id: str = "", link: str = "") -> bool:
+    """Schickt das fertige MP4 via Telegram sendVideo.
+    Wenn card_id gesetzt ist, haengt ein Custom-Keyboard-Button mit dem Code
+    "ip:<card_id>" an. Tippt Daniel drauf, schickt Telegram diesen Code als
+    GANZ NORMALE Nachricht (kein callback_query mehr - Fund vom 24.07.26:
+    Telegram wirft callback_query-Updates aus der getUpdates-Warteschlange
+    binnen unter einer Minute, waehrend normale Nachrichten nachweislich
+    >10 Min stehen bleiben; unser Cron laeuft nur alle 2h und hat dadurch
+    praktisch jeden Klick verpasst). check_insta_queue.py liest ab jetzt
+    Nachrichten, die mit "ip:" beginnen, statt Callback-Daten.
+    Achtung: Custom-Keyboards sind chat-weit, nicht pro Nachricht - nur die
+    juengste Karte zeigt den Button.
+    Tap-to-Copy fuer AELTERE Karten (01.09., Daniels Feedback: "muss bislang
+    immer frimmeln und kopieren"): der Code steht zusaetzlich als <code>-
+    Textabschnitt in der Caption (parse_mode=HTML) -- Telegram macht daraus
+    auf allen Clients antippbaren, automatisch kopierten Monospace-Text. Das
+    ist NICHT chat-weit wie das Keyboard, sondern haengt an genau dieser
+    Nachricht und funktioniert dauerhaft, auch Wochen spaeter. Ablauf fuer
+    alte Karten dann: Code antippen (kopiert), Chat-Eingabe antippen,
+    einfuegen, senden -- kein Abtippen mehr noetig. Bei parse_mode=HTML
+    muessen Headline/Einordnung escaped werden (< > & sind sonst ungueltiges
+    HTML), der Code-Teil bleibt bewusst unescaped fuer die <code>-Tags.
+
+    X-Quick-Share (01.09., Daniels Wunsch, dann auf "richtiger Button" umgebaut):
+    bewusst KEIN API-Auto-Post wie bei Insta -- die X-API hat seit Februar 2026
+    keinen kostenlosen Tier mehr (Pay-per-Use, eigener Developer-Account mit
+    Zahlungsmethode noetig). Stattdessen ein X-Web-Intent-Link
+    (twitter.com/intent/tweet), der X mit vorausgefuelltem (aber frei
+    editierbarem) Text oeffnet -- kein API/Account, kein Kostenrisiko. Das
+    Video haengt X-seitig NICHT automatisch dran -- Daniel laedt es manuell
+    aus genau dieser Telegram-Nachricht hoch, Web-Intents koennen keine Medien
+    anhaengen.
+    ALS ECHTER BUTTON statt Text-Link: Telegram erlaubt pro Nachricht nur
+    EIN reply_markup, und der Insta-Code-Button braucht die ReplyKeyboard-Form
+    (schickt seinen Text als normale Nachricht zurueck -- das ist der ganze
+    Grund fuer den Custom-Keyboard-Umweg oben, siehe Docstring-Anfang). Ein
+    InlineKeyboard mit "url" dagegen oeffnet den Link direkt am Geraet, KEIN
+    callback_query, KEIN Warteschlangen-Problem -- fuer einen reinen Link
+    eigentlich die robustere Variante von beiden. Da nicht beides auf einer
+    Nachricht geht: Video+Insta-Button wie bisher, direkt danach eine zweite,
+    schlanke Nachricht NUR mit dem X-Inline-Button (_send_x_button unten)."""
+    if not TELEGRAM_TOKEN:
+        print("  [INFO] TELEGRAM_TOKEN nicht gesetzt — kein Telegram-Versand.")
+        return False
+
+    import io
+    boundary = "ScampyBoundary" + os.urandom(6).hex()
+    code = f"ip:{card_id}" if card_id else ""
+
+    # Suffix (Insta-Code, als <code> antippbar/kopierbar) ZUERST bauen und von
+    # der 1024-Caption-Grenze abziehen, statt hinterher blind zu kappen --
+    # sonst frisst eine lange Einordnung den Code einfach weg. Headline/
+    # Einordnung sind Fremdtext (LLM-Ausgabe) -> HTML-escapen, sonst kann ein
+    # zufaelliges "<" die parse_mode=HTML-Nachricht kaputt machen.
+    suffix = f"\n\nCode zum Posten (Insta, antippen zum Kopieren):\n<code>{html.escape(code)}</code>" if code else ""
+    body_text = f"🤖 {html.escape(headline)}\n\n{html.escape(einordnung)}"
+    caption = body_text[:1024 - len(suffix)]
+    # Schnitt kann mitten in einer escapten Entity landen ("...KI &am") -- das
+    # waere kaputtes HTML und liesse parse_mode=HTML die ganze Nachricht
+    # ablehnen. Eine unvollstaendige Entity am Ende (kein abschliessendes ";")
+    # wird darum abgeschnitten statt riskiert.
+    caption = re.sub(r'&[#a-zA-Z0-9]*$', '', caption) + suffix
+    caption = caption[:1024]
+
+    fields = [("chat_id", TELEGRAM_CHAT_ID), ("caption", caption), ("parse_mode", "HTML")]
+    if card_id:
+        reply_markup = json.dumps({
+            "keyboard": [[{"text": code}]],
+            "resize_keyboard": True,
+            "one_time_keyboard": True,
+        })
+        fields.append(("reply_markup", reply_markup))
+
+    body = io.BytesIO()
+    # Felder
+    for name, value in fields:
+        body.write(f"--{boundary}\r\n".encode())
+        body.write(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode())
+        body.write(f"{value}\r\n".encode())
+    # Video-Datei
+    video_data = mp4_path.read_bytes()
+    body.write(f"--{boundary}\r\n".encode())
+    body.write(f'Content-Disposition: form-data; name="video"; filename="{mp4_path.name}"\r\n'.encode())
+    body.write(b"Content-Type: video/mp4\r\n\r\n")
+    body.write(video_data)
+    body.write(b"\r\n")
+    body.write(f"--{boundary}--\r\n".encode())
+
+    data = body.getvalue()
+    url  = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
+    req  = urllib.request.Request(
+        url, data=data,
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read())
+            if not result.get("ok"):
+                print(f"  [WARN] Telegram: {result}")
+                return False
+            print(f"  ✓ Telegram: Video gesendet")
+    except Exception as e:
+        print(f"  [WARN] Telegram sendVideo Fehler: {e}")
+        return False
+
+    # X-Button als eigene Folgenachricht (siehe Docstring oben, wieso nicht
+    # auf derselben Nachricht) -- best effort: schlaegt das fehl, bleibt das
+    # Video trotzdem verschickt, darum eigener try/except statt den Erfolg
+    # der Hauptfunktion davon abhaengig zu machen.
+    _send_x_button(headline, link, einordnung)
+    return True
+
+
+X_MAX_ZEICHEN = 265   # Redaktionsregel (00 Kontext/CLAUDE.md): nicht auf 280 planen
+X_LINK_KOSTEN = 23    # X kuerzt jede URL auf t.co: 23 Zeichen, egal wie lang sie ist.
+                      # Mit der echten Laenge gerechnet fiel die Ueberschrift bei
+                      # ChatGPT Images 2.5 um EIN Zeichen raus (266 statt 259).
+
+
+def _x_karten_text(headline: str, einordnung: str, link: str) -> str:
+    """Vorbelegter X-Text einer Karte: Ueberschrift, Leerzeile, Einordnung,
+    Deep-Link. Vorher (bis 10.09.26) stand dort nur headline[:200] -- Daniel
+    stand damit vor einem leeren Post und musste alles selbst tippen, waehrend
+    die fertige Einordnung eine Nachricht darueber in Telegram lag.
+
+    Gekuerzt wird satzweise und nur die Einordnung: lieber zwei ganze Saetze
+    als drei angeschnittene (Redaktions-Doktrin 4.6, der letzte Satz soll
+    landen). Passt nicht einmal der erste Satz, bleibt es bei Ueberschrift
+    plus Link -- also mindestens dem alten Verhalten."""
+    kopf = (headline or "").strip()
+    dl = _deep_link(link)
+    rest = X_MAX_ZEICHEN - len(kopf) - X_LINK_KOSTEN - 3   # zwei Umbrueche + Puffer
+    text = (einordnung or "").strip()
+    if text and len(text) > rest:
+        gekuerzt = ""
+        for satz in re.split(r"(?<=[.!?])\s+", text):
+            kandidat = (gekuerzt + " " + satz).strip()
+            if len(kandidat) > rest:
+                break
+            gekuerzt = kandidat
+        text = gekuerzt
+    if text:
+        return kopf + "\n\n" + text + "\n" + dl
+    return (kopf + "\n" + dl).strip()
+
+
+def _send_x_button(headline: str, link: str = "", einordnung: str = "") -> bool:
+    """Schickt eine schlanke Folgenachricht mit einem echten Inline-Button
+    ('Auf X posten'), der den X-Web-Intent-Link direkt oeffnet (url-Button,
+    kein callback_query noetig -- siehe Docstring von send_card_to_telegram).
+    Zusaetzlich (09.09.26, Daniels Wunsch) ein anklickbarer Deep-Link zur
+    Story auf ki-news.live in derselben Nachricht, damit der Artikel nicht
+    erst gesucht werden muss."""
+    if not TELEGRAM_TOKEN:
+        return False
+    x_intent_url = ("https://twitter.com/intent/tweet?text="
+                    + urllib.parse.quote(_x_karten_text(headline, einordnung, link)))
+    reply_markup = json.dumps({
+        "inline_keyboard": [[{"text": "🐦 Auf X posten", "url": x_intent_url}]]
+    })
+    text = "Video oben manuell anhängen, Text ist editierbar:\n" + _deep_link(link)
+    payload = json.dumps({
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text,
+        "reply_markup": json.loads(reply_markup),
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+        data=payload, headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+            if result.get("ok"):
+                return True
+            print(f"  [WARN] Telegram X-Button: {result}")
+            return False
+    except Exception as e:
+        print(f"  [WARN] Telegram X-Button Fehler: {e}")
+        return False
+
+
+def render_card(html_path: Path, mp4_path: Path,
+                audio_path: Path | None = None,
+                duration: int = CARD_DURATION) -> bool:
+    """Ruft record.js via Node auf. Gibt True zurück bei Erfolg."""
+    cmd = [
+        "node", str(RECORD_JS),
+        str(html_path), str(mp4_path),
+        str(CARD_WIDTH), str(CARD_HEIGHT), str(duration),
+    ]
+    if audio_path and audio_path.exists():
+        cmd.append(str(audio_path))
+
+    print(f"  → render ({duration}s{', +audio' if audio_path else ''})")
+    # 24 fps bildgenau (v2) braucht mehr Zeit als 8 fps Echtzeit - 180 s reichten nur fuer v1
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=420)
+    if result.returncode != 0:
+        print(f"  [ERROR] record.js:\n{result.stderr[-500:]}")
+        return False
+    if result.stdout:
+        print(f"  {result.stdout.strip()}")
+    return True
+
+
+
+def make_poster(mp4_path: Path, slug: str, video_dauer_val: float) -> str | None:
+    """Standbild (JPG) aus dem fertigen MP4 ziehen - fuer die Website-Karte,
+    bevor das Video laedt/abspielt. Bei Sekunde 6, bei kuerzeren Videos auf
+    halber Laenge (26.09.26). Darf eine erfolgreich gerenderte Karte NIE zu
+    Fall bringen - daher hart try/except mit WARN-Zeile, kein Raise.
+    Gibt die relative poster_url zurueck, oder None wenn nichts entstand.
+    """
+    poster_path = ASSETS_DIR / f"{slug}.jpg"
+    try:
+        poster_sec = 6 if video_dauer_val >= 12 else video_dauer_val / 2
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-ss", str(poster_sec), "-i", str(mp4_path),
+             "-frames:v", "1", "-q:v", "3", str(poster_path)],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0 or not poster_path.exists():
+            print(f"  [WARN] Standbild fehlgeschlagen: {result.stderr[-300:]}")
+            return None
+        print(f"  ✓ JPG:  {poster_path.name}")
+        return f"assets/cards/{slug}.jpg"
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] Standbild-Erzeugung fehlgeschlagen ({e.__class__.__name__}: {e}).")
+        return None
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    today = date.today().isoformat()
+
+    TMP_DIR.mkdir(parents=True, exist_ok=True)
+    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not NEWS_JSON.exists():
+        print(f"[ERROR] {NEWS_JSON} nicht gefunden — Abbruch.")
+        sys.exit(1)
+
+    with open(NEWS_JSON, encoding="utf-8") as f:
+        raw = json.load(f)
+
+    articles = raw if isinstance(raw, list) else raw.get("news", raw.get("articles", []))
+
+    articles_by_score = sorted(
+        articles,
+        key=lambda a: float(a.get("score", a.get("relevance", 0))),
+        reverse=True,
+    )
+
+    # Bug-Fix (26.06.26): TOP_N waehlte bisher die N hoechst-bewerteten ARTIKEL,
+    # nicht STORIES. Clustering (ki_news.py) vergibt story_id korrekt an Duplikate
+    # (z.B. 2 Artikel zur selben Onsemi/Synaptics-Meldung), aber hier wurden beide
+    # als getrennte Top-N-Plaetze gezaehlt - dadurch konnte 1 Story 2+ Plaetze
+    # belegen und schwaechere, aber inhaltlich eigenstaendige Stories (z.B. ein
+    # gepinnter Artikel) knapp aus dem Fenster fallen, obwohl das Clustering schon
+    # wusste, dass es Duplikate sind. Fix: pro story_id nur den ersten (= hoechst
+    # bewerteten) Artikel behalten, erst DANACH auf TOP_N kappen. Artikel ohne
+    # story_id (= "" oder fehlend) gelten als eigene Story (kein Dedup-Risiko).
+    seen_story_ids = set()
+    articles_deduped = []
+    for a in articles_by_score:
+        sid = a.get("story_id") or ""
+        if sid and sid in seen_story_ids:
+            continue
+        if sid:
+            seen_story_ids.add(sid)
+        articles_deduped.append(a)
+
+    # ── Force-Cards (27.06.26): Admin-Hebel fuer garantierte Karte + Nachricht ──
+    # dashboard_config.json -> force_cards: [{"link": ..., "note": "..."}].
+    # Grund: featured_links (Pin) gibt nur einen Score-BOOST - der konkurriert
+    # weiterhin mit allen anderen Stories um die TOP_N-Plaetze und kann trotzdem
+    # verlieren (siehe Heise-Polizeigesetz-Fall 26.06., 3 Tage Anlauf gebraucht).
+    # force_cards ist bewusst ein hartes Commitment statt eines weichen Signals:
+    # garantierter ZUSAETZLICHER Slot (TOP_N bleibt fuer alle anderen unberuehrt),
+    # einmalig (kein neuer State noetig - das bestehende card_sent-Link-Dedup
+    # unten verhindert von selbst eine zweite Karte fuer denselben Link in einem
+    # spaeteren Lauf). "note" wird unten als Ton-/Angle-Vorgabe an den LLM-Prompt
+    # durchgereicht (siehe groq_einordnung-Aufruf), ersetzt den Kartentext NICHT.
+    force_cards = []
+    try:
+        _dash_cfg = json.loads(DASHBOARD_CONFIG_JSON.read_text(encoding="utf-8"))
+        force_cards = _dash_cfg.get("force_cards", []) or []
+    except Exception:
+        pass
+
+    forced_articles = []
+    forced_links = set()
+    if force_cards:
+        by_link = {(a.get("link") or "").strip(): a for a in articles}
+        for fc in force_cards:
+            f_link = (fc.get("link") or "").strip()
+            f_note = (fc.get("note") or "").strip()
+            if not f_link or f_link in forced_links:
+                continue
+            art = by_link.get(f_link)
+            if not art:
+                print(f"  [WARN] Force-Card-Link nicht in news.json gefunden: {f_link}")
+                continue
+            art = dict(art)            # Kopie - _force_note ist transient, nie zurueckschreiben
+            art["_force_note"] = f_note
+            forced_articles.append(art)
+            forced_links.add(f_link)
+
+    # Normale Top_N-Auswahl bekommt die forcierten Links nicht nochmal (sonst
+    # doppelt gezaehlt) - sie laufen als eigener, zusaetzlicher Block vorneweg.
+    #
+    # Card-Hungersnot-Fix (03.07.26): Der Top-N-Schnitt passierte bisher VOR
+    # dem card_sent-Dedup (das erst in der Verarbeitungsschleife greift). Waren
+    # alle N hoechstgescorten Links schon abgedeckt - heute passiert, nachdem
+    # die OpenAI-5%-Welle + Monster-Cluster-Nachwehen die kompletten Top-5
+    # verbrannt hatten - prueften ALLE Folgelaeufe immer wieder dieselben 5
+    # toten Kandidaten: 0 neue Karten den ganzen Tag, obwohl frische Storys ab
+    # Platz 6 bereitstanden. Fix: bereits abgedeckte Links VOR dem Top-N-
+    # Schnitt ausfiltern. Das Themen-Dedup in der Schleife unten bleibt als
+    # zweite Stufe unveraendert (es braucht die teureren Keyword-Signaturen).
+    _pre_sent = set()
+    try:
+        _pre_sent = set(json.loads(CARD_STATE_JSON.read_text(encoding="utf-8")).get("sent_links", {}))
+    except Exception:
+        pass
+    articles_sorted = forced_articles + [
+        a for a in articles_deduped
+        if (a.get("link") or "").strip() not in forced_links
+        and (a.get("link") or "").strip() not in _pre_sent
+    ][:TOP_N]
+
+    if not articles_sorted:
+        print("[WARN] Keine Artikel in news.json gefunden — nichts zu tun.")
+        return
+
+    if not TEMPLATE_PATH.exists():
+        print(f"[ERROR] Template nicht gefunden: {TEMPLATE_PATH}")
+        sys.exit(1)
+
+    template = TEMPLATE_PATH.read_text(encoding="utf-8")
+    template_v2 = ""
+    if CARD_V2 and karten_v2 is not None and TEMPLATE_V2_PATH.exists():
+        template_v2 = TEMPLATE_V2_PATH.read_text(encoding="utf-8")
+        print(f"[KARTE v2] aktiv ({TEMPLATE_V2_PATH.name})")
+    elif CARD_V2:
+        print("[KARTE v2] nicht verfuegbar (Modul/Vorlage fehlt) - altes Template.")
+
+    # ── Dedup-Gedaechtnis laden (analog telegram_state.json) ───────────────
+    card_sent = {}
+    # {"<keyword keyword ...>": {"date": "<datum>", "entities": [...]}}  — themenbasiert,
+    # ueber Laeufe hinweg. "entities" = Eigennamen-Signal fuer topics_match(), siehe dort.
+    sent_topics = {}
+    render_failures = {}  # {link: anzahl} — Render-Failure-Zaehler, Phase 1.2 (12.07.2026)
+    # Haertung 16.07.26 (Senior-Review): Give-up erst am Lauf-Ende entscheiden, damit ein
+    # global kaputtes Rendering (Node/Playwright-Ausfall) nicht alle Storys blacklistet.
+    _renders_ok_this_run = 0
+    _render_fails_this_run = 0
+    _incremented_this_run = set()
+    try:
+        _state = json.loads(CARD_STATE_JSON.read_text(encoding="utf-8"))
+        card_sent = _state.get("sent_links", {})
+        _sent_topics_raw = _state.get("sent_topics", {})
+        render_failures = _state.get("render_failures", {})
+        # Rueckwaerts-kompatibel: alte Eintraege waren reine Datum-Strings ohne
+        # "entities" - ohne diese Normalisierung wuerde prev_info["date"] unten
+        # auf alten Staenden mit AttributeError/TypeError krachen.
+        for _k, _v in _sent_topics_raw.items():
+            sent_topics[_k] = _v if isinstance(_v, dict) else {"date": _v, "entities": []}
+    except Exception:
+        pass
+
+    # Themen, die in DIESEM Lauf schon verarbeitet wurden (faengt z.B. 3 Karten
+    # zum selben Vorfall von 3 unterschiedlichen Quellen/Links ab).
+    seen_topics_this_run = []  # Liste von (keyword_set, entity_set, headline) fuer Log-Ausgabe
+
+    # ── Bisherige cards.json laden, damit wir akkumulieren statt ueberschreiben ──
+    existing_cards = []
+    try:
+        existing_cards = json.loads(CARDS_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+
+    cards_meta = []
+
+    for i, article in enumerate(articles_sorted, start=1):
+        headline = cap_headline(article.get("title", article.get("headline", "")).strip())
+        source   = article.get("source", article.get("publisher", "Unbekannt")).strip()
+        summary  = article.get("summary", article.get("description", "")).strip()
+        link     = (article.get("link") or article.get("url") or "").strip()
+
+        if not headline:
+            print(f"  [SKIP] Artikel {i}: kein Titel.")
+            continue
+
+        # ── Sprach-Check (08.07.26, ZML-Fund): title_de-Uebersetzung in ki_news.py
+        # fehlgeschlagen -> englischer Original-Titel blieb stehen. Nicht als "sent"
+        # markieren, damit der naechste Lauf es erneut versucht, sobald die
+        # Uebersetzung geklappt hat (kein card_sent/sent_topics-Eintrag hier).
+        if not _looks_german(headline):
+            print(f"  [SKIP] Artikel {i}: Headline wirkt unuebersetzt/nicht Deutsch "
+                  f"({headline[:60]!r}) — ki_news.py-Uebersetzung fehlgeschlagen, "
+                  f"naechster Lauf versucht es erneut.")
+            continue
+
+        # ── Link-Dedup: exakt dieser Artikel-Link schon mal verarbeitet? ────
+        if link and link in card_sent:
+            print(f"  [SKIP] Artikel {i}: Link bereits abgedeckt ({link}) — keine neue Karte.")
+            continue
+
+        # ── Themen-Dedup: gleiches Thema, anderer Link/andere Quelle? ──────
+        # Faengt z.B. "Android 17" gleichzeitig bei 3 Portalen ab (Telegram-Logik
+        # uebertragen: nichts doppelt posten, auch wenn der Link sich unterscheidet).
+        kw  = topic_keywords(headline)
+        ent = entity_words(headline)
+        duplicate_topic = False
+        for prev_kw_str, prev_info in sent_topics.items():
+            prev_date = prev_info["date"]
+            prev_ent  = set(prev_info.get("entities", []))
+            if topics_match(kw, set(prev_kw_str.split()), ent, prev_ent):
+                print(f"  [SKIP] Artikel {i}: Thema bereits am {prev_date} abgedeckt (Headline-Overlap) — keine neue Karte.")
+                duplicate_topic = True
+                break
+        if not duplicate_topic:
+            for prev_kw, prev_ent, prev_headline in seen_topics_this_run:
+                if topics_match(kw, prev_kw, ent, prev_ent):
+                    print(f"  [SKIP] Artikel {i}: gleiches Thema wie bereits in diesem Lauf verarbeitet (\"{prev_headline[:50]}\") — keine neue Karte.")
+                    duplicate_topic = True
+                    break
+        if duplicate_topic:
+            if link:
+                card_sent[link] = today  # diesen Link kuenftig auch ueber Link-Dedup abfangen
+            continue
+
+        slug     = f"{today}-{slugify(headline)}"
+        html_out = TMP_DIR / f"{slug}.html"
+        mp4_out  = ASSETS_DIR / f"{slug}.mp4"
+        mp4_url  = f"assets/cards/{slug}.mp4"
+
+        force_note = article.get("_force_note", "")
+        tag = " [FORCE-CARD]" if link in forced_links else ""
+        print(f"\n[{i}/{len(articles_sorted)}]{tag} {headline[:60]}...")
+
+        # Einordnung via Groq → OpenRouter Fallback (mit Inhalts-Validierung)
+        einordnung, llm_used = groq_einordnung(headline, summary, force_note)
+        # 05.07.26: satzsicherer Cut statt summary[:280] (siehe limit_chars_sentence_safe)
+        kontext    = limit_chars_sentence_safe(summary, 320) if summary else "–"
+
+        # Hard-Cap auf max. N Saetze — verhindert ausufernde TTS-Dauer strukturell
+        einordnung_clean = limit_sentences(einordnung)
+
+        # TTS-Text: Headline zuerst, dann Einordnung — als SSML synthetisieren
+        # (Akronym-Buchstabierung via <say-as>, siehe build_tts_ssml).
+        tts_ssml = build_tts_ssml(f"{headline}. {einordnung_clean}")
+
+        # TTS generieren — bestimmt Video-Länge. Stimme pro Karte zufaellig waehlen
+        # (kein festes Muster/Alternieren — random.choice() pro Iteration).
+        voice_name, voice_gender = random.choice(GOOGLE_TTS_VOICES)
+        audio_path, video_dauer = generate_tts(tts_ssml, slug, voice_name, voice_gender)
+
+        # Badge-Label nach Score-Tier: nicht jede Karte ist wirklich "breaking" -
+        # bei einheitlichem Label auf allen Karten verliert das Wort seine
+        # Bedeutung (Cry-Wolf-Effekt), Leser ignorieren es nach ein paar Tagen.
+        # Schwelle 50 ist eine erste Hypothese aus der Score-Verteilung in
+        # news.json (0-85), nicht aus Klick-/Lesedaten - ggf. nachjustieren.
+        score = float(article.get("score", article.get("relevance", 0)))
+        badge_label = "BREAKING" if score >= 50 else "AKTUELL"
+
+        # HTML befüllen (einordnung_clean: kein [OR]-Label auf der Karte)
+        filled = fill_template(template, {
+            "HEADLINE":    headline,
+            "QUELLE":      source,
+            "DATUM":       today,
+            "KONTEXT":     kontext,
+            "EINORDNUNG":  einordnung_clean,
+            "THEME_CSS":   random_theme_css(),
+            "BADGE_LABEL": badge_label,
+        })
+        html_out.write_text(filled, encoding="utf-8")
+        print(f"  ✓ HTML: {html_out.name}")
+
+        # Karten v2: eigene HTML daneben; bei Fehler bleibt es beim alten Template
+        html_v2, karte_v2_info = None, None
+        if template_v2:
+            try:
+                filled_v2, karte_v2_info = fill_template_v2(
+                    template_v2, headline, einordnung_clean, summary, source,
+                    date.today().strftime("%d.%m.%Y"), int(video_dauer), badge_label)
+                html_v2 = TMP_DIR / f"{slug}.v2.html"
+                html_v2.write_text(filled_v2, encoding="utf-8")
+                print(f"  ✓ v2: {karte_v2_info['motiv']}/{karte_v2_info['stil']}"
+                      f"{' negativ' if karte_v2_info.get('negativ') else ''} ({karte_v2_info.get('wahl')})")
+            except Exception as e:  # noqa: BLE001
+                html_v2, karte_v2_info = None, None
+                print(f"  [KARTE v2] Befuellen fehlgeschlagen ({e.__class__.__name__}: {e}) - altes Template.")
+
+        if mp4_out.exists() and not FORCE_RENDER:
+            print(f"  → {mp4_out.name} existiert bereits — überspringe (force_render=false).")
+            # 26.09.26: fehlendes Poster optional nachziehen (z.B. wenn das MP4
+            # aus einem Lauf vor Einfuehrung des Posters stammt) - rein optional,
+            # Fehler hier duerfen den Skip-Zweig nicht stoeren (make_poster faengt
+            # selbst ab).
+            existing_poster = ASSETS_DIR / f"{slug}.jpg"
+            poster_url = (f"assets/cards/{slug}.jpg" if existing_poster.exists()
+                          else make_poster(mp4_out, slug, video_dauer))
+            meta_entry = {
+                "id":       slug,
+                "headline": headline,
+                "mp4_url":  mp4_url,
+                "date":     today,
+                "source":   source,
+                "duration": CARD_DURATION,
+                "llm_used": llm_used,
+                "voice_used": voice_name,
+            }
+            if poster_url:
+                meta_entry["poster_url"] = poster_url
+            cards_meta.append(meta_entry)
+            if link:
+                card_sent[link] = today
+            seen_topics_this_run.append((kw, ent, headline))
+            if kw:
+                sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
+            continue
+
+        success = False
+        if html_v2 is not None:
+            success = render_card(html_v2, mp4_out, audio_path, video_dauer)
+            if not success:
+                print("  [KARTE v2] Render fehlgeschlagen - Rueckfall altes Template.")
+                karte_v2_info = None
+        if not success:
+            success = render_card(html_out, mp4_out, audio_path, video_dauer)
+        if not success:
+            _render_fails_this_run += 1
+            if not link:
+                # Ohne Link-Schluessel kein Zaehler moeglich — ehrlich loggen, nicht
+                # faelschlich "dauerhaft uebersprungen" behaupten (Fix 16.07.26).
+                print(f"  [WARN] Rendering fehlgeschlagen (kein Link-Schluessel) — nächster Lauf versucht erneut.")
+                continue
+            tries = render_failures.get(link, 0) + 1
+            render_failures[link] = tries
+            _incremented_this_run.add(link)
+            print(f"  [WARN] Rendering fehlgeschlagen (Versuch {tries}/3) — Entscheidung am Lauf-Ende.")
+            continue
+        _renders_ok_this_run += 1
+        if link:
+            render_failures.pop(link, None)  # Selbstheilung bei Erfolg
+
+        print(f"  ✓ MP4:  {mp4_out.name}")
+
+        # 26.09.26: Standbild fuers Web ziehen - siehe make_poster(). Darf die
+        # Karte nie zu Fall bringen, deshalb ist der Fehlerfall in make_poster()
+        # selbst abgefangen (WARN statt Exception).
+        poster_url = make_poster(mp4_out, slug, video_dauer)
+
+        # Karte direkt an Telegram schicken (einordnung_clean: kein [OR]-Label)
+        # card_id=slug -> Insta-Post-Button auf der Karte (siehe check_insta_queue.py)
+        send_card_to_telegram(mp4_out, headline, einordnung_clean, card_id=slug, link=link)
+
+        cards_meta.append({
+            "id":       slug,
+            "headline": headline,
+            "mp4_url":  mp4_url,
+            "date":     today,
+            "source":   source,
+            "duration": video_dauer,
+            "llm_used": llm_used,
+            "voice_used": voice_name,
+            # 25.09.26: Einordnungstext mitspeichern - Gate 4 (Phase-4-Watchlist)
+            # ist sonst nur an der Headline pruefbar, der Text stand nirgends.
+            "einordnung": einordnung_clean,
+            # 26.09.26: welche Vorlage/Szene - fuer Gate P1 (10 Karten sichten)
+            "karte": ("v2:%s/%s" % (karte_v2_info["motiv"], karte_v2_info["stil"])) if karte_v2_info else "v1",
+        })
+        if poster_url:
+            cards_meta[-1]["poster_url"] = poster_url
+        if link:
+            card_sent[link] = today
+        seen_topics_this_run.append((kw, ent, headline))
+        if kw:
+            sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
+
+    # ── Render-Failure-Auswertung (16.07.26): Give-up nur bei kartenspezifischem
+    # Fehler. Sind in diesem Lauf ≥2 Renders gescheitert und KEINES gelungen, ist
+    # das ein Infrastruktur-Verdacht (Node/Playwright global kaputt) — dann die in
+    # diesem Lauf erhoehten Zaehler wieder zuruecknehmen, nichts blacklisten.
+    if _render_fails_this_run >= 2 and _renders_ok_this_run == 0:
+        print(f"  [WARN] Alle {_render_fails_this_run} Renders dieses Laufs fehlgeschlagen — Infrastruktur-Verdacht, Zähler nicht erhöht.")
+        for _l in _incremented_this_run:
+            if _l in render_failures:
+                render_failures[_l] -= 1
+                if render_failures[_l] <= 0:
+                    del render_failures[_l]
+    else:
+        for _l in [l for l, n in list(render_failures.items()) if n >= 3]:
+            card_sent[_l] = today
+            del render_failures[_l]
+            print(f"  [GIVE-UP] 3x Render-Fehler — Link dauerhaft übersprungen: {_l}")
+
+    # ── Dedup-Gedaechtnis speichern, auf juengste Links/Themen begrenzt ─────
+    if len(card_sent) > MAX_STATE_LINKS:
+        card_sent = dict(sorted(card_sent.items(), key=lambda kv: kv[1])[-MAX_STATE_LINKS:])
+    if len(sent_topics) > MAX_STATE_LINKS:
+        # Sortierschluessel ist jetzt verschachtelt (Migration auf dict-Format,
+        # siehe Ladelogik oben) - kv[1]["date"] statt kv[1].
+        sent_topics = dict(sorted(sent_topics.items(), key=lambda kv: kv[1]["date"])[-MAX_STATE_LINKS:])
+    if len(render_failures) > MAX_STATE_LINKS:
+        render_failures = dict(list(render_failures.items())[-MAX_STATE_LINKS:])
+    try:
+        CARD_STATE_JSON.write_text(
+            json.dumps(
+                {"sent_links": card_sent, "sent_topics": sent_topics,
+                 "render_failures": render_failures, "stand": today},
+                ensure_ascii=False, indent=2,
+            ),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        print(f"  [WARN] card_state.json nicht schreibbar: {e}")
+
+    # ── cards.json: neue Karten + bisherige akkumulieren statt ueberschreiben ──
+    merged = {c["id"]: c for c in existing_cards if isinstance(c, dict) and c.get("id")}
+    for c in cards_meta:
+        merged[c["id"]] = c
+    cards_final = sorted(merged.values(), key=lambda c: c.get("date", ""), reverse=True)[:MAX_CARDS_DISPLAY]
+    # 26.09.26: alle Eintraege (auch alte) auf das Medien-Repo zeigen lassen, wenn aktiv
+    for c in cards_final:
+        for feld in ("mp4_url", "poster_url"):
+            if c.get(feld):
+                c[feld] = _media_url(c[feld])
+
+    with open(CARDS_JSON, "w", encoding="utf-8") as f:
+        json.dump(cards_final, f, ensure_ascii=False, indent=2)
+
+    print(f"\n✅ cards.json: {len(cards_final)} Karten ({len(cards_meta)} neu/aktualisiert in diesem Lauf) → {CARDS_JSON}")
+    print(f"   Render-Fehler offen (werden erneut versucht): {len(render_failures)}")
+
+
+if __name__ == "__main__":
+    main()

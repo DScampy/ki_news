@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Statistik – KI News</title>
+<link rel="icon" type="image/png" href="s-logo.png"/>
+<meta name="description" content="Content-Statistiken von ki-news.live – Quellen, Scores, Themen."/>
+<link rel="stylesheet" href="assets/ki-tw.css"/>
+<link rel="stylesheet" href="assets/ki-fonts.css"/>
+<script src="assets/ki-icons.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<!-- Material Symbols lokal via assets/ki-icons.js -->
+<script type="application/json" id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: { extend: {
+      fontFamily: { headline: ["Space Grotesk"], body: ["Work Sans"] },
+      spacing: { gutter: "16px" }
+    }}
+  }
+</script>
+<style>
+  :root { --neon: var(--accent); }
+  body { background:#000; color:#dfe3ea; font-family:'Work Sans',sans-serif; }
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:#000; }
+  ::-webkit-scrollbar-thumb { background:#2f3336; border-radius:10px; }
+
+  /* ── Light Mode ── */
+  html.light body { background:#f0f4f8!important; color:#0f172a!important; }
+  html.light nav.fixed { background:rgba(248,250,252,0.92)!important; backdrop-filter:blur(14px); border-color:#e2e8f0!important; }
+  html.light aside.fixed { background:#e8edf4!important; border-color:rgba(var(--neon-rgb),0.25)!important; }
+  html.light main { background:#f0f4f8!important; }
+  html.light .stat-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.22)!important; }
+  html.light .chart-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.18)!important; }
+  html.light .text-white { color:#0f172a!important; }
+  html.light .text-gray-400 { color:#334155!important; }
+  html.light .text-gray-500 { color:#475569!important; }
+  html.light .border-\[#2f3336\] { border-color:#e2e8f0!important; }
+  html.light ::-webkit-scrollbar-thumb { background:#cbd5e1!important; }
+  html.light { --article-title-color: #0f172a; }
+  html.light .top-article-row { background:#f8fafc!important; border-color:rgba(var(--neon-rgb),0.15)!important; }
+  html.light .top-article-row:hover { background:#eff6ff!important; }
+  html.light .section-title { color:#0f172a!important; }
+  html.light .meta-text { color:#475569!important; }
+  /* ── Chart-Cards & Sidebar-Boxen Light Mode ── */
+  html.light .chart-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.20)!important; }
+  html.light aside.fixed > div:last-of-type { border-color:rgba(var(--neon-rgb),0.10)!important; }
+  html.light #score-legend { color:#334155!important; }
+  /* Sidebar Live-Metriken-Boxen */
+  html.light aside .flex.flex-col.gap-2 > div { background:#f0f4f8!important; border-color:rgba(var(--neon-rgb),0.18)!important; }
+  html.light aside .flex.flex-col.gap-2 > div p:last-child { color:#0f172a!important; }
+  /* Hero-Karten */
+  html.light .stat-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.28)!important; box-shadow:0 0 10px rgba(var(--neon-rgb),0.08)!important; }
+  /* Cloudflare Tipp Box */
+  html.light .chart-card > div[style*="rgba(var(--neon-rgb),0.05)"] { background:rgba(var(--neon-rgb),0.04)!important; }
+
+  /* ── Cards ── */
+  .stat-card {
+    background:#111827;
+    border:1px solid rgba(var(--neon-rgb),0.30);
+    border-radius:10px;
+    padding:12px 14px;
+    box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.06),0 0 16px rgba(var(--neon-rgb),0.10);
+    transition:all 0.2s;
+  }
+  .stat-card:hover {
+    border-color:rgba(var(--neon-rgb),0.55);
+    box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.12),0 0 24px rgba(var(--neon-rgb),0.18);
+  }
+  .chart-card {
+    background:#0d1520;
+    border:1px solid rgba(var(--neon-rgb),0.18);
+    border-radius:12px;
+    padding:24px;
+    box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.05),0 0 14px rgba(var(--neon-rgb),0.08);
+  }
+  /* ── Quellen-Ranking (ersetzt Chart.js-Balken) ── */
+  .srcrow{display:flex;align-items:center;gap:10px;padding:4px 0;}
+  .srcrow-rank{font-family:monospace;font-size:10px;color:rgba(var(--neon-rgb),0.5);width:20px;flex-shrink:0;text-align:right;}
+  .srcrow-name{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;width:128px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .srcrow-bar{flex:1;height:14px;border-radius:4px;background:rgba(var(--neon-rgb),0.06);overflow:hidden;position:relative;}
+  .srcrow-bar>div{height:100%;border-radius:4px;transition:width .45s cubic-bezier(.22,1,.36,1);box-shadow:0 0 8px rgba(var(--neon-rgb),0.25);}
+  .srcrow-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--text,#e8f8ff);width:38px;text-align:right;flex-shrink:0;}
+  .srcrow-avg{font-family:monospace;font-size:10px;color:var(--muted,#6b7280);width:52px;flex-shrink:0;text-align:right;}
+  html.light .srcrow-val{color:#0f172a;}
+  .section-title {
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700; font-size:18px;
+    color:#dfe3ea; margin-bottom:6px;
+  }
+  .meta-text { font-size:12px; color:#6b7280; font-family:monospace; }
+
+  /* ── Score badges ── */
+  .badge { display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:800;letter-spacing:0.06em;font-family:monospace; }
+  .badge-breaking { background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3); }
+  .badge-top      { background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3); }
+  .badge-wichtig  { background:rgba(234,179,8,0.15);color:#eab308;border:1px solid rgba(234,179,8,0.3); }
+  .badge-aktuell  { background:rgba(var(--neon-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3); }
+  .badge-info     { background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.25); }
+
+  /* ── Top articles ── */
+  .top-article-row {
+    display:flex;align-items:center;gap:12px;
+    padding:12px 16px;border-radius:8px;
+    border:1px solid rgba(var(--neon-rgb),0.12);
+    background:#111827;margin-bottom:8px;
+    text-decoration:none;transition:all 0.15s;
+  }
+  .top-article-row:hover {
+    border-color:rgba(var(--neon-rgb),0.35);
+    background:#1a2235;
+  }
+  .rank-num {
+    font-family:'Space Grotesk',sans-serif;font-weight:900;
+    font-size:20px;color:rgba(var(--neon-rgb),0.25);
+    width:28px;flex-shrink:0;text-align:center;line-height:1;
+  }
+  .rank-num.gold   { color:#f59e0b; }
+  .rank-num.silver { color:#94a3b8; }
+  .rank-num.bronze { color:#cd7c36; }
+
+  /* ── 5-Theme System ── */
+  [data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;--sidebar-bg:#0c1220;--nav-bg:rgba(0,0,0,0.72);}
+  [data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--sidebar-bg:#06100a;--nav-bg:rgba(4,12,6,0.80);}
+  [data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--sidebar-bg:#0a0818;--nav-bg:rgba(4,2,15,0.80);}
+  [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--sidebar-bg:#100600;--nav-bg:rgba(9,3,0,0.80);}
+  [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--sidebar-bg:#e8edf4;--nav-bg:rgba(255,255,255,0.88);}
+
+  /* ── Hell-Modus koppeln: Struktur-Variablen hell, Akzent bleibt vom aktiven Theme ── */
+  html.light{
+    --bg:#f0f4f8;
+    --surface:rgba(var(--neon-rgb),0.06);
+    --sidebar-bg:#e8edf4;
+    --nav-bg:rgba(255,255,255,0.88);
+    --card:#ffffff;
+    --field:#eef3fa;
+    --hairline:#e2e8f0;
+    --text:#0f172a;
+    --muted:rgba(30,80,140,0.55);
+  }
+  html.light #sidebar{background:#e8edf4 !important;}
+  html.light nav.fixed{background:rgba(255,255,255,0.88) !important;}
+  body{background:var(--bg,#000);transition:background 0.4s;}
+  /* ── Sidebar ── */
+  #sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;background:var(--sidebar-bg,#0c1220)!important;}
+  #sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
+  nav.fixed{background:var(--nav-bg,rgba(0,0,0,0.72))!important;}
+  .sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .15s;border-left:2px solid transparent;color:rgba(180,220,240,0.55);text-decoration:none;}
+  .sidebar-nav-link:hover{background:rgba(29,37,53,0.85);color:#fff;border-left-color:var(--accent);}
+  html.light .sidebar-nav-link{color:rgba(30,80,140,0.7);}
+  html.light .sidebar-nav-link:hover{background:#deeaf7;color:#0f172a;border-left-color:var(--accent,#0ea5e9);}
+  html.light .ki-sidebar-active{background:#eff6ff!important;}
+  #sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:var(--accent);border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease,box-shadow 0.2s;border-radius:0 6px 6px 0;box-shadow:0 0 12px rgba(var(--neon-rgb),0.5);}
+  #sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);}
+  @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
+  #genesis-dots{display:flex;align-items:center;gap:5px;}
+  .gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;background:none;}
+  .gdot:hover{transform:scale(1.25);}
+  .gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+  html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
+  .gdot[data-t="genesis"]{background:#00d4ff;}
+  .gdot[data-t="karst"]{background:#34d399;}
+  .gdot[data-t="aurora"]{background:#a78bfa;}
+  .gdot[data-t="meridian"]{background:#fb923c;}
+  .gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
+  .ki-border{border-color:rgba(var(--neon-rgb),0.18);}
+  .ki-muted{color:rgba(180,220,240,0.55);}
+  html.light .ki-muted{color:rgba(30,80,140,0.7);}
+</style>
+<style id="km-drawer">
+#brand-menu-hint{display:none;}
+@media(max-width:767px){#brand-menu-hint{display:inline-flex !important;align-items:center;gap:4px;}#brand-link{cursor:pointer;}}
+#sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}
+#sidebar-backdrop.open{opacity:1;visibility:visible;}
+@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}
+@media(max-width:1023px){
+#sidebar{display:flex !important;width:284px !important;max-width:84vw;transform:translateX(-100%);transition:transform .28s ease;opacity:1 !important;z-index:60;pointer-events:none;box-shadow:8px 0 40px rgba(0,0,0,0.55);}
+#sidebar.collapsed{width:284px !important;max-width:84vw;opacity:1 !important;transform:translateX(-100%);pointer-events:none;}
+#sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}
+}
+</style>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
+</head>
+<body>
+<!-- window.KI_SIDEBAR_EXTRA ("Schnellueberblick") am 30.08. entfernt: doppelte
+     sich mit den Hero-Kacheln oben auf der Seite und brach Daniels Wunsch nach
+     einer auf jeder Seite gleichen Sidebar (Suche + Stand-Box kommen zentral
+     aus ki-layout.js). -->
+<script src="assets/ki-layout.js"></script>
+<script src="assets/ki-custom-theme.js"></script>
+
+<!-- ── Genesis 3D Background ─────────────────────────────── -->
+<div id="genesis-wrap" style="position:fixed;inset:0;z-index:0;pointer-events:none"></div>
+<div id="bg-overlay" style="position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.45) 38%,rgba(0,0,0,0.88) 68%,rgba(0,0,0,0.94) 100%);transition:background 0.4s"></div>
+<style>html.light #bg-overlay{background:linear-gradient(to bottom,rgba(240,246,255,0.06) 0%,rgba(240,246,255,0.30) 40%,rgba(240,246,255,0.93) 68%,rgba(240,246,255,0.99) 100%) !important;}main,nav,aside{position:relative;z-index:10;}main{background:rgba(0,0,0,0.88);}html.light main{background:rgba(248,250,252,0.96);}</style>
+
+<!-- ── Theme-Hook: Charts bei Theme-Wechsel umfärben ──
+     (Theme-Logik selbst kommt zentral aus assets/ki-layout.js) -->
+<script>
+window.__kiThemeHook = function(){
+  if (window._charts && typeof updateChartTheme === 'function') window._charts.forEach(function(c){ updateChartTheme(c); });
+  if (window.renderSrcRanking) window.renderSrcRanking();
+};
+document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTheme) window.__kiApplyTheme(); });
+</script>
+
+<!-- ── Main ── -->
+<main id="main-content" class="pt-14 min-h-screen" style="background:var(--bg,#000);transition:margin-left 0.25s ease,background 0.4s;">
+  <div class="max-w-[1400px] mx-auto p-6">
+
+    <!-- Header -->
+    <div class="mt-6 mb-8">
+      <h1 class="font-black text-3xl tracking-tight text-white mb-1" style="font-family:'Space Grotesk',sans-serif">
+        Statistik <span style="color:var(--accent)">↗</span>
+      </h1>
+      <p class="text-gray-500 text-sm font-mono" id="stats-subtitle">Wird geladen…</p>
+    </div>
+
+    <!-- ── Hero Metriken (30.08. verkleinert: waren mit 20px Padding + 36px-
+         Zahlen deutlich zu ausladend fuer vier reine Kennzahlen-Kacheln) ── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div class="stat-card">
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Artikel gesamt</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-total">—</p>
+        <p class="text-[10px] text-gray-500 font-mono">news.json + archive.json</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Quellen aktiv</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-sources">—</p>
+        <p class="text-[10px] text-gray-500 font-mono truncate" id="m-sources-names">—</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Ø Score gesamt</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-avgscore">—</p>
+        <p class="text-[10px] text-gray-500 font-mono">Relevanz-Durchschnitt</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Höchster Score</p>
+        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:#f97316" id="m-topscore">—</p>
+        <p class="text-[10px] text-gray-500 font-mono truncate" id="m-topscore-title">—</p>
+      </div>
+    </div>
+
+    <!-- ── Tagesverlauf (bis 30.08. "Wöchentliche Statistik": nur 17% Abdeckung,
+         weil sie ein Datum aus der Artikel-URL zu raten versuchte statt das
+         vorhandene first_seen-Feld zu nutzen -- jetzt 100% Abdeckung, taeglich
+         statt woechentlich, weil die Pipeline eh 4x/Tag laeuft) ── -->
+    <div class="chart-card mb-6">
+      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <p class="section-title">Tagesverlauf</p>
+        <span class="meta-text" id="daily-summary" style="font-size:11px"></span>
+      </div>
+      <p class="meta-text mb-4">Artikel pro Tag (letzte 10 Tage) · Linie = Ø Score (rechte Achse)</p>
+      <div style="position:relative;height:220px">
+        <canvas id="chart-daily"></canvas>
+      </div>
+      <div id="daily-table" class="mt-4"></div>
+    </div>
+
+    <!-- ── Row 1: Quellen + Score-Verteilung ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+      <!-- Quellen-Chart (2/3) -->
+      <div class="chart-card lg:col-span-2">
+        <div class="flex items-center justify-between mb-1">
+          <p class="section-title">Quellen-Analyse</p>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="toggleSourceMetric('count')" id="btn-count"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:rgba(var(--neon-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3)">
+              Artikel
+            </button>
+            <button onclick="toggleSourceMetric('score')" id="btn-score"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
+              Ø Score
+            </button>
+            <div style="width:1px;background:rgba(107,114,128,0.2);margin:0 2px"></div>
+            <button onclick="toggleSourceWindow(5)"  id="btn-w5"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:rgba(var(--neon-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3)">
+              5 Tage
+            </button>
+            <button onclick="toggleSourceWindow(30)" id="btn-w30"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
+              30 Tage
+            </button>
+            <button onclick="toggleSourceWindow(0)"  id="btn-wall"
+              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
+              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
+              Gesamt
+            </button>
+          </div>
+        </div>
+        <p class="meta-text mb-4" id="src-window-label">Artikel-Anzahl und Durchschnitts-Score je Quelle · letzte 5 Tage</p>
+        <div id="src-ranking" style="display:flex;flex-direction:column;gap:5px;min-height:260px;justify-content:center;"></div>
+      </div>
+
+      <!-- Score-Verteilung Donut (1/3) -->
+      <div class="chart-card">
+        <p class="section-title mb-1">Score-Verteilung</p>
+        <p class="meta-text mb-4">Alle Artikel nach Relevanz-Level</p>
+        <div style="position:relative;height:200px;margin-bottom:16px">
+          <canvas id="chart-scores"></canvas>
+        </div>
+        <div class="flex flex-col gap-2" id="score-legend"></div>
+      </div>
+    </div>
+
+    <!-- ── Row 2: Themen-Radar ── -->
+    <div class="chart-card mb-6">
+      <p class="section-title mb-1">Themen-Radar</p>
+      <p class="meta-text mb-4">Wie oft werden KI-Player und Themen in Artikeln erwähnt</p>
+      <div style="position:relative;height:220px">
+        <canvas id="chart-topics"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Themen-Trend + Pipeline-Gesundheit (30.08., neu) ──
+         Nebeneinander auf Desktop (Daniels Wunsch), gestapelt auf Mobil. ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="chart-card">
+        <p class="section-title mb-1">Themen-Trend</p>
+        <p class="meta-text mb-4">Verlauf der letzten 10 Tage je Thema · absteigend nach Erwähnungen</p>
+        <div id="theme-trends"></div>
+      </div>
+
+      <div class="chart-card">
+        <p class="section-title mb-1">Pipeline-Gesundheit</p>
+        <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus dem internen Betriebs-Log (die letzten ~10 Läufe)</p>
+        <div id="pipeline-health"></div>
+      </div>
+    </div>
+
+    <!-- ── Row 3: Creator Dashboard ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+      <!-- Top Artikel -->
+      <div class="chart-card">
+        <p class="section-title mb-1">🏆 Top Artikel nach Score</p>
+        <p class="meta-text mb-4">Die relevantesten Stories aus dem gesamten Archiv</p>
+        <div id="top-articles-list"></div>
+      </div>
+
+      <!-- Aktuelle Top-News + Insight -->
+      <div class="chart-card">
+        <p class="section-title mb-1">⚡ Creator Radar</p>
+        <p class="meta-text mb-4">Aktuelle News-Session – was ist gerade relevant</p>
+        <div id="current-top-list"></div>
+
+        <!-- Tip -->
+        <div class="mt-5 p-4 rounded-lg" style="background:rgba(var(--neon-rgb),0.05);border:1px solid rgba(var(--neon-rgb),0.15)">
+          <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(var(--neon-rgb),0.5)">💡 Tipp: Besucher-Daten</p>
+          <p class="text-[12px] text-gray-400 leading-relaxed">Diese Statistik zeigt deine <strong style="color:#dfe3ea">Content-Daten</strong>. Für echte Besucher-Zahlen (Seitenaufrufe, Klicks, Herkunft) ist <strong style="color:var(--accent)">Cloudflare Web Analytics</strong> kostenlos – ein Script-Tag reicht, kein Server nötig.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Score-Formel ── -->
+    <div class="chart-card mb-8">
+      <p class="section-title mb-1">⚙️ Score-Formel</p>
+      <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird</p>
+
+      <!-- 30.08.: Diagramm (Archify) direkt eingebettet statt nur verlinkt.
+           Die alte Box-Darstellung + Quellen-Prestige/Keyword-Boni/Malus-
+           Tabellen sind raus -- das Diagramm selbst zeigt Haupt- UND
+           Fallback-Pfad, die Detailtabellen waren auf Daniels Wunsch zu
+           viel/zu alt. Onload-Skript blendet Bedienelemente aus, die
+           Besucher hier nicht brauchen (Visual-Style/Export/Path/Map/Lens) --
+           die Diagramm-Datei selbst bleibt unangetastet voll ausgestattet,
+           nur diese eine Einbettung ist bewusst reduziert. -->
+      <div style="border:1px solid rgba(var(--neon-rgb),0.15);border-radius:10px;overflow:hidden">
+        <iframe src="score-formel-diagramm.html" title="Score-Formel-Diagramm"
+                style="width:100%;height:720px;border:none;display:block;background:var(--card,#0d1520)"
+                loading="lazy" onload="simplifyScoreFormelViewer(this)"></iframe>
+      </div>
+
+      <!-- Hinweis -->
+      <p style="font-size:11px;font-family:monospace;color:#4b5563;margin-top:16px;line-height:1.6">
+        Artikel werden erst zu <strong style="color:#6b7280">Clustern</strong> gruppiert (≥ 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster – je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus. Artikel verschwinden nach <strong style="color:#14b8a6">5 Tagen</strong> von der Hauptseite und wandern ins Archiv.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 pb-12 border-t border-[#2f3336] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="text-white font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
+        <p class="text-[11px] text-gray-500 font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/ScampyKI" target="_blank" style="color:var(--accent)">@ScampyKI</a></p>
+      </div>
+      <p class="text-[11px] text-gray-600 font-mono" id="stats-footer-stand">—</p>
+    </div>
+
+  </div>
+<footer style="position:relative;z-index:20;border-top:1px solid rgba(127,127,127,0.18);padding:22px 24px;text-align:center;font-family:'Space Grotesk',sans-serif;font-size:12px;letter-spacing:0.02em;color:#64748b;">
+  <a href="Impressum.html" style="color:inherit;text-decoration:none;margin:0 10px;">Impressum</a>·
+  <a href="Datenschutz.html" style="color:inherit;text-decoration:none;margin:0 10px;">Datenschutz</a>
+</footer>
+</main>
+
+<script>
+// ── Konfiguration ───────────────────────────────────────────────────────────
+const SOURCE_COLORS = {
+  'The Decoder':    '#1d9bf0',
+  'TechCrunch AI':  '#ff6b35',
+  'VentureBeat AI': '#a78bfa',
+  'MIT Tech Review':'#f87171',
+  'Ars Technica':   '#4ade80',
+  'Heise':          '#60a5fa',
+  'Golem':          '#34d399',
+  'Caschy Blog':    '#fb923c',
+  'AlignedNews':    '#c084fc',
+  'Bloomberg':      '#f59e0b',
+  'SiliconAngle':   '#e879f9',
+  'TechRepublic':   '#38bdf8',
+  'Wired':          '#a3e635',
+};
+function srcColor(s){ return SOURCE_COLORS[s] || 'var(--accent)'; }
+// XSS-Schutz: Fremddaten (Feed-Titel) vor innerHTML escapen.
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+const SCORE_LEVELS = [
+  { label:'BREAKING', min:40, color:'#ef4444', bg:'rgba(239,68,68,0.15)',   badge:'badge-breaking' },
+  { label:'TOP',      min:30, color:'#f97316', bg:'rgba(249,115,22,0.15)',  badge:'badge-top'      },
+  { label:'WICHTIG',  min:20, color:'#eab308', bg:'rgba(234,179,8,0.15)',   badge:'badge-wichtig'  },
+  { label:'AKTUELL',  min:10, color:'var(--accent)', bg:'rgba(var(--neon-rgb),0.12)',   badge:'badge-aktuell'  },
+  { label:'INFO',     min:0,  color:'#6b7280', bg:'rgba(107,114,128,0.15)', badge:'badge-info'     },
+];
+function scoreLevel(s){
+  for(const l of SCORE_LEVELS) if(s>=l.min) return l;
+  return SCORE_LEVELS[4];
+}
+
+const KEY_TERMS = [
+  'OpenAI','Google','Anthropic','Meta','Microsoft','Apple','Nvidia','DeepMind','xAI','Mistral','Cohere','Perplexity',
+  'GPT','Claude','Gemini','Llama','Grok','Copilot','ChatGPT','Sora','Midjourney',
+  'AGI','LLM','Roboter','Deepfake','Datenschutz','Regulierung','Open Source','Chip','GPU',
+  'China','Android','Gesetz','Recht','Klage','Sicherheit',
+];
+
+// ── Chart.js Defaults ────────────────────────────────────────────────────────
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'Work Sans', sans-serif";
+Chart.defaults.font.size = 12;
+
+window._charts = [];
+let allArticles = [];
+let sourceMetric = 'count';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function isDark(){ return document.documentElement.classList.contains('dark'); }
+function gridColor(){ return isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'; }
+function labelColor(){ return isDark() ? '#6b7280' : '#64748b'; }
+
+// ── Load Data ────────────────────────────────────────────────────────────────
+async function loadData(){
+  let current = [], archive = [];
+  try {
+    const r = await fetch('news.json?t='+Date.now());
+    const d = await r.json();
+    current = d.news || [];
+    const stand = d.stand || '';
+    document.getElementById('stats-footer-stand').textContent = 'Stand: ' + stand;
+  } catch(e){}
+
+  try {
+    const r = await fetch('archive.json?t='+Date.now());
+    archive = await r.json();
+    if(!Array.isArray(archive)) archive = [];
+  } catch(e){}
+
+  let logText = '';
+  try {
+    const r = await fetch('ki_news.log?t='+Date.now());
+    logText = await r.text();
+  } catch(e){}
+
+  // Deduplizieren per Link
+  const seen = new Set(current.map(a=>a.link));
+  const merged = [...current, ...archive.filter(a=>!seen.has(a.link))];
+  allArticles = merged;
+
+  renderAll(current, merged);
+  renderPipelineHealth(logText);
+}
+
+function renderAll(current, all){
+  const isDarkMode = isDark();
+
+  // ── Hero Metriken ──────────────────────────────────────────────────────────
+  const sources = [...new Set(all.map(a=>a.source).filter(Boolean))];
+  const scores  = all.map(a=>a.score||0);
+  const avgScore = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
+  const topArt  = [...all].sort((a,b)=>(b.score||0)-(a.score||0))[0];
+
+  document.getElementById('m-total').textContent      = all.length;
+  document.getElementById('m-sources').textContent    = sources.length;
+  document.getElementById('m-sources-names').textContent = sources.slice(0,3).join(', ') + (sources.length>3 ? ' …' : '');
+  document.getElementById('m-avgscore').textContent   = avgScore;
+  document.getElementById('m-topscore').textContent   = topArt?.score || '—';
+  document.getElementById('m-topscore-title').textContent = topArt?.title?.slice(0,40)+'…' || '—';
+  document.getElementById('stats-subtitle').textContent = `${all.length} Artikel · ${sources.length} Quellen · Stand: ${document.getElementById('stats-footer-stand').textContent.replace('Stand: ','')}`;
+
+  // Sidebar Metriken
+  // sb-* Elemente kamen aus dem am 30.08. entfernten Sidebar-Schnellueberblick;
+  // Zuweisungen bleiben defensiv falls die IDs irgendwo wieder auftauchen.
+  if (document.getElementById('sb-total')) document.getElementById('sb-total').textContent = all.length;
+  if (document.getElementById('sb-sources')) document.getElementById('sb-sources').textContent = sources.length;
+  if (document.getElementById('sb-avgscore')) document.getElementById('sb-avgscore').textContent = avgScore;
+  if (document.getElementById('sb-topscore')) document.getElementById('sb-topscore').textContent = topArt?.score || '—';
+
+  // ── Quellen Chart ──────────────────────────────────────────────────────────
+  window._allNews = all;
+  window._sourceWindow = 5; // default: 5 Tage
+
+  // Global definiert damit toggleSourceWindow darauf zugreifen kann
+  window.buildSrcData = function(days) {
+    const news = window._allNews || [];
+    const cutoff = days > 0 ? Date.now() - days * 86400000 : 0;
+    const filtered = days > 0 ? news.filter(a => {
+      const raw = a.first_seen || a.date || '';
+      const t = raw ? new Date(raw).getTime() : 0;
+      return t >= cutoff;
+    }) : news;
+    const srcData = {};
+    filtered.forEach(a=>{
+      const s = a.source||'Unbekannt';
+      if(!srcData[s]) srcData[s]={count:0,scoreSum:0};
+      srcData[s].count++;
+      srcData[s].scoreSum += (a.score||0);
+    });
+    const sorted = Object.entries(srcData).sort((a,b)=>b[1].count-a[1].count);
+    return {
+      labels: sorted.map(([s])=>s),
+      counts: sorted.map(([,v])=>v.count),
+      avgs:   sorted.map(([,v])=>+(v.scoreSum/v.count).toFixed(1)),
+      colors: sorted.map(([s])=>srcColor(s)),
+    };
+  };
+
+  const initSrc = window.buildSrcData(7);
+  window._srcChartData = initSrc;
+
+  // Quellen-Ranking als HTML-Reihen (theme-reaktiv, kein Chart.js)
+  window.renderSrcRanking = function(){
+    const d = window._srcChartData;
+    const box = document.getElementById('src-ranking');
+    if (!d || !box) return;
+    const metric = (typeof _sourceMetric !== 'undefined' && _sourceMetric === 'score') ? 'avgs' : 'counts';
+    const vals = d[metric];
+    const max = Math.max.apply(null, vals.concat([1]));
+    const order = vals.map((v,i)=>i).sort((a,b)=>vals[b]-vals[a]);
+    // Quellen ohne definierte Farbe: stabile Farbe aus dem Namen ableiten
+    function srcHue(name){ let h=0; for(let k=0;k<name.length;k++) h=(h*31+name.charCodeAt(k))>>>0; return h%360; }
+    box.innerHTML = order.slice(0,12).map(function(i, rank){
+      let c = d.colors[i];
+      let c1, c2;
+      if (c && c.charAt(0) === '#') { c1 = c+'cc'; c2 = c+'55'; }
+      else { const h = srcHue(d.labels[i]); c = 'hsl('+h+',80%,62%)'; c1 = 'hsla('+h+',80%,62%,0.8)'; c2 = 'hsla('+h+',80%,62%,0.33)'; }
+      const pct = Math.max(4, Math.round(vals[i]/max*100));
+      return '<div class="srcrow">' +
+        '<span class="srcrow-rank">'+String(rank+1).padStart(2,'0')+'</span>' +
+        '<span class="srcrow-name" style="color:'+c+'">'+d.labels[i]+'</span>' +
+        '<div class="srcrow-bar"><div style="width:'+pct+'%;background:linear-gradient(90deg,'+c1+','+c2+')"></div></div>' +
+        '<span class="srcrow-val">'+vals[i]+'</span>' +
+        '<span class="srcrow-avg">Ø '+d.avgs[i]+'</span>' +
+      '</div>';
+    }).join('');
+  };
+  window.renderSrcRanking();
+
+  // ── Score Donut ────────────────────────────────────────────────────────────
+  const levelCounts = SCORE_LEVELS.map(l=>{
+    const next = SCORE_LEVELS[SCORE_LEVELS.indexOf(l)-1];
+    return all.filter(a=>{
+      const s=a.score||0;
+      return s>=l.min && (next?s<next.min:true);
+    }).length;
+  });
+
+  const ctxD = document.getElementById('chart-scores').getContext('2d');
+  const chartDoughnut = new Chart(ctxD,{
+    type:'doughnut',
+    data:{
+      labels: SCORE_LEVELS.map(l=>l.label),
+      datasets:[{
+        data: levelCounts,
+        backgroundColor: SCORE_LEVELS.map(l=>l.bg.replace('0.15','0.7')),
+        borderColor: SCORE_LEVELS.map(l=>l.color),
+        borderWidth:1.5,
+        hoverOffset:6,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      cutout:'68%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=((ctx.parsed/all.length)*100).toFixed(1);
+          return ` ${ctx.parsed} Artikel (${pct}%)`;
+        }}}
+      }
+    }
+  });
+  window._charts.push(chartDoughnut);
+
+  // Score Legend
+  const leg = document.getElementById('score-legend');
+  SCORE_LEVELS.forEach((l,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px';
+    row.innerHTML=`
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:10px;height:10px;border-radius:2px;background:${l.color};flex-shrink:0"></div>
+        <span style="font-size:11px;font-family:monospace;color:${l.color};font-weight:700">${l.label}</span>
+        <span style="font-size:10px;color:#6b7280">≥${l.min}</span>
+      </div>
+      <span style="font-size:11px;font-family:monospace;color:#9ca3af">${levelCounts[i]}</span>`;
+    leg.appendChild(row);
+  });
+
+  // ── Themen Radar ───────────────────────────────────────────────────────────
+  const termCounts = KEY_TERMS.map(t=>{
+    const re=new RegExp(t,'i');
+    return { term:t, count: all.filter(a=>(a.title||'').match(re)||(a.summary||'').match(re)).length };
+  }).filter(t=>t.count>0).sort((a,b)=>b.count-a.count).slice(0,16);
+
+  const ctxT = document.getElementById('chart-topics').getContext('2d');
+  const barColors = termCounts.map((_,i)=>{
+    const hue = 180 + (i/termCounts.length)*120;
+    return `hsla(${hue},80%,60%,0.75)`;
+  });
+  const chartTopics = new Chart(ctxT,{
+    type:'bar',
+    data:{
+      labels: termCounts.map(t=>t.term),
+      datasets:[{
+        label:'Erwähnungen',
+        data: termCounts.map(t=>t.count),
+        backgroundColor: barColors,
+        borderColor: barColors.map(c=>c.replace('0.75','1')),
+        borderWidth:1,
+        borderRadius:4,
+        borderSkipped:false,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y}× erwähnt`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:labelColor(),font:{size:11}}},
+        y:{grid:{color:gridColor()},ticks:{color:labelColor(),stepSize:1}}
+      }
+    }
+  });
+  window._charts.push(chartTopics);
+  renderThemeTrends(all);
+
+  // ── Top Artikel ────────────────────────────────────────────────────────────
+  const top10 = [...all].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,8);
+  const topList = document.getElementById('top-articles-list');
+  top10.forEach((art,i)=>{
+    const lv = scoreLevel(art.score||0);
+    const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const a=document.createElement('a');
+    a.href=art.link||'#';
+    if(art.link) a.target='_blank';
+    a.className='top-article-row';
+    a.innerHTML=`
+      <span class="rank-num ${rankClass}">${i+1}</span>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:var(--article-title-color,#dfe3ea);line-height:1.3;margin-bottom:3px" class="line-clamp-2">${escapeHtml(art.title||'—')}</p>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:9px;font-family:monospace;color:${srcColor(art.source)};font-weight:700">${escapeHtml(art.source||'—')}</span>
+          <span style="font-size:9px;font-family:monospace;color:var(--muted,#6b7280)">${(function(){const r=art.first_seen||art.date||'';if(!r)return '';const d=new Date(String(r).length<=10?r+'T00:00:00':r);return isNaN(d)?'':'· '+d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});})()}</span>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <span class="badge ${lv.badge}">${lv.label}</span>
+        <p style="font-size:16px;font-weight:900;font-family:'Space Grotesk',sans-serif;color:${lv.color};margin-top:2px">${art.score||0}</p>
+      </div>`;
+    topList.appendChild(a);
+  });
+
+  // ── Creator Radar (aktuelle Session) ──────────────────────────────────────
+  const curList = document.getElementById('current-top-list');
+  // 02.07.26: gleiche Story-Dedup wie die Startseite (pro story_id nur der
+  // staerkste Artikel). Vorher zeigte das Radar mehrere Artikel DERSELBEN
+  // Story (z.B. 2x Claude Sonnet 5) und damit "News, die auf der Startseite
+  // gar nicht auftauchen" - die Startseite dedupliziert, das Radar tat es nicht.
+  const _bestByStory = {};
+  current.forEach(n => {
+    const sid = n.story_id;
+    if (sid && (!_bestByStory[sid] || (n.score||0) > (_bestByStory[sid].score||0))) _bestByStory[sid] = n;
+  });
+  const _dedupedCurrent = current.filter(n => !n.story_id || _bestByStory[n.story_id] === n);
+  const cur5 = [..._dedupedCurrent].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
+  if(cur5.length===0){
+    curList.innerHTML='<p style="font-size:12px;color:#6b7280;font-family:monospace">Keine aktuellen Artikel geladen.</p>';
+  } else {
+    cur5.forEach((art,i)=>{
+      const lv=scoreLevel(art.score||0);
+      const a=document.createElement('a');
+      a.href=art.link||'#'; if(art.link)a.target='_blank';
+      a.className='top-article-row';
+      a.innerHTML=`
+        <span class="rank-num ${i===0?'gold':''}">${i+1}</span>
+        <div style="flex:1;min-width:0">
+          <p style="font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:var(--article-title-color,#dfe3ea);line-height:1.3;margin-bottom:3px" class="line-clamp-2">${art.title||'—'}</p>
+          <span style="font-size:9px;font-family:monospace;color:${srcColor(art.source)};font-weight:700">${art.source||'—'}</span>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <span class="badge ${lv.badge}">${lv.label}</span>
+          <p style="font-size:16px;font-weight:900;font-family:'Space Grotesk',sans-serif;color:${lv.color};margin-top:2px">${art.score||0}</p>
+        </div>`;
+      curList.appendChild(a);
+    });
+  }
+
+  // ── Tagesverlauf ──────────────────────────────────────────────────────────
+  renderDailyStats(all);
+}
+
+// ── Source Metric Toggle ─────────────────────────────────────────────────────
+let _sourceMetric = 'count';
+
+function _refreshSourceChart() {
+  if(!window.buildSrcData) return;
+  window._srcChartData = window.buildSrcData(window._sourceWindow);
+  if (window.renderSrcRanking) window.renderSrcRanking();
+}
+
+function toggleSourceMetric(metric){
+  _sourceMetric = metric;
+  _refreshSourceChart();
+  const btnCount=document.getElementById('btn-count');
+  const btnScore=document.getElementById('btn-score');
+  const isCount = metric==='count';
+  if(isCount){
+    btnCount.style.background='rgba(var(--neon-rgb),0.15)'; btnCount.style.color='var(--accent)'; btnCount.style.borderColor='rgba(var(--neon-rgb),0.3)';
+    btnScore.style.background='transparent'; btnScore.style.color='#6b7280'; btnScore.style.borderColor='rgba(107,114,128,0.2)';
+  } else {
+    btnScore.style.background='rgba(var(--neon-rgb),0.15)'; btnScore.style.color='var(--accent)'; btnScore.style.borderColor='rgba(var(--neon-rgb),0.3)';
+    btnCount.style.background='transparent'; btnCount.style.color='#6b7280'; btnCount.style.borderColor='rgba(107,114,128,0.2)';
+  }
+}
+
+function toggleSourceWindow(days){
+  window._sourceWindow = days;
+  _refreshSourceChart();
+  const labels = { 5:'letzte 5 Tage', 30:'letzte 30 Tage', 0:'Gesamtzeitraum' };
+  document.getElementById('src-window-label').textContent =
+    `Artikel-Anzahl und Durchschnitts-Score je Quelle · ${labels[days]}`;
+  ['btn-w5','btn-w30','btn-wall'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.background='transparent'; el.style.color='#6b7280'; el.style.borderColor='rgba(107,114,128,0.2)';
+  });
+  const activeId = days===5?'btn-w5':days===30?'btn-w30':'btn-wall';
+  const active = document.getElementById(activeId);
+  if(active){ active.style.background='rgba(var(--neon-rgb),0.15)'; active.style.color='var(--accent)'; active.style.borderColor='rgba(var(--neon-rgb),0.3)'; }
+}
+
+// ── Tagesverlauf ──────────────────────────────────────────────────────────────
+// Bis 30.08. versuchte dieser Chart, ein Datum aus der Artikel-URL zu raten
+// (nur TechCrunch/SiliconAngle/Ars Technica/Wired haben /YYYY/MM/DD/ im Pfad) --
+// gemessen 17% Abdeckung (188 von 1075 Artikeln). Jedes Archiv-/News-Objekt hat
+// aber first_seen/date direkt -- 100% Abdeckung, kein Raten mehr noetig.
+const DAILY_WINDOW = 10; // Tage
+
+function renderDailyStats(all) {
+  const dated = all
+    .map(a => ({ ...a, _day: (a.first_seen || a.date || '').slice(0, 10) }))
+    .filter(a => a._day);
+
+  const summaryEl = document.getElementById('daily-summary');
+
+  if (dated.length < 3) { if (summaryEl) summaryEl.textContent = ''; return; }
+
+  // Gruppieren nach Kalendertag
+  const days = {};
+  dated.forEach(a => {
+    const key = a._day;
+    if (!days[key]) days[key] = { count: 0, scoreSum: 0, scored: 0, scoredSum: 0, sources: {} };
+    days[key].count++;
+    days[key].scoreSum += (a.score || 0);
+    if ((a.score || 0) > 0) { days[key].scored++; days[key].scoredSum += a.score; }
+    days[key].sources[a.source] = (days[key].sources[a.source] || 0) + 1;
+  });
+
+  const sorted = Object.entries(days).sort(([a], [b]) => a.localeCompare(b)).slice(-DAILY_WINDOW);
+  if (!sorted.length) return;
+
+  if (summaryEl) {
+    const totalArt = sorted.reduce((s, [, v]) => s + v.count, 0);
+    summaryEl.textContent = `${sorted.length} Tage · ${totalArt} Artikel`;
+  }
+
+  const labels = sorted.map(([key]) => {
+    const d = new Date(key + 'T00:00:00');
+    return isNaN(d) ? key : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  });
+  const counts = sorted.map(([, v]) => v.count);
+  /* Ø nur über tatsächlich gescorte Artikel — Tage ohne Scores (Alt-Archiv)
+     bekommen null und die Linie setzt dort aus, statt auf 0 zu stürzen */
+  const avgs   = sorted.map(([, v]) => v.scored ? +(v.scoredSum / v.scored).toFixed(1) : null);
+
+  const ctx = document.getElementById('chart-daily');
+  if (!ctx) return;
+
+  // Tages-Chart immer in Cyan – unabhängig vom aktiven Theme
+  const barFill   = 'rgba(0,212,255,0.35)';
+  const barStroke = 'rgba(0,212,255,0.85)';
+
+  const dailyChart = new Chart(ctx.getContext('2d'), {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Artikel',
+          data: counts,
+          backgroundColor: barFill,
+          borderColor: barStroke,
+          borderWidth: 1.5,
+          borderRadius: 5,
+          minBarLength: 6,
+          yAxisID: 'y',
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: 'Ø Score',
+          data: avgs,
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249,115,22,0.08)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#f97316',
+          pointBorderColor: '#000',
+          spanGaps: false,
+          pointBorderWidth: 1,
+          tension: 0.35,
+          fill: true,
+          yAxisID: 'y2',
+          order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#6b7280', font: { size: 10, family: "'Space Grotesk',sans-serif" }, boxWidth: 12, padding: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label === 'Ø Score'
+              ? ` Ø Score: ${ctx.parsed.y}`
+              : ` ${ctx.parsed.y} Artikel`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: labelColor(), font: { size: 11 } } },
+        y: {
+          position: 'left',
+          grid: { color: gridColor() },
+          ticks: { color: labelColor(), stepSize: 1, font: { size: 11 } },
+          title: { display: true, text: 'Artikel', color: '#6b7280', font: { size: 10 } }
+        },
+        y2: {
+          position: 'right',
+          grid: { display: false },
+          ticks: { color: '#f97316', font: { size: 11 } },
+          title: { display: true, text: 'Ø Score', color: '#f97316', font: { size: 10 } }
+        }
+      }
+    }
+  });
+  window._charts.push(dailyChart);
+
+  // Tagestabelle (letzte 6 Tage)
+  const tableEl = document.getElementById('daily-table');
+  if (!tableEl) return;
+  const recent = sorted.slice(-6).reverse();
+  tableEl.innerHTML = recent.map(([key, v]) => {
+    const d = new Date(key + 'T00:00:00');
+    const label = isNaN(d) ? key : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    const avg = v.count ? (v.scoreSum / v.count).toFixed(1) : '—';
+    const topSrc = Object.entries(v.sources).sort(([,a],[,b]) => b - a)[0];
+    return `<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;flex-wrap:wrap">
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;color:var(--accent);width:80px;flex-shrink:0">${label}</span>
+      <span style="font-family:monospace;color:#6b7280">${v.count} Artikel</span>
+      <span style="font-family:monospace;color:#f97316">Ø ${avg} Score</span>
+      ${topSrc ? `<span style="font-family:monospace;color:${srcColor(topSrc[0])};margin-left:auto">Top-Quelle: ${topSrc[0]} (${topSrc[1]})</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Themen-Trend (30.08.) ──────────────────────────────────────────────────────
+// Wiederverwendet KEY_TERMS + dieselbe Match-Logik wie das Themen-Radar, nur
+// pro Kalendertag statt als Gesamtsumme gebrochen -- keine zweite Begriffsliste,
+// kein zusaetzlicher Fetch. Fenster = DAILY_WINDOW, wie beim Tagesverlauf.
+function renderThemeTrends(all) {
+  const container = document.getElementById('theme-trends');
+  if (!container) return;
+  const dated = all
+    .map(a => ({ ...a, _day: (a.first_seen || a.date || '').slice(0, 10) }))
+    .filter(a => a._day);
+  const days = [...new Set(dated.map(a => a._day))].sort().slice(-DAILY_WINDOW);
+  if (days.length < 3) { container.innerHTML = ''; return; }
+  const dayIndex = {}; days.forEach((d, i) => dayIndex[d] = i);
+
+  const rows = KEY_TERMS.map(term => {
+    const re = new RegExp(term, 'i');
+    const counts = new Array(days.length).fill(0);
+    let total = 0;
+    dated.forEach(a => {
+      const idx = dayIndex[a._day];
+      if (idx === undefined) return;
+      if (re.test(a.title || '') || re.test(a.summary || '')) { counts[idx]++; total++; }
+    });
+    return { term, counts, total };
+  }).filter(r => r.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
+
+  if (!rows.length) { container.innerHTML = ''; return; }
+
+  const w = 120, h = 26;
+  container.innerHTML = rows.map(r => {
+    const max = Math.max(...r.counts, 1);
+    const step = r.counts.length > 1 ? w / (r.counts.length - 1) : 0;
+    const points = r.counts.map((c, i) => `${(i * step).toFixed(1)},${(h - (c / max) * h).toFixed(1)}`).join(' ');
+    const mid = Math.floor(r.counts.length / 2);
+    const firstHalf = r.counts.slice(0, mid).reduce((a, b) => a + b, 0);
+    const secondHalf = r.counts.slice(mid).reduce((a, b) => a + b, 0);
+    const trendColor = secondHalf > firstHalf ? '#34d399' : secondHalf < firstHalf ? '#f87171' : '#6b7280';
+    const trendIcon  = secondHalf > firstHalf ? '▲' : secondHalf < firstHalf ? '▼' : '▬';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px">
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;width:100px;flex-shrink:0;color:var(--text,#dfe3ea)" class="truncate">${escapeHtml(r.term)}</span>
+      <svg width="${w}" height="${h}" style="flex-shrink:0;overflow:visible"><polyline points="${points}" fill="none" stroke="var(--accent,#00d4ff)" stroke-width="1.5"/></svg>
+      <span style="font-family:monospace;color:#6b7280;width:26px;text-align:right;flex-shrink:0">${r.total}</span>
+      <span style="color:${trendColor};flex-shrink:0">${trendIcon}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Pipeline-Gesundheit (30.08.) ────────────────────────────────────────────
+// Parst ki_news.log clientseitig (keine Server-/Python-Aenderung noetig) --
+// Log traegt sich selbst auf die letzten ~10 Laeufe zurueck, siehe ki_news.yml.
+// Kategorisiert WARNING-Zeilen eines Laufs, statt nur zu zaehlen (30.08.,
+// Daniels Wunsch: "warum/wieso/weshalb" statt nur einer nackten Zahl).
+// Traeger-Modellnamen werden bewusst NICHT gezeigt (Daniels Wunsch).
+function categorizeWarnings(chunk) {
+  const lines = chunk.match(/^.*\bWARNING\b.*$/gm) || [];
+  const b = { rateLimit: 0, unusable: 0, feedBlocked: 0, translation: 0, other: 0 };
+  lines.forEach(line => {
+    if (/Rate-Limit \(429\)|429 in Folge|HTTP Error 429/i.test(line)) b.rateLimit++;
+    else if (/unbrauchbar|leerem Content|fehlgeschlagen/i.test(line)) b.unusable++;
+    else if (/Feed blockiert|HTTP (Error )?(403|400|404)/i.test(line)) b.feedBlocked++;
+    else if (/unuebersetzt|nicht Deutsch/i.test(line)) b.translation++;
+    else b.other++;
+  });
+  return b;
+}
+function warnLabel(b) {
+  const parts = [];
+  if (b.rateLimit)    parts.push(`${b.rateLimit}&times; Rate-Limit`);
+  if (b.unusable)     parts.push(`${b.unusable}&times; Modell-Ausgabe unbrauchbar`);
+  if (b.feedBlocked)  parts.push(`${b.feedBlocked}&times; Quelle blockiert`);
+  if (b.translation)  parts.push(`${b.translation}&times; &Uuml;bersetzung fehlgeschlagen`);
+  if (b.other)        parts.push(`${b.other}&times; Sonstige`);
+  return parts.join(' &middot; ') || 'keine Auffaelligkeiten';
+}
+
+function renderPipelineHealth(logText) {
+  const container = document.getElementById('pipeline-health');
+  if (!container) return;
+  if (!logText) { container.innerHTML = '<p class="meta-text">Betriebs-Log nicht erreichbar.</p>'; return; }
+
+  const chunks = logText.split(/(?===+ LAUF )/).filter(c => /^=+\s*LAUF/.test(c.trim()));
+  const runs = chunks.map(chunk => {
+    const tsMatch = chunk.match(/LAUF\s+(\S+)\s*=+/);
+    const bilanzMatch = chunk.match(/BILANZ:\s*Batches\s+(\d+)\s+versucht\s*\/\s*(\d+)\s+OK\s*\|\s*Traeger:\s*(.+?)\s*\|\s*Sprach-Guard verwarf\s+(\d+)\s+Artikel/i);
+    const warnCount = (chunk.match(/\bWARNING\b/g) || []).length;
+    return {
+      ts: tsMatch ? tsMatch[1] : null,
+      attempted: bilanzMatch ? +bilanzMatch[1] : null,
+      ok: bilanzMatch ? +bilanzMatch[2] : null,
+      guardRejects: bilanzMatch ? +bilanzMatch[4] : null,
+      warnCount,
+      warnBuckets: categorizeWarnings(chunk)
+    };
+  }).filter(r => r.ts).reverse(); // neuester Lauf zuerst
+
+  if (!runs.length) { container.innerHTML = '<p class="meta-text">Keine Lauf-Marker im Log gefunden.</p>'; return; }
+
+  container.innerHTML = runs.map(r => {
+    const d = new Date(r.ts);
+    const label = isNaN(d) ? r.ts : d.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const incomplete = r.attempted != null && r.ok != null && r.ok < r.attempted;
+    const flagged = incomplete || r.warnCount > 15;
+    return `<div style="display:flex;flex-direction:column;gap:3px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;${flagged ? 'background:rgba(249,115,22,0.06)' : ''}">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <span style="font-family:monospace;color:var(--accent);width:100px;flex-shrink:0">${label}</span>
+        <span style="font-family:monospace;color:${incomplete ? '#f97316' : '#6b7280'}">${r.attempted != null ? r.attempted + ' versucht / ' + r.ok + ' OK' : '—'}</span>
+        <span style="font-family:monospace;color:${r.guardRejects ? '#f97316' : '#6b7280'}">Sprach-Guard: ${r.guardRejects ?? '—'}</span>
+        <span style="font-family:monospace;color:${r.warnCount > 15 ? '#f87171' : '#6b7280'};margin-left:auto">${r.warnCount} Warnungen</span>
+      </div>
+      <div style="font-family:monospace;font-size:10px;color:#6b7280;padding-left:114px">${warnLabel(r.warnBuckets)}</div>
+    </div>`;
+  }).join('');
+}
+
+// renderScoreBreakdown() (Quellen-Prestige/Keyword-Boni/Malus-Tabellen) am
+// 30.08. entfernt: Score-Formel-Sektion zeigt jetzt das eingebettete Archify-
+// Diagramm (score-formel-diagramm.html) statt der alten Detailtabellen.
+
+// Blendet in der eingebetteten Diagramm-Vorschau die Bedienelemente aus, die
+// normale Besucher nicht brauchen (Daniels Wunsch: "richtig minimal halten").
+// Same-Origin-Iframe, daher per JS aus der Elternseite erlaubt. Die Datei
+// score-formel-diagramm.html selbst bleibt unveraendert voll ausgestattet.
+function simplifyScoreFormelViewer(iframe) {
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    const style = doc.createElement('style');
+    style.textContent = `
+      button[aria-label*="Visual style"],
+      button[aria-label="Export diagram"],
+      button[aria-label*="Trace a directed route"],
+      button[aria-label*="Open semantic radar"],
+      button[aria-label*="Open semantic lens"] { display: none !important; }
+    `;
+    doc.head.appendChild(style);
+  } catch (e) { /* falls sich der Viewer aendert: Iframe bleibt einfach voll ausgestattet */ }
+}
+
+// ── Chart Theme Update ────────────────────────────────────────────────────────
+function updateChartTheme(chart){
+  if(!chart?.options?.scales) return;
+  Object.values(chart.options.scales).forEach(s=>{
+    if(s.grid) s.grid.color = gridColor();
+    if(s.ticks) s.ticks.color = labelColor();
+  });
+  chart.update();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadData();
+</script>
+
+
+<!-- ── Three.js Genesis Particle Scene ───────────────────── -->
+<script type="text/plain" id="ki-genesis-src">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+const COUNT=14000,SCALE=45,SPEED=0.8,COMPLEXITY=1.5;
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x000000,0.007);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,2000);
+camera.position.set(0,0,120);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000,0);
+document.getElementById('genesis-wrap').appendChild(renderer.domElement);
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.2,0.5,0);
+composer.addPass(bloom);
+const group=new THREE.Group();group.position.set(-8,5,0);scene.add(group);
+const geo=new THREE.TetrahedronGeometry(0.22),mat=new THREE.MeshBasicMaterial({color:0xffffff});
+const mesh=new THREE.InstancedMesh(geo,mat,COUNT);mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.add(mesh);
+const positions=Array.from({length:COUNT},()=>new THREE.Vector3((Math.random()-.5)*100,(Math.random()-.5)*100,(Math.random()-.5)*100));
+const dummy=new THREE.Object3D(),color=new THREE.Color(),target=new THREE.Vector3(),clock=new THREE.Clock();
+let rotY=0;
+const T3D={
+  genesis: {fog:0x000000,fogD:0.007,bloom:1.2,bloomT:0.0,coreH:0.78,coreS:0.70,tailH:0.55,tailS:0.70},
+  karst:   {fog:0x060e08,fogD:0.006,bloom:0.80,bloomT:0.0,coreH:0.36,coreS:0.85,tailH:0.14,tailS:0.70},
+  aurora:  {fog:0x04020f,fogD:0.007,bloom:1.50,bloomT:0.0,coreH:0.74,coreS:0.85,tailH:0.60,tailS:0.70},
+  meridian:{fog:0x090300,fogD:0.007,bloom:1.00,bloomT:0.0,coreH:0.065,coreS:0.90,tailH:0.12,tailS:0.80},
+  blanc:   {fog:0xfafcff,fogD:0.006,bloom:0.20,bloomT:0.5,coreH:0.60,coreS:0.70,tailH:0.55,tailS:0.55}
+};
+function getCurrentTheme(){return document.documentElement.getAttribute('data-theme')||'genesis';}
+function applyTheme3D(){var t=T3D[getCurrentTheme()]||T3D.genesis;scene.fog.color.set(t.fog);scene.fog.density=t.fogD;bloom.strength=t.bloom;bloom.threshold=t.bloomT;}
+applyTheme3D();
+new MutationObserver(()=>applyTheme3D()).observe(document.documentElement,{attributes:true,attributeFilter:['class','data-theme']});
+function animate(){
+  requestAnimationFrame(animate);
+  const time=clock.getElapsedTime();rotY+=0.0015;group.rotation.y=rotY;
+  const t=time*SPEED,coreCount=Math.floor(COUNT*0.25);
+  const _tc=T3D[getCurrentTheme()]||T3D.genesis;
+  for(let i=0;i<COUNT;i++){
+    const isCore=i<coreCount;let x=0,y=0,z=0,h=0,s=0,l=0;
+    if(isCore){
+      const cn=i/coreCount,phi=Math.acos(1-2*cn),theta=Math.PI*(1+Math.sqrt(5))*i;
+      const sp=Math.sin(t*3+phi*5+theta*3)*COMPLEXITY,r=SCALE*0.4+sp;
+      x=Math.sin(phi)*Math.cos(theta)*r;y=Math.sin(phi)*Math.sin(theta)*r;z=Math.cos(phi)*r;
+      h=_tc.coreH+Math.sin(t+cn*10)*0.05;s=_tc.coreS;l=0.2+sp*0.04;
+    }else{
+      const si=i-coreCount,ppc=25,tc=Math.max(1,Math.floor((COUNT-coreCount)/ppc));
+      const cid=Math.floor(si/ppc),pid=si%ppc,pn=pid/ppc,cn2=cid/tc;
+      const cp=Math.acos(1-2*cn2),ct=Math.PI*(1+Math.sqrt(5))*cid;
+      const dx=Math.sin(cp)*Math.cos(ct),dy=Math.sin(cp)*Math.sin(ct),dz=Math.cos(cp);
+      const cph=t*3+cid*10,lt=Math.abs((cid*78.9+t*20)%200),dfc=200-lt,ap=Math.max(SCALE*0.4,dfc);
+      const u=Math.sin(cph*5-pn*15)*(pn*3);
+      const wx=Math.sin(cph+pn*2)*u*COMPLEXITY,wy=Math.cos(cph+pn*2)*u*COMPLEXITY,wz=Math.sin(cph*.5+pn*2)*u*COMPLEXITY;
+      const tl=SCALE*0.3;
+      x=dx*(ap+pn*tl)+wx;y=dy*(ap+pn*tl)+wy;z=dz*(ap+pn*tl)+wz;
+      h=_tc.tailH+pn*0.06;s=_tc.tailS;l=(0.55-pn*0.4)*0.7;
+    }
+    target.set(x,y,z);color.setHSL(h,s,l);
+    positions[i].lerp(target,0.1);dummy.position.copy(positions[i]);dummy.updateMatrix();
+    mesh.setMatrixAt(i,dummy.matrix);mesh.setColorAt(i,color);
+  }
+  mesh.instanceMatrix.needsUpdate=true;
+  if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+  composer.render();
+}
+animate();
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+</script>
+<script>
+/* Mobile-Schonung: 3D-Hintergrund nur auf Desktop und ohne reduced-motion.
+   Auf Mobilgeräten wird three.js gar nicht erst heruntergeladen. */
+(function(){
+  if (window.innerWidth < 768) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var src = document.getElementById('ki-genesis-src');
+  if (!src) return;
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = src.textContent;
+  document.body.appendChild(s);
+})();
+</script>
+<!-- ── KI Theme-Kopplung + Seiten-Hook (Slider/Charts) ── -->
+<script>
+window.__kiThemeHook=function(light,active){
+  var knob=document.querySelector('.theme-slider-knob');
+  if(knob){knob.style.left=light?'2px':'22px';knob.style.background=light?'#f59e0b':'var(--accent)';}
+  if(window._charts&&window._charts.forEach){window._charts.forEach(function(c){try{updateChartTheme(c);}catch(e){}});}
+};
+(function(){
+  var GEN=['genesis','karst','aurora','meridian','blanc'];
+  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
+  var memGen=null, memContrast=null;
+  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
+  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
+  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
+  function resolveLight(){
+    if(getGenesis()==='blanc')return true;
+    var c=getContrast();
+    return c==='light'?true:(c==='dark'?false:prefersLight());
+  }
+  function applyAll(){
+    var root=document.documentElement, raw=rawGenesis();
+    if(raw==='custom'){
+      root.setAttribute('data-theme','custom');
+      root.classList.remove('light','dark');
+    }else{
+      var g=getGenesis(), light=resolveLight();
+      root.setAttribute('data-theme',g);
+      root.classList.toggle('light',light);
+      root.classList.toggle('dark',!light);
+    }
+    var active=(raw==='custom')?'custom':getGen

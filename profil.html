@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html data-theme="genesis" lang="de">
+<head>
+<meta charset="utf-8"/>
+<link rel="icon" type="image/png" href="s-logo.png"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Profil & Design – KI News</title>
+<link rel="stylesheet" href="assets/ki-fonts.css"/>
+<script src="assets/ki-icons.js" defer></script>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ═══ THEME TOKENS (identical to prototype-genesis.html) ════════ */
+:root {
+  --bg: #000000; --surface: rgba(8,12,20,0.82); --card: rgba(10,14,22,0.88);
+  --border: rgba(255,255,255,0.07); --text: #e5e7eb; --muted: rgba(255,255,255,0.38);
+  --accent: #1d9bf0; --neon-rgb: 0,212,255; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(0,0,0,0.18); --overlay-mid: rgba(0,0,0,0.25);
+  --overlay-bottom: rgba(0,0,0,0.82);
+  --nav-bg: rgba(0,0,0,0.72); --nav-border: rgba(255,255,255,0.06);
+}
+[data-theme="karst"] {
+  --bg: #0d1410; --surface: rgba(12,20,14,0.82); --card: rgba(14,22,16,0.88);
+  --border: rgba(74,222,128,0.07); --text: #d1fae5; --muted: rgba(167,243,208,0.42);
+  --accent: #4ade80; --neon-rgb: 74,222,128; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(13,20,16,0.18); --overlay-mid: rgba(13,20,16,0.30);
+  --overlay-bottom: rgba(10,18,12,0.88);
+  --nav-bg: rgba(10,18,12,0.80); --nav-border: rgba(74,222,128,0.08);
+}
+[data-theme="aurora"] {
+  --bg: #07041a; --surface: rgba(14,10,35,0.85); --card: rgba(18,12,42,0.90);
+  --border: rgba(192,132,252,0.08); --text: #f3e8ff; --muted: rgba(216,180,254,0.42);
+  --accent: #c084fc; --neon-rgb: 192,132,252; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(7,4,26,0.18); --overlay-mid: rgba(7,4,26,0.30);
+  --overlay-bottom: rgba(5,3,20,0.88);
+  --nav-bg: rgba(5,3,20,0.80); --nav-border: rgba(192,132,252,0.08);
+}
+[data-theme="meridian"] {
+  --bg: #110700; --surface: rgba(24,12,0,0.85); --card: rgba(28,14,0,0.90);
+  --border: rgba(251,191,36,0.08); --text: #fef3c7; --muted: rgba(253,230,138,0.42);
+  --accent: #f59e0b; --neon-rgb: 251,191,36; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(17,7,0,0.18); --overlay-mid: rgba(17,7,0,0.30);
+  --overlay-bottom: rgba(12,5,0,0.88);
+  --nav-bg: rgba(12,5,0,0.80); --nav-border: rgba(251,191,36,0.08);
+}
+[data-theme="blanc"] {
+  --bg: #f8fafc; --surface: rgba(255,255,255,0.90); --card: rgba(255,255,255,0.97);
+  --border: rgba(15,23,42,0.08); --text: #0f172a; --muted: #64748b;
+  --accent: #0ea5e9; --neon-rgb: 14,165,233; --neon: rgb(var(--neon-rgb));
+  --overlay-hero: rgba(248,250,252,0.06); --overlay-mid: rgba(248,250,252,0.40);
+  --overlay-bottom: rgba(248,250,252,0.95);
+  --nav-bg: rgba(255,255,255,0.88); --nav-border: rgba(15,23,42,0.08);
+}
+
+/* ── Hell-Modus koppeln: Struktur-Variablen hell, Akzent bleibt vom aktiven Theme ── */
+html.light {
+  --bg: #f0f4f8;
+  --surface: rgba(255,255,255,0.92);
+  --card: rgba(255,255,255,0.97);
+  --border: rgba(15,23,42,0.08);
+  --text: #0f172a;
+  --muted: #64748b;
+  --nav-bg: rgba(255,255,255,0.88);
+  --nav-border: rgba(15,23,42,0.08);
+  --sidebar-bg: #e8edf4;
+  --overlay-hero: rgba(248,250,252,0.06);
+  --overlay-mid: rgba(248,250,252,0.40);
+  --overlay-bottom: rgba(248,250,252,0.95);
+}
+html.light #sidebar { background: #e8edf4 !important; }
+html.light .sidebar-nav-link { color: rgba(30,80,140,0.7); }
+html.light .sidebar-nav-link:hover { background:#deeaf7; color:#0f172a; }
+html.light .tag { color: var(--accent); border-color: rgba(var(--neon-rgb),0.45); background: rgba(var(--neon-rgb),0.07); }
+html.light .profile-bio { color: #374151; }
+html.light .tc-desc { color: rgba(15,23,42,0.4); }
+
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Work Sans', sans-serif;
+  min-height: 100vh; overflow-x: hidden;
+  transition: background 0.4s, color 0.3s;
+}
+
+/* ── Genesis Background ─────────────────────────────────────── */
+#genesis-wrap { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+#bg-overlay {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(to bottom, var(--overlay-hero) 0%, var(--overlay-mid) 40%, var(--overlay-bottom) 70%, var(--overlay-bottom) 100%);
+  transition: background 0.4s;
+}
+
+/* ── NAV ────────────────────────────────────────────────────── */
+nav {
+  position: fixed; inset: 0 0 auto; height: 56px; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  background: var(--nav-bg); border-bottom: 1px solid rgba(var(--neon-rgb),0.18);
+  backdrop-filter: blur(14px); transition: background 0.4s, border-color 0.3s;
+}
+.nav-logo-wrap { display: flex; align-items: center; gap: 8px; }
+.nav-logo-text { font-family:'Space Grotesk',sans-serif; font-weight:900; font-size:18px; letter-spacing:-0.04em; color:var(--accent); text-transform:uppercase; }
+.nav-links { display: none; align-items: center; gap: 24px; }
+@media(min-width:768px){.nav-links{display:flex;}}
+.nav-link { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:500; color:rgba(180,220,240,0.55); text-decoration:none; transition:color 0.15s; }
+.nav-link:hover { color: #fff; }
+.nav-link.active { color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:2px; }
+.nav-right { display:flex; align-items:center; gap:16px; }
+/* Genesis dots */
+#genesis-dots{display:flex;align-items:center;gap:5px;}
+.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;background:none;}
+.gdot:hover{transform:scale(1.25);}
+.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+.gdot[data-t="genesis"]{background:#00d4ff;}
+.gdot[data-t="karst"]{background:#34d399;}
+.gdot[data-t="aurora"]{background:#a78bfa;}
+.gdot[data-t="meridian"]{background:#fb923c;}
+.gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
+/* ── SIDEBAR ── */
+#sidebar {
+  position: fixed; left: 0; top: 56px;
+  height: calc(100vh - 56px); width: 240px; z-index: 40;
+  display: none; flex-direction: column; overflow: hidden;
+  background: var(--sidebar-bg, #0c1220); border-right: 1px solid rgba(var(--neon-rgb),0.18);
+  transition: width 0.25s ease, opacity 0.2s ease;
+}
+@media(min-width:1024px){#sidebar{display:flex;}}
+#sidebar.collapsed{width:0;opacity:0;pointer-events:none;}
+[data-theme="karst"] #sidebar{background:#06100a;}
+[data-theme="aurora"] #sidebar{background:#0a0818;}
+[data-theme="meridian"] #sidebar{background:#100600;}
+[data-theme="blanc"] #sidebar{background:#e8edf4;}
+.sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .15s;border-left:2px solid transparent;color:rgba(180,220,240,0.55);text-decoration:none;}
+.sidebar-nav-link:hover{background:rgba(29,37,53,0.85);color:#fff;border-left-color:var(--accent);}
+[data-theme="blanc"] .sidebar-nav-link{color:rgba(30,80,140,0.7);}
+[data-theme="blanc"] .sidebar-nav-link:hover{background:#deeaf7;color:#0f172a;}
+.sidebar-active-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border-left:2px solid var(--accent);background:rgba(var(--neon-rgb),0.08);text-decoration:none;}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-size:16px;}
+/* Sidebar toggle — fixed accent tab on left edge (same as index.html) */
+#sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:var(--accent);border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease,box-shadow 0.2s;border-radius:0 6px 6px 0;box-shadow:0 0 12px rgba(var(--neon-rgb),0.5);}
+#sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);}
+@media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
+/* ── MAIN PAGE CONTENT ──────────────────────────────────────── */
+.page { position: relative; z-index: 10; padding: 80px 20px 80px; transition: margin-left 0.25s ease; }
+.wrap { max-width: 1100px; margin: 0 auto; }
+
+/* ── Profile Hero ───────────────────────────────────────────── */
+.profile-hero {
+  display: flex; align-items: center; gap: 28px;
+  margin-bottom: 52px; padding: 32px 36px;
+  background: var(--surface); border: 1px solid rgba(var(--neon-rgb),0.22);
+  border-radius: 20px; backdrop-filter: blur(16px);
+  box-shadow: 0 0 24px rgba(var(--neon-rgb),0.10), 0 0 60px rgba(var(--neon-rgb),0.04);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+.avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(var(--neon-rgb),0.12);
+  border: 2px solid rgba(var(--neon-rgb),0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(var(--neon-rgb),0.25);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+.profile-name {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 900; font-size: 28px;
+  letter-spacing: -0.03em; color: var(--text); line-height: 1;
+}
+.profile-handle {
+  font-family: monospace; font-size: 12px; color: var(--accent);
+  margin-top: 4px; letter-spacing: 0.04em;
+}
+.profile-bio {
+  font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.6;
+  max-width: 480px;
+}
+.profile-tags {
+  display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+}
+.tag {
+  font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 10px; border: 1px solid rgba(var(--neon-rgb),0.30);
+  color: var(--neon); border-radius: 3px;
+  background: rgba(var(--neon-rgb),0.08);
+  transition: all 0.4s;
+}
+.profile-stats {
+  margin-left: auto; display: flex; gap: 28px; flex-shrink: 0;
+}
+.stat { text-align: center; }
+.stat-num {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 900; font-size: 22px;
+  color: var(--accent); letter-spacing: -0.02em;
+}
+.stat-lbl {
+  font-size: 9px; font-family: monospace; color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;
+}
+
+/* ── Section Header ─────────────────────────────────────────── */
+.section-header {
+  margin-bottom: 24px; display: flex; align-items: center; gap: 16px;
+}
+.section-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text);
+}
+.section-sub {
+  font-size: 11px; font-family: monospace; color: var(--muted);
+}
+.section-line { flex: 1; height: 1px; background: var(--border); }
+
+/* ── Theme Grid ─────────────────────────────────────────────── */
+.theme-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px;
+  margin-bottom: 48px;
+}
+@media(max-width:900px){ .theme-grid { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:580px){ .theme-grid { grid-template-columns: repeat(2,1fr); } }
+
+.theme-card {
+  position: relative; border-radius: 14px; overflow: hidden;
+  cursor: pointer; transition: transform 0.25s, box-shadow 0.25s;
+  border: 2px solid transparent;
+}
+.theme-card:hover { transform: translateY(-4px); }
+.theme-card.active { border-color: #fff; }
+.theme-card.active::after {
+  content: '✓ AKTIV';
+  position: absolute; top: 8px; right: 8px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 7px; font-weight: 700;
+  letter-spacing: 0.1em; padding: 2px 7px;
+  background: rgba(255,255,255,0.18); color: #fff;
+  border-radius: 10px; backdrop-filter: blur(4px);
+}
+
+/* Theme card swatch backgrounds */
+.tc-genesis  { background: linear-gradient(135deg, #000 0%, #030d1a 50%, #001122 100%); }
+.tc-karst    { background: linear-gradient(135deg, #0d1410 0%, #122218 50%, #0a1a0c 100%); }
+.tc-aurora   { background: linear-gradient(135deg, #07041a 0%, #120a2e 50%, #1a0830 100%); }
+.tc-meridian { background: linear-gradient(135deg, #110700 0%, #1e0c00 50%, #120900 100%); }
+.tc-blanc    { background: linear-gradient(135deg, #f8fafc 0%, #eef2f8 50%, #e8f0fb 100%); }
+
+.tc-preview {
+  padding: 16px 14px 12px;
+  min-height: 140px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.tc-dots {
+  display: flex; gap: 4px; margin-bottom: 12px;
+}
+.tc-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.tc-lines { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.tc-line {
+  height: 5px; border-radius: 2px; background: rgba(255,255,255,0.12);
+}
+.tc-line.accent { width: 35%; }
+.tc-line.long   { width: 88%; }
+.tc-line.medium { width: 62%; }
+.tc-line.short  { width: 45%; }
+
+/* Blanc lines use dark */
+.tc-blanc .tc-line { background: rgba(15,23,42,0.10); }
+
+.tc-footer {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tc-blanc .tc-footer { border-top-color: rgba(15,23,42,0.08); }
+.tc-name {
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.tc-desc {
+  font-family: monospace; font-size: 9px; color: rgba(255,255,255,0.4);
+  text-align: right;
+}
+.tc-blanc .tc-desc { color: rgba(15,23,42,0.4); }
+
+/* Genesis theme card colors */
+.tc-genesis .tc-dot:nth-child(1)  { background: #00d4ff; box-shadow: 0 0 6px #00d4ff; }
+.tc-genesis .tc-dot:nth-child(2)  { background: #1d9bf0; }
+.tc-genesis .tc-dot:nth-child(3)  { background: rgba(255,255,255,0.15); }
+.tc-genesis .tc-line.accent       { background: #00d4ff; opacity: 0.7; }
+.tc-genesis .tc-name              { color: #00d4ff; }
+
+.tc-karst .tc-dot:nth-child(1)    { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+.tc-karst .tc-dot:nth-child(2)    { background: #86efac; }
+.tc-karst .tc-dot:nth-child(3)    { background: rgba(255,255,255,0.12); }
+.tc-karst .tc-line.accent         { background: #4ade80; opacity: 0.7; }
+.tc-karst .tc-name                { color: #4ade80; }
+
+.tc-aurora .tc-dot:nth-child(1)   { background: #c084fc; box-shadow: 0 0 6px #c084fc; }
+.tc-aurora .tc-dot:nth-child(2)   { background: #e879f9; }
+.tc-aurora .tc-dot:nth-child(3)   { background: rgba(255,255,255,0.10); }
+.tc-aurora .tc-line.accent        { background: #c084fc; opacity: 0.7; }
+.tc-aurora .tc-name               { color: #c084fc; }
+
+.tc-meridian .tc-dot:nth-child(1) { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+.tc-meridian .tc-dot:nth-child(2) { background: #f59e0b; }
+.tc-meridian .tc-dot:nth-child(3) { background: rgba(255,255,255,0.10); }
+.tc-meridian .tc-line.accent      { background: #fbbf24; opacity: 0.7; }
+.tc-meridian .tc-name             { color: #fbbf24; }
+
+.tc-blanc .tc-dot:nth-child(1)    { background: #0ea5e9; box-shadow: 0 0 6px rgba(14,165,233,0.5); }
+.tc-blanc .tc-dot:nth-child(2)    { background: #38bdf8; }
+.tc-blanc .tc-dot:nth-child(3)    { background: rgba(15,23,42,0.12); }
+.tc-blanc .tc-line.accent         { background: #0ea5e9; opacity: 0.6; }
+.tc-blanc .tc-name                { color: #0ea5e9; }
+
+/* ── Settings Blocks ────────────────────────────────────────── */
+.settings-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px;
+}
+@media(max-width:640px){ .settings-grid { grid-template-columns: 1fr; } }
+.settings-block {
+  background: var(--surface); border: 1px solid rgba(var(--neon-rgb),0.14);
+  border-radius: 14px; padding: 20px 22px; backdrop-filter: blur(12px);
+  transition: border-color 0.4s;
+}
+.settings-block h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+  margin-bottom: 14px;
+}
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-val {
+  font-family: monospace; font-size: 11px; color: var(--muted);
+}
+.settings-val.accent { color: var(--accent); }
+
+/* ── Active Theme Details ───────────────────────────────────── */
+.theme-detail {
+  background: var(--surface); border: 1px solid rgba(var(--neon-rgb),0.22);
+  border-radius: 16px; padding: 28px 30px; margin-bottom: 48px;
+  backdrop-filter: blur(16px);
+  transition: all 0.4s;
+  box-shadow: 0 0 20px rgba(var(--neon-rgb),0.08);
+}
+.color-palette {
+  display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;
+}
+.swatch {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.swatch-color {
+  width: 44px; height: 44px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.swatch-name {
+  font-family: monospace; font-size: 8px; color: var(--muted);
+  text-align: center; letter-spacing: 0.04em;
+}
+
+/* Social Links Block */
+.social-row {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px;
+}
+.social-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 7px 14px; border: 1px solid rgba(var(--neon-rgb),0.25);
+  color: var(--text); text-decoration: none; border-radius: 6px;
+  background: rgba(var(--neon-rgb),0.06);
+  transition: all 0.15s;
+}
+.social-btn:hover { background: rgba(var(--neon-rgb),0.15); border-color: rgba(var(--neon-rgb),0.5); }
+
+@media(min-width:640px){
+  .nav-de-badge { display: inline !important; }
+  .nav-xhandle  { display: inline !important; }
+}
+@media(max-width:768px) {
+  .profile-hero { flex-direction: column; align-items: flex-start; }
+  .profile-stats { margin-left: 0; }
+}
+</style>
+<style id="km-drawer">
+#brand-menu-hint{display:none;}
+@media(max-width:767px){#brand-menu-hint{display:inline-flex !important;align-items:center;gap:4px;}#brand-link{cursor:pointer;}}
+#sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}
+#sidebar-backdrop.open{opacity:1;visibility:visible;}
+@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}
+@media(max-width:1023px){
+#sidebar{display:flex !important;width:284px !important;max-width:84vw;transform:translateX(-100%);transition:transform .28s ease;opacity:1 !important;z-index:60;pointer-events:none;box-shadow:8px 0 40px rgba(0,0,0,0.55);}
+#sidebar.collapsed{width:284px !important;max-width:84vw;opacity:1 !important;transform:translateX(-100%);pointer-events:none;}
+#sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}
+}
+</style>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
+</head>
+<body>
+<script src="assets/ki-layout.js"></script>
+
+<div id="genesis-wrap"></div>
+<div id="bg-overlay"></div>
+
+<!-- NAV -->
+<!-- PAGE CONTENT -->
+<div class="page" id="main-content">
+  <div class="wrap">
+
+    <!-- ── Profile Hero ─────────────────────────────────────── -->
+    <div class="profile-hero">
+      <div class="avatar">⚡</div>
+      <div style="flex:1">
+        <div class="profile-name">Scampy.de</div>
+        <div class="profile-handle">@ScampyKI · ki-news.live</div>
+        <div class="profile-bio">
+          Techniker. KI-Content-Creator. Täglich deutschsprachige KI-News — kuratiert, eingeordnet, erklärt.<br>
+          Ein-Mann-Projekt aus Dresden.
+        </div>
+        <div class="profile-tags">
+          <span class="tag">KI</span>
+          <span class="tag">Dresden</span>
+          <span class="tag">Open Source</span>
+          <span class="tag">Techniker</span>
+          <span class="tag">Maker</span>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="stat"><div class="stat-num">3</div><div class="stat-lbl">Podcasts</div></div>
+        <div class="stat"><div class="stat-num" id="newsCount">—</div><div class="stat-lbl">News</div></div>
+        <div class="stat"><div class="stat-num">5</div><div class="stat-lbl">Designs</div></div>
+      </div>
+    </div>
+
+    <!-- ── Theme Selection ──────────────────────────────────── -->
+    <div class="section-header">
+      <span class="section-title">Design-Theme</span>
+      <span class="section-sub" id="activeThemeName">Genesis</span>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="theme-grid">
+
+      <div class="theme-card tc-genesis active" id="card-genesis" onclick="setTheme('genesis')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Genesis</span>
+          <span class="tc-desc">Neon Cyan</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-karst" id="card-karst" onclick="setTheme('karst')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Karst</span>
+          <span class="tc-desc">Jungle Green</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-aurora" id="card-aurora" onclick="setTheme('aurora')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Aurora</span>
+          <span class="tc-desc">Cosmic Violet</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-meridian" id="card-meridian" onclick="setTheme('meridian')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Meridian</span>
+          <span class="tc-desc">Ember Amber</span>
+        </div>
+      </div>
+
+      <div class="theme-card tc-blanc" id="card-blanc" onclick="setTheme('blanc')">
+        <div class="tc-preview">
+          <div class="tc-dots">
+            <div class="tc-dot"></div><div class="tc-dot"></div><div class="tc-dot"></div>
+          </div>
+          <div class="tc-lines">
+            <div class="tc-line accent"></div>
+            <div class="tc-line long"></div>
+            <div class="tc-line medium"></div>
+            <div class="tc-line short"></div>
+            <div class="tc-line long" style="opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-name">Blanc</span>
+          <span class="tc-desc">Editorial</span>
+        </div>
+      </div>
+
+    </div><!-- /theme-grid -->
+
+    <!-- ── Active Theme Details ─────────────────────────────── -->
+    <div class="theme-detail" id="theme-detail">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent)" id="td-name">GENESIS</span>
+        <span style="font-size:10px;font-family:monospace;color:var(--muted)" id="td-mood">Neon Cyan · Space Black · Dark</span>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-top:8px" id="td-desc">
+        Das Original. Tiefschwarz mit Neon-Cyan-Akzenten — KI-Atmosphäre pur. Der Genesis-Partikel-Hintergrund leuchtet in kaltem Blau-Weiß. Präzise, technisch, unverwechselbar.
+      </p>
+      <div class="color-palette" id="td-palette"></div>
+    </div>
+
+    <!-- ── Eigenes Theme ────────────────────────────────────── -->
+    <div class="section-header">
+      <span class="section-title">Eigenes Theme</span>
+      <span class="section-sub">Deine Farben</span>
+      <div class="section-line"></div>
+    </div>
+    <style>
+      .cte-wrap{background:var(--surface);border:1px solid rgba(var(--neon-rgb),0.22);border-radius:16px;padding:24px 26px;margin-bottom:48px;box-shadow:0 0 20px rgba(var(--neon-rgb),0.08);}
+      .cte-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+      @media(max-width:680px){.cte-grid{grid-template-columns:repeat(2,1fr);}}
+      .cte-field{display:flex;flex-direction:column;gap:8px;}
+      .cte-field>span{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+      .cte-field input[type=color]{width:100%;height:48px;border:1px solid rgba(var(--neon-rgb),0.25);border-radius:10px;background:transparent;cursor:pointer;padding:4px;}
+      .cte-field input[type=color]::-webkit-color-swatch{border:none;border-radius:6px;}
+      .cte-field input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
+      .cte-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+      .cte-apply{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:11px 18px;cursor:pointer;transition:filter 0.15s;}
+      .cte-apply:hover{filter:brightness(1.12);}
+      .cte-reset{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);background:transparent;border:1px solid rgba(var(--neon-rgb),0.25);border-radius:8px;padding:11px 18px;cursor:pointer;transition:all 0.15s;}
+      .cte-reset:hover{color:var(--text);border-color:rgba(var(--neon-rgb),0.5);}
+      .cte-hint{font-size:11px;font-family:monospace;color:var(--muted);margin-top:14px;letter-spacing:0.03em;}
+      .gdot[data-t="custom"]{background:conic-gradient(from 0deg,#00d4ff,#34d399,#fb923c,#a78bfa,#00d4ff);}
+    </style>
+    <div class="cte-wrap" id="custom-theme-editor">
+      <div class="cte-grid">
+        <label class="cte-field"><span>Hintergrund</span><input type="color" id="cte-bg" value="#000000" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Surface</span><input type="color" id="cte-surface" value="#0a0e16" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Akzent</span><input type="color" id="cte-accent" value="#00d4ff" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Neon-Glow</span><input type="color" id="cte-neon" value="#00d4ff" oninput="kiLiveEditor()"/></label>
+        <label class="cte-field"><span>Text</span><input type="color" id="cte-text" value="#e8f8ff" oninput="kiLiveEditor()"/></label>
+      </div>
+      <div class="cte-actions">
+        <button class="cte-apply" onclick="kiApplyEditor()">Anwenden &amp; aktivieren</button>
+        <button class="cte-reset" onclick="kiResetEditor()">Zurück zu Genesis</button>
+      </div>
+      <p class="cte-hint">Wird im Browser gespeichert und auf allen Seiten angewendet.</p>
+    </div>
+
+    <!-- ── Settings ─────────────────────────────────────────── -->
+    <div class="section-header">
+      <span class="section-title">Einstellungen</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="settings-grid">
+      <div class="settings-block">
+        <h3>Projekt</h3>
+        <div class="settings-row">
+          <span>Domain</span>
+          <span class="settings-val accent">ki-news.live</span>
+        </div>
+        <div class="settings-row">
+          <span>Routing</span>
+          <span class="settings-val">Cloudflare</span>
+        </div>
+        <div class="settings-row">
+          <span>Update-Rhythmus</span>
+          <span class="settings-val">Täglich</span>
+        </div>
+        <div class="settings-row">
+          <span>Sprache</span>
+          <span class="settings-val">Deutsch</span>
+        </div>
+      </div>
+      <div class="settings-block">
+        <h3>Links</h3>
+        <div style="margin-top:4px">
+          <div class="social-row">
+            <a href="https://x.com/ScampyKI" target="_blank" class="social-btn">𝕏 @ScampyKI</a>
+            <a href="https://youtube.com/@ScampyKI" target="_blank" class="social-btn">▶ YouTube</a>
+          </div>
+          <div class="social-row" style="margin-top:10px">
+            <a href="https://soundcloud.com/dscampy" target="_blank" class="social-btn">🎵 Podcast</a>
+          </div>
+          <div class="social-row" style="margin-top:10px">
+            <a href="prototype-genesis.html" class="social-btn">◈ Genesis Vorschau</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /wrap -->
+</div><!-- /page -->
+
+<!-- ═══ JS ══════════════════════════════════════════════════════════ -->
+<script>
+/* ── Sidebar toggle ──────────────────────────────────────────── */
+function toggleSidebar() {
+  var sb   = document.getElementById('sidebar');
+  var tog  = document.getElementById('sidebar-toggle');
+  var icon = document.getElementById('toggle-icon');
+  if (!sb) return;
+  var open = !sb.classList.contains('collapsed');
+  if (open) {
+    sb.classList.add('collapsed');
+    if (tog)  tog.style.left  = '0';
+    if (icon) icon.textContent = 'chevron_right';
+    try { localStorage.setItem('ki_sidebar_open','0'); } catch(e) {}
+  } else {
+    sb.classList.remove('collapsed');
+    if (tog)  tog.style.left  = '240px';
+    if (icon) icon.textContent = 'chevron_left';
+    try { localStorage.setItem('ki_sidebar_open','1'); } catch(e) {}
+  }
+}
+
+/* ── Genesis theme sync (shared key with other pages) ───────── */
+/* Gekoppelte Hell/Dunkel-Logik: Kontrast-Schalter (ki_theme) + Blanc ⇒ hell */
+var kiMemGen = null;            // In-Memory-Fallback, falls localStorage blockiert ist
+var kiMemContrast = null;       // dito für Kontrast (ki_theme)
+function kiCurrentGenesis(){
+  // Quelle der Wahrheit: gespeicherter Wert → Memory → live data-theme → genesis
+  var v=null; try{ v=localStorage.getItem('ki_genesis_theme'); }catch(e){}
+  if(!v) v=kiMemGen;
+  if(!v) v=document.documentElement.getAttribute('data-theme');
+  return v||'genesis';
+}
+function kiContrastLight(){
+  var c=null; try{ c=localStorage.getItem('ki_theme'); }catch(e){}
+  if(!c) c=kiMemContrast;
+  c=c||'auto';
+  if(c==='light')return true;
+  if(c==='dark')return false;
+  return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
+}
+function kiApplyLight(name){
+  var root=document.documentElement;
+  if(name==='blanc'){root.classList.add('light');root.classList.remove('dark');return;}
+  if(name==='custom'){root.classList.remove('light','dark');return;}
+  var l=kiContrastLight();
+  root.classList.toggle('light',l);
+  root.classList.toggle('dark',!l);
+}
+window.setGenesisTheme = function(name) {
+  kiMemGen = name;
+  document.documentElement.setAttribute('data-theme', name);
+  kiApplyLight(name);
+  // Sync dots
+  document.querySelectorAll('.gdot').forEach(function(d) {
+    d.classList.toggle('active', d.getAttribute('data-t') === name);
+  });
+  // Persist
+  try { localStorage.setItem('ki_genesis_theme', name); } catch(e) {}
+  // Delegate to page setTheme for cards/palette block
+  if (typeof setTheme === 'function') setTheme(name);
+};
+
+/* ── Light/Dark cycle (shared with other pages) ─────────────── */
+window.cycleTheme = function() {
+  var isLight = document.documentElement.classList.contains('light');
+  var next = isLight ? 'dark' : 'light';
+  var g = kiCurrentGenesis();
+  kiMemContrast = next;
+  try { localStorage.setItem('ki_theme', next); } catch(e) {}
+  // Aus Blanc heraus auf Dunkel: Blanc verlassen (Blanc hat keine Dunkel-Variante)
+  if(next==='dark' && g==='blanc' && typeof setTheme==='function'){ setTheme('genesis'); return; }
+  document.documentElement.classList.toggle('light', next==='light');
+  document.documentElement.classList.toggle('dark', next!=='light');
+};
+
+/* ── DOMContentLoaded: restore sidebar + dots ───────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  // Hell/Dunkel gekoppelt wiederherstellen (Blanc ⇒ hell, Kontrast-Schalter sonst)
+  var gRestore = 'genesis';
+  try { gRestore = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
+  kiApplyLight(gRestore);
+  // Dots
+  var saved = 'genesis';
+  try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
+  document.querySelectorAll('.gdot').forEach(function(d) {
+    d.classList.toggle('active', d.getAttribute('data-t') === saved);
+  });
+  // Sidebar state
+  var sb   = document.getElementById('sidebar');
+  var tog  = document.getElementById('sidebar-toggle');
+  var icon = document.getElementById('toggle-icon');
+  var sideOpen = '0';
+  try { sideOpen = localStorage.getItem('ki_sidebar_open') || '0'; } catch(e) {}
+  if (sideOpen === '1' && window.innerWidth >= 1024) {
+    if (sb)   sb.classList.remove('collapsed');
+    if (tog)  tog.style.left  = '240px';
+    if (icon) icon.textContent = 'chevron_left';
+  } else {
+    if (sb)   sb.classList.add('collapsed');
+    if (tog)  tog.style.left  = '0';
+    if (icon) icon.textContent = 'chevron_right';
+  }
+});
+
+/* ── Theme data ──────────────────────────────────────────────── */
+var THEMES = {
+  genesis:  {
+    name: 'GENESIS', mood: 'Neon Cyan · Space Black · Dark',
+    desc: 'Das Original. Tiefschwarz mit Neon-Cyan-Akzenten — KI-Atmosphäre pur. Der Genesis-Partikel-Hintergrund leuchtet in kaltem Blau-Weiß. Präzise, technisch, unverwechselbar.',
+    palette: [
+      { n:'BG',       c:'#000000' },
+      { n:'Surface',  c:'rgba(8,12,20,0.82)' },
+      { n:'Accent',   c:'#1d9bf0' },
+      { n:'Neon',     c:'#00d4ff' },
+      { n:'Text',     c:'#e5e7eb' },
+    ]
+  },
+  karst: {
+    name: 'KARST', mood: 'Jungle Green · Limestone Dark · Dark',
+    desc: 'Inspiriert von Kalkstein-Karsttürmen und Dschungelvegetation. Tiefes Waldgrün als Basis, lebendige Jade-Akzente. Ruhig, natürlich, geerdet — wie ein Morgen im Nebeltal.',
+    palette: [
+      { n:'BG',       c:'#0d1410' },
+      { n:'Surface',  c:'rgba(12,20,14,0.82)' },
+      { n:'Accent',   c:'#4ade80' },
+      { n:'Neon',     c:'#86efac' },
+      { n:'Text',     c:'#d1fae5' },
+    ]
+  },
+  aurora: {
+    name: 'AURORA', mood: 'Cosmic Violet · Deep Space · Dark',
+    desc: 'Tiefer Weltraum trifft Polarlicht. Violett-Magenta-Spektrum mit maximaler Bloom-Intensität. Der Genesis-Background explodiert in kosmischen Farben — dramatisch und unvergesslich.',
+    palette: [
+      { n:'BG',       c:'#07041a' },
+      { n:'Surface',  c:'rgba(14,10,35,0.85)' },
+      { n:'Accent',   c:'#c084fc' },
+      { n:'Neon',     c:'#e879f9' },
+      { n:'Text',     c:'#f3e8ff' },
+    ]
+  },
+  meridian: {
+    name: 'MERIDIAN', mood: 'Ember Amber · Deep Ember · Dark',
+    desc: 'Warme Glut trifft Tech-Ästhetik. Tiefstes Bernstein auf fast schwarzem Hintergrund. Der Genesis-Background glüht in Gold- und Orangetönen — wie Lava unter der Oberfläche.',
+    palette: [
+      { n:'BG',       c:'#110700' },
+      { n:'Surface',  c:'rgba(24,12,0,0.85)' },
+      { n:'Accent',   c:'#f59e0b' },
+      { n:'Neon',     c:'#fbbf24' },
+      { n:'Text',     c:'#fef3c7' },
+    ]
+  },
+  blanc: {
+    name: 'BLANC', mood: 'Sky Blue · Editorial White · Light',
+    desc: 'Sauberes redaktionelles Hell-Design. Fraunces-Serif für Headlines, Sky Blue als Akzent. Der Genesis-Background wird zu einem dezenten Muster auf weißem Grund — professionell und lesbar.',
+    palette: [
+      { n:'BG',       c:'#f8fafc' },
+      { n:'Surface',  c:'#ffffff' },
+      { n:'Accent',   c:'#0ea5e9' },
+      { n:'Neon',     c:'#38bdf8' },
+      { n:'Text',     c:'#0f172a' },
+    ]
+  }
+};
+
+function setTheme(name) {
+  if (name === 'custom') {
+    document.querySelectorAll('.theme-card').forEach(function(c){ c.classList.remove('active'); });
+    var lblC=document.getElementById('activeThemeName'); if(lblC) lblC.textContent='Eigenes';
+    var tnC=document.getElementById('td-name'); if(tnC) tnC.textContent='EIGENES THEME';
+    var tmC=document.getElementById('td-mood'); if(tmC) tmC.textContent='Deine Farben · Custom';
+    var tdC=document.getElementById('td-desc'); if(tdC) tdC.textContent='Dein selbst gewähltes Farbschema — im Browser gespeichert und auf allen Seiten aktiv.';
+    return;
+  }
+  var t = THEMES[name];
+  if (!t) return;
+  kiMemGen = name;
+  document.documentElement.setAttribute('data-theme', name);
+  kiApplyLight(name);
+  // Update theme cards
+  document.querySelectorAll('.theme-card').forEach(function(c) {
+    c.classList.toggle('active', c.id === 'card-' + name);
+  });
+  // Update section label
+  var lbl = document.getElementById('activeThemeName');
+  if (lbl) lbl.textContent = t.name.charAt(0) + t.name.slice(1).toLowerCase();
+  // Update detail block
+  document.getElementById('td-name').textContent = t.name;
+  document.getElementById('td-mood').textContent = t.mood;
+  document.getElementById('td-desc').textContent = t.desc;
+  // Rebuild palette
+  var pal = document.getElementById('td-palette');
+  pal.innerHTML = '';
+  t.palette.forEach(function(sw) {
+    var div = document.createElement('div');
+    div.className = 'swatch';
+    div.innerHTML =
+      '<div class="swatch-color" style="background:' + sw.c + '"></div>' +
+      '<div class="swatch-name">' + sw.n + '</div>';
+    pal.appendChild(div);
+  });
+  // Persist globally (shared with prototype-genesis.html)
+  try { localStorage.setItem('ki_genesis_theme', name); } catch(e) {}
+}
+
+// Load news count from archive
+try {
+  fetch('archive.json').then(function(r){return r.json();}).then(function(d){
+    var cnt = Array.isArray(d) ? d.length : (d.news ? d.news.length : '—');
+    var el = document.getElementById('newsCount');
+    if (el) el.textContent = cnt > 999 ? (Math.floor(cnt/100)/10)+'k' : cnt;
+  }).catch(function(){});
+} catch(e) {}
+
+// Init
+(function(){
+  var saved = 'genesis';
+  try { saved = localStorage.getItem('ki_genesis_theme') || 'genesis'; } catch(e) {}
+  setTheme(saved);
+})();
+</script>
+
+<!-- ═══ GENESIS THREE.js ═══════════════════════════════════════════ -->
+<script type="text/plain" id="ki-genesis-src">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const COUNT=12000, SCALE=45, SPEED=0.6, COMPLEXITY=1.2;
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000, 0.007);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(0, 0, 120);
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, powerPreference:'high-performance'});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+document.getElementById('genesis-wrap').appendChild(renderer.domElement);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 1.2, 0.5, 0);
+composer.addPass(bloom);
+const group = new THREE.Group();
+group.position.set(-8, 5, 0);
+scene.add(group);
+const geo = new THREE.TetrahedronGeometry(0.22);
+const mat = new THREE.MeshBasicMaterial({color:0xffffff});
+const mesh = new THREE.InstancedMesh(geo, mat, COUNT);
+mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+group.add(mesh);
+const positions = Array.from({length:COUNT}, () =>
+  new THREE.Vector3((Math.random()-.5)*100, (Math.random()-.5)*100, (Math.random()-.5)*100)
+);
+const dummy = new THREE.Object3D();
+const color  = new THREE.Color();
+const target = new THREE.Vector3();
+const clock  = new THREE.Clock();
+let rotY = 0;
+
+const THEME_3D = {
+  genesis:  { fog:0x000000, fogD:0.007, bloom:1.2, bloomT:0.0, coreH:0.78, coreS:0.70, coreLB:0.20, coreLV:0.04, trailH:0.55, trailS:0.70, trailLB:0.55, trailLE:0.40 },
+  karst:    { fog:0x080e09, fogD:0.006, bloom:0.80, bloomT:0.0, coreH:0.36, coreS:0.80, coreLB:0.18, coreLV:0.04, trailH:0.32, trailS:0.75, trailLB:0.42, trailLE:0.30 },
+  aurora:   { fog:0x040210, fogD:0.007, bloom:1.50, bloomT:0.0, coreH:0.78, coreS:0.85, coreLB:0.20, coreLV:0.05, trailH:0.86, trailS:0.80, trailLB:0.55, trailLE:0.38 },
+  meridian: { fog:0x090300, fogD:0.007, bloom:1.00, bloomT:0.0, coreH:0.065, coreS:0.90, coreLB:0.18, coreLV:0.04, trailH:0.095, trailS:0.85, trailLB:0.50, trailLE:0.32 },
+  blanc:    { fog:0xfafcff, fogD:0.006, bloom:0.20, bloomT:0.5, coreH:0.0, coreS:0.90, coreLB:0.28, coreLV:0.03, trailH:0.07, trailS:0.88, trailLB:0.38, trailLE:0.22 }
+};
+
+function applyTheme3D() {
+  const t = document.documentElement.getAttribute('data-theme') || 'genesis';
+  const cfg = THEME_3D[t] || THEME_3D.genesis;
+  scene.fog.color.setHex(cfg.fog);
+  scene.fog.density = cfg.fogD;
+  bloom.strength = cfg.bloom;
+  bloom.threshold = cfg.bloomT;
+}
+applyTheme3D();
+new MutationObserver(() => applyTheme3D())
+  .observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = document.documentElement.getAttribute('data-theme') || 'genesis';
+  const cfg = THEME_3D[t] || THEME_3D.genesis;
+  const time = clock.getElapsedTime();
+  rotY += 0.001;
+  group.rotation.y = rotY;
+  const elapsed = time * SPEED;
+  const coreCount = Math.floor(COUNT * 0.25);
+  for (let i = 0; i < COUNT; i++) {
+    const isCore = i < coreCount;
+    let x=0, y=0, z=0, h=0, s=0, l=0;
+    if (isCore) {
+      const cn  = i / coreCount;
+      const phi   = Math.acos(1 - 2 * cn);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+      const sp  = Math.sin(elapsed*3 + phi*5 + theta*3) * COMPLEXITY;
+      const r   = SCALE * 0.4 + sp;
+      x = Math.sin(phi) * Math.cos(theta) * r;
+      y = Math.sin(phi) * Math.sin(theta) * r;
+      z = Math.cos(phi) * r;
+      h = cfg.coreH + Math.sin(elapsed + cn*10) * 0.03;
+      s = cfg.coreS; l = cfg.coreLB + sp * cfg.coreLV;
+    } else {
+      const si = i - coreCount;
+      const ppc = 25;
+      const tc  = Math.max(1, Math.floor((COUNT - coreCount) / ppc));
+      const cid = Math.floor(si / ppc);
+      const pid = si % ppc;
+      const pn  = pid / ppc;
+      const cn2 = cid / tc;
+      const cp  = Math.acos(1 - 2 * cn2);
+      const ct  = Math.PI * (1 + Math.sqrt(5)) * cid;
+      const dx  = Math.sin(cp) * Math.cos(ct);
+      const dy  = Math.sin(cp) * Math.sin(ct);
+      const dz  = Math.cos(cp);
+      const cph = elapsed * 3 + cid * 10;
+      const lt  = Math.abs((cid * 78.9 + elapsed * 20) % 200);
+      const ap  = Math.max(SCALE * 0.4, 200 - lt);
+      const u   = Math.sin(cph*5 - pn*15) * (pn * 3);
+      x = dx*(ap + pn*SCALE*0.3) + Math.sin(cph + pn*2) * u * COMPLEXITY;
+      y = dy*(ap + pn*SCALE*0.3) + Math.cos(cph + pn*2) * u * COMPLEXITY;
+      z = dz*(ap + pn*SCALE*0.3) + Math.sin(cph*.5 + pn*2) * u * COMPLEXITY;
+      h = cfg.trailH + pn * 0.03; s = cfg.trailS;
+      l = (cfg.trailLB - pn * cfg.trailLE) * 0.8;
+    }
+    target.set(x, y, z);
+    color.setHSL(h, s, l);
+    positions[i].lerp(target, 0.1);
+    dummy.position.copy(positions[i]);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+    mesh.setColorAt(i, color);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  composer.render();
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+</script>
+<script>
+/* Mobile-Schonung: 3D-Hintergrund nur auf Desktop und ohne reduced-motion.
+   Auf Mobilgeräten wird three.js gar nicht erst heruntergeladen. */
+(function(){
+  if (window.innerWidth < 768) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var src = document.getElementById('ki-genesis-src');
+  if (!src) return;
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = src.textContent;
+  document.body.appendChild(s);
+})();
+</script>
+
+<script src="assets/ki-custom-theme.js"></script>
+<script>
+function kiEditorVals(){return {bg:document.getElementById('cte-bg').value,surface:document.getElementById('cte-surface').value,accent:document.getElementById('cte-accent').value,neon:document.getElementById('cte-neon').value,text:document.getElementById('cte-text').value};}
+function kiApplyEditor(){ if(window.kiSetCustom) window.kiSetCustom(kiEditorVals()); if(typeof setTheme==='function') setTheme('custom'); }
+function kiLiveEditor(){ kiApplyEditor(); }
+function kiResetEditor(){ if(window.setGenesisTheme) window.setGenesisTheme('genesis'); }
+(function(){ try{ var c=window.kiGetCustom&&window.kiGetCustom(); if(c){ if(c.bg)document.getElementById('cte-bg').value=c.bg; if(c.surface&&/^#[0-9a-fA-F]{6}$/.test(c.surface))document.getElementById('cte-surface').value=c.surface; if(c.accent)document.getElementById('cte-accent').value=c.accent; if(c.neon)document.getElementById('cte-neon').value=c.neon; if(c.text)document.getElementById('cte-text').value=c.text; if((localStorage.getItem('ki_genesis_theme')||'')==='custom'&&typeof setTheme==='function') setTheme('custom'); } }catch(e){} })();
+</script>
+
+<footer style="position:relative;z-index:20;border-top:1px solid rgba(127,127,127,0.18);padding:22px 24px;text-align:center;font-family:'Space Grotesk',sans-serif;font-size:12px;letter-spacing:0.02em;color:#64748b;">
+  <a href="Impressum.html" style="color:inherit;text-decoration:none;margin:0 10px;">Impressum</a>·
+  <a href="Datenschutz.html" style="color:inherit;text-decoration:none;margin:0 10px;">Datenschutz</a>
+</footer>
+<script>
+function openDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.add('drawer-open');if(b)b.classList.add('open');document.body.style.overflow='hidden';}
+function closeDrawer(){var s=document.getElementById('sidebar'),b=document.getElementById('sidebar-backdrop');if(s)s.classList.remove('drawer-open');if(b)b.classList.remove('open');document.body.style.overflow='';}
+function toggleDrawer(){var s=document.getElementById('sidebar');(s&&s.classList.contains('drawer-open'))?closeDrawer():openDrawer();}
+function brandClick(e){if(window.innerWidth<768){e.preventDefault();toggleDrawer();return false;}return true;}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
+window.addEventListener('resize',function(){if(window.innerWidth>=1024)closeDrawer();});
+(function(){var sb=document.getElementById('sidebar');if(sb)sb.addEventListener('click',function(e){if(e.target.closest('a'))closeDrawer();});})();
+</script>
+</body>
+</html>

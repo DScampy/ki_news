@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kreatur-Lab – KI News</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #040c14;
+      color: #e5e7eb;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    canvas { position: fixed; top: 0; left: 0; z-index: 0; }
+
+    /* Header */
+    #header {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px;
+      height: 52px;
+      background: rgba(4,12,20,0.90);
+      border-bottom: 1px solid rgba(var(--neon-rgb),0.15);
+      backdrop-filter: blur(10px);
+    }
+    #header .back-link {
+      display: flex; align-items: center; gap-6px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(var(--neon-rgb),0.45);
+      text-decoration: none; transition: color 0.2s;
+    }
+    #header .back-link:hover { color: var(--accent); }
+    #header .divider { width: 1px; height: 20px; background: rgba(var(--neon-rgb),0.15); }
+    #header h1 {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.85);
+    }
+    #header h1 span { color: var(--accent); }
+    #status {
+      font-size: 10px; font-family: monospace; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(var(--neon-rgb),0.4);
+      margin-left: auto;
+      border: 1px solid rgba(var(--neon-rgb),0.15);
+      padding: 2px 8px; border-radius: 4px;
+    }
+
+    /* Controls panel */
+    #panel {
+      position: fixed; z-index: 10;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(4,12,20,0.94);
+      border-top: 1px solid rgba(var(--neon-rgb),0.15);
+      backdrop-filter: blur(12px);
+      padding: 10px 20px 14px;
+    }
+
+    .sliders {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px 20px;
+      margin-bottom: 10px;
+    }
+    @media(min-width: 700px){ .sliders { grid-template-columns: repeat(6, 1fr); margin-bottom: 8px; } }
+
+    .slider-row label {
+      display: flex; justify-content: space-between;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.30); margin-bottom: 3px;
+    }
+    .slider-row label span { color: var(--accent); }
+    .slider-row input[type=range] { width: 100%; accent-color: var(--accent); }
+
+    .presets {
+      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    }
+    .presets button {
+      font-size: 11px; font-weight: 600; padding: 4px 12px;
+      background: rgba(var(--neon-rgb),0.04);
+      color: rgba(255,255,255,0.45);
+      border: 1px solid rgba(var(--neon-rgb),0.12);
+      border-radius: 6px; cursor: pointer; transition: all 0.15s;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .presets button:hover {
+      background: rgba(var(--neon-rgb),0.10); color: var(--accent);
+      border-color: rgba(var(--neon-rgb),0.35);
+      box-shadow: 0 0 8px rgba(var(--neon-rgb),0.15);
+    }
+    .presets button.active {
+      background: rgba(var(--neon-rgb),0.14); color: var(--accent);
+      border-color: rgba(var(--neon-rgb),0.50);
+      box-shadow: 0 0 12px rgba(var(--neon-rgb),0.20);
+    }
+
+    #hunt-btn { margin-left: auto; }
+
+    [data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;}
+    [data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;}
+    [data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;}
+    [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;}
+    [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;}
+  </style>
+</head>
+<script>
+(function(){
+  const GT=['genesis','karst','aurora','meridian','blanc'];
+  let n='genesis';try{n=localStorage.getItem('ki_genesis_theme')||'genesis';}catch(e){}
+  if(GT.indexOf(n)===-1)n='genesis';
+  document.documentElement.setAttribute('data-theme',n);
+  if(n==='blanc'){document.documentElement.classList.add('light');}
+})();
+</script>
+<body>
+
+  <div id="header">
+    <a href="/" class="back-link">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      KI News
+    </a>
+    <div class="divider"></div>
+    <h1><span>🐉</span> Kreatur-Lab</h1>
+    <span id="status">wandern…</span>
+  </div>
+
+  <div id="panel">
+    <div class="sliders">
+      <div class="slider-row">
+        <label>Density X <span id="v-dx">42.1</span></label>
+        <input type="range" id="s-dx" min="1" max="80" step="0.1" value="42.1">
+      </div>
+      <div class="slider-row">
+        <label>Density Y <span id="v-dy">8.9</span></label>
+        <input type="range" id="s-dy" min="1" max="30" step="0.1" value="8.9">
+      </div>
+      <div class="slider-row">
+        <label>Radius <span id="v-r">75</span></label>
+        <input type="range" id="s-r" min="5" max="150" step="1" value="75">
+      </div>
+      <div class="slider-row">
+        <label>V-Stretch <span id="v-vs">44</span></label>
+        <input type="range" id="s-vs" min="10" max="80" step="1" value="44">
+      </div>
+      <div class="slider-row">
+        <label>Twist Phase <span id="v-tw">13.2</span></label>
+        <input type="range" id="s-tw" min="1" max="40" step="0.1" value="13.2">
+      </div>
+      <div class="slider-row">
+        <label>Schlieren <span id="v-tr">0.10</span></label>
+        <input type="range" id="s-tr" min="0.02" max="0.7" step="0.01" value="0.10">
+      </div>
+    </div>
+
+    <div class="presets">
+      <button id="p-dragon"  class="active">🐉 Drache</button>
+      <button id="p-spine">🦴 Rückgrat</button>
+      <button id="p-jelly">🪼 Qualle</button>
+      <button id="p-leaf">🍃 Blatt</button>
+      <button id="p-chaos">💥 Chaos</button>
+      <button id="p-ghost">👻 Geist</button>
+      <button id="rainbow-toggle">🌈 Rainbow an</button>
+      <button id="hunt-btn">🎯 Jagd aus</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Konfiguration ──────────────────────────────────────────────
+    const P = {
+      dx: 35, dy: 6, r: 65, vs: 50, tw: 20, tr: 0.08,
+      rainbow: true, hunt: false, t: 0,
+      particles: 7000,
+    };
+
+    const PRESETS = {
+      dragon: { dx: 35,   dy: 6,   r: 65,  vs: 50, tw: 20,  tr: 0.08 },
+      spine:  { dx: 42.1, dy: 8.9, r: 75,  vs: 44, tw: 13.2,tr: 0.12 },
+      jelly:  { dx: 4,    dy: 8,   r: 50,  vs: 39, tw: 14,  tr: 0.12 },
+      leaf:   { dx: 21,   dy: 5,   r: 91,  vs: 41, tw: 30,  tr: 0.08 },
+      chaos:  { dx: 12,   dy: 3,   r: 110, vs: 55, tw: 25,  tr: 0.05 },
+      ghost:  { dx: 7,    dy: 12,  r: 40,  vs: 35, tw: 8,   tr: 0.04 },
+    };
+
+    const sliders = ['dx','dy','r','vs','tw','tr'];
+
+    function applyPreset(name) {
+      const pr = PRESETS[name];
+      Object.assign(P, pr);
+      sliders.forEach(k => {
+        document.getElementById('s-'+k).value = pr[k];
+        document.getElementById('v-'+k).textContent = parseFloat(pr[k]).toFixed(k==='tr'?2:1);
+      });
+      document.querySelectorAll('.presets button[id^=p-]').forEach(b => b.classList.remove('active'));
+      document.getElementById('p-'+name).classList.add('active');
+    }
+
+    sliders.forEach(id => {
+      document.getElementById('s-'+id).oninput = e => {
+        P[id] = parseFloat(e.target.value);
+        document.getElementById('v-'+id).textContent = P[id].toFixed(id==='tr'?2:1);
+        document.querySelectorAll('.presets button[id^=p-]').forEach(b=>b.classList.remove('active'));
+      };
+    });
+
+    Object.keys(PRESETS).forEach(n => {
+      document.getElementById('p-'+n).onclick = () => applyPreset(n);
+    });
+
+    document.getElementById('rainbow-toggle').onclick = () => {
+      P.rainbow = !P.rainbow;
+      document.getElementById('rainbow-toggle').textContent = P.rainbow ? '🌈 Rainbow an' : '🎨 Rainbow aus';
+    };
+
+    document.getElementById('hunt-btn').onclick = () => {
+      P.hunt = !P.hunt;
+      document.getElementById('hunt-btn').textContent = P.hunt ? '🎯 Jagd an' : '🎯 Jagd aus';
+    };
+    // ──────────────────────────────────────────────────────────────
+
+    // ── Fisch-Movement: Heading-basiert, keine Velocity-Rucke ──────
+    const SPEED    = 1.3;
+    const MAX_TURN = 0.010;   // ~0.57° pro Frame → Snake-smooth
+    const EDGE_PAD = 140;
+    const HUNT_R   = 60;
+    let cx, cy, heading = Math.PI * 0.3, formAngle = 0;
+    let preyX, preyY, hasPrey = false;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      colorMode(HSB, 360, 100, 100, 1);
+      frameRate(60);
+      cx = width / 2; cy = height / 2;
+
+      // Touch
+      const cnv = document.querySelector('canvas');
+      cnv.addEventListener('touchmove', e => {
+        e.preventDefault();
+        preyX = e.touches[0].clientX; preyY = e.touches[0].clientY; hasPrey = true;
+      }, { passive: false });
+    }
+
+    function mouseMoved() {
+      if (P.hunt && mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+        preyX = mouseX; preyY = mouseY; hasPrey = true;
+      }
+    }
+
+    function mouseLeft() { hasPrey = false; }
+
+    function draw() {
+      P.t += PI / 240;
+      const t = P.t;
+
+      // ── Ziel bestimmen ──────────────────────────────────────────
+      let tx, ty, label;
+      if (P.hunt && hasPrey) {
+        tx = preyX; ty = preyY; label = '🪼 jagen';
+      } else {
+        tx = width/2  + sin(t*0.11)*width*0.38;
+        ty = height/2 + sin(t*0.07)*height*0.36;
+        label = '🌊 wandern';
+        // Rand-Override
+        if (cx < EDGE_PAD || cx > width-EDGE_PAD ||
+            cy < EDGE_PAD || cy > height-EDGE_PAD) {
+          tx = width/2; ty = height/2;
+        }
+      }
+      const dist = sqrt((tx-cx)*(tx-cx)+(ty-cy)*(ty-cy));
+      if (P.hunt && hasPrey && dist < HUNT_R) label = '😋 gefunden';
+
+      // ── Heading: Snake-smooth Drehrate ──────────────────────────
+      const desiredH = atan2(ty - cy, tx - cx);
+      let dH = desiredH - heading;
+      while (dH >  PI) dH -= TWO_PI;
+      while (dH < -PI) dH += TWO_PI;
+      heading += constrain(dH, -MAX_TURN, MAX_TURN);
+
+      const vx = cos(heading) * SPEED;
+      const vy = sin(heading) * SPEED;
+      cx += vx; cy += vy;
+
+      document.getElementById('status').textContent = label;
+
+      // Visueller Winkel folgt Heading mit leichtem Verzug
+      const targetAngle = heading + PI/2;
+      let aDiff = targetAngle - formAngle;
+      while(aDiff >  PI) aDiff -= TWO_PI;
+      while(aDiff < -PI) aDiff += TWO_PI;
+      formAngle += aDiff * 0.04;
+
+      const spd = SPEED;
+      const sf  = min(width, height) / 500 * 1.2;
+      const baseH = P.rainbow ? (t*28)%360 : 30; // dragon = orangered wenn kein rainbow
+
+      // Dynamische Zentrierung
+      const avgY  = (P.particles / 235) / 2;
+      const avgE  = avgY / P.dy - 20;
+      const avgD  = abs(avgE);
+      const offsetY = avgD * P.vs - 475;
+
+      background(5, 0, 3, P.tr);
+      noStroke();
+
+      push();
+      translate(cx, cy);
+      rotate(formAngle);
+      scale(sf * (1 + spd*0.015), sf);
+      translate(-200, -offsetY);
+
+      for (let i = P.particles; i > 0; i--) {
+        const x = i, y = i / 235;
+        const k = 4 * cos(x / P.dx);
+        const e = y / P.dy - 20;
+        const d = mag(k, e);
+        const q = 3*sin(k*2) + 0.3/k + sin(y/19)*k*(9 + 2*sin(e*P.tw - d*3 + t*2));
+        const c2 = d - t;
+        const px = q + P.r*cos(c2) + 200;
+        const py = q*sin(c2) + d*P.vs - 475;
+
+        if (i % 60 === 0) {
+          const hShift = P.rainbow ? (i / P.particles * 80) : (i / P.particles * 25);
+          const sat    = P.rainbow ? 80 : 90;
+          fill((baseH + hShift) % 360, sat, 100, 0.52);
+        }
+        circle(px, py, k*k > 15 ? 2 : 1);
+      }
+      pop();
+
+      // Beute-Punkt
+      if (P.hunt && hasPrey) {
+        const pulse = 0.5 + 0.5*sin(t*8);
+        fill((baseH+120)%360, 80, 100, 0.25 + pulse*0.35);
+        circle(preyX, preyY, 6 + pulse*4);
+        fill(0, 0, 100, 0.65);
+        circle(preyX, preyY, 2);
+      }
+    }
+
+    function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+  </script>
+</body>
+</html>

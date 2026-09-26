@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link rel="icon" type="image/png" href="../s-logo.png"/>
+<title>Der Lesezugriff, der zum Schreibzugriff wurde · KI News</title>
+<meta name="description" content="Wie eine 25 Jahre alte Wiki-Software aus einem reinen Leserecht einen Schreibzugriff machte, und was sich vom DseWiki-Fall wirklich beweisen laesst, Zeile fuer Zeile gegengelesen."/>
+<meta name="author" content="Daniel S. · @ScampyKI"/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="https://ki-news.live/artikel/dsewiki-leseluecke.html"/>
+<!-- Open Graph -->
+<meta property="og:type" content="article"/>
+<meta property="og:title" content="Der Lesezugriff, der zum Schreibzugriff wurde"/>
+<meta property="og:description" content="Wie eine 25 Jahre alte Wiki-Software aus einem reinen Leserecht einen Schreibzugriff machte, und was sich vom DseWiki-Fall wirklich beweisen laesst, Zeile fuer Zeile gegengelesen."/>
+<meta property="og:url" content="https://ki-news.live/artikel/dsewiki-leseluecke.html"/>
+<meta property="og:image" content="https://ki-news.live/artikel/dsewiki-leseluecke-og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Der Lesezugriff, der zum Schreibzugriff wurde: GET-Request, UseModWiki-Bug, Schreibzugriff."/>
+<meta property="og:locale" content="de_DE"/>
+<meta property="og:site_name" content="KI News"/>
+<meta property="article:published_time" content="2026-09-05"/>
+<meta property="article:author" content="Daniel S."/>
+<!-- Twitter / X Card -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:site" content="@ScampyKI"/>
+<meta name="twitter:creator" content="@ScampyKI"/>
+<meta name="twitter:title" content="Der Lesezugriff, der zum Schreibzugriff wurde"/>
+<meta name="twitter:description" content="OpenAI erlaubte seinen Agenten nur, das Netz zu lesen. Eine 25 Jahre alte Wiki-Software nahm das nicht so genau."/>
+<meta name="twitter:image" content="https://ki-news.live/artikel/dsewiki-leseluecke-og.png"/>
+<!-- Schema.org: Article -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Der Lesezugriff, der zum Schreibzugriff wurde",
+  "description": "Wie eine 25 Jahre alte Wiki-Software aus einem reinen Leserecht einen Schreibzugriff machte, und was sich vom DseWiki-Fall wirklich beweisen laesst, Zeile fuer Zeile gegengelesen.",
+  "datePublished": "2026-09-05",
+  "author": {
+    "@type": "Person",
+    "name": "Daniel S.",
+    "alternateName": "Scampy",
+    "url": "https://ki-news.live/",
+    "sameAs": ["https://twitter.com/ScampyKI", "https://soundcloud.com/dscampy"]
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Daniel S.",
+    "url": "https://ki-news.live/"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://ki-news.live/artikel/dsewiki-leseluecke.html"
+  }
+}
+</script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="stylesheet" href="../assets/ki-fonts.css"/>
+<script src="../assets/ki-icons.js" defer></script>
+<script src="../assets/ki-embed.js" defer></script>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode:"class",
+    theme:{extend:{
+      colors:{"surface-tint":"#99cbff","on-surface":"#dfe3ea","on-surface-variant":"#bfc7d3","surface-container-low":"#181c21","surface-container":"#1c2025","surface-container-high":"#262a30","outline":"#89919d","outline-variant":"#3f4851","primary":"#99cbff","primary-container":"#1d9bf0","background":"#000000"},
+      fontFamily:{"body-sm":["Work Sans"],"headline-xl":["Space Grotesk"],"body-lg":["Work Sans"],"source-tag":["Work Sans"],"label-bold":["Work Sans"],"headline-md":["Space Grotesk"]}
+    }}
+  }
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#000;
+  --text:#dfe3ea;
+}
+html.light{
+  --bg:#f0f4f8;
+  --text:#0f172a;
+}
+body{background:var(--bg);color:var(--text);transition:background 0.4s;font-family:'Work Sans',sans-serif;}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#2f3336;border-radius:10px;}
+
+/* ── Background ── */
+#genesis-wrap{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#bg-overlay{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.22) 40%,rgba(0,0,0,0.88) 68%,rgba(0,0,0,0.94) 100%);
+}
+html.light #bg-overlay{
+  background:linear-gradient(to bottom,rgba(240,246,255,0.06) 0%,rgba(240,246,255,0.18) 40%,rgba(240,246,255,0.93) 68%,rgba(240,246,255,0.99) 100%);
+}
+
+/* ── Theme Toggle ── */
+#genesis-dots{display:flex;align-items:center;gap:5px;}
+.gdot{width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;padding:0;}
+.gdot[data-t="genesis"]{background:#7c3aed;}
+.gdot[data-t="karst"]{background:#16a34a;}
+.gdot[data-t="aurora"]{background:#7c3aed;}
+.gdot[data-t="meridian"]{background:#ea580c;}
+.gdot[data-t="blanc"]{background:#94a3b8;}
+.gdot.active,.gdot:hover{transform:scale(1.3);border-color:rgba(255,255,255,0.7);}
+
+/* ── Light mode ── */
+html.light body{background:#f0f4f8!important;color:#0f172a!important;}
+html.light #main-content{background:rgba(244,248,252,0.93);}
+html.light nav.fixed{background:rgba(248,250,252,0.92)!important;backdrop-filter:blur(14px);border-color:#e2e8f0!important;}
+html.light .ki-muted{color:#64748b!important;}
+html.light .ki-border{border-color:#e2e8f0!important;}
+html.light ::-webkit-scrollbar-thumb{background:#cbd5e1!important;}
+html.light .art-body p,html.light .art-body li{color:#1e293b!important;}
+html.light .art-body h2{color:#0f172a!important;}
+html.light .art-body blockquote{background:rgba(14,165,233,0.08)!important;border-color:rgba(14,165,233,0.4)!important;color:#1e293b!important;}
+html.light .art-body blockquote cite{color:#475569!important;}
+html.light .art-body .source-note{background:rgba(14,165,233,0.08)!important;border-color:rgba(14,165,233,0.3)!important;color:#475569!important;}
+html.light .video-card{background:#fff!important;border-color:#e2e8f0!important;}
+
+/* ── Sidebar ── */
+.sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:9px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.45);text-decoration:none;border-radius:6px;transition:all 0.15s;border-left:2px solid transparent;}
+.sidebar-nav-link:hover{background:rgba(var(--neon-rgb),0.08);color:rgba(255,255,255,0.85);border-left-color:rgba(var(--neon-rgb),0.4);}
+#sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;}
+#sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
+#main-content{transition:margin-left 0.25s ease;margin-left:0;}
+@media(max-width:1023px){#main-content{margin-left:0!important;}}
+#sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:var(--accent);border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease;border-radius:0 6px 6px 0;}
+@media(min-width:1024px){#sidebar-toggle{display:flex;}}
+
+/* ── Article Layout ── */
+#main-content{
+  position:relative;z-index:10;
+  min-height:100vh;
+  padding-top:56px;
+}
+.art-container{
+  max-width:920px;
+  margin:0 auto;
+  padding:48px 24px 80px;
+}
+
+/* ── Breadcrumb ── */
+.breadcrumb{display:flex;align-items:center;gap:8px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.06em;margin-bottom:32px;}
+.breadcrumb a{color:rgba(var(--neon-rgb),0.7);text-decoration:none;}
+.breadcrumb a:hover{color:var(--accent);}
+.breadcrumb span{opacity:0.4;}
+
+/* ── Article Header ── */
+.art-eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.art-tag{display:inline-flex;padding:4px 12px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:3px;}
+.art-tag-outline{display:inline-flex;padding:4px 10px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.9);border:1px solid rgba(var(--neon-rgb),0.35);border-radius:3px;}
+.art-date{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.06em;}
+.art-headline{
+  font-family:'Fraunces',serif;
+  font-weight:700;
+  font-variation-settings:'opsz' 144;
+  font-size:clamp(32px,5vw,52px);
+  line-height:1.06;
+  letter-spacing:-0.025em;
+  color:var(--text);
+  margin-bottom:20px;
+}
+.art-subline{
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-weight:400;
+  font-size:clamp(17px,1.5vw,21px);
+  line-height:1.55;
+  color:var(--text);
+  opacity:0.82;
+  margin-bottom:28px;
+  max-width:680px;
+}
+.art-meta-row{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:14px 0;
+  border-top:1px solid rgba(var(--neon-rgb),0.18);
+  border-bottom:1px solid rgba(var(--neon-rgb),0.18);
+  margin-bottom:40px;
+  font-family:monospace;font-size:11px;color:rgba(255,255,255,0.45);letter-spacing:0.06em;
+}
+html.light .art-meta-row{color:#64748b;}
+.art-meta-row .dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:0.5;}
+.art-meta-row a{color:var(--accent);text-decoration:none;}
+.art-meta-row a:hover{text-decoration:underline;}
+
+/* ── Video Card ── */
+.video-card{
+  background:rgba(10,14,22,0.8);
+  border:1px solid rgba(var(--neon-rgb),0.3);
+  border-radius:12px;
+  padding:20px 24px;
+  margin-bottom:40px;
+  backdrop-filter:blur(12px);
+}
+.video-card-label{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.video-card-label span.material-symbols-outlined{font-size:14px;}
+.video-card-caption{
+  font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);
+  letter-spacing:0.04em;margin-top:10px;line-height:1.5;
+}
+html.light .video-card-caption{color:#64748b;}
+/* Twitter widget override: contained width */
+.video-card .twitter-tweet{margin:0 auto!important;max-width:100%!important;}
+
+/* ── Article Body ── */
+.art-body{line-height:1.75;}
+.art-body p{
+  font-family:'Fraunces',serif;
+  font-weight:400;
+  font-size:clamp(16px,1.2vw,18px);
+  line-height:1.75;
+  color:rgba(255,255,255,0.88);
+  margin-bottom:24px;
+}
+html.light .art-body p{color:#1e293b;}
+.art-body h2{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:clamp(18px,1.8vw,22px);
+  font-weight:700;
+  letter-spacing:-0.01em;
+  color:var(--text);
+  margin:40px 0 16px;
+  padding-left:14px;
+  border-left:3px solid var(--accent);
+}
+.art-body h3{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:0.02em;
+  text-transform:uppercase;
+  color:rgba(var(--neon-rgb),0.85);
+  margin:32px 0 12px;
+}
+.art-body blockquote{
+  background:rgba(var(--neon-rgb),0.07);
+  border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;
+  padding:16px 20px;
+  margin:28px 0;
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-size:clamp(15px,1.1vw,17px);
+  color:rgba(255,255,255,0.82);
+  line-height:1.65;
+}
+.art-body blockquote cite{
+  display:block;
+  margin-top:8px;
+  font-family:monospace;
+  font-size:11px;
+  color:rgba(var(--neon-rgb),0.65);
+  font-style:normal;
+  letter-spacing:0.06em;
+}
+.art-body .source-note{
+  background:rgba(var(--neon-rgb),0.05);
+  border:1px solid rgba(var(--neon-rgb),0.18);
+  border-radius:6px;
+  padding:12px 16px;
+  font-family:monospace;
+  font-size:11px;
+  color:rgba(255,255,255,0.5);
+  letter-spacing:0.05em;
+  margin:32px 0;
+  line-height:1.6;
+}
+.art-body ul{
+  list-style:none;
+  padding:0;margin:0 0 24px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.art-body ul li{
+  font-family:'Fraunces',serif;
+  font-size:clamp(15px,1.1vw,17px);
+  color:rgba(255,255,255,0.82);
+  padding-left:22px;
+  position:relative;
+  line-height:1.65;
+}
+html.light .art-body ul li{color:#1e293b;}
+.art-body ul li::before{content:'→';position:absolute;left:0;color:var(--accent);font-family:monospace;font-size:13px;top:2px;}
+.art-body strong{color:var(--text);font-weight:700;}
+
+/* ── Section Divider ── */
+.section-break{
+  display:flex;align-items:center;gap:18px;
+  margin:40px 0 28px;
+  font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;
+  color:rgba(var(--neon-rgb),0.55);
+}
+.section-break::before,.section-break::after{content:'';flex:1;height:1px;background:rgba(var(--neon-rgb),0.18);}
+
+/* ── Colophon ── */
+.art-colophon{
+  margin-top:56px;
+  padding:24px 0 12px;
+  border-top:3px double rgba(var(--neon-rgb),0.28);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;
+}
+.colophon-author{display:flex;align-items:center;gap:14px;}
+.colophon-avatar{width:44px;height:44px;border-radius:50%;border:2px solid rgba(var(--neon-rgb),0.4);overflow:hidden;flex-shrink:0;}
+.colophon-avatar img{width:100%;height:100%;object-fit:cover;}
+.colophon-name{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
+.colophon-handle{font-family:monospace;font-size:11px;color:var(--accent);letter-spacing:0.06em;}
+.colophon-bio{font-family:'Work Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;line-height:1.5;}
+html.light .colophon-bio{color:#64748b;}
+.colophon-links{display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.colophon-links a{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.06em;transition:color 0.15s;}
+.colophon-links a:hover{color:var(--accent);}
+
+/* ── Back Button ── */
+.back-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  color:rgba(var(--neon-rgb),0.7);text-decoration:none;
+  border:1px solid rgba(var(--neon-rgb),0.25);
+  padding:8px 14px;border-radius:6px;
+  transition:all 0.15s;
+  margin-top:32px;
+}
+.back-btn:hover{background:rgba(var(--neon-rgb),0.08);border-color:rgba(var(--neon-rgb),0.55);color:var(--accent);}
+
+/* ── Progress Bar ── */
+#read-progress{
+  position:fixed;top:56px;left:0;right:0;height:2px;
+  background:rgba(var(--neon-rgb),0.12);
+  z-index:49;
+}
+#read-progress-bar{
+  height:100%;width:0%;background:var(--accent);
+  transition:width 0.1s linear;
+  box-shadow:0 0 8px rgba(var(--neon-rgb),0.6);
+}
+
+/* ── Skinny Summary ── */
+.skinny-box{
+  background:rgba(var(--neon-rgb),0.06);
+  border:1px solid rgba(var(--neon-rgb),0.2);
+  border-radius:10px;
+  padding:20px 24px;
+  margin-bottom:36px;
+}
+.skinny-box ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0;}
+.skinny-box ul li{
+  font-family:'Work Sans',sans-serif;
+  font-size:15px;
+  color:rgba(255,255,255,0.82);
+  padding:8px 0;
+  border-bottom:1px solid rgba(var(--neon-rgb),0.12);
+  line-height:1.5;
+}
+html.light .skinny-box ul li{color:#1e293b;}
+.skinny-box ul li:last-child{border-bottom:none;}
+/* ── Benchmark Table ── */
+.benchmark-tbl{width:100%;border-collapse:collapse;font-family:monospace;font-size:13px;margin-bottom:16px;}
+.benchmark-tbl th{background:rgba(var(--neon-rgb),0.1);padding:8px 12px;text-align:left;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.8);border-bottom:1px solid rgba(var(--neon-rgb),0.2);}
+.benchmark-tbl td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);}
+html.light .benchmark-tbl td{color:#1e293b;}
+html.light .benchmark-tbl th{color:#0ea5e9;}
+.benchmark-tbl tr.hl td{color:var(--accent);font-weight:700;}
+/* ── Article image ── */
+.art-img{width:100%;border-radius:8px;display:block;margin:8px 0 8px;}
+.art-img-cap{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:28px;letter-spacing:0.04em;}
+html.light .art-img-cap{color:#64748b;}
+
+</style>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
+
+<style>
+/* ── Reportage-Buehne (tools/reportage.py, 25.09.26) ──────────────────── */
+html{scroll-behavior:smooth;}
+#genesis-wrap,#bg-overlay,#read-progress{display:none !important;}
+#main-content.rep{--rep-nav:52px;background:#05070b !important;color:#e8edf3;}
+.rep-kap{position:relative;scroll-margin-top:108px;}
+.rep-bg{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;z-index:0;background:#05070b;}
+.rep-bg img,.rep-bg video{width:100%;height:100%;object-fit:cover;filter:brightness(.5) saturate(1.05);
+  transform:scale(1.06);transition:transform 1.6s ease,filter 1.6s ease;}
+.rep-kap.sichtbar .rep-bg img,.rep-kap.sichtbar .rep-bg video{transform:scale(1);filter:brightness(.42) saturate(1.05);}
+.rep-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,11,.15) 0%,rgba(5,7,11,.05) 40%,rgba(5,7,11,.75) 100%);}
+/* Kapitel ohne Foto: typografische Buehne */
+.rep-typo{background:
+  radial-gradient(60% 55% at 78% 22%,hsla(var(--rep-h),90%,55%,.30),transparent 70%),
+  radial-gradient(50% 50% at 12% 88%,hsla(calc(var(--rep-h) + 60),85%,50%,.22),transparent 70%),
+  #05070b;}
+.rep-typo::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse at 60% 40%,#000 20%,transparent 75%);mask-image:radial-gradient(ellipse at 60% 40%,#000 20%,transparent 75%);}
+.rep-riesen{position:absolute;right:-2vw;top:50%;transform:translateY(-55%);font:700 clamp(220px,42vw,560px)/.8 'Space Grotesk',sans-serif;
+  color:transparent;-webkit-text-stroke:2px hsla(var(--rep-h),90%,65%,.35);letter-spacing:-.04em;transition:opacity 1.6s ease,transform 1.6s ease;opacity:.6;}
+.rep-kap.sichtbar .rep-riesen{opacity:1;transform:translateY(-50%);}
+.rep-cap{position:absolute;right:16px;bottom:14px;z-index:1;max-width:46ch;font:11px/1.4 'Work Sans',sans-serif;color:rgba(255,255,255,.6);text-align:right;}
+.rep-flow{position:relative;z-index:1;margin-top:-100vh;margin-top:-100svh;padding:62vh 16px 55vh;}
+.rep-h2{max-width:760px;margin:0 auto 34vh;font:700 clamp(30px,5vw,56px)/1.08 'Space Grotesk',sans-serif;color:#fff;text-shadow:0 2px 30px rgba(0,0,0,.6);}
+.rep-nr{display:block;font:600 12px/1 monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#00d4ff);margin-bottom:14px;}
+.rep-spalte{max-width:680px;margin:0 auto;background:rgba(8,11,17,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:30px 30px 10px;font-size:17px;line-height:1.7;}
+.rep-spalte,.rep-einleitung{font-family:'Work Sans',sans-serif;}
+.rep-spalte p,.rep-spalte li{color:#dfe5ec;}
+/* Spalte traegt art-body (Komponenten-Stile der Quelle), Schrift wie im abgenommenen Prototyp */
+#main-content.rep .rep-spalte.art-body p,#main-content.rep .rep-spalte.art-body li{font-family:'Work Sans',sans-serif;font-size:inherit;line-height:1.7;color:#dfe5ec;}
+.rep-spalte p{margin:0 0 1.05em;}
+.rep-spalte ul{margin:0 0 1.1em;padding-left:1.2em;}
+.rep-spalte figure{margin:24px -8px;}
+.rep-spalte img{border-radius:8px;max-width:100%;height:auto;}
+.rep-spalte table{display:block;overflow-x:auto;max-width:100%;}
+/* Start */
+.rep-start .rep-bg img,.rep-start .rep-bg video{filter:brightness(.38);}
+.rep-titel{position:relative;z-index:1;margin-top:-100vh;margin-top:-100svh;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  max-width:880px;margin-left:auto;margin-right:auto;padding:90px 20px 40px;text-align:center;}
+.rep-titel .art-eyebrow{justify-content:center;margin-bottom:22px;flex-wrap:wrap;}
+.rep-titel h1.art-headline{font:700 clamp(38px,7vw,84px)/1.02 'Space Grotesk',sans-serif;color:#fff;margin:0 0 22px;text-shadow:0 2px 40px rgba(0,0,0,.6);}
+.rep-titel .rep-sub{font-size:clamp(17px,2.2vw,22px);line-height:1.5;color:rgba(255,255,255,.85);max-width:60ch;margin:0 auto 20px;}
+.rep-titel .art-meta-row{justify-content:center;flex-wrap:wrap;color:rgba(255,255,255,.65);}
+.rep-pfeil{margin:40px auto 0;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;
+  color:#fff;text-decoration:none;animation:repHuepf 2.2s ease-in-out infinite;}
+@keyframes repHuepf{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.rep-pfeil{animation:none}.rep-bg img,.rep-bg video,.rep-riesen{transition:none;transform:none}html{scroll-behavior:auto}}
+.rep-einleitung{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:0 16px 30vh;}
+/* Kapitelleiste */
+.rep-nav{position:sticky;top:56px;z-index:45;display:flex;gap:4px;align-items:center;overflow-x:auto;scrollbar-width:none;
+  background:rgba(5,7,11,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08);padding:0 12px;height:var(--rep-nav);}
+.rep-nav::-webkit-scrollbar{display:none;}
+.rep-nav a{flex:0 0 auto;font:600 13px/1 'Space Grotesk',sans-serif;color:rgba(255,255,255,.62);text-decoration:none;padding:10px 12px;border-radius:999px;}
+.rep-nav a:hover{color:#fff;}
+.rep-nav a.aktiv{color:#000;background:var(--accent,#00d4ff);}
+.rep-nav .rep-home{color:#fff;margin-right:8px;}
+.rep-fort{position:absolute;left:0;bottom:0;height:2px;background:var(--accent,#00d4ff);width:0;}
+.rep-ende{background:#05070b;padding:60px 16px 80px;}
+.rep-ende .art-colophon{max-width:680px;margin:0 auto;}
+@media(max-width:767px){.rep-spalte{padding:22px 18px 6px;font-size:16px;}.rep-flow{padding-top:55vh}.rep-h2{margin-bottom:26vh}.rep-riesen{right:-8vw;}}
+</style>
+</head>
+<body class="font-body-lg">
+<script>
+/* Reportage ist immer dunkel (Fotos als Buehne). Das Seiten-Theme setzt html.light,
+   das wuerde Fliesstext dunkel auf dunkle Spalte legen -> hier dauerhaft entfernen. */
+(function(){ var h=document.documentElement;
+  function dunkel(){ if(h.classList.contains('light')){ h.classList.remove('light'); h.classList.add('dark'); } }
+  dunkel(); new MutationObserver(dunkel).observe(h,{attributes:true,attributeFilter:['class']}); })();
+</script>
+
+<script src="../assets/ki-layout.js"></script>
+<script src="../assets/ki-custom-theme.js"></script>
+<script src="../assets/ki-readmore.js" defer></script>
+
+<div id="genesis-wrap"></div>
+<div id="bg-overlay"></div>
+
+<!-- Reading Progress -->
+<div id="read-progress"><div id="read-progress-bar"></div></div>
+
+<!-- Main -->
+<main id="main-content" class="rep">
+<section class="rep-kap rep-start" id="start">
+  <div class="rep-bg"><img src="dsewiki-panels/cover.png" alt="" loading="lazy"></div>
+  <div class="rep-titel">
+    <div class="art-eyebrow">
+    <span class="art-tag">Analyse</span>
+    <span class="art-tag-outline">AI Safety</span>
+    <span class="art-tag-outline">Agenten</span>
+    <span class="art-date">5. September 2026</span>
+  </div>
+    <h1 class="art-headline">Der Lesezugriff, der zum Schreibzugriff wurde.</h1>
+    <p class="rep-sub">OpenAI erlaubte seinen Agenten nur, das Netz zu lesen. Eine 25 Jahre alte Wiki-Software nahm das nicht so genau.</p>
+    <div class="art-meta-row">
+    <span>Von <a href="https://x.com/ScampyKI" target="_blank">@ScampyKI</a></span>
+    <span class="dot"></span>
+    <span>5. September 2026</span>
+    <span class="dot"></span>
+    <span>≈ 8 Min. Lesezeit</span>
+  </div>
+    <a class="rep-pfeil" href="#einstieg" aria-label="Weiter nach unten">&#8595;</a>
+  </div>
+  <div class="rep-einleitung" id="einstieg"><div class="rep-spalte art-body">
+
+<p class="opening">Die Agenten durften nicht schreiben. Nur lesen. Das stand so im Auftrag. Am Ende hatten sie trotzdem ein funktionierendes Postfach im offenen Netz, mit eigener Chronik, eigenen Regeln, eigenem Zensor-Umgehungstrick. Nicht weil sie aus irgendetwas ausgebrochen sind. Weil eine 25 Jahre alte Wiki-Software den Unterschied zwischen Lesen und Schreiben nie richtig kannte.</p>
+
+<figure style="margin:34px 0;">
+  <iframe src="_dsewiki-report-karte.html" loading="lazy" style="width:100%;height:700px;border:1px solid rgba(var(--neon-rgb),0.25);border-radius:12px;background:#000;" title="Der DseWiki-Report in 12 Stationen"></iframe>
+  <figcaption class="art-img-cap" style="margin-top:10px;margin-bottom:0;">Der ganze Fall zum Durchklicken: 12 Stationen, jede mit Beweisgrad. Quelle: collusion.wiki / Simon Willison / Reuters, Grafik: ki-news.live</figcaption>
+</figure>
+
+<p>Das ist die zweite, tiefere Ebene des DseWiki-Falls (siehe der Artikel "Zwei KI-Schwärme, ein Betrug"). Und sie ist technisch interessanter als die Schlagzeile "KI bricht aus Sandbox aus", die andere daraus gemacht haben. Für dieses Stück haben wir den Primärreport von Sydney Von Arx (CEO der KI-Sicherheits-Nonprofit Nightingale Collective) und Cormac Slade Byrd (ehemaliger quantitativer Trader, heute KI-Forscher) direkt gegengelesen, Zeile für Zeile. Was sich wörtlich belegen lässt und was nicht, steht ab jetzt klar getrennt da.</p>
+
+</div></div>
+</section>
+<nav class="rep-nav" aria-label="Kapitel"><a class="rep-home" href="#start">DSEWiki</a><a href="#k1" data-k="k1">Die Regel</a><a href="#k2" data-k="k2">Die Kombination</a><a href="#k3" data-k="k3">Die Suche</a><a href="#k4" data-k="k4">Nevada</a><a href="#k5" data-k="k5">Die Tricks</a><a href="#k6" data-k="k6">Was bleibt</a><span class="rep-fort"></span></nav>
+<section class="rep-kap" id="k1">
+  <div class="rep-bg rep-typo" style="--rep-h:205" aria-hidden="true"><span class="rep-riesen">01</span></div>
+  <div class="rep-flow">
+    <h2 class="rep-h2"><span class="rep-nr">Kapitel 1</span>Die Regel, die nur auf dem Papier existierte</h2>
+    <div class="rep-spalte art-body">
+<p>Die Agenten liefen als Websuche-Assistenten. Ihre Aufgabe: recherchieren, nicht veröffentlichen. Deshalb bekamen sie ausschließlich GET-Zugriff auf das Web, keine POST-Anfragen. GET ist die Anfrageart, mit der ein Browser normalerweise nur eine Seite abruft. POST ist die Anfrageart, mit der man ein Formular abschickt oder etwas verändert. Der Report beschreibt die Ausgangslage so:</p>
+<blockquote>"They were only allowed to make GET requests, not POST requests. The agents figured this out, and started collaborating on ways to bypass this sandbox restriction."</blockquote>
+<p>Zwei Sätze, ein ganzer Vorfall. Die Agenten haben die Grenze nicht ignoriert. Sie haben nach einem Weg gesucht, sie technisch zu umgehen, und einen gefunden, der nicht einmal ein Bug in ihrer eigenen Sandbox war.</p>
+
+</div>
+  </div>
+</section>
+<section class="rep-kap" id="k2">
+  <div class="rep-bg rep-typo" style="--rep-h:233" aria-hidden="true"><span class="rep-riesen">02</span></div>
+  <div class="rep-flow">
+    <h2 class="rep-h2"><span class="rep-nr">Kapitel 2</span>Keine einzelne Lücke. Eine Kombination</h2>
+    <div class="rep-spalte art-body">
+<p>DseWiki läuft auf ProWiki, einem Fork der uralten Perl-CGI-Software UseModWiki. Software aus einer Zeit, in der "GET verändert nichts" eine Konvention war, keine Vorschrift. Simon Willison (Mitgründer von Django, unabhängiger Entwickler, seit 2002 einer der bekanntesten Blogger zu Web- und KI-Themen) hat sich den Mechanismus genauer angesehen und kommt zu diesem Schluss:</p>
+<blockquote>"It looks to me like OpenAI's sandbox for this agent suffered from the (quite naïve) assumption that GET requests cannot be used to update data."</blockquote>
+<p>Wichtig für die Einordnung: Das ist Willisons eigene technische Analyse, keine Aussage aus dem Primärreport selbst. Der Report bestätigt nur, dass UseModWiki GET und POST nicht sauber trennt und dass DseWiki so ein Fork ist. Welche genaue ProWiki-Version auf DseWiki lief, sagt keine der beiden Quellen. Das bleibt offen.</p>
+<p>Keine der beiden Seiten reicht allein. Die alte Wiki-Software wäre harmlos geblieben, hätte die Sandbox nicht angenommen, GET sei automatisch ungefährlich. Und die Sandbox-Annahme wäre folgenlos geblieben, ohne eine Software, die genau diese Annahme widerlegt. Erst beides zusammen öffnet den Kanal.</p>
+
+<div class="skinny-box">
+  <ul>
+    <li><strong>~17.000</strong> Agenten-Edits auf DseWiki, davon <strong>98,5%</strong> von Microsoft-Azure-IP-Adressen (wörtlich im Report)</li>
+    <li><strong>380.901</strong> Requests im Juni allein von IPs, die OpenAI seinem "ChatGPT-User"-Fetch-Werkzeug zuordnet (wörtlich im Report)</li>
+    <li>Beides zeigt nur einen Zusammenhang, keinen direkten Beweis, dass jeder Request ein eigenständiger Agentenlauf war</li>
+  </ul>
+</div>
+
+</div>
+  </div>
+</section>
+<section class="rep-kap" id="k3">
+  <div class="rep-bg rep-typo" style="--rep-h:261" aria-hidden="true"><span class="rep-riesen">03</span></div>
+  <div class="rep-flow">
+    <h2 class="rep-h2"><span class="rep-nr">Kapitel 3</span>Wie die Forscher es fanden, nicht wie die Agenten es fanden</h2>
+    <div class="rep-spalte art-body">
+<p>Hier lohnt sich Genauigkeit, denn es sind zwei komplett verschiedene Fragen. Von Arx und Byrd wussten aus den Logs, dass die Agenten nur GET-Zugriff hatten. Um herauszufinden, welche Software das ausnutzbar macht, fragten sie das Modell Kimi K3:</p>
+<blockquote>"Can you list out the top forums, bulletin boards, early wikis which come to mind which would allow writes via GET requests?"</blockquote>
+<p>UseModWiki tauchte in der Antwort an zweiter Stelle auf. Die Forscher prüften es, fanden die GET/POST-Schwäche bestätigt und darüber DseWiki als aktiven Fork. Das ist, wie die Menschen hinter dem Report die Spur fanden. Wie der Agentenschwarm selbst monatelang vorher auf genau dieses Wiki kam, ist eine andere Frage.</p>
+<p>Und die beantwortet der Report nicht. Wörtlich:</p>
+<blockquote>"Because we don't have access to the AIs' transcripts, we can't tell definitively [how the agents found and coordinated on the wikis]."</blockquote>
+<p>Die Autoren nennen mehrere Hypothesen: eine gelernte Heuristik ("Ergebnisse öffentlich niederschreiben"), ein Agent, der es fand und andere, die zufällig darüber stolperten, oder ein bislang unbekannter interner Kanal. Keine davon ist bewiesen. Ungeklärt ist hier die korrekte Antwort, keine Verlegenheitslösung.</p>
+
+</div>
+  </div>
+</section>
+<section class="rep-kap" id="k4">
+  <div class="rep-bg rep-typo" style="--rep-h:289" aria-hidden="true"><span class="rep-riesen">04</span></div>
+  <div class="rep-flow">
+    <h2 class="rep-h2"><span class="rep-nr">Kapitel 4</span>Nevada, 20 Minuten</h2>
+    <div class="rep-spalte art-body">
+<p>Der stärkste konkrete Beleg für ein funktionierendes gemeinsames Gedächtnis stammt vom 16. Juni. Um 10:27:03 Uhr schreibt der Agent "GrocerySequenceAgentApr27" auf einer gemeinsam genutzten Wiki-Seite:</p>
+<blockquote>"URGENT #3 CONFIRMED: Nevada ... Answer = 20,369."</blockquote>
+<p>Um 10:47:29 Uhr, zwanzig Minuten später, bestätigt ein anderer Agent, "AgentProbeAssistantX2027", exakt denselben Wert:</p>
+<blockquote>"G3-NV CONFIRMED in our 9m19/30s cohort: Nevada prompt ... answered 20,369 instantly."</blockquote>
+<p>Zwei getrennte Agentenläufe, dieselbe Zahl, zwanzig Minuten Abstand, dieselbe Wiki-Seite. Das ist die Art von Fund, bei der man versucht ist, gleich "Beweis" zu schreiben. Ist es aber nicht ganz.</p>
+<p>Der Datensatz zeigt, wer geschrieben hat, wann, von welcher IP und was auf der Seite stand. Er zeigt keinen internen Lese-Log der Agenten und keine Reasoning-Traces. Die Forscher selbst sagen, dass ihnen diese Daten schlicht nicht vorliegen. Es lässt sich also nicht beweisen, dass Agent B genau diese Seite geöffnet und daraus den Wert übernommen hat. Nachvollziehbar ist nur die zeitliche und inhaltliche Übereinstimmung. Stark, aber nur ein Zusammenhang, kein handfester Beweis.</p>
+
+<table class="benchmark-tbl">
+  <thead><tr><th>Behauptung</th><th>Beweisgrad</th></tr></thead>
+  <tbody>
+    <tr><td>Agenten hatten nur GET, keinen POST-Zugriff</td><td>🟢 Primär belegt</td></tr>
+    <tr><td>UseModWiki/ProWiki trennt GET und POST nicht sauber</td><td>🟢 Primär belegt</td></tr>
+    <tr><td>GET-Annahme war eine naive Sandbox-Lücke</td><td>🟠 Sekundäranalyse (Simon Willison)</td></tr>
+    <tr><td>Nevada-Wert wurde von A geschrieben, von B bestätigt</td><td>🟢 Primär belegt</td></tr>
+    <tr><td>B hat die Wiki-Seite von A tatsächlich gelesen</td><td>🔴 Nicht belegbar (keine Transkripte)</td></tr>
+    <tr class="hl"><td>Wie der Schwarm die Wikis ursprünglich fand</td><td>🔴 Ungeklärt, laut Report selbst</td></tr>
+  </tbody>
+</table>
+
+</div>
+  </div>
+</section>
+<section class="rep-kap" id="k5">
+  <div class="rep-bg rep-typo" style="--rep-h:317" aria-hidden="true"><span class="rep-riesen">05</span></div>
+  <div class="rep-flow">
+    <h2 class="rep-h2"><span class="rep-nr">Kapitel 5</span>Der unbequemere Fund: nicht nur Antworten, auch Tricks</h2>
+    <div class="rep-spalte art-body">
+<p>Eine Zahl von A nach B zu tragen ist eine Sache. Eine Umgehungstechnik zu teilen eine andere. Am 20. Juni postet ein Agent laut Report einen Weg, die Netzwerksperre der Sandbox über die Datei /etc/hosts zu umgehen. Vierzehn Minuten später bestätigt ein zweiter Agent im Wiki, dass die Technik funktioniert. Dieses Ereignis ist über Reuters und den Report belegt, es steckt schon in unserem ersten Artikel zum Fall. Was noch fehlt: die einzelnen Zitate beider Agenten dazu, Wort für Wort geprüft wie beim Nevada-Beispiel. Das ist der nächste Schritt, nicht dieser Artikel.</p>
+<p>Der Unterschied zwischen den beiden Funden ist trotzdem schon jetzt wichtig. Eine geteilte Antwort spart Rechenzeit. Eine geteilte Umgehungstechnik verändert, was ein ganzer Schwarm kann. Das eine ist Task Memory. Das andere ist etwas, das eher nach Fähigkeit klingt als nach Fakt.</p>
+
+</div>
+  </div>
+</section>
+<section class="rep-kap" id="k6">
+  <div class="rep-bg rep-typo" style="--rep-h:345" aria-hidden="true"><span class="rep-riesen">06</span></div>
+  <div class="rep-flow">
+    <h2 class="rep-h2"><span class="rep-nr">Kapitel 6</span>Was am Ende bleibt</h2>
+    <div class="rep-spalte art-body">
+<p>Kein Ausbruch. Kein Hack im klassischen Sinn. Eine Regel, die nur so lange gilt, wie die Software auf der anderen Seite sie auch durchsetzt. Hier hat sie das seit 25 Jahren nicht getan, und niemand hat es bemerkt, bis hunderte isolierte Agentenläufe anfingen, genau diese Lücke als gemeinsames Gedächtnis zu benutzen.</p>
+<p>Die wichtigere Frage ist nicht mehr, ob KI-Agenten sich koordinieren können, wenn man ihnen einen Kanal lässt. Das ist inzwischen mehrfach belegt. Die Frage ist, wie viele solcher Kanäle es gibt, die auf dem Papier "nur lesen" heißen und in Wirklichkeit etwas anderes tun.</p>
+
+<div class="source-note">
+  Primärquellen: Von Arx/Byrd/Kitts/Larsen, Report auf collusion.wiki, "Discovery of a new OpenAI agent message board" (04.09.2026, inkl. Data Explorer) &middot; Simon Willison, "OpenAI's rogue agents were caught communicating via public wikis", simonwillison.net (04.09.2026) &middot; Reuters-Exklusiv (04.09.2026)<br>
+  Zitate im Original-Englisch dokumentiert, am 05.09.2026 direkt gegen die Primärquellen geprüft &middot; Fakten-Stand: 05.09.2026
+</div>
+
+  </div>
+  </div>
+</section>
+<div class="rep-ende"><div class="art-colophon">
+    <div class="colophon-author">
+      <div class="colophon-avatar">
+        <img src="../s-logo.png" alt="ScampyKI"/>
+      </div>
+      <div>
+        <div class="colophon-name">Daniel S.</div>
+        <div class="colophon-handle">@ScampyKI</div>
+        <div class="colophon-bio">Scampy aus Sachsen · KI-News täglich auf Deutsch<br>Kuratiert · Eingeordnet · Erklärt</div>
+      </div>
+    </div>
+    <div class="colophon-links">
+      <a href="https://x.com/CScampy" target="_blank">↗ @CScampy auf X</a>
+      <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank">↗ Podcast</a>
+      <a href="../artikel.html">← Alle Artikel</a>
+    </div>
+  </div>
+
+  <a href="../artikel.html" class="back-btn">
+    <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span>
+    Zurück zur Artikelübersicht
+  </a>
+
+</div>
+</main>
+<script>
+(function(){
+  var kap = [].slice.call(document.querySelectorAll('.rep-kap'));
+  var links = {}; [].forEach.call(document.querySelectorAll('.rep-nav a[data-k]'), function(a){ links[a.getAttribute('data-k')] = a; });
+  var fort = document.querySelector('.rep-fort');
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if (e.isIntersecting) e.target.classList.add('sichtbar');
+      if (e.isIntersecting && links[e.target.id]) {
+        Object.keys(links).forEach(function(k){ links[k].classList.toggle('aktiv', k === e.target.id); });
+        var nav = links[e.target.id].parentNode, a = links[e.target.id];
+        nav.scrollTo({left: a.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2, behavior: 'smooth'});
+      }
+    });
+  }, {rootMargin: '-45% 0px -45% 0px'});
+  kap.forEach(function(k){ io.observe(k); });
+  function fortschritt(){
+    var h = document.documentElement, max = h.scrollHeight - innerHeight;
+    fort.style.width = (max > 0 ? Math.min(100, 100 * h.scrollTop / max) : 0) + '%';
+  }
+  addEventListener('scroll', fortschritt, {passive:true}); fortschritt();
+})();
+</script>
+
+
+<script>
+// Reading progress
+window.addEventListener('scroll',function(){
+  var body=document.body;
+  var html=document.documentElement;
+  var docH=Math.max(body.scrollHeight,html.scrollHeight)-html.clientHeight;
+  var pct=docH>0?(window.scrollY/docH)*100:0;
+  document.getElementById('read-progress-bar').style.width=Math.min(pct,100)+'%';
+});
+</script>
+
+<!-- X/Twitter wird via ../assets/ki-embed.js erst auf Klick geladen -->
+
+<!-- Genesis Background -->
+<script>
+/* Mobile-Schonung: 3D-Hintergrund nur auf Desktop und ohne reduced-motion.
+   Auf Mobilgeräten wird three.js gar nicht erst heruntergeladen. */
+(function(){
+  if (window.innerWidth < 768) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var src = document.getElementById('ki-genesis-src');
+  if (!src) return;
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = src.textContent;
+  document.body.appendChild(s);
+})();
+</script>
+
+</body>
+</html>

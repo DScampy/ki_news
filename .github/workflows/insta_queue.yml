@@ -1,0 +1,101 @@
+name: Insta-Queue (Telegram-Button)
+
+# Kein Webhook, kein Dauer-Server: der Lauf holt ab, ob seit dem letzten Mal ein
+# "📤 Auf Instagram posten"-Button in Telegram gedrueckt wurde
+# (check_insta_queue.py). Telegram haelt Updates bis 24h vor, ein verpasster
+# Tick ist also kein Problem.
+#
+# Trigger-Erweiterung 03.09.26: Der 2h-Cron allein reichte nicht. GitHub verwirft
+# geplante Laeufe unter Last - gemessene Ist-Zahlen aus der Run-Historie statt der
+# geplanten 12 Laeufe/Tag: 31.08. = 3, 01.09. = 5, 02.09. = 6, groesste Luecke ~8h.
+# Dadurch lagen zwischen Button-Klick und Abholung bis zu 6 Stunden (belegter Fall:
+# Klick 02.09. 06:26, Abholung erst 10:16). Deshalb zusaetzlich workflow_run: direkt
+# nach jedem "KI News"-Lauf wird die Queue geprueft - genau der Moment, in dem
+# frische Karten in Telegram landen und der Button gedrueckt wird.
+# Bewusst NICHT auf */15 hochgedreht (96 Laeufe/Tag fuer im Schnitt <1 Klick).
+
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_run:
+    workflows: ["KI News"]
+    types: [completed]
+  workflow_dispatch: {}
+
+# Pflicht seit dem workflow_run-Trigger: Cron-Tick und Karten-Lauf koennen jetzt
+# zeitlich zusammenfallen. check_insta_queue.py schreibt den Telegram-Offset erst
+# am ENDE des Laufs, ein IG-Post darf bis 90s dauern - zwei parallele Laeufe
+# wuerden denselben Klick lesen und DOPPELT auf Instagram posten.
+# cancel-in-progress: false, damit ein laufender Post nie mittendrin abgebrochen
+# wird (Container erstellt, publish nicht mehr ausgefuehrt).
+concurrency:
+  group: insta-queue
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          # Bei workflow_run zeigt GITHUB_SHA auf den Stand des ausloesenden Laufs
+          # - das kann VOR dessen eigenem cards.json-Commit liegen. Explizit main
+          # auschecken, sonst sucht find_card() in einer veralteten cards.json und
+          # der Klick geht mit "Card nicht gefunden" verloren.
+          ref: main
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Abhaengigkeit installieren
+        run: pip install requests
+
+      - name: Telegram-Queue pruefen + ggf. posten
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: python3 check_insta_queue.py
+
+      - name: Offset-Datei committen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Bug-Fix (02.07.26): dasselbe kaputte Muster wie in ki_news.yml vor dem
+          # 02.07.-Fix - "git pull --rebase || true" + "git push || true" verschluckte
+          # JEDEN Fehler. Kritisch hier: scheitert der Push, bleibt der Telegram-Offset
+          # auf origin alt, der naechste Lauf (frischer Checkout) verarbeitet denselben
+          # Button-Klick ERNEUT -> Doppel-Post auf Instagram. Fix: gleiche Strategie
+          # wie ki_news.yml (mixed reset auf origin/main + Recommit + Retry), und bei
+          # endgueltigem Scheitern SICHTBAR fehlschlagen statt still gruen.
+          add_and_commit() {
+            git add insta_telegram_offset.json 2>/dev/null || true
+            git diff --staged --quiet || git commit -m "Insta-Queue: Telegram-Offset aktualisiert"
+          }
+
+          add_and_commit
+
+          PUSH_OK=false
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              PUSH_OK=true
+              break
+            fi
+            echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
+            git fetch origin main
+            git reset origin/main
+            add_and_commit
+            sleep 3
+          done
+
+          if [ "$PUSH_OK" != "true" ]; then
+            echo "::error::Offset-Push nach 3 Versuchen fehlgeschlagen - Risiko Doppel-Post beim naechsten Lauf."
+            exit 1
+          fi

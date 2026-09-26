@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>ScampyKI Breaking News</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@700;900&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #03060F;
+  --cyan:     #00E5FF;
+  --orange:   #FF6B00;
+  --text:     #E8EDF8;
+  --muted:    rgba(232,237,248,0.55);
+  --dimgrey:  rgba(232,237,248,0.28);
+}
+
+html, body {
+  width: 420px;
+  height: 660px;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── GRID ── */
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.028) 1px, transparent 1px);
+  background-size: 30px 30px;
+  pointer-events: none;
+}
+
+/* ── RADIAL GLOW (top center) ── */
+.glow {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 280px;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%,
+    rgba(0,229,255,.07) 0%, transparent 70%);
+  pointer-events: none;
+  animation: glowBreath 5s ease-in-out infinite;
+}
+@keyframes glowBreath {
+  0%,100% { opacity: .7; }
+  50%     { opacity: 1; }
+}
+
+/* ── LEFT EDGE DATA STREAM ── */
+.stream {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  overflow: hidden;
+  opacity: 0;
+  animation: fadeIn .4s ease .9s forwards;
+}
+.stream-bar {
+  position: absolute;
+  left: 0; width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom,
+    transparent 0%, var(--cyan) 40%, var(--cyan) 60%, transparent 100%);
+  animation: streamDrop 2s ease-in-out infinite;
+}
+.stream-bar:nth-child(1) { animation-duration: 2.4s; animation-delay: 0s;    }
+.stream-bar:nth-child(2) { animation-duration: 1.9s; animation-delay: 0.8s;  }
+.stream-bar:nth-child(3) { animation-duration: 2.8s; animation-delay: 1.6s;  }
+@keyframes streamDrop {
+  0%   { height: 0;   top: -80px; opacity: 0;   }
+  15%  { height: 90px;            opacity: 0.55; }
+  85%  { height: 90px;            opacity: 0.35; }
+  100% { height: 0;   top: 740px; opacity: 0;   }
+}
+
+/* ── SCAN LINE ── */
+.scan {
+  position: absolute;
+  left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(0,229,255,.45) 25%,
+    rgba(0,229,255,.85) 50%,
+    rgba(0,229,255,.45) 75%, transparent 100%);
+  pointer-events: none;
+  z-index: 100;
+  animation: scanPass 6s linear infinite;
+}
+@keyframes scanPass {
+  0%   { top: -2px;  opacity: 0; }
+  4%   {             opacity: 1; }
+  96%  {             opacity: .6; }
+  100% { top: 662px; opacity: 0; }
+}
+
+/* ── PROGRESS BAR (30 s) ── */
+.progress {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  width: 0;
+  background: linear-gradient(90deg, var(--orange), var(--cyan));
+  box-shadow: 0 0 6px rgba(0,229,255,.55);
+  animation: progGrow 30s linear .3s forwards;
+  z-index: 50;
+}
+@keyframes progGrow { to { width: 100%; } }
+
+/* ── CORNER BRACKETS ── */
+.c {
+  position: absolute; width: 18px; height: 18px;
+  border-color: rgba(0,229,255,.65); border-style: solid;
+  opacity: 0;
+  animation: fadeIn .35s ease .55s forwards;
+}
+.c.tl { top: 12px; left: 12px;   border-width: 2px 0 0 2px; }
+.c.tr { top: 12px; right: 12px;  border-width: 2px 2px 0 0; }
+.c.bl { bottom: 12px; left: 12px;   border-width: 0 0 2px 2px; }
+.c.br { bottom: 12px; right: 12px;  border-width: 0 2px 2px 0; }
+
+/* ── INTRO FLASH ── */
+.flash {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 300;
+  pointer-events: none;
+  animation: flashOff .45s ease .25s forwards;
+}
+@keyframes flashOff {
+  0%   { opacity: 1; }
+  55%  { opacity: .25; }
+  75%  { opacity: .7; }
+  100% { opacity: 0; }
+}
+
+/* ════ CARD LAYOUT ════════════════════════════════════════════════════════ */
+.card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  height: 660px;
+  padding: 18px 24px 12px;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-bottom: 13px;
+  opacity: 0;
+  animation: fadeUp .45s ease .65s forwards;
+}
+
+.badge-breaking {
+  background: var(--orange);
+  color: #fff;
+  font-family: 'Orbitron', monospace;
+  /* 11px statt vormals 8px - bei .14em Letter-Spacing war 8px selbst bei
+     scharfer Render-Qualitaet an der Grenze der Lesbarkeit ("BREAKING" wurde
+     zu "BRERKING"). */
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  padding: 5px 10px;
+  flex-shrink: 0;
+  animation: badgePulse 2s ease-in-out 1.2s infinite;
+  /* Fix 23.06.: --orange ist pro Karte zufaellig (CARD_THEMES), bei der
+     gruen/limegruenen Palette (#C6FF00) ist Weiss-auf-Hell Kontrast ~1,2:1 -
+     Text wirkt "unscharf", ist aber ein Kontrastproblem, kein Render-Problem.
+     Dunkler Text-Outline funktioniert unabhaengig von der zufaelligen Palette. */
+  text-shadow: 0 0 1px rgba(0,0,0,.9), 0 1px 2px rgba(0,0,0,.7);
+}
+@keyframes badgePulse {
+  0%,100% { box-shadow: none; }
+  50%     { box-shadow: 0 0 14px rgba(255,107,0,.75); }
+}
+
+.badge-brand {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: .1em;
+  opacity: .75;
+  flex-shrink: 0;
+}
+
+/* Signal bars */
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.sb {
+  width: 3px;
+  background: var(--cyan);
+  border-radius: 1px;
+  animation: sbBlink 1.4s ease-in-out infinite;
+}
+.sb:nth-child(1) { height: 4px;  opacity: .4; animation-delay: .0s; }
+.sb:nth-child(2) { height: 7px;  opacity: .6; animation-delay: .18s; }
+.sb:nth-child(3) { height: 10px; opacity: .8; animation-delay: .36s; }
+.sb:nth-child(4) { height: 13px; opacity: 1;  animation-delay: .54s; }
+@keyframes sbBlink {
+  0%,100% { opacity: inherit; }
+  50%     { opacity: .15; }
+}
+
+.header-date {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--dimgrey);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+
+/* ── TOP DIVIDER ── */
+.div-top {
+  height: 1px;
+  background: linear-gradient(90deg, var(--cyan), rgba(0,229,255,0));
+  flex-shrink: 0;
+  margin-bottom: 20px;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: growX .6s ease 1s forwards;
+}
+@keyframes growX { to { transform: scaleX(1); } }
+
+/* ── HEADLINE ── */
+.headline {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--text);
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  opacity: 0;
+  filter: blur(5px);
+  animation: materialize .9s cubic-bezier(.16,1,.3,1) 1.3s forwards;
+  /* Sicherheitsnetz (06.07.26): flex-shrink:0 heisst diese Box schrumpft NIE -
+     ein ueberlanger/2-saetziger Titel (siehe cap_headline() in
+     generate_news_cards.py + title_de-Fix in ki_news.py) druecke sonst die
+     komplette .kontext-section aus der fix 660px hohen Karte. Clamp als
+     zweite Verteidigungslinie, falls beide Upstream-Fixes mal versagen. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+@keyframes materialize {
+  from { opacity: 0; filter: blur(5px); transform: translateY(8px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+}
+
+/* ── SOURCE ROW ── */
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp .4s ease 2.4s forwards;
+}
+.source-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 6px rgba(255,107,0,.8);
+  flex-shrink: 0;
+  animation: dotPulse 2s ease-in-out 2.6s infinite;
+}
+@keyframes dotPulse {
+  0%,100% { box-shadow: 0 0 4px rgba(255,107,0,.5); }
+  50%     { box-shadow: 0 0 10px rgba(255,107,0,1); }
+}
+.source-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .15em;
+  color: var(--dimgrey);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.source-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+/* ── KONTEXT SECTION ── */
+.kontext-section {
+  flex: 1;
+  /* Sicherheitsnetz (06.07.26): min-height:0 (Flexbox-Standard) erlaubt dieser
+     Box, bis auf 0px zusammengedrueckt zu werden, wenn Headline/Einordnung zu
+     viel Platz beanspruchen - genau das liess "WAS IST PASSIERT" (Label +
+     Text) komplett verschwinden statt nur den Text zu kuerzen. Mindesthoehe
+     erzwingt: das Label + mind. eine Zeile Text bleiben IMMER sichtbar, auch
+     wenn andere Boxen dadurch enger werden. */
+  min-height: 64px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: fadeUp .6s ease 3.2s forwards;
+}
+
+.section-tag {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.section-tag::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0,229,255,.35), transparent);
+}
+
+.kontext-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.62;
+  color: rgba(232,237,248,.88);
+  overflow: hidden;
+  flex: 1;
+  /* clamp overflow without cutting mid-line */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  /* 05.07.26: Sicherheitsnetz - falls der Clamp trotz satzsicherem Kontext-Cut
+     (limit_chars_sentence_safe in generate_news_cards.py) noch greift, wenigstens
+     sichtbar mit "…" statt kommentarlos verschluckt. */
+  text-overflow: ellipsis;
+}
+
+/* ── EINORDNUNG ── */
+.einordnung-section {
+  flex-shrink: 0;
+  padding: 14px 15px 14px 17px;
+  border: 1px solid rgba(255,107,0,.22);
+  border-left: 3px solid var(--orange);
+  background: rgba(255,107,0,.05);
+  position: relative;
+  margin-bottom: 14px;
+  opacity: 0;
+  animation: fadeUp .7s ease 5.5s forwards;
+}
+/* top glow line */
+.einordnung-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--orange), transparent 60%);
+}
+
+.einordnung-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── MINI ROBOT (Opt-out: erscheint bei 4.2s, verschwindet fest bei 15s) ── */
+/* Haengt an der Einordnungs-Box (.einordnung-section, position:relative)
+   statt an .card — dadurch wandert er automatisch mit nach oben, wenn die Box
+   durch mehr Text waechst. Zeitbasiertes Opt-out statt dynamischer
+   Overlap-/Hoehen-Heuristik (die hat den Roboter auf fast jeder Karte
+   ausgeblendet) — robotOut laeuft bei Sekunde 15 an und blendet ihn
+   zuverlaessig aus, unabhaengig vom Textinhalt. */
+.robot-overlay {
+  position: absolute;
+  right: -20px;
+  top: -124px;
+  width: 200px; height: 220px;
+  transform-origin: center center;
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+  animation: robotIn .5s cubic-bezier(.16,1,.3,1) 4.2s forwards,
+             robotOut .4s ease 15s forwards;
+}
+.robot-overlay.rb-hidden {
+  animation: none !important;
+  transform: scale(0) !important;
+  opacity: 0 !important;
+}
+@keyframes robotIn  {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(.28); opacity: 1; }
+}
+@keyframes robotOut {
+  from { transform: scale(.28); opacity: 1; }
+  to   { transform: scale(0);  opacity: 0; }
+}
+
+/* Head */
+.rb-head {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #07102c 0%, #060d22 100%);
+  border: 2px solid rgba(0,229,255,.65);
+  border-radius: 28px 28px 18px 18px;
+  box-shadow: 0 0 30px rgba(0,229,255,.22), inset 0 0 30px rgba(0,229,255,.05);
+  animation: rbGlow 2.5s ease-in-out infinite alternate;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+}
+@keyframes rbGlow {
+  from { box-shadow: 0 0 22px rgba(0,229,255,.18), inset 0 0 20px rgba(0,229,255,.04); }
+  to   { box-shadow: 0 0 45px rgba(0,229,255,.38), 0 0 80px rgba(0,229,255,.12), inset 0 0 35px rgba(0,229,255,.08); }
+}
+/* Antenna */
+.rb-head::before {
+  content: '';
+  position: absolute; top: -28px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 26px;
+  background: linear-gradient(to top, rgba(0,229,255,.7), transparent);
+}
+.rb-head::after {
+  content: '';
+  position: absolute; top: -32px; left: 50%;
+  transform: translateX(-50%);
+  width: 8px; height: 8px;
+  background: #00E5FF; border-radius: 50%;
+  box-shadow: 0 0 12px rgba(0,229,255,1);
+  animation: rbAntenna 1.2s ease-in-out infinite;
+}
+@keyframes rbAntenna {
+  0%,100% { opacity: 1; box-shadow: 0 0 12px rgba(0,229,255,.9); }
+  50%     { opacity: .3; box-shadow: 0 0 4px rgba(0,229,255,.3); }
+}
+/* Orbit rings */
+.rb-orbit {
+  position: absolute;
+  inset: -30px;
+  border: 1px solid rgba(0,229,255,.2);
+  border-radius: 50%;
+  animation: rbOrbit 8s linear infinite;
+}
+.rb-orbit::before {
+  content: '';
+  position: absolute; top: -3px; left: 40%;
+  width: 6px; height: 6px;
+  background: #00E5FF; border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0,229,255,.9);
+}
+.rb-orbit2 {
+  position: absolute;
+  inset: -14px;
+  border: 1px dashed rgba(0,229,255,.12);
+  border-radius: 50%;
+  animation: rbOrbit 12s linear infinite reverse;
+}
+@keyframes rbOrbit { to { transform: rotate(360deg); } }
+/* Eyes */
+.rb-eyes {
+  display: flex; gap: 32px; margin-bottom: 20px;
+}
+.rb-eye {
+  width: 42px; height: 22px;
+  background: rgba(0,229,255,.12);
+  border: 1.5px solid rgba(0,229,255,.7);
+  box-shadow: 0 0 14px rgba(0,229,255,.5), inset 0 0 8px rgba(0,229,255,.2);
+  position: relative; overflow: hidden;
+}
+.rb-eye::before {
+  content: '';
+  position: absolute;
+  width: 24px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,229,255,.6), transparent);
+  animation: rbScan 2s ease-in-out infinite;
+}
+@keyframes rbScan {
+  0%   { left: -24px; }
+  100% { left: 42px; }
+}
+.rb-eye::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(0,229,255,.08);
+  animation: rbBlink 3s ease-in-out infinite;
+}
+@keyframes rbBlink {
+  0%,90%,100% { opacity: 0; }
+  92%,98%     { opacity: 1; }
+}
+/* Mouth bar */
+.rb-mouth {
+  width: 70px; height: 6px;
+  background: rgba(0,229,255,.15);
+  border: 1px solid rgba(0,229,255,.4);
+  border-radius: 2px;
+  position: relative; overflow: hidden;
+}
+.rb-mouth::after {
+  content: '';
+  position: absolute; top: 1px; left: 0;
+  height: 4px; width: 30%;
+  background: rgba(0,229,255,.7);
+  border-radius: 2px;
+  animation: rbMouth 1s ease-in-out infinite alternate;
+}
+@keyframes rbMouth {
+  from { width: 20%; left: 5%; }
+  to   { width: 50%; left: 25%; }
+}
+
+.einordnung-text {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: rgba(255,220,175,.92);
+  font-style: italic;
+}
+
+/* ── FOOTER ── */
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.06);
+  opacity: 0;
+  animation: fadeIn .5s ease 6.5s forwards;
+}
+.footer-brand {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  opacity: .45;
+  letter-spacing: .04em;
+}
+.footer-url {
+  font-size: 9px;
+  color: var(--dimgrey);
+  letter-spacing: .04em;
+}
+
+/* ── UTILS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+</style>
+{{THEME_CSS}}
+</head>
+<body>
+
+  <!-- Dekor-Ebenen -->
+  <div class="grid"></div>
+  <div class="glow"></div>
+  <div class="stream">
+    <div class="stream-bar"></div>
+    <div class="stream-bar"></div>
+    <div class="stream-bar"></div>
+  </div>
+  <div class="scan"></div>
+  <div class="progress"></div>
+  <div class="flash"></div>
+
+  <!-- Ecken -->
+  <div class="c tl"></div>
+  <div class="c tr"></div>
+  <div class="c bl"></div>
+  <div class="c br"></div>
+
+  <!-- Karten-Inhalt -->
+  <div class="card">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="badge-breaking">{{BADGE_LABEL}}</div>
+      <div class="badge-brand">SCAMPY</div>
+      <div class="signal">
+        <div class="sb"></div>
+        <div class="sb"></div>
+        <div class="sb"></div>
+        <div class="sb"></div>
+      </div>
+      <div class="header-date">{{DATUM}}</div>
+    </div>
+
+    <!-- Trennlinie -->
+    <div class="div-top"></div>
+
+    <!-- Headline -->
+    <div class="headline">{{HEADLINE}}</div>
+
+    <!-- Quelle -->
+    <div class="source-row">
+      <div class="source-dot"></div>
+      <div class="source-label">QUELLE</div>
+      <div class="source-name">{{QUELLE}}</div>
+    </div>
+
+    <!-- Kontext -->
+    <div class="kontext-section">
+      <div class="section-tag">WAS IST PASSIERT</div>
+      <p class="kontext-text">{{KONTEXT}}</p>
+    </div>
+
+    <!-- Scampy-Einordnung -->
+    <div class="einordnung-section">
+      <div class="einordnung-label">⚡ SCAMPY-EINORDNUNG</div>
+      <p class="einordnung-text">{{EINORDNUNG}}</p>
+
+      <!-- Mini-Roboter (thinking overlay, 4.2 → 5.7s) -->
+      <!-- An die Box gehaengt statt an .card, damit er mitwandert wenn die Box waechst -->
+      <div class="robot-overlay">
+        <div class="rb-orbit"></div>
+        <div class="rb-orbit2"></div>
+        <div class="rb-head">
+          <div class="rb-eyes">
+            <div class="rb-eye"></div>
+            <div class="rb-eye"></div>
+          </div>
+          <div class="rb-mouth"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-brand">ki-news.live</div>
+      <div class="footer-url">ki-news.live</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

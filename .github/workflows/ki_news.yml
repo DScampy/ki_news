@@ -1,0 +1,444 @@
+name: KI News
+
+on:
+  schedule:
+    # Berlin = UTC+2 (Sommerzeit)
+    # 7 / 12 / 17 / 20 Uhr Berlin = 5 / 10 / 15 / 18 UTC
+    - cron: "0 5,10,15,18 * * *"
+  workflow_dispatch:
+    inputs:
+      force_render:
+        description: 'Alle Karten neu rendern (auch wenn MP4 existiert)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: ki-news-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ── Shadow-Registry (20.07.26): Embedding-Modell + Abhaengigkeiten.
+      # Beide Caches machen den Step nach dem ersten Lauf schnell (~10-20s).
+      # Kill-Switch: diesen Step + HF-Cache-Step entfernen -> ki_news.py loggt
+      # "sentence-transformers fehlt - Lauf uebersprungen" und laeuft normal weiter.
+      - name: Shadow-Registry Abhaengigkeiten (pip-Cache)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-shadow-registry-v1
+
+      - name: Shadow-Registry Modell-Cache (HuggingFace)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-minilm-multilingual-v1
+
+      - name: Shadow-Registry Abhaengigkeiten installieren
+        run: |
+          pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet sentence-transformers
+        continue-on-error: true
+
+      # Sprach-ID (26.08.26): py3langid ist die Grundlage des Sprach-Guards in
+      # ki_news.py und generate_news_cards.py. Reine Python-Portierung von
+      # langid.py, offline, kein Modell-Download, ein paar hundert Kilobyte.
+      # Fehlt das Paket, fallen beide Dateien auf die alte Wortlisten-Heuristik
+      # zurueck - der Lauf kippt also nicht, wird aber wieder ungenau. Die
+      # Bilanzzeile am Laufende schreibt in dem Fall
+      # "Sprach-ID: FALLBACK Wortlisten (py3langid fehlt)" ins Log.
+      # BEWUSST OHNE continue-on-error: schlaegt der Install fehl, will ich das
+      # sofort rot sehen und nicht wochenlang stillen Qualitaetsverlust.
+      # 25.09.26: auf 0.3.0 gepinnt. py3langid 0.4.0 hat from_pickled_model()
+      # entfernt - der Install lief gruen, der Import scheiterte still und JEDER
+      # Lauf fiel auf die Wortlisten zurueck (Log: "FALLBACK Wortlisten"). Die
+      # Schwelle 0,99 ist gegen 0.3.x kalibriert, darum pinnen statt umbauen.
+      - name: Sprach-ID installieren (py3langid)
+        run: pip install --quiet "py3langid==0.3.0"
+
+      # Modell-Waechter (22.08.26): meldet Modell-IDs, die aus dem
+      # OpenRouter-Katalog verschwunden sind. Dreimal in acht Tagen ist genau
+      # das passiert und fiel jedes Mal erst an den 404ern im Log auf --
+      # beim letzten Mal nach rund 135 Fehlaufrufen. Laeuft VOR dem Hauptlauf,
+      # continue-on-error, kann den Lauf also nie kippen.
+      #
+      # Nachbesserung 26.08.26 -- der Waechter hat funktioniert und trotzdem
+      # nichts genuetzt: Er meldete nvidia/nemotron-3-nano-30b-a3b:free und
+      # nvidia/nemotron-nano-9b-v2:free ab dem 22.08. in JEDEM Lauf korrekt als
+      # tot. Nur stand der Befund ausschliesslich in der Actions-Ausgabe, die
+      # niemand oeffnet, waehrend die beiden IDs vier Tage lang 104 HTTP-404
+      # pro Log-Fenster produzierten. Ein Alarm, den keiner hoert, ist kein
+      # Alarm. Deshalb ab jetzt zwei Aenderungen:
+      #   1. Die Ausgabe landet zusaetzlich in ki_news.log, also genau dort,
+      #      wo der taegliche Check ohnehin hinschaut.
+      #   2. Tote IDs werden als ::error::-Annotation gesetzt, damit sie in
+      #      der Run-Zusammenfassung sichtbar sind, ohne den Lauf zu kippen.
+      - name: Modell-IDs gegen den OpenRouter-Katalog prüfen
+        run: |
+          echo "=== MODELL-WAECHTER $(date -u +'%Y-%m-%dT%H:%M:%SZ') ===" >> ki_news.log
+          python modell_check.py 2>&1 | tee -a ki_news.log | tee /tmp/modellcheck.txt
+          if grep -q "^TOT" /tmp/modellcheck.txt; then
+            sed -n '/^TOT/,/^$/p' /tmp/modellcheck.txt | tail -n +2 | while read -r line; do
+              [ -n "$line" ] && echo "::error::Tote Modell-ID im Repo: $line"
+            done
+          fi
+        continue-on-error: true
+
+      - name: KI News ausführen
+        env:
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          GROQ_CHAT_KEY: ${{ secrets.GROQ_CHAT_KEY }}
+          # Optional, fuer den Facetten-Judge im Registry-Schritt. Ist das
+          # Secret nicht gesetzt, bleibt die Variable leer und die Kaskade in
+          # registry_bau/klassifiziere.py faellt auf Groq bzw. OpenRouter
+          # zurueck -- kein Fehler, nur ein engeres Freikontingent.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Belegarchiv (14.09.26): S3-Schluessel von archive.org/account/s3.php.
+          # Optional - fehlen die Secrets, ueberspringt ki_news.py den Schritt still.
+          IA_ACCESS_KEY: ${{ secrets.IA_ACCESS_KEY }}
+          IA_SECRET_KEY: ${{ secrets.IA_SECRET_KEY }}
+          # Themenkette (14.09.26, Schattenbetrieb): HuggingNews-API-Key.
+          # Optional - fehlt das Secret, ueberspringt themenkette_shadow.py den Schritt still.
+          HUGGINGNEWS_API_KEY: ${{ secrets.HUGGINGNEWS_API }}
+          # Linien-Entdopplung (25.09.26): Jev (TypeSafe) als Richter im Graubereich.
+          # Optional - fehlt das Secret, entdoppelt themenkette_shadow.py nur per Embedding >= 0,85.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFEAI }}
+        run: |
+          # An die bestehende (committete) Log-Historie ANHAENGEN, nicht ueberschreiben.
+          # Jeder Lauf startet mit einem eindeutigen Marker; der Trim-Schritt unten
+          # behaelt nur die letzten 10 Laeufe.
+          echo "=== LAUF $(date -u +'%Y-%m-%dT%H:%M:%SZ') ===" >> ki_news.log
+          echo "Startzeit: $(date)" >> ki_news.log
+          MAX_RETRIES=3
+          RETRY_DELAY=10
+          SUCCESS=false
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Versuch $i von $MAX_RETRIES" >> ki_news.log
+            if python3 ki_news.py >> ki_news.log 2>&1; then
+              echo "Erfolgreich!" >> ki_news.log
+              SUCCESS=true
+              break
+            else
+              echo "Fehler im Versuch $i" >> ki_news.log
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "Warte $RETRY_DELAY Sekunden..." >> ki_news.log
+                sleep $RETRY_DELAY
+              fi
+            fi
+          done
+          echo "Endzeit: $(date)" >> ki_news.log
+          echo "=== KI NEWS ENDE ===" >> ki_news.log
+          # Bug-Fix (01.07.26): vorher lief der Schritt nach 3 gescheiterten Versuchen
+          # trotzdem als "Success" durch -> news.json blieb wochenlang unveraendert,
+          # ohne dass irgendwo ein rotes X aufgetaucht waere. Jetzt: Job schlaegt sichtbar
+          # fehl, wenn ki_news.py in allen Versuchen gescheitert ist.
+          if [ "$SUCCESS" != "true" ]; then
+            echo "::error::ki_news.py ist in allen $MAX_RETRIES Versuchen fehlgeschlagen - siehe ki_news.log Artifact"
+            exit 1
+          fi
+          # Log auf die letzten 10 Laeufe trimmen (Trenner: "=== LAUF ").
+          # Verwirft auch Alt-Inhalt vor dem ersten Marker.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("ki_news.log")
+          if p.exists():
+              blocks = p.read_text(encoding="utf-8", errors="replace").split("=== LAUF ")
+              keep = blocks[1:][-10:]   # blocks[0] = alles vor dem 1. Marker -> verwerfen
+              p.write_text("".join("=== LAUF " + b for b in keep), encoding="utf-8")
+          PY
+
+      - name: X-Reaktionen anreichern
+        env:
+          # Fuer die deutsche Kurzfassung der Reaktionen (translate_reaction()
+          # in add_reactions.py, neu 13.07.26). Ohne Key: Script laeuft
+          # trotzdem, zeigt dann nur den gekuerzten Original-Text.
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+        run: |
+          # Reichert news.json mit X-Reaktionen (manuell kuratiert, reactions.json)
+          # und Hacker-News-Reaktionen (automatisch, Top-5-Storys) an, jeweils mit
+          # deutscher LLM-Kurzfassung. Reddit bewusst NICHT dabei - blockt GitHub-
+          # Actions-IPs mit 403, siehe Kommentar in add_reactions.py. Ruft nur
+          # freie/oeffentliche APIs auf (fxtwitter, HN Algolia, OpenRouter) - kein
+          # X-Login, kein Scraping. Eingefuehrt 12.07.26, Reddit entfernt + Uebersetzung
+          # ergaenzt 13.07.26.
+          # Bewusst fehlertolerant: schlaegt die Anreicherung fehl, soll das NICHT
+          # den Haupt-Pipeline-Lauf killen - news.json ohne Reactions ist besser als
+          # gar kein news.json.
+          python3 add_reactions.py || echo "::warning::add_reactions.py fehlgeschlagen - news.json bleibt ohne Reactions-Update"
+
+      - name: Dateien ins Repo committen
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          # Bug-Fix (02.07.26): git add/commit/push -> bei Konflikt (git pull --rebase)
+          # frueher stillschweigend mit "|| true" geschluckt. Root Cause damals: zwei
+          # Laeufe kurz hintereinander (Concurrency-Queue oder manueller Start knapp nach
+          # einem Scheduled Run) wollten beide dieselben, komplett neu geschriebenen
+          # generierten Dateien (news.json, index.html, archive.json, ...) pushen. Ein
+          # echter Rebase versucht das ZEILENWEISE zu verschmelzen - bei zwei unabhaengigen
+          # Voll-Neuschreibungen derselben Datei praktisch garantiert ein Konflikt, den Git
+          # nicht automatisch aufloesen kann. Der Rebase blieb dann mitten im Konflikt
+          # stecken (unmerged files), der Fehler wurde verschluckt, und der naechste
+          # Git-Schritt im selben Job ("Commit generated cards") ist wenig spaeter mit
+          # exit 128 gestorben, weil die alten unmerged files nie aufgeloest wurden
+          # (Run #568, 01.07.26 19:09 UTC, verifiziert per Job-Log).
+          #
+          # Fix: kein Rebase mehr. Bei Push-Konflikt gilt "meine frisch generierte
+          # Arbeitskopie ist die Wahrheit" - auf den neuesten origin/main aufsetzen
+          # und neu committen, statt zeilenweise zu mergen. Das ist fuer vollstaendig
+          # neu geschriebene generierte Dateien immer die richtige Strategie.
+          #
+          # Nachbesserung (02.07.26): MIXED reset (ohne --soft) statt reset --soft.
+          # --soft liess den Index auf UNSEREM alten Baum stehen - der Recommit haette
+          # dann auch Dateien "zurueckgedreht", die inzwischen auf origin/main geaendert
+          # wurden, ohne dass wir sie generieren (z.B. dashboard_config.json, wenn
+          # Daniel WAEHREND des Laufs im Admin-Panel pinnt -> Pin waere still geloescht
+          # worden). Mixed reset setzt den Index auf origin/main; git add stagt danach
+          # NUR die generierten Dateien aus der Arbeitskopie - alles andere bleibt
+          # exakt auf dem Stand von origin/main.
+          add_and_commit() {
+            git add index.html ki_news.html news.json admin-posts.html post-cache.json 2>/dev/null || true
+            git add summary-cache.json 2>/dev/null || true
+            git add archive.json ki_news.log 2>/dev/null || true
+            git add chat-config.js 2>/dev/null || true
+            git add hashtags/hashtags.json 2>/dev/null || true
+            git add telegram_state.json 2>/dev/null || true
+            git add graph.json 2>/dev/null || true
+            git add story_registry_shadow.json 2>/dev/null || true
+            # Belegarchiv (14.09.26): Wayback-Snapshots der Top-Story-Quellen, waechst
+            # dauerhaft - ohne diese Zeile ginge jeder Eintrag mit dem Runner verloren.
+            git add belegarchiv.json 2>/dev/null || true
+            # Themenkette (14.09.26): Schattendatei, Urteils-Cache fuer den naechsten Lauf.
+            git add themenketten.json 2>/dev/null || true
+            # Modell-Registry (21.08.26): registry/ sind die drei Dateien, die
+            # Archiv.html laedt. registry_bau/out/facetten.json ist die Ablage
+            # des Judge -- ohne sie klassifiziert der naechste Lauf den
+            # gesamten Artikelbestand erneut, statt nur die neuen dreissig.
+            git add registry/ 2>/dev/null || true
+            git add registry_bau/out/facetten.json 2>/dev/null || true
+            # 25.09.26: Modellliste mitcommitten - ihr Alter steht in der Datei (erzeugt),
+            # ohne Commit rief jeder Lauf nach einer Woche OpenRouter neu ab (D5).
+            git add registry_bau/out/modelle.json 2>/dev/null || true
+            # Sprach-Guard-Protokoll (25.09.26, D4): welche Artikel wegen fehlender Uebersetzung fielen.
+            git add verworfen.json 2>/dev/null || true
+            # Jev-Veto (25.09.26): Urteils-Cache 'gleiches Ereignis', spart Aufrufe im naechsten Lauf.
+            git add jev_urteile.json 2>/dev/null || true
+            git diff --staged --quiet || git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')"
+          }
+
+          add_and_commit
+
+          PUSH_OK=false
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              PUSH_OK=true
+              break
+            fi
+            echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
+            git fetch origin main
+            git reset origin/main
+            add_and_commit
+            sleep 3
+          done
+
+          if [ "$PUSH_OK" != "true" ]; then
+            # Bug-Fix (02.07.26, Nachmittag): war nur ::warning -> Job blieb gruen,
+            # Website/news.json tagelang alt, ohne dass es jemand merkt (heute
+            # passiert: Lauf 05:00 pushte NICHTS, alles gruen). Jetzt: sichtbar rot.
+            # Der naechste Lauf regeneriert ohnehin alles - rot kostet nichts,
+            # Stille kostet Aktualitaet.
+            echo "::error::Push nach 3 Versuchen fehlgeschlagen - Website ist veraltet!"
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright + Chromium
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Install FFmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Generate news cards (MP4 + cards.json)
+        env:
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          GROQ_CHAT_KEY: ${{ secrets.GROQ_CHAT_KEY }}
+          GOOGLE_TTS_KEY: ${{ secrets.GOOGLE_TTS_KEY }}
+          # Karten v2 (26.09.26): Jev waehlt Motiv + negativ. Optional - ohne Key Stichwort-Regel.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFEAI }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          FORCE_RENDER: ${{ github.event.inputs.force_render == 'true' && '1' || '0' }}
+          # 26.09.26: Medien ins Repo ki_news_media (s. Schritt "Karten ins Medien-Repo").
+          # Nur gesetzt, wenn SECRETS_PAT existiert - sonst relative URLs wie bisher.
+          CARD_MEDIA_BASE: ${{ secrets.SECRETS_PAT != '' && 'https://dscampy.github.io/ki_news_media/cards' || '' }}
+        run: |
+          # Bug-Fix (02.07.26): die Default-Shell von GitHub Actions ist "bash -e"
+          # OHNE pipefail -> der Exit-Code von "python3 ... | tee" war immer der
+          # von tee (0). Ein kompletter Absturz der Card-Generierung blieb dadurch
+          # unsichtbar gruen (gleiche Bug-Klasse wie der Retry-Fix vom 01.07.).
+          set -o pipefail
+          python3 generate_news_cards.py 2>&1 | tee cards.log
+
+      - name: Alte MP4-Cards aufräumen (>10 Tage)
+        run: |
+          # Dateiname-Schema: YYYY-MM-DD-slug.mp4 -> Datum lexikografisch vergleichbar.
+          cutoff=$(date -d '10 days ago' +%Y-%m-%d)
+          deleted=0
+          # 26.09.26: Standbilder (*.jpg, gleiches Namensschema) mit aufraeumen
+          for f in assets/cards/*.mp4 assets/cards/*.jpg; do
+            [ -e "$f" ] || continue
+            d=$(basename "$f" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
+            if [ -n "$d" ] && [ "$d" \< "$cutoff" ]; then
+              git rm -f --quiet "$f" 2>/dev/null || rm -f "$f"
+              deleted=$((deleted+1))
+            fi
+          done
+          echo "$deleted MP4-Cards aelter als $cutoff entfernt"
+
+      # 26.09.26: Karten-Medien (MP4 + JPG) liegen im eigenen Repo DScampy/ki_news_media
+      # (GitHub Pages), weil ki_news mit jedem MP4 in der Historie wuchs (1,9 GB).
+      # Das Medien-Repo hat immer genau EINEN Commit (orphan + force-push): es enthaelt nur
+      # die Dateien der letzten 10 Tage und waechst nie. Force-push ist dort unkritisch -
+      # nur dieser Schritt schreibt hinein. Braucht Secret SECRETS_PAT (fine-grained PAT mit
+      # Contents: Read and write auf ki_news_media). Ohne Secret oder bei Fehler: ok=false,
+      # dann committet der naechste Schritt die Medien wie bisher nach ki_news.
+      - name: Karten ins Medien-Repo
+        id: media
+        env:
+          SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
+        run: |
+          if [ -z "$SECRETS_PAT" ]; then
+            echo "SECRETS_PAT fehlt - Medien bleiben in ki_news (altes Verhalten)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          M=/tmp/ki_news_media
+          URL="https://x-access-token:${SECRETS_PAT}@github.com/DScampy/ki_news_media.git"
+          ok=false
+          for attempt in 1 2 3; do
+            rm -rf "$M"
+            if git clone --quiet --depth 1 "$URL" "$M"; then
+              mkdir -p "$M/cards"
+              cp assets/cards/*.mp4 assets/cards/*.jpg "$M/cards/" 2>/dev/null || true
+              cutoff=$(date -d '10 days ago' +%Y-%m-%d)
+              for f in "$M"/cards/*; do
+                d=$(basename "$f" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
+                if [ -n "$d" ] && [ "$d" \< "$cutoff" ]; then rm -f "$f"; fi
+              done
+              cd "$M"
+              git checkout --quiet --orphan neu
+              git add -A
+              git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
+                commit --quiet -m "Karten-Medien $(date -u +%Y-%m-%dT%H:%MZ)"
+              if git push --quiet --force origin neu:main; then ok=true; cd "$GITHUB_WORKSPACE"; break; fi
+              cd "$GITHUB_WORKSPACE"
+            fi
+            echo "Medien-Push Versuch $attempt fehlgeschlagen"; sleep 5
+          done
+          echo "Medien-Repo: $(ls "$M"/cards 2>/dev/null | wc -l) Dateien, ok=$ok"
+          if [ "$ok" != "true" ]; then
+            echo "::warning::Medien-Repo nicht erreichbar - Karten-Medien werden diesmal nach ki_news committet."
+          fi
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+
+      - name: Commit generated cards
+        env:
+          MEDIA_OK: ${{ steps.media.outputs.ok }}
+        run: |
+          # 26.09.26: Medien im Repo ki_news_media? Dann assets/cards aus ki_news entfernen
+          # (einmalige Umstellung passiert beim ersten erfolgreichen Lauf von selbst).
+          # Sonst: URLs in cards.json zurueck auf relativ und Medien wie bisher committen.
+          if [ "$MEDIA_OK" != "true" ] && [ -f cards.json ]; then
+            python3 -c "import json;p='cards.json';c=json.load(open(p,encoding='utf-8'));b='https://dscampy.github.io/ki_news_media/cards/';[x.__setitem__(k,'assets/cards/'+x[k][len(b):]) for x in c for k in ('mp4_url','poster_url') if str(x.get(k,'')).startswith(b)];json.dump(c,open(p,'w',encoding='utf-8'),ensure_ascii=False,indent=2)"
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Bug-Fix (02.07.26): dieselbe Konflikt-Strategie wie im Schritt
+          # "Dateien ins Repo committen" (siehe Kommentar dort) - Rebase durch
+          # mixed reset + Recommit ersetzt, damit Konflikte auf vollstaendig
+          # neu geschriebenen generierten Dateien nicht mehr den Job vergiften.
+          add_and_commit() {
+            # artikel.html am 11.09.2026 entfernt: generate_news_cards.py schreibt diese
+            # Datei nicht (verifiziert, kein open()/write auf artikel.html im Skript).
+            # Der git add hier stagte trotzdem den beim Checkout eingefrorenen (u.U.
+            # veralteten) Stand. Folge: Daniels manueller Upload einer neuen Longform-
+            # Karte in artikel.html (Commit c032ddf) wurde vom naechsten Bot-Commit
+            # dieses Workflow-Schritts (1edd40f, "cards + template update") wieder
+            # entfernt, ca. 3 Stunden nach dem Upload. Fix: Datei nicht mehr in diesem
+            # Schritt anfassen, dafuer gibt es hier keinen Generierungsgrund.
+            if [ "$MEDIA_OK" = "true" ]; then
+              git rm -r --cached --quiet --ignore-unmatch assets/cards
+              git add cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            else
+              git add assets/cards/ cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            fi
+            # Auch hier, sonst ueberlebt die Registry keinen Push-Konflikt-Retry:
+            # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.
+            git add registry/ 2>/dev/null || true
+            git add registry_bau/out/facetten.json 2>/dev/null || true
+            # 25.09.26: Modellliste mitcommitten - ihr Alter steht in der Datei (erzeugt),
+            # ohne Commit rief jeder Lauf nach einer Woche OpenRouter neu ab (D5).
+            git add registry_bau/out/modelle.json 2>/dev/null || true
+            # Sprach-Guard-Protokoll (25.09.26, D4): welche Artikel wegen fehlender Uebersetzung fielen.
+            git add verworfen.json 2>/dev/null || true
+            # Jev-Veto (25.09.26): Urteils-Cache 'gleiches Ereignis', spart Aufrufe im naechsten Lauf.
+            git add jev_urteile.json 2>/dev/null || true
+            git diff --staged --quiet || git commit -m "cards + template update $(date -u +%Y-%m-%d)"
+          }
+
+          add_and_commit
+
+          PUSH_OK=false
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              PUSH_OK=true
+              break
+            fi
+            echo "Push-Konflikt (Versuch $attempt) - setze auf neuesten origin/main auf und committe neu."
+            git fetch origin main
+            git reset origin/main
+            add_and_commit
+            sleep 3
+          done
+
+          if [ "$PUSH_OK" != "true" ]; then
+            # Siehe Kommentar im Schritt "Dateien ins Repo committen": sichtbar rot
+            # statt still gruen (02.07.26).
+            echo "::error::Cards-Push nach 3 Versuchen fehlgeschlagen - MP4s fehlen auf der Website!"
+            exit 1
+          fi
+
+      - name: Log hochladen
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ki-news-log
+          path: |
+            ki_news.log
+            cards.log

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Was dein Browser gerade verraten hat · KI News</title>
+<meta name="description" content="Du hast nichts eingegeben – und diese Seite weiß trotzdem schon einiges über dich. Eine Live-Demonstration, was dein Browser bei jedem Klick preisgibt. Plus: was du dagegen tun kannst. Von KI News."/>
+<meta name="author" content="Daniel S."/>
+<meta name="robots" content="index, follow"/>
+<link rel="icon" type="image/png" href="s-logo.png"/>
+<link rel="canonical" href="https://ki-news.live/was-dein-browser-verraet.html"/>
+<meta property="og:type" content="article"/>
+<meta property="og:title" content="Was dein Browser gerade verraten hat"/>
+<meta property="og:description" content="Ohne Eingabe, ohne Login, ohne Erlaubnis: was dein Browser in den ersten Millisekunden preisgibt – live gezeigt und erklärt."/>
+<meta property="og:url" content="https://ki-news.live/was-dein-browser-verraet.html"/>
+<meta property="og:image" content="https://ki-news.live/s-logo.png"/>
+<meta property="og:locale" content="de_DE"/>
+<meta property="og:site_name" content="KI News"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:site" content="@ScampyKI"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --neon-rgb:0,212,255; --accent:#00d4ff; --accent-soft:rgba(var(--neon-rgb),0.08);
+  --bg:#000000; --bg2:#0a0f17; --card:#0b1119; --hairline:#1c2735;
+  --text:#dfe7f0; --muted:#8a97a8; --faint:#5a6678; --topbar-bg:rgba(0,0,0,0.72);
+  --sans:'Work Sans',system-ui,sans-serif; --grotesk:'Space Grotesk',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+
+/* ── 5-Theme System (synchron mit index.html · key: ki_genesis_theme) ── */
+[data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;--bg2:#0a0f17;--card:#0b1119;--hairline:#1c2735;--text:#dfe7f0;--muted:#8a97a8;--faint:#5a6678;--topbar-bg:rgba(0,0,0,0.72);}
+[data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--bg2:#0a1710;--card:#08140d;--hairline:#1d3328;--text:#e0f5ec;--muted:#88a89a;--faint:#56705f;--topbar-bg:rgba(4,12,6,0.80);}
+[data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--bg2:#0a0818;--card:#0a0816;--hairline:#2a2442;--text:#ede9fe;--muted:#9a93b0;--faint:#645d7a;--topbar-bg:rgba(4,2,15,0.80);}
+[data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--bg2:#140a04;--card:#100600;--hairline:#33220e;--text:#fff0e6;--muted:#b09a88;--faint:#7a6a5d;--topbar-bg:rgba(9,3,0,0.80);}
+[data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--bg2:#e8edf4;--card:#ffffff;--hairline:#e2e8f0;--text:#0f172a;--muted:#475569;--faint:#94a3b8;--topbar-bg:rgba(255,255,255,0.88);}
+
+/* Hell-Modus: Strukturfarben werden hell, Akzent bleibt vom aktiven Theme */
+html.light{
+  --bg:#f0f4f8; --bg2:#e8edf4; --card:#ffffff; --hairline:#e2e8f0;
+  --text:#0f172a; --muted:#475569; --faint:#94a3b8; --topbar-bg:rgba(255,255,255,0.88);
+}
+
+/* Theme dots + Hell/Dunkel-Toggle */
+.nav-sep{width:1px;height:18px;background:var(--hairline);flex-shrink:0;}
+.theme-toggle{background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;padding:0;transition:color .15s;}
+.theme-toggle:hover{color:var(--text);}
+.theme-toggle svg{width:17px;height:17px;display:block;}
+#genesis-dots{display:flex;align-items:center;gap:5px;}
+.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;padding:0;}
+.gdot:hover{transform:scale(1.25);}
+.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
+html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
+.gdot[data-t="genesis"]{background:#00d4ff;}
+.gdot[data-t="karst"]{background:#34d399;}
+.gdot[data-t="aurora"]{background:#a78bfa;}
+.gdot[data-t="meridian"]{background:#fb923c;}
+.gdot[data-t="blanc"]{background:#e2e8f0;border:2px solid rgba(0,0,0,0.2);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 70% -10%, rgba(var(--neon-rgb),0.07), transparent 60%),
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size:auto, 44px 44px, 44px 44px;
+  background-attachment:fixed;
+}
+html.light body{
+  background-image:
+    radial-gradient(1200px 600px at 70% -10%, rgba(var(--neon-rgb),0.07), transparent 60%),
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+}
+::selection{background:rgba(var(--neon-rgb),0.28);color:#fff;}
+a{color:inherit;}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px;}
+
+/* ── Top bar ── */
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:56px;padding:0 24px;border-bottom:1px solid var(--hairline);
+  background:var(--topbar-bg);backdrop-filter:blur(14px);}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.brand img{width:26px;height:26px;border-radius:6px;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));}
+.brand span{font-family:var(--grotesk);font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:var(--accent);font-size:16px;}
+.topbar nav{display:flex;align-items:center;gap:16px;}
+.topbar nav a{font-family:var(--grotesk);font-size:13px;color:var(--muted);text-decoration:none;transition:color .15s;}
+.topbar nav a:hover{color:var(--text);}
+@media(max-width:560px){.topbar nav a.hide-sm{display:none;}}
+
+/* ── Eyebrow / labels ── */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--accent);
+  display:inline-flex;align-items:center;gap:9px;}
+.eyebrow::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);
+  animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+
+/* ── Hero ── */
+.hero{padding:80px 0 48px;}
+.hero h1{font-family:var(--grotesk);font-weight:700;font-size:clamp(38px,7vw,68px);line-height:1.02;letter-spacing:-0.03em;
+  margin:22px 0 24px;text-wrap:balance;}
+.hero h1 em{font-style:normal;color:var(--accent);}
+.hero .lead{font-size:clamp(17px,2.2vw,21px);color:var(--muted);max-width:680px;line-height:1.55;}
+.hero .count-row{margin-top:30px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;font-family:var(--mono);}
+.hero .count{font-family:var(--grotesk);font-weight:700;font-size:40px;color:var(--text);font-variant-numeric:tabular-nums;}
+.hero .count-lbl{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--faint);}
+
+/* ── Reveal grid ── */
+.reveal{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:8px 0 24px;}
+@media(max-width:680px){.reveal{grid-template-columns:1fr;}}
+.card{border:1px solid var(--hairline);border-radius:14px;background:linear-gradient(180deg,var(--card),rgba(5,8,13,0.6));
+  padding:22px 22px 20px;position:relative;overflow:hidden;opacity:0;transform:translateY(10px);
+  transition:opacity .5s ease,transform .5s ease,border-color .25s;}
+.card.in{opacity:1;transform:none;}
+.card:hover{border-color:rgba(var(--neon-rgb),0.45);}
+.card.span2{grid-column:1 / -1;}
+.card h3{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--faint);
+  margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.card h3 .ic{color:var(--accent);font-size:13px;}
+.rows{display:flex;flex-direction:column;gap:11px;}
+.row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,0.045);}
+.row:last-child{border-bottom:none;padding-bottom:0;}
+.row .k{font-size:13px;color:var(--muted);flex-shrink:0;}
+.row .v{font-family:var(--mono);font-size:13px;color:var(--text);text-align:right;word-break:break-word;}
+.row .v.big{font-size:15px;color:var(--accent);}
+.row .v .wait{color:var(--faint);}
+
+/* ── Fingerprint card ── */
+.fp{display:flex;align-items:center;gap:28px;flex-wrap:wrap;}
+.fp-left{flex:1;min-width:220px;}
+.fp-hash{font-family:var(--mono);font-size:22px;letter-spacing:0.04em;color:var(--accent);word-break:break-all;margin:6px 0 12px;}
+.fp-note{font-size:13.5px;color:var(--muted);line-height:1.55;}
+.barcode{display:flex;align-items:flex-end;gap:3px;height:84px;padding:8px 0;}
+.barcode .bar{width:4px;background:var(--accent);border-radius:1px;opacity:0.85;
+  box-shadow:0 0 6px rgba(var(--neon-rgb),0.4);transition:height .6s ease;height:4px;}
+
+/* ── Prose sections ── */
+section.block{padding:54px 0;border-top:1px solid var(--hairline);}
+.block h2{font-family:var(--grotesk);font-weight:700;font-size:clamp(26px,4vw,38px);letter-spacing:-0.02em;line-height:1.12;margin:18px 0 18px;text-wrap:balance;}
+.block p{color:var(--muted);font-size:16.5px;line-height:1.7;max-width:680px;margin-bottom:16px;}
+.block p strong{color:var(--text);font-weight:600;}
+.block a.inl{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(var(--neon-rgb),0.4);}
+.block a.inl:hover{border-bottom-color:var(--accent);}
+
+/* ── Protection tips ── */
+.tips{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:30px;}
+@media(max-width:680px){.tips{grid-template-columns:1fr;}}
+.tip{border:1px solid var(--hairline);border-radius:12px;padding:20px;background:rgba(11,17,25,0.5);transition:border-color .2s,transform .2s;}
+.tip:hover{border-color:rgba(var(--neon-rgb),0.4);transform:translateY(-2px);}
+.tip .n{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:0.1em;}
+.tip h4{font-family:var(--grotesk);font-weight:700;font-size:17px;margin:8px 0 8px;color:var(--text);}
+.tip p{font-size:14px;color:var(--muted);line-height:1.55;margin:0;}
+.tip p b{color:var(--text);font-weight:600;}
+
+/* ── Honesty footer ── */
+.honest{padding:46px 0 30px;border-top:1px solid var(--hairline);}
+.honest h2{font-family:var(--grotesk);font-weight:700;font-size:22px;margin-bottom:18px;color:var(--text);}
+.honest .rows{max-width:760px;}
+.honest .row{align-items:flex-start;}
+.honest .row .k{color:var(--text);font-family:var(--grotesk);font-weight:600;font-size:14px;min-width:170px;text-align:left;}
+.honest .row .v{text-align:left;color:var(--muted);font-family:var(--sans);font-size:14px;line-height:1.55;flex:1;}
+.honest .row .v.good{color:var(--accent);}
+
+footer.f{padding:36px 0 70px;border-top:1px solid var(--hairline);}
+footer.f .src{font-family:var(--grotesk);font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:var(--accent);font-size:15px;}
+footer.f p{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:8px;line-height:1.6;}
+footer.f a{color:var(--muted);text-decoration:none;}
+footer.f a:hover{color:var(--accent);}
+
+.disclaimer{font-family:var(--mono);font-size:11.5px;color:var(--faint);line-height:1.6;border:1px dashed var(--hairline);border-radius:10px;padding:16px 18px;margin-top:26px;}
+.disclaimer b{color:var(--muted);}
+</style>
+</head>
+<body>
+
+<!-- ── KI Theme-Kopplung: Hell/Dunkel + Genesis vereinheitlicht (kanonisch · synchron mit allen Seiten) ──
+     Läuft VOR ki-custom-theme.js, damit dessen Wrapper diese Version umschließt. -->
+<script>
+(function(){
+  var GEN=['genesis','karst','aurora','meridian','blanc'];
+  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
+  var memGen=null, memContrast=null;
+  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
+  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
+  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
+  function resolveLight(){
+    if(getGenesis()==='blanc')return true;
+    var c=getContrast();
+    return c==='light'?true:(c==='dark'?false:prefersLight());
+  }
+  function applyAll(){
+    var root=document.documentElement, raw=rawGenesis();
+    if(raw==='custom'){
+      root.setAttribute('data-theme','custom');
+      root.classList.remove('light','dark');
+    }else{
+      var g=getGenesis(), light=resolveLight();
+      root.setAttribute('data-theme',g);
+      root.classList.toggle('light',light);
+      root.classList.toggle('dark',!light);
+    }
+    var active=(raw==='custom')?'custom':getGenesis();
+    var dots=document.querySelectorAll('.gdot');
+    for(var i=0;i<dots.length;i++)dots[i].classList.toggle('active',dots[i].getAttribute('data-t')===active);
+  }
+  window.setGenesisTheme=function(name){
+    if(GEN.indexOf(name)===-1)name='genesis';
+    memGen=name;
+    try{localStorage.setItem('ki_genesis_theme',name);}catch(e){}
+    applyAll();
+  };
+  window.cycleTheme=function(){
+    var light=document.documentElement.classList.contains('light');
+    var next=light?'dark':'light';
+    if(next==='dark'&&getGenesis()==='blanc'&&rawGenesis()!=='custom'){memGen='genesis';try{localStorage.setItem('ki_genesis_theme','genesis');}catch(e){}}
+    memContrast=next;
+    try{localStorage.setItem('ki_theme',next);}catch(e){}
+    applyAll();
+  };
+  window.__kiApplyTheme=applyAll;
+  applyAll();
+  document.addEventListener('DOMContentLoaded',applyAll);
+  if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getContrast()==='auto')applyAll();});}catch(e){}}
+})();
+</script>
+<script src="assets/ki-custom-theme.js"></script>
+
+<header class="topbar">
+  <a class="brand" href="/"><img src="s-logo.png" alt=""/><span>KI News</span></a>
+  <nav>
+    <a href="/" class="hide-sm">Aktuell</a>
+    <a href="artikel.html" class="hide-sm">Artikel</a>
+    <a href="Datenschutz.html">Datenschutz</a>
+    <span class="nav-sep"></span>
+    <button class="theme-toggle" onclick="cycleTheme()" title="Hell / Dunkel" aria-label="Hell- oder Dunkelmodus umschalten">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor"/></svg>
+    </button>
+    <div id="genesis-dots" title="Design-Theme">
+      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis" aria-label="Theme Genesis"></button>
+      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst" aria-label="Theme Karst"></button>
+      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora" aria-label="Theme Aurora"></button>
+      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian" aria-label="Theme Meridian"></button>
+      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc" aria-label="Theme Blanc"></button>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO -->
+  <div class="wrap">
+    <section class="hero">
+      <span class="eyebrow">Datenschutz · Live-Demonstration</span>
+      <h1>Du hast nichts eingegeben.<br/>Diese Seite weiß <em>trotzdem</em> einiges.</h1>
+      <p class="lead">Kein Login, kein Formular, keine Erlaubnis. In dem Moment, in dem du diese Seite geöffnet hast, hat dein Browser begonnen zu reden. Hier siehst du, was er gesagt hat – und am Ende, wie du ihn leiser stellst.</p>
+      <div class="count-row">
+        <span class="count" id="count">0</span>
+        <span class="count-lbl">Merkmale ausgelesen — ohne dass du gefragt wurdest</span>
+      </div>
+    </section>
+  </div>
+
+  <!-- REVEAL -->
+  <div class="wrap">
+    <div class="reveal" id="reveal">
+
+      <div class="card" data-i="0">
+        <h3><span class="ic">◉</span> Standort &amp; Verbindung</h3>
+        <div class="rows">
+          <div class="row"><span class="k">Deine IP-Adresse</span><span class="v big" id="r-ip"><span class="wait">wird gelesen…</span></span></div>
+          <div class="row"><span class="k">Ungefährer Standort</span><span class="v" id="r-loc"><span class="wait">…</span></span></div>
+          <div class="row"><span class="k">Internet-Anbieter</span><span class="v" id="r-isp"><span class="wait">…</span></span></div>
+          <div class="row"><span class="k">Netzwerk (ASN)</span><span class="v" id="r-asn"><span class="wait">…</span></span></div>
+        </div>
+      </div>
+
+      <div class="card" data-i="1">
+        <h3><span class="ic">▦</span> Dein Gerät</h3>
+        <div class="rows">
+          <div class="row"><span class="k">Betriebssystem</span><span class="v" id="r-os">…</span></div>
+          <div class="row"><span class="k">Bildschirm</span><span class="v" id="r-screen">…</span></div>
+          <div class="row"><span class="k">Grafikchip (GPU)</span><span class="v" id="r-gpu">…</span></div>
+          <div class="row"><span class="k">Prozessorkerne / RAM</span><span class="v" id="r-cpu">…</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-i="2">
+        <h3><span class="ic">◈</span> Deine Software</h3>
+        <div class="rows">
+          <div class="row"><span class="k">Browser</span><span class="v" id="r-browser">…</span></div>
+          <div class="row"><span class="k">Sprache(n)</span><span class="v" id="r-lang">…</span></div>
+          <div class="row"><span class="k">Zeitzone</span><span class="v" id="r-tz">…</span></div>
+          <div class="row"><span class="k">Erkannte Schriftarten</span><span class="v" id="r-fonts">…</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-i="3">
+        <h3><span class="ic">⚯</span> Status &amp; Schnittstellen</h3>
+        <div class="rows">
+          <div class="row"><span class="k">Verbindungstyp</span><span class="v" id="r-conn">…</span></div>
+          <div class="row"><span class="k">Akkustand</span><span class="v" id="r-battery">…</span></div>
+          <div class="row"><span class="k">Berührungseingabe</span><span class="v" id="r-touch">…</span></div>
+          <div class="row"><span class="k">„Do Not Track“</span><span class="v" id="r-dnt">…</span></div>
+        </div>
+      </div>
+
+      <div class="card span2" data-i="4">
+        <h3><span class="ic">█</span> Dein Fingerabdruck</h3>
+        <div class="fp">
+          <div class="fp-left">
+            <div class="fp-hash" id="r-fp">···· ···· ····</div>
+            <p class="fp-note" id="r-fp-note">Aus all diesen Einzelwerten lässt sich eine Kennung berechnen, die dich wiedererkennbar macht – komplett ohne Cookie. Diese Kennung entsteht hier in deinem Browser und wird nirgendwohin gesendet.</p>
+          </div>
+          <div class="barcode" id="barcode"></div>
+        </div>
+      </div>
+
+      <!-- LIVE-Verhalten (rein im Browser, nichts wird gespeichert oder gesendet) -->
+      <div class="card span2" data-i="5">
+        <h3><span class="ic">⦿</span> Live: Was du gerade hier tust <span style="font-size:9px;font-family:var(--mono,monospace);color:#f97316;letter-spacing:0.12em;vertical-align:middle;animation:livePulse 1.6s infinite">● LIVE</span></h3>
+        <div class="rows">
+          <div class="row"><span class="k">Maus-Strecke auf dieser Seite</span><span class="v big" id="lv-mouse">0,00 m</span></div>
+          <div class="row"><span class="k">Zeit auf dieser Seite</span><span class="v" id="lv-time">0 s</span></div>
+          <div class="row"><span class="k">Klicks / Tasten</span><span class="v" id="lv-input">0 / 0</span></div>
+          <div class="row"><span class="k">Gelesen (Scroll-Tiefe)</span><span class="v" id="lv-scroll">0%</span></div>
+          <div class="row"><span class="k">Fluchtversuche (Tab gewechselt)</span><span class="v" id="lv-away">0</span></div>
+          <div class="row"><span class="k">Werbeblocker</span><span class="v" id="lv-adblock">wird geprüft…</span></div>
+        </div>
+        <p class="fp-note" style="margin-top:12px">Alles hier entsteht live in deinem Browser und verschwindet, sobald du den Tab schließt. Aber jetzt weißt du, was eine Seite nebenbei mitzählen <i>könnte</i> – viele tun genau das.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- WIE -->
+  <div class="wrap">
+    <section class="block">
+      <span class="eyebrow">Kein Hack. Absicht.</span>
+      <h2>Nichts davon ist ein Angriff. Es ist Standard.</h2>
+      <p>Jeder einzelne Wert oben kam aus <strong>offiziellen, dokumentierten Schnittstellen</strong> deines Browsers – keine Sicherheitslücke, kein Exploit. Deine IP steht im Kopf jeder Anfrage, die dein Gerät stellt; alles andere liefern ganz normale JavaScript-Funktionen, die jede Website nutzen darf.</p>
+      <p>Das Problem ist nicht eine kaputte Funktion. <strong>Das Problem ist das Design.</strong> Die Kombination aus Bildschirmgröße, Grafikchip, Schriftarten, Sprache und Zeitzone ist bei den meisten Geräten einzigartig genug, um dich über Seiten hinweg wiederzuerkennen – ohne Cookie, ohne Login. Wie einzigartig dein Browser ist, kannst du beim <a class="inl" href="https://coveryourtracks.eff.org/" target="_blank" rel="noopener">Cover-Your-Tracks-Test der EFF</a> selbst prüfen.</p>
+      <p>Und es geht noch weiter, als wir hier zeigen: Manche Seiten lesen heimlich aus, bei welchen Diensten du eingeloggt bist, oder ziehen unsichtbar einen Canvas-Fingerabdruck. <strong>Wir tun das hier bewusst nicht.</strong> Die nächste Seite, die du besuchst, vielleicht schon.</p>
+    </section>
+  </div>
+
+  <!-- SCHUTZ -->
+  <div class="wrap">
+    <section class="block">
+      <span class="eyebrow">Was du dagegen tun kannst</span>
+      <h2>Du wirst nicht unsichtbar. Aber deutlich schwerer zu fassen.</h2>
+      <p>Niemand ist im Netz völlig anonym – und das musst du auch nicht sein. Es reicht, von einem leicht verfolgbaren Einzelfall zu „einer von vielen“ zu werden. Diese Schritte bringen am meisten, von oben nach unten:</p>
+      <div class="tips">
+        <div class="tip"><div class="n">01</div><h4>Tracker blockieren</h4><p>Installiere <b>uBlock Origin</b>. Es blockt Werbe- und Tracking-Skripte – also genau die, die Fingerabdrücke sammeln. Der größte Effekt für den geringsten Aufwand.</p></div>
+        <div class="tip"><div class="n">02</div><h4>Browser härten</h4><p>Nutze <b>Firefox</b> (mit strengem Schutz vor Aktivitätenverfolgung) oder <b>Brave</b>. Für das Maximum: der <b>Tor Browser</b> – er lässt absichtlich alle gleich aussehen.</p></div>
+        <div class="tip"><div class="n">03</div><h4>IP verbergen</h4><p>Ein <b>VPN</b> ersetzt deine echte IP und damit deinen Standort und Anbieter. Wichtig: ein Anbieter, der nichts protokolliert – sonst verschiebst du das Problem nur.</p></div>
+        <div class="tip"><div class="n">04</div><h4>JavaScript zähmen</h4><p>Die meisten Werte oben verschwinden ganz <b>ohne JavaScript</b>. Tools wie NoScript oder uBlock im Hardmodus lassen Skripte nur auf Seiten zu, denen du vertraust.</p></div>
+        <div class="tip"><div class="n">05</div><h4>Weniger einzigartig sein</h4><p>Keine exotischen Schriftarten, Browserfenster nicht in seltsamer Größe, Standard-Einstellungen lassen. Klingt langweilig – aber <b>Masse schützt</b>.</p></div>
+        <div class="tip"><div class="n">06</div><h4>Cross-Site-Cookies aus</h4><p>Stell deinen Browser auf <b>strenge</b> Cookie-Blockade und lösche regelmäßig. Erwäge zusätzlich verschlüsseltes DNS (DoH), damit dein Provider weniger mitliest.</p></div>
+      </div>
+      <div class="disclaimer">
+        <b>Hinweis:</b> Diese Tipps sind allgemeine Orientierung, keine Garantie auf Anonymität. Welcher Schutz für dich sinnvoll ist, hängt davon ab, wovor du dich schützen willst – Werbenetzwerke sind etwas anderes als gezielte Überwachung.
+      </div>
+    </section>
+  </div>
+
+  <!-- HONEST -->
+  <div class="wrap">
+    <section class="honest">
+      <span class="eyebrow">Volle Transparenz</span>
+      <h2 style="margin-top:18px;">Und was hat diese Seite mit deinen Daten gemacht?</h2>
+      <div class="rows">
+        <div class="row"><span class="k">Gespeichert</span><span class="v good">Nichts. Keine Cookies, kein localStorage, keine Datenbank. Schließt du den Tab, vergisst die Seite dich.</span></div>
+        <div class="row"><span class="k">IP-Standort</span><span class="v">Deine IP wird einmalig an einen Geo-Dienst geschickt, um Stadt und Anbieter zu übersetzen – flüchtig, ohne Speicherung. Angezeigt wird nur ein Teil deiner IP.</span></div>
+        <div class="row"><span class="k">Alles andere</span><span class="v good">Wurde ausschließlich in deinem Browser berechnet und hat dein Gerät nie verlassen.</span></div>
+        <div class="row"><span class="k">Quelltext</span><span class="v">Drück <b style="font-family:var(--mono);color:var(--text)">Strg+U</b> (bzw. <b style="font-family:var(--mono);color:var(--text)">Cmd+U</b>). Alles oben Beschriebene steht offen in dieser Seite. Wir haben nichts zu verbergen.</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="wrap">
+    <footer class="f">
+      <div class="src">KI News</div>
+      <p>Täglich. Auf Deutsch. Mit Kontext. — Geo-Daten via <a href="https://ipwho.is" target="_blank" rel="noopener">ipwho.is</a> · Fingerprint-Test: <a href="https://coveryourtracks.eff.org/" target="_blank" rel="noopener">EFF Cover Your Tracks</a> · <a href="Datenschutz.html">Datenschutz</a> · <a href="/">Zurück zur Startseite</a></p>
+    </footer>
+  </div>
+</main>
+
+<div class="adsbox ad-banner textads banner-ads" style="position:absolute;height:1px;width:1px;left:-9999px;" aria-hidden="true">&nbsp;</div>
+<script>
+(function(){
+  "use strict";
+  var found = 0;
+  var countEl = document.getElementById('count');
+  function bump(n){ found += (n||1); countEl.textContent = found; }
+  function set(id, val, big){
+    var el = document.getElementById(id);
+    if(!el) return;
+    if(val === undefined || val === null || val === '') { el.innerHTML = '<span class="wait">nicht ermittelbar</span>'; return; }
+    el.textContent = val; if(big) el.classList.add('big');
+  }
+
+  // ── Reveal-Animation (gestaffelt, ruhig) ──
+  function revealCards(){
+    var cards = document.querySelectorAll('#reveal .card');
+    cards.forEach(function(c, i){ setTimeout(function(){ c.classList.add('in'); }, 180 + i*220); });
+  }
+
+  // ── Gerät ──
+  function ua(){ return navigator.userAgent || ''; }
+  function detectOS(){
+    var u = ua(), p = navigator.platform || '';
+    if(/Windows NT 10/.test(u)) return 'Windows 10/11';
+    if(/Windows/.test(u)) return 'Windows';
+    if(/Android/.test(u)) return (u.match(/Android\s([0-9.]+)/)||[])[0] || 'Android';
+    if(/iPhone|iPad|iPod/.test(u)) return 'iOS / iPadOS';
+    if(/Mac OS X/.test(u)) return 'macOS';
+    if(/Linux/.test(u) || /Linux/.test(p)) return 'Linux';
+    return p || 'unbekannt';
+  }
+  function detectBrowser(){
+    var u = ua();
+    if(/Edg\//.test(u)) return 'Microsoft Edge';
+    if(/OPR\//.test(u)) return 'Opera';
+    if(/Brave/.test(u) || (navigator.brave)) return 'Brave';
+    if(/Firefox\//.test(u)) return 'Firefox ' + ((u.match(/Firefox\/([0-9]+)/)||[])[1]||'');
+    if(/Chrome\//.test(u)) return 'Chrome ' + ((u.match(/Chrome\/([0-9]+)/)||[])[1]||'');
+    if(/Safari\//.test(u)) return 'Safari';
+    return 'unbekannt';
+  }
+  function getGPU(){
+    try{
+      var c = document.createElement('canvas');
+      var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+      if(!gl) return null;
+      var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      if(!dbg) return 'verborgen (gut!)';
+      var r = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+      if(!r) return null;
+      r = String(r);
+      // Chrome/Windows liefert: "ANGLE (Vendor, RENDERER Direct3D11 vs_5_0 ps_5_0, Treiber)"
+      var m = r.match(/ANGLE \([^,]*,\s*(.+?)(?:\s+Direct3D|\s+vs_|,)/i);
+      if(m && m[1]) r = m[1];
+      r = r.replace(/\((R|TM)\)/gi,'').replace(/\u00ae|\u2122/g,'').replace(/\s+/g,' ').trim();
+      return r.slice(0,46) || null;
+    }catch(e){ return null; }
+  }
+  function detectFonts(){
+    var base = ['monospace','sans-serif','serif'];
+    var test = ['Arial','Verdana','Times New Roman','Courier New','Georgia','Garamond','Comic Sans MS','Impact','Tahoma','Trebuchet MS','Calibri','Cambria','Consolas','Segoe UI','Helvetica','Helvetica Neue','Roboto','Open Sans','Ubuntu','Cantarell','DejaVu Sans','Liberation Sans','Menlo','Monaco','Optima','Palatino','Futura','Gill Sans','Lucida Grande','Franklin Gothic'];
+    var s = document.createElement('span');
+    s.style.cssText = 'position:absolute;left:-9999px;font-size:72px;';
+    s.textContent = 'mmmmmmmmmmlli';
+    document.body.appendChild(s);
+    var baseW = {}, baseH = {};
+    base.forEach(function(b){ s.style.fontFamily = b; baseW[b]=s.offsetWidth; baseH[b]=s.offsetHeight; });
+    var detected = 0;
+    test.forEach(function(f){
+      var hit = false;
+      base.forEach(function(b){
+        s.style.fontFamily = "'"+f+"',"+b;
+        if(s.offsetWidth!==baseW[b] || s.offsetHeight!==baseH[b]) hit = true;
+      });
+      if(hit) detected++;
+    });
+    document.body.removeChild(s);
+    return detected;
+  }
+
+  // ── Fingerprint (Canvas + Werte) → kurzer Hash ──
+  function cyrb53(str, seed){
+    var h1=0xdeadbeef^(seed||0), h2=0x41c6ce57^(seed||0);
+    for(var i=0,ch;i<str.length;i++){ ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+    h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+    h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+    return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);
+  }
+  function canvasHash(){
+    try{
+      var c=document.createElement('canvas'); c.width=240; c.height=60;
+      var x=c.getContext('2d');
+      x.textBaseline='top'; x.font="16px 'Arial'";
+      x.fillStyle='#0af'; x.fillRect(2,2,180,30);
+      x.fillStyle='#fff'; x.fillText('KI-News \u26A1 fingerprint',6,8);
+      x.strokeStyle='rgba(0,212,255,0.6)'; x.beginPath(); x.arc(120,30,18,0,Math.PI*1.6); x.stroke();
+      return c.toDataURL();
+    }catch(e){ return 'no-canvas'; }
+  }
+  function drawBarcode(seed){
+    var wrap=document.getElementById('barcode'); if(!wrap) return;
+    wrap.innerHTML='';
+    var h = cyrb53(seed, 7);
+    for(var i=0;i<28;i++){
+      var bar=document.createElement('div'); bar.className='bar';
+      var n = parseInt(h.charAt(i % h.length) || '8', 16);
+      wrap.appendChild(bar);
+      (function(b,height){ setTimeout(function(){ b.style.height = (14 + height*4.4) + 'px'; }, 600 + i*22); })(bar, n);
+    }
+  }
+
+  function run(){
+    revealCards();
+
+    // Gerät
+    var os = detectOS(); set('r-os', os); bump();
+    var scr = (screen.width*(window.devicePixelRatio||1)|0)+' × '+(screen.height*(window.devicePixelRatio||1)|0)+' px';
+    set('r-screen', scr + (window.devicePixelRatio>1 ? '  (@'+window.devicePixelRatio+'x)' : '')); bump();
+    var gpu = getGPU(); set('r-gpu', gpu); if(gpu) bump();
+    var cores = navigator.hardwareConcurrency, mem = navigator.deviceMemory;
+    set('r-cpu', (cores? cores+' Kerne':'?') + (mem? '  ·  ~'+mem+' GB RAM':'')); bump();
+
+    // Software
+    set('r-browser', detectBrowser()); bump();
+    set('r-lang', (navigator.languages||[navigator.language]).join(', ')); bump();
+    var tz=''; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone; }catch(e){}
+    var off = -(new Date().getTimezoneOffset())/60;
+    set('r-tz', (tz||'?') + '  (UTC'+(off>=0?'+':'')+off+')'); bump();
+    var nf = detectFonts(); set('r-fonts', nf + ' von 30 getestet'); bump();
+
+    // Status
+    var conn = navigator.connection || {};
+    set('r-conn', conn.effectiveType ? (conn.effectiveType.toUpperCase() + (conn.downlink? '  ·  ~'+conn.downlink+' Mbit/s':'')) : 'nicht verraten'); if(conn.effectiveType) bump();
+    set('r-touch', (('ontouchstart' in window)||navigator.maxTouchPoints>0) ? 'ja  ('+(navigator.maxTouchPoints||1)+' Punkte)' : 'nein (Maus/Trackpad)'); bump();
+    var dnt = navigator.doNotTrack; set('r-dnt', (dnt==='1'||dnt==='yes') ? 'aktiviert' : 'nicht gesetzt'); bump();
+    if(navigator.getBattery){
+      navigator.getBattery().then(function(b){
+        set('r-battery', Math.round(b.level*100)+'%' + (b.charging?'  (lädt)':'')); bump();
+      }).catch(function(){ set('r-battery','verborgen (gut!)'); });
+    } else { set('r-battery','verborgen (gut!)'); }
+
+    // Fingerprint
+    var seed = [os, scr, gpu, cores, mem, navigator.language, tz, nf, canvasHash()].join('|');
+    var fp = (cyrb53(seed,1) + cyrb53(seed,99)).slice(0,16).toUpperCase();
+    var fpFmt = fp.replace(/(.{4})/g,'$1 ').trim();
+    setTimeout(function(){ document.getElementById('r-fp').textContent = fpFmt; bump(); }, 700);
+    drawBarcode(seed);
+
+    // IP / Standort (asynchron) – Kette aus mehreren Diensten,
+    // fällt einer aus (Rate-Limit, blockiert), übernimmt der nächste.
+    function showGeo(g){
+      var ip = String(g.ip||'');
+      var masked = ip.indexOf(':')>-1
+        ? ip.split(':').slice(0,2).join(':')+':····'
+        : ip.replace(/^(\d+)\.\d+\.\d+\.(\d+)$/, '$1.•••.•••.$2');
+      set('r-ip', masked || ip, true); bump();
+      set('r-loc', [g.city, g.region, g.country].filter(Boolean).join(', ') || '—'); bump();
+      set('r-isp', g.isp || '—'); bump();
+      set('r-asn', g.asn ? ('AS'+String(g.asn).replace(/^AS/i,'')) : '—'); if(g.asn) bump();
+    }
+    function failGeo(){
+      set('r-ip', 'durch Browser/VPN verborgen');
+      set('r-loc', 'nicht ermittelbar (gut so!)');
+      set('r-isp', '—'); set('r-asn', '—');
+    }
+    var geoProviders = [
+      { url:'https://ipwho.is/', map:function(d){
+          if(!d || d.success===false) return null;
+          var c = d.connection||{};
+          return {ip:d.ip, city:d.city, region:d.region, country:d.country, isp:(c.isp||c.org), asn:c.asn};
+        }},
+      { url:'https://get.geojs.io/v1/ip/geo.json', map:function(d){
+          if(!d || !d.ip) return null;
+          return {ip:d.ip, city:d.city, region:d.region, country:d.country, isp:(d.organization_name||d.organization), asn:d.asn};
+        }},
+      { url:'https://ipapi.co/json/', map:function(d){
+          if(!d || d.error || !d.ip) return null;
+          return {ip:d.ip, city:d.city, region:d.region, country:d.country_name, isp:d.org, asn:d.asn};
+        }}
+    ];
+    (function geoChain(i){
+      if(i >= geoProviders.length){ failGeo(); return; }
+      var p = geoProviders[i];
+      fetch(p.url, {cache:'no-store'})
+        .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+        .then(function(d){ var g = p.map(d); if(!g || !g.ip) throw 0; showGeo(g); })
+        .catch(function(){ geoChain(i+1); });
+    })(0);
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+
+<style>
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:0.25}}
+#spy-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--card,#0d1117);color:var(--text,#e8f8ff);border:1px solid rgba(var(--neon-rgb,0,212,255),0.5);border-radius:12px;padding:12px 20px;font-family:var(--mono,monospace);font-size:13px;z-index:2000;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
+#spy-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<div id="spy-toast"></div>
+<script>
+/* ── Live-Spielereien: alles flüchtig, nichts verlässt den Browser ── */
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+
+  /* Toast */
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('spy-toast'); if(!t) return;
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 3200);
+  }
+
+  /* Maus-Strecke (px → Meter, ~96dpi) */
+  var dist = 0, lx = null, ly = null;
+  document.addEventListener('mousemove', function(e){
+    if(lx !== null){ dist += Math.hypot(e.clientX-lx, e.clientY-ly); }
+    lx = e.clientX; ly = e.clientY;
+  }, {passive:true});
+
+  /* Klicks + Tasten */
+  var clicks = 0, keys = 0;
+  document.addEventListener('click', function(){ clicks++; }, {passive:true});
+  document.addEventListener('keydown', function(){ keys++; }, {passive:true});
+
+  /* Scroll-Tiefe */
+  var maxScroll = 0;
+  document.addEventListener('scroll', function(){
+    var h = document.documentElement;
+    var p = (h.scrollTop + h.clientHeight) / h.scrollHeight * 100;
+    if(p > maxScroll) maxScroll = Math.min(100, Math.round(p));
+  }, {passive:true});
+
+  /* Tab-Wechsel + Verlassen-Detektor */
+  var away = 0, origTitle = document.title;
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){
+      away++;
+      document.title = '\uD83D\uDC40 Ich hab das gesehen.';
+    } else {
+      document.title = origTitle;
+      var spr = ['Wieder da? Schön.','Instagram war\'s, oder?','Willkommen zurück. Versuch '+away+'.'];
+      toast(spr[Math.min(away-1, spr.length-1)] || spr[0]);
+    }
+  });
+
+  /* Copy-Detektor */
+  document.addEventListener('copy', function(){
+    var lines = ['Kopiert! Das melde ich\u2026 nicht. \uD83D\uDE09','Schon wieder kopiert. Ich sag nichts. Versprochen.','Strg+C, der Klassiker. Dein Geheimnis ist sicher.'];
+    if(!window.__copyN) window.__copyN = 0;
+    toast(lines[Math.min(window.__copyN++, lines.length-1)]);
+  });
+
+  /* Adblock-Erkennung über Köder-Element */
+  setTimeout(function(){
+    var bait = document.querySelector('.adsbox');
+    var blocked = !bait || bait.offsetParent === null || bait.offsetHeight === 0;
+    var el = $('lv-adblock');
+    if(el) el.textContent = blocked ? 'aktiv — Respekt. Hier gibt\u2019s eh keine Werbung.' : 'keiner erkannt — hier läuft trotzdem keine Werbung.';
+  }, 900);
+
+  /* Sekunden-Ticker für die Live-Karte */
+  var t0 = Date.now();
+  function fmtTime(ms){
+    var sec = Math.floor(ms/1000);
+    if(sec < 60) return sec + ' s';
+    var m = Math.floor(sec/60), r = sec%60;
+    return m + ' min ' + r + ' s' + (m >= 3 ? ' — statt zu arbeiten' : '');
+  }
+  setInterval(function(){
+    if($('lv-mouse'))  $('lv-mouse').textContent  = (dist/3779.5).toFixed(2).replace('.', ',') + ' m';
+    if($('lv-time'))   $('lv-time').textContent   = fmtTime(Date.now() - t0);
+    if($('lv-input'))  $('lv-input').textContent  = clicks + ' / ' + keys;
+    if($('lv-scroll')) $('lv-scroll').textContent = maxScroll + '%';
+    if($('lv-away'))   $('lv-away').textContent   = away === 0 ? '0 — voll fokussiert' : String(away);
+  }, 1000);
+
+  /* Hardware-Kommentare unter GPU + Akku (freche Einordnung) */
+  function comment(id, txt){
+    var el = $(id); if(!el || !txt) return;
+    var n = document.createElement('div');
+    n.style.cssText = 'font-size:10px;font-family:var(--mono,monospace);color:#f59e0b;margin-top:3px;';
+    n.textContent = txt;
+    el.appendChild(n);
+  }
+  setTimeout(function(){
+    var gpuEl = $('r-gpu');
+    var g = gpuEl ? (gpuEl.textContent || '') : '';
+    var gc = '';
+    if(/RTX\s*50|RTX\s*40/i.test(g)) gc = 'Schön für dich.';
+    else if(/RTX|GTX/i.test(g)) gc = 'Solide. Reicht für KI-Basteleien.';
+    else if(/Apple|M[1-9]/i.test(g)) gc = 'Apple Silicon. Der RTX Spark zittert (nicht).';
+    else if(/Intel.*(UHD|Iris|HD Graphics)/i.test(g)) gc = 'Büro-GPU. Ehrliche Arbeit.';
+    else if(/Radeon|AMD/i.test(g)) gc = 'Team Rot. Respekt für den Mut.';
+    if(gc) comment('r-gpu', gc);
+
+    if(navigator.getBattery){
+      navigator.getBattery().then(function(b){
+        var pct = Math.round(b.level*100), bc = '';
+        if(b.charging) bc = 'Lädt gerade. Verantwortungsvoll.';
+        else if(pct <= 15) bc = pct + '%?! Speichern. Sofort.';
+        else if(pct <= 40) bc = 'Wird langsam Zeit für die Steckdose.';
+        if(bc) comment('r-battery', bc);
+      }).catch(function(){});
+    }
+  }, 2500);
+})();
+</script>
+</body>
+</html>

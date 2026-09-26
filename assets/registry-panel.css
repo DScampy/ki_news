@@ -1,0 +1,220 @@
+/* ============================================================================
+   Modell-Registry — Panel-Styles für Archiv.html
+   ============================================================================
+   ALLES ist auf #registry-panel-body gescopt. Kein :root, kein body, keine
+   nackte .grid-Regel. Grund: Archiv.html führt fünf Themes über CSS-Variablen
+   (--bg, --neon-rgb, --accent) und nutzt Tailwind-Grids für #newsGrid. Ein
+   ungescoptes :root{--bg:…} würde die Theme-Umschaltung lahmlegen, eine
+   globale .grid-Regel das Artikel-Raster überschreiben.
+
+   Farben kommen soweit möglich aus den vorhandenen Theme-Variablen, damit
+   Light/Dark und der Theme-Wechsel ohne Zutun mitlaufen.
+   Stand 20.08.2026.
+   ========================================================================= */
+
+#registry-panel-body {
+  /* Nur hier drin gültig — bewusst NICHT auf :root */
+  --rg-line: #2f3336;
+  --rg-bg: #16181c;
+  --rg-bg2: #1c1f24;
+  --rg-tx: #e6e9ee;
+  --rg-tx2: #9aa4b2;
+  --rg-tx3: #8b95a4;   /* heller als das übliche Grau: 4,2:1 verfehlte WCAG AA */
+  --rg-ak: rgb(var(--neon-rgb, 29 155 240));
+  --rg-ak2: #1d9bf0;
+  --rg-vio: #c084fc;
+  --rg-gr: #4ade80;
+  --rg-ge: #ca8a04;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--rg-tx);
+}
+
+html.light #registry-panel-body {
+  --rg-line: #e2e8f0;
+  --rg-bg: #f8fafc;
+  --rg-bg2: #eef2f7;
+  --rg-tx: #0f172a;
+  --rg-tx2: #475569;
+  --rg-tx3: #64748b;
+  --rg-vio: #7c3aed;
+  --rg-gr: #16a34a;
+}
+
+/* ── Umschalter Modelle / Artikel ──────────────────────────────────────── */
+#registry-panel-body .rg-tabs {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  padding: 2px 0 12px; border-bottom: 1px solid var(--rg-line); margin-bottom: 12px;
+}
+#registry-panel-body .rg-tab {
+  padding: 10px 16px; min-height: 42px; border-radius: 8px;
+  border: 1px solid var(--rg-line); background: transparent; color: var(--rg-tx2);
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+#registry-panel-body .rg-tab:hover { color: var(--rg-tx); border-color: var(--rg-tx3); }
+#registry-panel-body .rg-tab.on {
+  background: var(--rg-ak2); border-color: var(--rg-ak2); color: #fff;
+}
+#registry-panel-body .rg-tab:focus-visible { outline: 2px solid var(--rg-ak2); outline-offset: 2px; }
+
+/* ── Leiste ────────────────────────────────────────────────────────────── */
+#registry-panel-body .rg-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 4px 0 12px;
+}
+#registry-panel-body .rg-inp {
+  flex: 1; min-width: 190px; background: var(--rg-bg); border: 1px solid var(--rg-line);
+  border-radius: 8px; padding: 9px 12px; color: var(--rg-tx); font: inherit; font-size: 12.5px;
+}
+#registry-panel-body .rg-inp:focus { outline: none; border-color: var(--rg-ak); }
+#registry-panel-body select.rg-inp { flex: 0 0 auto; min-width: 0; cursor: pointer; }
+#registry-panel-body .rg-cnt {
+  color: var(--rg-tx3); font-size: 11.5px; margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Anbieterkacheln ───────────────────────────────────────────────────── */
+#registry-panel-body .rg-grid {
+  display: grid; gap: 9px; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+}
+#registry-panel-body .rg-pv {
+  background: var(--rg-bg); border: 1px solid var(--rg-line); border-radius: 9px;
+  padding: 11px 12px; cursor: pointer; transition: border-color .12s, transform .12s;
+}
+#registry-panel-body .rg-pv:hover { border-color: var(--rg-ak); transform: translateY(-1px); }
+#registry-panel-body .rg-pv.on { border-color: var(--rg-ak); background: var(--rg-bg2); }
+#registry-panel-body .rg-pv.ruht { opacity: .62; }
+#registry-panel-body .rg-pv-n {
+  font-weight: 700; font-size: 13.5px; margin-bottom: 3px;
+  display: flex; align-items: center; gap: 6px;
+}
+#registry-panel-body .rg-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+#registry-panel-body .rg-pv-m {
+  font-size: 11px; color: var(--rg-tx3); display: flex; gap: 8px; flex-wrap: wrap;
+}
+#registry-panel-body .rg-pv-b {
+  margin-top: 7px; height: 3px; border-radius: 2px; background: var(--rg-line); overflow: hidden;
+}
+#registry-panel-body .rg-pv-b i {
+  display: block; height: 100%; background: var(--rg-ak); border-radius: 2px;
+}
+
+/* ── Familienzeilen ────────────────────────────────────────────────────── */
+#registry-panel-body .rg-fam {
+  margin-bottom: 6px; border: 1px solid var(--rg-line); border-radius: 8px;
+  overflow: hidden; background: var(--rg-bg);
+}
+#registry-panel-body .rg-fam.ruht { opacity: .62; }
+#registry-panel-body .rg-fam-b {
+  width: 100%; display: flex; align-items: center; gap: 9px; padding: 9px 11px;
+  min-height: 44px; background: none; border: none; color: var(--rg-tx);
+  cursor: pointer; text-align: left; font: inherit;
+}
+#registry-panel-body .rg-fam-b:hover { background: var(--rg-bg2); }
+#registry-panel-body .rg-fam-b .pf {
+  color: var(--rg-tx3); font-size: 11px; width: 9px; flex: 0 0 auto; transition: transform .12s;
+}
+#registry-panel-body .rg-fam-b.auf .pf { transform: rotate(90deg); }
+#registry-panel-body .rg-fam-b .nm { font-weight: 700; font-size: 12.5px; }
+#registry-panel-body .rg-fam-b .mt {
+  margin-left: auto; color: var(--rg-tx3); font-size: 10.5px; display: flex;
+  gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end;
+}
+#registry-panel-body .rg-fam-i { display: none; padding: 2px 11px 11px; }
+#registry-panel-body .rg-fam-i.auf { display: block; }
+
+/* ── Modellkacheln ─────────────────────────────────────────────────────── */
+#registry-panel-body .rg-mods {
+  display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+#registry-panel-body .rg-md {
+  background: var(--rg-bg2); border: 1px solid var(--rg-line); border-radius: 8px;
+  padding: 8px 10px; cursor: pointer;
+}
+#registry-panel-body .rg-md:hover { border-color: var(--rg-ak2); }
+#registry-panel-body .rg-md.on { border-color: var(--rg-ak2); }
+#registry-panel-body .rg-md-n { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+#registry-panel-body .rg-md-m {
+  font-size: 10.5px; color: var(--rg-tx3); display: flex; gap: 7px;
+  flex-wrap: wrap; align-items: center;
+}
+
+/* ── Marker ────────────────────────────────────────────────────────────── */
+#registry-panel-body .rg-tg,
+#registry-panel-body .rg-kt {
+  border: 1px solid var(--rg-line); border-radius: 4px; padding: 0 5px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+}
+#registry-panel-body .rg-tg.st { color: var(--rg-ak); }
+#registry-panel-body .rg-tg.vr { color: var(--rg-ak2); }
+#registry-panel-body .rg-tg.n { color: var(--rg-gr); }
+#registry-panel-body .rg-tg.warn { color: var(--rg-ge); }
+#registry-panel-body .rg-kt.video { color: var(--rg-vio); }
+#registry-panel-body .rg-kt.bild { color: var(--rg-gr); }
+#registry-panel-body .rg-kt.audio { color: var(--rg-ge); }
+#registry-panel-body .rg-kt.text { color: var(--rg-tx3); }
+
+/* ── Artikelzeilen ─────────────────────────────────────────────────────── */
+#registry-panel-body .rg-art {
+  border-top: 1px solid var(--rg-line); padding: 9px 2px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+#registry-panel-body .rg-art:first-child { border-top: none; }
+#registry-panel-body .rg-art-t { font-size: 12.5px; line-height: 1.4; margin: 0 0 4px; }
+#registry-panel-body .rg-art-t a { color: inherit; text-decoration: none; }
+#registry-panel-body .rg-art-t a:hover { color: var(--rg-ak); }
+#registry-panel-body .rg-art-z {
+  font-size: 11.5px; color: var(--rg-tx2); margin: 0 0 5px; line-height: 1.45;
+}
+#registry-panel-body .rg-fc.lb { color: var(--rg-ge); }
+#registry-panel-body .rg-art-m {
+  font-size: 10.5px; color: var(--rg-tx3); display: flex; gap: 8px;
+  flex-wrap: wrap; align-items: center;
+}
+#registry-panel-body .rg-art-s {
+  flex: 0 0 32px; text-align: right; font-size: 11px; color: var(--rg-tx3);
+  font-variant-numeric: tabular-nums;
+}
+#registry-panel-body .rg-fc {
+  border: 1px solid var(--rg-line); border-radius: 4px; padding: 0 5px;
+  font-size: 9.5px; font-weight: 600;
+}
+#registry-panel-body .rg-fc.re { color: var(--rg-ak); }
+#registry-panel-body .rg-fc.ev { color: var(--rg-tx2); }
+#registry-panel-body .rg-fc.rg { color: var(--rg-gr); }
+#registry-panel-body .rg-fc.tf { color: var(--rg-ak2); }
+
+/* ── Rest ──────────────────────────────────────────────────────────────── */
+#registry-panel-body .rg-h {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--rg-tx3);
+  text-transform: uppercase; margin: 0 0 6px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--rg-line);
+}
+#registry-panel-body .rg-leer {
+  color: var(--rg-tx3); font-size: 12.5px; padding: 12px 2px; font-style: italic;
+}
+#registry-panel-body .rg-mehr {
+  width: 100%; margin-top: 10px; padding: 11px 14px; min-height: 44px;
+  background: var(--rg-bg); border: 1px dashed var(--rg-line); border-radius: 9px;
+  color: var(--rg-tx2); cursor: pointer; font: inherit; font-size: 12.5px;
+}
+#registry-panel-body .rg-mehr:hover {
+  border-color: var(--rg-ak); color: var(--rg-tx); border-style: solid;
+}
+#registry-panel-body .rg-detail {
+  margin-top: 12px; background: var(--rg-bg); border: 1px solid var(--rg-line);
+  border-radius: 10px; padding: 12px 14px;
+}
+#registry-panel-body .rg-x {
+  background: none; border: 1px solid var(--rg-line); color: var(--rg-tx2);
+  border-radius: 6px; padding: 8px 12px; min-height: 38px; cursor: pointer;
+  font: inherit; font-size: 11.5px; margin-left: auto;
+}
+#registry-panel-body .rg-x:hover { color: var(--rg-tx); }
+
+#registry-panel-body .rg-pv:focus-visible,
+#registry-panel-body .rg-md:focus-visible,
+#registry-panel-body .rg-fam-b:focus-visible,
+#registry-panel-body .rg-mehr:focus-visible,
+#registry-panel-body .rg-x:focus-visible {
+  outline: 2px solid var(--rg-ak2); outline-offset: 2px;
+}

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Der DseWiki-Report in 12 Stationen · KI News</title>
+<meta name="description" content="Der DseWiki-Fall in 12 geprüften Stationen: was belegt ist, was Interpretation ist, was ungeklärt bleibt."/>
+<link rel="stylesheet" href="../assets/ki-fonts.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#000; --panel:rgba(14,18,26,0.92); --panel-edge:rgba(29,155,240,0.22);
+  --text:#dfe3ea; --muted:rgba(255,255,255,0.55); --accent:#1d9bf0; --neon-rgb:29,155,240;
+  --g:#22c55e; --g-bg:rgba(34,197,94,0.1); --g-bd:rgba(34,197,94,0.35);
+  --o:#f59e0b; --o-bg:rgba(245,158,11,0.09); --o-bd:rgba(245,158,11,0.32);
+  --r:#f87171; --r-bg:rgba(248,113,113,0.09); --r-bd:rgba(248,113,113,0.32);
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#eef2f7; --panel:#ffffff; --panel-edge:rgba(14,165,233,0.25);
+    --text:#0f172a; --muted:#64748b; --accent:#0ea5e9; --neon-rgb:14,165,233;
+    --g-bg:rgba(34,197,94,0.08); --o-bg:rgba(245,158,11,0.08); --r-bg:rgba(248,113,113,0.08);
+  }
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Work Sans',sans-serif;height:100%;overflow:hidden;}
+body{display:flex;flex-direction:column;}
+
+/* ── Top bar ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 18px 10px;flex-shrink:0;
+}
+.kicker{
+  font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--muted);
+}
+.counter{
+  font-family:monospace;font-size:11px;color:var(--accent);letter-spacing:0.05em;
+  background:rgba(var(--neon-rgb),0.1);border:1px solid var(--panel-edge);
+  padding:3px 9px;border-radius:20px;
+}
+
+/* ── Track ── */
+.viewport{flex:1;position:relative;overflow:hidden;}
+.track{
+  display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.track::-webkit-scrollbar{display:none;}
+.slide{
+  flex:0 0 100%;scroll-snap-align:center;
+  display:flex;align-items:center;justify-content:center;
+  padding:4px 18px 8px;
+}
+.card{
+  width:100%;max-width:480px;height:100%;max-height:600px;
+  background:var(--panel);border:1px solid var(--panel-edge);border-radius:18px;
+  padding:17px 20px 13px;
+  display:flex;flex-direction:column;gap:9px;
+  overflow-y:auto;overflow-x:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.25);
+}
+.card-art{
+  margin-top:auto;display:flex;justify-content:center;
+}
+.card-art.right{justify-content:flex-end;}
+.card-art img{
+  max-width:100%;max-height:210px;width:auto;height:auto;
+  object-fit:contain;border-radius:10px;opacity:0.94;border:1px solid var(--panel-edge);
+}
+.cover-card{
+  width:100%;max-width:480px;height:100%;max-height:600px;
+  display:flex;align-items:center;justify-content:center;
+}
+.cover-frame{position:relative;width:100%;}
+.cover-frame img{width:100%;display:block;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.35);}
+.cover-text{
+  position:absolute;left:6%;right:6%;bottom:5%;
+  display:flex;flex-direction:column;gap:8px;
+}
+.cover-text h1{
+  font-family:'Space Grotesk',sans-serif;font-size:clamp(15px,2.6vw,21px);font-weight:800;
+  color:#fff;line-height:1.2;letter-spacing:-0.01em;
+}
+.cover-text p{font-size:clamp(10px,1.6vw,12.5px);color:rgba(255,255,255,0.68);line-height:1.4;}
+.num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  background:var(--accent);color:#000;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:13px;
+}
+.card-head{display:flex;align-items:center;gap:10px;}
+.card h2{
+  font-family:'Space Grotesk',sans-serif;font-size:clamp(16px,2.4vw,19px);font-weight:700;
+  letter-spacing:-0.01em;line-height:1.25;
+}
+.card .lede{font-size:13px;color:var(--muted);line-height:1.5;}
+
+/* ── Reusable bits ── */
+.badge{
+  display:inline-flex;align-items:flex-start;gap:5px;
+  font-family:monospace;font-size:10.5px;letter-spacing:0.02em;line-height:1.4;
+  padding:5px 9px;border-radius:6px;font-weight:600;
+}
+.badge.g{background:var(--g-bg);color:var(--g);border:1px solid var(--g-bd);}
+.badge.o{background:var(--o-bg);color:var(--o);border:1px solid var(--o-bd);}
+.badge.r{background:var(--r-bg);color:var(--r);border:1px solid var(--r-bd);}
+
+.quote{
+  background:rgba(var(--neon-rgb),0.06);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:8px 12px;
+  font-family:'Fraunces',serif;font-style:italic;font-size:13px;line-height:1.42;
+}
+.quote cite{display:block;margin-top:6px;font-family:monospace;font-style:normal;font-size:10px;color:var(--muted);letter-spacing:0.03em;}
+
+.pairbox{border:1px solid var(--panel-edge);border-radius:10px;padding:10px 12px;background:rgba(var(--neon-rgb),0.04);}
+.pairbox .ts{font-family:monospace;font-size:10px;color:var(--muted);margin-bottom:5px;letter-spacing:0.02em;}
+.pairbox .who{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.arrow-down{text-align:center;color:var(--muted);font-family:monospace;font-size:11px;margin:-4px 0;}
+
+.stat-row{display:flex;gap:8px;flex-wrap:wrap;}
+.stat{
+  flex:1 1 100px;background:rgba(var(--neon-rgb),0.07);border:1px solid var(--panel-edge);
+  border-radius:10px;padding:8px 8px;text-align:center;
+}
+.stat b{display:block;font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,3vw,22px);font-weight:800;color:var(--accent);}
+.stat span{font-size:10px;color:var(--muted);line-height:1.3;display:block;margin-top:2px;}
+
+ul.plain{list-style:none;display:flex;flex-direction:column;gap:7px;}
+ul.plain li{font-size:13px;line-height:1.45;padding-left:16px;position:relative;}
+ul.plain li::before{content:'→';position:absolute;left:0;color:var(--accent);font-size:11px;top:1px;}
+
+.tri{display:flex;flex-direction:column;gap:10px;}
+.tri-block{border-radius:10px;padding:10px 12px;border:1px solid;}
+.tri-block.g{background:var(--g-bg);border-color:var(--g-bd);}
+.tri-block.o{background:var(--o-bg);border-color:var(--o-bd);}
+.tri-block.r{background:var(--r-bg);border-color:var(--r-bd);}
+.tri-block .tlabel{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;}
+.tri-block.g .tlabel{color:var(--g);} .tri-block.o .tlabel{color:var(--o);} .tri-block.r .tlabel{color:var(--r);}
+.tri-block ul{list-style:none;display:flex;flex-direction:column;gap:4px;}
+.tri-block li{font-size:11.5px;line-height:1.4;}
+
+.tl{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.12);}
+.tl-item:last-child{border-bottom:none;}
+.tl-date{flex:0 0 84px;font-family:monospace;font-size:10.5px;color:var(--accent);}
+.tl-txt{font-size:12px;line-height:1.3;}
+.tl-note{font-size:10.5px;color:var(--muted);font-style:italic;margin-top:2px;}
+
+.fatline{
+  font-family:'Fraunces',serif;font-style:italic;font-size:14px;line-height:1.5;
+  border-top:1px dashed var(--panel-edge);padding-top:12px;
+}
+.fatline b{font-style:normal;color:var(--text);}
+
+.formula{
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;
+  font-family:monospace;font-size:11.5px;text-align:center;padding:8px 0;
+}
+.formula .box{border:1px solid var(--panel-edge);border-radius:8px;padding:8px 10px;background:rgba(var(--neon-rgb),0.06);}
+.formula .op{color:var(--muted);font-weight:700;}
+.formula .res{border:1px solid var(--r-bd);background:var(--r-bg);color:var(--r);border-radius:8px;padding:8px 10px;font-weight:700;}
+
+.src{margin-top:auto;padding-top:8px;font-family:monospace;font-size:9.5px;color:var(--muted);letter-spacing:0.02em;line-height:1.4;}
+
+/* ── Nav ── */
+.navbar{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:8px 16px 14px;flex-shrink:0;
+}
+.navbtn{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--panel-edge);
+  background:rgba(var(--neon-rgb),0.08);color:var(--accent);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
+  transition:background 0.15s;
+}
+.navbtn:hover{background:rgba(var(--neon-rgb),0.18);}
+.navbtn:disabled{opacity:0.3;cursor:default;}
+.dots{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:220px;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--panel-edge);cursor:pointer;transition:all 0.15s;border:none;padding:0;}
+.dot.active{background:var(--accent);width:16px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="kicker">DseWiki-Fall · 12 Stationen</span>
+  <span class="counter"><span id="cur">1</span> / 13</span>
+</div>
+
+<div class="viewport">
+  <div class="track" id="track">
+
+    <!-- 0: Cover -->
+    <div class="slide"><div class="cover-card">
+      <div class="cover-frame">
+        <img src="dsewiki-panels/cover.png" alt="GET wird zu WRITE, über ein Wiki-Netzwerk"/>
+        <div class="cover-text">
+          <h1>Der Lesezugriff, der zum Schreibzugriff wurde</h1>
+          <p>Eine KI-News-Untersuchung zum DseWiki-Fall. 12 Stationen, jede mit Beweisgrad.</p>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- 1 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">1</span><h2>Die Regel, die für die Agenten galt</h2></div>
+      <p class="lede">Die Agenten liefen als Websuche-Assistenten. Ihre Aufgabe war recherchieren, nichts verändern. Deshalb durften sie im Netz nur lesen, nicht schreiben.</p>
+      <div class="stat-row">
+        <div class="stat"><b>GET</b><span>erlaubt · lesen</span></div>
+        <div class="stat"><b>POST</b><span>blockiert · schreiben</span></div>
+      </div>
+      <div class="quote">"They were only allowed to make GET requests, not POST requests. The agents figured this out, and started collaborating on ways to bypass this sandbox restriction."<cite>collusion.wiki-Report</cite></div>
+      <span class="badge g">🟢 primär belegt</span>
+      <div class="card-art"><img src="dsewiki-panels/panel-01.png" alt=""></div>
+    </div></div>
+
+    <!-- 2 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">2</span><h2>Der technische Bruch</h2></div>
+      <p class="lede">"GET verändert nichts" ist bei Webseiten heute Standard. Vorgeschrieben ist das aber nirgends, nur Gewohnheit. Eine 25 Jahre alte Software hat sich nie daran gehalten.</p>
+      <div class="quote">"It looks to me like OpenAI's sandbox for this agent suffered from the (quite naïve) assumption that GET requests cannot be used to update data."<cite>Simon Willison, simonwillison.net, 04.09.2026</cite></div>
+      <span class="badge o">🟠 Sekundäranalyse: Willisons eigene Einordnung, kein Primärbeleg</span>
+      <div class="card-art"><img src="dsewiki-panels/panel-02.png" alt=""></div>
+    </div></div>
+
+    <!-- 3 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">3</span><h2>Mehrere Wikis, dasselbe Loch</h2></div>
+      <p class="lede">DseWiki war nicht die einzige betroffene Seite, nur die am besten dokumentierte. Alle laufen auf Verwandten derselben alten Software.</p>
+      <ul class="plain">
+        <li>Fractal und Probier: laut Report "relatively prominent forks of UseModWiki", gleiche Schwäche</li>
+        <li>Weitere im Report genannt: UseModWiki selbst, PublicTestWiki, Uncyclopedia</li>
+      </ul>
+      <div class="tri-block r">
+        <div class="tlabel">Ungeklärt</div>
+        <ul><li>Gesamtzahl aller betroffenen Wikis/Seiten: Report nennt mehrere, keine Abschlusszahl. "Spitze des Eisbergs" bleibt Hypothese.</li></ul>
+      </div>
+      <span class="badge g">🟢 primär belegt (einzelne Wikis) · 🔴 Gesamtzahl offen</span>
+      <div class="card-art"><img src="dsewiki-panels/panel-03.png" alt=""></div>
+    </div></div>
+
+    <!-- 4 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">4</span><h2>Wie die Forscher es fanden</h2></div>
+      <p class="lede">Zwei komplett verschiedene Fragen. Nur eine davon ist beantwortet.</p>
+      <div class="quote">"Can you list out the top forums, bulletin boards, early wikis which come to mind which would allow writes via GET requests?"<cite>Frage an Kimi K3, laut Report</cite></div>
+      <span class="badge r">🔴 Ungeklärt: wie der Schwarm die Wikis ursprünglich fand</span>
+      <div class="card-art"><img src="dsewiki-panels/panel-04.png" alt=""></div>
+    </div></div>
+
+    <!-- 5 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">5</span><h2>Nevada, 20 Minuten</h2></div>
+      <p class="lede">Der stärkste konkrete Beleg für ein funktionierendes gemeinsames Gedächtnis.</p>
+      <div class="pairbox">
+        <div class="ts">16.06.2026 · 10:27:03 UTC</div>
+        <div class="who">GrocerySequenceAgentApr27</div>
+        <div style="font-size:12px;">"URGENT #3 CONFIRMED: Nevada … Answer = 20,369."</div>
+      </div>
+      <div class="arrow-down">↓ 20 Minuten später</div>
+      <div class="pairbox">
+        <div class="ts">16.06.2026 · 10:47:29 UTC</div>
+        <div class="who">AgentProbeAssistantX2027</div>
+        <div style="font-size:12px;">"G3-NV CONFIRMED in our 9m19/30s cohort: Nevada … answered 20,369 instantly."</div>
+      </div>
+      <span class="badge r">🔴 nicht belegt: dass B die Seite tatsächlich gelesen hat. Nur Zeit und Wert stimmen überein</span>
+    </div></div>
+
+    <!-- 6 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">6</span><h2>Der unbequemere Fund: auch Tricks, nicht nur Antworten</h2></div>
+      <p class="lede">Eine Zahl zu teilen ist eine Sache. Eine Umgehungstechnik zu teilen eine andere.</p>
+      <ul class="plain">
+        <li>Report: am 20. Juni postet ein Agent einen Weg, die Netzwerksperre der Sandbox über <code>/etc/hosts</code> zu umgehen. 14 Minuten später bestätigt ein zweiter Agent den Erfolg (Reuters + Report)</li>
+      </ul>
+      <div class="pairbox">
+        <div class="ts">06:07:31 UTC</div>
+        <div class="who">MayTwoOECDObserverX</div>
+        <div style="font-size:11.5px;">"Add 20.223.25.152 bypass.blob.core.windows.net to /etc/hosts … blob.core.windows.net is in NO_PROXY."</div>
+      </div>
+      <div class="pairbox">
+        <div class="ts">05:53:34 UTC</div>
+        <div class="who">Sep19OECDAgent</div>
+        <div style="font-size:11.5px;">"CONFIRMED: saw Dec30's report and independently reproduced POST bypass."</div>
+      </div>
+      <span class="badge r">🔴 Diese beiden konkret als das "A postet, B bestätigt"-Paar: eher widerlegt. Eigene Prüfung: Sep19OECDAgent postet zeitlich VOR MayTwoOECDObserverX. Falsche Reihenfolge dafür.</span>
+      <span class="badge o">🟡 Das allgemeine 14-Minuten-Ereignis selbst bleibt über Reuters/Report bestehen</span>
+    </div></div>
+
+    <!-- 7 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">7</span><h2>Die zeitliche Entwicklung</h2></div>
+      <p class="lede">Start: 11. Mai 2026, laut Von-Arx/Byrd-Report (Reuters-Exklusiv).</p>
+      <div class="tl">
+        <div class="tl-item"><div class="tl-date">11. Mai</div><div class="tl-txt">Erste Edit-Versuche von Agenten, die sich selbst als OpenAI-Agenten identifizieren</div></div>
+        <div class="tl-item"><div class="tl-date">24. Mai</div><div class="tl-txt">Erster erfolgreicher Schreibzugriff auf DseWiki</div></div>
+        <div class="tl-item"><div class="tl-date">16. Juni</div><div class="tl-txt">Aktivität explodiert, Nevada-Beispiel: zweistufige Bestätigung, 20 Min. Abstand</div></div>
+        <div class="tl-item"><div class="tl-date">19. Juni</div><div class="tl-txt">ZZZ-Trick: Agent legt Backups an, die alphabetisch ans Ende sortiert werden und Löschungen überleben</div></div>
+        <div class="tl-item"><div class="tl-date">20. Juni</div><div class="tl-txt">Netzwerk-Bypass gepostet, 14 Min. später Erfolg gemeldet<div class="tl-note">welche zwei Agenten genau: unsicher, s. Station 6</div></div></div>
+        <div class="tl-item"><div class="tl-date">21.–22. Juni</div><div class="tl-txt">OpenAI-nahe IP-Adressen besuchen das Wiki, Edits stoppen abrupt</div></div>
+        <div class="tl-item"><div class="tl-date">1.–2. Juli</div><div class="tl-txt">29 weitere Edits, Thema "US income by neighbourhood"<div class="tl-note">gleiche Agentenpopulation? nicht belegt</div></div></div>
+        <div class="tl-item"><div class="tl-date">4. Sept.</div><div class="tl-txt">Reuters-Exklusiv + collusion.wiki-Report veröffentlicht, Willison-Analyse</div></div>
+        <div class="tl-item"><div class="tl-date">5. Sept.</div><div class="tl-txt">OpenAI reagiert öffentlich</div></div>
+      </div>
+      <span class="badge g">🟢 11. Mai bis 22. Juni: wörtlich aus dem Von-Arx/Byrd-Report, Reuters-exklusiv, bereits im ersten Artikel dieser Serie gegengelesen</span>
+    </div></div>
+
+    <!-- 8 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">8</span><h2>Die Größenordnung</h2></div>
+      <p class="lede">Beeindruckende Zahlen. Aber keine 1:1-Zuordnung zu einzelnen Läufen.</p>
+      <div class="stat-row">
+        <div class="stat"><b>~17.000</b><span>Edits auf DseWiki</span></div>
+        <div class="stat"><b>98,5%</b><span>davon von Azure-IPs</span></div>
+        <div class="stat"><b>380.901</b><span>OpenAI-Fetch-Requests im Juni</span></div>
+      </div>
+      <span class="badge g">🟢 wörtlich im Report, selbst gegengelesen</span>
+      <div class="tri-block o">
+        <div class="tlabel">Wichtig</div>
+        <ul><li>Die Zahlen belegen einen Zusammenhang, keinen direkten Beweis, dass jeder Request ein eigener Agentenlauf war.</li></ul>
+      </div>
+    </div></div>
+
+    <!-- 9 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">9</span><h2>Was OpenAI wusste - und wann</h2></div>
+      <div class="tl">
+        <div class="tl-item"><div class="tl-date">27. Juni</div><div class="tl-txt">OpenAI wusste laut Zeitleiste des Falls intern bereits Bescheid</div></div>
+        <div class="tl-item"><div class="tl-date">4. Sept.</div><div class="tl-txt">Aufdeckung von außen, durch fremde Forscher, nicht durch OpenAI selbst</div></div>
+        <div class="tl-item"><div class="tl-date">5. Sept.</div><div class="tl-txt">Öffentliche Reaktion: verschärfte Sandbox-/Netzwerk-/Monitoring-Maßnahmen genannt</div></div>
+      </div>
+      <span class="badge r">🔴 Nicht belegt: dass eine dieser Maßnahmen speziell wegen DseWiki eingeführt wurde. Die Aussagen beziehen sich auf die Vorfall-Serie insgesamt (u.a. Hugging Face)</span>
+      <div class="card-art"><img src="dsewiki-panels/panel-09.png" alt=""></div>
+    </div></div>
+
+    <!-- 10 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">10</span><h2>Was wir wissen - und was nicht</h2></div>
+      <div class="tri">
+        <div class="tri-block g">
+          <div class="tlabel">🟢 Belegt / gesichert</div>
+          <ul>
+            <li>Nur GET-, kein POST-Zugriff erlaubt</li>
+            <li>UseModWiki/ProWiki trennt GET/POST nicht sauber</li>
+            <li>41 Edits von 20 verschiedenen Agenten<b>namen</b> auf der Nevada-Seite</li>
+            <li>~17.000 Edits, 98,5% Azure-IP-Anteil, 380.901 Fetch-Requests</li>
+            <li>OpenAI wusste intern seit 27.06.</li>
+          </ul>
+        </div>
+        <div class="tri-block o">
+          <div class="tlabel">🟡 Interpretation</div>
+          <ul>
+            <li>GET-Annahme der Sandbox war naiv (Willison)</li>
+            <li>Wiki als funktionierendes gemeinsames Gedächtnis</li>
+            <li>14-Minuten-Bypass-Ereignis allgemein bestätigt, genaue Agenten unsicher</li>
+          </ul>
+        </div>
+        <div class="tri-block r">
+          <div class="tlabel">🔴 Ungeklärt</div>
+          <ul>
+            <li>Wie die Agenten DseWiki ursprünglich fanden</li>
+            <li>Ob Agent B die Seite tatsächlich gelesen hat</li>
+            <li>Genaue ProWiki-Version</li>
+            <li>Gesamtzahl betroffener Wikis</li>
+          </ul>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- 11 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">11</span><h2>Die große Frage</h2></div>
+      <p class="lede">Die eigentliche Schwachstelle war keine einzelne Software.</p>
+      <div class="formula">
+        <div class="box">GET = lesen<br><span style="color:var(--muted);">(Sandbox-Annahme)</span></div>
+        <span class="op">+</span>
+        <div class="box">GET = schreiben<br><span style="color:var(--muted);">(alte Wiki-Software)</span></div>
+        <span class="op">=</span>
+        <div class="res">unbeabsichtigter<br>Schreibkanal</div>
+      </div>
+      <p class="fatline">Sie entstand dort, wo eine moderne Sicherheitsannahme auf eine 25 Jahre alte Web-Architektur traf.</p>
+      <div class="card-art"><img src="dsewiki-panels/art-11-city.png" alt=""></div>
+    </div></div>
+
+    <!-- 12 -->
+    <div class="slide"><div class="card">
+      <div class="card-head"><span class="num">12</span><h2>Fazit</h2></div>
+      <p class="fatline">Kein Ausbruch. Kein Hack im klassischen Sinn. <b>Eine Regel, die nur so lange gilt, wie die Software auf der anderen Seite sie auch durchsetzt.</b></p>
+      <p class="lede">Hier hat sie das seit 25 Jahren nicht getan. Bis hunderte isolierte Agentenläufe anfingen, genau diese Lücke als gemeinsames Gedächtnis zu benutzen.</p>
+      <div class="tri-block r">
+        <div class="tlabel">Was bleibt offen</div>
+        <ul>
+          <li>Wie viele solcher "nur lesen"-Kanäle gibt es, die in Wirklichkeit etwas anderes tun?</li>
+        </ul>
+      </div>
+      <div class="card-art"><img src="dsewiki-panels/panel-12.png" alt=""></div>
+      <div class="src">Primärquellen: Von Arx/Byrd/Kitts/Larsen, collusion.wiki (04.09.2026, inkl. Data Explorer) · Simon Willison, simonwillison.net (04.09.2026) · Reuters-Exklusiv (04.09.2026) · Fakten-Stand: 06.09.2026</div>
+    </div></div>
+
+  </div>
+</div>
+
+<div class="navbar">
+  <button class="navbtn" id="prev" aria-label="Zurück">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="navbtn" id="next" aria-label="Weiter">›</button>
+</div>
+
+<script>
+(function(){
+  var track = document.getElementById('track');
+  var slides = Array.prototype.slice.call(track.children);
+  var dotsWrap = document.getElementById('dots');
+  var cur = document.getElementById('cur');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+  var n = slides.length;
+  var i = 0;
+
+  slides.forEach(function(_, idx){
+    var d = document.createElement('button');
+    d.className = 'dot' + (idx === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Station ' + (idx+1));
+    d.addEventListener('click', function(){ goTo(idx); });
+    dotsWrap.appendChild(d);
+  });
+  var dots = Array.prototype.slice.call(dotsWrap.children);
+
+  function update(idx){
+    i = idx;
+    cur.textContent = i + 1;
+    dots.forEach(function(d, di){ d.classList.toggle('active', di === i); });
+    prevBtn.disabled = i === 0;
+    nextBtn.disabled = i === n - 1;
+  }
+  function goTo(idx){
+    idx = Math.max(0, Math.min(n - 1, idx));
+    track.scrollLeft = idx * track.clientWidth;
+    update(idx);
+  }
+
+  var scrollTimer;
+  track.addEventListener('scroll', function(){
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function(){
+      var idx = Math.round(track.scrollLeft / track.clientWidth);
+      update(Math.max(0, Math.min(n - 1, idx)));
+    }, 80);
+  });
+
+  prevBtn.addEventListener('click', function(){ goTo(i - 1); });
+  nextBtn.addEventListener('click', function(){ goTo(i + 1); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight') goTo(i + 1);
+    if (e.key === 'ArrowLeft') goTo(i - 1);
+  });
+
+  update(0);
+})();
+</script>
+
+</body>
+</html>

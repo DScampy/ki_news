@@ -1,0 +1,20 @@
+name: Site-Check (Drift-Wächter)
+
+# Prüft bei jedem Push: Design-System eingebunden, Links intakt,
+# JS gültig, Artikel überall registriert. Details: tools/site_check.py
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  site-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Drift-Check ausführen
+        run: python3 tools/site_check.py
