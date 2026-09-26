@@ -102,7 +102,8 @@ def find_card(prefix: str) -> dict | None:
 
 def post_card_to_instagram(card: dict) -> str:
     """Identische Logik wie post_to_insta.py: Container -> warten -> publish."""
-    video_url = f"{SITE_BASE}/{card['mp4_url'].lstrip('/')}"
+    # 26.09.26: Medien koennen absolut im Repo ki_news_media liegen
+    video_url = card['mp4_url'] if card['mp4_url'].startswith("http") else f"{SITE_BASE}/{card['mp4_url'].lstrip('/')}"
     caption = card.get("headline", "")
 
     data = requests.post(

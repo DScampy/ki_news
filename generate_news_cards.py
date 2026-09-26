@@ -168,6 +168,18 @@ CARDS_JSON     = ROOT_DIR / "cards.json"
 CARD_STATE_JSON = ROOT_DIR / "card_state.json"  # Dedup-Gedaechtnis, analog telegram_state.json
 DASHBOARD_CONFIG_JSON = ROOT_DIR / "dashboard_config.json"  # featured_links/force_cards (Admin-Pin)
 TMP_DIR        = Path("/tmp/cards")
+# 26.09.26: Karten-Medien liegen im eigenen Repo DScampy/ki_news_media (GitHub Pages), damit
+# ki_news nicht mit jedem MP4 waechst (Repo war 1,9 GB). Der Workflow setzt CARD_MEDIA_BASE
+# nur, wenn das Hochladen dorthin moeglich ist (Secret SECRETS_PAT); ohne Variable bleiben
+# die URLs relativ ("assets/cards/...") wie bisher.
+CARD_MEDIA_BASE = os.environ.get("CARD_MEDIA_BASE", "").strip().rstrip("/")
+
+
+def _media_url(url: str) -> str:
+    """assets/cards/<datei> -> <CARD_MEDIA_BASE>/<datei>, sonst unveraendert."""
+    if CARD_MEDIA_BASE and isinstance(url, str) and url.startswith("assets/cards/"):
+        return CARD_MEDIA_BASE + "/" + url.rsplit("/", 1)[-1]
+    return url
 
 # TTS-Akronyme: werden per SSML <say-as interpret-as="characters"> buchstabiert,
 # damit die Studio-Voice die DEUTSCHE Buchstabier-Aussprache nutzt statt die
@@ -1485,6 +1497,11 @@ def main() -> None:
     for c in cards_meta:
         merged[c["id"]] = c
     cards_final = sorted(merged.values(), key=lambda c: c.get("date", ""), reverse=True)[:MAX_CARDS_DISPLAY]
+    # 26.09.26: alle Eintraege (auch alte) auf das Medien-Repo zeigen lassen, wenn aktiv
+    for c in cards_final:
+        for feld in ("mp4_url", "poster_url"):
+            if c.get(feld):
+                c[feld] = _media_url(c[feld])
 
     with open(CARDS_JSON, "w", encoding="utf-8") as f:
         json.dump(cards_final, f, ensure_ascii=False, indent=2)

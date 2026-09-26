@@ -48,7 +48,8 @@ def pick_card() -> dict:
 
 def main() -> None:
     card = pick_card()
-    video_url = f"{SITE_BASE}/{card['mp4_url'].lstrip('/')}"
+    # 26.09.26: Medien koennen absolut im Repo ki_news_media liegen
+    video_url = card['mp4_url'] if card['mp4_url'].startswith("http") else f"{SITE_BASE}/{card['mp4_url'].lstrip('/')}"
     caption = CAPTION_OVERRIDE or card.get("headline", "")
     print(f"Card:    {card.get('id')}")
     print(f"Video:   {video_url}")

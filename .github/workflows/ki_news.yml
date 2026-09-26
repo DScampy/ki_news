@@ -294,6 +294,9 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
           FORCE_RENDER: ${{ github.event.inputs.force_render == 'true' && '1' || '0' }}
+          # 26.09.26: Medien ins Repo ki_news_media (s. Schritt "Karten ins Medien-Repo").
+          # Nur gesetzt, wenn SECRETS_PAT existiert - sonst relative URLs wie bisher.
+          CARD_MEDIA_BASE: ${{ secrets.SECRETS_PAT != '' && 'https://dscampy.github.io/ki_news_media/cards' || '' }}
         run: |
           # Bug-Fix (02.07.26): die Default-Shell von GitHub Actions ist "bash -e"
           # OHNE pipefail -> der Exit-Code von "python3 ... | tee" war immer der
@@ -318,8 +321,61 @@ jobs:
           done
           echo "$deleted MP4-Cards aelter als $cutoff entfernt"
 
-      - name: Commit generated cards
+      # 26.09.26: Karten-Medien (MP4 + JPG) liegen im eigenen Repo DScampy/ki_news_media
+      # (GitHub Pages), weil ki_news mit jedem MP4 in der Historie wuchs (1,9 GB).
+      # Das Medien-Repo hat immer genau EINEN Commit (orphan + force-push): es enthaelt nur
+      # die Dateien der letzten 10 Tage und waechst nie. Force-push ist dort unkritisch -
+      # nur dieser Schritt schreibt hinein. Braucht Secret SECRETS_PAT (fine-grained PAT mit
+      # Contents: Read and write auf ki_news_media). Ohne Secret oder bei Fehler: ok=false,
+      # dann committet der naechste Schritt die Medien wie bisher nach ki_news.
+      - name: Karten ins Medien-Repo
+        id: media
+        env:
+          SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
         run: |
+          if [ -z "$SECRETS_PAT" ]; then
+            echo "SECRETS_PAT fehlt - Medien bleiben in ki_news (altes Verhalten)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          M=/tmp/ki_news_media
+          URL="https://x-access-token:${SECRETS_PAT}@github.com/DScampy/ki_news_media.git"
+          ok=false
+          for attempt in 1 2 3; do
+            rm -rf "$M"
+            if git clone --quiet --depth 1 "$URL" "$M"; then
+              mkdir -p "$M/cards"
+              cp assets/cards/*.mp4 assets/cards/*.jpg "$M/cards/" 2>/dev/null || true
+              cutoff=$(date -d '10 days ago' +%Y-%m-%d)
+              for f in "$M"/cards/*; do
+                d=$(basename "$f" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
+                if [ -n "$d" ] && [ "$d" \< "$cutoff" ]; then rm -f "$f"; fi
+              done
+              cd "$M"
+              git checkout --quiet --orphan neu
+              git add -A
+              git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
+                commit --quiet -m "Karten-Medien $(date -u +%Y-%m-%dT%H:%MZ)"
+              if git push --quiet --force origin neu:main; then ok=true; cd "$GITHUB_WORKSPACE"; break; fi
+              cd "$GITHUB_WORKSPACE"
+            fi
+            echo "Medien-Push Versuch $attempt fehlgeschlagen"; sleep 5
+          done
+          echo "Medien-Repo: $(ls "$M"/cards 2>/dev/null | wc -l) Dateien, ok=$ok"
+          if [ "$ok" != "true" ]; then
+            echo "::warning::Medien-Repo nicht erreichbar - Karten-Medien werden diesmal nach ki_news committet."
+          fi
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+
+      - name: Commit generated cards
+        env:
+          MEDIA_OK: ${{ steps.media.outputs.ok }}
+        run: |
+          # 26.09.26: Medien im Repo ki_news_media? Dann assets/cards aus ki_news entfernen
+          # (einmalige Umstellung passiert beim ersten erfolgreichen Lauf von selbst).
+          # Sonst: URLs in cards.json zurueck auf relativ und Medien wie bisher committen.
+          if [ "$MEDIA_OK" != "true" ] && [ -f cards.json ]; then
+            python3 -c "import json;p='cards.json';c=json.load(open(p,encoding='utf-8'));b='https://dscampy.github.io/ki_news_media/cards/';[x.__setitem__(k,'assets/cards/'+x[k][len(b):]) for x in c for k in ('mp4_url','poster_url') if str(x.get(k,'')).startswith(b)];json.dump(c,open(p,'w',encoding='utf-8'),ensure_ascii=False,indent=2)"
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -336,7 +392,12 @@ jobs:
             # dieses Workflow-Schritts (1edd40f, "cards + template update") wieder
             # entfernt, ca. 3 Stunden nach dem Upload. Fix: Datei nicht mehr in diesem
             # Schritt anfassen, dafuer gibt es hier keinen Generierungsgrund.
-            git add assets/cards/ cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            if [ "$MEDIA_OK" = "true" ]; then
+              git rm -r --cached --quiet --ignore-unmatch assets/cards
+              git add cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            else
+              git add assets/cards/ cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+            fi
             # Auch hier, sonst ueberlebt die Registry keinen Push-Konflikt-Retry:
             # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.
             git add registry/ 2>/dev/null || true
