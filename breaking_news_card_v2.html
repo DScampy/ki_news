@@ -23,6 +23,11 @@ body{position:relative;font-family:'Inter',Arial,sans-serif;-webkit-font-smoothi
 .einordnung p span{transition:none}
 .fuss{position:absolute;left:22px;right:22px;bottom:14px;display:flex;justify-content:space-between;font:700 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--sub);z-index:3}
 .fort{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);z-index:4;width:0}
+/* Zeitung (26.09.26): Zeitungsdruck-Look fuer Kopf/Box, nur in diesem Stil aktiv */
+body[data-stil="zeitung"] .kopf{padding-bottom:8px;border-bottom:3px double var(--ink)}
+body[data-stil="zeitung"] .badge{border-radius:0}
+body[data-stil="zeitung"] .marke{letter-spacing:.24em}
+body[data-stil="zeitung"] .einordnung{border-left:none;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding-top:10px}
 </style>
 </head>
 <body>
@@ -51,10 +56,17 @@ const PAL = {
   tusche:    {bg:'#f1e9d6', grid:null, ink:'#1c1916', dim:'rgba(28,25,22,.45)', accent:'#c0391f', main:'#1c1916',
               sub:'rgba(28,25,22,.6)', boxBg:'rgba(192,57,31,.07)', badgeText:'#f1e9d6', glow:null},
   daten:     {bg:'#04070f', grid:'rgba(0,229,255,.05)', grid2:'rgba(0,229,255,.12)', ink:'#e8edf8', dim:'rgba(232,237,248,.45)',
-              accent:'#00e5ff', accent2:'#ff6b00', main:'#e8edf8', sub:'rgba(232,237,248,.55)', boxBg:'rgba(0,229,255,.06)', badgeText:'#04070f', glow:'rgba(0,229,255,.6)'}
+              accent:'#00e5ff', accent2:'#ff6b00', main:'#e8edf8', sub:'rgba(232,237,248,.55)', boxBg:'rgba(0,229,255,.06)', badgeText:'#04070f', glow:'rgba(0,229,255,.6)'},
+  // Kreide (26.09.26): Schultafel — dunkles Tafelgruen, Kreidestaub-Textur, koernige/unterbrochene Striche
+  kreide:    {bg:'#1f2b26', grid:null, ink:'#eef0ea', dim:'rgba(238,240,234,.42)', accent:'#f2cf4b', accent2:'#e2574c',
+              main:'#f5f3ea', sub:'rgba(245,243,234,.62)', boxBg:'rgba(242,207,75,.10)', badgeText:'#1f2b26', glow:null},
+  // Zeitung (26.09.26): Zeitungsdruck — Off-White-Papier, harte schwarze Striche, Signalrot als Akzent
+  zeitung:   {bg:'#eeece2', grid:null, ink:'#161513', dim:'rgba(22,21,19,.45)', accent:'#d81f1f', accent2:'#161513',
+              main:'#141311', sub:'rgba(20,19,17,.6)', boxBg:'rgba(216,31,31,.055)', badgeText:'#f5f0e6', glow:null}
 };
 const P = PAL[K.stil] || PAL.daten;
 for (const k in P) if (P[k]) document.documentElement.style.setProperty('--' + k, P[k]);
+if (!document.body.dataset.stil) document.body.dataset.stil = K.stil;
 
 // ── Hilfen: Zufall mit festem Samen, Easing ───────────────────────────────
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
@@ -83,6 +95,10 @@ function strich(pts,p,w,farbe,seed){
   ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=farbe||P.ink;
   if(K.stil==='tusche'){const r=rng(seed||7);ctx.globalAlpha=.9;ctx.lineWidth=w;pfad(0,0);ctx.stroke();
     ctx.globalAlpha=.35;ctx.lineWidth=w*.55;pfad((r()-.5)*1.6,(r()-.5)*1.6);ctx.stroke();ctx.globalAlpha=1}
+  else if(K.stil==='kreide'){const r=rng(seed||42);ctx.save();
+    ctx.lineWidth=w;ctx.globalAlpha=.82;ctx.setLineDash([r()*4+2,r()*3+1]);pfad((r()-.5)*.8,(r()-.5)*.8);ctx.stroke();
+    ctx.setLineDash([]);ctx.globalAlpha=.3;ctx.lineWidth=w*.6;pfad((r()-.5)*1.4,(r()-.5)*1.4);ctx.stroke();
+    ctx.globalAlpha=1;ctx.restore()}
   else{ctx.save();if(P.glow){ctx.shadowColor=P.glow;ctx.shadowBlur=6}ctx.lineWidth=w;pfad(0,0);ctx.stroke();ctx.restore()}
 }
 function schrift(txt,x,y,opt){ctx.save();ctx.globalAlpha=opt.a==null?1:opt.a;ctx.fillStyle=opt.farbe||P.ink;ctx.font=opt.font;ctx.textAlign=opt.align||'left';
@@ -93,7 +109,7 @@ function mass(a,b,p,label,t){strich(seg(a,b),p,1,P.dim);const n=[-(b[1]-a[1]),b[
   if(label)schrift(label,(a[0]+b[0])/2,(a[1]+b[1])/2-6,{font:"500 8.5px 'JetBrains Mono'",farbe:P.dim,align:'center',a:clamp((p-.6)/.4)})}
 
 // ── Hintergrund je Stil ──────────────────────────────────────────────────
-let papier=null;
+let papier=null, kreideTex=null, zeitungTex=null;
 function grund(t){
   ctx.fillStyle=P.bg;ctx.fillRect(0,0,W,H);
   if(K.stil==='tusche'){
@@ -102,6 +118,20 @@ function grund(t){
       const g=c.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(90,60,20,.13)');c.fillStyle=g;c.fillRect(0,0,W,H)}
     ctx.drawImage(papier,0,0,W,H);
     ctx.strokeStyle='rgba(28,25,22,.18)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(20,SH+6);ctx.lineTo(W-20,SH+6);ctx.stroke();
+  } else if(K.stil==='kreide'){
+    if(!kreideTex){kreideTex=document.createElement('canvas');kreideTex.width=W*DPR;kreideTex.height=H*DPR;const c=kreideTex.getContext('2d');c.scale(DPR,DPR);
+      const r=rng(77);
+      for(let i=0;i<2200;i++){c.fillStyle='rgba(230,230,220,'+(r()*.05)+')';c.fillRect(r()*W,r()*H,r()*1.4+.3,r()*1.4+.3)}
+      for(let i=0;i<9;i++){const y=40+r()*(SH-20),len=60+r()*160,x0=r()*W;
+        c.strokeStyle='rgba(255,255,255,'+(.02+r()*.03)+')';c.lineWidth=8+r()*14;c.lineCap='round';
+        c.beginPath();c.moveTo(x0,y);c.quadraticCurveTo(x0+len*.5,y+(r()-.5)*24,x0+len,y+(r()-.5)*10);c.stroke()}}
+    ctx.drawImage(kreideTex,0,0,W,H);
+  } else if(K.stil==='zeitung'){
+    if(!zeitungTex){zeitungTex=document.createElement('canvas');zeitungTex.width=W*DPR;zeitungTex.height=H*DPR;const c=zeitungTex.getContext('2d');c.scale(DPR,DPR);
+      const g=6;for(let y=0;y<=SH+20;y+=g){for(let x=0;x<=W;x+=g){const off=((Math.round(x/g)+Math.round(y/g))%2)*g/2;
+        c.fillStyle='rgba(20,18,15,.05)';c.beginPath();c.arc(x+off,y,1,0,Math.PI*2);c.fill()}}}
+    ctx.drawImage(zeitungTex,0,0,W,H);
+    ctx.strokeStyle='rgba(20,18,15,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(20,SH+6);ctx.lineTo(W-20,SH+6);ctx.stroke();
   } else {
     const g=K.stil==='blaupause'?20:30;ctx.lineWidth=1;
     for(let x=0;x<=W;x+=g){ctx.strokeStyle=(x/g)%5===0&&P.grid2?P.grid2:P.grid;ctx.beginPath();ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,SH);ctx.stroke()}
@@ -139,7 +169,7 @@ const MARKEN={
     strich(seg(pts[pts.length-1],[pts[pts.length-1][0]-s*.3,pts[pts.length-1][1]-s*.05]),clamp(p*2-1),s*.18,'#FF9900');P.glow=alt},
 };
 MARKEN.claude=MARKEN.anthropic;MARKEN.grok=MARKEN.xai;MARKEN.aws=MARKEN.amazon;MARKEN.gemini=MARKEN.google;MARKEN.chatgpt=MARKEN.openai;
-function markeZeichnen(t){const a=(K.anbieter||[])[0];if(!a||K.motiv==='deal')return;const f=MARKEN[a.toLowerCase()];if(!f)return;
+function markeZeichnen(t){const a=(K.anbieter||[])[0];if(!a||K.motiv==='deal'||K.motiv==='netz')return;const f=MARKEN[a.toLowerCase()];if(!f)return;
   const x=K.marke_x||376,y=K.marke_y||76;f(x,y,K.marke_s||17,prog(t,.8,.8))}
 
 const MOTIVE = {
@@ -215,7 +245,9 @@ const MOTIVE = {
   // Zahl zaehlt hoch, darunter ein Zeitstrahl in gleichen Abschnitten (keine erfundene Aufteilung).
   // ── Neue Motive (26.09.26) ────────────────────────────────────────────
   // Rechenzentrum: drei Racks bauen sich auf, LEDs blinken, Kuehlluft zieht
-  rechenzentrum(t){
+  rechenzentrum(t){(hash(K.titel)%2===0?MOTIVE._rzRacks:MOTIVE._rzLuftbild)(t)},
+  // Variante A: drei Racks bauen sich auf, LEDs blinken, Kuehlluft zieht
+  _rzRacks(t){
     const s=hash(K.titel),r=rng(s);
     for(let k=0;k<3;k++){const x=70+k*100,y=78,w=78,h=176,t0=.3+k*.25;
       strich(wobble(poly([[x,y],[x+w,y],[x+w,y+h],[x,y+h]],true),.6,s+k),prog(t,t0,.7),2);
@@ -226,8 +258,22 @@ const MOTIVE = {
       ctx.globalAlpha=(1-ph)*.5*prog(t,1.6,.6);strich(pts,1,1,P.dim);ctx.globalAlpha=1}
     strich(wobble(seg([30,262],[390,262],24),.5,s+9),prog(t,.2,.8),1.6);
   },
+  // Variante B (26.09.26): Luftbild mit Gebaeudegrundrissen und Kuehltuermen (Dampf steigt)
+  _rzLuftbild(t){
+    const s=hash(K.titel);
+    const bau=[[40,90,140,70],[200,80,90,50],[200,150,90,60]];
+    bau.forEach((b,i)=>strich(wobble(poly([[b[0],b[1]],[b[0]+b[2],b[1]],[b[0]+b[2],b[1]+b[3]],[b[0],b[1]+b[3]]],true),.4,s+i),prog(t,.3+i*.2,.6),2));
+    const tuerme=[[330,100],[372,140],[330,182]];
+    tuerme.forEach((c,i)=>{strich(arc(c[0],c[1],20,0,Math.PI*2,26),prog(t,1.2+i*.15,.5),2);
+      for(let k=0;k<3;k++){const ph=(t*.4+k/3+i*.2)%1;ctx.globalAlpha=(1-ph)*.4*prog(t,1.8,.5);
+        strich(arc(c[0],c[1]-ph*44,4+ph*10,0,Math.PI*2,14),1,1,P.dim);ctx.globalAlpha=1}});
+    strich(wobble(seg([30,254],[390,254],24),.5,s+9),prog(t,.2,.8),1.6);
+    mass([40,272],[300,272],prog(t,2.6,.5),'RECHENZENTRUM · LUFTBILD');
+  },
   // Chip / Modell: Chip mit Pins, Impulse laufen ueber die Leiterbahnen zum Kern
-  chip(t){
+  chip(t){(hash(K.titel)%2===0?MOTIVE._chipKarte:MOTIVE._chipModellkarte)(t)},
+  // Variante A: Chip mit Pins, Impulse laufen ueber die Leiterbahnen zum Kern
+  _chipKarte(t){
     const s=hash(K.titel),cx=190,cy=160,h=62;
     strich(wobble(poly([[cx-h,cy-h],[cx+h,cy-h],[cx+h,cy+h],[cx-h,cy+h]],true),.5,s),prog(t,.3,.8),2.4);
     strich(poly([[cx-h+16,cy-h+16],[cx+h-16,cy-h+16],[cx+h-16,cy+h-16],[cx-h+16,cy+h-16]],true),prog(t,.8,.6),1.2,P.dim);
@@ -238,8 +284,21 @@ const MOTIVE = {
       const f=((t*.6+i*.137)%1);if(t>2){const q=pts[Math.floor((1-f)*(pts.length-1))];ctx.fillStyle=P.accent;ctx.globalAlpha=.9;ctx.fillRect(q[0]-1.5,q[1]-1.5,3,3);ctx.globalAlpha=1}});
     if(K.chip_label)schrift(K.chip_label,cx,cy+6,{font:"700 17px 'Space Grotesk'",farbe:P.accent,align:'center',a:prog(t,1.8,.5)});
   },
+  // Variante B (26.09.26): Modellkarte mit Balken-Benchmarks statt Chip-Silhouette
+  _chipModellkarte(t){
+    const s=hash(K.titel),x=90,y=64,w=200,h=180;
+    strich(wobble(poly([[x,y],[x+w,y],[x+w,y+h],[x,y+h]],true),.4,s),prog(t,.3,.6),2.2);
+    strich(seg([x+16,y+26],[x+w-16,y+26]),prog(t,.9,.2),1.6,P.dim);
+    const rows=[.8,.55,.7,.4,.9];
+    rows.forEach((v,i)=>{const ry=y+46+i*24;
+      strich(seg([x+16,ry],[x+136,ry]),prog(t,1.2+i*.1,.3),1,P.dim);
+      strich(seg([x+16,ry+8],[x+16+120*v,ry+8]),prog(t,1.5+i*.15,.4),6,i===0?P.accent:P.ink)});
+    if(K.chip_label)schrift(K.chip_label,x+w/2,y+h-12,{font:"700 13px 'Space Grotesk'",farbe:P.accent,align:'center',a:prog(t,2.4,.5)});
+    mass([40,270],[310,270],prog(t,2.6,.4),'MODELLKARTE');
+  },
   // Hack: Schloss, Buegel springt auf, dahinter Zeichenregen
-  hack(t){
+  hack(t){(hash(K.titel)%2===0?MOTIVE._hackSchloss:MOTIVE._hackPhishing)(t)},
+  _hackSchloss(t){
     const s=hash(K.titel),r=rng(s),cx=200,cy=168;
     for(let c=0;c<13;c++){const x=30+c*29,sp=40+r()*60,of=r()*300;for(let k=0;k<7;k++){const y=52+((t*sp+of+k*22)%240);
       ctx.globalAlpha=(.08+.25*(k===6))*prog(t,.2,.6);schrift(r()<.5?'1':'0',x,y,{font:"500 12px 'JetBrains Mono'",farbe:P.dim});ctx.globalAlpha=1}}
@@ -249,8 +308,27 @@ const MOTIVE = {
     strich(arc(cx,cy+22,8,0,Math.PI*2,16),prog(t,1.3,.4),2);strich(seg([cx,cy+30],[cx,cy+46]),prog(t,1.5,.3),2);
     if(t>3){ctx.globalAlpha=clamp((t-3)/.3);strich(wobble(poly([[cx+10,cy-10],[cx+2,cy+14],[cx+16,cy+28],[cx+6,cy+50]]),1,s+5),prog(t,3,.3),2,P.accent);ctx.globalAlpha=1}
   },
+  // Variante B (26.09.26): Terminal-Prompt mit Angelhaken (Phishing) statt Schloss
+  _hackPhishing(t){
+    const s=hash(K.titel),r=rng(s);
+    for(let c=0;c<13;c++){const x=30+c*29,sp=40+r()*60,of=r()*300;for(let k=0;k<7;k++){const y=52+((t*sp+of+k*22)%240);
+      ctx.globalAlpha=(.08+.25*(k===6))*prog(t,.2,.6);schrift(r()<.5?'1':'0',x,y,{font:"500 12px 'JetBrains Mono'",farbe:P.dim});ctx.globalAlpha=1}}
+    const tx=110,ty=90,tw=190,th=118;
+    strich(wobble(poly([[tx,ty],[tx+tw,ty],[tx+tw,ty+th],[tx,ty+th]],true),.4,s+1),prog(t,.4,.6),2.2);
+    strich(seg([tx+10,ty+20],[tx+tw-10,ty+20]),prog(t,.9,.2),1.2,P.dim);
+    const zeilen=['> zugriff angefordert_','> passwort: ****','> verbindung: extern'];
+    zeilen.forEach((z,i)=>{const full=z.length,n=Math.floor(clamp((t-1.2-i*.5)/.6)*full);
+      schrift(z.slice(0,n),tx+12,ty+42+i*22,{font:"500 11px 'JetBrains Mono'",farbe:i===2?P.accent:P.dim})});
+    const hx=340,hookY=lerp(20,150,easeOut(clamp((t-.6)/1.6)));
+    strich(seg([hx,10],[hx,hookY]),prog(t,.6,.8),2);
+    strich(arc(hx,hookY+14,13,Math.PI*1.1,Math.PI*2.3,20),prog(t,1.4,.5),2.4);
+    const ex=hx,ey=hookY+14+Math.sin(t*1.4)*(t>2.6?4:0);
+    strich(wobble(poly([[ex-22,ey-12],[ex+22,ey-12],[ex+22,ey+12],[ex-22,ey+12]],true),.3,s+2),prog(t,1.9,.5),2,P.accent);
+    strich(seg([ex-22,ey-12],[ex,ey+3]),prog(t,2.2,.3),1.6,P.accent);strich(seg([ex+22,ey-12],[ex,ey+3]),prog(t,2.2,.3),1.6,P.accent);
+  },
   // Zitat: Silhouette + Sprechblase mit grossen Anfuehrungszeichen
-  zitat(t){
+  zitat(t){(hash(K.titel)%2===0?MOTIVE._zitatBlase:MOTIVE._zitatMikrofon)(t)},
+  _zitatBlase(t){
     const s=hash(K.titel),hx=110,hy=132;
     strich(wobble(arc(hx,hy,30,0,Math.PI*2,40),.8,s),prog(t,.3,.6),2.4);
     strich(wobble(arc(hx,hy+112,66,Math.PI*1.08,Math.PI*1.92,30),.8,s+1),prog(t,.7,.6),2.4);
@@ -259,8 +337,22 @@ const MOTIVE = {
     for(let i=0;i<3;i++)strich(seg([262,106+i*24],[262+[104,80,92][i]*prog(t,2.2+i*.3,.4),106+i*24],8),1,3,P.dim);
     if(K.person)schrift(K.person,hx,262,{font:"700 11px 'JetBrains Mono'",farbe:P.ink,align:'center',a:prog(t,2.6,.4)});
   },
+  // Variante B (26.09.26): Mikrofon mit pulsierenden Schallwellen statt Silhouette+Blase
+  _zitatMikrofon(t){
+    const s=hash(K.titel),cx=190,cy=140;
+    strich(wobble(poly([[cx-20,cy-70],[cx+20,cy-70],[cx+20,cy+10],[cx-20,cy+10]],true),.4,s),prog(t,.3,.6),2.2);
+    strich(wobble(arc(cx,cy-30,20,Math.PI*.05,Math.PI*.95,20),.3,s+1),prog(t,.9,.4),2.2);
+    strich(wobble(arc(cx,cy+10,44,0,Math.PI,26),.5,s+2),prog(t,1.2,.6),2);
+    strich(seg([cx,cy+54],[cx,cy+84]),prog(t,1.7,.3),2.2);
+    strich(seg([cx-26,cy+84],[cx+26,cy+84]),prog(t,2.0,.2),2.2);
+    for(let i=0;i<3;i++){const ph=((t*.8+i/3)%1);ctx.globalAlpha=(1-ph)*.5*prog(t,2.2,.5);
+      strich(arc(cx-40-ph*10,cy-40,10+ph*20,Math.PI*.6,Math.PI*1.4,16),1,1.4,P.dim);
+      strich(arc(cx+40+ph*10,cy-40,10+ph*20,-Math.PI*.4,Math.PI*.4,16),1,1.4,P.dim);ctx.globalAlpha=1}
+    if(K.person)schrift(K.person,cx,270,{font:"700 11px 'JetBrains Mono'",farbe:P.ink,align:'center',a:prog(t,2.6,.4)});
+  },
   // Politik: Kuppelbau mit Saeulen, Fahne weht
-  politik(t){
+  politik(t){(hash(K.titel)%2===0?MOTIVE._politikKuppel:MOTIVE._politikPult)(t)},
+  _politikKuppel(t){
     const s=hash(K.titel),cx=200,base=244;
     strich(wobble(seg([70,base],[330,base],20),.5,s),prog(t,.3,.5),2.2);
     strich(wobble(poly([[90,base-10],[310,base-10],[310,base-24],[90,base-24]],true),.5,s+1),prog(t,.5,.5),1.6);
@@ -272,8 +364,24 @@ const MOTIVE = {
     const fl2=fl.map(([x,y])=>[x,y+16]);strich(fl,prog(t,2.3,.3),1.6,P.accent);strich(fl2,prog(t,2.3,.3),1.6,P.accent);
     strich(seg(fl[12],fl2[12],3),prog(t,2.5,.2),1.6,P.accent);
   },
+  // Variante B (26.09.26): Rednerpult mit Mikrofon und zwei wehenden Flaggen statt Kuppelbau
+  _politikPult(t){
+    const s=hash(K.titel),cx=200,by=246;
+    strich(wobble(poly([[cx-40,by],[cx+40,by],[cx+50,by-70],[cx-50,by-70]],true),.5,s),prog(t,.3,.7),2.4);
+    strich(seg([cx-44,by-70],[cx+44,by-70]),prog(t,.9,.2),1.6,P.dim);
+    strich(seg([cx,by-70],[cx,by-100]),prog(t,1.3,.3),1.6);
+    strich(arc(cx,by-108,7,0,Math.PI*2,14),prog(t,1.5,.3),1.8);
+    [-1,1].forEach((side,i)=>{const px=cx+side*112,py=by-8;
+      strich(seg([px,py],[px,py-140]),prog(t,1.0+i*.1,.5),2);
+      const fl=[];for(let q=0;q<=10;q++)fl.push([px+side*q*5,py-140+Math.sin(q*.6+t*3+i*2)*3*(q/10)]);
+      const fl2=fl.map(([x,y])=>[x,y+22]);
+      strich(fl,prog(t,1.6+i*.1,.4),1.6,P.accent);strich(fl2,prog(t,1.6+i*.1,.4),1.6,P.accent);
+      strich(seg(fl[10],fl2[10]),prog(t,1.9+i*.1,.2),1.6,P.accent)});
+    mass([50,266],[350,266],prog(t,2.6,.5),'PRESSEKONFERENZ');
+  },
   // Roboter: Arm mit drei Gelenken greift eine Kiste und setzt sie ab
-  roboter(t){
+  roboter(t){(hash(K.titel)%2===0?MOTIVE._roboterArm:MOTIVE._roboterHund)(t)},
+  _roboterArm(t){
     const s=hash(K.titel),bx=120,by=250;strich(wobble(poly([[bx-40,by],[bx+40,by],[bx+30,by-16],[bx-30,by-16]],true),.5,s),prog(t,.3,.5),2.2);
     const z=((t-1.2)%4)/4,ph=t<1.2?0:z;const a1=-1.2+Math.sin(ph*Math.PI*2)*.35,a2=1.1+Math.cos(ph*Math.PI*2)*.4;
     const j0=[bx,by-16],j1=[j0[0]+Math.cos(a1)*90,j0[1]+Math.sin(a1)*90],j2=[j1[0]+Math.cos(a1+a2)*80,j1[1]+Math.sin(a1+a2)*80];
@@ -283,6 +391,21 @@ const MOTIVE = {
     strich(seg(j2,[j2[0]+Math.cos(g-.5)*16,j2[1]+Math.sin(g-.5)*16]),prog(t,1.1,.2),2.4);
     strich(wobble(poly([[290,by],[350,by],[350,by-44],[290,by-44]],true),.5,s+3),prog(t,1.2,.5),2);
     strich(seg([290,by-44],[320,by-24],4),prog(t,1.6,.3),1.2,P.dim);strich(seg([350,by-44],[320,by-24],4),prog(t,1.6,.3),1.2,P.dim);
+  },
+  // Variante B (26.09.26): Roboterhund/Lieferroboter im Trab statt Greifarm
+  _roboterHund(t){
+    const s=hash(K.titel),bx=190,by=170,legLen=42;
+    strich(wobble(poly([[bx-60,by-20],[bx+60,by-20],[bx+66,by+10],[bx-66,by+10]],true),.5,s),prog(t,.3,.6),2.2);
+    strich(wobble(poly([[bx+60,by-10],[bx+96,by-14],[bx+96,by+6],[bx+60,by+10]],true),.4,s+1),prog(t,.7,.4),2);
+    strich(seg([bx+80,by-14],[bx+80,by-26]),prog(t,1.0,.2),2);
+    ctx.fillStyle=P.accent;ctx.globalAlpha=(Math.floor(t*2)%2===0)?1:.3;ctx.beginPath();ctx.arc(bx+80,by-28,2.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    const legs=[[-46,0],[-46,1],[26,0],[26,1]];
+    const cyc=((t-1.3)%2)/2,ph0=t<1.3?0:cyc;
+    legs.forEach(([ox,grp],i)=>{const lp=(ph0+(grp?.5:0))%1,lift=Math.max(0,Math.sin(lp*Math.PI*2))*12,
+      fx=bx+ox+Math.sin(lp*Math.PI*2)*10;
+      strich(seg([bx+ox,by+10],[fx,by+10+legLen-lift]),prog(t,1.4+i*.1,.4),2.6)});
+    strich(wobble(seg([50,by+58],[330,by+58]),.4,s+8),prog(t,1.0,.6),1.4,P.dim);
+    mass([50,266],[330,266],prog(t,2.6,.5),'LIEFERROBOTER');
   },
   // Deal: zwei Parteien (Anbieter-Zeichen oder Namen), Geldstrom laeuft von A nach B
   deal(t){
@@ -297,11 +420,232 @@ const MOTIVE = {
       schrift('$',q[0],q[1]+3.5,{font:"700 9px 'Inter'",farbe:P.bg,align:'center'})}
     if(K.zahl)schrift(K.zahl,210,236,{font:"700 26px 'Space Grotesk'",farbe:P.accent,align:'center',a:prog(t,2.6,.4)});
   },
-  // Rueckfall: Netz aus Knoten, Anbieter-Zeichen in der Mitte
+  // Rueckfall (26.09.26 neu gestaltet): lebendiges Netzwerk mit laufenden Lichtpunkten,
+  // versetzt blinkenden Knoten und groesserem Mittelknoten (Anbieter-Logo oder Schriftzug)
   netz(t){
-    const s=hash(K.titel),r=rng(s),pts=[];for(let i=0;i<14;i++)pts.push([40+r()*340,60+r()*200]);
-    pts.forEach((p,i)=>pts.forEach((q,j)=>{if(j>i&&Math.hypot(p[0]-q[0],p[1]-q[1])<120)strich(seg(p,q,6),prog(t,.3+(i+j)*.03,.5),1,P.dim)}));
-    pts.forEach((p,i)=>{ctx.globalAlpha=prog(t,.4+i*.05,.3);ctx.fillStyle=i%4?P.ink:P.accent;ctx.beginPath();ctx.arc(p[0],p[1]+Math.sin(t*1.5+i)*2,3.2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1});
+    const s=hash(K.titel),r=rng(s),cx=210,cy=155;
+    // Knoten auf festen, per hash gestreuten Positionen (Mittelknoten separat, nicht in der Liste)
+    const N=11,pts=[];for(let i=0;i<N;i++){
+      const a=r()*Math.PI*2,rad=70+r()*100;
+      let px=clamp(cx+Math.cos(a)*rad,34,W-34-24),py=clamp(cy+Math.sin(a)*rad*.68,44,SH-40);
+      if(px>335&&py<95)py=96+r()*30; // Ecke oben rechts (Anbieter-Logo) freihalten
+      pts.push([px,py]);
+    }
+    // Kanten: naeheste Nachbarn je Knoten, damit das Netz zusammenhaengt (nicht nur Distanz-Schwelle)
+    const kanten=[];pts.forEach((p,i)=>{
+      pts.forEach((q,j)=>{if(j>i&&Math.hypot(p[0]-q[0],p[1]-q[1])<150)kanten.push([i,j])});
+      kanten.push([i,'m']);
+    });
+    const mitte=[cx,cy];
+    const langeVon=(i,j)=>{const a=i==='m'?mitte:pts[i],b=j==='m'?mitte:pts[j];return Math.hypot(a[0]-b[0],a[1]-b[1])};
+    // Linien zeichnen sich ein (Reihenfolge per Index, damit es wie ein Aufbau wirkt)
+    kanten.forEach(([i,j],k)=>{const a=i==='m'?mitte:pts[i],b=j==='m'?mitte:pts[j];
+      strich(seg(a,b,10),prog(t,.25+k*.045,.5),1,P.dim);});
+    // Lichtpunkte laufen die Kanten entlang (Dauer-Animation, versetzter Start je Kante)
+    if(t>2.0){kanten.forEach(([i,j],k)=>{const a=i==='m'?mitte:pts[i],b=j==='m'?mitte:pts[j];
+      const f=((t-2.0)*.3+k*.09)%1,q=[lerp(a[0],b[0],f),lerp(a[1],b[1],f)];
+      const fade=Math.sin(f*Math.PI);ctx.globalAlpha=fade*.85;ctx.fillStyle=P.accent;
+      ctx.beginPath();ctx.arc(q[0],q[1],1.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;});}
+    // Knoten: blinken versetzt (Dauer-Animation nach dem Einzeichnen)
+    pts.forEach((p,i)=>{const ein=prog(t,.4+i*.06,.4);
+      const puls=t>1.8?.55+.45*Math.sin(t*1.7+i*1.3):1;
+      ctx.globalAlpha=ein*puls;ctx.fillStyle=i%5===0?P.accent:P.ink;
+      ctx.beginPath();ctx.arc(p[0],p[1],3.2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;});
+    // Mittelknoten: groesser, mit Ring; darin Anbieter-Logo oder Schriftzug "KI-NEWS.LIVE"
+    const me=prog(t,.6,.5);
+    strich(wobble(arc(cx,cy,30,0,Math.PI*2,40),.4,s),me,2,P.accent);
+    ctx.globalAlpha=me;ctx.fillStyle=P.bg;ctx.beginPath();ctx.arc(cx,cy,27,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    const anbieterName=(K.anbieter||[])[0];
+    if(anbieterName&&MARKEN[anbieterName.toLowerCase()]){MARKEN[anbieterName.toLowerCase()](cx,cy,15,prog(t,1.3,.7));}
+    else{schrift('KI-NEWS',cx,cy-2,{font:"700 10.5px 'JetBrains Mono'",farbe:P.ink,align:'center',a:prog(t,1.3,.5)});
+      schrift('.LIVE',cx,cy+10,{font:"700 10.5px 'JetBrains Mono'",farbe:P.accent,align:'center',a:prog(t,1.5,.5)});}
+  },
+  // ── Neue Motive (26.09.26, zweite Runde: Daniels Kritik "Roboter sehen alle gleich aus") ──
+  // Humanoid: Kopf mit Visier, Torso, Schrittzyklus, winkender Arm (Tesla-Optimus-artig, ohne Logo)
+  // Humanoid (27.09.26 ueberarbeitet): kantiger Helm-Kopf mit leuchtendem Visierband, Hals-Gelenk,
+  // breite Schulterplatten, Brustplatte, Arme/Beine als Doppelstrich mit Gelenkkreisen, Greifer-Haende.
+  // Alles bleibt oberhalb y=256, damit unten ~40px fuer die Bemassung frei bleiben.
+  humanoid(t){
+    const s=hash(K.titel),cx=170;
+    const doppel=(a,b,off,p,w)=>{const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1,nx=-dy/len*off,ny=dx/len*off;
+      strich(seg([a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny]),p,w);strich(seg([a[0]-nx,a[1]-ny],[b[0]-nx,b[1]-ny]),p,w)};
+    // Kantiger Helm-Kopf (Kopf bis y=40) mit Visierband
+    strich(wobble(poly([[cx-20,40],[cx+20,40],[cx+24,60],[cx+18,86],[cx-18,86],[cx-24,60]],true),.4,s),prog(t,.3,.6),2.4);
+    strich(seg([cx-13,58],[cx+13,58]),prog(t,.8,.3),4,P.accent);
+    // Hals-Gelenk
+    strich(seg([cx,86],[cx,96]),prog(t,1.0,.2),2.4);strich(arc(cx,98,4,0,Math.PI*2,14),prog(t,1.1,.2),2);
+    // Breite Schulterplatten + Brustplatte mit Linien
+    strich(wobble(poly([[cx-52,100],[cx+52,100],[cx+48,120],[cx-48,120]],true),.4,s+1),prog(t,1.2,.5),2.4);
+    strich(wobble(poly([[cx-32,120],[cx+32,120],[cx+30,180],[cx-30,180]],true),.4,s+2),prog(t,1.5,.6),2.2);
+    strich(seg([cx-20,140],[cx+20,140]),prog(t,2.0,.3),1.4,P.dim);strich(seg([cx-20,158],[cx+20,158]),prog(t,2.1,.3),1.4,P.dim);
+    strich(seg([cx-30,180],[cx+30,180]),prog(t,1.8,.3),2);
+    // Beine im Schrittzyklus, Doppelstrich mit Kniegelenk
+    const cyc=((t-2.4)%3)/3,ph=t<2.4?0:cyc,legAng=Math.sin(ph*Math.PI*2)*.45;
+    [[-18,legAng,0],[18,-legAng,1]].forEach(([ox,ang,i])=>{
+      const hipP=[cx+ox,180],kneeP=[hipP[0]+Math.sin(ang)*14,hipP[1]+38],footP=[kneeP[0]+Math.sin(ang*1.2)*10,kneeP[1]+38];
+      doppel(hipP,kneeP,3,prog(t,2.2+i*.1,.4),2);
+      strich(arc(kneeP[0],kneeP[1],3.5,0,Math.PI*2,14),prog(t,2.4+i*.1,.2),1.6,P.accent);
+      doppel(kneeP,footP,3,prog(t,2.4+i*.1,.4),2);
+      strich(seg(footP,[footP[0]+14,footP[1]]),prog(t,2.7,.2),2.6);
+    });
+    // Arme: rechts ruhig mit Greifer, links erhoben/winkend, Doppelstrich mit Ellbogengelenk
+    const shR=[cx+50,108],shL=[cx-50,108];
+    const elR=[shR[0]+6,shR[1]+46],haR=[elR[0]-4,elR[1]+40];
+    doppel(shR,elR,2.5,prog(t,1.7,.4),2);strich(arc(elR[0],elR[1],3.5,0,Math.PI*2,14),prog(t,1.9,.2),1.6,P.accent);
+    doppel(elR,haR,2.5,prog(t,1.9,.4),2);
+    strich(seg(haR,[haR[0]-8,haR[1]+8]),prog(t,2.2,.2),2);strich(seg(haR,[haR[0]+8,haR[1]+6]),prog(t,2.2,.2),2);
+    const wave=Math.sin(t*3)*.4+.5,elL=[shL[0]-24,shL[1]-10-wave*10],haL=[elL[0]-4,elL[1]-38-wave*10];
+    doppel(shL,elL,2.5,prog(t,1.5,.4),2);strich(arc(elL[0],elL[1],3.5,0,Math.PI*2,14),prog(t,1.7,.2),1.6,P.accent);
+    doppel(elL,haL,2.5,prog(t,1.7,.4),2);
+    strich(seg(haL,[haL[0]-8,haL[1]-4]),prog(t,2.0,.2),2);strich(seg(haL,[haL[0]+6,haL[1]-8]),prog(t,2.0,.2),2);
+    mass([50,270],[290,270],prog(t,2.9,.6),'HUMANOIDER ROBOTER');
+  },
+  // Auto: autonomes Fahrzeug mit Dach-Lidar, rotierenden Sensorstrahlen und Radar-Ringen auf der Strasse
+  // Auto (27.09.26: Radar-Ring verkleinert/angehoben, damit er die Bemassung nicht mehr ueberdeckt)
+  auto(t){
+    const s=hash(K.titel),cx=190,cy=150;
+    strich(wobble(seg([20,244],[400,244]),.4,s),prog(t,.2,.5),1.6,P.dim);
+    for(let i=0;i<6;i++)strich(seg([40+i*62,244],[70+i*62,244]),prog(t,.5+i*.05,.3),3,P.dim);
+    strich(wobble(poly([[cx-100,cy+20],[cx-70,cy-18],[cx+50,cy-18],[cx+90,cy+8],[cx+100,cy+20],[cx+100,cy+40],[cx-100,cy+40]],true),.6,s+1),prog(t,.6,.9),2.4);
+    strich(seg([cx-58,cy-16],[cx+42,cy-16]),prog(t,1.2,.3),1.4,P.dim);
+    strich(arc(cx-58,cy+42,16,0,Math.PI*2,20),prog(t,1.3,.3),2);strich(arc(cx+58,cy+42,16,0,Math.PI*2,20),prog(t,1.35,.3),2);
+    strich(arc(cx-10,cy-24,8,0,Math.PI*2,16),prog(t,1.6,.3),2,P.accent);
+    const rot0=t*1.4;
+    for(let i=0;i<5;i++){const a=rot0+i*Math.PI*2/5,p1=[cx-10+Math.cos(a)*10,cy-24+Math.sin(a)*10],p2=[cx-10+Math.cos(a)*100,cy-24+Math.sin(a)*30+20];
+      ctx.globalAlpha=.5*prog(t,2.0,.5);strich(seg(p1,p2),1,1,P.accent);ctx.globalAlpha=1}
+    for(let i=0;i<3;i++){const rr=14+i*13,p=((t*.5+i/3)%1);ctx.globalAlpha=(1-p)*.5*prog(t,2.2,.5);
+      strich(arc(cx,cy+38,rr*p+5,0,Math.PI*2,26),1,1.2,P.dim);ctx.globalAlpha=1}
+    mass([40,272],[340,272],prog(t,2.6,.6),'AUTONOMES FAHREN');
+  },
+  // Handy: Smartphone mit App-Oberflaeche, Chatblasen bauen sich auf, letzte Blase "tippt"
+  // Handy (27.09.26: Geraet verkleinert/hochgesetzt, damit die Unterkante die Bemassung nicht mehr ueberdeckt)
+  handy(t){
+    const s=hash(K.titel),x=150,y=40,w=140,h=196;
+    strich(wobble(poly([[x,y],[x+w,y],[x+w,y+h],[x,y+h]],true),.4,s),prog(t,.3,.6),2.6);
+    strich(seg([x+w/2-14,y+8],[x+w/2+14,y+8]),prog(t,.9,.2),3,P.dim);
+    strich(poly([[x+8,y+22],[x+w-8,y+22],[x+w-8,y+h-22],[x+8,y+h-22]],true),prog(t,1.0,.5),1.2,P.dim);
+    const bubbles=[[x+18,y+42,60,'l'],[x+42,y+72,72,'r'],[x+18,y+104,50,'l']];
+    bubbles.forEach((b,i)=>{const bx=b[0],by2=b[1],bw=b[2],left=b[3]==='l',bx0=left?bx:x+w-16-bw;
+      strich(wobble(poly([[bx0,by2],[bx0+bw,by2],[bx0+bw,by2+22],[bx0,by2+22]],true),.3,s+i),prog(t,1.4+i*.35,.4),1.8,left?P.dim:P.accent)});
+    if(t>2.6){const bx0=x+18,by3=y+138;
+      for(let i=0;i<3;i++){const ph=(t*3+i*.6)%2,r2=ph<1?ph:2-ph;
+        ctx.globalAlpha=.4+.5*r2;ctx.fillStyle=P.accent;ctx.beginPath();ctx.arc(bx0+i*12,by3+10,2.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+      strich(wobble(poly([[bx0-8,by3-6],[bx0+44,by3-6],[bx0+44,by3+26],[bx0-8,by3+26]],true),.3,s+9),prog(t,2.6,.3),1.6,P.dim)}
+    mass([40,268],[290,268],prog(t,2.8,.5),'KI-ASSISTENT');
+  },
+  // Forschung: Studie/Paper mit Balkendiagramm, Lupe schwebt darueber
+  forschung(t){
+    const s=hash(K.titel),x=90,y=56,w=150,h=200;
+    strich(wobble(poly([[x,y],[x+w,y],[x+w,y+h],[x,y+h]],true),.4,s),prog(t,.3,.6),2.2);
+    strich(seg([x+18,y+30],[x+w-18,y+30]),prog(t,.9,.2),1.6,P.dim);
+    strich(seg([x+18,y+46],[x+w-40,y+46]),prog(t,1.0,.2),1.2,P.dim);
+    const bars=[.3,.6,.4,.8,.55];
+    bars.forEach((bv,i)=>{const bx=x+20+i*24,bh=bv*70;
+      strich(seg([bx,y+h-30],[bx,y+h-30-bh]),prog(t,1.3+i*.15,.4),6,i===3?P.accent:P.ink)});
+    strich(seg([x+16,y+h-30],[x+w-16,y+h-30]),prog(t,1.2,.3),1.4,P.dim);
+    const lx=x+w-6+Math.sin(t*1.1)*4,ly=y+h-60+Math.cos(t*.9)*4;
+    strich(wobble(arc(lx,ly,26,0,Math.PI*2,30),.3,s+3),prog(t,2.2,.5),2.6,P.accent);
+    strich(seg([lx+18,ly+18],[lx+40,ly+40]),prog(t,2.5,.3),4,P.accent);
+    mass([40,282],[280,282],prog(t,2.9,.4),'STUDIE');
+  },
+  // Arbeit: Schreibtisch mit Monitor (tippende Zeilen), Silhouette und Aktenstapel
+  arbeit(t){
+    const s=hash(K.titel),dx=70,dy=210,dw=280;
+    strich(wobble(seg([dx,dy],[dx+dw,dy]),.4,s),prog(t,.3,.5),2.4);
+    strich(seg([dx+14,dy],[dx+14,dy+30]),prog(t,.7,.2),2);strich(seg([dx+dw-14,dy],[dx+dw-14,dy+30]),prog(t,.75,.2),2);
+    const mx=dx+40,my=dy-96,mw=110,mh=76;
+    strich(wobble(poly([[mx,my],[mx+mw,my],[mx+mw,my+mh],[mx,my+mh]],true),.4,s+1),prog(t,.9,.5),2.2);
+    strich(seg([mx+mw/2,my+mh],[mx+mw/2,dy]),prog(t,1.3,.2),2);
+    for(let i=0;i<4;i++){const yy=my+16+i*14,full=mw-24;
+      strich(seg([mx+12,yy],[mx+12+full*clamp((t-1.6-i*.2)/.6),yy]),1,2,i===2?P.accent:P.dim)}
+    const px=dx-30,py=dy;
+    strich(wobble(arc(px,py-58,14,0,Math.PI*2,20),.3,s+2),prog(t,1.1,.4),2);
+    strich(wobble(poly([[px-16,py],[px+16,py],[px+12,py-42],[px-12,py-42]],true),.4,s+3),prog(t,1.3,.5),2);
+    const ax=dx+dw-56,ay=dy;
+    for(let i=0;i<4;i++)strich(wobble(poly([[ax-24,ay-i*10],[ax+24,ay-i*10],[ax+24,ay-i*10-8],[ax-24,ay-i*10-8]],true),.2,s+10+i),prog(t,1.8+i*.15,.3),1.6,P.dim);
+    mass([40,268],[380,268],prog(t,2.6,.5),'ARBEITSWELT');
+  },
+  // Medizin: Herz mit EKG-Linie und Lichtpunkt, Kreuz, DNA-Helix
+  // Medizin (27.09.26: Herz repariert - der Ruecklauf zum Startpunkt schliesst die Kontur symmetrisch;
+  // EKG laeuft rechts DANEBEN durch statt durchs Herz, Kreuz und DNA ueberlappen sich nicht mehr).
+  medizin(t){
+    const s=hash(K.titel),hx=110,hy=120;
+    const heart=[];
+    for(let i=0;i<=20;i++){const a=Math.PI+i/20*Math.PI;heart.push([hx-26+Math.cos(a)*26,hy+Math.sin(a)*26])}
+    for(let i=0;i<=20;i++){const a=Math.PI+i/20*Math.PI;heart.push([hx+26+Math.cos(a)*26,hy+Math.sin(a)*26])}
+    heart.push([hx,hy+80]);heart.push([hx-52,hy]); // Ruecklauf zum Start: schliesst beide Flanken symmetrisch
+    strich(wobble(heart,.4,s),prog(t,.3,.9),2.4,P.accent);
+    const ekg=[];const ex0=180,ex1=390,ey=140;
+    for(let x=ex0;x<=ex1;x+=6){let y=ey;const rel=(x-ex0)%80;
+      if(rel>30&&rel<50)y=ey-(rel-30)*3+(rel>40?(rel-40)*6:0);
+      ekg.push([x,y])}
+    strich(ekg,prog(t,1.4,1.0),2,P.ink);
+    if(t>2.5){const f=((t-2.5)*.25)%1,idx=Math.floor(f*(ekg.length-1)),q=ekg[idx];
+      ctx.fillStyle=P.accent;ctx.beginPath();ctx.arc(q[0],q[1],4,0,Math.PI*2);ctx.fill()}
+    strich(seg([250,68],[250,108]),prog(t,1.7,.3),3,P.accent);strich(seg([230,88],[270,88]),prog(t,1.8,.3),3,P.accent);
+    const hy0=196,hy1=252,L=[],R=[];for(let y=hy0;y<=hy1;y+=6){const a=(y-hy0)*.18;L.push([280+Math.sin(a)*24,y]);R.push([280+Math.sin(a+Math.PI)*24,y])}
+    strich(L,prog(t,2.0,.6),1.8,P.dim);strich(R,prog(t,2.1,.6),1.8,P.dim);
+    for(let i=0;i<L.length;i+=3)strich(seg(L[i],R[i]),prog(t,2.4+i*.02,.2),1,P.dim);
+    mass([40,272],[380,272],prog(t,2.7,.4),'MEDIZIN');
+  },
+  // Weltraum: Erdbogen unten, Satellit laeuft eine Orbit-Ellipse ab, Sterne blinken
+  // Weltraum (27.09.26: Satellit ca. 2,5x groesser mit zwei gerasterten Solarpaneelen + gepulstem Funkstrahl zur Erde)
+  weltraum(t){
+    const s=hash(K.titel),cx=170,cy=210,er=140;
+    strich(wobble(arc(cx,cy+er*.85,er,Math.PI*1.08,Math.PI*1.92,40),.6,s),prog(t,.3,.8),2.2);
+    const orb=[];for(let i=0;i<=60;i++){const a=i/60*Math.PI*2;orb.push([cx+Math.cos(a)*150,cy-90+Math.sin(a)*46])}
+    strich(orb,prog(t,1.0,.9),1.2,P.dim);
+    const rotp=t<3?prog(t,2.0,.6):1,angle=t*.6,sp=[cx+Math.cos(angle)*150,cy-90+Math.sin(angle)*46];
+    ctx.save();ctx.globalAlpha=rotp;
+    strich(wobble(poly([[sp[0]-16,sp[1]-14],[sp[0]+16,sp[1]-14],[sp[0]+16,sp[1]+14],[sp[0]-16,sp[1]+14]],true),.3,s+2),1,2.2,P.ink);
+    [-1,1].forEach(side=>{const px0=sp[0]+side*20,px1=sp[0]+side*60;
+      strich(seg([px0,sp[1]-20],[px1,sp[1]-20]),1,1.6,P.dim);strich(seg([px0,sp[1]+20],[px1,sp[1]+20]),1,1.6,P.dim);
+      strich(seg([px1,sp[1]-20],[px1,sp[1]+20]),1,1.6,P.dim);
+      for(let g=1;g<4;g++){const gx=lerp(px0,px1,g/4);strich(seg([gx,sp[1]-20],[gx,sp[1]+20]),1,1,P.dim)}});
+    strich(seg([sp[0],sp[1]-14],[sp[0],sp[1]-24]),1,1.6,P.ink);
+    const beamP=Math.sin(t*2)*.5+.5;ctx.globalAlpha=rotp*beamP*.6;
+    strich(seg(sp,[cx,cy+er*.4]),1,1,P.accent);
+    ctx.restore();
+    const r=rng(s+9);for(let i=0;i<26;i++){const x=r()*W,y=r()*(SH-40);if(Math.hypot(x-cx,y-(cy+er*.85))<er)continue;
+      ctx.globalAlpha=(.3+.5*Math.abs(Math.sin(t*2+i)))*prog(t,.2,.6);ctx.fillStyle=P.ink;ctx.fillRect(x,y,1.4,1.4);ctx.globalAlpha=1}
+    mass([40,272],[300,272],prog(t,2.6,.5),'RAUMFAHRT');
+  },
+  // Militaer: Drohne mit vier Rotoren, drehende Rotorblaetter, nuechterner Zielring am Boden
+  // Militaer (27.09.26: Drohne + Zielring nach oben verschoben, Zielring verkleinert - ueberdeckte sonst die Bemassung)
+  militaer(t){
+    const s=hash(K.titel),cx=190,cy=126;
+    strich(wobble(poly([[cx-50,cy-8],[cx+50,cy-8],[cx+50,cy+8],[cx-50,cy+8]],true),.4,s),prog(t,.4,.6),2.2);
+    const arms=[[-70,-40],[70,-40],[-70,40],[70,40]];
+    arms.forEach((a,i)=>{const ex=cx+a[0],ey=cy+a[1];
+      strich(seg([cx+Math.sign(a[0])*40,cy+Math.sign(a[1])*4],[ex,ey]),prog(t,.8+i*.1,.4),2);
+      strich(arc(ex,ey,14,0,Math.PI*2,20),prog(t,1.2+i*.1,.3),1.6)});
+    arms.forEach((a,i)=>{const ex=cx+a[0],ey=cy+a[1],sp=t*10+i*1.5;
+      ctx.globalAlpha=prog(t,1.6,.4)*.6;strich(seg([ex-Math.cos(sp)*14,ey-Math.sin(sp)*14],[ex+Math.cos(sp)*14,ey+Math.sin(sp)*14]),1,1.2,P.dim);ctx.globalAlpha=1});
+    const tx=200,ty=224;
+    strich(arc(tx,ty,26,0,Math.PI*2,30),prog(t,2.0,.5),1.6,P.accent);
+    strich(arc(tx,ty,12,0,Math.PI*2,20),prog(t,2.2,.4),1.4,P.accent);
+    ctx.fillStyle=P.accent;ctx.globalAlpha=prog(t,2.4,.3);ctx.beginPath();ctx.arc(tx,ty,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    const dpts=[];const NN=14;for(let i=0;i<=NN;i++)dpts.push([lerp(cx,tx,i/NN),lerp(cy+8,ty,i/NN)]);
+    for(let i=0;i<NN;i+=2)strich(seg(dpts[i],dpts[i+1]),prog(t,2.6+i*.02,.3),1,P.dim);
+    mass([40,270],[300,270],prog(t,2.9,.4),'DROHNE');
+  },
+  // Bildung: Tafel mit Kreidezeilen, kleine Skizze, Doktorhut mit pendelnder Quaste
+  bildung(t){
+    const s=hash(K.titel),bx=90,by=90,bw=160,bh=120;
+    strich(wobble(poly([[bx,by],[bx+bw,by],[bx+bw,by+bh],[bx,by+bh]],true),.4,s),prog(t,.3,.6),2.4);
+    strich(seg([bx-6,by+bh],[bx+bw+6,by+bh]),prog(t,.9,.2),3,P.dim);
+    strich(seg([bx+16,by+30],[bx+bw-20,by+30]),prog(t,1.2,.5),1.6,P.dim);
+    strich(seg([bx+16,by+54],[bx+bw-50,by+54]),prog(t,1.5,.5),1.6,P.dim);
+    // Kreideschrift statt zufaellig wirkendem Dreieck (27.09.26)
+    schrift('E = mc²',bx+16,by+92,{font:"700 26px 'Caveat'",farbe:P.accent,align:'left',a:prog(t,1.9,.5)});
+    schrift('KI + ? =',bx+16,by+114,{font:"600 19px 'Caveat'",farbe:P.dim,align:'left',a:prog(t,2.2,.5)});
+    const hx=300,hy=150;
+    strich(wobble(poly([[hx-40,hy],[hx,hy-16],[hx+40,hy],[hx,hy+16]],true),.4,s+2),prog(t,2.2,.6),2.2);
+    strich(wobble(poly([[hx-16,hy+4],[hx+16,hy+4],[hx+16,hy+24],[hx-16,hy+24]],true),.4,s+3),prog(t,2.5,.4),1.8);
+    const sw=Math.sin(t*1.8)*8;
+    strich(seg([hx+40,hy],[hx+40+sw*.3,hy+30]),prog(t,2.7,.3),1.6,P.accent);
+    ctx.fillStyle=P.accent;ctx.globalAlpha=prog(t,2.9,.3);ctx.beginPath();ctx.arc(hx+40+sw*.3,hy+34,4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    mass([40,272],[300,272],prog(t,3.0,.4),'BILDUNG');
   },
   zahl(t){
     const ziel=K.zahl_wert||0,v=ziel*easeOut((t-.5)/2.2),dez=(String(ziel).split('.')[1]||'').length;

@@ -187,13 +187,15 @@ def _media_url(url: str) -> str:
 # "KI" trotz altem Text-Trick "K I" -> "kai" (reiner Text mit Leerzeichen
 # zwingt die Stimme NICHT zur Buchstabier-Phonetik - SSML-Markup schon).
 # Erweiterbar, sobald neue Faelle auffallen.
-TTS_SPELL_OUT = {"KI", "xAI", "RL", "LLM", "API", "GPU", "CPU", "NSFW", "HBM", "DRAM"}
+TTS_SPELL_OUT = {"KI", "xAI", "RL", "LLM", "API", "GPU", "CPU", "NSFW", "HBM", "DRAM", "IT"}  # IT: 26.09.26
 
 # TTS-Wortersatz: ganze Woerter mit falscher Betonung, die KEINE Buchstabier-
 # Faelle sind (z.B. "SpaceX" - kein Akronym, sondern ein Markenname mit
 # Grossbuchstaben-X mittendrin; "Space X" wird normal vorgelesen).
 PRONOUNCE_FIXES = {
     "SpaceX": "Space X",
+    # 26.09.26: Studio-Stimme las "Schynkompetenz" - Bindestrich trennt das Kompositum
+    "Scheinkompetenz": "Schein-Kompetenz",
 }
 
 # 26.09.26 (Daniel: "IKEA" wurde I-K-E-A vorgelesen): Google-TTS buchstabiert jedes Wort

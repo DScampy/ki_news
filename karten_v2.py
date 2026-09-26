@@ -19,11 +19,19 @@ import os
 import re
 import urllib.request
 
-# Stil je Motiv (Daniel 26.09.: "kommt aufs Thema an")
-STIL_JE_MOTIV = {
-    "gericht": "blaupause", "politik": "blaupause", "rechenzentrum": "blaupause", "chip": "blaupause",
-    "hack": "daten", "zahl": "daten", "netz": "daten",
-    "energie": "tusche", "zitat": "tusche", "roboter": "tusche", "deal": "tusche",
+# Stile je Motiv (Daniel 26.09.: "kommt aufs Thema an"). 26.09. abends: Daniel fand die Karten zu
+# gleichfoermig -> je Motiv mehrere passende Stile, Auswahl fest per Titel-Hash (gleicher Titel =
+# gleiche Karte, verschiedene Titel = Abwechslung). Erster Eintrag = bisheriger Stil.
+STILE_JE_MOTIV = {
+    "gericht": ["blaupause", "zeitung", "kreide"], "politik": ["blaupause", "zeitung"],
+    "rechenzentrum": ["blaupause", "daten"], "chip": ["blaupause", "daten", "kreide"],
+    "hack": ["daten", "zeitung"], "zahl": ["daten", "zeitung", "kreide"], "netz": ["daten", "blaupause"],
+    "energie": ["tusche", "blaupause"], "zitat": ["tusche", "zeitung", "kreide"],
+    "roboter": ["tusche", "blaupause"], "deal": ["tusche", "zeitung"],
+    "humanoid": ["tusche", "blaupause", "daten"], "auto": ["blaupause", "daten", "tusche"],
+    "handy": ["daten", "tusche"], "forschung": ["kreide", "blaupause", "tusche"],
+    "arbeit": ["tusche", "zeitung", "kreide"], "medizin": ["blaupause", "tusche"],
+    "weltraum": ["daten", "blaupause"], "militaer": ["zeitung", "blaupause"], "bildung": ["kreide", "tusche"],
 }
 MOTIV_BESCHREIBUNG = {
     "gericht": "Gericht, Klage, Urteil, Verbot durch Behoerde, Regulierung mit Rechtsstreit",
@@ -34,10 +42,32 @@ MOTIV_BESCHREIBUNG = {
     "zahl": "Kern der Meldung ist eine Geldsumme: Finanzierung, Bewertung, Umsatz, Aktienkurs, Investition",
     "energie": "Strom, Energieversorgung, Kraftwerk, Turbine, Kuehlung, Stromverbrauch",
     "zitat": "Eine Person aeussert sich, warnt, fordert, kritisiert, gibt ein Interview",
-    "roboter": "Roboter, humanoider Roboter, Automatisierung, autonome Fahrzeuge, Hardware-Geraet",
+    "roboter": "Industrieroboter, Roboterarm, Lieferroboter, Automatisierung in Fabrik oder Lager",
+    "humanoid": "Humanoider Roboter mit Menschengestalt, z. B. Tesla Optimus, Figure, Unitree, Boston Dynamics Atlas",
+    "auto": "Autonomes Fahren, Robotaxi, selbstfahrendes Auto, Waymo, Tesla FSD, Verkehr",
+    "handy": "Smartphone, App, Chatbot-App, Assistent auf dem Handy, Verbraucher-Produkt, Update fuer Nutzer",
+    "forschung": "Studie, Forschungsergebnis, wissenschaftliches Paper, Umfrage, Messung, Benchmark",
+    "arbeit": "Jobs, Arbeitsmarkt, Beschaeftigte, Entlassungen, Buero, Gewerkschaft, Arbeitsalltag",
+    "medizin": "Gesundheit, Medizin, Krankenhaus, Diagnose, Medikamente, Biologie, DNA",
+    "weltraum": "Weltraum, Satellit, Rakete, Raumfahrt, Rechenzentrum im All",
+    "militaer": "Militaer, Armee, Verteidigung, Drohnen, Krieg, Ruestung",
+    "bildung": "Schule, Universitaet, Lernen, Lehrer, Studierende, Weiterbildung",
     "deal": "Zwei Firmen schliessen einen Vertrag, Partnerschaft, Uebernahme oder Liefervereinbarung",
     "netz": "Nichts davon passt eindeutig (allgemeine Produkt- oder Branchenmeldung)",
 }
+# Rueckwaerts-Kompatibilitaet (erster Stil je Motiv)
+STIL_JE_MOTIV = {m: st[0] for m, st in STILE_JE_MOTIV.items()}
+
+
+def _stil(motiv, headline):
+    """Fester Stil je Titel: FNV-Hash wie in der Vorlage, Index in STILE_JE_MOTIV."""
+    h = 2166136261
+    for ch in (headline or ""):
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    stile = STILE_JE_MOTIV[motiv]
+    return stile[h % len(stile)]
+
+
 # Anbieter-Zeichen, die die Vorlage kennt (MARKEN in breaking_news_card_v2.html)
 ANBIETER = [
     ("anthropic", r"\bAnthropic|\bClaude\b"), ("openai", r"\bOpenAI|\bChatGPT|\bGPT-\d"),
@@ -93,7 +123,12 @@ def _jev(headline, summary, key):
 
 def _regel_motiv(text):
     """Rueckfall ohne Jev: erstes passendes Stichwort."""
-    regeln = [("hack", r"hack|leck|sicherheitsl|angriff|cyber"), ("gericht", r"gericht|klage|urteil|verbot"),
+    regeln = [("humanoid", r"humanoid|optimus|figure 0|unitree|atlas"), ("auto", r"robotaxi|autonom\w* fahr|waymo|selbstfahr"),
+              ("militaer", r"milit|armee|drohne|pentagon|verteidigung|krieg"), ("medizin", r"medizin|klinik|krankenh|gesundheit|diagnos"),
+              ("weltraum", r"weltraum|satellit|rakete|orbit"), ("bildung", r"schule|universit|studier|lehrer"),
+              ("forschung", r"studie|forscher|umfrage|paper|benchmark"), ("arbeit", r"jobs?\b|arbeitsmarkt|entlass|gewerkschaft|beschäftigt"),
+              ("handy", r"smartphone|iphone|android|\bapp\b"),
+              ("hack", r"hack|leck|sicherheitsl|angriff|cyber"), ("gericht", r"gericht|klage|urteil|verbot"),
               ("energie", r"strom|energie|turbine|kraftwerk"), ("rechenzentrum", r"rechenzentr|data ?cent|gpu-cluster"),
               ("chip", r"chip|prozessor|modell"), ("deal", r"deal|partnerschaft|übernimmt|vertrag"),
               ("politik", r"regierung|gesetz|präsident|minister|trump|eu-"), ("roboter", r"roboter|humanoid"),
@@ -124,7 +159,7 @@ def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20,
         except Exception as e:
             print("  [KARTE v2] Jev fehlgeschlagen (%s) - Stichwort-Regel" % e.__class__.__name__)
             motiv = None
-    if motiv not in STIL_JE_MOTIV:
+    if motiv not in STILE_JE_MOTIV:
         motiv = _regel_motiv(headline or "")
     # Motive, die Daten brauchen, sonst ausweichen
     if motiv == "zahl" and not geld:
@@ -133,7 +168,7 @@ def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20,
     # (die fruehere Titelanfang-Heuristik griff bei deutschen Substantiven daneben)
     if motiv == "deal" and len(anbieter) < 2:
         motiv = "zahl" if geld else "netz"
-    k = {"stil": STIL_JE_MOTIV[motiv], "motiv": motiv, "titel": headline, "einordnung": einordnung,
+    k = {"stil": _stil(motiv, headline), "motiv": motiv, "titel": headline, "einordnung": einordnung,
          "quelle": source, "datum": datum, "dauer": dauer, "badge": badge, "anbieter": anbieter[:1],
          "negativ": negativ, "bildzeile": motiv.upper() if motiv != "netz" else "", "wahl": quelle_wahl}
     if geld:
