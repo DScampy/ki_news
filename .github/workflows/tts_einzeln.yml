@@ -1,0 +1,65 @@
+# Einzelne Karte neu vertonen (26.09.26)
+#
+# Anlass: Die Pentagon-Karte vom 26.09. hatte eine falsche Einordnung ("weil es unsicher
+# ist"). Den Text neu zu sprechen ging nur mit GOOGLE_TTS_KEY, und der liegt nur hier als
+# Secret. Dieser Workflow spricht einen beliebigen Text mit derselben Studio-Stimme und
+# derselben Aufbereitung wie generate_news_cards.py (build_tts_ssml, speakingRate) und legt
+# die MP3 als Artefakt ab. Der Schluessel verlaesst GitHub nie.
+#
+# Start: Actions -> "Karte neu vertonen" -> Run workflow, Text eintragen.
+# Kein Commit, kein Telegram, keine Aenderung an cards.json.
+name: Karte neu vertonen
+
+on:
+  workflow_dispatch:
+    inputs:
+      text:
+        description: "Gesprochener Text (Headline. Einordnung.)"
+        required: true
+      name:
+        description: "Dateiname ohne Endung"
+        required: true
+        default: "karte"
+      stimme:
+        description: "Google-Stimme"
+        required: true
+        default: "de-DE-Studio-B"
+        type: choice
+        options: ["de-DE-Studio-B", "de-DE-Studio-C"]
+
+permissions:
+  contents: read
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Sprechen
+        env:
+          GOOGLE_TTS_KEY: ${{ secrets.GOOGLE_TTS_KEY }}
+          TEXT: ${{ inputs.text }}
+          NAME: ${{ inputs.name }}
+          STIMME: ${{ inputs.stimme }}
+        run: |
+          mkdir -p out
+          python3 - <<'EOF'
+          import os, re, shutil, sys
+          sys.path.insert(0, ".")
+          import generate_news_cards as g
+          name = re.sub(r"[^a-z0-9-]", "-", os.environ["NAME"].lower())[:60] or "karte"
+          geschlecht = dict(g.GOOGLE_TTS_VOICES).get(os.environ["STIMME"], "MALE")
+          pfad, dauer = g.generate_tts(g.build_tts_ssml(os.environ["TEXT"]), name, os.environ["STIMME"], geschlecht)
+          if not pfad:
+              sys.exit("TTS fehlgeschlagen")
+          shutil.copy(pfad, "out/%s.mp3" % name)
+          print("OK: out/%s.mp3, Video-Dauer %s s" % (name, dauer))
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tts-${{ inputs.name }}
+          path: out/*.mp3
+          retention-days: 7
