@@ -1350,7 +1350,19 @@ Promise.all([
   // Entwicklungslinien (19.09.26): fuer Hero-Band und Artikel-Overlay (assets/ki-layout.js)
   window.KI_LINIEN = data.linien || {};
   window.KI_NEWS = data.news || [];
-  var top = featured.concat(nonFeatured).slice(0,5);
+  // Eine Story pro Entwicklungslinie (26.09.26, Daniel): seit dem Jev-Veto werden
+  // zwei Ereignisse derselben Linie getrennt (Australien-Hack / US-Regierungsseiten)
+  // und belegten beide Top-Plaetze. Die aeltere Entwicklung steht ohnehin im
+  // Linienband der Top-Story; der naechste Kandidat rueckt nach. Gepinnte Artikel
+  // zaehlen immer. Im News-Raster bleiben alle stehen.
+  var top = featured.slice(0,5), _linienTop = {};
+  top.forEach(function(n){ if (n.linie) _linienTop[n.linie] = 1; });
+  nonFeatured.forEach(function(n){
+    if (top.length >= 5) return;
+    if (n.linie && _linienTop[n.linie]) return;
+    if (n.linie) _linienTop[n.linie] = 1;
+    top.push(n);
+  });
   topLinks = top.map(function(n){return n.link;}).filter(Boolean);
   // Scampy-Posts (teaser/erklaerung/thread) den Top-Storys zuordnen – exakt per Link.
   // Kein Treffer -> kein (fremder) Teaser; die Karte faellt im Render auf die eigene
