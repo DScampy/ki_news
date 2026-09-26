@@ -1776,7 +1776,8 @@ def cluster_news(alle_news, anchors=None, log_diag=True, erstdatum=None):
 # Kill-Switch: JEV_VETO_AKTIV = False.
 JEV_VETO_AKTIV = True
 JEV_VETO_SCHWELLE = 0.2
-JEV_VETO_MAX_AUFRUFE = 150
+JEV_VETO_MAX_AUFRUFE = 300       # 26.09.: von 150, alle Paare je Cluster statt nur Anker
+JEV_VOLLPAAR_MAX = 12            # bis zu dieser Groesse jedes Paar pruefen (66 Paare)
 JEV_VETO_ZEIT_S = 90
 JEV_URTEILE_DATEI = "jev_urteile.json"
 JEV_URTEILE_TAGE = 7
@@ -1855,6 +1856,26 @@ def _jev_veto(clusters, base_dir):
                     erg[k] = p
         return erg
 
+    def gruppiere(items):
+        """Vollstaendige Verknuepfung (26.09.26): ein Artikel kommt nur in eine Gruppe,
+        wenn Jev ihn mit ALLEN Mitgliedern als dasselbe Ereignis sieht - nicht nur mit
+        dem Anker. Fall 26.09.: Anker war die Sammelmeldung "OpenAI-Agenten versuchten
+        vier weitere Websites zu hacken"; dazu passten sowohl "US-Regierungswebsites"
+        als auch "australische Gesundheitsseite" - beide blieben im selben Cluster,
+        obwohl sie untereinander verschiedene Ereignisse sind. Fehlt ein Urteil (Fehler,
+        Budget), zaehlt das Paar als gleich (fail-open, wie bisher)."""
+        u = urteile([(x, y) for i, x in enumerate(items) for y in items[i + 1:]])
+        gruppen = []
+        for it in items:
+            for g in gruppen:
+                if all((u.get(schluessel(m, it)) is None) or u[schluessel(m, it)] >= JEV_VETO_SCHWELLE
+                       for m in g):
+                    g.append(it)
+                    break
+            else:
+                gruppen.append([it])
+        return gruppen
+
     ergebnis = []
     for cl in clusters:
         echte = [it for it in cl if not it.get("_anchor")]
@@ -1862,35 +1883,28 @@ def _jev_veto(clusters, base_dir):
             ergebnis.append(cl)
             continue
         _jev_stat["cluster"] += 1
-        anker, rest = cl[0], cl[1:]
-        u = urteile([(anker, it) for it in rest])
-        bleibt, raus = [anker], []
-        for it in rest:
-            p = u.get(schluessel(anker, it))
-            (raus if (p is not None and p < JEV_VETO_SCHWELLE) else bleibt).append(it)
-        ergebnis.append(bleibt)
-        if not raus:
-            continue
-        _jev_stat["abgetrennt"] += len(raus)
-        for it in raus:
-            logger.info("JEV-VETO: %.2f trennt %r von Anker %r", u.get(schluessel(anker, it)),
-                        it.get("title", "")[:70], anker.get("title", "")[:70])
-        # Abgetrennte untereinander wieder gruppieren (Anker je Gruppe)
+        teile = [cl]
+        if len(cl) > JEV_VOLLPAAR_MAX:
+            # grosser Cluster: erst grob gegen den Anker, dann jeder Teil vollstaendig
+            anker = cl[0]
+            u = urteile([(anker, it) for it in cl[1:]])
+            drin = [anker] + [it for it in cl[1:] if u.get(schluessel(anker, it)) is None
+                               or u[schluessel(anker, it)] >= JEV_VETO_SCHWELLE]
+            teile = [drin, [it for it in cl if it not in drin]]
         gruppen = []
-        for it in raus:
-            ziel = None
-            if gruppen:
-                ug = urteile([(g[0], it) for g in gruppen])
-                for g in gruppen:
-                    p = ug.get(schluessel(g[0], it))
-                    if p is not None and p >= JEV_VETO_SCHWELLE:
-                        ziel = g
-                        break
-            if ziel is not None:
-                ziel.append(it)
-            else:
-                gruppen.append([it])
-        _jev_stat["neue_storys"] += len(gruppen)
+        for t in teile:
+            if not t:
+                continue
+            gruppen.extend(gruppiere(t) if len(t) <= JEV_VOLLPAAR_MAX else [t])
+        ergebnis.append(gruppen[0])
+        if len(gruppen) == 1:
+            continue
+        for g in gruppen[1:]:
+            _jev_stat["abgetrennt"] += len(g)
+            logger.info("JEV-VETO: trennt %d Artikel %r von %r", len(g),
+                        [x.get("title", "")[:60] for x in g], gruppen[0][0].get("title", "")[:60])
+        _jev_stat["neue_storys"] += len(gruppen) - 1
+        gruppen = gruppen[1:]
         ergebnis.extend(gruppen)
 
     grenze = (datetime.now(timezone.utc) - timedelta(days=JEV_URTEILE_TAGE)).date().isoformat()
