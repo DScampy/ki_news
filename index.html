@@ -318,6 +318,8 @@ html.light #carousel-featured p{color:#64748b;}
 .c-linie{margin-top:16px;padding-top:12px;border-top:1px solid rgba(var(--neon-rgb),0.18);}
 .c-linie-kopf{display:flex;align-items:center;gap:8px;font-family:monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(var(--neon-rgb),0.9);margin-bottom:8px;}
 .c-linie-kopf span{flex:1;}
+.c-linie-dossier{flex:0 0 auto;color:var(--accent);text-decoration:none;font-weight:600;text-transform:none;letter-spacing:normal;}
+.c-linie-dossier:hover{text-decoration:underline;}
 .c-linie-band{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch;}
 .c-linie-glied{flex:0 0 172px;scroll-snap-align:start;text-align:left;background:rgba(var(--neon-rgb),0.04);border:1px solid var(--hairline,#2f3336);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--text,#e8f8ff);font-family:'Work Sans',sans-serif;}
 .c-linie-glied:hover{border-color:rgba(var(--neon-rgb),0.6);}
@@ -1206,9 +1208,14 @@ function heroLinie(feat, s) {
   if (!box) return;
   if (ee.length < 2) { box.hidden = true; box.innerHTML = ''; return; }
   var chrono = ee.slice().reverse(), datum = window.klLinieDatum || function(d){ return d; };
+  // Dossier-Link (27.09.26): nur ab 3 Ereignissen, das Overlay der Top-Story darf
+  // dabei nicht aufgehen -- feat.onclick ignoriert Klicks in #c-linie bereits.
+  var dossierLink = ee.length >= 3
+    ? '<a href="linie.html#l=' + encodeURIComponent(s.linie) + '" class="c-linie-dossier">Dossier &rsaquo;</a>'
+    : '';
   box.innerHTML =
     '<div class="c-linie-kopf"><span>Linie &middot; ' + linie.n + ' Entwicklungen seit ' + escapeHtml(datum(linie.seit)) +
-    '</span><em>&lsaquo; wischen &rsaquo;</em></div><div class="c-linie-band">' +
+    '</span>' + dossierLink + '<em>&lsaquo; wischen &rsaquo;</em></div><div class="c-linie-band">' +
     chrono.map(function(e, i){
       var akt = e.k === s.linie_k;
       return '<button type="button" class="c-linie-glied' + (akt ? ' aktuell' : '') + '" data-i="' + i + '">' +

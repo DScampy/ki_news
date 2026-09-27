@@ -4755,6 +4755,232 @@ def update_entity_graph(base_dir, news_items, link_to_story=None):
         logger.exception("Entity-Graph-Step fehlgeschlagen (Pipeline laeuft weiter): %s", e)
 
 
+# ── Linien-Dossiers (27.09.26) ──────────────────────────────────────────────
+# Aus jeder Linie (Entwicklungskette, s. themenkette_shadow.linien_fuer_anzeige)
+# mit mindestens 3 Ereignissen wird eine automatische Dossier-Zusammenfassung:
+# Titel + "worum"-Absatz per LLM, Ausreisser-Ereignisse per Jev abgesetzt.
+# Fail-open: jeder Fehler laesst die betroffene Linie einfach ohne "dossier".
+LINIEN_DOSSIER_AKTIV = True
+LINIEN_DOSSIER_MAX_LINIEN = 8
+LINIEN_DOSSIER_MAX_LLM = 12
+LINIEN_DOSSIER_MAX_JEV = 80   # Probe 27.09.: 40 reichten fuer 6 von 8 Linien
+LINIEN_DOSSIER_MAX_SEKUNDEN = 150
+
+_LINIE_DOSSIER_FRAGE = {
+    "type": "noul",
+    "instructions": "Gehoert `meldung` inhaltlich zum Kern des Themas `thema`?",
+    "criteria": {
+        "true": "Ja: `meldung` behandelt denselben Vorgang/Themenkomplex wie `thema` - "
+                "gleiche Firma/Angelegenheit im selben Zusammenhang, auch wenn ein neuer "
+                "Aspekt oder eine neue Folge dazukommt.",
+        "false": "Nein: `meldung` geht um etwas anderes (andere Firma, andere Personalie, "
+                 "ein Vorgang, der nur zufaellig aehnliche Stichworte teilt), auch wenn sie "
+                 "im selben Lauf/derselben Linie aufgetaucht ist.",
+    },
+}
+
+
+def _linie_dossier_llm(ereignisse):
+    """Ein LLM-Aufruf: chronologische Ereignisliste -> {"titel","worum"} oder None.
+    Wirft nichts nach aussen - Aufrufer faengt ab und zaehlt den Versuch."""
+    chrono = sorted(ereignisse, key=lambda e: e.get("d", ""))
+    zeilen = []
+    for e in chrono:
+        z = (e.get("z") or "").strip()
+        zeile = f"- {e.get('d','')} ({e.get('q','')}): {e.get('t','')}"
+        if z:
+            zeile += f" -- {z}"
+        zeilen.append(zeile)
+    prompt = (
+        "Hier ist eine chronologische Liste von Meldungen zum selben Thema:\n\n"
+        + "\n".join(zeilen) +
+        "\n\nSchreibe daraus:\n"
+        "1. \"titel\": ein sachlicher Titel, max. 60 Zeichen, benennt das Thema, kein Clickbait.\n"
+        "2. \"worum\": 2 bis 4 Saetze, max. 400 Zeichen - was ist passiert und was verbindet "
+        "die Ereignisse. Der letzte Satz ist eine Tatsache aus der Liste, keine Floskel. Verboten: "
+        "\"wirft Fragen auf\", \"zeigt, wie\", \"bleibt abzuwarten\", \"unterstreicht\", \"verdeutlicht\".\n\n"
+        "HAUPTREGEL: nur Tatsachen, die in den Zeilen oben stehen. Keine Gruende, Folgen, "
+        "Zahlen oder Wertungen erfinden, die dort nicht stehen. Kein Gedankenstrich (- oder --) "
+        "als Satzpause. Personen nur mit Rolle nennen, wenn die Rolle oben steht. Deutsch.\n"
+        "Antworte NUR mit einem JSON-Objekt: {\"titel\": \"...\", \"worum\": \"...\"}"
+    )
+    messages = [{"role": "user", "content": prompt}]
+    for modell in MODELLE_POSTS:
+        if _model_blocked(modell):
+            continue
+        try:
+            antwort = _call_llm_api(modell, messages, max_tokens=700, timeout=90)
+        except Exception as e:
+            logger.info("Linien-Dossier: %s fehlgeschlagen (%s)", modell, e.__class__.__name__)
+            continue
+        if not antwort:
+            continue
+        m = re.search(r"\{.*\}", antwort, re.S)
+        if not m:
+            continue
+        try:
+            daten = json.loads(m.group(0))
+        except Exception:
+            continue
+        titel = _kuerzen_wortgrenze(str(daten.get("titel", "")).strip(), 80)
+        worum = _kuerzen_satz(str(daten.get("worum", "")).strip(), 480)
+        if titel and worum:
+            return {"titel": titel, "worum": worum}
+    return None
+
+
+_KUERZ_ENDWOERTER = {"und", "oder", "sowie", "mit", "für", "fuer", "von", "der", "die", "das",
+                     "den", "dem", "des", "bei", "in", "im", "zu", "zur", "zum", "auf", "als", "an"}
+
+
+def _kuerzen_wortgrenze(text, maxlen):
+    """Kuerzt an Wortgrenze statt mitten im Wort (LLM haelt Laengenvorgaben nicht immer ein).
+    27.09.26: kein Ende auf "und"/"mit"/Artikel (Probe: "... Sicherheitsluecken und")."""
+    if len(text) <= maxlen:
+        return text
+    woerter = text[:maxlen].rsplit(" ", 1)[0].rstrip(" ,.;:-").split(" ")
+    while len(woerter) > 1 and woerter[-1].lower().strip(",.;:") in _KUERZ_ENDWOERTER:
+        woerter.pop()
+    return " ".join(woerter).rstrip(" ,.;:-")
+
+
+def _kuerzen_satz(text, maxlen):
+    """Kuerzt am letzten Satzende vor maxlen (Fliesstext soll nicht mitten im Satz enden)."""
+    if len(text) <= maxlen:
+        return text
+    kurz = text[:maxlen]
+    ende = max(kurz.rfind(". "), kurz.rfind("! "), kurz.rfind("? "), kurz.rfind(".") if kurz.endswith(".") else -1)
+    if ende >= maxlen * 0.4:
+        return kurz[:ende + 1].strip()
+    return _kuerzen_wortgrenze(text, maxlen) + "."
+
+
+def _linien_dossiers(linien, post_cache):
+    """Erzeugt fuer die groessten Linien (>= 3 Ereignisse, max. LINIEN_DOSSIER_MAX_LINIEN
+    je Lauf) automatische Dossiers: Titel, Kurztext, Ausreisser-Ereignisse ("abseits"),
+    Jev-Deckung. Schreibt linien[id]["dossier"] und cached in post_cache unter
+    "linie:<id>". Fail-open: Fehler pro Linie -> diese Linie bleibt ohne "dossier",
+    nie eine Exception nach aussen. Budget: max. LINIEN_DOSSIER_MAX_LLM LLM-Aufrufe,
+    max. LINIEN_DOSSIER_MAX_JEV Jev-Aufrufe, max. LINIEN_DOSSIER_MAX_SEKUNDEN Sekunden."""
+    if not LINIEN_DOSSIER_AKTIV or not linien:
+        return
+    import time as _time
+    start = _time.time()
+    llm_aufrufe = [0]
+    jev_aufrufe = [0]
+    neu = 0
+    aus_cache = 0
+    ereignisse_abseits = 0
+    heute = datetime.now(BERLIN).strftime("%Y-%m-%d")
+    tsk = os.environ.get("TYPESAFE_API_KEY", "").strip()
+
+    def budget_frei():
+        return (_time.time() - start < LINIEN_DOSSIER_MAX_SEKUNDEN
+                and llm_aufrufe[0] < LINIEN_DOSSIER_MAX_LLM
+                and jev_aufrufe[0] < LINIEN_DOSSIER_MAX_JEV)
+
+    def jev_kern(thema_titel, thema_worum, ereignis):
+        """p < 0.35 -> Ereignis gilt als Ausreisser ("abseits"). Kein Key/Fehler -> None
+        (zaehlt nicht als Ausreisser)."""
+        if not tsk or jev_aufrufe[0] >= LINIEN_DOSSIER_MAX_JEV:
+            return None
+        jev_aufrufe[0] += 1
+        try:
+            state = {"thema": (thema_titel + ". " + thema_worum)[:1800],
+                     "meldung": (ereignis.get("t", "") + ". " + (ereignis.get("z") or ""))[:1200]}
+            body = json.dumps({"model": "jev-latest", "state": state,
+                               "questions": {"kern": _LINIE_DOSSIER_FRAGE}}).encode("utf-8")
+            req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                         headers={"Authorization": "Bearer " + tsk,
+                                                  "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return round(float(json.loads(r.read())["answers"]["kern"]["noul"]), 2)
+        except Exception as e:
+            logger.info("Linien-Dossier Jev: Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+            return None
+
+    def jev_deckung(titel, worum, ereignisse):
+        if not tsk or jev_aufrufe[0] >= LINIEN_DOSSIER_MAX_JEV:
+            return None
+        jev_aufrufe[0] += 1
+        try:
+            zsm = " ".join((e.get("z") or "") for e in ereignisse).strip()[:1800]
+            body = json.dumps({"model": "jev-latest",
+                               "state": {"titel": titel, "zusammenfassung": zsm, "post": worum},
+                               "questions": {"erfunden": _X_TOR_FRAGE}}).encode("utf-8")
+            req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                         headers={"Authorization": "Bearer " + tsk,
+                                                  "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return round(float(json.loads(r.read())["answers"]["erfunden"]["noul"]), 2)
+        except Exception as e:
+            logger.info("Linien-Dossier Jev (Deckung): Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+            return None
+
+    kandidaten = [(lid, l) for lid, l in linien.items() if len(l.get("e", [])) >= 3]
+    kandidaten.sort(key=lambda x: len(x[1].get("e", [])), reverse=True)
+    kandidaten = kandidaten[:LINIEN_DOSSIER_MAX_LINIEN]
+
+    for lid, linie in kandidaten:
+        if not budget_frei():
+            break
+        try:
+            ereignisse = linie.get("e", [])
+            sig = ",".join(sorted(e.get("k", "") for e in ereignisse))
+            cache_key = "linie:" + lid
+            cached = post_cache.get(cache_key)
+            if cached and cached.get("sig") == sig:
+                linie["dossier"] = {"titel": cached.get("titel", ""),
+                                     "worum": cached.get("worum", "") if cached.get("worum_ok") else "",
+                                     "abseits": cached.get("abseits", []),
+                                     "jev": cached.get("jev")}
+                aus_cache += 1
+                continue
+
+            if llm_aufrufe[0] >= LINIEN_DOSSIER_MAX_LLM or not budget_frei():
+                continue
+            llm_aufrufe[0] += 1
+            erg = _linie_dossier_llm(ereignisse)
+            if not erg:
+                continue
+            titel, worum = erg["titel"], erg["worum"]
+
+            # Ausreisser-Pruefung je Ereignis
+            abseits_keys = []
+            behalten = list(ereignisse)
+            if tsk:
+                for e in ereignisse:
+                    if not budget_frei():
+                        break
+                    p = jev_kern(titel, worum, e)
+                    if p is not None and p < 0.35:
+                        abseits_keys.append(e.get("k", ""))
+                behalten = [e for e in ereignisse if e.get("k", "") not in abseits_keys]
+
+            # Bei Ausreissern und genug verbleibenden Ereignissen: Titel/Text einmal neu
+            if abseits_keys and len(behalten) >= 3 and budget_frei() and llm_aufrufe[0] < LINIEN_DOSSIER_MAX_LLM:
+                llm_aufrufe[0] += 1
+                erg2 = _linie_dossier_llm(behalten)
+                if erg2:
+                    titel, worum = erg2["titel"], erg2["worum"]
+            ereignisse_abseits += len(abseits_keys)
+
+            jev_p = jev_deckung(titel, worum, behalten)
+            worum_ok = jev_p is not None and jev_p < X_TOR_JEV_SCHWELLE
+
+            post_cache[cache_key] = {"sig": sig, "titel": titel, "worum": worum,
+                                     "worum_ok": worum_ok, "jev": jev_p,
+                                     "abseits": abseits_keys, "generated_at": heute}
+            linie["dossier"] = {"titel": titel, "worum": worum if worum_ok else "",
+                                "abseits": abseits_keys, "jev": jev_p}
+            neu += 1
+        except Exception as e:
+            logger.warning("Linien-Dossier: Linie %s uebersprungen (%s)", lid, e)
+            continue
+
+    logger.info("Dossiers: %d neu, %d aus Cache, %d Ereignisse abseits", neu, aus_cache, ereignisse_abseits)
+
+
 # -------------------------
 # Main
 # -------------------------
@@ -5346,6 +5572,22 @@ def main():
     except Exception as e:
         logger.exception("Linien-Anzeige uebersprungen (Pipeline unbeeinflusst): %s", e)
         linien = {}
+    # Automatische Dossiers je grosser Linie (27.09.26). Fail-open, siehe _linien_dossiers().
+    # Frische (noch nicht archivierte) Ereignisse kommen ohne "z" aus themenkette_shadow -
+    # Zusammenfassung per Link aus news_list nachziehen (Dossier + Overlay brauchen sie).
+    try:
+        _zsm = {n.get("link"): n.get("summary") for n in news_list if n.get("link") and n.get("summary")}
+        for _l in linien.values():
+            for _e in _l.get("e", []):
+                if not _e.get("z") and _zsm.get(_e.get("l")):
+                    _e["z"] = _zsm[_e["l"]]
+    except Exception as e:
+        logger.warning("Linien: Zusammenfassungen nicht nachgezogen: %s", e)
+    try:
+        _linien_dossiers(linien, post_cache)
+        save_post_cache(_cfg_base, post_cache)
+    except Exception as e:
+        logger.exception("Linien-Dossiers uebersprungen (Pipeline unbeeinflusst): %s", e)
     news_json_data = {
         "stand":    datum,
         "news":     news_list,

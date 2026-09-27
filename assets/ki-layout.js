@@ -243,7 +243,9 @@
     '.kl-ov-linie-start{color:var(--accent);}',
     '.kl-ov-linie-titel{display:block;background:none;border:none;padding:0;margin:2px 0 0;text-align:left;cursor:pointer;font-family:\'Work Sans\',sans-serif;font-size:13px;line-height:1.35;color:var(--text,#e8f8ff);}',
     '.kl-ov-linie-titel:hover{color:var(--accent);}',
-    '.kl-ov-linie-liste li.aktuell .kl-ov-linie-titel{font-weight:600;cursor:default;color:var(--text,#e8f8ff);}'
+    '.kl-ov-linie-liste li.aktuell .kl-ov-linie-titel{font-weight:600;cursor:default;color:var(--text,#e8f8ff);}',
+    '.kl-ov-linie-dossier{display:block;margin-top:12px;font-family:\'Work Sans\',sans-serif;font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;}',
+    '.kl-ov-linie-dossier:hover{text-decoration:underline;}'
   ].join('\n');
 
   /* ── Chrome-HTML ────────────────────────────────────────────── */
@@ -600,6 +602,10 @@
         '<button type="button" class="kl-ov-linie-titel" data-i="' + i + '"' + (aktuell ? ' disabled' : '') + '>' +
           klEsc(e.t) + '</button></li>';
     }).join('');
+    // Ganzes Dossier ansehen (27.09.26): nur ab 3 Ereignissen, verlinkt auf linie.html.
+    var dossierLink = eintraege.length >= 3
+      ? '<a class="kl-ov-linie-dossier" href="linie.html#l=' + encodeURIComponent(data.linie) + '">Ganzes Dossier ansehen &rsaquo;</a>'
+      : '';
     el.innerHTML =
       '<button type="button" class="kl-ov-linie-knopf" aria-expanded="false">' +
         '<span class="kl-ov-linie-strich"><i style="left:' + prozent + '%"></i></span>' +
@@ -607,7 +613,7 @@
           ' Entwicklungen seit ' + klLinieDatum(linie.seit) + '</b>' +
           '<span class="kl-ov-linie-pfeil">&#9662;</span></span>' +
       '</button>' +
-      '<ol class="kl-ov-linie-liste" hidden>' + li + '</ol>';
+      '<ol class="kl-ov-linie-liste" hidden>' + li + '</ol>' + dossierLink;
     var knopf = el.querySelector('.kl-ov-linie-knopf');
     var liste = el.querySelector('.kl-ov-linie-liste');
     knopf.onclick = function () {
