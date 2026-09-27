@@ -41,7 +41,10 @@ const FPS_GENAU = parseInt(process.env.CARD_FPS || '24', 10);
 // 2*WIDTH x 2*HEIGHT (z.B. 840x1320) - nur die ffmpeg-Zielgroesse aendert sich,
 // der Playwright-Viewport (WIDTH x HEIGHT CSS-Pixel, siehe deviceScaleFactor
 // oben) bleibt unangetastet.
-const CARD_SCALE = parseInt(process.env.CARD_SCALE || '1', 10);
+// 27.09.26: Standard 2 (840x1320) - Medien liegen jetzt im Medien-Repo (ein Commit,
+// waechst nicht). Probe: Schrift/Linien sichtbar schaerfer, Datei ~2,6x, Renderzeit gleich.
+// Zurueck auf das alte Verhalten: '2' -> '1' oder CARD_SCALE=1 im Workflow.
+const CARD_SCALE = parseInt(process.env.CARD_SCALE || '2', 10);
 
 const absHtml  = path.resolve(htmlPath);
 const absMp4   = path.resolve(mp4Path);
