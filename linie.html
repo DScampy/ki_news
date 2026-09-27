@@ -11,55 +11,129 @@
 <link rel="stylesheet" href="assets/ki-fonts.css"/>
 <script src="assets/ki-icons.js" defer></script>
 <style>
-  /* 27.09.26: eigene Seiten-Styles fuer /linie.html (Dossier-Ansicht). Sidebar/Topbar
-     kommen komplett aus ki-layout.js, hier nur der Inhalt darunter. */
-  body{background:var(--bg,#000);}
-  .ln-wrap{max-width:820px;margin:0 auto;padding:24px 16px 64px;}
-  .ln-kicker{font-family:monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
-  .ln-h1{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:26px;line-height:1.25;color:var(--text,#e8f8ff);margin:0 0 12px;}
-  .ln-worum{font-family:'Work Sans',sans-serif;font-size:15px;line-height:1.55;color:var(--text,#e8f8ff);margin:0 0 12px;}
-  .ln-meta{font-family:monospace;font-size:12px;color:var(--muted,#8b98a5);margin-bottom:18px;}
-  .ln-hinweis{font-family:'Work Sans',sans-serif;font-size:12.5px;line-height:1.5;color:var(--muted,#8b98a5);background:rgba(var(--neon-rgb),0.06);border:1px solid rgba(var(--neon-rgb),0.22);border-radius:10px;padding:12px 14px;margin-bottom:26px;}
-  .ln-zeitleiste{list-style:none;margin:0 0 22px;padding:0;}
-  .ln-eintrag{display:flex;gap:12px;border-left:2px solid var(--hairline,#2f3336);padding:0 0 20px 16px;position:relative;}
-  .ln-eintrag:last-child{padding-bottom:0;}
-  .ln-eintrag::before{content:'';position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--accent);}
-  .ln-eintrag-body{flex:1;min-width:0;}
-  .ln-eintrag-meta{font-family:monospace;font-size:11px;color:var(--muted,#8b98a5);margin-bottom:3px;}
-  .ln-eintrag-start{color:var(--accent);font-weight:600;}
-  .ln-eintrag-titel{display:block;background:none;border:none;padding:0;margin:0 0 5px;text-align:left;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;line-height:1.35;color:var(--text,#e8f8ff);}
-  .ln-eintrag-titel:hover{color:var(--accent);}
-  .ln-eintrag-zsm{font-family:'Work Sans',sans-serif;font-size:13.5px;line-height:1.5;color:var(--text,#e8f8ff);opacity:0.92;margin:0 0 6px;}
-  .ln-eintrag-quelle{display:inline-block;margin-top:2px;font-family:'Work Sans',sans-serif;font-size:12.5px;color:var(--accent);text-decoration:none;font-weight:600;}
-  .ln-eintrag-quelle:hover{text-decoration:underline;}
-  .ln-eintrag-video{flex:0 0 auto;width:120px;}
-  .ln-eintrag-video video{width:120px;height:calc(120px * 660 / 420);object-fit:cover;border-radius:8px;background:#000;border:1px solid var(--hairline,#2f3336);}
-  .ln-abseits{border:none;background:none;padding:0;}
-  .ln-abseits-knopf{display:flex;align-items:center;gap:6px;width:100%;background:none;border:none;border-top:1px solid var(--hairline,#2f3336);padding:10px 0;cursor:pointer;text-align:left;color:var(--muted,#8b98a5);font-family:'Work Sans',sans-serif;font-size:12.5px;}
-  .ln-abseits-pfeil{color:var(--accent);transition:transform .15s;}
-  .ln-abseits-knopf[aria-expanded="true"] .ln-abseits-pfeil{transform:rotate(180deg);}
-  .ln-abseits-liste{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;}
-  .ln-abseits-liste li{font-family:'Work Sans',sans-serif;font-size:13px;color:var(--muted,#8b98a5);}
-  .ln-abseits-liste a{color:inherit;text-decoration:none;}
-  .ln-abseits-liste a:hover{text-decoration:underline;}
-  .ln-back{display:inline-block;margin-bottom:16px;font-family:monospace;font-size:12px;color:var(--muted,#8b98a5);text-decoration:none;}
-  .ln-back:hover{color:var(--accent);}
-  /* Uebersicht */
-  .ln-liste-karte{display:block;padding:14px 16px;margin-bottom:10px;border:1px solid var(--hairline,#2f3336);border-radius:10px;text-decoration:none;background:rgba(var(--neon-rgb),0.03);}
-  .ln-liste-karte:hover{border-color:rgba(var(--neon-rgb),0.6);}
-  .ln-liste-titel{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15.5px;color:var(--text,#e8f8ff);margin:0 0 4px;}
-  .ln-liste-meta{font-family:monospace;font-size:11.5px;color:var(--muted,#8b98a5);}
-  .ln-leer{font-family:'Work Sans',sans-serif;font-size:14px;color:var(--muted,#8b98a5);}
-  html.light .ln-hinweis{background:rgba(var(--neon-rgb),0.05);}
-  @media(max-width:480px){.ln-h1{font-size:21px;}.ln-eintrag{gap:9px;}.ln-eintrag-video{width:96px;}.ln-eintrag-video video{width:96px;height:calc(96px * 660 / 420);}}
+/* 27.09.26: linie.html im Reportage-Look. CSS/Klassen (rep-*) 1:1 aus tools/reportage.py
+   uebernommen (Kapitelleiste, Typo-Buehne, Scroll-Verhalten), dazu Video-Buehne fuer
+   Kapitel mit Karten-Video und die Kopf-Bausteine (art-eyebrow/art-tag/...) aus den
+   normalen Artikeln. Immer dunkel, auch im Hellmodus (DUNKEL_JS unten). */
+html{scroll-behavior:smooth;}
+#main-content.rep{--rep-nav:52px;background:#05070b !important;color:#e8edf3;min-height:100vh;}
+.rep-kap{position:relative;scroll-margin-top:108px;}
+.rep-bg{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;z-index:0;background:#05070b;}
+.rep-bg img,.rep-bg video{width:100%;height:100%;object-fit:cover;filter:brightness(.5) saturate(1.05);
+  transform:scale(1.06);transition:transform 1.6s ease,filter 1.6s ease;}
+.rep-kap.sichtbar .rep-bg img,.rep-kap.sichtbar .rep-bg video{transform:scale(1);filter:brightness(.42) saturate(1.05);}
+.rep-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,11,.15) 0%,rgba(5,7,11,.05) 40%,rgba(5,7,11,.75) 100%);}
+/* Kapitel ohne Foto/Video: typografische Buehne */
+.rep-typo{background:
+  radial-gradient(60% 55% at 78% 22%,hsla(var(--rep-h),90%,55%,.30),transparent 70%),
+  radial-gradient(50% 50% at 12% 88%,hsla(calc(var(--rep-h) + 60),85%,50%,.22),transparent 70%),
+  #05070b;}
+.rep-typo::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse at 60% 40%,#000 20%,transparent 75%);mask-image:radial-gradient(ellipse at 60% 40%,#000 20%,transparent 75%);}
+.rep-riesen{position:absolute;right:-2vw;top:50%;transform:translateY(-55%);font:700 clamp(220px,42vw,560px)/.8 'Space Grotesk',sans-serif;
+  color:transparent;-webkit-text-stroke:2px hsla(var(--rep-h),90%,65%,.35);letter-spacing:-.04em;transition:opacity 1.6s ease,transform 1.6s ease;opacity:.6;}
+.rep-kap.sichtbar .rep-riesen{opacity:1;transform:translateY(-50%);}
+/* Video-Buehne: Poster/Video blurred als Hintergrund */
+.rep-bg-poster{position:absolute;inset:-24px;background-size:cover;background-position:center;
+  filter:brightness(.42) saturate(1.05) blur(16px);transform:scale(1.08);transition:transform 1.6s ease,filter 1.6s ease;}
+.rep-kap.sichtbar .rep-bg-poster{transform:scale(1.02);filter:brightness(.36) saturate(1.05) blur(16px);}
+.rep-bg video.rep-bg-video-el{filter:brightness(.42) saturate(1.05) blur(16px) !important;transform:scale(1.08) !important;}
+.rep-flow{position:relative;z-index:1;margin-top:-100vh;margin-top:-100svh;padding:62vh 16px 55vh;}
+.rep-h2{max-width:760px;margin:0 auto 34vh;font:700 clamp(30px,5vw,56px)/1.08 'Space Grotesk',sans-serif;color:#fff;text-shadow:0 2px 30px rgba(0,0,0,.6);}
+.rep-nr{display:block;font:600 12px/1 monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#00d4ff);margin-bottom:14px;}
+.rep-spalte{max-width:680px;margin:0 auto;background:rgba(8,11,17,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:30px 30px 22px;font-size:17px;line-height:1.7;font-family:'Work Sans',sans-serif;}
+.rep-spalte p{margin:0 0 1.05em;color:#dfe5ec;}
+.rep-spalte-links{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;}
+.rep-spalte-links a,.rep-spalte-links button{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13.5px;color:var(--accent,#00d4ff);text-decoration:none;background:none;border:none;padding:0;cursor:pointer;}
+.rep-spalte-links a:hover,.rep-spalte-links button:hover{text-decoration:underline;}
+/* Start */
+.rep-titel{position:relative;z-index:1;margin-top:-100vh;margin-top:-100svh;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  max-width:880px;margin-left:auto;margin-right:auto;padding:90px 20px 40px;text-align:center;}
+.rep-titel .art-eyebrow{justify-content:center;margin-bottom:22px;flex-wrap:wrap;}
+.rep-titel h1.art-headline{font:700 clamp(38px,7vw,84px)/1.02 'Space Grotesk',sans-serif;color:#fff;margin:0 0 22px;text-shadow:0 2px 40px rgba(0,0,0,.6);}
+.rep-titel .rep-sub{font-size:clamp(17px,2.2vw,22px);line-height:1.5;color:rgba(255,255,255,.85);max-width:60ch;margin:0 auto 20px;font-family:'Work Sans',sans-serif;}
+.rep-titel .art-meta-row{justify-content:center;flex-wrap:wrap;color:rgba(255,255,255,.65);border-color:rgba(255,255,255,.18);}
+.rep-pfeil{margin:40px auto 0;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;
+  color:#fff;text-decoration:none;animation:repHuepf 2.2s ease-in-out infinite;}
+@keyframes repHuepf{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.rep-pfeil{animation:none}.rep-bg img,.rep-bg video,.rep-riesen,.rep-bg-poster{transition:none;transform:none}html{scroll-behavior:auto}}
+/* Kopf-Bausteine (aus den normalen Artikeln, artikel/*.html) */
+.art-eyebrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.art-tag{display:inline-flex;padding:4px 12px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#fff;background:var(--accent,#00d4ff);border-radius:3px;}
+.art-tag-outline{display:inline-flex;padding:4px 10px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(232,237,243,0.9);border:1px solid rgba(232,237,243,0.35);border-radius:3px;}
+.art-date{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.06em;}
+.art-headline{font-family:'Space Grotesk',sans-serif;}
+.art-meta-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 0;border-top:1px solid rgba(255,255,255,.18);border-bottom:1px solid rgba(255,255,255,.18);
+  font-family:monospace;font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.06em;}
+.art-meta-row .dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:0.6;}
+/* Kapitelleiste */
+.rep-nav{position:sticky;top:56px;z-index:45;display:flex;gap:4px;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  background:rgba(5,7,11,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08);padding:0 12px;height:var(--rep-nav);}
+.rep-nav::-webkit-scrollbar{display:none;}
+.rep-nav a{flex:0 0 auto;font:600 13px/1 'Space Grotesk',sans-serif;color:rgba(255,255,255,.62);text-decoration:none;padding:10px 12px;border-radius:999px;white-space:nowrap;}
+.rep-nav a:hover{color:#fff;}
+.rep-nav a.aktiv{color:#000;background:var(--accent,#00d4ff);}
+.rep-nav .rep-home{color:#fff;margin-right:8px;font-weight:800;}
+.rep-fort{position:absolute;left:0;bottom:0;height:2px;background:var(--accent,#00d4ff);width:0;}
+.rep-ende{background:#05070b;padding:50px 16px 80px;}
+.rep-ende-inner{max-width:680px;margin:0 auto;}
+/* "Am Rand" - kleines Kapitel ohne Vollbild */
+.rep-rand{background:#05070b;padding:60px 16px 20px;scroll-margin-top:108px;}
+.rep-rand-inner{max-width:680px;margin:0 auto;}
+.rep-rand-kicker{font:600 12px/1 monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#00d4ff);margin-bottom:14px;}
+.rep-abseits-knopf{display:flex;align-items:center;gap:6px;width:100%;background:none;border:none;border-top:1px solid rgba(255,255,255,.12);padding:10px 0;cursor:pointer;text-align:left;color:rgba(255,255,255,.6);font-family:'Work Sans',sans-serif;font-size:13px;}
+.rep-abseits-pfeil{color:var(--accent,#00d4ff);transition:transform .15s;}
+.rep-abseits-knopf[aria-expanded="true"] .rep-abseits-pfeil{transform:rotate(180deg);}
+.rep-abseits-liste{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;}
+.rep-abseits-liste li{font-family:'Work Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.6);}
+.rep-abseits-liste a{color:inherit;text-decoration:none;}
+.rep-abseits-liste a:hover{text-decoration:underline;}
+.rep-hinweis{font-family:'Work Sans',sans-serif;font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.6);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;margin:24px 0 18px;}
+.rep-back{display:inline-block;margin-top:4px;font-family:monospace;font-size:12px;color:rgba(255,255,255,.6);text-decoration:none;}
+.rep-back:hover{color:var(--accent,#00d4ff);}
+/* Scharfe Video-Karte (Hochformat) */
+.rep-video-wrap{position:absolute;top:130px;right:24px;width:300px;max-width:38vw;aspect-ratio:420/660;border-radius:14px;overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.14);z-index:2;cursor:pointer;background:#000;}
+.rep-video-wrap video{width:100%;height:100%;object-fit:cover;display:block;}
+.rep-video-wrap::after{content:'▶';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:rgba(255,255,255,.85);
+  background:rgba(0,0,0,.18);pointer-events:none;opacity:1;transition:opacity .2s;}
+.rep-video-wrap.rep-spielt::after{opacity:0;}
+@media(max-width:767px){
+  .rep-spalte{padding:22px 18px 14px;font-size:16px;}
+  .rep-flow{padding-top:55vh}
+  .rep-h2{margin-bottom:26vh}
+  .rep-riesen{right:-8vw;}
+  .rep-video-wrap{width:150px;max-width:42vw;top:96px;right:16px;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+}
+/* Uebersicht */
+.rep-ov-kopf{padding:70px 16px 34px;text-align:center;max-width:760px;margin:0 auto;}
+.rep-ov-kicker{font:600 12px/1 monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#00d4ff);margin-bottom:16px;}
+.rep-ov-titel{font:700 clamp(32px,6vw,58px)/1.05 'Space Grotesk',sans-serif;color:#fff;margin:0 0 16px;}
+.rep-ov-sub{font-size:clamp(15px,1.6vw,18px);line-height:1.5;color:rgba(255,255,255,.75);font-family:'Work Sans',sans-serif;max-width:56ch;margin:0 auto;}
+.rep-ov-liste{max-width:760px;margin:0 auto;padding:10px 16px 80px;display:flex;flex-direction:column;gap:12px;}
+.rep-ov-karte{display:flex;gap:14px;padding:16px;border:1px solid rgba(255,255,255,.1);border-radius:12px;text-decoration:none;background:rgba(255,255,255,.03);}
+.rep-ov-karte:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.05);}
+.rep-ov-thumb{flex:0 0 auto;width:64px;height:calc(64px * 660 / 420);border-radius:8px;object-fit:cover;background:#111;border:1px solid rgba(255,255,255,.1);}
+.rep-ov-body{flex:1;min-width:0;}
+.rep-ov-karte-titel{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#fff;margin:0 0 6px;}
+.rep-ov-karte-meta{font-family:monospace;font-size:11.5px;color:rgba(255,255,255,.55);}
+.rep-leer{font-family:'Work Sans',sans-serif;font-size:14px;color:rgba(255,255,255,.6);text-align:center;padding:40px 16px;}
 </style>
 </head>
 <body>
+<script>
+/* Immer dunkel, auch wenn der Nutzer den Hellmodus gewaehlt hat (wie tools/reportage.py). */
+(function () { var h = document.documentElement;
+  function dunkel() { if (h.classList.contains('light')) { h.classList.remove('light'); h.classList.add('dark'); } }
+  dunkel(); new MutationObserver(dunkel).observe(h, { attributes: true, attributeFilter: ['class'] }); })();
+</script>
 <script src="assets/ki-layout.js"></script>
 
-<main id="main-content" class="pt-14 min-h-screen" style="background:var(--bg,#000);transition:margin-left 0.25s ease,background 0.4s;">
-  <div class="ln-wrap" id="ln-root">
-    <p class="ln-leer">Wird geladen…</p>
+<main id="main-content" class="rep" style="margin-left:0;">
+  <div id="ln-root">
+    <p class="rep-leer">Wird geladen…</p>
   </div>
 </main>
 
@@ -67,15 +141,6 @@
 (function () {
   'use strict';
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-  function datumKurz(d) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
-    return m ? m[3] + '.' + m[2] + '.' : '';
-  }
   function el(tag, attrs, kinder) {
     var n = document.createElement(tag);
     attrs = attrs || {};
@@ -87,69 +152,168 @@
     (kinder || []).forEach(function (c) { if (c) n.appendChild(c); });
     return n;
   }
-
-  var root = document.getElementById('ln-root');
-
-  function quelleLink(e, newsIndex) {
-    // e.l ist immer der Link; gibt es in news.news einen Eintrag mit gleichem
-    // link + link_verlag, wird der (aufgeloeste Google-News-Link) genommen.
-    var treffer = newsIndex[e.l];
-    var href = (treffer && treffer.link_verlag) ? treffer.link_verlag : e.l;
-    return href;
+  function datumKurz(d) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
+    return m ? m[3] + '.' + m[2] + '.' : '';
+  }
+  function datumVoll(d) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
+    return m ? m[3] + '.' + m[2] + '.' + m[1] : '';
   }
 
-  function renderEintrag(e, idx, linieId, startIdx, newsIndex, cardIdxReady) {
-    var titelBtn = el('button', { type: 'button', class: 'ln-eintrag-titel' });
-    titelBtn.textContent = e.t || '';
-    titelBtn.addEventListener('click', function () {
+  var root = document.getElementById('ln-root');
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function quelleLink(e, newsIndex) {
+    var treffer = newsIndex[e.l];
+    return (treffer && treffer.link_verlag) ? treffer.link_verlag : e.l;
+  }
+
+  function kurzname(titel) {
+    var worte = (titel || '').trim().split(/\s+/).filter(Boolean);
+    var n = worte.length >= 3 ? 3 : Math.min(2, worte.length);
+    var kurz = worte.slice(0, n).join(' ');
+    if (kurz.length > 24 && worte.length > 2) kurz = worte.slice(0, 2).join(' ');
+    return kurz || 'Dossier';
+  }
+
+  // ── Video-Buehne: eine scharfe Karte spielt hoechstens gleichzeitig ──────
+  function pausiereAndere(ausser) {
+    var vids = document.querySelectorAll('.rep-video-wrap video');
+    for (var i = 0; i < vids.length; i++) {
+      if (vids[i] !== ausser) {
+        vids[i].pause();
+        var wrap = vids[i].closest('.rep-video-wrap');
+        if (wrap) wrap.classList.remove('rep-spielt');
+      }
+    }
+  }
+
+  function baueVideoBuehne(section, karte, farbe, nr) {
+    // Hintergrund: Poster (blurred) wenn vorhanden, sonst zweites <video> ohne Ton.
+    var bg = el('div', { class: 'rep-bg' });
+    if (karte.poster) {
+      bg.appendChild(el('div', { class: 'rep-bg-poster', style: 'background-image:url(' + JSON.stringify(karte.poster).slice(1, -1) + ')' }));
+    } else {
+      var bgv = document.createElement('video');
+      bgv.className = 'rep-bg-video-el';
+      bgv.muted = true; bgv.loop = true; bgv.playsInline = true; bgv.setAttribute('preload', 'none');
+      bgv.setAttribute('aria-hidden', 'true');
+      bgv.src = karte.mp4;
+      bg.appendChild(bgv);
+    }
+    section.insertBefore(bg, section.firstChild);
+
+    // Scharfe Karte, Hochformat, an der Stelle der Umriss-Zahl.
+    var wrap = el('div', { class: 'rep-video-wrap' });
+    var v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.loop = false;
+    if (karte.poster) {
+      v.setAttribute('preload', 'none');
+      v.setAttribute('poster', karte.poster);
+      v.src = karte.mp4;
+    } else {
+      v.setAttribute('preload', 'metadata');
+      v.src = karte.mp4 + '#t=2';
+    }
+    wrap.appendChild(v);
+    wrap.addEventListener('click', function () {
+      pausiereAndere(v);
+      v.muted = false;
+      v.currentTime = 0;
+      v.dataset.nutzerSpielt = '1';
+      v.play().catch(function () {});
+      wrap.classList.add('rep-spielt');
+    });
+    section.appendChild(wrap);
+    return { bgVideo: bg.querySelector('video'), sharpVideo: v, wrap: wrap };
+  }
+
+  function baueTypoBuehne(farbe, nr) {
+    var bg = el('div', { class: 'rep-bg rep-typo' });
+    bg.style.setProperty('--rep-h', String(farbe));
+    bg.setAttribute('aria-hidden', 'true');
+    bg.appendChild(el('span', { class: 'rep-riesen', text: nr ? ('0' + nr).slice(-2) : '●' }));
+    return bg;
+  }
+
+  function baueKapitel(idx, e, linieId, newsIndex, farbe) {
+    var nr = idx + 1;
+    var section = el('section', { class: 'rep-kap', id: 'k' + nr });
+    section.appendChild(baueTypoBuehne(farbe, nr));
+
+    var flow = el('div', { class: 'rep-flow' });
+    var kickerTeile = ['KAPITEL ' + nr, datumKurz(e.d), e.q].filter(Boolean).join(' · ');
+    if (idx === 0) kickerTeile += ' · HIER FING ES AN';
+    var h2 = el('h2', { class: 'rep-h2' });
+    h2.appendChild(el('span', { class: 'rep-nr', text: kickerTeile }));
+    h2.appendChild(document.createTextNode(e.t || ''));
+    flow.appendChild(h2);
+
+    var spalte = el('div', { class: 'rep-spalte' });
+    var zsm = e.z || (newsIndex[e.l] && newsIndex[e.l].summary) || '';
+    if (zsm) spalte.appendChild(el('p', { text: zsm }));
+    var links = el('div', { class: 'rep-spalte-links' });
+    links.appendChild(el('a', { href: quelleLink(e, newsIndex), target: '_blank', rel: 'noopener noreferrer', text: 'Zur Quelle ↗' }));
+    var ueberblick = el('button', { type: 'button', text: 'Im Überblick öffnen' });
+    ueberblick.addEventListener('click', function () {
       var ziel = (typeof window.klLinieArtikel === 'function')
         ? window.klLinieArtikel(e, linieId)
-        : { title: e.t, link: e.l, source: e.q, first_seen: e.d, linie: linieId, linie_k: e.k };
+        : { title: e.t, summary: zsm, link: e.l, source: e.q, first_seen: e.d, linie: linieId, linie_k: e.k };
       if (typeof window.klOpenArticle === 'function') window.klOpenArticle(ziel);
     });
-    var meta = el('div', { class: 'ln-eintrag-meta' });
-    meta.appendChild(document.createTextNode(datumKurz(e.d) + (e.q ? ' · ' + e.q : '')));
-    if (idx === startIdx) {
-      meta.appendChild(document.createTextNode(' · '));
-      meta.appendChild(el('span', { class: 'ln-eintrag-start', text: 'Hier fing es an' }));
-    }
-    var body = el('div', { class: 'ln-eintrag-body' }, [meta, titelBtn]);
-    // 27.09.26: frische Ereignisse haben evtl. noch kein z -> Zusammenfassung aus news.json
-    var zsm = e.z || (newsIndex[e.l] && newsIndex[e.l].summary) || '';
-    if (zsm) body.appendChild(el('p', { class: 'ln-eintrag-zsm', text: zsm }));
-    var quelleA = el('a', {
-      class: 'ln-eintrag-quelle', href: quelleLink(e, newsIndex), target: '_blank', rel: 'noopener noreferrer',
-      text: 'Zur Quelle ↗'
-    });
-    body.appendChild(quelleA);
+    links.appendChild(ueberblick);
+    spalte.appendChild(links);
+    flow.appendChild(spalte);
+    section.appendChild(flow);
+    return section;
+  }
 
-    var zeile = el('li', { class: 'ln-eintrag' }, [body]);
-
-    // Karten-Video nachladen, wenn vorhanden (klein, Hochformat, stumm bis Antippen).
-    if (typeof window.klLoadCards === 'function' && typeof window.klCardFor === 'function') {
-      window.klLoadCards().then(function () {
-        var karte = window.klCardFor({ link: e.l, title: e.t });
-        if (!karte || !karte.mp4) return;
-        // Ohne Standbild (Karten vor 26.09.) Vorschaubild aus dem Video statt schwarzem Kasten
-        var v = el('video', {
-          preload: karte.poster ? 'none' : 'metadata', muted: 'muted', playsinline: 'true', 'webkit-playsinline': 'true'
-        });
-        v.muted = true;
-        if (karte.poster) v.setAttribute('poster', karte.poster);
-        v.src = karte.poster ? karte.mp4 : karte.mp4 + '#t=2';
-        v.addEventListener('click', function () {
-          v.muted = false;
-          v.currentTime = 0;
-          v.play().catch(function () {});
-        });
-        zeile.insertBefore(el('div', { class: 'ln-eintrag-video' }, [v]), body);
-      }).catch(function () {});
+  // ── Sichtbarkeits-/Fortschritts-IO (wie tools/reportage.py NAV_JS), dazu
+  //    steuert dieselbe Beobachtung die Video-Autoplay (nur das zentrierte
+  //    Kapitel spielt, das begrenzt "hoechstens gleichzeitig eins" fast von
+  //    selbst). ─────────────────────────────────────────────────────────
+  function starteNavUndVideo(root) {
+    var kap = [].slice.call(root.querySelectorAll('.rep-kap'));
+    var links = {};
+    [].forEach.call(root.querySelectorAll('.rep-nav a[data-k]'), function (a) { links[a.getAttribute('data-k')] = a; });
+    var fort = root.querySelector('.rep-fort');
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var wrap = e.target.querySelector(':scope > .rep-video-wrap');
+        var v = wrap && wrap.querySelector('video');
+        var bgv = e.target.querySelector(':scope > .rep-bg video.rep-bg-video-el');
+        if (e.isIntersecting) {
+          e.target.classList.add('sichtbar');
+          if (links[e.target.id]) {
+            Object.keys(links).forEach(function (k) { links[k].classList.toggle('aktiv', k === e.target.id); });
+            var nav = links[e.target.id].parentNode, a = links[e.target.id];
+            nav.scrollTo({ left: a.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2, behavior: 'smooth' });
+          }
+          if (!reduceMotion && v && !v.dataset.nutzerSpielt) {
+            pausiereAndere(v);
+            v.muted = true; v.play().catch(function () {});
+            wrap.classList.add('rep-spielt');
+          }
+          if (!reduceMotion && bgv) { bgv.play().catch(function () {}); }
+        } else {
+          if (v) { v.pause(); if (!v.dataset.nutzerSpielt) v.currentTime = 0; delete v.dataset.nutzerSpielt; if (wrap) wrap.classList.remove('rep-spielt'); }
+          if (bgv) bgv.pause();
+        }
+      });
+    }, { rootMargin: '-45% 0px -45% 0px' });
+    kap.forEach(function (k) { io.observe(k); });
+    function fortschritt() {
+      var h = document.documentElement, max = h.scrollHeight - innerHeight;
+      if (fort) fort.style.width = (max > 0 ? Math.min(100, 100 * h.scrollTop / max) : 0) + '%';
     }
-    return zeile;
+    addEventListener('scroll', fortschritt, { passive: true });
+    fortschritt();
   }
 
   function renderDetail(linieId, linie, data) {
     root.innerHTML = '';
+    root.className = '';
     var newsIndex = {};
     (data.news || []).forEach(function (n) { if (n && n.link) newsIndex[n.link] = n; });
 
@@ -158,46 +322,85 @@
     var abseitsKeys = (dossier && dossier.abseits) || [];
     var timeline = alle.filter(function (e) { return abseitsKeys.indexOf(e.k) === -1; });
     var abseits = alle.filter(function (e) { return abseitsKeys.indexOf(e.k) !== -1; });
+    var chrono = timeline.slice().reverse(); // aelteste zuerst
 
     var titel = (dossier && dossier.titel) || (alle[0] && alle[0].t) || 'Entwicklungslinie';
+    var worum = (dossier && dossier.worum) || (chrono.length + ' Meldungen zu einer Entwicklung, chronologisch.');
     var quellenSet = {};
     timeline.forEach(function (e) { if (e.q) quellenSet[e.q] = 1; });
     var anzahlQuellen = Object.keys(quellenSet).length;
 
-    root.appendChild(el('a', { class: 'ln-back', href: 'linie.html', text: '‹ Alle Dossiers' }));
-    root.appendChild(el('div', { class: 'ln-kicker', text: 'Dossier · automatisch zusammengestellt' }));
-    root.appendChild(el('h1', { class: 'ln-h1', text: titel }));
-    if (dossier && dossier.worum) {
-      root.appendChild(el('p', { class: 'ln-worum', text: dossier.worum }));
+    var zeitraumTxt = '';
+    if (chrono.length) {
+      var frueh = datumKurz(chrono[0].d), spaet = datumVoll(chrono[chrono.length - 1].d);
+      zeitraumTxt = chrono.length > 1 && frueh !== spaet.slice(0, 6) ? (frueh + ' bis ' + spaet) : spaet;
     }
-    root.appendChild(el('div', {
-      class: 'ln-meta',
-      text: (linie.n || alle.length) + ' Meldungen seit ' + datumKurz(linie.seit) +
-            ' · aus ' + anzahlQuellen + ' Quellen'
-    }));
-    root.appendChild(el('div', {
-      class: 'ln-hinweis',
-      text: 'Diese Seite stellt Meldungen automatisch zusammen, nur aus unseren Zusammenfassungen der ' +
-            'Quellen. Keine eigene Recherche, keine Wertung. Die Links führen zu den Originalen.'
-    }));
 
-    // Zeitleiste chronologisch: aelteste zuerst (Ausgangsdaten "e" sind neueste zuerst).
-    var chrono = timeline.slice().reverse();
-    var ul = el('ul', { class: 'ln-zeitleiste' });
+    var main = document.getElementById('main-content');
+    main.className = 'rep';
+
+    // ── Start ────────────────────────────────────────────────────────
+    var start = el('section', { class: 'rep-kap rep-start', id: 'start' });
+    var startBg = el('div', { class: 'rep-bg rep-typo' });
+    startBg.style.setProperty('--rep-h', '198');
+    startBg.setAttribute('aria-hidden', 'true');
+    startBg.appendChild(el('span', { class: 'rep-riesen', text: '●' }));
+    start.appendChild(startBg);
+
+    var eyebrow = el('div', { class: 'art-eyebrow' }, [
+      el('span', { class: 'art-tag', text: 'DOSSIER' }),
+      el('span', { class: 'art-tag-outline', text: 'AUTOMATISCH ZUSAMMENGESTELLT' }),
+      zeitraumTxt ? el('span', { class: 'art-date', text: zeitraumTxt }) : null
+    ]);
+    var metaRow = el('div', { class: 'art-meta-row' });
+    metaRow.appendChild(el('span', { text: (linie.n || alle.length) + ' Meldungen' }));
+    metaRow.appendChild(el('span', { class: 'dot' }));
+    metaRow.appendChild(el('span', { text: anzahlQuellen + ' Quellen' }));
+    metaRow.appendChild(el('span', { class: 'dot' }));
+    metaRow.appendChild(el('span', { text: 'ki-news.live' }));
+
+    var titelWrap = el('div', { class: 'rep-titel' }, [
+      eyebrow,
+      el('h1', { class: 'art-headline', text: titel }),
+      el('p', { class: 'rep-sub', text: worum }),
+      metaRow,
+      (function () { var a = el('a', { class: 'rep-pfeil', href: chrono.length ? '#k1' : '#ende', 'aria-label': 'Weiter nach unten' }); a.innerHTML = '&#8595;'; return a; })()
+    ]);
+    start.appendChild(titelWrap);
+    main.appendChild(start);
+
+    // ── Kapitelleiste ────────────────────────────────────────────────
+    var nav = el('nav', { class: 'rep-nav', 'aria-label': 'Kapitel' });
+    nav.appendChild(el('a', { class: 'rep-home', href: '#start', text: kurzname(titel) }));
+    var tageIdx = {};
     chrono.forEach(function (e, i) {
-      ul.appendChild(renderEintrag(e, i, linieId, 0, newsIndex));
+      var tag = datumKurz(e.d);
+      var n = (tageIdx[tag] = (tageIdx[tag] || 0));
+      tageIdx[tag] = n + 1;
+      var label = n > 0 ? (tag + ' ' + String.fromCharCode(97 + n)) : tag;
+      nav.appendChild(el('a', { href: '#k' + (i + 1), 'data-k': 'k' + (i + 1), text: label }));
     });
-    root.appendChild(ul);
+    if (abseits.length) nav.appendChild(el('a', { href: '#k-rand', 'data-k': 'k-rand', text: 'Am Rand' }));
+    nav.appendChild(el('span', { class: 'rep-fort' }));
+    main.appendChild(nav);
 
+    // ── Kapitel ──────────────────────────────────────────────────────
+    var farbBasis = 198;
+    chrono.forEach(function (e, i) {
+      var farbe = (farbBasis + 28 * i) % 360;
+      main.appendChild(baueKapitel(i, e, linieId, newsIndex, farbe));
+    });
+
+    // ── Am Rand erwaehnt (kein Vollbild) ─────────────────────────────
     if (abseits.length) {
-      var box = el('div', { class: 'ln-abseits' });
-      var knopf = el('button', {
-        type: 'button', class: 'ln-abseits-knopf', 'aria-expanded': 'false'
-      }, [
+      var rand = el('section', { class: 'rep-rand', id: 'k-rand' });
+      var randInner = el('div', { class: 'rep-rand-inner' });
+      randInner.appendChild(el('div', { class: 'rep-rand-kicker', text: 'AM RAND ERWÄHNT' }));
+      var knopf = el('button', { type: 'button', class: 'rep-abseits-knopf', 'aria-expanded': 'false' }, [
         document.createTextNode('Am Rand erwähnt (' + abseits.length + ')'),
-        el('span', { class: 'ln-abseits-pfeil', text: '▾' })
+        el('span', { class: 'rep-abseits-pfeil', text: '▾' })
       ]);
-      var liste = el('ul', { class: 'ln-abseits-liste', hidden: 'hidden' });
+      var liste = el('ul', { class: 'rep-abseits-liste', hidden: 'hidden' });
       abseits.forEach(function (e) {
         var a = el('a', { href: quelleLink(e, newsIndex), target: '_blank', rel: 'noopener noreferrer' });
         a.textContent = datumKurz(e.d) + ' · ' + (e.q || '') + ' · ' + (e.t || '');
@@ -208,9 +411,40 @@
         knopf.setAttribute('aria-expanded', auf ? 'true' : 'false');
         liste.hidden = !auf;
       });
-      box.appendChild(knopf);
-      box.appendChild(liste);
-      root.appendChild(box);
+      randInner.appendChild(knopf);
+      randInner.appendChild(liste);
+      rand.appendChild(randInner);
+      main.appendChild(rand);
+    }
+
+    // ── Hinweis + zurueck ────────────────────────────────────────────
+    var ende = el('div', { class: 'rep-ende', id: 'ende' });
+    var endeInner = el('div', { class: 'rep-ende-inner' });
+    endeInner.appendChild(el('div', {
+      class: 'rep-hinweis',
+      text: 'Diese Seite stellt Meldungen automatisch zusammen, nur aus unseren Zusammenfassungen der ' +
+            'Quellen. Keine eigene Recherche, keine Wertung. Die Links führen zu den Originalen.'
+    }));
+    endeInner.appendChild(el('a', { class: 'rep-back', href: 'linie.html', text: '‹ Alle Dossiers' }));
+    ende.appendChild(endeInner);
+    main.appendChild(ende);
+
+    starteNavUndVideo(main);
+
+    // ── Karten-Video nachladen: Typo-Buehne durch Video-Buehne ersetzen ──
+    if (typeof window.klLoadCards === 'function' && typeof window.klCardFor === 'function') {
+      window.klLoadCards().then(function () {
+        chrono.forEach(function (e, i) {
+          var karte = window.klCardFor({ link: e.l, title: e.t });
+          if (!karte || !karte.mp4) return;
+          var section = document.getElementById('k' + (i + 1));
+          if (!section) return;
+          var alteBuehne = section.querySelector(':scope > .rep-bg');
+          if (alteBuehne) alteBuehne.remove();
+          var farbe = (farbBasis + 28 * i) % 360;
+          baueVideoBuehne(section, karte, farbe, i + 1);
+        });
+      }).catch(function () {});
     }
   }
 
@@ -222,8 +456,16 @@
 
   function renderUebersicht(data) {
     root.innerHTML = '';
-    root.appendChild(el('div', { class: 'ln-kicker', text: 'Dossiers · automatisch zusammengestellt' }));
-    root.appendChild(el('h1', { class: 'ln-h1', text: 'Entwicklungslinien' }));
+    var main = document.getElementById('main-content');
+    main.className = 'rep';
+
+    var kopf = el('div', { class: 'rep-ov-kopf' }, [
+      el('div', { class: 'rep-ov-kicker', text: 'DOSSIERS' }),
+      el('h1', { class: 'rep-ov-titel', text: 'Entwicklungslinien' }),
+      el('p', { class: 'rep-ov-sub', text: 'Automatisch zusammengestellt aus den Meldungen der letzten Tage.' })
+    ]);
+    root.appendChild(kopf);
+
     var linien = data.linien || {};
     var ids = Object.keys(linien).filter(function (id) { return linien[id] && linien[id].dossier; });
     ids.sort(function (a, b) {
@@ -231,19 +473,41 @@
       var db = (linien[b].e && linien[b].e[0] && linien[b].e[0].d) || '';
       return db < da ? -1 : db > da ? 1 : 0;
     });
+
     if (!ids.length) {
-      root.appendChild(el('p', { class: 'ln-leer', text: 'Noch keine Dossiers verfügbar.' }));
+      root.appendChild(el('p', { class: 'rep-leer', text: 'Noch keine Dossiers verfügbar.' }));
       return;
     }
+
+    var liste = el('div', { class: 'rep-ov-liste' });
+    var karten = [];
     ids.forEach(function (id) {
       var linie = linien[id];
       var titel = (linie.dossier && linie.dossier.titel) || (linie.e && linie.e[0] && linie.e[0].t) || id;
-      var karte = el('a', { class: 'ln-liste-karte', href: 'linie.html#l=' + encodeURIComponent(id) }, [
-        el('div', { class: 'ln-liste-titel', text: titel }),
-        el('div', { class: 'ln-liste-meta', text: (linie.n || 0) + ' Meldungen · ' + zeitraum(linie) })
+      var img = el('img', { class: 'rep-ov-thumb', alt: '', loading: 'lazy' });
+      img.hidden = true;
+      var karte = el('a', { class: 'rep-ov-karte', href: 'linie.html#l=' + encodeURIComponent(id) }, [
+        img,
+        el('div', { class: 'rep-ov-body' }, [
+          el('div', { class: 'rep-ov-karte-titel', text: titel }),
+          el('div', { class: 'rep-ov-karte-meta', text: (linie.n || 0) + ' Meldungen · ' + zeitraum(linie) })
+        ])
       ]);
-      root.appendChild(karte);
+      liste.appendChild(karte);
+      karten.push({ linie: linie, img: img });
     });
+    root.appendChild(liste);
+
+    if (typeof window.klLoadCards === 'function' && typeof window.klCardFor === 'function') {
+      window.klLoadCards().then(function () {
+        karten.forEach(function (k) {
+          var neuestes = k.linie.e && k.linie.e[0];
+          if (!neuestes) return;
+          var c = window.klCardFor({ link: neuestes.l, title: neuestes.t });
+          if (c && c.poster) { k.img.src = c.poster; k.img.hidden = false; }
+        });
+      }).catch(function () {});
+    }
   }
 
   var _data = null;
@@ -271,7 +535,7 @@
     })
     .catch(function () {
       root.innerHTML = '';
-      root.appendChild(el('p', { class: 'ln-leer', text: 'news.json konnte nicht geladen werden.' }));
+      root.appendChild(el('p', { class: 'rep-leer', text: 'news.json konnte nicht geladen werden.' }));
     });
 
   window.addEventListener('hashchange', render);
