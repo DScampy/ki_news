@@ -1293,7 +1293,7 @@ function heroUpdateCardVideo(s) {
   if (typeof window.klLoadCards !== 'function' || typeof window.klCardFor !== 'function') return;
   window.klLoadCards().then(function() {
     if (myReq !== heroVidReqId) return; // Folie inzwischen gewechselt -- diese Antwort ist veraltet
-    var card = window.klCardFor(s.title);
+    var card = window.klCardFor(s);
     if (!card || !card.mp4) { wrap.hidden = true; v.removeAttribute('src'); return; }
     v.pause();
     if (card.poster) v.poster = card.poster; else v.removeAttribute('poster');

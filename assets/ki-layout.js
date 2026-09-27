@@ -650,7 +650,7 @@
         klCardIdx = [];
         (list || []).forEach(function (c) {
           if (c && c.mp4_url && c.headline) {
-            klCardIdx.push({ key: klFoldKey(c.headline), mp4: c.mp4_url, poster: c.poster_url || null, duration: c.duration || null });
+            klCardIdx.push({ key: klFoldKey(c.headline), links: c.links || [], mp4: c.mp4_url, poster: c.poster_url || null, duration: c.duration || null });
           }
         });
         return klCardIdx;
@@ -660,9 +660,22 @@
   };
   // Praefix-Vergleich statt Gleichheit (wie cardFor() in index.html): die Karte
   // kann kuerzer sein als der Story-Titel (cap_headline() behaelt nur den ersten Satz).
-  window.klCardFor = function (title) {
+  // Nimmt die Meldung (Objekt) oder nur den Titel. 27.09.26: zuerst per Link -- die
+  // Pipeline schreibt `links` in cards.json, auch fuer Meldungen, deren Thema schon
+  // eine aeltere Karte hat. Aeltere Karten ohne `links` laufen weiter ueber den Titel.
+  window.klCardFor = function (item) {
+    if (!klCardIdx) return null;
+    var link = item && typeof item === 'object' ? item.link : null;
+    var title = item && typeof item === 'object' ? item.title : item;
+    if (link) {
+      for (var j = 0; j < klCardIdx.length; j++) {
+        if (klCardIdx[j].links.indexOf(link) !== -1) {
+          return { mp4: klCardIdx[j].mp4, poster: klCardIdx[j].poster, duration: klCardIdx[j].duration };
+        }
+      }
+    }
     var k = klFoldKey(title);
-    if (!k || !klCardIdx) return null;
+    if (!k) return null;
     for (var i = 0; i < klCardIdx.length; i++) {
       var ck = klCardIdx[i].key;
       if (ck.length < 25) continue;
@@ -751,7 +764,7 @@
     if (typeof window.heroMuteCardVideo === 'function') window.heroMuteCardVideo();
     // cards.json schon geladen (Normalfall nach dem Karussell): Karte sofort zeigen,
     // sonst startete erst ein Fallback-Clip und wurde dann ersetzt (Flackern + Download).
-    var cardNow = typeof window.klCardFor === 'function' ? window.klCardFor(title) : null;
+    var cardNow = typeof window.klCardFor === 'function' ? window.klCardFor(data) : null;
     if (cardNow && cardNow.mp4 && videoEl) {
       klShowCard(data, cardNow, imgWrap, imgEl, videoEl);
     } else if (data.image) {
@@ -780,7 +793,7 @@
     if (!cardNow && typeof window.klLoadCards === 'function' && typeof window.klCardFor === 'function') {
       window.klLoadCards().then(function () {
         if (!klOvOpen || reqId !== klOvReqId) return;
-        var card = window.klCardFor(title);
+        var card = window.klCardFor(data);
         if (card && card.mp4) klShowCard(data, card, imgWrap, imgEl, videoEl);
       });
     }

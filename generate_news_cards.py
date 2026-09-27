@@ -1247,7 +1247,11 @@ def main() -> None:
 
     # Themen, die in DIESEM Lauf schon verarbeitet wurden (faengt z.B. 3 Karten
     # zum selben Vorfall von 3 unterschiedlichen Quellen/Links ab).
-    seen_topics_this_run = []  # Liste von (keyword_set, entity_set, headline) fuer Log-Ausgabe
+    seen_topics_this_run = []  # Liste von (keyword_set, entity_set, headline, slug)
+    # 27.09.26: Artikel, die wegen Themen-Dedup keine eigene Karte bekommen, haengen
+    # ihren Link an die vorhandene Karte (card_id -> [links]) - so findet die Website
+    # (Karussell/Overlay) auch fuer sie ein Video.
+    alias_links = {}
 
     # ── Bisherige cards.json laden, damit wir akkumulieren statt ueberschreiben ──
     existing_cards = []
@@ -1295,12 +1299,16 @@ def main() -> None:
             if topics_match(kw, set(prev_kw_str.split()), ent, prev_ent):
                 print(f"  [SKIP] Artikel {i}: Thema bereits am {prev_date} abgedeckt (Headline-Overlap) — keine neue Karte.")
                 duplicate_topic = True
+                if link and prev_info.get("card"):
+                    alias_links.setdefault(prev_info["card"], []).append(link)
                 break
         if not duplicate_topic:
-            for prev_kw, prev_ent, prev_headline in seen_topics_this_run:
+            for prev_kw, prev_ent, prev_headline, prev_slug in seen_topics_this_run:
                 if topics_match(kw, prev_kw, ent, prev_ent):
                     print(f"  [SKIP] Artikel {i}: gleiches Thema wie bereits in diesem Lauf verarbeitet (\"{prev_headline[:50]}\") — keine neue Karte.")
                     duplicate_topic = True
+                    if link:
+                        alias_links.setdefault(prev_slug, []).append(link)
                     break
         if duplicate_topic:
             if link:
@@ -1390,12 +1398,14 @@ def main() -> None:
             }
             if poster_url:
                 meta_entry["poster_url"] = poster_url
+            if link:
+                meta_entry["links"] = [link]
             cards_meta.append(meta_entry)
             if link:
                 card_sent[link] = today
-            seen_topics_this_run.append((kw, ent, headline))
+            seen_topics_this_run.append((kw, ent, headline, slug))
             if kw:
-                sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
+                sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent), "card": slug}
             continue
 
         success = False
@@ -1451,10 +1461,12 @@ def main() -> None:
         if poster_url:
             cards_meta[-1]["poster_url"] = poster_url
         if link:
+            # 27.09.26: Zuordnung Meldung -> Karte auf der Website per Link statt nur Titel
+            cards_meta[-1]["links"] = [link]
             card_sent[link] = today
-        seen_topics_this_run.append((kw, ent, headline))
+        seen_topics_this_run.append((kw, ent, headline, slug))
         if kw:
-            sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent)}
+            sent_topics[" ".join(sorted(kw))] = {"date": today, "entities": sorted(ent), "card": slug}
 
     # ── Render-Failure-Auswertung (16.07.26): Give-up nur bei kartenspezifischem
     # Fehler. Sind in diesem Lauf ≥2 Renders gescheitert und KEINES gelungen, ist
@@ -1497,7 +1509,14 @@ def main() -> None:
     # ── cards.json: neue Karten + bisherige akkumulieren statt ueberschreiben ──
     merged = {c["id"]: c for c in existing_cards if isinstance(c, dict) and c.get("id")}
     for c in cards_meta:
+        alt = merged.get(c["id"])
+        if alt and alt.get("links"):  # Skip-Zweig baut den Eintrag neu - Links nicht verlieren
+            c["links"] = list(dict.fromkeys(alt["links"] + c.get("links", [])))
         merged[c["id"]] = c
+    for cid, ls in alias_links.items():
+        if cid in merged:
+            merged[cid]["links"] = list(dict.fromkeys(merged[cid].get("links", []) + ls))[:12]
+            print(f"  ↪ {len(ls)} Link(s) an vorhandene Karte gehaengt: {cid}")
     cards_final = sorted(merged.values(), key=lambda c: c.get("date", ""), reverse=True)[:MAX_CARDS_DISPLAY]
     # 26.09.26: alle Eintraege (auch alte) auf das Medien-Repo zeigen lassen, wenn aktiv
     for c in cards_final:
