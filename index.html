@@ -288,6 +288,17 @@ html.light #carousel-featured{background:rgba(255,255,255,0.93);}
 .c-badge{display:inline-block;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 8px;color:#fff;border-radius:3px;}
 .c-content-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:10px;}
 .c-text{flex:1;min-width:0;}
+/* Karten-Video an der Top-Story (27.09.26): steht AUSSERHALB der SSR-Marker,
+   damit die Pipeline es beim naechsten Lauf nicht mitueberschreibt. Nur
+   sichtbar, wenn die aktuelle Folie eine Karte hat (siehe heroUpdateCardVideo). */
+.c-card-video-wrap{flex-shrink:0;width:170px;aspect-ratio:420/660;border-radius:12px;
+  overflow:hidden;position:relative;background:#000;border:1px solid rgba(var(--neon-rgb),0.28);cursor:pointer;}
+.c-card-video-wrap video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.c-card-video-mute{position:absolute;right:6px;bottom:6px;width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,0.6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:12px;pointer-events:none;}
+/* Handy: neben dem Text wurde die Ueberschrift auf ein Wort pro Zeile gequetscht -> darunter */
+@media(max-width:767px){.c-content-row{flex-direction:column;}.c-card-video-wrap{width:128px;}}
 #carousel-featured h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,2.2vw,30px);font-weight:700;color:#e5e7eb;line-height:1.3;margin-bottom:12px;}
 html.light #carousel-featured h2{color:#0f172a;}
 #carousel-featured p{font-size:15px;color:rgba(255,255,255,0.55);line-height:1.7;}
@@ -524,6 +535,13 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
               <p id="c-desc">Ein Agent von OpenAI wurde Berichten zufolge genutzt, um eine Website der australischen Regierung zu hacken. Dieser Vorfall wirft ernste Fragen hinsichtlich der Sicherheit und des Missbrauchspotenzials von fortschrittlichen KI-Systemen auf und unterstreicht die Notwendigkeit robuster Sicherheitsmaßnahmen.</p>
             </div>
             <!-- SSR:HERO:END -->
+            <!-- 27.09.26: Karten-Video der Top-Story. Bewusst NACH dem SSR:HERO:END-
+                 Marker -- die Pipeline ersetzt nur den Bereich dazwischen, dieses
+                 Element bliebe sonst bei jedem Lauf verschwunden. -->
+            <div id="c-card-video-wrap" class="c-card-video-wrap" hidden>
+              <video id="c-card-video" muted playsinline preload="none"></video>
+              <button type="button" id="c-card-video-mute" class="c-card-video-mute" aria-hidden="true" tabindex="-1">🔇</button>
+            </div>
           </div>
         </div>
         <!-- 03.09.26: "Analyse anzeigen" entfernt - die Analyse steht seit dem
@@ -1203,6 +1221,85 @@ function heroLinie(feat, s) {
     window.klOpenArticle(window.klLinieArtikel ? window.klLinieArtikel(e, s.linie) : { title: e.t, link: e.l, source: e.q });
   };
 }
+// Karten-Video an der Top-Story (27.09.26): nutzt window.klLoadCards()/klCardFor()
+// aus assets/ki-layout.js -- dieselbe cardFor()-Zuordnung wie die Vorlese-Engine,
+// hier nur fuers Bild statt fuer Ton. Autoplay stumm nur wenn Karussell im Blick
+// (heroInView, siehe heroSetupObserver) UND diese Folie noch aktuell ist (heroVidReqId
+// verhindert, dass eine spaet ankommende cards.json-Antwort ein laengst gewechseltes
+// Video startet -- gleiches Muster wie klOvReqId im Overlay).
+var heroVidReqId = 0, heroInView = false, heroVidMuted = true, heroVidSoundActive = false, heroVidObsSet = false;
+function heroUpdateMuteIcon() {
+  var btn = document.getElementById('c-card-video-mute');
+  if (btn) btn.textContent = heroVidMuted ? '🔇' : '🔊';
+}
+function heroMaybeAutoplay() {
+  var v = document.getElementById('c-card-video');
+  var wrap = document.getElementById('c-card-video-wrap');
+  if (!v || !wrap || wrap.hidden || !heroInView || heroVidSoundActive) return;
+  v.muted = true; heroVidMuted = true; heroUpdateMuteIcon();
+  v.play().catch(function(){});
+}
+function heroSetupObserver() {
+  if (heroVidObsSet) return;
+  heroVidObsSet = true;
+  var wrap = document.getElementById('carousel-featured');
+  if (!wrap || !('IntersectionObserver' in window)) { heroInView = true; return; }
+  new IntersectionObserver(function(entries) {
+    entries.forEach(function(en) {
+      heroInView = en.isIntersecting;
+      var v = document.getElementById('c-card-video');
+      if (!v) return;
+      if (heroInView) heroMaybeAutoplay(); else { try { v.pause(); } catch(e){} }
+    });
+  }, { threshold: 0.35 }).observe(wrap);
+}
+// Ton auf Tipp: an -> von vorn, Auto-Advance pausiert; aus -> stumm weiter, Auto-Advance laeuft wieder.
+function heroVideoTap(e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  var v = document.getElementById('c-card-video');
+  if (!v || v.hidden) return;
+  if (heroVidMuted) {
+    v.currentTime = 0; v.muted = false; heroVidMuted = false; heroVidSoundActive = true;
+    clearInterval(heroTimer); clearInterval(heroProgTimer);
+    v.play().catch(function(){});
+  } else {
+    v.muted = true; heroVidMuted = true; heroVidSoundActive = false;
+    heroStartAuto();
+  }
+  heroUpdateMuteIcon();
+}
+// Von aussen (window.ttsStart) aufrufbar: Vorlesen gestartet -> Karten-Video stummschalten,
+// Karussell darf wieder normal weiterlaufen.
+window.heroMuteCardVideo = function() {
+  var v = document.getElementById('c-card-video');
+  if (v && !heroVidMuted) { v.muted = true; heroVidMuted = true; heroVidSoundActive = false; heroUpdateMuteIcon(); heroStartAuto(); }
+};
+function heroUpdateCardVideo(s) {
+  var wrap = document.getElementById('c-card-video-wrap');
+  var v = document.getElementById('c-card-video');
+  if (!wrap || !v) return;
+  var myReq = ++heroVidReqId;
+  try { v.pause(); } catch(e){}
+  heroVidSoundActive = false; heroVidMuted = true; heroUpdateMuteIcon();
+  wrap.hidden = true;
+  wrap.onclick = heroVideoTap;
+  v.onended = function() {
+    if (!heroVidMuted) { heroVidMuted = true; heroVidSoundActive = false; heroUpdateMuteIcon(); heroStartAuto(); }
+  };
+  if (typeof window.klLoadCards !== 'function' || typeof window.klCardFor !== 'function') return;
+  window.klLoadCards().then(function() {
+    if (myReq !== heroVidReqId) return; // Folie inzwischen gewechselt -- diese Antwort ist veraltet
+    var card = window.klCardFor(s.title);
+    if (!card || !card.mp4) { wrap.hidden = true; v.removeAttribute('src'); return; }
+    v.pause();
+    if (card.poster) v.poster = card.poster; else v.removeAttribute('poster');
+    v.src = card.mp4;
+    v.muted = true; v.currentTime = 0;
+    wrap.hidden = false;
+    heroSetupObserver();
+    heroMaybeAutoplay();
+  });
+}
 function heroRender(animate) {
   var feat = document.getElementById('carousel-featured');
   if (animate) feat.style.opacity = '0';
@@ -1228,13 +1325,14 @@ function heroRender(animate) {
     // unten (renderCard()) komplett klickbar sind. Ausgenommen: Reaktionen und
     // der Quell-Link, die haben eigene Klick-Ziele.
     feat.onclick = function (e) {
-      if (e.target.closest('#c-reactions, #c-link, #c-linie')) return;
+      if (e.target.closest('#c-reactions, #c-link, #c-linie, #c-card-video-wrap')) return;
       if (typeof window.klPlainClick === 'function' && !window.klPlainClick(e)) return;
       if (typeof window.klOpenArticle !== 'function') return;
       window.klOpenArticle(s);
     };
     feat.style.cursor = 'pointer';
     heroLinie(feat, s);
+    heroUpdateCardVideo(s);
     // "Was die Community dazu sagt" am 30.08. auf Daniels Wunsch ausgeblendet
     // ("bislang kein Mehrwert") -- Logik/Markup bleiben, nur das Anzeigen ist
     // abgeschaltet. Zum Zurueckholen: die if/else unten wieder durch den
@@ -1755,6 +1853,8 @@ window.addEventListener('resize',()=>{
   window.ttsStart=function(){
     if(!('speechSynthesis' in window)){ alert('Dein Browser unterstützt das Vorlesen leider nicht.'); return; }
     if((window.heroStories||[]).length===0 && (window.__ttsList||[]).length===0){ alert('Die News werden noch geladen – einen Moment, dann nochmal tippen.'); return; }
+    // Kein zweites Ton-Chaos (27.09.26): laeuft das Karussell-Video gerade mit Ton, stumm schalten.
+    if (typeof window.heroMuteCardVideo === 'function') window.heroMuteCardVideo();
     var b=document.getElementById('tts-bar'); if(b)b.classList.add('open');
     // cards.json zuerst laden, damit die Top-Storys direkt mit Studio-Stimme
     // starten; faellt der Abruf aus, laeuft alles wie vorher per Browser-Stimme.

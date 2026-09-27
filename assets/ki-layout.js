@@ -204,6 +204,13 @@
     'html.light .kl-ov-close{background:rgba(255,255,255,0.8);color:#0f172a;}',
     '.kl-ov-img-wrap{position:relative;padding-top:42%;overflow:hidden;border-radius:14px 14px 0 0;background:var(--field,#111827);}',
     '.kl-ov-img-wrap img,.kl-ov-img-wrap video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}',
+    /* Karte im Overlay (27.09.26): Hochformat-Video, deshalb NICHT beschnitten
+       (object-fit:contain) -- dahinter ein unscharfes/abgedunkeltes Poster,
+       damit keine schwarzen Balken auffallen. Bereich darf hoeher werden. */
+    '.kl-ov-img-wrap.kl-ov-card-mode{padding-top:0;height:min(60vh,520px);}',
+    '.kl-ov-img-wrap.kl-ov-card-mode video#kl-ov-video{object-fit:contain;background:transparent;z-index:1;cursor:pointer;}',
+    '.kl-ov-img-bg{position:absolute;inset:-12px;background-size:cover;background-position:center;filter:blur(18px) brightness(0.45);transform:scale(1.06);}',
+    '.kl-ov-video-mute{position:absolute;right:10px;bottom:10px;z-index:2;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;pointer-events:none;}',
     '.kl-ov-body{padding:22px 24px 24px;}',
     '.kl-ov-meta{font-size:11px;font-family:monospace;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted,#8b98a5);margin-bottom:8px;}',
     '.kl-ov-title{font-family:\'Space Grotesk\',sans-serif;font-size:22px;font-weight:800;line-height:1.28;color:var(--text,#e8f8ff);margin:0 0 12px;}',
@@ -309,15 +316,23 @@
       '<div class="kl-ov-card">' +
         '<button type="button" class="kl-ov-close" onclick="window.klCloseArticle()" aria-label="Schlie&szlig;en">' +
           '<span class="material-symbols-outlined">close</span></button>' +
-        '<div id="kl-ov-img-wrap" class="kl-ov-img-wrap" hidden><img id="kl-ov-img" alt="">' +
+        '<div id="kl-ov-img-wrap" class="kl-ov-img-wrap" hidden>' +
+          /* Unscharfer Hintergrund fuer die Karte (27.09.26) -- nur im Karten-Modus
+             sichtbar, siehe klShowCard(). Bewusst als eigene Ebene statt Filter auf
+             dem ganzen Wrap, sonst waere auch das scharfe Video verwaschen. */
+          '<div id="kl-ov-img-bg" class="kl-ov-img-bg" hidden></div>' +
+          '<img id="kl-ov-img" alt="">' +
           /* Fallback-Video (01.09.), Daniels Wunsch: Artikel ohne eigenes og:image
              zeigen im Overlay statt eines leeren Slots einen Marken-Clip. Nur hier
              (Overlay), nicht im Karten-Grid -- sonst wuerden bei vielen bildlosen
              Karten gleichzeitig etliche Videos autoplayen. Quelle (src) wird NICHT
              hier fest verdrahtet, sondern erst in klPlayFallbackVideo() gesetzt --
              Daniel hat mehrere Clips zur Auswahl (siehe FALLBACK_VIDEOS unten),
-             es soll bei jedem Oeffnen zufaellig genau einer laufen. */
-          '<video id="kl-ov-video" muted loop playsinline preload="none" hidden></video></div>' +
+             es soll bei jedem Oeffnen zufaellig genau einer laufen. Hat der Artikel
+             eine echte Karte (cards.json), ersetzt klShowCard() diesen Slot. */
+          '<video id="kl-ov-video" muted loop playsinline preload="none" hidden></video>' +
+          '<button type="button" id="kl-ov-video-mute" class="kl-ov-video-mute" aria-hidden="true" tabindex="-1" hidden>🔇</button>' +
+        '</div>' +
         '<div class="kl-ov-body">' +
           '<div id="kl-ov-meta" class="kl-ov-meta"></div>' +
           '<h2 id="kl-ov-title" class="kl-ov-title"></h2>' +
@@ -490,6 +505,7 @@
   ];
   function klPlayFallbackVideo(videoEl) {
     if (!videoEl) return;
+    videoEl.loop = true; // 27.09.26: Kartenvideo (klShowCard) setzt loop=false, hier zuruecksetzen
     var pick = FALLBACK_VIDEOS[Math.floor(Math.random() * FALLBACK_VIDEOS.length)];
     videoEl.src = ROOT + 'assets/' + pick;
     videoEl.hidden = false;
@@ -612,6 +628,92 @@
   window.klLinieDatum = klLinieDatum;
   window.klLinieArtikel = klLinieArtikel;
 
+  /* ── Karten-Helfer (27.09.26) ─────────────────────────────────
+     Gemeinsame cards.json-Zuordnung fuer Karussell (index.html) und
+     Artikel-Overlay. Gleiche Normalisierung/Praefix-Regel wie die
+     Vorlese-Engine (foldKey()/cardFor() in index.html) -- 1:1 uebernommen,
+     nicht neu erfunden. Die Vorlese-Engine bleibt unangetastet und laedt
+     cards.json weiter selbst. */
+  var klCardsP = null, klCardIdx = null;
+  function klFoldKey(v) {
+    return String(v == null ? '' : v).toLowerCase()
+      .replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 's')
+      .replace(/ae/g, 'a').replace(/oe/g, 'o').replace(/ue/g, 'u').replace(/ss/g, 's')
+      .replace(/[^a-z0-9]/g, '');
+  }
+  window.klLoadCards = function () {
+    if (!klCardsP) {
+      klCardsP = fetch(ROOT + 'cards.json?t=' + Date.now()).then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      }).then(function (list) {
+        klCardIdx = [];
+        (list || []).forEach(function (c) {
+          if (c && c.mp4_url && c.headline) {
+            klCardIdx.push({ key: klFoldKey(c.headline), mp4: c.mp4_url, poster: c.poster_url || null, duration: c.duration || null });
+          }
+        });
+        return klCardIdx;
+      }).catch(function () { klCardIdx = []; return klCardIdx; });
+    }
+    return klCardsP;
+  };
+  // Praefix-Vergleich statt Gleichheit (wie cardFor() in index.html): die Karte
+  // kann kuerzer sein als der Story-Titel (cap_headline() behaelt nur den ersten Satz).
+  window.klCardFor = function (title) {
+    var k = klFoldKey(title);
+    if (!k || !klCardIdx) return null;
+    for (var i = 0; i < klCardIdx.length; i++) {
+      var ck = klCardIdx[i].key;
+      if (ck.length < 25) continue;
+      if (k.indexOf(ck.slice(0, Math.min(ck.length, 45))) === 0) {
+        return { mp4: klCardIdx[i].mp4, poster: klCardIdx[i].poster, duration: klCardIdx[i].duration };
+      }
+    }
+    return null;
+  };
+
+  var klOvVidMuted = true;
+  // Ton auf Tipp am Karten-Video im Overlay (27.09.26) -- an: von vorn, aus: stumm
+  // weiter. Klick auf den (unsichtbaren, wenn kein Kartenvideo laeuft) Wrap ist
+  // ansonsten ein No-Op, deshalb kann der Handler immer gesetzt bleiben.
+  function klOvVideoTap(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    var v = document.getElementById('kl-ov-video');
+    var btn = document.getElementById('kl-ov-video-mute');
+    if (!v || v.hidden || v.loop) return; // v.loop=true -> Fallback-Clip, kein Karten-Video
+    klOvVidMuted = !klOvVidMuted;
+    v.muted = klOvVidMuted;
+    if (!klOvVidMuted) v.currentTime = 0;
+    v.play().catch(function () {});
+    if (btn) btn.textContent = klOvVidMuted ? '🔇' : '🔊';
+  }
+  // Zeigt die Karte (cards.json) statt og:image/Fallback-Clip im Bildbereich.
+  // Hochformat-Video NICHT beschnitten (object-fit:contain), dahinter das Poster
+  // (oder og:image, sonst nichts) unscharf/abgedunkelt als Hintergrund.
+  function klShowCard(data, card, imgWrap, imgEl, videoEl) {
+    if (!videoEl) return;
+    imgEl.hidden = true; imgEl.onerror = null;
+    imgWrap.classList.add('kl-ov-card-mode');
+    var bg = document.getElementById('kl-ov-img-bg');
+    var bgSrc = card.poster || data.image || '';
+    if (bg) {
+      if (bgSrc) { bg.style.backgroundImage = 'url("' + String(bgSrc).replace(/["\\]/g, '') + '")'; bg.hidden = false; }
+      else { bg.style.backgroundImage = ''; bg.hidden = true; }
+    }
+    klOvVidMuted = true;
+    videoEl.loop = false; // Karten-Video laeuft einmal durch, kein Dauer-Loop wie der Fallback-Clip
+    videoEl.muted = true;
+    if (card.poster) videoEl.poster = card.poster; else videoEl.removeAttribute('poster');
+    videoEl.src = card.mp4;
+    videoEl.hidden = false;
+    videoEl.currentTime = 0;
+    videoEl.play().catch(function () {});
+    imgWrap.onclick = klOvVideoTap;
+    var muteBtn = document.getElementById('kl-ov-video-mute');
+    if (muteBtn) { muteBtn.hidden = false; muteBtn.textContent = '🔇'; }
+    imgWrap.hidden = false;
+  }
   window.klOpenArticle = function (data) {
     data = data || {};
     klCurrent = data;
@@ -625,6 +727,17 @@
     var imgEl = document.getElementById('kl-ov-img');
     var videoEl = document.getElementById('kl-ov-video');
     var relatedEl = document.getElementById('kl-ov-related');
+    // Request-Zaehler VOR allem anderen erhoehen (27.09.26): schuetzt sowohl den
+    // spaeter ankommenden Karten-Check als auch (wie bisher) klRelatedHtml davor,
+    // ein inzwischen geschlossenes/gewechseltes Overlay noch nachtraeglich zu befuellen.
+    var reqId = ++klOvReqId;
+    // Karten-Modus zuruecksetzen -- sonst bliebe kl-ov-card-mode vom vorherigen
+    // Artikel haengen, falls dieser hier keine Karte hat.
+    imgWrap.classList.remove('kl-ov-card-mode');
+    var muteBtn0 = document.getElementById('kl-ov-video-mute');
+    if (muteBtn0) muteBtn0.hidden = true;
+    var bg0 = document.getElementById('kl-ov-img-bg');
+    if (bg0) { bg0.hidden = true; bg0.style.backgroundImage = ''; }
     var title = data.title || '', summary = data.summary || '';
     titleEl.textContent = title;
     summEl.textContent = summary;
@@ -634,7 +747,14 @@
     if (dateStr) metaParts.push(dateStr);
     if (data.region) metaParts.push(klEsc(data.region));
     metaEl.innerHTML = metaParts.join(' &middot; ');
-    if (data.image) {
+    // Karussell-Video mit Ton nicht hinter dem Overlay weiterreden lassen (27.09.26)
+    if (typeof window.heroMuteCardVideo === 'function') window.heroMuteCardVideo();
+    // cards.json schon geladen (Normalfall nach dem Karussell): Karte sofort zeigen,
+    // sonst startete erst ein Fallback-Clip und wurde dann ersetzt (Flackern + Download).
+    var cardNow = typeof window.klCardFor === 'function' ? window.klCardFor(title) : null;
+    if (cardNow && cardNow.mp4 && videoEl) {
+      klShowCard(data, cardNow, imgWrap, imgEl, videoEl);
+    } else if (data.image) {
       if (videoEl) { videoEl.pause(); videoEl.hidden = true; }
       imgEl.hidden = false;
       imgEl.onerror = function () {
@@ -652,6 +772,17 @@
       imgWrap.hidden = false;
     } else {
       imgWrap.hidden = true;
+    }
+    // Karte (cards.json) nachladen und, falls vorhanden, og:image/Fallback-Clip
+    // ersetzen (27.09.26). Async, weil cards.json ggf. noch nicht gecacht ist --
+    // reqId-Check verhindert, dass eine spaete Antwort ein inzwischen geschlossenes
+    // oder gewechseltes Overlay noch umschaltet (gleiches Muster wie klRelatedHtml unten).
+    if (!cardNow && typeof window.klLoadCards === 'function' && typeof window.klCardFor === 'function') {
+      window.klLoadCards().then(function () {
+        if (!klOvOpen || reqId !== klOvReqId) return;
+        var card = window.klCardFor(title);
+        if (card && card.mp4) klShowCard(data, card, imgWrap, imgEl, videoEl);
+      });
     }
     if (data.link) {
       // 25.09.26 (F2): direkt zum Verlag, wenn ki_news.py die Google-News-
@@ -689,7 +820,6 @@
     if (data.link && window.history && history.replaceState) {
       try { history.replaceState(null, '', '#a=' + window.klHashId(data.link)); } catch (e) {}
     }
-    var reqId = ++klOvReqId;
     try {
       klRelatedHtml(title + ' ' + summary).then(function (html) {
         if (!klOvOpen || reqId !== klOvReqId) return; // Overlay inzwischen zu/gewechselt
