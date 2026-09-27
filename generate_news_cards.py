@@ -56,9 +56,12 @@ OPENROUTER_URL    = "https://openrouter.ai/api/v1/chat/completions"
 # gemma-4-31b (bezahlt) hielten die HAUPTREGEL (keine erfundenen Gruende) in 4/4 und klingen
 # am natuerlichsten. Kosten bei ~20 Karten/Tag: deutlich unter 1 Cent.
 # Reihenfolge der Gesamtkette: EINORDNUNG_KETTE unten (OpenRouter-Spitze vor Groq).
+# 27.09.26 gemma vor deepseek: live fiel deepseek bei 7 von 10 Karten durch die JEV-DECKUNG
+# (p 0.56-0.87, erfindet Details), gemma bestand 4 von 7. Denkmodus ist es nicht - mit
+# reasoning.enabled=False kommen nachweislich 0 reasoning_tokens.
 OPENROUTER_MODELS = [
-    "deepseek/deepseek-v4-flash",              # $0.05/$0.09 je 1M, 4/4 regelkonform
     "google/gemma-4-31b-it",                   # $0.09/$0.34, 4/4 regelkonform
+    "deepseek/deepseek-v4-flash",              # $0.05/$0.09 je 1M, 4/4 regelkonform
     # 26.09.26 entfernt: "google/gemma-4-31b-it:free" - 4/4 HTTP 504 (Google AI Studio 429),
     # live nur 2 von 40 Karten. nemotron-3-ultra:free getestet: 6-22 s und erfand Gruende.
     # 25.09.26 entfernt: "nvidia/nemotron-3-super-120b-a12b:free" - 0 von 150 Karten in cards.json,
