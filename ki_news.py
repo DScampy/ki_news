@@ -3938,7 +3938,9 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
 # LLM – Posts Scampy-6
 # Bekommt nur MAX_LLM_NEWS Items – mehr = Fuelltext
 # -------------------------
-def ask_llm(top_news, n=None):
+def ask_llm(top_news, n=None, summaries=None):
+    """summaries: {link: {"title_de", "summary"}} - 27.09.26: das Modell bekam bis dahin
+    NUR den Titel und musste den Inhalt raten (Googlebook-Teaser handelte vom "Pixel 8a")."""
     if not OPENROUTER_KEY:
         fallback = ""
         for i in range(1, 4):
@@ -3948,7 +3950,15 @@ def ask_llm(top_news, n=None):
             fallback += f"ERKLAERUNG {i}: Kein Key.\n"
         return fallback
 
-    news_text = "\n".join([f"- {n['title']} (via {n['source']})" for n in top_news])
+    summaries = summaries or {}
+    def _eintrag(item):
+        s = summaries.get(item.get("link", ""), {}) or {}
+        titel = s.get("title_de") or item["title"]
+        zeile = f"- {titel} (via {item['source']})"
+        if s.get("summary"):
+            zeile += f"\n  Zusammenfassung: {s['summary'][:600]}"
+        return zeile
+    news_text = "\n".join(_eintrag(item) for item in top_news)
 
     system = """Du bist @ScampyKI, ein sachlicher aber neugieriger KI-Beobachter aus Deutschland.
 Dein Stil: direkt, menschlich, keine Floskeln, keine Ausrufezeichen, kein "Sie".
@@ -3969,16 +3979,23 @@ Du erfindest keine Fakten."""
     )
     user = f"""Schreibe GENAU {n} Posts – einen pro News. Nicht mehr, nicht weniger.
 
+HAUPTREGEL (gilt fuer TEASER, THREAD und ERKLAERUNG): Du weisst NUR, was in Titel und
+Zusammenfassung der jeweiligen News steht. Erfinde KEINE Gruende, Motive, Folgen, Zahlen,
+Produktnamen oder Bewertungen, die dort nicht stehen - auch nicht als Stimmung
+("verzweifelt", "Effizienz siegt ueber Ideale"). Die Erkenntnis muss sich aus der Meldung
+ableiten lassen. Fehlt eine Zahl oder ein Grund, lass ihn weg.
+
 TEASER-Regeln:
 - Beginne mit der Erkenntnis, nicht mit dem Ereignis
-- Hook + Flip: erst die ueberraschende Wahrheit, dann die Konsequenz
+- Hook + Flip: erst die Erkenntnis aus der Meldung, dann die Konsequenz
 - Maximal 265 Zeichen (Emojis zaehlen als 2)
 - Kein Ausrufezeichen, kein Promotional Content
+- Kein Gedankenstrich (— oder –) als Pause im Satz, stattdessen einen Punkt setzen
 - Ende: (via Quellenname)
 
 THREAD-Regeln – Scampy-6-Struktur:
 THREAD X-1 Hook: Sofort rein, kein Anlauf, die Erkenntnis als erster Satz
-THREAD X-2 Kontext: Historischer Rahmen + konkrete Zahlen
+THREAD X-2 Kontext: Rahmen + konkrete Zahlen, aber NUR Zahlen aus der Meldung (keine erfundenen)
 THREAD X-3 Kaskade: Was das Schritt fuer Schritt konkret bedeutet
 THREAD X-4 Gruselig: Was daran beunruhigend oder faszinierend ist
 THREAD X-5 Konsequenz: Was das fuer echte Menschen heute bedeutet
@@ -4173,6 +4190,66 @@ def _x_post_text(teaser: str, link: str, titel: str = "") -> str:
         return f"{kopf}\n\n{base}"
     return base
 
+# ── X-Tor (27.09.26, Roadmap P3) ────────────────────────────────────────────
+# Prueft jeden NEUEN Teaser, bevor er als X-Vorschlag rausgeht: Redaktions-Checkliste
+# maschinell + Jev "jede Aussage durch Titel/Zusammenfassung gedeckt?". Sperrt nichts -
+# Ergebnis steht in post-cache.json ("tor"), Telegram markiert Verstoesse mit ⚠️, die
+# Startseite zeigt bei Verstoss die Zusammenfassung statt des Teasers.
+# Messung vor Einfuehrung: 12 von 16 Live-Teasern p >= 0.5 (u. a. "Pixel 8a" statt Googlebook).
+X_TOR_JEV_SCHWELLE = 0.5
+X_TOR_VERBOTEN = ("revolution", "bahnbrechend", "game-changer", "gamechanger", "disruptiv",
+                  "paradigmenwechsel", "verändert die welt", "veraendert die welt",
+                  "nie dagewesen", "synergie")
+_X_TOR_FRAGE = {
+    "type": "noul",
+    "instructions": "Enthaelt `post` eine Tatsachenbehauptung (Grund, Ursache, Motiv, Zahl, Folge, "
+                    "Bezeichnung des Vorgangs als Fakt), die weder in `titel` noch in "
+                    "`zusammenfassung` steht?",
+    "criteria": {
+        "true": "Ja: `post` stellt etwas als Tatsache dar, das in `titel` und `zusammenfassung` "
+                "nirgends vorkommt (auch nicht sinngemaess), z. B. einen Grund, ein Motiv, eine Zahl, "
+                "eine Folge oder eine andere Bezeichnung des Vorgangs.",
+        "false": "Nein: jede Tatsachenbehauptung in `post` steht so oder sinngemaess schon in "
+                 "`titel`/`zusammenfassung`. Einordnung, Meinung, rhetorische Fragen und allgemeine "
+                 "Vergleiche zaehlen NICHT als erfunden, solange sie keine neue Tatsache behaupten.",
+    },
+}
+
+
+def _x_tor(teaser, titel, zusammenfassung):
+    """-> {"ok": bool, "gruende": [...], "jev": p|None}. Jev-Fehler/kein Key = nicht
+    geprueft (jev None), zaehlt nicht als Verstoss."""
+    text = re.sub(r"\s*\(via [^)]*\)\s*$", "", teaser or "").strip()
+    gruende = []
+    if len(text) > X_MAX_ZEICHEN:
+        gruende.append(f"{len(text)} Zeichen")
+    # anti-patterns.md Abschnitt 0: Strich als Pause im Fliesstext -> Punkt. " – " ist dasselbe Muster.
+    if "—" in text or " – " in text:
+        gruende.append("Gedankenstrich")
+    low = text.lower()
+    treffer = [w for w in X_TOR_VERBOTEN if w in low]
+    if treffer:
+        gruende.append("Verbotswort: " + ", ".join(treffer))
+    p = None
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if key and text:
+        try:
+            body = json.dumps({"model": "jev-latest",
+                               "state": {"titel": titel or "", "zusammenfassung": (zusammenfassung or "")[:600],
+                                         "post": text},
+                               "questions": {"erfunden": _X_TOR_FRAGE}}).encode("utf-8")
+            req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                         headers={"Authorization": "Bearer " + key,
+                                                  "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                p = round(float(json.loads(r.read())["answers"]["erfunden"]["noul"]), 2)
+        except Exception as e:
+            logger.warning("X-Tor: Jev nicht erreichbar (%s)", e)
+    if p is not None and p >= X_TOR_JEV_SCHWELLE:
+        gruende.append(f"nicht gedeckt (Jev {p:.2f})")
+    return {"ok": not gruende, "gruende": gruende, "jev": p}
+
+
 X_ANTWORT_TEXT = "Interessiert dich diese Story, dann schau mal hier vorbei:"
 
 def _x_antwort(link: str) -> str:
@@ -4235,12 +4312,16 @@ def send_telegram_stories(stories, score_map=None, detailliert=False):
         if detailliert and _story_idx == 0 and p.get("thread"):
             teile += ["", "<b>Thread-Entwurf:</b>"]
             teile += [f"{i}/ {esc(tweet)}" for i, tweet in enumerate(p["thread"], 1)]
+        tor = p.get("tor")
+        if p.get("teaser") and tor:
+            teile += ["", "✅ X-Tor bestanden" if tor.get("ok")
+                      else "⚠️ X-Tor: " + esc("; ".join(tor.get("gruende", []))) + " - vor dem Posten pruefen"]
         if p.get("teaser"):
             teile += ["", "Antwort auf deinen X-Post (antippen zum Kopieren):",
                       f"<pre>{esc(_x_antwort(n.get('link', '')))}</pre>"]
         buttons_row = []
         if p.get("teaser"):
-            buttons_row.append({"text": "Auf X posten",
+            buttons_row.append({"text": "Auf X posten" if not tor or tor.get("ok") else "⚠️ Auf X posten (pruefen)",
                                 "url": _x_intent_url(_x_post_text(p["teaser"], n.get("link", ""), n.get("title", "")))})
         if n.get("link"):
             buttons_row.append({"text": "Artikel", "url": n["link"]})
@@ -4834,7 +4915,7 @@ def main():
     uncached   = [n for n in top_news if n.get("link") not in post_cache]
     cached     = [n for n in top_news if n.get("link") in post_cache]
     if uncached:
-        posts_raw       = ask_llm(uncached, n=len(uncached))
+        posts_raw       = ask_llm(uncached, n=len(uncached), summaries=_summary_by_link)
         parsed_new_dict = parse_posts(posts_raw)  # {nummer: {...}}
         logger.info("%d neue Posts geparst, %d aus Cache", len(parsed_new_dict), len(cached))
         for idx, news_item in enumerate(uncached, start=1):
@@ -4904,11 +4985,17 @@ def main():
                     )
                     continue
             if link:
+                _s = _summary_by_link.get(link, {}) or {}
+                _tor = _x_tor(p.get("teaser", ""), _s.get("title_de") or news_item.get("title", ""),
+                              _s.get("summary", ""))
+                logger.info("X-Tor %s: %s (%s)", "ok" if _tor["ok"] else "VERSTOSS",
+                            ", ".join(_tor["gruende"]) or f"Jev {_tor['jev']}", link)
                 post_cache[link] = {
                     "teaser":      p.get("teaser", ""),
                     "erklaerung":  p.get("erklaerung", ""),
                     "thread":      p.get("thread", []),
                     "generated_at": heute_str,
+                    "tor":         _tor,
                 }
         save_post_cache(_cfg_base, post_cache)
     else:
@@ -4920,6 +5007,7 @@ def main():
             "teaser":     post_cache.get(n.get("link",""), {}).get("teaser", ""),
             "erklaerung": post_cache.get(n.get("link",""), {}).get("erklaerung", ""),
             "thread":     post_cache.get(n.get("link",""), {}).get("thread", []),
+            "tor":        post_cache.get(n.get("link",""), {}).get("tor"),
         }
         for n in top_news
     ]
@@ -5160,6 +5248,8 @@ def main():
             "thread":     _pc.get("thread", []),
             "link":       _lnk,
             "story_id":   link_to_cluster_info.get(_lnk, {}).get("story_id", ""),
+            # 27.09.26 X-Tor: False = Teaser nicht gedeckt -> Startseite zeigt die Zusammenfassung
+            "tor_ok":     (_pc.get("tor") or {}).get("ok"),
         })
 
     # Roundups als separates Feld – Material zum Abgleich, nicht in der News-Liste.
