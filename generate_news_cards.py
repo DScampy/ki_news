@@ -991,24 +991,25 @@ def send_card_to_telegram(mp4_path: Path, headline: str, einordnung: str, card_i
 
 
 X_MAX_ZEICHEN = 265   # Redaktionsregel (00 Kontext/CLAUDE.md): nicht auf 280 planen
-X_LINK_KOSTEN = 23    # X kuerzt jede URL auf t.co: 23 Zeichen, egal wie lang sie ist.
-                      # Mit der echten Laenge gerechnet fiel die Ueberschrift bei
-                      # ChatGPT Images 2.5 um EIN Zeichen raus (266 statt 259).
+# Kanalregel @ScampyKI (26.09.26): nie ein Link in Post 1. Der Link kommt als Antwort
+# mit festem Wortlaut und zeigt auf ki-news.live, nicht auf den Verlag.
+X_ANTWORT_TEXT = "Interessiert dich diese Story, dann schau mal hier vorbei:"
 
 
-def _x_karten_text(headline: str, einordnung: str, link: str) -> str:
-    """Vorbelegter X-Text einer Karte: Ueberschrift, Leerzeile, Einordnung,
-    Deep-Link. Vorher (bis 10.09.26) stand dort nur headline[:200] -- Daniel
-    stand damit vor einem leeren Post und musste alles selbst tippen, waehrend
-    die fertige Einordnung eine Nachricht darueber in Telegram lag.
+def _x_antwort(link: str) -> str:
+    return X_ANTWORT_TEXT + "\n" + _deep_link(link)
+
+
+def _x_karten_text(headline: str, einordnung: str) -> str:
+    """Vorbelegter X-Text einer Karte (Post 1): Ueberschrift, Leerzeile,
+    Einordnung - ohne Link (Kanalregel, siehe X_ANTWORT_TEXT). Vorher (bis
+    10.09.26) stand dort nur headline[:200].
 
     Gekuerzt wird satzweise und nur die Einordnung: lieber zwei ganze Saetze
     als drei angeschnittene (Redaktions-Doktrin 4.6, der letzte Satz soll
-    landen). Passt nicht einmal der erste Satz, bleibt es bei Ueberschrift
-    plus Link -- also mindestens dem alten Verhalten."""
+    landen). Passt nicht einmal der erste Satz, bleibt es bei der Ueberschrift."""
     kopf = (headline or "").strip()
-    dl = _deep_link(link)
-    rest = X_MAX_ZEICHEN - len(kopf) - X_LINK_KOSTEN - 3   # zwei Umbrueche + Puffer
+    rest = X_MAX_ZEICHEN - len(kopf) - 2   # zwei Umbrueche
     text = (einordnung or "").strip()
     if text and len(text) > rest:
         gekuerzt = ""
@@ -1019,8 +1020,8 @@ def _x_karten_text(headline: str, einordnung: str, link: str) -> str:
             gekuerzt = kandidat
         text = gekuerzt
     if text:
-        return kopf + "\n\n" + text + "\n" + dl
-    return (kopf + "\n" + dl).strip()
+        return kopf + "\n\n" + text
+    return kopf
 
 
 def _send_x_button(headline: str, link: str = "", einordnung: str = "") -> bool:
@@ -1033,14 +1034,20 @@ def _send_x_button(headline: str, link: str = "", einordnung: str = "") -> bool:
     if not TELEGRAM_TOKEN:
         return False
     x_intent_url = ("https://twitter.com/intent/tweet?text="
-                    + urllib.parse.quote(_x_karten_text(headline, einordnung, link)))
+                    + urllib.parse.quote(_x_karten_text(headline, einordnung)))
     reply_markup = json.dumps({
         "inline_keyboard": [[{"text": "🐦 Auf X posten", "url": x_intent_url}]]
     })
-    text = "Video oben manuell anhängen, Text ist editierbar:\n" + _deep_link(link)
+    # 27.09.26: Link nicht mehr im Post, sondern als fertiger Antwort-Text zum Kopieren
+    # (<pre> = in Telegram antippen kopiert den ganzen Block).
+    text = ("Video oben manuell anhängen, Text ist editierbar.\n\n"
+            "Danach als Antwort auf deinen Post (antippen zum Kopieren):\n"
+            f"<pre>{html.escape(_x_antwort(link))}</pre>")
     payload = json.dumps({
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
         "reply_markup": json.loads(reply_markup),
     }).encode("utf-8")
     req = urllib.request.Request(

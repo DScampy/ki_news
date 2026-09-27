@@ -4153,12 +4153,13 @@ def _x_post_text(teaser: str, link: str, titel: str = "") -> str:
     Limit, faellt die UEBERSCHRIFT weg und nicht der Teaser: der Teaser ist der
     redigierte Post, sein letzter Satz soll landen (Redaktions-Doktrin 4.6) --
     ein Schnitt mittendrin waere schlechter als gar keine Ueberschrift."""
+    # 27.09.26 Kanalregel @ScampyKI: kein Link in Post 1 - der Deep-Link kommt als
+    # Antwort (_x_antwort, in der Telegram-Nachricht zum Kopieren). `link` bleibt
+    # als Parameter, wird hier aber nicht mehr eingesetzt.
     base = re.sub(r"\s*\(via [^)]*\)\s*$", "", teaser or "").rstrip()
-    dl = _deep_link(link)
     kopf = (titel or "").strip()
     if not base:
-        passt = kopf and len(kopf) + 1 + X_LINK_KOSTEN <= X_MAX_ZEICHEN
-        return f"{kopf}\n{dl}" if passt else dl
+        return kopf
     # Ueberschrift weglassen, wenn der Teaser sie ohnehin wiederholt (10.09.26 an
     # den 9 Live-Posts gesehen: Titel "Google investiert Milliarden in KI-Infra-
     # struktur in Finnland." + Teaser "Google investiert Milliarden in KI-Hardware
@@ -4168,9 +4169,15 @@ def _x_post_text(teaser: str, link: str, titel: str = "") -> str:
         kw_kopf = _title_keywords(kopf)
         if kw_kopf and len(kw_kopf & _title_keywords(base)) / len(kw_kopf) >= 0.7:
             kopf = ""
-    if kopf and len(kopf) + 2 + len(base) + 1 + X_LINK_KOSTEN <= X_MAX_ZEICHEN:
-        return f"{kopf}\n\n{base}\n{dl}"
-    return f"{base}\n{dl}"
+    if kopf and len(kopf) + 2 + len(base) <= X_MAX_ZEICHEN:
+        return f"{kopf}\n\n{base}"
+    return base
+
+X_ANTWORT_TEXT = "Interessiert dich diese Story, dann schau mal hier vorbei:"
+
+def _x_antwort(link: str) -> str:
+    """Post 2 (Antwort) mit festem Wortlaut und ki-news.live-Deep-Link (Kanalregel 26.09.26)."""
+    return X_ANTWORT_TEXT + "\n" + _deep_link(link)
 
 def _telegram_send_message(text, buttons=None, max_retries=3, delay=5):
     """Einzelnachricht mit HTML-Formatierung + optionalen Inline-Buttons.
@@ -4228,6 +4235,9 @@ def send_telegram_stories(stories, score_map=None, detailliert=False):
         if detailliert and _story_idx == 0 and p.get("thread"):
             teile += ["", "<b>Thread-Entwurf:</b>"]
             teile += [f"{i}/ {esc(tweet)}" for i, tweet in enumerate(p["thread"], 1)]
+        if p.get("teaser"):
+            teile += ["", "Antwort auf deinen X-Post (antippen zum Kopieren):",
+                      f"<pre>{esc(_x_antwort(n.get('link', '')))}</pre>"]
         buttons_row = []
         if p.get("teaser"):
             buttons_row.append({"text": "Auf X posten",
