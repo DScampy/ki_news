@@ -3986,9 +3986,16 @@ Produktnamen oder Bewertungen, die dort nicht stehen - auch nicht als Stimmung
 ableiten lassen. Fehlt eine Zahl oder ein Grund, lass ihn weg.
 
 TEASER-Regeln:
-- Beginne mit der Erkenntnis, nicht mit dem Ereignis
-- Hook + Flip: erst die Erkenntnis aus der Meldung, dann die Konsequenz
-- Maximal 265 Zeichen (Emojis zaehlen als 2)
+- Reaktion zuerst, nie mit dem Ereignis oder Firmennamen beginnen. Starke Einstiege:
+  "Verstehst du was gerade passiert ist..", die haerteste Zahl aus der Meldung,
+  oder Negation als Kontrast ("Das ist kein X.. das ist Y..")
+- Hook + Flip: erst die Erkenntnis aus der Meldung, dann die Konsequenz fuer den Leser
+- Die Zuspitzung kommt aus der Meldung selbst (Zahl, Kontrast, Folge) - nie aus erfundenen Fakten
+- ".." als Atemzeichen zwischen Gedanken, kurze Saetze, ein laengerer dazwischen
+- Der letzte Satz landet hart. Verboten am Ende: "wirft Fragen auf", "bleibt abzuwarten",
+  "zeigt, wie", "Das zeigt", "Es zeigt", "koennte die Art aendern", "ist fraglich"
+- 200 bis 265 Zeichen, den Platz nutzen (Emojis zaehlen als 2). Der ganze Teaser steht in
+  EINER Zeile hinter "TEASER X:" - keine Zeilenumbrueche, sonst geht alles nach der ersten Zeile verloren
 - Kein Ausrufezeichen, kein Promotional Content
 - Kein Gedankenstrich (— oder –) als Pause im Satz, stattdessen einen Punkt setzen
 - Ende: (via Quellenname)
@@ -4068,6 +4075,7 @@ def parse_posts(posts_raw):
     result = {}
     current_idx = None
     current = None
+    feld = None  # 27.09.26: letztes Feld - Folgezeilen ohne Marke gehoeren noch dazu
 
     for line in lines:
         line = line.strip()
@@ -4081,12 +4089,21 @@ def parse_posts(posts_raw):
                 result[current_idx] = current
             current_idx = int(m_teaser.group(1))
             current = {"teaser": line.split(":", 1)[1].strip(), "thread": [], "erklaerung": ""}
+            feld = "teaser"
         elif re.match(r'THREAD\s+\d+-\d+\s*:', upper):
             if current is not None:
                 current["thread"].append(line.split(":", 1)[1].strip())
+                feld = "thread"
         elif re.match(r'ERKLAERUNG\s+\d+\s*:', upper):
             if current is not None:
                 current["erklaerung"] = line.split(":", 1)[1].strip()
+                feld = "erklaerung"
+        elif current is not None and feld:
+            # Modell hat umgebrochen (Probe 27.09.: Teaser nach der Hook-Zeile abgeschnitten)
+            if feld == "thread" and current["thread"]:
+                current["thread"][-1] = (current["thread"][-1] + " " + line).strip()
+            elif feld in ("teaser", "erklaerung"):
+                current[feld] = (current[feld] + " " + line).strip()
 
     if current is not None and current_idx is not None:
         result[current_idx] = current
@@ -4248,6 +4265,34 @@ def _x_tor(teaser, titel, zusammenfassung):
     if p is not None and p >= X_TOR_JEV_SCHWELLE:
         gruende.append(f"nicht gedeckt (Jev {p:.2f})")
     return {"ok": not gruende, "gruende": gruende, "jev": p}
+
+
+def _teaser_nachbessern(teaser, titel, zusammenfassung, quelle):
+    """Ein Nachbesserungsversuch fuer einen Teaser, den Jev als nicht gedeckt markiert hat
+    (27.09.26: scharfe Hooks erfinden gern Folgen/Wertungen). Gibt neuen Teaser oder ''."""
+    text = re.sub(r"\s*\(via [^)]*\)\s*$", "", teaser or "").strip()
+    prompt = (
+        "Dieser X-Teaser behauptet etwas, das nicht in der Meldung steht:\n"
+        f"TEASER: {text}\n\nMeldung:\nTitel: {titel}\nZusammenfassung: {(zusammenfassung or '')[:600]}\n\n"
+        "Schreibe ihn neu. Gleicher Biss: Reaktion zuerst, harte Zahl oder Kontrast aus der Meldung, "
+        "'..' als Atemzeichen, der letzte Satz landet. Aber JEDE Tatsache, Folge und Wertung muss "
+        "aus Titel oder Zusammenfassung stammen. Keine Prognosen ('koennte das Ende sein'), keine "
+        "erfundenen Folgen, kein Gedankenstrich. 200 bis 265 Zeichen, eine Zeile. "
+        "Antworte NUR mit dem Teaser-Text, ohne Anfuehrungszeichen und ohne (via ...)."
+    )
+    messages = [{"role": "user", "content": prompt}]
+    for modell in MODELLE_POSTS:
+        if _model_blocked(modell):
+            continue
+        try:
+            antwort = (_call_llm_api(modell, messages, max_tokens=400, timeout=60) or "").strip()
+        except Exception as e:
+            logger.warning("X-Tor Nachbesserung: %s fehlgeschlagen: %s", modell, e)
+            continue
+        antwort = " ".join(antwort.replace("TEASER:", "").split()).strip('"„“ ')
+        if antwort:
+            return f"{antwort} (via {quelle})" if quelle else antwort
+    return ""
 
 
 X_ANTWORT_TEXT = "Interessiert dich diese Story, dann schau mal hier vorbei:"
@@ -4986,8 +5031,17 @@ def main():
                     continue
             if link:
                 _s = _summary_by_link.get(link, {}) or {}
-                _tor = _x_tor(p.get("teaser", ""), _s.get("title_de") or news_item.get("title", ""),
-                              _s.get("summary", ""))
+                _titel = _s.get("title_de") or news_item.get("title", "")
+                _tor = _x_tor(p.get("teaser", ""), _titel, _s.get("summary", ""))
+                # Ein Nachbesserungsversuch bei Jev-Verstoss; die bessere Fassung gewinnt
+                if _tor["jev"] is not None and _tor["jev"] >= X_TOR_JEV_SCHWELLE:
+                    _neu = _teaser_nachbessern(p.get("teaser", ""), _titel, _s.get("summary", ""), _src)
+                    if _neu:
+                        _tor2 = _x_tor(_neu, _titel, _s.get("summary", ""))
+                        if _tor2["ok"] or (_tor2["jev"] is not None and _tor2["jev"] < _tor["jev"]
+                                           and len(_tor2["gruende"]) <= len(_tor["gruende"])):
+                            logger.info("X-Tor: Teaser nachgebessert (Jev %.2f -> %s)", _tor["jev"], _tor2["jev"])
+                            p["teaser"], _tor = _neu, _tor2
                 logger.info("X-Tor %s: %s (%s)", "ok" if _tor["ok"] else "VERSTOSS",
                             ", ".join(_tor["gruende"]) or f"Jev {_tor['jev']}", link)
                 post_cache[link] = {
