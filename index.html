@@ -1906,12 +1906,28 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   #px-hero [data-px-main-card], #px-hero .px-hero-side-link { cursor: pointer; }
   /* clip statt hidden: kein Scroll-Container, Fokus/scrollIntoView verschiebt den Inhalt nicht (Glow ragt 120px heraus) */
   #px-hero .px-hero-main-card { overflow: clip; }
-  #px-hero .px-hero-card-video { position: absolute; z-index: 3; inset: 0; cursor: pointer; background: #000; }
+  #px-hero .px-hero-card-video { position: absolute; z-index: 4; inset: 0; cursor: pointer; background: #000; }
+  #px-hero .px-hero-media--video { cursor: pointer; }
+  #px-hero .px-hero-vplay { position: absolute; z-index: 3; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    border: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.45)); color: #fff; cursor: pointer; }
+  #px-hero .px-hero-vplay[hidden] { display: none; }
+  #px-hero .px-hero-vplay-icon { width: 58px; height: 58px; border-radius: 50%; background: rgba(0, 212, 255, 0.92); box-shadow: 0 0 0 6px rgba(0, 212, 255, 0.22), 0 8px 24px rgba(0, 0, 0, 0.4);
+    position: relative; transition: transform 160ms ease; }
+  #px-hero .px-hero-vplay-icon::after { content: ""; position: absolute; left: 23px; top: 18px; border-style: solid; border-width: 11px 0 11px 18px; border-color: transparent transparent transparent #03121a; }
+  #px-hero .px-hero-vplay:hover .px-hero-vplay-icon, #px-hero .px-hero-vplay:focus-visible .px-hero-vplay-icon { transform: scale(1.08); }
+  #px-hero .px-hero-vplay:focus-visible { outline: 2px solid #00d4ff; outline-offset: -4px; }
+  #px-hero .px-hero-vplay-text { font: 700 11px/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0, 0, 0, .8); }
+  #px-hero .px-hero-video-loader { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    color: #dff6ff; font: 700 11px/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; background: rgba(0, 0, 0, 0.45); pointer-events: none; }
+  #px-hero .px-hero-card-video--laedt .px-hero-video-loader { display: flex; }
+  #px-hero .px-hero-spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(0, 212, 255, 0.25); border-top-color: #00d4ff; animation: px-hero-dreh 0.8s linear infinite; }
+  @keyframes px-hero-dreh { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { #px-hero .px-hero-spinner { animation-duration: 2.4s; } }
   #px-hero .px-hero-card-video video { width: 100%; height: 100%; object-fit: contain; display: block; }
   /* Kartenposter vollstaendig (28.09.26): cover schnitt links/rechts Text ab */
   #px-hero img.px-hero-img-card { object-fit: contain; }
   #px-hero img.px-hero-img-backdrop { position: absolute; z-index: 2; inset: -12px; width: calc(100% + 24px); height: calc(100% + 24px); object-fit: cover; filter: blur(14px) brightness(0.55); }
-  #px-hero .px-hero-card-video-mute { position: absolute; right: 8px; bottom: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 13px; cursor: pointer; }
+  #px-hero .px-hero-card-video-mute { position: absolute; z-index: 1; right: 8px; bottom: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 13px; cursor: pointer; }
   /* Linienband als eigene Zeile; der Mittelteil darf nicht unter seinen Inhalt schrumpfen */
   #px-hero .px-hero-slide { grid-template-rows: auto 1fr auto auto; }
   #px-hero .px-hero-linie { margin: 0 0 18px; min-width: 0; contain: inline-size; }
@@ -4042,6 +4058,7 @@ window.addEventListener('resize',()=>{
 
       if (
         destroyed ||
+        videoPlaying ||
         stories.length < 2 ||
         document.hidden ||
         reducedMotion.matches
@@ -4050,16 +4067,19 @@ window.addEventListener('resize',()=>{
       }
 
       carouselTimer = window.setTimeout(() => {
+        if (videoPlaying) return;
         goToStory(currentStory + 1);
       }, 10000);
     };
 
-    // Karten-Video der Top-Story (27.09.26, aus dem alten Hero uebernommen):
-    // klLoadCards()/klCardFor() aus ki-layout.js. Stumm und nur im Blick; Antippen
-    // schaltet Ton an und haelt das Karussell an, bis das Video durch ist.
-    let videoObserver = null;
+    // Karten-Video der Top-Story (28.09.26 ueberarbeitet): die Folie zeigt die normale
+    // Grafik (img), ein Play-Knopf liegt darauf. Erst der Klick laedt das Video
+    // (klLoadCards()/klCardFor() aus ki-layout.js) und spielt es mit Ton, denn der
+    // Klick ist die Nutzergeste. Lade-Anzeige bis "playing", Stumm-Knopf bleibt.
+    // Waehrend das Video laeuft, steht das Karussell; am Ende kommt die Grafik zurueck.
+    let videoPlaying = false;
     const attachCardVideo = (media, story) => {
-      if (videoObserver) { videoObserver.disconnect(); videoObserver = null; }
+      videoPlaying = false;
       if (
         typeof window.klLoadCards !== "function" ||
         typeof window.klCardFor !== "function"
@@ -4070,53 +4090,90 @@ window.addEventListener('resize',()=>{
         const card = window.klCardFor(story);
         if (!card || !card.mp4) return;
 
-        const wrap = make("div", "px-hero-card-video");
-        const video = document.createElement("video");
-        const mute = make("button", "px-hero-card-video-mute", "🔇");
-        video.muted = true;
-        video.loop = true;
-        video.playsInline = true;
-        video.preload = "metadata";
-        if (card.poster) video.poster = card.poster;
-        video.src = card.mp4;
-        mute.type = "button";
-        mute.setAttribute("aria-label", "Ton an");
-        wrap.append(video, mute);
-        media.append(wrap);
+        media.classList.add("px-hero-media--video");
+        const play = make("button", "px-hero-vplay");
+        play.type = "button";
+        play.setAttribute("aria-label", "Karten-Video mit Ton abspielen");
+        play.append(make("span", "px-hero-vplay-icon"), make("span", "px-hero-vplay-text", "Video abspielen"));
+        media.append(play);
 
-        const setSound = on => {
-          video.muted = !on;
-          video.loop = !on;
-          mute.textContent = on ? "🔊" : "🔇";
-          mute.setAttribute("aria-label", on ? "Ton aus" : "Ton an");
-          if (on) {
-            stopCarousel();
-            video.currentTime = 0;
-          } else {
-            startCarousel();
-          }
-          video.play().catch(() => {});
-        };
-
-        wrap.addEventListener("click", event => {
+        const start = event => {
+          event.preventDefault();
           event.stopPropagation();
-          setSound(video.muted);
-        });
-        video.addEventListener("ended", () => setSound(false));
+          if (media.querySelector(".px-hero-card-video")) return;
 
-        if (reducedMotion.matches) return;
-        if (!("IntersectionObserver" in window)) {
-          video.play().catch(() => {});
-          return;
-        }
-        videoObserver = new IntersectionObserver(entries => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) video.play().catch(() => {});
+          const wrap = make("div", "px-hero-card-video px-hero-card-video--laedt");
+          const video = document.createElement("video");
+          const mute = make("button", "px-hero-card-video-mute", "🔊");
+          const loader = make("div", "px-hero-video-loader");
+          loader.setAttribute("role", "status");
+          loader.append(make("span", "px-hero-spinner"), make("span", "", "Video lädt"));
+          video.playsInline = true;
+          video.preload = "auto";
+          video.muted = false;
+          if (card.poster) video.poster = card.poster;
+          mute.type = "button";
+          mute.setAttribute("aria-label", "Ton aus");
+          wrap.append(video, loader, mute);
+          media.append(wrap);
+          play.hidden = true;
+
+          videoPlaying = true;
+          stopCarousel();
+
+          const fertig = () => {
+            videoPlaying = false;
+            wrap.remove();
+            play.hidden = false;
+            startCarousel();
+          };
+          const fehler = () => {
+            fertig();
+            const text = play.querySelector(".px-hero-vplay-text");
+            if (!text) return;
+            text.textContent = "Video nicht verfügbar";
+            window.setTimeout(() => { text.textContent = "Video abspielen"; }, 3500);
+          };
+          video.addEventListener("playing", () => wrap.classList.remove("px-hero-card-video--laedt"));
+          video.addEventListener("waiting", () => wrap.classList.add("px-hero-card-video--laedt"));
+          video.addEventListener("ended", fertig);
+          video.addEventListener("error", fehler);
+          mute.addEventListener("click", ev => {
+            ev.stopPropagation();
+            video.muted = !video.muted;
+            mute.textContent = video.muted ? "🔇" : "🔊";
+            mute.setAttribute("aria-label", video.muted ? "Ton an" : "Ton aus");
+          });
+          wrap.addEventListener("click", ev => {
+            ev.stopPropagation();
+            if (ev.target === mute) return;
+            if (video.paused) video.play().catch(() => {});
             else video.pause();
           });
-        }, { threshold: 0.35 });
-        videoObserver.observe(wrap);
+          video.src = card.mp4;
+          video.play().catch(() => {
+            // Browser verweigert Ton trotz Geste (selten): stumm starten, Knopf zeigt es an
+            video.muted = true;
+            mute.textContent = "🔇";
+            mute.setAttribute("aria-label", "Ton an");
+            video.play().catch(fehler);
+          });
+        };
+        media.addEventListener("click", start);
       }).catch(() => {});
+    };
+
+    // Seitenkacheln laufen mit (28.09.26): immer die naechsten zwei Meldungen nach
+    // der aktuellen, am Ende rundherum. -1 = keine eigene Meldung (weniger als 3).
+    const sideIndex = offset => {
+      if (stories.length <= offset) return -1;
+      return (currentStory + offset) % stories.length;
+    };
+    const renderSides = () => {
+      const a = sideIndex(1);
+      const b = sideIndex(2);
+      sideOne.replaceChildren(renderSideStory(a >= 0 ? stories[a] : null, a + 1));
+      sideTwo.replaceChildren(renderSideStory(b >= 0 ? stories[b] : null, b + 1));
     };
 
     const renderMainStory = () => {
@@ -4234,6 +4291,7 @@ window.addEventListener('resize',()=>{
 
       slide.append(topline, body, linieBox, context);
       mainSlide.append(slide);
+      renderSides();
 
       if (typeof window.heroLinie === "function") {
         try { window.heroLinie(mainCard, story); } catch (error) { linieBox.hidden = true; }
@@ -5012,13 +5070,6 @@ window.addEventListener('resize',()=>{
         return;
       }
 
-      sideOne.replaceChildren(
-        renderSideStory(stories[1] || null, 2)
-      );
-      sideTwo.replaceChildren(
-        renderSideStory(stories[2] || null, 3)
-      );
-
       currentStory = 0;
       renderMainStory();
       renderControls();
@@ -5033,13 +5084,13 @@ window.addEventListener('resize',()=>{
       if (typeof window.klPlainClick === "function" && !window.klPlainClick(event)) return;
       const target = event.target;
       if (target.closest(
-        ".px-hero-article-link, [data-px-carousel-controls], #c-linie, .px-hero-card-video, [data-px-release]"
+        ".px-hero-article-link, [data-px-carousel-controls], #c-linie, .px-hero-card-video, .px-hero-media--video, [data-px-release]"
       )) return;
 
       let story = null;
       if (target.closest("[data-px-main-card]")) story = stories[currentStory];
-      else if (target.closest("[data-px-side-one]")) story = stories[1];
-      else if (target.closest("[data-px-side-two]")) story = stories[2];
+      else if (target.closest("[data-px-side-one]")) story = stories[sideIndex(1)];
+      else if (target.closest("[data-px-side-two]")) story = stories[sideIndex(2)];
       if (!story) return;
 
       event.preventDefault();
@@ -5057,8 +5108,6 @@ window.addEventListener('resize',()=>{
         if (releaseData) renderRelease();
         else setReleaseVisibility(false);
       }
-      sideOne.replaceChildren(renderSideStory(stories[1] || null, 2));
-      sideTwo.replaceChildren(renderSideStory(stories[2] || null, 3));
       currentStory = 0;
       renderMainStory();
       renderControls();
