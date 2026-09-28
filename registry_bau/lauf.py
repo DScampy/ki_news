@@ -97,7 +97,7 @@ class _Sammler:
         return False
 
 
-def _alter_tage(pfad):
+def _alter_tage(pfad, feld="erzeugt"):
     """Alter der Modellliste in Tagen, aus ihrem eigenen `erzeugt`-Feld.
 
     Frueher stand hier os.path.getmtime(). Das war in GitHub Actions wertlos:
@@ -113,7 +113,7 @@ def _alter_tage(pfad):
         return None
     try:
         with open(pfad, encoding="utf-8") as f:
-            erzeugt = json.load(f).get("erzeugt")
+            erzeugt = json.load(f).get(feld)
         if erzeugt:
             ts = calendar.timegm(time.strptime(erzeugt, "%Y-%m-%dT%H:%M:%SZ"))
             return (time.time() - ts) / 86400.0
@@ -146,6 +146,11 @@ def registry_schritt(repo, logger, judge_limit=JUDGE_LIMIT,
     alter = _alter_tage(modelle)
     if modelle_erneuern is None:
         modelle_erneuern = alter is None or alter > MODELLE_MAX_ALTER_TAGE
+        # 28.09.26: neue Hersteller-Meldung seit dem letzten Generatorlauf -> sofort
+        # neu bauen statt bis zu einen Tag zu warten (Zweitquelle modelle_meldungen.json).
+        if not modelle_erneuern and alter is not None:
+            meld = _alter_tage(os.path.join(HIER, "modelle_meldungen.json"), feld="stand")
+            modelle_erneuern = meld is not None and meld < alter
     if modelle_erneuern:
         try:
             import generiere_modelle_json
