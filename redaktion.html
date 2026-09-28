@@ -269,7 +269,7 @@ body { background: var(--rd-bg); color: var(--rd-ink); }
   });
 
   // ── Daten ──
-  var daten = { news: [], archiv: [], karten: [], graph: null, linien: {}, config: { blocked_links: [], force_cards: [], featured_links: [] }, freigabe: {}, hersteller: null, log: "", entwuerfe: {}, stand: "" };
+  var daten = { news: [], archiv: [], karten: [], graph: null, linien: {}, config: { blocked_links: [], force_cards: [], featured_links: [] }, freigabe: {}, hersteller: null, log: "", entwuerfe: {}, entwuerfeInfo: {}, stand: "" };
   function kartenIndex() {
     var links = {}; daten.karten.forEach(function (c) { (c.links || []).forEach(function (l) { links[l] = c; }); }); return links;
   }
@@ -349,6 +349,22 @@ body { background: var(--rd-bg); color: var(--rd-ink); }
       .sort(function (a, b) { return (daten.linien[b].e || []).length - (daten.linien[a].e || []).length; });
     $("rd-n-dossiers").textContent = String(ids.length);
     if (!ids.length) ul.appendChild(el("li", "rd-hinweis", "Keine Linien mit drei oder mehr Ereignissen."));
+    // Release-Artikel (release_automat.py) stehen mit im Verzeichnis und werden genauso freigegeben
+    Object.keys(daten.entwuerfeInfo).filter(function (id) { return daten.entwuerfeInfo[id].typ === "release"; }).forEach(function (id) {
+      var e = daten.entwuerfeInfo[id], frei = !!daten.freigabe[id];
+      var li = el("li", "rd-eintrag"), links = el("div");
+      links.appendChild(el("div", "rd-eintrag-titel", e.titel || id));
+      var meta = el("div", "rd-eintrag-meta");
+      meta.appendChild(el("span", "rd-status " + (frei ? "rd-ok" : "rd-warn"), frei ? "freigegeben" : "Release-Entwurf"));
+      meta.appendChild(document.createTextNode(" · " + (e.ereignisse || 0) + " Meldungen dazu" + ((e.hype || []).length ? " · Hype-Wörter in Zitaten: " + e.hype.join(", ") : "")));
+      links.appendChild(meta);
+      var akt = el("div", "rd-eintrag-aktionen"), an = el("a", "rd-pill", "Entwurf ansehen"); an.href = e.datei; an.target = "_blank"; akt.appendChild(an);
+      var vorgemerkt = offen.freigeben[id] || offen.zurueck[id];
+      var b = el("button", "rd-knopf" + (frei ? " rd-knopf--warn" : " rd-knopf--primaer"), vorgemerkt ? "Vormerkung aufheben" : (frei ? "Zurückziehen" : "Freigeben"));
+      b.type = "button";
+      b.onclick = function () { if (vorgemerkt) { delete offen.freigeben[id]; delete offen.zurueck[id]; } else if (frei) offen.zurueck[id] = 1; else offen.freigeben[id] = 1; zeichneDossiers(); zeigeLeiste(); };
+      akt.appendChild(b); li.appendChild(links); li.appendChild(akt); ul.appendChild(li);
+    });
     ids.forEach(function (id) {
       var l = daten.linien[id], d = l.dossier || {}, frei = !!daten.freigabe[id], entwurf = !!daten.entwuerfe[id];
       var li = el("li", "rd-eintrag"), links = el("div");
@@ -415,7 +431,7 @@ body { background: var(--rd-bg); color: var(--rd-ink); }
     daten.freigabe = (v(5) || {}).freigegeben || {}; daten.hersteller = v(6); daten.log = v(7) || "";
     // Welche Entwuerfe existieren? Verzeichnis schreibt dossier_automat.py
     return ladeJSON("artikel/entwurf/entwuerfe.json").then(function (v) {
-      (v.entwuerfe || []).forEach(function (e) { daten.entwuerfe[e.id] = true; });
+      (v.entwuerfe || []).forEach(function (e) { daten.entwuerfe[e.id] = true; daten.entwuerfeInfo[e.id] = e; });
     }).catch(function () {});
   }).then(zeichneAlles).catch(function (e) { toast("Daten konnten nicht geladen werden: " + e.message); });
   tokenStatus();

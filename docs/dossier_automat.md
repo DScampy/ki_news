@@ -38,3 +38,24 @@ python3 dossier_automat.py --linie d33805d3 # eine bestimmte Linie
 
 Noch **nicht** im Workflow. Erst wenn Daniel 3 Entwürfe gegen die Quellen geprüft hat (0 erfundene
 Aussagen), kommt ein Schritt nach `ki_news.py` in `.github/workflows/ki_news.yml` dazu.
+
+# Release-Automat (Auftrag 5, Release-Teil)
+
+`release_automat.py` macht aus `hersteller.json` (Hersteller-Feed, Auftrag 3) Entwürfe
+„<Modell>: was es kann“ im Aufbau von Daniels Hand-Artikel (Titel, Stand, Hinweiskasten,
+nummerierte Abschnitte mit Zitat-Karten).
+
+| Teil | Quelle |
+|---|---|
+| Eckdaten | Felder aus `hersteller.json` (Hersteller, Modell, Datum, offizielle URL, X/Video falls vorhanden) |
+| Was neu ist | bis zu 6 Absätze der offiziellen Ankündigung, **wörtlich** (Navigation/Menüs gefiltert) |
+| Zahlen | Sätze der Ankündigung mit Zahlen (Benchmarks, Preise, Prozent), wörtlich, „nicht nachgemessen“ |
+| Was andere berichten | Meldungen aus `news.json`/`archive.json`, die den Modellnamen nennen, Zusammenfassung wie im Feed |
+| Übersetzung | optional über `hersteller_feed.uebersetze` (OPENROUTER_KEY), verworfen bei neuer Zahl; Original immer sichtbar |
+
+Ist die offizielle Seite nicht maschinell lesbar (z. B. OpenAI: 403), wird der Feed-Text zitiert
+und das im Hinweiskasten gesagt. Entwürfe: `artikel/entwurf/release-<slug>.html`, stehen im
+Verzeichnis `entwuerfe.json` (Typ `release`) und im Redaktions-Cockpit zur Freigabe; Freigabe-ID
+`release-<slug>` in `dossiers_freigabe.json` → `artikel/<slug>.html` + Sitemap.
+
+Noch nicht im Workflow (Gate wie bei den Dossiers).
