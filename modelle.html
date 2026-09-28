@@ -1360,13 +1360,18 @@
       }
     }
   </style>
+  <style>
+    /* 28.09.26: eingeklappte Hersteller als Kachelraster, aufgeklappte ueber die volle Breite */
+    #px-makers { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); align-items: start; }
+    #px-makers > .px-maker:not(.px-zu) { grid-column: 1 / -1; }
+    #px-makers > .px-maker.px-zu { content-visibility: visible; }
+  </style>
 </head>
 
 <body class="px-body">
   <a class="px-skip" href="#px-registry">Zur Modell-Registry</a>
 
   
-<nav aria-label="Modelle" style="display:flex;gap:8px;flex-wrap:wrap;max-width:1400px;margin:14px auto 0;padding:0 16px"><a href="modelle.html" aria-current="page" style="padding:6px 14px;border-radius:999px;text-decoration:none;font:600 13px/1.2 'Space Grotesk',sans-serif;border:1px solid rgba(var(--neon-rgb,0,212,255),.55);color:inherit;background:rgba(var(--neon-rgb,0,212,255),.14)">Modell-Registry</a><a href="landkarte.html" style="padding:6px 14px;border-radius:999px;text-decoration:none;font:600 13px/1.2 'Space Grotesk',sans-serif;border:1px solid rgba(var(--neon-rgb,0,212,255),.18);color:inherit;background:transparent">KI-Landkarte</a></nav>
 <main class="px-main" id="main-content">
     <div class="px-shell">
       <header class="px-hero" aria-labelledby="px-page-title">
@@ -1421,6 +1426,13 @@
         </aside>
       </header>
 
+      <section class="px-karte" aria-labelledby="px-karte-titel" style="margin:18px 0 22px">
+        <h2 id="px-karte-titel" style="margin:0 0 6px;font:700 20px/1.2 'Space Grotesk',sans-serif">KI-Landkarte</h2>
+        <p style="margin:0 0 10px;opacity:.75;font-size:14px">Hersteller oder Modell anklicken: die Registry darunter filtert sich darauf.</p>
+        <iframe id="px-karte-frame" src="landkarte.html?embed=1" title="KI-Landkarte" loading="lazy"
+          style="width:100%;height:760px;border:0;border-radius:12px;display:block;background:transparent"></iframe>
+        <p id="px-karte-hinweis" role="status" style="margin:8px 0 0;font-size:13px;opacity:.8"></p>
+      </section>
       <section class="px-control-panel" aria-label="Registry durchsuchen und filtern">
         <div class="px-control-grid">
           <div class="px-control px-search-control">
@@ -2332,11 +2344,38 @@
 
         const grid = create("div", "px-model-grid");
 
-        models.slice().sort(compareModelsNewest).forEach((model, index) => {
-          grid.appendChild(createModelCard(model, startIndex + index));
+        const sortiert = models.slice().sort(compareModelsNewest);
+        // 28.09.26 (Daniel: alle offen ist zu unuebersichtlich): ohne Filter/Suche nur der Herstellerkopf
+        const zu = !state.provider && !state.query && sortiert.length > 0;
+        sortiert.forEach((model, index) => {
+          const card = createModelCard(model, startIndex + index);
+          if (zu) card.hidden = true;
+          grid.appendChild(card);
         });
 
         section.appendChild(grid);
+        if (zu) {
+          grid.hidden = true;
+          grid.style.display = "none";
+          section.style.containIntrinsicSize = "auto 170px";
+          section.classList.add("px-zu");
+          const mehr = create("button", "px-button", `${PX_NUMBER.format(sortiert.length)} ${sortiert.length === 1 ? "Modell" : "Modelle"} zeigen`);
+          mehr.type = "button";
+          mehr.style.marginTop = "12px";
+          mehr.setAttribute("aria-expanded", "false");
+          mehr.addEventListener("click", () => {
+            const offen = mehr.getAttribute("aria-expanded") === "true";
+            [...grid.children].forEach(c => { c.hidden = offen; });
+            grid.hidden = offen;
+            grid.style.display = offen ? "none" : "";
+            section.classList.toggle("px-zu", offen);
+            mehr.setAttribute("aria-expanded", offen ? "false" : "true");
+            mehr.textContent = offen
+              ? `${PX_NUMBER.format(sortiert.length)} ${sortiert.length === 1 ? "Modell" : "Modelle"} zeigen`
+              : "Weniger zeigen";
+          });
+          section.appendChild(mehr);
+        }
         return section;
       }
 
@@ -2587,6 +2626,44 @@
 
       bindControls();
       void loadRegistry();
+    })();
+  </script>
+  <script>
+    // Landkarte -> Registry (28.09.26)
+    (function () {
+      const frame = document.getElementById("px-karte-frame");
+      const hinweis = document.getElementById("px-karte-hinweis");
+      const norm = v => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      function hoehe() {
+        try {
+          const d = frame.contentDocument && frame.contentDocument.documentElement;
+          if (d && d.scrollHeight > 200) frame.style.height = Math.min(d.scrollHeight + 4, 2400) + "px";
+        } catch (e) {}
+      }
+      frame.addEventListener("load", () => {
+        hoehe();
+        try { new ResizeObserver(hoehe).observe(frame.contentDocument.body); } catch (e) {}
+      });
+      window.addEventListener("message", ev => {
+        if (ev.origin !== location.origin || !ev.data || !ev.data.kiLandkarte) return;
+        const d = ev.data.kiLandkarte;
+        const sel = document.getElementById("px-provider-filter");
+        const such = document.getElementById("px-search");
+        let wert = "";
+        if (d.hersteller && sel) {
+          const ziel = norm(d.hersteller);
+          const opt = [...sel.options].find(o => o.value && (norm(o.value) === ziel || norm(o.textContent).startsWith(ziel) || ziel.startsWith(norm(o.value))));
+          wert = opt ? opt.value : "";
+          sel.value = wert;
+          sel.dispatchEvent(new Event("change"));
+        }
+        if (such) {
+          such.value = d.modell || "";
+          such.dispatchEvent(new Event("input"));
+        }
+        const teile = [wert && ("Hersteller " + wert), d.modell && ("Suche \u201e" + d.modell + "\u201c")].filter(Boolean);
+        hinweis.textContent = teile.length ? "Registry gefiltert: " + teile.join(", ") : (d.hersteller ? d.hersteller + " fuehrt keine Modelle in der Registry." : "");
+      });
     })();
   </script>
 </body>

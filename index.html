@@ -492,6 +492,27 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   body:has(#genesis-wrap canvas) #px-hero { background: transparent !important; }
   body:has(#genesis-wrap canvas) #px-hero .px-hero-canvas { display: none; }
 </style>
+<style id="px-hero-frisch">
+  /* 28.09.26: "Frisch auf dem Markt" - Video halbe Kachelbreite, volle Hoehe; mehrere frische Releases umschaltbar */
+  #px-hero .px-hero-release-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
+  #px-hero .px-hero-video-preview,
+  #px-hero .px-hero-video-player { width: 100%; height: 100%; min-height: 150px; aspect-ratio: auto; }
+  #px-hero .px-hero-video-preview img { width: 100%; height: 100%; object-fit: cover; }
+  #px-hero .px-hero-video-player video,
+  #px-hero .px-hero-video-player iframe { width: 100%; height: 100%; object-fit: contain; background: #000; border: 0; }
+  #px-hero .px-hero-release-text { -webkit-line-clamp: 4; }
+  .px-hero-release-switch { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .px-hero-release-switch button {
+    padding: 3px 8px; color: #d8faff; background: rgba(0, 212, 255, 0.08);
+    border: 1px solid rgba(0, 212, 255, 0.28); border-radius: 999px; cursor: pointer;
+    font: 700 8px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 0.05em;
+  }
+  .px-hero-release-switch button[aria-pressed="true"] { color: #031017; background: #65f5df; border-color: #65f5df; }
+  @media (max-width: 360px) {
+    #px-hero .px-hero-release-body { grid-template-columns: 1fr; }
+    #px-hero .px-hero-video-preview, #px-hero .px-hero-video-player { min-height: 170px; }
+  }
+</style>
 <style id="px-hero-css">
   #px-hero,
   #px-hero *,
@@ -7632,9 +7653,22 @@ window.addEventListener('resize',()=>{
     // hersteller.json (28.09.26): laeuft dieselbe Meldung gerade als Top-Story,
     // kommt der naechste Release in die Kachel (sonst doppelt auf der Startseite).
     let allReleases = [];
+    let freshReleases = [];
     const pickRelease = () => {
       const heroLinks = new Set(stories.map(story => cleanText(story && story.link)).filter(Boolean));
-      return allReleases.find(release => !release.news_link || !heroLinks.has(release.news_link)) || null;
+      const frei = allReleases.filter(release => !release.news_link || !heroLinks.has(release.news_link));
+      // 28.09.26: kommen mehrere Releases kurz hintereinander (Sonnet 5.5 + Eleven v4 am selben Tag),
+      // zeigt die Kachel einen Umschalter statt nur des ersten.
+      // Umschalter zeigt alle frischen Releases, auch wenn einer davon gerade im Hero-Karussell laeuft
+      // (Daniel 28.09.); vorausgewaehlt bleibt der erste, der nicht doppelt ist.
+      const neuestes = allReleases.length ? String(allReleases[0].datum || "") : "";
+      const tag = d => { const t = Date.parse(String(d || "") + "T00:00:00Z"); return isNaN(t) ? null : t; };
+      freshReleases = allReleases.filter(r => {
+        const a = tag(neuestes), b = tag(r.datum);
+        return a !== null && b !== null && a - b <= 2 * 86400000;
+      }).slice(0, 4);
+      if (!freshReleases.length && frei.length) freshReleases = [frei[0]];
+      return frei[0] || null;
     };
 
     const extractReleases = payload => {
@@ -7853,6 +7887,22 @@ window.addEventListener('resize',()=>{
           "px-hero-release-badge px-hero-release-badge-example",
           "Beispiel"
         ));
+      } else if (freshReleases.length > 1) {
+        const umschalter = make("div", "px-hero-release-switch");
+        umschalter.setAttribute("role", "group");
+        umschalter.setAttribute("aria-label", "Frische Releases");
+        freshReleases.forEach(r => {
+          const b = make("button", "", cleanText(r.modell) || cleanText(r.hersteller) || "Release");
+          b.type = "button";
+          b.setAttribute("aria-pressed", r === releaseData ? "true" : "false");
+          b.addEventListener("click", () => {
+            if (r === releaseData) return;
+            releaseData = r;
+            renderRelease();
+          });
+          umschalter.append(b);
+        });
+        top.append(umschalter);
       } else {
         top.append(make(
           "span",

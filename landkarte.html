@@ -1,6 +1,22 @@
 <!doctype html>
 <html lang="de">
 <head>
+  <script>
+    // Einbettung in modelle.html (28.09.26): ohne Kopf/Navigation, Theme vom Elternfenster
+    window.KI_EMBED = /[?&]embed=1\b/.test(location.search) && window.parent !== window;
+    if (window.KI_EMBED) {
+      document.documentElement.classList.add("ki-embed");
+      try {
+        var pe = window.parent.document.documentElement;
+        pe.classList.forEach(function (c) { document.documentElement.classList.add(c); });
+        if (pe.getAttribute("data-theme")) document.documentElement.setAttribute("data-theme", pe.getAttribute("data-theme"));
+      } catch (e) {}
+    }
+  </script>
+  <style>
+    html.ki-embed #ki-header, html.ki-embed .px-footnote, html.ki-embed .px-skip, html.ki-embed .px-hero { display: none !important; }
+    html.ki-embed body { background: transparent !important; }
+  </style>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
@@ -12,7 +28,7 @@
   <link rel="stylesheet" href="assets/ki-fonts.css">
   <link rel="stylesheet" href="assets/ki-tw.css">
   <script src="assets/ki-icons.js" defer></script>
-  <script src="assets/ki-layout.js" defer></script>
+  <script>if (!window.KI_EMBED) { var s = document.createElement("script"); s.src = "assets/ki-layout.js"; document.head.appendChild(s); }</script>
 
   <style>
     :root {
@@ -1280,7 +1296,6 @@
 </head>
 
 <body>
-<nav aria-label="Modelle" style="display:flex;gap:8px;flex-wrap:wrap;max-width:1400px;margin:14px auto 0;padding:0 16px"><a href="modelle.html" style="padding:6px 14px;border-radius:999px;text-decoration:none;font:600 13px/1.2 'Space Grotesk',sans-serif;border:1px solid rgba(var(--neon-rgb,0,212,255),.18);color:inherit;background:transparent">Modell-Registry</a><a href="landkarte.html" aria-current="page" style="padding:6px 14px;border-radius:999px;text-decoration:none;font:600 13px/1.2 'Space Grotesk',sans-serif;border:1px solid rgba(var(--neon-rgb,0,212,255),.55);color:inherit;background:rgba(var(--neon-rgb,0,212,255),.14)">KI-Landkarte</a></nav>
 
   <div class="px-landkarte" id="px-landkarte">
     <header
@@ -2510,6 +2525,9 @@
 
         renderDetails();
         renderMetrics();
+        if (window.KI_EMBED && cluster.kind === "Hersteller") {
+          window.parent.postMessage({ kiLandkarte: { hersteller: cluster.label } }, location.origin);
+        }
       }
 
       function selectSelection(selection) {
@@ -2519,6 +2537,14 @@
         applySelectionVisuals();
         renderDetails();
         renderMetrics();
+        if (window.KI_EMBED) {
+          const name = selection && (selection.label || selection.name || "");
+          const istHub = selection === selection.cluster.hub;
+          window.parent.postMessage({ kiLandkarte: istHub && selection.cluster.kind === "Hersteller"
+            ? { hersteller: selection.cluster.label }
+            : { modell: String(name), hersteller: selection.cluster.kind === "Hersteller" ? selection.cluster.label : "" } },
+            location.origin);
+        }
       }
 
       function applySelectionVisuals() {
