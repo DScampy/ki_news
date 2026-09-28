@@ -28,3 +28,9 @@ Arbeits-Branch: `daniel/youthful-wozniak-tyzceg`. Die Session wurde nach PR 1 we
 - og:image aus `tools/og_render.js`: ca. 850 KB je Bild; zeigt `story_id` und Score öffentlich.
 - index-neu.html zeigt ohne JS dauerhaft „wird geladen“.
 - Deckungsprüfung: 14 von 50 Meldungen ohne Quelltext (Google-News-Links). Die Ämterliste (Stand 28.09.2026) sollte Daniel gegenlesen.
+
+## Auftrag 9 (28.09.26 spät)
+- **PR #7 Startseite Nachbesserung** (Punkte 1–5): Genesis ist wieder Bühne hinter dem Hero, Bild der Meldung statt Kartenposter, keine doppelte Meldung, Ton nach Klick im Overlay (sonst Knopf „Ton an“), Release-Video per Klick mit Ton.
+  - Den Ton nach dem Klick konnte ich im Test nicht mit echtem Ton belegen, weil das Test-Chromium kein H.264 abspielen kann. Bitte im echten Browser prüfen.
+  - Punkt 5, Daten fehlen: Kein Release hat `video_url` oder `x_url`. Das Video des Hersteller-Posts liefert HuggingNews unter `image.videoUrl` mit `credit.tweetUrl`. Das Füllen gehört in `x_quellen.py` (Branch `daniel/pr5-x-links`).
+- **PR #8 Sprach-Guard** (Punkt 6): Eine Meldung ohne deutschen Teaser und ohne deutsches Signal wird verworfen. py3langid hielt den ACEMAGIC-Titel für Deutsch (p = 0,61). Einen Filter für reine Produktwerbung gibt es weiterhin nicht, darüber muss Daniel entscheiden.
