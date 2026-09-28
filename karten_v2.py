@@ -58,14 +58,85 @@ MOTIV_BESCHREIBUNG = {
 # Rueckwaerts-Kompatibilitaet (erster Stil je Motiv)
 STIL_JE_MOTIV = {m: st[0] for m, st in STILE_JE_MOTIV.items()}
 
+# Auftrag 6 (28.09.26): neue Stile, standardmaessig AUS - die Live-Karten bleiben unveraendert.
+# Einschalten per Umgebungsvariable im Workflow:
+#   KARTEN_NEUE_STILE="neon,typo,riso"  (oder "alle")  -> Stile kommen je Motiv zur Auswahl dazu
+#   KARTEN_STIL_ZWANG="riso"                           -> jede Karte in diesem Stil (Vorschau/Test)
+NEUE_STILE = ["neon", "typo", "riso"]
+NEUE_STILE_JE_MOTIV = {
+    "gericht": ["typo", "riso"], "politik": ["typo", "riso"], "rechenzentrum": ["neon"],
+    "chip": ["neon", "typo"], "hack": ["neon", "typo"], "zahl": ["typo", "neon"], "netz": ["neon", "typo", "riso"],
+    "energie": ["riso", "neon"], "zitat": ["typo", "riso"], "roboter": ["riso", "neon"], "deal": ["typo", "riso"],
+    "humanoid": ["neon", "riso"], "auto": ["neon", "riso"], "handy": ["neon", "typo"], "forschung": ["riso", "typo"],
+    "arbeit": ["riso", "typo"], "medizin": ["riso", "neon"], "weltraum": ["neon"], "militaer": ["riso", "typo"],
+    "bildung": ["riso", "typo"],
+}
+
+
+def _aktive_neue_stile():
+    roh = os.environ.get("KARTEN_NEUE_STILE", "").strip().lower()
+    if roh in ("1", "alle", "all", "ja"):
+        return list(NEUE_STILE)
+    return [s for s in re.split(r"[,\s]+", roh) if s in NEUE_STILE]
+
 
 def _stil(motiv, headline):
-    """Fester Stil je Titel: FNV-Hash wie in der Vorlage, Index in STILE_JE_MOTIV."""
+    """Fester Stil je Titel: FNV-Hash wie in der Vorlage, Index in STILE_JE_MOTIV
+    (plus eingeschaltete neue Stile, siehe NEUE_STILE_JE_MOTIV)."""
+    zwang = os.environ.get("KARTEN_STIL_ZWANG", "").strip().lower()
+    alle = set(NEUE_STILE) | {st for liste in STILE_JE_MOTIV.values() for st in liste}
+    if zwang in alle:
+        return zwang
     h = 2166136261
     for ch in (headline or ""):
         h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
-    stile = STILE_JE_MOTIV[motiv]
+    aktiv = _aktive_neue_stile()
+    stile = STILE_JE_MOTIV[motiv] + [st for st in NEUE_STILE_JE_MOTIV.get(motiv, []) if st in aktiv]
     return stile[h % len(stile)]
+
+
+_TYPO_STOPP = set("""aber allem allen alles als also auch auf aus bei beim bereits beziehungsweise damit dann dass
+dem den der des die dies diese diesem diesen dieser dieses doch durch eine einem einen einer eines etwa fuer für gegen
+haben hat hatte ihre ihren ihrem jetzt kann kein keine mehr mit nach neue neuen neuer neues nicht noch nun oder ohne
+sich sind soll sollen sowie ueber über unter vom von vor waren warum was weil weiter weitere welche wenn werden wie
+will wird wurde zum zur zwischen laut bericht meldung heute""".split())
+
+
+def typo_worte(headline, geld=None, anbieter=None, einordnung=""):
+    """Stichworte fuer den Typo-Stil: nur Woerter, die woertlich im Titel stehen (Zahl, Modellname,
+    Anbieter, dann die laengsten Hauptwoerter). Hoechstens drei, keine Erfindung."""
+    titel = headline or ""
+    worte = []
+    if geld:
+        worte.append(geld["zahl"])
+    else:
+        pr = _PROZENT.search(titel)
+        if pr:
+            worte.append(pr.group(1) + " %")
+    m = _MODELL.search(titel)
+    if m:
+        worte.append(m.group(1))
+    # Anbieter nur, wenn er vorne im Titel steht (Hauptakteur, nicht "... fuer Google-Kalender")
+    muster = dict(ANBIETER).get(anbieter[0]) if anbieter else None
+    treffer = re.search(muster, titel) if muster else None
+    if treffer and treffer.start() < len(titel) * 0.5 and len(worte) < 2:
+        worte.append(ANZEIGE.get(anbieter[0], anbieter[0]))
+    # Hauptwoerter: lang und in der Einordnung wieder aufgegriffen = tragend fuer die Meldung
+    eo = (einordnung or "").lower()
+    kandidaten = []
+    for i, tok in enumerate(re.split(r"[\s:;,.!?\u201e\u201c\"()/]+", titel)):
+        for teil in tok.split("-"):
+            teil = teil.strip("'’")
+            if len(teil) < 5 or len(teil) > 20 or teil.lower() in _TYPO_STOPP or not teil[:1].isupper():
+                continue
+            echo = eo.count(teil.lower()[:6]) if len(teil) >= 6 else eo.count(teil.lower())
+            kandidaten.append((-(len(teil) + 6 * min(echo, 2)), i, teil))
+    for _, _, teil in sorted(kandidaten):
+        if len(worte) >= 3:
+            break
+        if not any(teil.lower() in w.lower() or w.lower() in teil.lower() for w in worte):
+            worte.append(teil)
+    return worte[:3]
 
 
 # Anbieter-Zeichen, die die Vorlage kennt (MARKEN in breaking_news_card_v2.html)
@@ -139,7 +210,7 @@ def _regel_motiv(text):
     return "netz"
 
 
-def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20, badge="Breaking"):
+def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20, badge="Breaking", motiv_vorgabe=None):
     text = "%s %s" % (headline or "", summary or "")
     # Reihenfolge wie im Text (erster genannter Anbieter = Hauptakteur, beim Deal Partner A)
     treffer = [(m.start(), n) for n, muster in ANBIETER for m in [re.search(muster, text)] if m]
@@ -148,6 +219,9 @@ def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20,
     key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     quelle_wahl = "regel"
     motiv, negativ = None, bool(_NEGATIV_WORTE.search(headline or ""))
+    if motiv_vorgabe in STILE_JE_MOTIV:
+        # Vorschau/Kontaktbogen: Motiv der schon gerenderten Karte uebernehmen, kein Jev-Aufruf
+        motiv, key = motiv_vorgabe, ""
     if key:
         try:
             motiv, conf, p_neg = _jev(headline, summary, key)
@@ -171,6 +245,8 @@ def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20,
     k = {"stil": _stil(motiv, headline), "motiv": motiv, "titel": headline, "einordnung": einordnung,
          "quelle": source, "datum": datum, "dauer": dauer, "badge": badge, "anbieter": anbieter[:1],
          "negativ": negativ, "bildzeile": motiv.upper() if motiv != "netz" else "", "wahl": quelle_wahl}
+    if k["stil"] == "typo":
+        k["typo_worte"] = typo_worte(headline, geld, anbieter, einordnung)
     if geld:
         k.update(geld)
         k["zahl_label"] = "gestoppt" if negativ and motiv == "energie" else ""

@@ -28,6 +28,14 @@ body[data-stil="zeitung"] .kopf{padding-bottom:8px;border-bottom:3px double var(
 body[data-stil="zeitung"] .badge{border-radius:0}
 body[data-stil="zeitung"] .marke{letter-spacing:.24em}
 body[data-stil="zeitung"] .einordnung{border-left:none;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding-top:10px}
+/* Auftrag 6 (28.09.26): neue Stile neon/typo/riso, nur aktiv ueber KARTEN_NEUE_STILE (karten_v2.py) */
+body[data-stil="neon"] .titel{text-shadow:0 0 18px var(--glow2)}
+body[data-stil="neon"] .einordnung{box-shadow:inset 3px 0 0 var(--accent),0 0 24px -8px var(--glow2);border-left-color:transparent}
+body[data-stil="typo"] .titel{font-family:'Space Grotesk','Inter',sans-serif;font-weight:700;letter-spacing:-.01em}
+body[data-stil="typo"] .einordnung{border-left-width:6px}
+body[data-stil="riso"] .titel{text-shadow:1.4px 1px 0 var(--glow2)}
+body[data-stil="riso"] .badge{mix-blend-mode:multiply}
+body[data-stil="riso"] .einordnung{border-left-color:var(--accent);box-shadow:-2px 1px 0 -1px var(--ink)}
 </style>
 </head>
 <body>
@@ -62,9 +70,26 @@ const PAL = {
               main:'#f5f3ea', sub:'rgba(245,243,234,.62)', boxBg:'rgba(242,207,75,.10)', badgeText:'#1f2b26', glow:null},
   // Zeitung (26.09.26): Zeitungsdruck — Off-White-Papier, harte schwarze Striche, Signalrot als Akzent
   zeitung:   {bg:'#eeece2', grid:null, ink:'#161513', dim:'rgba(22,21,19,.45)', accent:'#d81f1f', accent2:'#161513',
-              main:'#141311', sub:'rgba(20,19,17,.6)', boxBg:'rgba(216,31,31,.055)', badgeText:'#f5f0e6', glow:null}
+              main:'#141311', sub:'rgba(20,19,17,.6)', boxBg:'rgba(216,31,31,.055)', badgeText:'#f5f0e6', glow:null},
+  // Auftrag 6 (28.09.26), standardmaessig aus (Schalter KARTEN_NEUE_STILE in karten_v2.py):
+  // Neon: Nachtschwarz, Hersteller-Farbwelt, Partikelstrom, Leuchtstriche mit Bloom
+  neon:      {bg:'#07060d', grid:null, ink:'#f4f1ff', dim:'rgba(244,241,255,.40)', accent:'#b46bff', accent2:'#29e3ff',
+              main:'#f7f5ff', sub:'rgba(247,245,255,.62)', boxBg:'rgba(180,107,255,.10)', badgeText:'#07060d', glow:'rgba(180,107,255,.9)', glow2:'rgba(180,107,255,.35)'},
+  // Typo: kinetische Typografie aus Stichworten der Meldung statt Bildmotiv
+  typo:      {bg:'#101012', grid:null, ink:'#f3f1ea', dim:'rgba(243,241,234,.38)', accent:'#e8ff3a', accent2:'#ff5a36',
+              main:'#f3f1ea', sub:'rgba(243,241,234,.62)', boxBg:'rgba(232,255,58,.07)', badgeText:'#101012', glow:null},
+  // Riso: Zweifarbdruck (Fluo-Pink + Blau) mit Passer-Versatz, Raster und Papierkorn
+  riso:      {bg:'#f3eee2', grid:null, ink:'#1d5fb8', dim:'rgba(29,95,184,.5)', accent:'#ff3d8b', accent2:'#1d5fb8',
+              main:'#1b2433', sub:'rgba(27,36,51,.64)', boxBg:'rgba(255,61,139,.08)', badgeText:'#fff7f0', glow:null, glow2:'rgba(255,61,139,.32)'}
 };
 const P = PAL[K.stil] || PAL.daten;
+// Hersteller-Farbwelt (Auftrag 6): Neon und Typo faerben sich nach dem erkannten Anbieter
+const FARBWELT = {anthropic:['#ff8a5c','#ffd3b0'], openai:['#19c37d','#9af5cf'], google:['#4c8dff','#34d27a'], meta:['#2f86ff','#a66bff'],
+  microsoft:['#1fb0ff','#8fd400'], nvidia:['#8ad100','#e2ff6a'], xai:['#e9e9ef','#8f8fff'], deepseek:['#5a78ff','#9fb6ff'],
+  mistral:['#ff8a0a','#ffd84a'], amazon:['#ff9f1a','#ffd28a']};
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')'}
+if(K.stil==='neon'||K.stil==='typo'){const fw=FARBWELT[((K.anbieter||[])[0]||'').toLowerCase()];
+  if(fw){P.accent=fw[0];P.accent2=fw[1];P.boxBg=rgba(fw[0],K.stil==='neon'?.10:.07);if(K.stil==='neon'){P.glow=rgba(fw[0],.9);P.glow2=rgba(fw[0],.35)}}}
 for (const k in P) if (P[k]) document.documentElement.style.setProperty('--' + k, P[k]);
 if (!document.body.dataset.stil) document.body.dataset.stil = K.stil;
 
@@ -99,8 +124,18 @@ function strich(pts,p,w,farbe,seed){
     ctx.lineWidth=w;ctx.globalAlpha=.82;ctx.setLineDash([r()*4+2,r()*3+1]);pfad((r()-.5)*.8,(r()-.5)*.8);ctx.stroke();
     ctx.setLineDash([]);ctx.globalAlpha=.3;ctx.lineWidth=w*.6;pfad((r()-.5)*1.4,(r()-.5)*1.4);ctx.stroke();
     ctx.globalAlpha=1;ctx.restore()}
+  else if(K.stil==='riso'){ctx.save();ctx.globalCompositeOperation='multiply';
+    // Passer-Versatz: jede Linie zusaetzlich blass in der zweiten Druckfarbe, fest je Karte verschoben
+    ctx.strokeStyle=(farbe===P.accent)?P.ink:P.accent;ctx.globalAlpha=.42;ctx.lineWidth=w*.9;pfad(RISO_DX,RISO_DY);ctx.stroke();
+    ctx.strokeStyle=farbe||P.ink;ctx.globalAlpha=.9;ctx.lineWidth=w;pfad(0,0);ctx.stroke();ctx.restore()}
+  else if(K.stil==='neon'){ctx.save();const f=farbe||P.ink;
+    ctx.shadowColor=(f===P.dim)?P.glow2:(f===P.ink?P.glow:f);ctx.shadowBlur=14;ctx.globalAlpha=.8;ctx.lineWidth=w*1.5;
+    ctx.strokeStyle=(f===P.ink)?P.accent:f;pfad(0,0);ctx.stroke();
+    if(f!==P.dim){ctx.shadowBlur=3;ctx.globalAlpha=.9;ctx.lineWidth=Math.max(.8,w*.5);ctx.strokeStyle='#ffffff';pfad(0,0);ctx.stroke()}
+    ctx.restore()}
   else{ctx.save();if(P.glow){ctx.shadowColor=P.glow;ctx.shadowBlur=6}ctx.lineWidth=w;pfad(0,0);ctx.stroke();ctx.restore()}
 }
+const RISO_DX=1.4+(hash(K.titel||'')%5)*.35, RISO_DY=-1.1+(hash((K.titel||'')+'y')%5)*.3;
 function schrift(txt,x,y,opt){ctx.save();ctx.globalAlpha=opt.a==null?1:opt.a;ctx.fillStyle=opt.farbe||P.ink;ctx.font=opt.font;ctx.textAlign=opt.align||'left';
   if(opt.rot){ctx.translate(x,y);ctx.rotate(opt.rot);ctx.fillText(txt,0,0)}else ctx.fillText(txt,x,y);ctx.restore()}
 // Bemassungslinie (Blaupause): Linie mit Endstrichen + Beschriftung
@@ -126,6 +161,12 @@ function grund(t){
         c.strokeStyle='rgba(255,255,255,'+(.02+r()*.03)+')';c.lineWidth=8+r()*14;c.lineCap='round';
         c.beginPath();c.moveTo(x0,y);c.quadraticCurveTo(x0+len*.5,y+(r()-.5)*24,x0+len,y+(r()-.5)*10);c.stroke()}}
     ctx.drawImage(kreideTex,0,0,W,H);
+  } else if(K.stil==='neon'){
+    neonGrund(t);
+  } else if(K.stil==='typo'){
+    typoGrund(t);
+  } else if(K.stil==='riso'){
+    risoGrund(t);
   } else if(K.stil==='zeitung'){
     if(!zeitungTex){zeitungTex=document.createElement('canvas');zeitungTex.width=W*DPR;zeitungTex.height=H*DPR;const c=zeitungTex.getContext('2d');c.scale(DPR,DPR);
       const g=6;for(let y=0;y<=SH+20;y+=g){for(let x=0;x<=W;x+=g){const off=((Math.round(x/g)+Math.round(y/g))%2)*g/2;
@@ -139,6 +180,91 @@ function grund(t){
     const v=ctx.createLinearGradient(0,SH-60,0,SH+10);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,P.bg);ctx.fillStyle=v;ctx.fillRect(0,SH-60,W,70);
     if(K.stil==='daten'){const y=(t*70)%(SH+40)-20;const s=ctx.createLinearGradient(0,y-12,0,y);s.addColorStop(0,'rgba(0,229,255,0)');s.addColorStop(1,'rgba(0,229,255,.10)');ctx.fillStyle=s;ctx.fillRect(0,y-12,W,12)}
   }
+}
+
+// ── Auftrag 6 (28.09.26): Hintergruende und Szenen der neuen Stile ─────────
+// Alles ist eine reine Funktion von t und festen Samen aus dem Titel: gleiches t = gleiches Bild.
+const SEED=hash(K.titel||'');
+function neonGrund(t){
+  // zwei langsam wandernde Lichtwolken in den Farben des Anbieters
+  [[P.accent,.30,.34,150,0],[P.accent2,.72,.62,130,1.7]].forEach(([c,fx,fy,r,ph])=>{
+    const x=W*fx+Math.sin(t*.35+ph+SEED%7)*40,y=SH*fy+Math.cos(t*.28+ph)*22;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,rgba(c.charAt(0)==='#'?c:'#b46bff',.28));g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,SH+20)});
+  // Perspektiv-Boden (Horizont bei 72 %), Querlinien laufen auf die Kamera zu
+  const hy=SH*.72;ctx.save();ctx.beginPath();ctx.rect(0,hy,W,SH-hy);ctx.clip();ctx.lineWidth=1;
+  for(let i=-8;i<=8;i++){ctx.strokeStyle=rgba('#ffffff',.05);ctx.beginPath();ctx.moveTo(W/2+i*6,hy);ctx.lineTo(W/2+i*70,SH);ctx.stroke()}
+  for(let k=0;k<8;k++){const f=((k+t*.6)%8)/8,y=hy+(SH-hy)*f*f;ctx.strokeStyle=rgba(P.accent.charAt(0)==='#'?P.accent:'#b46bff',.05+.2*f);
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  ctx.restore();
+  // Partikelstrom: jede Bahn ist geschlossen in t (Kurve + Drift), Spur = die letzten Positionen
+  const r=rng(SEED^0x9e37),n=110;ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+  for(let i=0;i<n;i++){const x0=r()*W,y0=r()*SH*.9,v=12+r()*26,a=-.35+r()*.7,amp=6+r()*18,fr=.6+r()*1.4,ph=r()*6.28,sz=.6+r()*1.5,
+      c=r()<.7?P.accent:P.accent2,aufl=clamp((t-r()*1.2)/.8);
+    if(aufl<=0)continue;
+    const pos=tt=>{let x=x0+Math.cos(a)*v*tt,y=y0+Math.sin(a)*v*tt+Math.sin(tt*fr+ph)*amp;x=((x%(W+40))+(W+40))%(W+40)-20;y=((y%SH)+SH)%SH;return[x,y]};
+    ctx.strokeStyle=rgba(c.charAt(0)==='#'?c:'#b46bff',.55*aufl);ctx.lineWidth=sz;ctx.beginPath();let q=pos(t),alt=q;ctx.moveTo(q[0],q[1]);
+    for(let k=1;k<=5;k++){const z=pos(t-k*.07);if(Math.abs(z[0]-alt[0])>30||Math.abs(z[1]-alt[1])>30)break;ctx.lineTo(z[0],z[1]);alt=z}
+    ctx.stroke()}
+  ctx.restore();
+  const v=ctx.createLinearGradient(0,SH-60,0,SH+10);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,P.bg);ctx.fillStyle=v;ctx.fillRect(0,SH-60,W,70);
+}
+// Bloom: die fertige Szene weichgezeichnet additiv darueberlegen
+function neonBloom(){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.55;
+  ctx.filter='blur('+Math.round(9*DPR)+'px)';ctx.drawImage(cv,0,0,cv.width,SH*DPR,0,0,cv.width,SH*DPR);ctx.restore()}
+
+// Typo: Stichworte kommen aus karten_v2.typo_worte (Zahl, Modell, Anbieter, laengste Hauptwoerter)
+function typoWorte(){let w=(K.typo_worte||[]).filter(Boolean);
+  if(!w.length)w=(K.titel||'').split(/[\s\-:,.;!?„“"]+/).filter(x=>x.length>4).sort((a,b)=>b.length-a.length).slice(0,2);
+  return w.slice(0,3).map(x=>x.toUpperCase())}
+const TW=typoWorte();
+function typoGrund(t){
+  // Laufband im Hintergrund: erstes Stichwort riesig als Kontur, zwei Zeilen gegenlaeufig
+  const wort=(TW[0]||'KI-NEWS')+'  ·  ';ctx.save();ctx.font="700 120px 'Space Grotesk'";ctx.lineWidth=1;ctx.strokeStyle=P.dim;ctx.globalAlpha=.35;
+  const bw=ctx.measureText(wort).width||400;
+  [[60,-1],[190,1]].forEach(([y,d])=>{const off=((t*28*d)%bw+bw)%bw;for(let x=-off-bw;x<W+bw;x+=bw)ctx.strokeText(wort,x,y+60)});
+  ctx.restore();
+  const v=ctx.createLinearGradient(0,SH-70,0,SH+10);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,P.bg);ctx.fillStyle=v;ctx.fillRect(0,SH-70,W,80);
+}
+function typoSzene(t){
+  const n=Math.max(1,TW.length),x0=22,maxB=W-44,oben=58,unten=SH-18,zeile=(unten-oben)/n;
+  TW.forEach((w,i)=>{
+    let gr=Math.min(96,zeile*.92);ctx.font="700 "+gr+"px 'Space Grotesk'";const b=ctx.measureText(w).width;if(b>maxB){gr*=maxB/b;ctx.font="700 "+gr+"px 'Space Grotesk'"}
+    const t0=.35+i*.5,p=prog(t,t0,.7),base=oben+zeile*i+zeile/2+gr*.36;if(p<=0)return;
+    // Ziffern rollen wie ein Zaehlwerk, bis sie einrasten
+    let txt=w;if(/\d/.test(w)&&t<t0+1.1){const rr=rng(SEED+i*97+Math.floor(t*18));txt=w.replace(/\d/g,()=>String(Math.floor(rr()*10)))}
+    const dx=Math.sin(t*.5+i*1.3)*6*clamp(t-t0-1);
+    ctx.save();ctx.beginPath();ctx.rect(0,base-gr*1.02,W,gr*1.28);ctx.clip();
+    const y=base+(1-p)*gr*1.1;
+    if(i===2){ctx.lineWidth=2;ctx.strokeStyle=P.ink;ctx.strokeText(txt,x0+dx,y)}
+    else{ctx.fillStyle=i===1?P.accent:P.ink;ctx.fillText(txt,x0+dx,y)}
+    ctx.restore();
+    // Akzentbalken fegt unter dem ersten Wort durch
+    if(i===0){const pb=prog(t,t0+.5,.6);ctx.fillStyle=P.accent;ctx.fillRect(x0,base+gr*.14,Math.min(maxB,ctx.measureText(w).width)*pb,Math.max(3,gr*.07))}
+  });
+  // Laufende Zeilenmarke links
+  const pm=prog(t,.2,.5);ctx.fillStyle=P.accent2;ctx.fillRect(8,oben,3,(unten-oben)*pm);
+}
+
+let risoTex=null;
+function risoGrund(t){
+  if(!risoTex){risoTex=document.createElement('canvas');risoTex.width=W*DPR;risoTex.height=H*DPR;const c=risoTex.getContext('2d');c.scale(DPR,DPR);
+    const r=rng(SEED^0x51);c.fillStyle=P.bg;c.fillRect(0,0,W,H);
+    // Papierkorn in beiden Druckfarben
+    for(let i=0;i<3200;i++){c.fillStyle=(r()<.5?'rgba(29,95,184,':'rgba(255,61,139,')+(r()*.07)+')';c.fillRect(r()*W,r()*H,r()*1.3+.2,r()*1.3+.2)}
+    // Raster-Sonne (Pink) und Rasterband (Blau): Punktgroesse folgt einem Verlauf
+    const sx=W*(.62+(SEED%5)*.05),sy=SH*.42,sr=118;c.globalCompositeOperation='multiply';
+    for(let y=sy-sr;y<=sy+sr;y+=6)for(let x=sx-sr;x<=sx+sr;x+=6){const d=Math.hypot(x-sx,y-sy)/sr;if(d>1)continue;
+      const k=clamp(1-d*.85)*(.35+.65*clamp((y-sy+sr)/(2*sr)));c.fillStyle='#ff3d8b';c.globalAlpha=.85;c.beginPath();c.arc(x+3*((y/6)&1),y,2.9*k,0,Math.PI*2);c.fill()}
+    for(let y=SH*.62;y<=SH;y+=5)for(let x=0;x<=W;x+=5){const k=clamp((y-SH*.62)/(SH*.38));c.fillStyle='#1d5fb8';c.globalAlpha=.55;c.beginPath();c.arc(x+2.5*((y/5)&1)+RISO_DX,y+RISO_DY,1.9*k*(1-k*.35),0,Math.PI*2);c.fill()}
+    c.globalAlpha=1;c.globalCompositeOperation='source-over';
+    const v=c.createLinearGradient(0,SH-40,0,SH+12);v.addColorStop(0,'rgba(243,238,226,0)');v.addColorStop(1,P.bg);c.fillStyle=v;c.fillRect(0,SH-40,W,52);
+    c.fillStyle=P.bg;c.fillRect(0,SH+12,W,H-SH-12);
+    for(let i=0;i<1600;i++){c.fillStyle=(r()<.5?'rgba(29,95,184,':'rgba(255,61,139,')+(r()*.05)+')';c.fillRect(r()*W,SH+12+r()*(H-SH-12),r()*1.2+.2,r()*1.2+.2)}}
+  // Raster erscheint von links nach rechts wie ein Druckdurchgang
+  const p=prog(t,0,1.2);ctx.drawImage(risoTex,0,0,W,H);
+  if(p<1){ctx.fillStyle=P.bg;ctx.fillRect(W*p,0,W*(1-p),SH)}
+  ctx.strokeStyle='rgba(29,95,184,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(20,SH+6);ctx.lineTo(W-20,SH+6);ctx.stroke();
 }
 
 // ── Motive ────────────────────────────────────────────────────────────────
@@ -686,7 +812,9 @@ const spans=[...$('einordText').querySelectorAll('span')];
 
 const D=K.dauer||20, T_EIN=4.4;
 window.KI_RENDER_AT=function(t){
-  ctx.clearRect(0,0,W,H);grund(t);(MOTIVE[K.motiv]||MOTIVE.netz)(t);markeZeichnen(t);
+  ctx.clearRect(0,0,W,H);grund(t);
+  if(K.stil==='typo')typoSzene(t);else{(MOTIVE[K.motiv]||MOTIVE.netz)(t);markeZeichnen(t)}
+  if(K.stil==='neon')neonBloom();
   const a=prog(t,.5,.6);$('titel').style.opacity=a;$('titel').style.transform='translateY('+(1-a)*10+'px)';
   $('quelle').style.opacity=prog(t,1.1,.5);
   const e=prog(t,T_EIN,.5);$('einord').style.opacity=e;$('einord').style.transform='translateY('+(1-e)*12+'px)';
