@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html class="dark" lang="de">
 <head>
-  <meta charset="utf-8">
+    <script src="assets/ki-bilder.js"></script>
+  <script src="assets/ki-logos.js"></script>
+<meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Archiv Atlas | KI News</title>
   <meta name="description" content="Das KI-News-Archiv als interaktiver Atlas mit Kalender-Heatmap, Entitätennetz, Herstellerkarten, Themen, Suche und Filtern.">
@@ -23,7 +25,6 @@
   <script src="assets/ki-icons.js" defer></script>
   <script src="assets/ki-layout.js" defer></script>
   <script src="assets/ki-embed.js" defer></script>
-  <link rel="stylesheet" href="assets/registry-panel.css">
   <meta name="twitter:title" content="Archiv Atlas | KI News">
   <meta name="twitter:image" content="https://ki-news.live/s-logo.png">
   <script type="application/ld+json">
@@ -1846,62 +1847,15 @@
         </div>
       </section>
 
-      <!-- 🧩 Modell-Registry (aus registry/registry.json) ─────────────────── -->
-      <section id="registry-panel" class="px-panel px-registry" aria-label="Modell-Registry">
-        <button onclick="toggleRegistryPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-[#1d9bf0] text-base">smart_toy</span>
-            <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🧩 Modell-Registry</span>
-            <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="registry-count">Registry wird geladen …</span>
-          </div>
-          <span class="material-symbols-outlined text-gray-600 text-sm" id="registry-panel-icon">expand_less</span>
-        </button>
-        <div id="registry-panel-body" style="padding:0 20px 20px">
-          <div class="rg-tabs" role="tablist">
-            <button class="rg-tab on" id="rg-tab-mod" role="tab" aria-selected="true" aria-controls="rg-view-mod">Modelle</button>
-            <button class="rg-tab" id="rg-tab-art" role="tab" aria-selected="false" aria-controls="rg-view-art">Artikel</button>
-            <span class="rg-cnt" id="rg-cnt"></span>
-          </div>
-
-          <!-- Ansicht 1: Anbieter → Familie → Modell -->
-          <div id="rg-view-mod" role="tabpanel" aria-labelledby="rg-tab-mod" tabindex="-1">
-          <p class="text-[11px] text-gray-500 font-mono mb-3">Anbieter → Familie → Modell. Gezeigt wird, was im letzten Jahr ein Release hatte.</p>
-          <div class="rg-bar">
-            <input class="rg-inp" id="rg-q" placeholder="Anbieter oder Modell suchen …" aria-label="Registry durchsuchen">
-            <select class="rg-inp" id="rg-kat" aria-label="Art des Modells">
-              <option value="">Art: alle</option>
-              <option value="text">nur Sprachmodelle</option>
-              <option value="bild">nur Bild</option>
-              <option value="video">nur Video</option>
-              <option value="audio">nur Audio</option>
-            </select>
-            <select class="rg-inp" id="rg-sort" aria-label="Sortierung">
-              <option value="modelle">nach Modellzahl</option>
-              <option value="release">nach neuestem Release</option>
-              <option value="name">alphabetisch</option>
-              <option value="artikel">nach Artikeln</option>
-            </select>
-          </div>
-          <p class="rg-leer" id="rg-status"></p>
-          <div class="rg-grid" id="rg-grid"></div>
-          <button class="rg-mehr" id="rg-mehr-anb" hidden></button>
-          <div id="rg-detail"></div>
-          </div>
-
-          <!-- Ansicht 2: Artikel nach Facetten -->
-          <div id="rg-view-art" role="tabpanel" aria-labelledby="rg-tab-art" tabindex="-1" hidden>
-          <p class="text-[11px] text-gray-500 font-mono mb-3">Zwei Achsen: Anbieter und Modell sagen <em>wer</em>, die Facetten sagen <em>worüber</em>.</p>
-          <div class="rg-bar">
-            <input class="rg-inp" id="rg-aq" placeholder="Artikel durchsuchen …" aria-label="Artikel durchsuchen">
-            <select class="rg-inp" id="rg-f-re" aria-label="Ressort"><option value="">Ressort: alle</option></select>
-            <select class="rg-inp" id="rg-f-tf" aria-label="Themenfeld"><option value="">Thema: alle</option></select>
-            <select class="rg-inp" id="rg-f-rg" aria-label="Region"><option value="">Region: alle</option></select>
-            <select class="rg-inp" id="rg-f-ev" aria-label="Ereignistyp"><option value="">Ereignis: alle</option></select>
-            <span class="rg-cnt" id="rg-acnt"></span>
-          </div>
-          <div id="rg-liste"></div>
-          </div>
-        </div>
+      <!-- Modell-Registry: seit 28.09.26 auf modelle.html zusammen mit der KI-Landkarte -->
+      <section class="px-panel" aria-label="Modell-Registry" style="padding:18px 20px">
+        <a href="modelle.html" style="display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:inherit">
+          <span>
+            <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">Modell-Registry &amp; KI-Landkarte</span><br>
+            <span style="font-size:14px;opacity:.8">Alle Modelle je Hersteller, Veröffentlichungsdaten und die Landkarte der Zusammenhänge</span>
+          </span>
+          <span style="font:700 13px 'Space Grotesk',sans-serif;white-space:nowrap">Zu den Modellen &rarr;</span>
+        </a>
       </section>
 
       <section class="px-media" aria-labelledby="px-media-title">
@@ -3639,7 +3593,6 @@
     document.addEventListener("DOMContentLoaded", pxSyncControls);
   </script>
 
-  <script src="assets/registry-panel.js" defer></script>
   <script>
   /* Einbau Archiv (28.09.26): Funktionen des alten Archivs, die site.html nicht hatte.
      - Suche wird in die Artikel-Suche der Modell-Registry gespiegelt (ohne Scrollen).

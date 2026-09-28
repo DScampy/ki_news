@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html class="dark" lang="de">
 <head>
+  <script src="assets/ki-bilder.js"></script>
+  <script src="assets/ki-logos.js"></script>
 <meta charset="utf-8"/>
 <link rel="icon" type="image/png" href="s-logo.png"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -4207,6 +4209,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
       function createExternalTitle(tag, item, className) {
         const title = create(tag, className);
+        const logo = window.kiLogoEl ? window.kiLogoEl(item.title, 18) : null;
+        if (logo) { logo.style.marginRight = "6px"; logo.style.verticalAlign = "-3px"; title.appendChild(logo); }
 
         if (item.link) {
           const link = create("a", "", item.title);
@@ -4938,7 +4942,24 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       }
 
       function buildNewsModel(payload) {
-        newsItems = prepareNews(extractNews(payload));
+        // 28.09.26: eine Zeile je Story (story_id), die staerkste Meldung vertritt sie.
+        // Vorher standen 3x "OpenAI-Agent hackte australische Regierungswebsite" untereinander.
+        const rohNews = extractNews(payload);
+        const jeStory = new Map();
+        (Array.isArray(rohNews) ? rohNews : []).forEach((n) => {
+          const sid = n && n.story_id;
+          if (!sid) { jeStory.set(Symbol(), [n]); return; }
+          if (!jeStory.has(sid)) jeStory.set(sid, []);
+          jeStory.get(sid).push(n);
+        });
+        const entdoppelt = [];
+        jeStory.forEach((liste) => {
+          liste.sort((a, b) => (Number(b && b.score) || 0) - (Number(a && a.score) || 0));
+          const kopf = Object.assign({}, liste[0]);
+          if (liste.length > 1 && kopf.source) kopf.source = kopf.source + " +" + (liste.length - 1) + " Quellen";
+          entdoppelt.push(kopf);
+        });
+        newsItems = prepareNews(Array.isArray(rohNews) ? entdoppelt : rohNews);
         newsGroups = new Map();
 
         shownNews = window.matchMedia("(max-width: 700px)").matches

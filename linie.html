@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html class="dark" lang="de">
 <head>
-  <meta charset="utf-8">
+    <script src="assets/ki-bilder.js"></script>
+  <script src="assets/ki-logos.js"></script>
+<meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Dossier-Lesesicht von KI News">
   <meta name="author" content="Daniel S. · @ScampyKI">
@@ -1234,7 +1236,7 @@
   <div class="px-ambient" aria-hidden="true"></div>
 
   <nav class="px-reader-chrome" aria-label="Dossier-Navigation">
-    <a class="px-back-link" href="linie.html">Zurück zur Übersicht</a>
+    <a class="px-back-link" href="dossiers.html">Zurück zur Übersicht</a>
     <div class="px-chapter-strip" id="px-chapter-strip" aria-label="Kapitel"></div>
     <span class="px-reader-count" id="px-reader-count">00 / 00</span>
     <span class="px-reader-progress" id="px-reader-progress" aria-hidden="true"></span>
@@ -1484,7 +1486,8 @@
           }
         });
 
-        return bestScore >= 2.5 ? best : null;
+        // 28.09.26: nur gleicher Link oder deutlich gleicher Titel (vorher reichte ~1/8 Wortueberlapp)
+        return bestScore >= 12 ? best : null;
       }
 
       function formatDuration(value) {
@@ -1749,7 +1752,7 @@
         var back = make("a", "px-end-button", "Zurück zur Linien-Übersicht");
         var top = make("button", "px-end-button", "Wieder nach oben");
 
-        back.href = "linie.html";
+        back.href = "dossiers.html";
         top.type = "button";
         top.addEventListener("click", function () {
           window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });

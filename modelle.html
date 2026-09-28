@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html class="dark" lang="de">
 <head>
-  <meta charset="utf-8">
+    <script src="assets/ki-bilder.js"></script>
+  <script src="assets/ki-logos.js"></script>
+<meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Modell-Registry | KI News</title>
   <meta name="description" content="Die KI-Modell-Registry von KI News mit Herstellern, Familien, Veröffentlichungsdaten, Kontext und Modellart.">
@@ -1366,6 +1368,14 @@
     #px-makers > .px-maker:not(.px-zu) { grid-column: 1 / -1; }
     #px-makers > .px-maker.px-zu { content-visibility: visible; }
   </style>
+  <link rel="stylesheet" href="assets/registry-panel.css">
+  <style>
+    #registry-panel { padding: 0; overflow: hidden; }
+    #registry-panel > button { background: transparent; border: 0; color: inherit; cursor: pointer; }
+    #registry-panel .text-\[\#1d9bf0\] { color: var(--px-cyan, #00d4ff); }
+    html.light #registry-panel .text-gray-500, html.light #registry-panel .text-gray-600 { color: #64748b; }
+    html.light #registry-panel .border-\[\#2f3336\] { border-color: rgba(0, 150, 190, .22); }
+  </style>
 </head>
 
 <body class="px-body">
@@ -1533,6 +1543,67 @@
           </button>
         </section>
       </section>
+      <!-- 28.09.26 aus Archiv.html hierher: Meldungen je Modell/Anbieter (registry-panel.js) -->
+      <div style="margin-top:28px">
+      <!-- 🧩 Modell-Registry (aus registry/registry.json) ─────────────────── -->
+      <section id="registry-panel" class="px-panel" aria-label="Modell-Registry">
+        <button onclick="toggleRegistryPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#1d9bf0] text-base">smart_toy</span>
+            <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🧩 Modell-Registry</span>
+            <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="registry-count">Registry wird geladen …</span>
+          </div>
+          <span class="material-symbols-outlined text-gray-600 text-sm" id="registry-panel-icon">expand_less</span>
+        </button>
+        <div id="registry-panel-body" style="padding:0 20px 20px">
+          <div class="rg-tabs" role="tablist">
+            <button class="rg-tab on" id="rg-tab-mod" role="tab" aria-selected="true" aria-controls="rg-view-mod">Modelle</button>
+            <button class="rg-tab" id="rg-tab-art" role="tab" aria-selected="false" aria-controls="rg-view-art">Artikel</button>
+            <span class="rg-cnt" id="rg-cnt"></span>
+          </div>
+
+          <!-- Ansicht 1: Anbieter → Familie → Modell -->
+          <div id="rg-view-mod" role="tabpanel" aria-labelledby="rg-tab-mod" tabindex="-1">
+          <p class="text-[11px] text-gray-500 font-mono mb-3">Anbieter → Familie → Modell. Gezeigt wird, was im letzten Jahr ein Release hatte.</p>
+          <div class="rg-bar">
+            <input class="rg-inp" id="rg-q" placeholder="Anbieter oder Modell suchen …" aria-label="Registry durchsuchen">
+            <select class="rg-inp" id="rg-kat" aria-label="Art des Modells">
+              <option value="">Art: alle</option>
+              <option value="text">nur Sprachmodelle</option>
+              <option value="bild">nur Bild</option>
+              <option value="video">nur Video</option>
+              <option value="audio">nur Audio</option>
+            </select>
+            <select class="rg-inp" id="rg-sort" aria-label="Sortierung">
+              <option value="modelle">nach Modellzahl</option>
+              <option value="release">nach neuestem Release</option>
+              <option value="name">alphabetisch</option>
+              <option value="artikel">nach Artikeln</option>
+            </select>
+          </div>
+          <p class="rg-leer" id="rg-status"></p>
+          <div class="rg-grid" id="rg-grid"></div>
+          <button class="rg-mehr" id="rg-mehr-anb" hidden></button>
+          <div id="rg-detail"></div>
+          </div>
+
+          <!-- Ansicht 2: Artikel nach Facetten -->
+          <div id="rg-view-art" role="tabpanel" aria-labelledby="rg-tab-art" tabindex="-1" hidden>
+          <p class="text-[11px] text-gray-500 font-mono mb-3">Zwei Achsen: Anbieter und Modell sagen <em>wer</em>, die Facetten sagen <em>worüber</em>.</p>
+          <div class="rg-bar">
+            <input class="rg-inp" id="rg-aq" placeholder="Artikel durchsuchen …" aria-label="Artikel durchsuchen">
+            <select class="rg-inp" id="rg-f-re" aria-label="Ressort"><option value="">Ressort: alle</option></select>
+            <select class="rg-inp" id="rg-f-tf" aria-label="Themenfeld"><option value="">Thema: alle</option></select>
+            <select class="rg-inp" id="rg-f-rg" aria-label="Region"><option value="">Region: alle</option></select>
+            <select class="rg-inp" id="rg-f-ev" aria-label="Ereignistyp"><option value="">Ereignis: alle</option></select>
+            <span class="rg-cnt" id="rg-acnt"></span>
+          </div>
+          <div id="rg-liste"></div>
+          </div>
+        </div>
+      </section>
+      </div>
+
 
       <footer class="px-footer">
         <div>
@@ -2311,6 +2382,13 @@
         const headingId = `px-maker-heading-${sectionIndex}`;
         const header = create("header", "px-maker-head");
         const orb = create("span", "px-maker-orb", providerInitials(provider));
+        const logoUrl = window.kiLogoUrl ? window.kiLogoUrl(provider) : "";
+        if (logoUrl) {
+          const li = document.createElement("img");
+          li.src = logoUrl; li.alt = ""; li.width = 20; li.height = 20;
+          li.addEventListener("error", () => { orb.textContent = providerInitials(provider); }, { once: true });
+          orb.textContent = ""; orb.style.background = "#fff"; orb.appendChild(li);
+        }
         const titleWrap = create("div", "px-maker-title-wrap");
         const latest = newestDate(models);
         const title = create("h2", "", provider);
@@ -2634,16 +2712,13 @@
       const frame = document.getElementById("px-karte-frame");
       const hinweis = document.getElementById("px-karte-hinweis");
       const norm = v => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      // 28.09.26: feste Hoehe. Das Mitwachsen per ResizeObserver schaukelte sich auf
+      // (Landkarte rechnet mit der Rahmenhoehe) und schob die Registry laufend nach unten.
       function hoehe() {
-        try {
-          const d = frame.contentDocument && frame.contentDocument.documentElement;
-          if (d && d.scrollHeight > 200) frame.style.height = Math.min(d.scrollHeight + 4, 2400) + "px";
-        } catch (e) {}
+        frame.style.height = (window.matchMedia("(max-width: 760px)").matches ? 980 : 860) + "px";
       }
-      frame.addEventListener("load", () => {
-        hoehe();
-        try { new ResizeObserver(hoehe).observe(frame.contentDocument.body); } catch (e) {}
-      });
+      hoehe();
+      window.addEventListener("resize", hoehe);
       window.addEventListener("message", ev => {
         if (ev.origin !== location.origin || !ev.data || !ev.data.kiLandkarte) return;
         const d = ev.data.kiLandkarte;
@@ -2666,5 +2741,6 @@
       });
     })();
   </script>
+  <script src="assets/registry-panel.js" defer></script>
 </body>
 </html>
