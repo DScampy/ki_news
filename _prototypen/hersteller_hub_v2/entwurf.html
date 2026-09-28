@@ -1,0 +1,3253 @@
+<!doctype html>
+<html lang="de" data-theme="light" data-manufacturer-live="false">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Hersteller-Hub von KI NEWS mit Modell-Releases, Originalbeiträgen und passenden Meldungen.">
+  <meta name="color-scheme" content="dark light">
+  <title>Hersteller-Hub | KI NEWS</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-cyan: #00d4ff;
+      --px-blue: #2487ff;
+      --px-violet: #8b5cf6;
+      --px-green: #00e6a7;
+      --px-orange: #ff8a3d;
+      --px-red: #ff5c75;
+      --px-neon-rgb: 0, 212, 255;
+      --px-bg: #f1f6fa;
+      --px-bg-deep: #e9f2f8;
+      --px-panel: rgba(255, 255, 255, .92);
+      --px-panel-solid: #fff;
+      --px-panel-soft: #f7f9fc;
+      --px-text: #101827;
+      --px-muted: #607087;
+      --px-line: rgba(18, 33, 55, .14);
+      --px-header: rgba(248, 251, 253, .94);
+      --px-shadow: 0 22px 65px rgba(16, 29, 48, .12);
+      --px-radius: 12px;
+    }
+
+    html[data-theme="dark"] {
+      --px-bg: #05080d;
+      --px-bg-deep: #080e16;
+      --px-panel: rgba(14, 23, 35, .94);
+      --px-panel-solid: #101925;
+      --px-panel-soft: #0b121c;
+      --px-text: #eff6fc;
+      --px-muted: #91a3b8;
+      --px-line: rgba(157, 186, 215, .16);
+      --px-header: rgba(6, 10, 16, .94);
+      --px-shadow: 0 25px 80px rgba(0, 0, 0, .38);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 0;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      scroll-padding-top: 76px;
+    }
+
+    body {
+      min-width: 0;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 92% 3%, rgba(var(--px-neon-rgb), .1), transparent 29rem),
+        radial-gradient(circle at 2% 36%, rgba(139, 92, 246, .08), transparent 26rem),
+        var(--px-bg);
+      color: var(--px-text);
+      font-family: "Work Sans", system-ui, sans-serif;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body,
+    a,
+    button,
+    input {
+      transition:
+        color .2s ease,
+        background-color .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease,
+        opacity .2s ease,
+        transform .2s ease;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input {
+      color: inherit;
+      font: inherit;
+    }
+
+    button,
+    a,
+    input {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    img,
+    video,
+    iframe,
+    svg {
+      max-width: 100%;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--px-cyan);
+      outline-offset: 3px;
+    }
+
+    ::selection {
+      background: var(--px-cyan);
+      color: #001117;
+    }
+
+    .px-skip-link {
+      position: fixed;
+      z-index: 10000;
+      top: 10px;
+      left: 10px;
+      padding: 9px 13px;
+      border-radius: 9px;
+      background: #071018;
+      color: #fff;
+      transform: translateY(-170%);
+    }
+
+    .px-skip-link:focus {
+      transform: translateY(0);
+    }
+
+    .px-shell {
+      width: min(1440px, calc(100% - 48px));
+      min-width: 0;
+      margin-inline: auto;
+    }
+
+    .px-header {
+      position: sticky;
+      z-index: 1000;
+      top: 0;
+      width: 100%;
+      min-width: 0;
+      border-bottom: 1px solid var(--px-line);
+      background: var(--px-header);
+      backdrop-filter: blur(18px);
+    }
+
+    .px-header-main {
+      display: flex;
+      min-width: 0;
+      min-height: 62px;
+      align-items: center;
+      gap: 26px;
+    }
+
+    .px-brand {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 9px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      white-space: nowrap;
+    }
+
+    .px-brand-mark {
+      display: inline-grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 10px;
+      background: #071018;
+      color: var(--px-cyan);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+    }
+
+    .px-brand-name {
+      color: var(--px-text);
+    }
+
+    .px-brand-country {
+      color: var(--px-muted);
+      font-size: .57rem;
+      font-weight: 800;
+    }
+
+    .px-nav {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      align-items: center;
+      gap: clamp(13px, 2vw, 24px);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .px-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .px-nav a {
+      position: relative;
+      flex: 0 0 auto;
+      padding-block: 19px;
+      color: #62708a;
+      font-size: .84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    html[data-theme="dark"] .px-nav a {
+      color: #93a3b8;
+    }
+
+    .px-nav a:hover,
+    .px-nav a[aria-current="page"] {
+      color: var(--px-cyan);
+    }
+
+    .px-nav a[aria-current="page"]::after {
+      position: absolute;
+      right: 0;
+      bottom: 10px;
+      left: 0;
+      height: 2px;
+      background: var(--px-cyan);
+      content: "";
+    }
+
+    .px-theme-button {
+      display: inline-grid;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      place-items: center;
+      padding: 0;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      background: var(--px-panel-solid);
+      color: var(--px-text);
+      cursor: pointer;
+    }
+
+    .px-theme-button:hover {
+      border-color: var(--px-cyan);
+      box-shadow: 0 0 20px rgba(var(--px-neon-rgb), .09);
+    }
+
+    .px-main,
+    .px-section {
+      min-width: 0;
+    }
+
+    .px-hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      border-bottom: 1px solid var(--px-line);
+      background:
+        linear-gradient(180deg, rgba(var(--px-neon-rgb), .025), transparent 76%),
+        var(--px-bg-deep);
+    }
+
+    .px-hero::before {
+      position: absolute;
+      z-index: -2;
+      inset: 0;
+      background:
+        linear-gradient(rgba(var(--px-neon-rgb), .052) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--px-neon-rgb), .052) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(to bottom, #000, rgba(0, 0, 0, .64) 78%, transparent);
+      content: "";
+    }
+
+    .px-hero::after {
+      position: absolute;
+      z-index: -1;
+      top: -20rem;
+      right: -13rem;
+      width: 46rem;
+      height: 46rem;
+      border-radius: 50%;
+      background: rgba(139, 92, 246, .13);
+      content: "";
+    }
+
+    .px-hero-grid {
+      display: grid;
+      min-width: 0;
+      min-height: 480px;
+      align-items: center;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+      gap: clamp(30px, 5vw, 72px);
+      padding-block: 40px;
+    }
+
+    .px-hero-copy {
+      min-width: 0;
+    }
+
+    .px-eyebrow,
+    .px-kicker,
+    .px-stat-label,
+    .px-data-status,
+    .px-data-stamp,
+    .px-ribbon-label,
+    .px-maker-number,
+    .px-maker-count,
+    .px-tag,
+    .px-meta,
+    .px-release-date,
+    .px-news-source,
+    .px-button,
+    .px-search-label,
+    .px-video-label,
+    .px-method-path,
+    .px-footer {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-eyebrow {
+      display: flex;
+      max-width: 650px;
+      align-items: center;
+      gap: 12px;
+      color: var(--px-cyan);
+      font-size: .61rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .px-eyebrow-rule {
+      height: 1px;
+      flex: 1;
+      background: linear-gradient(90deg, var(--px-cyan), transparent);
+    }
+
+    .px-hero h1 {
+      max-width: 840px;
+      margin: 15px 0;
+      overflow-wrap: anywhere;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(3rem, 5.25vw, 5.55rem);
+      font-weight: 760;
+      letter-spacing: -.07em;
+      line-height: .92;
+    }
+
+    .px-hero h1 span {
+      display: block;
+      background: linear-gradient(102deg, var(--px-cyan) 7%, var(--px-blue) 88%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .px-lead {
+      max-width: 700px;
+      margin: 0;
+      color: var(--px-muted);
+      font-size: clamp(.98rem, 1.25vw, 1.1rem);
+      line-height: 1.56;
+    }
+
+    .px-hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 23px;
+    }
+
+    .px-button {
+      display: inline-flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      background: var(--px-panel);
+      color: var(--px-text);
+      cursor: pointer;
+      font-size: .62rem;
+      font-weight: 800;
+    }
+
+    .px-button-primary {
+      border-color: rgba(var(--px-neon-rgb), .46);
+      background: rgba(var(--px-neon-rgb), .1);
+      box-shadow: 0 0 24px rgba(var(--px-neon-rgb), .07);
+    }
+
+    .px-button:hover {
+      border-color: var(--px-cyan);
+      transform: translateY(-2px);
+    }
+
+    .px-hero-stats {
+      display: flex;
+      max-width: 630px;
+      gap: clamp(24px, 5vw, 68px);
+      margin-top: 27px;
+    }
+
+    .px-stat {
+      display: grid;
+      min-width: 0;
+      gap: 4px;
+    }
+
+    .px-stat strong {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.78rem;
+      line-height: 1;
+    }
+
+    .px-stat-label {
+      color: var(--px-muted);
+      font-size: .51rem;
+      letter-spacing: .08em;
+    }
+
+    .px-radar {
+      position: relative;
+      width: min(100%, 405px);
+      min-width: 0;
+      aspect-ratio: 1;
+      margin-inline: auto;
+    }
+
+    .px-radar::before {
+      position: absolute;
+      inset: 9%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(var(--px-neon-rgb), .2), transparent 67%);
+      content: "";
+    }
+
+    .px-radar svg {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .px-radar-ring {
+      transform-origin: 220px 220px;
+      animation: px-spin 27s linear infinite;
+    }
+
+    .px-radar-ring-reverse {
+      transform-origin: 220px 220px;
+      animation: px-spin-reverse 19s linear infinite;
+    }
+
+    .px-radar-sweep {
+      transform-origin: 220px 220px;
+      animation: px-spin 8s linear infinite;
+    }
+
+    .px-radar-core {
+      transform-origin: 220px 220px;
+      animation: px-float 4.8s ease-in-out infinite;
+    }
+
+    .px-radar-node {
+      animation: px-node 2.3s ease-in-out infinite;
+    }
+
+    .px-radar-node:nth-of-type(2n) {
+      animation-delay: -.8s;
+    }
+
+    .px-data-bar {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 18px;
+      padding-block: 11px;
+      border-bottom: 1px solid var(--px-line);
+      background: var(--px-panel-soft);
+    }
+
+    .px-data-status {
+      display: flex;
+      min-width: 0;
+      min-height: 34px;
+      align-items: center;
+      gap: 9px;
+      color: var(--px-muted);
+      font-size: .57rem;
+      line-height: 1.5;
+    }
+
+    .px-status-light {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--px-green);
+      box-shadow: 0 0 12px var(--px-green);
+      animation: px-pulse 1.8s ease-in-out infinite;
+    }
+
+    .px-data-bar-partial .px-status-light {
+      background: var(--px-orange);
+      box-shadow: 0 0 12px var(--px-orange);
+    }
+
+    .px-data-bar-error .px-status-light {
+      background: var(--px-red);
+      box-shadow: 0 0 12px var(--px-red);
+    }
+
+    .px-data-stamp {
+      color: var(--px-muted);
+      font-size: .51rem;
+      white-space: nowrap;
+    }
+
+    .px-release-ribbon {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: auto minmax(0, 1fr);
+      border-bottom: 1px solid rgba(var(--px-neon-rgb), .22);
+      background: rgba(var(--px-neon-rgb), .045);
+    }
+
+    .px-ribbon-label {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 9px;
+      padding: 13px 19px;
+      border-right: 1px solid rgba(var(--px-neon-rgb), .22);
+      background: var(--px-bg-deep);
+      color: var(--px-cyan);
+      font-size: .54rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      white-space: nowrap;
+    }
+
+    .px-ribbon-label .px-status-light {
+      width: 6px;
+      height: 6px;
+    }
+
+    .px-release-track {
+      display: flex;
+      min-width: 0;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: none;
+    }
+
+    .px-release-track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .px-ribbon-item {
+      display: flex;
+      min-width: 295px;
+      min-height: 47px;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 21px;
+      border-right: 1px solid var(--px-line);
+      font-size: .7rem;
+    }
+
+    .px-ribbon-item span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-ribbon-item span:last-child {
+      flex: 0 0 auto;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .47rem;
+    }
+
+    a.px-ribbon-item:hover {
+      color: var(--px-cyan);
+    }
+
+    .px-workspace {
+      min-width: 0;
+      padding-block: 58px 80px;
+    }
+
+    .px-section-heading {
+      display: flex;
+      min-width: 0;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 25px;
+    }
+
+    .px-kicker {
+      display: block;
+      color: var(--px-cyan);
+      font-size: .57rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .px-section-heading h2,
+    .px-method h2 {
+      margin: 7px 0 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2rem, 3.7vw, 3.15rem);
+      letter-spacing: -.05em;
+      line-height: 1.03;
+    }
+
+    .px-section-summary {
+      max-width: 535px;
+      margin: 0 0 4px;
+      color: var(--px-muted);
+      font-size: .73rem;
+      text-align: right;
+    }
+
+    .px-hub-grid {
+      display: grid;
+      min-width: 0;
+      align-items: start;
+      grid-template-columns: 264px minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .px-maker-rail {
+      position: sticky;
+      top: 78px;
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-rail-label {
+      display: block;
+      padding: 7px 9px 11px;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .5rem;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .px-maker-list {
+      display: grid;
+      min-width: 0;
+      gap: 5px;
+    }
+
+    .px-maker-button {
+      position: relative;
+      display: grid;
+      min-width: 0;
+      grid-template-columns: 32px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      padding: 9px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .px-maker-button::before {
+      position: absolute;
+      top: 8px;
+      bottom: 8px;
+      left: -11px;
+      width: 2px;
+      border-radius: 999px;
+      background: transparent;
+      content: "";
+    }
+
+    .px-maker-button:hover {
+      background: var(--px-panel-soft);
+    }
+
+    .px-maker-button.px-maker-selected {
+      border-color: rgba(var(--px-neon-rgb), .27);
+      background: rgba(var(--px-neon-rgb), .085);
+      box-shadow: 0 0 24px rgba(var(--px-neon-rgb), .05);
+    }
+
+    .px-maker-button.px-maker-selected::before {
+      background: var(--px-cyan);
+      box-shadow: 0 0 10px var(--px-cyan);
+    }
+
+    .px-maker-monogram {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border: 1px solid var(--maker-accent, var(--px-cyan));
+      border-radius: 9px;
+      background: var(--px-panel-solid);
+      color: var(--maker-accent, var(--px-cyan));
+      font-family: "Space Grotesk", sans-serif;
+      font-size: .65rem;
+      font-weight: 800;
+    }
+
+    .px-maker-copy {
+      min-width: 0;
+    }
+
+    .px-maker-copy strong {
+      display: block;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: .79rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-maker-number {
+      display: block;
+      margin-top: 1px;
+      color: var(--px-muted);
+      font-size: .43rem;
+      letter-spacing: .07em;
+    }
+
+    .px-maker-count {
+      min-width: 20px;
+      color: var(--px-muted);
+      font-size: .49rem;
+      text-align: right;
+    }
+
+    .px-detail-shell {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+      box-shadow:
+        0 0 35px rgba(var(--px-neon-rgb), .04),
+        inset 0 1px 0 rgba(255, 255, 255, .04);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-detail-head {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      padding: clamp(20px, 3vw, 30px);
+      border-bottom: 1px solid var(--px-line);
+      background:
+        linear-gradient(135deg, rgba(var(--px-neon-rgb), .075), transparent 52%),
+        linear-gradient(315deg, rgba(139, 92, 246, .08), transparent 44%),
+        var(--px-panel-soft);
+    }
+
+    .px-detail-head::after {
+      position: absolute;
+      right: -7rem;
+      bottom: -11rem;
+      width: 25rem;
+      height: 25rem;
+      border: 1px solid rgba(var(--px-neon-rgb), .12);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 45px rgba(var(--px-neon-rgb), .025),
+        0 0 0 90px rgba(139, 92, 246, .018);
+      content: "";
+      pointer-events: none;
+    }
+
+    .px-detail-intro {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      min-width: 0;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: start;
+      gap: 17px;
+    }
+
+    .px-detail-logo {
+      display: grid;
+      width: 58px;
+      height: 58px;
+      place-items: center;
+      border: 1px solid var(--maker-accent, var(--px-cyan));
+      border-radius: 15px;
+      background: var(--px-panel-solid);
+      color: var(--maker-accent, var(--px-cyan));
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.03rem;
+      font-weight: 800;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, .12);
+    }
+
+    .px-detail-title {
+      min-width: 0;
+    }
+
+    .px-detail-index {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--px-cyan);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .5rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .px-detail-title h3 {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.65rem, 2.7vw, 2.45rem);
+      letter-spacing: -.05em;
+      line-height: 1;
+    }
+
+    .px-detail-title p {
+      max-width: 760px;
+      margin: 9px 0 0;
+      color: var(--px-muted);
+      font-size: .75rem;
+      line-height: 1.53;
+    }
+
+    .px-detail-actions,
+    .px-detail-stats {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 17px;
+    }
+
+    .px-detail-stats {
+      margin-top: 10px;
+    }
+
+    .px-tag {
+      display: inline-flex;
+      min-height: 27px;
+      align-items: center;
+      padding: 5px 9px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      background: var(--px-panel-solid);
+      color: var(--px-muted);
+      font-size: .48rem;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .px-toolbar {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+      align-items: center;
+      gap: 18px;
+      padding: 15px 22px;
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-toolbar-copy {
+      min-width: 0;
+    }
+
+    .px-toolbar-copy strong {
+      display: block;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: .89rem;
+    }
+
+    .px-toolbar-copy span {
+      display: block;
+      margin-top: 2px;
+      color: var(--px-muted);
+      font-size: .63rem;
+    }
+
+    .px-search-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .px-search-label {
+      position: absolute;
+      top: 50%;
+      left: 13px;
+      color: var(--px-cyan);
+      font-size: .57rem;
+      font-weight: 800;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .px-search-input {
+      width: 100%;
+      min-width: 0;
+      height: 40px;
+      padding: 8px 12px 8px 39px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      outline: 0;
+      background: var(--px-panel-solid);
+      color: var(--px-text);
+      font-size: .7rem;
+    }
+
+    .px-search-input::placeholder {
+      color: var(--px-muted);
+      opacity: .8;
+    }
+
+    .px-search-input:focus {
+      border-color: rgba(var(--px-neon-rgb), .55);
+      box-shadow: 0 0 0 3px rgba(var(--px-neon-rgb), .08);
+    }
+
+    .px-detail-section {
+      min-width: 0;
+      padding: clamp(19px, 3vw, 29px);
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-detail-section:last-child {
+      border-bottom: 0;
+    }
+
+    .px-block-heading {
+      display: flex;
+      min-width: 0;
+      align-items: end;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .px-block-heading h4 {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: -.025em;
+    }
+
+    .px-block-heading p {
+      flex: 0 0 auto;
+      margin: 0;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .49rem;
+    }
+
+    .px-release-grid,
+    .px-news-grid {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .px-release-card,
+    .px-news-card {
+      position: relative;
+      min-width: 0;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      background: var(--px-panel-solid);
+    }
+
+    .px-release-card {
+      display: grid;
+      gap: 9px;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .px-release-card::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--maker-accent, var(--px-cyan)), transparent 75%);
+      content: "";
+    }
+
+    .px-release-card:hover,
+    a.px-news-card:hover {
+      border-color: rgba(var(--px-neon-rgb), .31);
+      box-shadow: 0 0 25px rgba(var(--px-neon-rgb), .045);
+      transform: translateY(-2px);
+    }
+
+    .px-release-top {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .px-release-date {
+      color: var(--maker-accent, var(--px-cyan));
+      font-size: .5rem;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-latest-pill {
+      display: inline-flex;
+      min-height: 22px;
+      align-items: center;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(var(--px-neon-rgb), .1);
+      color: var(--px-cyan);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .44rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .px-release-card h5,
+    .px-news-card h5 {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: -.018em;
+      line-height: 1.3;
+    }
+
+    .px-release-card h5 {
+      font-size: 1rem;
+    }
+
+    .px-meta {
+      margin: 0;
+      color: var(--maker-accent, var(--px-cyan));
+      font-size: .48rem;
+    }
+
+    .px-release-text,
+    .px-news-summary {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      -webkit-box-orient: vertical;
+    }
+
+    .px-release-text {
+      font-size: .7rem;
+      line-height: 1.5;
+      -webkit-line-clamp: 4;
+    }
+
+    .px-card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+      padding-top: 2px;
+    }
+
+    .px-card-action {
+      display: inline-flex;
+      min-height: 31px;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      background: var(--px-panel-soft);
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .48rem;
+      font-weight: 700;
+    }
+
+    .px-card-action:hover {
+      border-color: var(--maker-accent, var(--px-cyan));
+      color: var(--px-text);
+    }
+
+    .px-video-card {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      background: #05080d;
+      aspect-ratio: 16 / 9;
+    }
+
+    .px-video-trigger,
+    .px-video-frame,
+    .px-video-frame iframe,
+    .px-video-frame video {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .px-video-trigger {
+      position: relative;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      padding: 0;
+      border: 0;
+      background:
+        radial-gradient(circle at center, rgba(var(--px-neon-rgb), .22), transparent 32%),
+        linear-gradient(135deg, #131d2a, #05080d);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .px-video-poster {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: .5;
+    }
+
+    .px-video-shade {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(5, 8, 13, .95), rgba(5, 8, 13, .08));
+    }
+
+    .px-video-trigger::before {
+      position: absolute;
+      z-index: 2;
+      inset: 10px;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 8px;
+      content: "";
+    }
+
+    .px-video-trigger:hover::before {
+      inset: 7px;
+      border-color: rgba(var(--px-neon-rgb), .65);
+    }
+
+    .px-play {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      width: 45px;
+      height: 45px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .34);
+      border-radius: 50%;
+      background: rgba(5, 8, 13, .76);
+      color: var(--px-cyan);
+      font-size: .88rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .px-video-label {
+      position: absolute;
+      z-index: 2;
+      right: 14px;
+      bottom: 10px;
+      left: 14px;
+      font-size: .46rem;
+      text-align: left;
+    }
+
+    .px-video-frame iframe,
+    .px-video-frame video {
+      border: 0;
+    }
+
+    .px-news-card {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+    }
+
+    .px-news-source {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--px-cyan);
+      font-size: .46rem;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-news-source span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-news-source time {
+      flex: 0 0 auto;
+      color: var(--px-muted);
+    }
+
+    .px-news-card h5 {
+      font-size: .87rem;
+    }
+
+    .px-news-summary {
+      font-size: .65rem;
+      line-height: 1.46;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-empty {
+      display: grid;
+      min-height: 165px;
+      place-content: center;
+      gap: 6px;
+      padding: 23px;
+      border: 1px dashed var(--px-line);
+      border-radius: var(--px-radius);
+      color: var(--px-muted);
+      text-align: center;
+    }
+
+    .px-empty strong {
+      color: var(--px-text);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.03rem;
+    }
+
+    .px-empty p {
+      max-width: 520px;
+      margin: 0;
+      font-size: .7rem;
+    }
+
+    .px-more-note {
+      margin: 13px 0 0;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .53rem;
+    }
+
+    .px-method {
+      display: grid;
+      min-width: 0;
+      align-items: center;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 22px;
+      margin-bottom: 66px;
+      padding: 24px;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+    }
+
+    .px-method-mark {
+      display: grid;
+      width: 47px;
+      height: 47px;
+      place-items: center;
+      border: 1px solid rgba(var(--px-neon-rgb), .4);
+      border-radius: 50%;
+      color: var(--px-cyan);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.05rem;
+    }
+
+    .px-method h2 {
+      font-size: clamp(1.25rem, 2.7vw, 1.85rem);
+    }
+
+    .px-method p {
+      max-width: 810px;
+      margin: 8px 0 0;
+      color: var(--px-muted);
+      font-size: .72rem;
+      line-height: 1.53;
+    }
+
+    .px-method-path {
+      display: flex;
+      max-width: 270px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--px-muted);
+      font-size: .48rem;
+      text-align: center;
+    }
+
+    .px-method-path span {
+      padding: 6px 8px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      background: var(--px-panel-solid);
+    }
+
+    .px-method-path b {
+      color: var(--px-cyan);
+    }
+
+    .px-footer {
+      border-top: 1px solid var(--px-line);
+      color: var(--px-muted);
+      font-size: .54rem;
+    }
+
+    .px-footer-inner {
+      display: grid;
+      min-width: 0;
+      min-height: 100px;
+      align-items: center;
+      grid-template-columns: 1fr 1.4fr auto;
+      gap: 26px;
+    }
+
+    .px-footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .px-footer-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 10px;
+      background: #071018;
+      color: var(--px-cyan);
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 800;
+    }
+
+    .px-footer-brand strong,
+    .px-footer-brand span {
+      display: block;
+    }
+
+    .px-footer-brand strong {
+      color: var(--px-text);
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    .px-footer p {
+      margin: 0;
+    }
+
+    .px-footer a {
+      color: var(--px-cyan);
+    }
+
+    .px-noscript {
+      margin-top: 17px;
+      padding: 16px;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      color: var(--px-muted);
+    }
+
+    @keyframes px-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes px-spin-reverse {
+      to { transform: rotate(-360deg); }
+    }
+
+    @keyframes px-float {
+      50% { transform: translateY(-7px); }
+    }
+
+    @keyframes px-node {
+      50% { opacity: .38; }
+    }
+
+    @keyframes px-pulse {
+      50% { opacity: .35; transform: scale(.7); }
+    }
+
+    @media (max-width: 1220px) {
+      .px-release-grid,
+      .px-news-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .px-method {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .px-method-path {
+        max-width: none;
+        grid-column: 2;
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .px-hub-grid {
+        grid-template-columns: 224px minmax(0, 1fr);
+      }
+
+      .px-nav {
+        gap: 15px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .px-header-main {
+        gap: 14px;
+      }
+
+      .px-hero-grid {
+        min-height: auto;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 22px;
+        padding-block: 40px 32px;
+      }
+
+      .px-radar {
+        width: min(100%, 270px);
+      }
+
+      .px-hub-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .px-maker-rail {
+        position: static;
+      }
+
+      .px-maker-list {
+        display: flex;
+        padding-bottom: 3px;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: none;
+      }
+
+      .px-maker-list::-webkit-scrollbar {
+        display: none;
+      }
+
+      .px-maker-button {
+        width: 180px;
+        flex: 0 0 180px;
+      }
+
+      .px-maker-button::before {
+        top: auto;
+        right: 9px;
+        bottom: -4px;
+        left: 9px;
+        width: auto;
+        height: 2px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .px-brand-country,
+      .px-nav a.px-nav-secondary {
+        display: none;
+      }
+
+      .px-section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+      }
+
+      .px-section-summary {
+        max-width: 560px;
+        text-align: left;
+      }
+
+      .px-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .px-footer-inner {
+        grid-template-columns: 1fr auto;
+        padding-block: 22px;
+      }
+
+      .px-footer p {
+        display: none;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .px-shell {
+        width: min(100% - 24px, 1440px);
+      }
+
+      .px-header-main {
+        min-height: 55px;
+        gap: 8px;
+      }
+
+      .px-brand {
+        gap: 7px;
+        font-size: .8rem;
+      }
+
+      .px-brand-mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        font-size: 1.03rem;
+      }
+
+      .px-nav {
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .px-nav a {
+        padding-block: 17px;
+        font-size: .66rem;
+      }
+
+      .px-theme-button {
+        width: 32px;
+        height: 32px;
+      }
+
+      .px-hero-grid {
+        padding-block: 29px 20px;
+      }
+
+      .px-eyebrow {
+        gap: 8px;
+        font-size: .47rem;
+        letter-spacing: .09em;
+      }
+
+      .px-hero h1 {
+        margin: 13px 0;
+        font-size: clamp(2.25rem, 10.8vw, 3.05rem);
+        line-height: .93;
+      }
+
+      .px-lead {
+        max-width: 355px;
+        font-size: .89rem;
+        line-height: 1.47;
+      }
+
+      .px-hero-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 18px;
+      }
+
+      .px-button {
+        min-height: 38px;
+        padding-inline: 9px;
+        font-size: .55rem;
+      }
+
+      .px-hero-stats {
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 19px;
+      }
+
+      .px-stat strong {
+        font-size: 1.43rem;
+      }
+
+      .px-stat-label {
+        font-size: .43rem;
+        letter-spacing: .04em;
+      }
+
+      .px-radar {
+        width: min(100%, 185px);
+        margin-top: -2px;
+      }
+
+      .px-data-bar {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        padding-block: 8px;
+      }
+
+      .px-data-status {
+        align-items: flex-start;
+        font-size: .53rem;
+      }
+
+      .px-status-light {
+        margin-top: 4px;
+      }
+
+      .px-data-stamp {
+        padding-left: 16px;
+        font-size: .47rem;
+      }
+
+      .px-release-ribbon {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .px-ribbon-label {
+        justify-content: center;
+        padding: 8px 12px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(var(--px-neon-rgb), .18);
+        font-size: .48rem;
+      }
+
+      .px-ribbon-item {
+        min-width: 250px;
+        min-height: 42px;
+        padding-inline: 15px;
+        font-size: .65rem;
+      }
+
+      .px-workspace {
+        padding-block: 45px 60px;
+      }
+
+      .px-section-heading h2 {
+        font-size: 1.95rem;
+      }
+
+      .px-section-summary {
+        font-size: .68rem;
+      }
+
+      .px-maker-rail {
+        padding: 8px 7px 9px;
+      }
+
+      .px-maker-list {
+        padding-left: 1px;
+      }
+
+      .px-maker-button {
+        width: 164px;
+        flex-basis: 164px;
+        grid-template-columns: 30px minmax(0, 1fr) auto;
+      }
+
+      .px-maker-monogram {
+        width: 30px;
+        height: 30px;
+      }
+
+      .px-detail-head {
+        padding: 18px 15px;
+      }
+
+      .px-detail-intro {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .px-detail-logo {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        font-size: .9rem;
+      }
+
+      .px-detail-title h3 {
+        font-size: 1.68rem;
+      }
+
+      .px-detail-title p {
+        font-size: .69rem;
+      }
+
+      .px-toolbar,
+      .px-detail-section {
+        padding: 15px;
+      }
+
+      .px-block-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .px-release-card {
+        padding: 13px;
+      }
+
+      .px-news-card {
+        padding: 12px;
+      }
+
+      .px-method {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        margin-bottom: 50px;
+        padding: 18px;
+      }
+
+      .px-method-mark {
+        width: 38px;
+        height: 38px;
+        font-size: .94rem;
+      }
+
+      .px-method-path {
+        grid-column: auto;
+        justify-content: flex-start;
+      }
+
+      .px-footer-inner {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 11px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .px-shell {
+        width: min(100% - 20px, 1440px);
+      }
+
+      .px-brand-name {
+        font-size: .73rem;
+      }
+
+      .px-nav {
+        gap: 8px;
+      }
+
+      .px-nav a {
+        font-size: .61rem;
+      }
+
+      .px-hero h1 {
+        font-size: 2.2rem;
+      }
+
+      .px-stat strong {
+        font-size: 1.3rem;
+      }
+
+      .px-radar {
+        width: 176px;
+      }
+
+      .px-maker-button {
+        width: 158px;
+        flex-basis: 158px;
+      }
+
+      .px-detail-title h3 {
+        font-size: 1.55rem;
+      }
+
+      .px-release-top {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="px-skip-link" href="#px-main">Zum Inhalt springen</a>
+
+  <header id="ki-header" class="px-header" data-ki-header>
+    <div class="px-shell px-header-main">
+      <a class="px-brand" href="index.html" aria-label="KI NEWS Startseite">
+        <span class="px-brand-mark" aria-hidden="true">S</span>
+        <span class="px-brand-name">KI NEWS</span>
+        <span class="px-brand-country">DE</span>
+      </a>
+
+      <nav class="px-nav" aria-label="Hauptnavigation">
+        <a href="index.html" class="px-nav-secondary">Aktuell</a>
+        <a href="archiv.html" class="px-nav-secondary">Archiv</a>
+        <a href="artikel.html">Artikel</a>
+        <a href="podcast.html" class="px-nav-secondary">Podcast</a>
+        <a href="statistik.html" class="px-nav-secondary">Statistik</a>
+        <a href="profil.html" class="px-nav-secondary">Profil</a>
+        <a href="hersteller.html" aria-current="page">Hersteller</a>
+      </nav>
+
+      <button
+        id="px-theme-button"
+        class="px-theme-button"
+        type="button"
+        aria-label="Farbschema wechseln"
+        title="Farbschema wechseln"
+      >
+        ◐
+      </button>
+    </div>
+  </header>
+
+  <main id="px-main" class="px-main">
+    <section class="px-hero" aria-labelledby="px-page-title">
+      <div class="px-shell px-hero-grid">
+        <div class="px-hero-copy">
+          <div class="px-eyebrow">
+            <span>Hersteller-Hub</span>
+            <span class="px-eyebrow-rule" aria-hidden="true"></span>
+            <span>Release-Archiv</span>
+          </div>
+
+          <h1 id="px-page-title">
+            Labore, Modelle,
+            <span>Release-Archiv.</span>
+          </h1>
+
+          <p class="px-lead">
+            Acht KI-Hersteller, ihre jüngsten Modellveröffentlichungen und
+            passende Meldungen aus dem Archiv von KI NEWS.
+          </p>
+
+          <div class="px-hero-actions">
+            <a class="px-button px-button-primary" href="#px-manufacturers">
+              Hersteller öffnen <span aria-hidden="true">↓</span>
+            </a>
+            <a class="px-button" href="#px-method">
+              Datenlogik <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+
+          <div class="px-hero-stats" aria-label="Umfang des Hersteller-Hubs">
+            <div class="px-stat">
+              <strong id="px-profile-total">8</strong>
+              <span class="px-stat-label">HERSTELLER</span>
+            </div>
+            <div class="px-stat">
+              <strong id="px-release-total">0</strong>
+              <span class="px-stat-label">RELEASES</span>
+            </div>
+            <div class="px-stat">
+              <strong id="px-report-total">0</strong>
+              <span class="px-stat-label">MELDUNGEN</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-radar" aria-hidden="true">
+          <svg viewBox="0 0 440 440" role="presentation">
+            <defs>
+              <radialGradient id="px-radar-glow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#00d4ff" stop-opacity=".22"></stop>
+                <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"></stop>
+              </radialGradient>
+              <linearGradient id="px-radar-line" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#00d4ff"></stop>
+                <stop offset="100%" stop-color="#8b5cf6"></stop>
+              </linearGradient>
+            </defs>
+
+            <circle cx="220" cy="220" r="190" fill="url(#px-radar-glow)"></circle>
+            <circle cx="220" cy="220" r="162" fill="none" stroke="#00d4ff" stroke-opacity=".1"></circle>
+            <circle cx="220" cy="220" r="123" fill="none" stroke="#00d4ff" stroke-opacity=".09"></circle>
+            <circle cx="220" cy="220" r="78" fill="none" stroke="#8b5cf6" stroke-opacity=".15"></circle>
+
+            <g class="px-radar-ring">
+              <circle cx="220" cy="220" r="185" fill="none" stroke="#00d4ff" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="2 10"></circle>
+              <circle class="px-radar-node" cx="220" cy="35" r="5" fill="#00d4ff"></circle>
+              <circle cx="220" cy="35" r="11" fill="none" stroke="#00d4ff" stroke-opacity=".2"></circle>
+            </g>
+
+            <g class="px-radar-ring-reverse">
+              <circle cx="220" cy="220" r="143" fill="none" stroke="#8b5cf6" stroke-opacity=".36" stroke-width="1.2"></circle>
+              <circle class="px-radar-node" cx="363" cy="220" r="4.5" fill="#8b5cf6"></circle>
+              <circle cx="363" cy="220" r="10" fill="none" stroke="#8b5cf6" stroke-opacity=".2"></circle>
+            </g>
+
+            <g class="px-radar-sweep">
+              <path d="M220 220 L220 57 A163 163 0 0 1 327 95 Z" fill="#00d4ff" fill-opacity=".055"></path>
+              <line x1="220" y1="220" x2="220" y2="57" stroke="#00d4ff" stroke-opacity=".55"></line>
+            </g>
+
+            <g class="px-radar-core">
+              <rect x="171" y="171" width="98" height="98" rx="27" fill="#071018" fill-opacity=".92" stroke="url(#px-radar-line)" stroke-width="1.4"></rect>
+              <rect x="181" y="181" width="78" height="78" rx="21" fill="none" stroke="#00d4ff" stroke-opacity=".12"></rect>
+              <text x="220" y="226" fill="#00d4ff" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="32" font-weight="800">KI</text>
+              <text x="220" y="247" fill="#8ea0b6" text-anchor="middle" font-family="monospace" font-size="8" letter-spacing="4">LABS</text>
+            </g>
+
+            <g fill="#101925" stroke="rgba(160,187,213,.25)">
+              <rect x="205" y="19" width="30" height="30" rx="9"></rect>
+              <rect x="399" y="99" width="30" height="30" rx="9"></rect>
+              <rect x="399" y="311" width="30" height="30" rx="9"></rect>
+              <rect x="205" y="391" width="30" height="30" rx="9"></rect>
+              <rect x="11" y="311" width="30" height="30" rx="9"></rect>
+              <rect x="11" y="99" width="30" height="30" rx="9"></rect>
+              <rect x="89" y="38" width="30" height="30" rx="9"></rect>
+              <rect x="321" y="372" width="30" height="30" rx="9"></rect>
+            </g>
+
+            <g fill="#edf4fb" font-family="Space Grotesk, sans-serif" font-size="11" font-weight="800" text-anchor="middle">
+              <text x="220" y="39">O</text>
+              <text x="414" y="119">G</text>
+              <text x="414" y="331">A</text>
+              <text x="220" y="411">M</text>
+              <text x="26" y="331">D</text>
+              <text x="26" y="119">x</text>
+              <text x="104" y="58">Q</text>
+              <text x="336" y="392">X</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <div id="px-data-bar" class="px-shell px-data-bar">
+      <div id="px-data-status" class="px-data-status" role="status" aria-live="polite">
+        <span class="px-status-light" aria-hidden="true"></span>
+        <span id="px-data-status-text">Hersteller- und Nachrichtendaten werden geladen.</span>
+      </div>
+      <span id="px-data-stamp" class="px-data-stamp">DATENSTAND WIRD GEPRÜFT</span>
+    </div>
+
+    <section class="px-release-ribbon" aria-label="Neueste Releases">
+      <div class="px-ribbon-label">
+        <span class="px-status-light" aria-hidden="true"></span>
+        <span>RELEASE RADAR</span>
+      </div>
+      <div id="px-release-track" class="px-release-track" aria-live="off">
+        <div class="px-ribbon-item">
+          <span>Release-Daten werden vorbereitet.</span>
+          <span>LIVE</span>
+        </div>
+      </div>
+    </section>
+
+    <section
+      id="px-manufacturers"
+      class="px-shell px-workspace"
+      aria-labelledby="px-directory-title"
+    >
+      <div class="px-section-heading">
+        <div>
+          <span class="px-kicker">Verzeichnis / 01</span>
+          <h2 id="px-directory-title">Hersteller-Hub</h2>
+        </div>
+        <p class="px-section-summary">
+          Ein Hersteller pro Ansicht. Releases, Originalbeiträge und passende
+          Meldungen werden aus lokalen JSON-Dateien aufgebaut.
+        </p>
+      </div>
+
+      <div class="px-hub-grid">
+        <aside class="px-maker-rail" aria-label="Hersteller-Auswahl">
+          <span class="px-rail-label">Profil wählen</span>
+          <div
+            id="px-maker-list"
+            class="px-maker-list"
+            role="tablist"
+            aria-label="Herstellerprofile"
+          ></div>
+        </aside>
+
+        <article
+          id="px-maker-detail"
+          class="px-detail-shell"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div class="px-empty">
+            <strong>Herstellerprofil wird aufgebaut</strong>
+            <p>Die verfügbaren Daten werden geprüft und sortiert.</p>
+          </div>
+        </article>
+      </div>
+
+      <noscript>
+        <p class="px-noscript">
+          Für Herstellerprofile, Release-Daten, Suche und Nachrichtenzuordnung
+          muss JavaScript aktiviert sein.
+        </p>
+      </noscript>
+    </section>
+
+    <section id="px-method" class="px-shell px-method" aria-labelledby="px-method-title">
+      <div class="px-method-mark" aria-hidden="true">i</div>
+      <div>
+        <span class="px-kicker">Transparenz / 02</span>
+        <h2 id="px-method-title">Lokale Daten, nachvollziehbar verknüpft</h2>
+        <p>
+          Release-Daten stammen aus hersteller.json. Nachrichten werden aus
+          news.json anhand definierter Hersteller- und Modellbegriffe zugeordnet.
+          Mehrfach vorhandene Meldungen werden über Story-ID, Link oder Titel
+          zusammengeführt. Video-Player werden erst nach einem Klick erzeugt.
+        </p>
+      </div>
+      <div class="px-method-path" aria-label="Verwendete Datenquellen">
+        <span>hersteller.json</span>
+        <b>+</b>
+        <span>news.json</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="px-footer">
+    <div class="px-shell px-footer-inner">
+      <div class="px-footer-brand">
+        <span class="px-footer-mark" aria-hidden="true">S</span>
+        <div>
+          <strong>KI NEWS</strong>
+          <span>Hersteller-Hub für Daniel, Scampy</span>
+        </div>
+      </div>
+      <p id="px-footer-stand">Datenstand der geladenen lokalen JSON-Dateien.</p>
+      <a href="index.html">Zur Startseite <span aria-hidden="true">↗</span></a>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const MAKERS = [
+        {
+          id: "anthropic",
+          name: "Anthropic",
+          short: "A",
+          accent: "#d97757",
+          website: "https://www.anthropic.com/",
+          x: "https://x.com/AnthropicAI",
+          xLabel: "@AnthropicAI",
+          aliases: ["anthropic", "claude"],
+          description: "Anthropic entwickelt die Claude-Modellfamilie mit Schwerpunkt auf Assistenz, Coding und kontrollierte KI-Sicherheitsarbeit."
+        },
+        {
+          id: "openai",
+          name: "OpenAI",
+          short: "O",
+          accent: "#00d4ff",
+          website: "https://openai.com/",
+          x: "https://x.com/OpenAI",
+          xLabel: "@OpenAI",
+          aliases: ["openai", "open ai", "chatgpt", "gpt", "codex"],
+          description: "OpenAI verbindet GPT-Modelle mit ChatGPT, API-Produkten und spezialisierten Systemen für Coding und agentische Abläufe."
+        },
+        {
+          id: "google",
+          name: "Google",
+          short: "G",
+          accent: "#4285f4",
+          website: "https://deepmind.google/",
+          x: "https://x.com/GoogleDeepMind",
+          xLabel: "@GoogleDeepMind",
+          aliases: ["google", "deepmind", "gemini", "veo"],
+          description: "Google und Google DeepMind entwickeln Gemini sowie KI-Funktionen für Suche, Workspace, Cloud und multimodale Systeme."
+        },
+        {
+          id: "meta",
+          name: "Meta",
+          short: "M",
+          accent: "#168cff",
+          website: "https://ai.meta.com/",
+          x: "https://x.com/AIatMeta",
+          xLabel: "@AIatMeta",
+          aliases: ["meta", "meta ai", "llama", "muse"],
+          description: "Meta stellt die offene Llama-Familie bereit und entwickelt KI-Systeme für soziale Produkte, multimodale Modelle und Agenten."
+        },
+        {
+          id: "xai",
+          name: "xAI",
+          short: "x",
+          accent: "#aab6c7",
+          website: "https://x.ai/",
+          x: "https://x.com/xai",
+          xLabel: "@xai",
+          aliases: ["xai", "x ai", "grok"],
+          description: "xAI entwickelt die Grok-Modellfamilie und stellt KI-Funktionen über den X-Dienst sowie eigene Zugänge bereit."
+        },
+        {
+          id: "mistral",
+          name: "Mistral",
+          short: "MI",
+          accent: "#ff6b00",
+          website: "https://mistral.ai/",
+          x: "https://x.com/MistralAI",
+          xLabel: "@MistralAI",
+          aliases: ["mistral", "mistral ai", "le chat", "magistral", "mixtral"],
+          description: "Mistral stellt offene und gewerbliche Sprachmodelle für lokale Systeme, Unternehmen und Entwickler bereit."
+        },
+        {
+          id: "qwen",
+          name: "Qwen",
+          short: "Q",
+          accent: "#8b5cf6",
+          website: "https://qwenlm.github.io/",
+          x: "https://x.com/Alibaba_Qwen",
+          xLabel: "@Alibaba_Qwen",
+          aliases: ["qwen", "alibaba qwen", "tongyi"],
+          description: "Qwen ist die Modellfamilie von Alibaba Cloud und deckt unterschiedliche Größen, multimodale Aufgaben und offene Gewichtung ab."
+        },
+        {
+          id: "deepseek",
+          name: "DeepSeek",
+          short: "DS",
+          accent: "#4d6bfe",
+          website: "https://www.deepseek.com/",
+          x: "https://x.com/deepseek_ai",
+          xLabel: "@deepseek_ai",
+          aliases: ["deepseek"],
+          description: "DeepSeek entwickelt Sprach- und Reasoning-Modelle und veröffentlicht Ergebnisse für den Einsatz in Coding und Agenten."
+        }
+      ];
+
+      const RELEASE_FETCH_ENABLED =
+        document.documentElement.dataset.manufacturerLive === "true";
+
+      const MAKER_MAP = new Map(MAKERS.map(maker => [maker.id, maker]));
+      const DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC"
+      });
+      const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC"
+      });
+
+      const state = {
+        releases: [],
+        reports: [],
+        reportCounts: new Map(),
+        selectedMaker: "openai",
+        query: ""
+      };
+
+      const clean = value => {
+        if (typeof value !== "string") return "";
+
+        return value
+          .replace(/[\u2010-\u2015]/g, "-")
+          .replace(/\u2212/g, "-")
+          .replace(/[\u0000-\u001f\u007f]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      };
+
+      const create = (tag, className, text) => {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (text !== undefined) element.textContent = clean(text);
+        return element;
+      };
+
+      const getById = id => document.getElementById(id);
+
+      const setText = (id, value) => {
+        const element = getById(id);
+        if (element) element.textContent = clean(value);
+      };
+
+      const parseDate = value => {
+        if (typeof value !== "string") return Number.NaN;
+
+        const text = value.trim();
+        if (!text) return Number.NaN;
+
+        let normalised = text;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+          normalised = `${text}T12:00:00Z`;
+        }
+
+        const timestamp = Date.parse(normalised);
+        if (!Number.isFinite(timestamp)) return Number.NaN;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+          const date = new Date(timestamp);
+          const verified = [
+            date.getUTCFullYear(),
+            String(date.getUTCMonth() + 1).padStart(2, "0"),
+            String(date.getUTCDate()).padStart(2, "0")
+          ].join("-");
+
+          if (verified !== text) return Number.NaN;
+        }
+
+        return timestamp;
+      };
+
+      const formatDate = value => {
+        const timestamp = parseDate(value);
+        return Number.isFinite(timestamp)
+          ? DATE_FORMATTER.format(new Date(timestamp))
+          : "Datum unbekannt";
+      };
+
+      const formatShortDate = value => {
+        const timestamp = parseDate(value);
+        return Number.isFinite(timestamp)
+          ? SHORT_DATE_FORMATTER.format(new Date(timestamp))
+          : "Datum unbekannt";
+      };
+
+      const safeUrl = value => {
+        const text = clean(value);
+        if (!text) return null;
+
+        try {
+          const parsed = new URL(text, document.baseURI);
+
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return null;
+          }
+
+          return parsed.href;
+        } catch {
+          return null;
+        }
+      };
+
+      const externalLink = (value, className) => {
+        const url = safeUrl(value);
+        if (!url) return null;
+
+        const link = create("a", className);
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        return link;
+      };
+
+      const appendAction = (container, href, label, extraClass = "") => {
+        const link = externalLink(href, `px-card-action ${extraClass}`.trim());
+        if (!link) return false;
+
+        link.append(
+          create("span", "", label),
+          create("span", "", "↗")
+        );
+
+        container.append(link);
+        return true;
+      };
+
+      const canonicalMaker = value => {
+        const text = clean(value).toLocaleLowerCase("de-DE");
+        if (!text) return null;
+
+        const exact = MAKERS.find(maker =>
+          maker.name.toLocaleLowerCase("de-DE") === text
+        );
+
+        if (exact) return exact;
+
+        return MAKERS.find(maker =>
+          maker.aliases.some(alias => text === alias || text.includes(alias))
+        ) || null;
+      };
+
+      const extractReleases = payload => {
+        if (Array.isArray(payload)) return payload;
+        if (payload && Array.isArray(payload.releases)) return payload.releases;
+        return [];
+      };
+
+      const extractNews = payload => {
+        if (Array.isArray(payload)) return payload;
+        if (payload && Array.isArray(payload.news)) return payload.news;
+        return [];
+      };
+
+      const normaliseReleases = input => {
+        if (!Array.isArray(input)) return [];
+
+        return input
+          .filter(item => item && typeof item === "object")
+          .map(item => {
+            const maker = canonicalMaker(item.hersteller);
+
+            return {
+              makerId: maker ? maker.id : "",
+              hersteller: maker ? maker.name : "",
+              modell: clean(item.modell),
+              datum: clean(item.datum),
+              titel: clean(item.titel),
+              text: clean(item.text),
+              url: safeUrl(item.url),
+              x_url: safeUrl(item.x_url),
+              video_url: safeUrl(item.video_url),
+              poster: safeUrl(item.poster)
+            };
+          })
+          .filter(item => {
+            return item.makerId &&
+              Number.isFinite(parseDate(item.datum)) &&
+              (item.modell || item.titel);
+          })
+          .sort((a, b) => parseDate(b.datum) - parseDate(a.datum));
+      };
+
+      const normaliseReports = input => {
+        if (!Array.isArray(input)) return [];
+
+        const seen = new Set();
+        const reports = [];
+
+        input.forEach(item => {
+          if (!item || typeof item !== "object") return;
+
+          const title = clean(item.title);
+          if (!title) return;
+
+          const summary = clean(item.summary);
+          const storyId = clean(item.story_id);
+          const link = safeUrl(item.link);
+          const dateValue = clean(item.date) || clean(item.first_seen);
+          const key = storyId || link || title.toLocaleLowerCase("de-DE");
+
+          if (seen.has(key)) return;
+          seen.add(key);
+
+          reports.push({
+            title,
+            summary,
+            source: clean(item.source) || "Quelle unbekannt",
+            date: Number.isFinite(parseDate(dateValue)) ? dateValue : "",
+            url: link,
+            haystack: `${title} ${summary}`.toLocaleLowerCase("de-DE")
+          });
+        });
+
+        return reports.sort((a, b) => {
+          const dateA = parseDate(a.date);
+          const dateB = parseDate(b.date);
+          const safeA = Number.isFinite(dateA) ? dateA : 0;
+          const safeB = Number.isFinite(dateB) ? dateB : 0;
+          return safeB - safeA;
+        });
+      };
+
+      const hasTerm = (haystack, term) => {
+        const escaped = term
+          .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          .replace(/\s+/g, "\\s+");
+
+        try {
+          return new RegExp(
+            `(^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`,
+            "i"
+          ).test(haystack);
+        } catch {
+          return false;
+        }
+      };
+
+      const matchesMaker = (report, maker) => {
+        return maker.aliases.some(alias => hasTerm(report.haystack, alias));
+      };
+
+      const releasesForMaker = maker => {
+        return state.releases.filter(release => release.makerId === maker.id);
+      };
+
+      const reportsForMaker = maker => {
+        return state.reports.filter(report => matchesMaker(report, maker));
+      };
+
+      const fetchJSON = async path => {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const response = await fetch(path, {
+            cache: "no-store",
+            signal: controller.signal,
+            headers: { Accept: "application/json" }
+          });
+
+          if (!response.ok) {
+            return { ok: false, data: null };
+          }
+
+          return { ok: true, data: await response.json() };
+        } catch {
+          return { ok: false, data: null };
+        } finally {
+          window.clearTimeout(timeout);
+        }
+      };
+
+      const buildMakerRail = () => {
+        const container = getById("px-maker-list");
+        if (!container) return;
+
+        const buttons = MAKERS.map((maker, index) => {
+          const button = create("button", "px-maker-button");
+          button.type = "button";
+          button.id = `px-maker-tab-${maker.id}`;
+          button.dataset.makerId = maker.id;
+          button.style.setProperty("--maker-accent", maker.accent);
+          button.setAttribute("role", "tab");
+          button.setAttribute("aria-controls", "px-maker-detail");
+          button.setAttribute("aria-selected", "false");
+          button.setAttribute("tabindex", "-1");
+
+          const monogram = create("span", "px-maker-monogram", maker.short);
+          const copy = create("div", "px-maker-copy");
+          const count = create("span", "px-maker-count", "0");
+
+          copy.append(
+            create("strong", "", maker.name),
+            create(
+              "span",
+              "px-maker-number",
+              `PROFIL ${String(index + 1).padStart(2, "0")}`
+            )
+          );
+
+          button.append(monogram, copy, count);
+          button.addEventListener("click", () => selectMaker(maker.id));
+
+          return button;
+        });
+
+        container.replaceChildren(...buttons);
+        updateMakerRail();
+      };
+
+      const updateMakerRail = () => {
+        const container = getById("px-maker-list");
+        if (!container) return;
+
+        container.querySelectorAll("button[data-maker-id]").forEach(button => {
+          const maker = MAKER_MAP.get(button.dataset.makerId);
+          if (!maker) return;
+
+          const selected = maker.id === state.selectedMaker;
+          button.classList.toggle("px-maker-selected", selected);
+          button.setAttribute("aria-selected", String(selected));
+          button.tabIndex = selected ? 0 : -1;
+
+          const count = button.querySelector(".px-maker-count");
+          if (count) {
+            count.textContent = String(state.reportCounts.get(maker.id) || 0);
+          }
+        });
+      };
+
+      const getYouTubeId = value => {
+        const url = safeUrl(value);
+        if (!url) return null;
+
+        try {
+          const parsed = new URL(url);
+          const host = parsed.hostname
+            .replace(/^www\./, "")
+            .toLocaleLowerCase("en-US");
+
+          let id = null;
+
+          if (host === "youtu.be") {
+            id = parsed.pathname.split("/").filter(Boolean)[0] || null;
+          } else if (
+            ["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)
+          ) {
+            if (
+              ["/embed/", "/shorts/", "/live/"].some(prefix =>
+                parsed.pathname.startsWith(prefix)
+              )
+            ) {
+              id = parsed.pathname.split("/").filter(Boolean)[1] || null;
+            } else {
+              id = parsed.searchParams.get("v");
+            }
+          }
+
+          return id && /^[A-Za-z0-9_-]{6,20}$/.test(id) ? id : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const getVimeoId = value => {
+        const url = safeUrl(value);
+        if (!url) return null;
+
+        try {
+          const parsed = new URL(url);
+          const host = parsed.hostname
+            .replace(/^www\./, "")
+            .toLocaleLowerCase("en-US");
+
+          if (host !== "vimeo.com" && host !== "player.vimeo.com") {
+            return null;
+          }
+
+          const id = parsed.pathname.split("/").filter(Boolean).pop() || "";
+          return /^\d{5,12}$/.test(id) ? id : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const loadVideo = (container, release) => {
+        const youtubeId = getYouTubeId(release.video_url);
+        const vimeoId = getVimeoId(release.video_url);
+        const frame = create("div", "px-video-frame");
+
+        if (youtubeId) {
+          const iframe = document.createElement("iframe");
+          iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeId)}?autoplay=1`;
+          iframe.title = "Video zum Hersteller-Release";
+          iframe.loading = "lazy";
+          iframe.referrerPolicy = "strict-origin-when-cross-origin";
+          iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          iframe.allowFullscreen = true;
+          frame.append(iframe);
+        } else if (vimeoId) {
+          const iframe = document.createElement("iframe");
+          iframe.src = `https://player.vimeo.com/video/${encodeURIComponent(vimeoId)}?autoplay=1`;
+          iframe.title = "Video zum Hersteller-Release";
+          iframe.loading = "lazy";
+          iframe.referrerPolicy = "strict-origin-when-cross-origin";
+          iframe.allow = "autoplay; fullscreen; picture-in-picture";
+          iframe.allowFullscreen = true;
+          frame.append(iframe);
+        } else if (release.video_url) {
+          const video = document.createElement("video");
+          video.src = release.video_url;
+          video.controls = true;
+          video.preload = "metadata";
+          video.playsInline = true;
+
+          if (release.poster) {
+            video.poster = release.poster;
+          }
+
+          frame.append(video);
+        } else {
+          frame.append(
+            create("p", "px-empty", "Dieses Video kann nicht geladen werden.")
+          );
+        }
+
+        container.replaceChildren(frame);
+      };
+
+      const buildVideo = release => {
+        if (!release.video_url) return null;
+
+        const card = create("div", "px-video-card");
+        const button = create("button", "px-video-trigger");
+        button.type = "button";
+        button.setAttribute("aria-label", "Video laden und abspielen");
+
+        if (release.poster) {
+          const poster = create("img", "px-video-poster");
+          poster.src = release.poster;
+          poster.alt = "";
+          poster.loading = "lazy";
+          poster.decoding = "async";
+          poster.referrerPolicy = "no-referrer";
+          poster.addEventListener("error", () => poster.remove(), { once: true });
+          button.append(poster);
+        }
+
+        const shade = create("span", "px-video-shade");
+        shade.setAttribute("aria-hidden", "true");
+
+        const play = create("span", "px-play", "▶");
+        play.setAttribute("aria-hidden", "true");
+
+        const label = create(
+          "span",
+          "px-video-label",
+          "VIDEO LADEN / ERST NACH KLICK"
+        );
+
+        button.append(shade, play, label);
+        button.addEventListener("click", () => {
+          loadVideo(card, release);
+        }, { once: true });
+
+        card.append(button);
+        return card;
+      };
+
+      const buildReleaseCard = (release, index) => {
+        const card = create("article", "px-release-card");
+        const top = create("div", "px-release-top");
+        const time = create("time", "px-release-date", formatDate(release.datum));
+        time.dateTime = release.datum;
+
+        top.append(time);
+
+        if (index === 0) {
+          top.append(create("span", "px-latest-pill", "Neuestes Release"));
+        }
+
+        card.append(
+          top,
+          create("h5", "", release.titel || release.modell || "Release ohne Titel"),
+          create("p", "px-meta", release.modell || "Modell nicht benannt")
+        );
+
+        if (release.text) {
+          card.append(create("p", "px-release-text", release.text));
+        }
+
+        const actions = create("div", "px-card-actions");
+        appendAction(actions, release.url, "Original");
+        appendAction(actions, release.x_url, "X-Post");
+
+        if (actions.childElementCount) {
+          card.append(actions);
+        }
+
+        const video = buildVideo(release);
+        if (video) card.append(video);
+
+        return card;
+      };
+
+      const buildNewsCard = report => {
+        const card = report.url
+          ? externalLink(report.url, "px-news-card")
+          : create("article", "px-news-card");
+
+        if (!card) return null;
+
+        const source = create("div", "px-news-source");
+        const sourceName = create("span", "", report.source);
+        const time = create(
+          "time",
+          "",
+          report.date ? formatShortDate(report.date) : "Archiv"
+        );
+
+        if (report.date) time.dateTime = report.date;
+        source.append(sourceName, time);
+
+        card.append(
+          source,
+          create("h5", "", report.title)
+        );
+
+        if (report.summary) {
+          card.append(create("p", "px-news-summary", report.summary));
+        }
+
+        return card;
+      };
+
+      const buildEmpty = (title, text) => {
+        const empty = create("div", "px-empty");
+        empty.append(
+          create("strong", "", title),
+          create("p", "", text)
+        );
+        return empty;
+      };
+
+      const matchesQuery = item => {
+        const query = state.query.toLocaleLowerCase("de-DE").trim();
+        if (!query) return true;
+
+        return [
+          item.modell,
+          item.titel,
+          item.text,
+          item.title,
+          item.summary,
+          item.source
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLocaleLowerCase("de-DE")
+          .includes(query);
+      };
+
+      const renderDetail = () => {
+        const container = getById("px-maker-detail");
+        if (!container) return;
+
+        const maker = MAKER_MAP.get(state.selectedMaker) || MAKERS[0];
+        const allReleases = releasesForMaker(maker);
+        const allNews = reportsForMaker(maker);
+        const releases = allReleases.filter(matchesQuery);
+        const reports = allNews.filter(matchesQuery);
+
+        container.setAttribute("aria-busy", "false");
+        container.setAttribute("role", "tabpanel");
+        container.setAttribute("aria-labelledby", `px-maker-tab-${maker.id}`);
+        container.style.setProperty("--maker-accent", maker.accent);
+
+        const head = create("header", "px-detail-head");
+        const intro = create("div", "px-detail-intro");
+        const logo = create("span", "px-detail-logo", maker.short);
+        const title = create("div", "px-detail-title");
+        const number = MAKERS.findIndex(item => item.id === maker.id) + 1;
+
+        title.append(
+          create(
+            "span",
+            "px-detail-index",
+            `Profil ${String(number).padStart(2, "0")} / Auswahl`
+          ),
+          create("h3", "", maker.name),
+          create("p", "", maker.description)
+        );
+
+        intro.append(logo, title);
+
+        const actions = create("div", "px-detail-actions");
+        appendAction(actions, maker.website, "Website", "px-detail-link");
+        appendAction(actions, maker.x, maker.xLabel, "px-detail-link");
+
+        const tags = create("div", "px-detail-stats");
+        tags.append(
+          create(
+            "span",
+            "px-tag",
+            `${allReleases.length} Release${allReleases.length === 1 ? "" : "s"}`
+          ),
+          create(
+            "span",
+            "px-tag",
+            `${allNews.length} Meldung${allNews.length === 1 ? "" : "en"}`
+          )
+        );
+
+        head.append(intro, actions, tags);
+
+        const toolbar = create("div", "px-toolbar");
+        const toolbarCopy = create("div", "px-toolbar-copy");
+
+        toolbarCopy.append(
+          create("strong", "", `${maker.name} durchsuchen`),
+          create(
+            "span",
+            "",
+            "Begriffe in Releases und Meldungen werden direkt gefiltert."
+          )
+        );
+
+        const searchWrap = create("div", "px-search-wrap");
+        const searchLabel = create("label", "px-search-label", "/");
+        searchLabel.htmlFor = "px-maker-search";
+
+        const search = create("input", "px-search-input");
+        search.id = "px-maker-search";
+        search.type = "search";
+        search.placeholder = "Modell, Thema oder Quelle";
+        search.value = state.query;
+        search.autocomplete = "off";
+
+        search.addEventListener("input", event => {
+          state.query = clean(event.currentTarget.value);
+          renderDetail();
+
+          const nextInput = getById("px-maker-search");
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.setSelectionRange(
+              state.query.length,
+              state.query.length
+            );
+          }
+        });
+
+        searchWrap.append(searchLabel, search);
+        toolbar.append(toolbarCopy, searchWrap);
+
+        const releaseSection = create("section", "px-detail-section");
+        const releaseHeading = create("div", "px-block-heading");
+
+        releaseHeading.append(
+          create("h4", "", "Neueste Releases"),
+          create("p", "", `${releases.length} Einträge`)
+        );
+
+        releaseSection.append(releaseHeading);
+
+        if (releases.length) {
+          const releaseGrid = create("div", "px-release-grid");
+
+          releases.slice(0, 12).forEach((release, index) => {
+            releaseGrid.append(buildReleaseCard(release, index));
+          });
+
+          releaseSection.append(releaseGrid);
+
+          if (releases.length > 12) {
+            releaseSection.append(
+              create(
+                "p",
+                "px-more-note",
+                `${releases.length - 12} weitere Releases werden nach einer engeren Suche sichtbar.`
+              )
+            );
+          }
+        } else {
+          let title = "Noch kein Release erfasst";
+          let text = "In hersteller.json ist derzeit kein gültiger Release für dieses Profil vorhanden.";
+
+          if (state.query) {
+            title = "Keine passenden Releases";
+            text = "Für diesen Suchbegriff wurden innerhalb dieses Herstellers keine Releases gefunden.";
+          }
+
+          releaseSection.append(buildEmpty(title, text));
+        }
+
+        const newsSection = create("section", "px-detail-section");
+        const newsHeading = create("div", "px-block-heading");
+
+        newsHeading.append(
+          create("h4", "", "Passende Meldungen"),
+          create("p", "", `${reports.length} Treffer`)
+        );
+
+        newsSection.append(newsHeading);
+
+        if (reports.length) {
+          const newsGrid = create("div", "px-news-grid");
+
+          reports.slice(0, 12).forEach(report => {
+            const card = buildNewsCard(report);
+            if (card) newsGrid.append(card);
+          });
+
+          newsSection.append(newsGrid);
+
+          if (reports.length > 12) {
+            newsSection.append(
+              create(
+                "p",
+                "px-more-note",
+                `${reports.length - 12} weitere Meldungen werden nach einer engeren Suche sichtbar.`
+              )
+            );
+          }
+        } else {
+          newsSection.append(
+            buildEmpty(
+              state.query ? "Keine passenden Meldungen" : "Keine Meldungen zugeordnet",
+              state.query
+                ? "Für diesen Suchbegriff wurden keine Meldungen gefunden."
+                : "Aktuell wurden im news.json-Bestand keine passenden Meldungen gefunden."
+            )
+          );
+        }
+
+        container.replaceChildren(head, toolbar, releaseSection, newsSection);
+      };
+
+      const renderRibbon = () => {
+        const track = getById("px-release-track");
+        if (!track) return;
+
+        if (!state.releases.length) {
+          const item = create("div", "px-ribbon-item");
+          item.append(
+            create(
+              "span",
+              "",
+              RELEASE_FETCH_ENABLED
+                ? "Keine gültigen Releases gefunden."
+                : "Release-Fetch ist im Prototypmodus deaktiviert."
+            ),
+            create("span", "", "LIVE")
+          );
+          track.replaceChildren(item);
+          return;
+        }
+
+        const items = state.releases.slice(0, 8).map(release => {
+          const item = release.url
+            ? externalLink(release.url, "px-ribbon-item")
+            : create("div", "px-ribbon-item");
+
+          if (!item) return null;
+
+          item.append(
+            create(
+              "span",
+              "",
+              `${release.hersteller}: ${release.modell || release.titel || "Release"}`
+            ),
+            create("span", "", formatShortDate(release.datum))
+          );
+
+          return item;
+        }).filter(Boolean);
+
+        track.replaceChildren(...items);
+      };
+
+      const setStatus = (text, mode = "ok", stand = "") => {
+        const bar = getById("px-data-bar");
+        const status = getById("px-data-status");
+
+        if (bar) {
+          bar.classList.remove("px-data-bar-partial", "px-data-bar-error");
+          if (mode === "partial") bar.classList.add("px-data-bar-partial");
+          if (mode === "error") bar.classList.add("px-data-bar-error");
+        }
+
+        if (status) {
+          status.classList.remove("px-data-bar-partial", "px-data-bar-error");
+          if (mode === "partial") status.classList.add("px-data-bar-partial");
+          if (mode === "error") status.classList.add("px-data-bar-error");
+        }
+
+        setText("px-data-status-text", text);
+        setText("px-data-stamp", stand || "DATENSTAND NICHT VERFÜGBAR");
+
+        setText(
+          "px-footer-stand",
+          stand
+            ? `Datenstand: ${clean(stand)}`
+            : "Ein Datenstand konnte nicht aus den JSON-Dateien gelesen werden."
+        );
+      };
+
+      const chooseStand = (...payloads) => {
+        for (const payload of payloads) {
+          if (!payload || typeof payload !== "object") continue;
+          const stand = clean(payload.stand);
+          if (stand) return stand;
+        }
+
+        return "";
+      };
+
+      const writeHash = makerId => {
+        try {
+          history.replaceState(
+            null,
+            "",
+            `${window.location.pathname}${window.location.search}#${makerId}`
+          );
+        } catch {
+          // History-API kann bei lokalen Dateipfaden eingeschränkt sein.
+        }
+      };
+
+      const selectMaker = makerId => {
+        if (!MAKER_MAP.has(makerId)) makerId = "openai";
+        state.selectedMaker = makerId;
+        state.query = "";
+        updateMakerRail();
+        renderDetail();
+        writeHash(makerId);
+      };
+
+      const readHash = () => {
+        const value = window.location.hash
+          .replace(/^#/, "")
+          .toLocaleLowerCase("de-DE");
+
+        return MAKER_MAP.has(value) ? value : "openai";
+      };
+
+      const updateStats = () => {
+        const relevantReports = state.reports.filter(report =>
+          MAKERS.some(maker => matchesMaker(report, maker))
+        );
+
+        setText("px-profile-total", String(MAKERS.length));
+        setText("px-release-total", String(state.releases.length));
+        setText("px-report-total", String(relevantReports.length));
+      };
+
+      const updateReportCounts = () => {
+        state.reportCounts = new Map(
+          MAKERS.map(maker => [maker.id, reportsForMaker(maker).length])
+        );
+        updateMakerRail();
+      };
+
+      const installThemeFallback = () => {
+        const root = document.documentElement;
+        const button = getById("px-theme-button");
+
+        let saved = "";
+        try {
+          saved = localStorage.getItem("ki-theme") || "";
+        } catch {
+          saved = "";
+        }
+
+        if (saved === "dark" || saved === "light") {
+          root.dataset.theme = saved;
+        } else {
+          root.dataset.theme = "light";
+        }
+
+        if (!button) return;
+
+        button.addEventListener("click", () => {
+          const before = root.dataset.theme;
+
+          window.setTimeout(() => {
+            if (root.dataset.theme !== before) return;
+
+            const next = before === "dark" ? "light" : "dark";
+            root.dataset.theme = next;
+
+            try {
+              localStorage.setItem("ki-theme", next);
+            } catch {
+              // Lokaler Speicher kann gesperrt sein.
+            }
+          }, 0);
+        });
+      };
+
+      const showFatalState = () => {
+        state.releases = [];
+        state.reports = [];
+        state.reportCounts = new Map(MAKERS.map(maker => [maker.id, 0]));
+
+        updateStats();
+        updateReportCounts();
+        renderRibbon();
+
+        const container = getById("px-maker-detail");
+        if (container) {
+          container.setAttribute("aria-busy", "false");
+          container.replaceChildren(
+            buildEmpty(
+              "Herstelleransicht nicht verfügbar",
+              "Die lokalen Daten konnten nicht verarbeitet werden. Bitte lade die Seite neu."
+            )
+          );
+        }
+
+        setStatus(
+          "Die Herstelleransicht konnte nicht vollständig aufgebaut werden. Bitte lade die Seite neu.",
+          "error"
+        );
+      };
+
+      const installMakerKeyboard = () => {
+        const container = getById("px-maker-list");
+        if (!container) return;
+
+        container.addEventListener("keydown", event => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+            return;
+          }
+
+          const currentIndex = MAKERS.findIndex(
+            maker => maker.id === state.selectedMaker
+          );
+
+          let nextIndex = currentIndex;
+
+          if (event.key === "ArrowLeft") {
+            nextIndex = (currentIndex - 1 + MAKERS.length) % MAKERS.length;
+          } else if (event.key === "ArrowRight") {
+            nextIndex = (currentIndex + 1) % MAKERS.length;
+          } else if (event.key === "Home") {
+            nextIndex = 0;
+          } else if (event.key === "End") {
+            nextIndex = MAKERS.length - 1;
+          }
+
+          event.preventDefault();
+          selectMaker(MAKERS[nextIndex].id);
+
+          const button = getById(`px-maker-tab-${MAKERS[nextIndex].id}`);
+          if (button) button.focus();
+        });
+      };
+
+      const start = async () => {
+        state.selectedMaker = readHash();
+        buildMakerRail();
+        renderDetail();
+        renderRibbon();
+        installMakerKeyboard();
+
+        const [newsResult, manufacturerResult] = await Promise.all([
+          fetchJSON("news.json"),
+          RELEASE_FETCH_ENABLED
+            ? fetchJSON("hersteller.json")
+            : Promise.resolve({ ok: false, data: null, skipped: true })
+        ]);
+
+        const releaseSchemaOK = RELEASE_FETCH_ENABLED && manufacturerResult.ok && (
+          Array.isArray(manufacturerResult.data) ||
+          (
+            manufacturerResult.data &&
+            Array.isArray(manufacturerResult.data.releases)
+          )
+        );
+
+        const newsSchemaOK = newsResult.ok && (
+          Array.isArray(newsResult.data) ||
+          (
+            newsResult.data &&
+            Array.isArray(newsResult.data.news)
+          )
+        );
+
+        state.releases = normaliseReleases(
+          extractReleases(manufacturerResult.data)
+        );
+
+        state.reports = normaliseReports(
+          extractNews(newsResult.data)
+        );
+
+        updateStats();
+        updateReportCounts();
+        renderRibbon();
+        renderDetail();
+
+        const stand = chooseStand(
+          manufacturerResult.data,
+          newsResult.data
+        );
+
+        if (!RELEASE_FETCH_ENABLED) {
+          setStatus(
+            newsSchemaOK
+              ? "Prototypmodus: news.json geladen. Der Release-Fetch wird erst mit der Produktionsdatei aktiviert."
+              : "news.json ist nicht verfügbar. Herstellerprofile bleiben eingeschränkt nutzbar.",
+            newsSchemaOK ? "ok" : "error",
+            stand
+          );
+          return;
+        }
+
+        if (!releaseSchemaOK && !newsSchemaOK) {
+          setStatus(
+            "Die lokalen JSON-Dateien konnten nicht geladen werden. Die Herstellerprofile bleiben eingeschränkt nutzbar.",
+            "error",
+            stand
+          );
+        } else if (!releaseSchemaOK) {
+          setStatus(
+            "hersteller.json ist nicht verfügbar. Profile und passende Meldungen werden weiterhin angezeigt.",
+            "partial",
+            stand
+          );
+        } else if (!newsSchemaOK) {
+          setStatus(
+            "news.json ist nicht verfügbar. Die Release-Profile bleiben nutzbar.",
+            "partial",
+            stand
+          );
+        } else {
+          setStatus(
+            `Lokale Daten geladen: ${state.releases.length} gültige Releases und ${state.reports.length} Nachrichten wurden geprüft.`,
+            "ok",
+            stand
+          );
+        }
+      };
+
+      const boot = () => {
+        installThemeFallback();
+        start().catch(showFatalState);
+      };
+
+      window.addEventListener("hashchange", () => {
+        const makerId = readHash();
+
+        if (makerId !== state.selectedMaker) {
+          state.query = "";
+          state.selectedMaker = makerId;
+          updateMakerRail();
+          renderDetail();
+        }
+      });
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot, { once: true });
+      } else {
+        boot();
+      }
+    })();
+  </script>
+</body>
+</html>

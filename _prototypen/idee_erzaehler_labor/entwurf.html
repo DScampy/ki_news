@@ -1,0 +1,3197 @@
+<!doctype html>
+<html lang="de" data-theme="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Datenbasierter Erzaehler-Laborprototyp fuer ki-news.live">
+  <title>Ideen-Erzaehler Labor | KI NEWS</title>
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <style>
+    :root,
+    html[data-theme="dunkel"],
+    html[data-theme="dark"] {
+      --px-bg: #090b0c;
+      --px-bg-soft: #111517;
+      --px-panel: #15191c;
+      --px-panel-2: #1c2226;
+      --px-ink: #f1f0e9;
+      --px-paper: #e4e2d8;
+      --px-muted: #99a2a6;
+      --px-line: rgba(241, 240, 233, .13);
+      --px-line-strong: rgba(241, 240, 233, .27);
+      --px-turquoise: #00d4ff;
+      --px-violet: #a78bfa;
+      --px-copper: #d9985b;
+      --px-gold: #f4bf65;
+      --px-warning: #f3bd68;
+      --px-danger: #ff9f82;
+      --px-radius: 18px;
+      --px-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+
+    html[data-theme="hell"],
+    html[data-theme="light"] {
+      --px-bg: #edf0ed;
+      --px-bg-soft: #f5f5ef;
+      --px-panel: #fafaf5;
+      --px-panel-2: #e7ebe7;
+      --px-ink: #152023;
+      --px-paper: #303b3e;
+      --px-muted: #687377;
+      --px-line: rgba(21, 32, 35, .13);
+      --px-line-strong: rgba(21, 32, 35, .25);
+      --px-shadow: 0 24px 70px rgba(34, 47, 50, .1);
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      overflow-x: hidden;
+      background: var(--px-bg);
+    }
+
+    body {
+      color: var(--px-ink);
+      font-family: "Work Sans", system-ui, sans-serif;
+      line-height: 1.5;
+      transition: color .2s ease, background .2s ease;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    a,
+    canvas {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    a {
+      color: inherit;
+    }
+
+    a { text-decoration: none; }
+    button { cursor: pointer; }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    canvas:focus-visible {
+      outline: 2px solid var(--px-turquoise);
+      outline-offset: 3px;
+    }
+
+    ::selection {
+      color: #071113;
+      background: var(--px-turquoise);
+    }
+
+    .px-sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .px-shell {
+      position: relative;
+      min-height: 100vh;
+      isolation: isolate;
+    }
+
+    .px-shell::before {
+      position: fixed;
+      z-index: -3;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(217, 152, 91, .10), transparent 32%),
+        linear-gradient(rgba(255, 255, 255, .018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .014) 1px, transparent 1px);
+      background-size: auto, 36px 36px, 36px 36px;
+      mask-image: linear-gradient(to bottom, #000 0, #000 45%, transparent 93%);
+    }
+
+    .px-grain {
+      position: fixed;
+      z-index: 30;
+      inset: -40%;
+      pointer-events: none;
+      opacity: .028;
+      background-image: repeating-radial-gradient(
+        circle at 31% 37%,
+        transparent 0 1px,
+        #fff 1px 2px,
+        transparent 2px 4px
+      );
+      background-size: 5px 5px;
+      animation: px-grain 1.2s steps(2) infinite;
+    }
+
+    @keyframes px-grain {
+      0% { transform: translate3d(0, 0, 0); }
+      25% { transform: translate3d(2%, -1%, 0); }
+      50% { transform: translate3d(-1%, 2%, 0); }
+      75% { transform: translate3d(1%, 1%, 0); }
+      100% { transform: translate3d(-2%, -1%, 0); }
+    }
+
+    .px-topbar {
+      position: sticky;
+      z-index: 40;
+      top: 0;
+      display: flex;
+      min-height: 64px;
+      align-items: center;
+      gap: 24px;
+      padding: 0 27px;
+      border-bottom: 1px solid var(--px-line);
+      background: color-mix(in srgb, var(--px-bg) 94%, transparent);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .08);
+      backdrop-filter: blur(12px);
+    }
+
+    .px-brand {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 10px;
+      color: var(--px-ink);
+    }
+
+    .px-brand-mark {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border: 1px solid rgba(0, 212, 255, .62);
+      border-radius: 9px;
+      color: #061113;
+      background: var(--px-turquoise);
+      box-shadow: 0 0 24px rgba(0, 212, 255, .2);
+      font: 800 20px/1 "Space Grotesk", sans-serif;
+    }
+
+    .px-brand-name {
+      font: 700 18px/1 "Space Grotesk", sans-serif;
+      letter-spacing: -.04em;
+    }
+
+    .px-nav {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .px-nav a {
+      position: relative;
+      padding: 22px 0 18px;
+      color: var(--px-muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .px-nav a:hover,
+    .px-nav a[aria-current="page"] {
+      color: var(--px-ink);
+    }
+
+    .px-nav a[aria-current="page"]::after {
+      position: absolute;
+      right: 0;
+      bottom: -1px;
+      left: 0;
+      height: 2px;
+      content: "";
+      background: var(--px-turquoise);
+      box-shadow: 0 0 12px var(--px-turquoise);
+    }
+
+    .px-topbar-spacer {
+      flex: 1 1 auto;
+    }
+
+    .px-data-state {
+      display: flex;
+      max-width: 255px;
+      align-items: center;
+      gap: 8px;
+      color: var(--px-muted);
+      font: 10px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: .05em;
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    .px-data-state::before {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      content: "";
+      background: var(--px-turquoise);
+      box-shadow: 0 0 10px var(--px-turquoise);
+    }
+
+    .px-data-state.is-warning::before {
+      background: var(--px-warning);
+      box-shadow: 0 0 10px var(--px-warning);
+    }
+
+    .px-theme-button {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid var(--px-line);
+      border-radius: 50%;
+      color: var(--px-ink);
+      background: transparent;
+    }
+
+    .px-theme-button::before {
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      content: "";
+      box-shadow: inset 4px 0 0 currentColor;
+    }
+
+    .px-main {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 42px 28px 86px;
+    }
+
+    .px-intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(290px, 470px);
+      align-items: end;
+      gap: 42px;
+      margin-bottom: 25px;
+    }
+
+    .px-kicker,
+    .px-section-kicker {
+      margin: 0 0 10px;
+      color: var(--px-turquoise);
+      font: 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .px-title {
+      max-width: 940px;
+      margin: 0;
+      font: 650 clamp(43px, 6vw, 84px)/.94 "Space Grotesk", sans-serif;
+      letter-spacing: -.065em;
+    }
+
+    .px-title em {
+      color: var(--px-copper);
+      font-style: normal;
+    }
+
+    .px-intro-copy {
+      margin: 0 0 3px;
+      color: var(--px-muted);
+      font-size: 16px;
+    }
+
+    .px-intro-copy strong {
+      color: var(--px-ink);
+      font-weight: 650;
+    }
+
+    .px-data-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 0 0 17px;
+      padding: 11px 14px;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      color: var(--px-muted);
+      background: var(--px-panel);
+      font: 11px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .px-data-notice.is-warning {
+      border-color: rgba(243, 189, 104, .38);
+      color: var(--px-warning);
+    }
+
+    .px-data-notice::before {
+      display: grid;
+      width: 17px;
+      height: 17px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      content: "i";
+      font: 10px/1 ui-monospace, monospace;
+    }
+
+    .px-slot-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 13px;
+      margin-bottom: 13px;
+    }
+
+    .px-slot {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      min-height: 67px;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border: 1px solid var(--px-line);
+      border-radius: 14px;
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow);
+      transition: border-color .2s ease, background .2s ease;
+    }
+
+    .px-slot.is-target {
+      border-color: var(--px-turquoise);
+      background: var(--px-bg-soft);
+    }
+
+    .px-slot-index {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 50%;
+      color: var(--px-copper);
+      font: 11px/1 ui-monospace, monospace;
+    }
+
+    .px-slot-content {
+      min-width: 0;
+    }
+
+    .px-slot-meta {
+      display: block;
+      margin-bottom: 3px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font: 9px/1.2 ui-monospace, monospace;
+      letter-spacing: .06em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-slot-title {
+      display: block;
+      overflow: hidden;
+      font: 600 14px/1.2 "Space Grotesk", sans-serif;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-slot-empty {
+      color: var(--px-muted);
+    }
+
+    .px-slot-clear {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 auto;
+      margin-left: auto;
+      border: 0;
+      border-radius: 50%;
+      color: var(--px-muted);
+      background: transparent;
+    }
+
+    .px-slot-clear:hover {
+      color: var(--px-ink);
+      background: var(--px-panel-2);
+    }
+
+    .px-vs {
+      color: var(--px-muted);
+      font: 10px/1 ui-monospace, monospace;
+      letter-spacing: .12em;
+    }
+
+    .px-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 365px;
+      align-items: start;
+      gap: 16px;
+    }
+
+    .px-stage-column {
+      min-width: 0;
+    }
+
+    .px-stage {
+      position: relative;
+      min-width: 0;
+      height: 555px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 24px;
+      background: #101315;
+      box-shadow: var(--px-shadow);
+      isolation: isolate;
+    }
+
+    .px-stage::after {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      border-radius: inherit;
+      box-shadow: inset 0 0 90px rgba(0, 0, 0, .3);
+    }
+
+    .px-canvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: pan-y;
+    }
+
+    .px-stage-badge {
+      position: absolute;
+      z-index: 2;
+      top: 17px;
+      left: 17px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 999px;
+      color: rgba(241, 240, 233, .72);
+      background: rgba(8, 10, 11, .62);
+      backdrop-filter: blur(10px);
+      font: 9px/1 ui-monospace, monospace;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .px-stage-badge::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      content: "";
+      background: var(--px-copper);
+      box-shadow: 0 0 12px var(--px-copper);
+    }
+
+    .px-stage-hint {
+      position: absolute;
+      z-index: 2;
+      right: 18px;
+      bottom: 15px;
+      left: 18px;
+      margin: 0;
+      color: rgba(241, 240, 233, .5);
+      font: 9px/1.4 ui-monospace, monospace;
+      text-align: right;
+    }
+
+    .px-relation-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 35px;
+      margin-top: 12px;
+    }
+
+    .px-relation-button,
+    .px-tag,
+    .px-source-tag {
+      display: inline-flex;
+      min-width: 0;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: var(--px-panel);
+      font: 9px/1 ui-monospace, monospace;
+      letter-spacing: .035em;
+    }
+
+    .px-relation-button {
+      min-height: 35px;
+      padding: 8px 11px;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .px-relation-button::before {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      content: "";
+      background: currentColor;
+    }
+
+    .px-relation-button:hover,
+    .px-relation-button.is-active {
+      border-color: currentColor;
+      box-shadow: 0 0 18px rgba(0, 212, 255, .07);
+      transform: translateY(-1px);
+    }
+
+    .px-tag,
+    .px-source-tag {
+      min-height: 22px;
+      padding: 5px 7px;
+    }
+
+    .px-evidence {
+      position: sticky;
+      top: 79px;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 20px;
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow);
+    }
+
+    .px-evidence-head {
+      position: relative;
+      padding: 19px 19px 16px;
+      border-bottom: 1px solid var(--px-line);
+      background: linear-gradient(90deg, rgba(217, 152, 91, .09), transparent 68%);
+    }
+
+    .px-evidence-head::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, var(--px-copper), transparent 72%);
+    }
+
+    .px-evidence-kicker {
+      margin: 0 0 7px;
+      color: var(--px-copper);
+      font: 9px/1.2 ui-monospace, monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .px-evidence-title {
+      margin: 0;
+      font: 700 23px/1.05 "Space Grotesk", sans-serif;
+      letter-spacing: -.035em;
+    }
+
+    .px-evidence-question {
+      margin: 11px 0 0;
+      color: var(--px-paper);
+      font-size: 13px;
+    }
+
+    .px-confidence {
+      display: inline-flex;
+      margin-top: 12px;
+      padding: 5px 8px;
+      border: 1px solid var(--px-line);
+      border-radius: 6px;
+      color: var(--px-muted);
+      font: 8px/1 ui-monospace, monospace;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .px-evidence-body {
+      display: grid;
+      max-height: calc(100vh - 166px);
+      gap: 14px;
+      overflow: auto;
+      padding: 15px;
+      overscroll-behavior: contain;
+    }
+
+    .px-empty-evidence {
+      margin: 0;
+      padding: 3px 0;
+      color: var(--px-muted);
+      font-size: 12px;
+    }
+
+    .px-empty-evidence strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--px-ink);
+      font: 700 19px/1.1 "Space Grotesk", sans-serif;
+    }
+
+    .px-relation-evidence {
+      padding: 10px 11px;
+      border-left: 2px solid var(--px-copper);
+      color: var(--px-muted);
+      background: var(--px-bg-soft);
+      font-size: 11px;
+    }
+
+    .px-proof-article,
+    .px-proof-video,
+    .px-editorial-note,
+    .px-uncertainty,
+    .px-audio-slot {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--px-line);
+      border-radius: 13px;
+      background: var(--px-bg-soft);
+    }
+
+    .px-proof-article {
+      display: grid;
+      grid-template-columns: 78px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .px-proof-article-image {
+      width: 78px;
+      height: 78px;
+      object-fit: cover;
+      border-radius: 9px;
+      background: var(--px-panel-2);
+    }
+
+    .px-proof-copy {
+      min-width: 0;
+    }
+
+    .px-proof-meta {
+      margin: 0 0 5px;
+      color: var(--px-muted);
+      font: 8px/1.4 ui-monospace, monospace;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-proof-title,
+    .px-proof-video-title,
+    .px-editorial-note h3,
+    .px-uncertainty h3,
+    .px-audio-slot h3 {
+      margin: 0;
+      font: 700 14px/1.16 "Space Grotesk", sans-serif;
+    }
+
+    .px-proof-summary {
+      display: -webkit-box;
+      margin: 6px 0 8px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 10px;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-text-link {
+      color: var(--px-turquoise);
+      font-size: 10px;
+      text-underline-offset: 3px;
+    }
+
+    .px-fulltext {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding: 9px 10px;
+      border-left: 2px solid var(--px-line-strong);
+      color: var(--px-muted);
+      background: var(--px-panel-2);
+      font-size: 9px;
+      line-height: 1.5;
+    }
+
+    .px-uncertainty {
+      border-color: rgba(217, 152, 91, .3);
+    }
+
+    .px-uncertainty h3,
+    .px-audio-slot h3,
+    .px-proof-video-title {
+      color: var(--px-copper);
+      font-size: 12px;
+    }
+
+    .px-uncertainty p,
+    .px-editorial-note p,
+    .px-proof-video p,
+    .px-audio-slot p {
+      margin: 7px 0 0;
+      color: var(--px-muted);
+      font-size: 10px;
+    }
+
+    .px-editorial-note {
+      border-color: rgba(167, 139, 250, .36);
+    }
+
+    .px-editorial-note h3 {
+      color: var(--px-violet);
+      font-size: 12px;
+    }
+
+    .px-proof-video,
+    .px-audio-slot {
+      overflow: hidden;
+    }
+
+    .px-proof-video-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .px-video-button,
+    .px-audio-button,
+    .px-icon-button,
+    .px-button {
+      min-height: 37px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 9px;
+      color: var(--px-ink);
+      background: var(--px-panel-2);
+      font: 10px/1 ui-monospace, monospace;
+    }
+
+    .px-video-button,
+    .px-audio-button {
+      margin-top: 9px;
+      padding: 8px 10px;
+    }
+
+    .px-card-video {
+      display: block;
+      width: 100%;
+      max-height: 220px;
+      margin-top: 9px;
+      border-radius: 9px;
+      background: #07090a;
+    }
+
+    .px-audio-element {
+      display: block;
+      width: 100%;
+      height: 34px;
+      margin-top: 9px;
+    }
+
+    .px-control-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 20px 0 12px;
+    }
+
+    .px-control-row .px-section-kicker {
+      margin: 0;
+    }
+
+    .px-button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .px-button {
+      min-height: 41px;
+      padding: 9px 14px;
+      transition: .18s ease;
+    }
+
+    .px-button:hover {
+      border-color: var(--px-turquoise);
+      transform: translateY(-1px);
+    }
+
+    .px-button.is-primary {
+      border-color: var(--px-turquoise);
+      color: #061113;
+      background: var(--px-turquoise);
+      box-shadow: 0 0 22px rgba(0, 212, 255, .12);
+    }
+
+    .px-button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+      transform: none;
+    }
+
+    .px-section {
+      min-width: 0;
+      margin-top: 16px;
+      padding: 19px;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+    }
+
+    .px-section-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 15px;
+    }
+
+    .px-section-title {
+      margin: 0;
+      font: 700 23px/1.05 "Space Grotesk", sans-serif;
+      letter-spacing: -.035em;
+    }
+
+    .px-section-copy {
+      max-width: 680px;
+      margin: 5px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+    }
+
+    .px-timeline {
+      position: relative;
+      padding: 24px 4px 4px;
+    }
+
+    .px-timeline-line {
+      position: absolute;
+      top: 36px;
+      right: 4px;
+      left: 4px;
+      height: 1px;
+      background: var(--px-line-strong);
+    }
+
+    .px-timeline-progress {
+      position: absolute;
+      top: 35px;
+      left: 4px;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--px-turquoise), var(--px-gold));
+      box-shadow: 0 0 10px rgba(244, 191, 101, .25);
+    }
+
+    .px-timeline-range {
+      position: relative;
+      z-index: 2;
+      display: block;
+      width: 100%;
+      height: 25px;
+      margin: 0;
+      accent-color: var(--px-gold);
+      cursor: ew-resize;
+    }
+
+    .px-timeline-markers {
+      position: relative;
+      height: 98px;
+      margin: 7px 3px 0;
+      overflow: hidden;
+    }
+
+    .px-timeline-marker {
+      position: absolute;
+      top: 0;
+      width: 1px;
+      height: 12px;
+      background: var(--px-line-strong);
+    }
+
+    .px-marker-cap {
+      position: absolute;
+      top: 16px;
+      left: 5px;
+      display: block;
+      width: 118px;
+      color: var(--px-muted);
+      font: 8px/1.3 ui-monospace, monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .px-timeline-marker.is-past {
+      height: 20px;
+      background: var(--px-gold);
+      box-shadow: 0 0 9px rgba(244, 191, 101, .35);
+    }
+
+    .px-timeline-marker.is-past .px-marker-cap {
+      color: var(--px-ink);
+    }
+
+    .px-timeline-readout {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--px-muted);
+      font: 9px/1.4 ui-monospace, monospace;
+    }
+
+    .px-pool-tools {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .px-search {
+      min-width: 210px;
+      height: 39px;
+      padding: 0 12px;
+      border: 1px solid var(--px-line);
+      border-radius: 9px;
+      color: var(--px-ink);
+      background: var(--px-bg-soft);
+      font-size: 12px;
+    }
+
+    .px-search::placeholder {
+      color: var(--px-muted);
+    }
+
+    .px-article-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .px-article-card {
+      position: relative;
+      min-width: 0;
+      min-height: 158px;
+      overflow: hidden;
+      padding: 13px;
+      border: 1px solid var(--px-line);
+      border-radius: 13px;
+      color: var(--px-ink);
+      background: var(--px-bg-soft);
+      text-align: left;
+      transition: border-color .18s ease, transform .18s ease, background .18s ease;
+    }
+
+    .px-article-card:hover {
+      border-color: rgba(0, 212, 255, .58);
+      background: var(--px-panel-2);
+      transform: translateY(-2px);
+    }
+
+    .px-article-card:active {
+      cursor: grabbing;
+    }
+
+    .px-article-card.is-selected {
+      border-color: var(--px-copper);
+      box-shadow: inset 0 0 0 1px rgba(217, 152, 91, .28);
+    }
+
+    .px-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 7px;
+      margin-bottom: 11px;
+    }
+
+    .px-tag.is-current {
+      border-color: rgba(0, 212, 255, .38);
+      color: var(--px-turquoise);
+    }
+
+    .px-tag.is-fallback {
+      border-color: rgba(243, 189, 104, .45);
+      color: var(--px-warning);
+    }
+
+    .px-article-card-title {
+      display: -webkit-box;
+      margin: 0 0 8px;
+      overflow: hidden;
+      font: 700 14px/1.2 "Space Grotesk", sans-serif;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-article-card-footer {
+      position: absolute;
+      right: 13px;
+      bottom: 11px;
+      left: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font: 8px/1.2 ui-monospace, monospace;
+    }
+
+    .px-article-card-footer span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-bridge-editor {
+      border-color: rgba(217, 152, 91, .32);
+      background: linear-gradient(130deg, rgba(217, 152, 91, .07), transparent 40%), var(--px-panel);
+    }
+
+    .px-form-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 13px;
+    }
+
+    .px-field {
+      min-width: 0;
+    }
+
+    .px-field.is-wide {
+      grid-column: 1 / -1;
+    }
+
+    .px-label {
+      display: block;
+      margin: 0 0 7px;
+      color: var(--px-muted);
+      font: 9px/1.2 ui-monospace, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .px-input,
+    .px-textarea {
+      width: 100%;
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      color: var(--px-ink);
+      background: var(--px-bg-soft);
+      font-size: 13px;
+    }
+
+    .px-input {
+      min-height: 43px;
+      padding: 10px 12px;
+    }
+
+    .px-textarea {
+      min-height: 88px;
+      padding: 11px 12px;
+      resize: vertical;
+    }
+
+    .px-editor-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .px-saved-note {
+      margin: 10px 0 0;
+      color: var(--px-muted);
+      font: 9px/1.5 ui-monospace, monospace;
+    }
+
+    .px-status {
+      position: fixed;
+      z-index: 60;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(370px, calc(100vw - 36px));
+      padding: 11px 14px;
+      border: 1px solid rgba(0, 212, 255, .47);
+      border-radius: 10px;
+      color: var(--px-ink);
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow);
+      font: 10px/1.45 ui-monospace, monospace;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: .2s ease;
+    }
+
+    .px-status.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .px-modal {
+      position: fixed;
+      z-index: 80;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(4, 6, 7, .8);
+      backdrop-filter: blur(10px);
+    }
+
+    .px-modal-panel {
+      width: min(790px, 100%);
+      max-height: min(88vh, 780px);
+      overflow: auto;
+      padding: 20px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 18px;
+      background: var(--px-panel);
+      box-shadow: 0 35px 100px rgba(0, 0, 0, .55);
+    }
+
+    .px-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 13px;
+    }
+
+    .px-modal-title {
+      margin: 0;
+      font: 700 24px/1 "Space Grotesk", sans-serif;
+    }
+
+    .px-icon-button {
+      width: 37px;
+      padding: 0;
+    }
+
+    .px-markdown {
+      min-height: 390px;
+      max-height: 56vh;
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      color: var(--px-ink);
+      background: var(--px-bg-soft);
+      font: 10px/1.65 ui-monospace, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .px-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 1160px) {
+      .px-workspace {
+        grid-template-columns: minmax(0, 1fr) 330px;
+      }
+
+      .px-article-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .px-data-state {
+        display: none;
+      }
+    }
+
+    @media (max-width: 880px) {
+      .px-nav { display: none; }
+
+      .px-intro {
+        grid-template-columns: 1fr;
+        gap: 17px;
+      }
+
+      .px-intro-copy { max-width: 680px; }
+      .px-workspace { grid-template-columns: 1fr; }
+      .px-evidence { position: static; }
+      .px-evidence-body { max-height: none; }
+    }
+
+    @media (max-width: 650px) {
+      .px-topbar {
+        min-height: 58px;
+        gap: 9px;
+        padding: 0 14px;
+      }
+
+      .px-brand-name { font-size: 16px; }
+      .px-brand-mark { width: 32px; height: 32px; }
+      .px-main { padding: 27px 13px 65px; }
+      .px-title { font-size: clamp(40px, 12.5vw, 61px); }
+      .px-intro-copy { font-size: 14px; }
+      .px-slot-bar { grid-template-columns: 1fr; gap: 7px; }
+      .px-vs { display: none; }
+      .px-slot { min-height: 61px; }
+      .px-stage { height: 480px; border-radius: 17px; }
+      .px-stage-hint { right: 12px; bottom: 10px; left: 12px; text-align: left; }
+      .px-section { padding: 14px; }
+      .px-section-heading { align-items: flex-start; flex-direction: column; }
+      .px-pool-tools, .px-search { width: 100%; }
+      .px-article-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .px-article-card { min-height: 177px; padding: 11px; }
+      .px-article-card-footer { right: 11px; bottom: 10px; left: 11px; }
+      .px-form-grid { grid-template-columns: 1fr; }
+      .px-field.is-wide { grid-column: auto; }
+      .px-control-row { align-items: stretch; flex-direction: column; }
+      .px-button-row .px-button { flex: 1 1 auto; }
+      .px-timeline-markers { height: 112px; }
+      .px-marker-cap { width: 82px; font-size: 7px; }
+      .px-timeline-readout { flex-wrap: wrap; }
+    }
+
+    @media (max-width: 390px) {
+      .px-main { padding-right: 11px; padding-left: 11px; }
+      .px-article-grid { grid-template-columns: 1fr; }
+      .px-article-card { min-height: 145px; }
+      .px-proof-article { grid-template-columns: 68px minmax(0, 1fr); }
+      .px-proof-article-image { width: 68px; height: 68px; }
+      .px-stage-badge { top: 12px; left: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="px-shell">
+    <div class="px-grain" aria-hidden="true"></div>
+
+    <header class="px-topbar">
+      <a class="px-brand" href="./" aria-label="KI NEWS Startseite">
+        <span class="px-brand-mark" aria-hidden="true">S</span>
+        <span class="px-brand-name">KI NEWS</span>
+      </a>
+
+      <nav class="px-nav" aria-label="Hauptnavigation">
+        <a href="./">Aktuell</a>
+        <a href="./archiv.html">Archiv</a>
+        <a href="./artikel.html">Artikel</a>
+        <a href="./podcast.html">Podcast</a>
+        <a href="./statistik.html">Statistik</a>
+        <a href="#" aria-current="page">Erzaehler-Labor</a>
+      </nav>
+
+      <span class="px-topbar-spacer"></span>
+      <span id="px-data-state" class="px-data-state" role="status">Lokale Daten werden geladen</span>
+      <button id="px-theme-button" class="px-theme-button" type="button" aria-label="Farbschema wechseln" title="Farbschema wechseln"></button>
+    </header>
+
+    <main class="px-main">
+      <section class="px-intro" aria-labelledby="px-page-title">
+        <div>
+          <p class="px-kicker">Prototyp 01 / Begegnungslabor</p>
+          <h1 id="px-page-title" class="px-title">Zwischen zwei <em>Meldungen</em> liegt eine Geschichte.</h1>
+        </div>
+        <p class="px-intro-copy">
+          <strong>Kein Automat schreibt die Zukunft.</strong>
+          Das Labor legt zwei belegte Nachrichten nebeneinander, sucht vorsichtige Überschneidungen und macht daraus eine editierbare Brücke. Kausale Aussagen bleiben ausgeschlossen.
+        </p>
+      </section>
+
+      <div id="px-data-notice" class="px-data-notice" role="status">
+        Sechs lokale Datenbestände werden parallel geladen. Die Oberfläche bleibt auch bei Ausfällen bedienbar.
+      </div>
+
+      <section class="px-slot-bar" aria-label="Ausgewählte Nachrichten">
+        <article id="px-slot-0" class="px-slot" data-slot="0" aria-label="Erste Meldung"></article>
+        <span class="px-vs" aria-hidden="true">VERSUS</span>
+        <article id="px-slot-1" class="px-slot" data-slot="1" aria-label="Zweite Meldung"></article>
+      </section>
+
+      <section class="px-workspace" aria-label="Newsroom und Belege">
+        <div class="px-stage-column">
+          <div class="px-stage">
+            <span class="px-stage-badge">Newsroom / Begegnungsfeld</span>
+            <canvas
+              id="px-canvas"
+              class="px-canvas"
+              role="img"
+              tabindex="0"
+              aria-label="Zwei leuchtende Nachrichtenknoten auf einer newsroomartigen Bühne. Die Verbindungsarten sind zusätzlich als Tastaturbuttons unterhalb erreichbar."
+            >Die Canvas-Grafik wird nicht unterstützt. Die Verbindungsarten stehen als Text unter der Bühne bereit.</canvas>
+            <p class="px-stage-hint">Faden berühren oder Verbindung wählen. Ein Klick macht aus dem Faden eine editierbare Brücke.</p>
+          </div>
+
+          <div id="px-relation-bar" class="px-relation-bar" aria-label="Gefundene Verbindungsarten"></div>
+
+          <section class="px-section" aria-labelledby="px-timeline-title">
+            <div class="px-section-heading">
+              <div>
+                <p class="px-section-kicker">Chronologie</p>
+                <h2 id="px-timeline-title" class="px-section-title">Gemeinsamer Zeitraum</h2>
+                <p class="px-section-copy">Markiert erste und letzte Meldung sowie erste und letzte Sichtbarkeit erkannter Graph-Akteure.</p>
+              </div>
+              <button id="px-timeline-play" class="px-button" type="button">Zeit abspielen</button>
+            </div>
+
+            <div class="px-timeline">
+              <div class="px-timeline-line" aria-hidden="true"></div>
+              <div id="px-timeline-progress" class="px-timeline-progress" aria-hidden="true"></div>
+              <label class="px-sr-only" for="px-timeline-range">Zeitpunkt der gemeinsamen Geschichte</label>
+              <input id="px-timeline-range" class="px-timeline-range" type="range" min="0" max="1" value="1" step="0.001">
+              <div id="px-timeline-markers" class="px-timeline-markers" aria-hidden="true"></div>
+              <div class="px-timeline-readout">
+                <span id="px-timeline-start">Kein Zeitraum</span>
+                <span id="px-timeline-current">Datenstand offen</span>
+                <span id="px-timeline-end">Kein Zeitraum</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="px-evidence" aria-labelledby="px-evidence-title">
+          <div class="px-evidence-head">
+            <p id="px-evidence-kicker" class="px-evidence-kicker">Begegnungsprotokoll</p>
+            <h2 id="px-evidence-title" class="px-evidence-title">Zwei Meldungen, eine offene Frage</h2>
+            <p id="px-evidence-question" class="px-evidence-question">Wählen Sie einen Faden, um Belege und Unsicherheiten zu prüfen.</p>
+            <span id="px-confidence" class="px-confidence">Noch keine Verbindung gewählt</span>
+          </div>
+          <div id="px-evidence-body" class="px-evidence-body"></div>
+        </aside>
+      </section>
+
+      <div class="px-control-row">
+        <p class="px-section-kicker">Auswahlwerkstatt</p>
+        <div class="px-button-row">
+          <button id="px-random-button" class="px-button is-primary" type="button">Zufällige Begegnung</button>
+          <button id="px-swap-button" class="px-button" type="button">Knoten tauschen</button>
+        </div>
+      </div>
+
+      <section class="px-section" aria-labelledby="px-pool-title">
+        <div class="px-section-heading">
+          <div>
+            <p class="px-section-kicker">Aktuell und Archiv</p>
+            <h2 id="px-pool-title" class="px-section-title">Nachrichten</h2>
+            <p class="px-section-copy">Karte anklicken oder auf einen Knoten ziehen. Auf kleinen Displays genügt die Berührung.</p>
+          </div>
+          <div class="px-pool-tools">
+            <label class="px-sr-only" for="px-search">Nachrichten filtern</label>
+            <input id="px-search" class="px-search" type="search" placeholder="Titel, Quelle, Thema suchen" autocomplete="off">
+            <button id="px-reset-filter" class="px-button" type="button">Filter löschen</button>
+          </div>
+        </div>
+        <div id="px-article-grid" class="px-article-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="px-bridge-editor" class="px-section px-bridge-editor" aria-labelledby="px-bridge-title" hidden>
+        <div class="px-section-heading">
+          <div>
+            <p class="px-section-kicker">Editierbare Brücke</p>
+            <h2 id="px-bridge-title" class="px-section-title">Story-Bridge</h2>
+            <p class="px-section-copy">Formulieren Sie die Begegnung als Frage oder Beobachtung. Der Export trennt Beobachtung, Beleg und Unsicherheit.</p>
+          </div>
+          <button id="px-close-bridge" class="px-button" type="button">Brücke schließen</button>
+        </div>
+
+        <div class="px-form-grid">
+          <label class="px-field is-wide">
+            <span class="px-label">Titel</span>
+            <input id="px-bridge-title-input" class="px-input" type="text" maxlength="140" placeholder="Arbeitstitel der Begegnung">
+          </label>
+
+          <label class="px-field is-wide">
+            <span class="px-label">Warum können beide Meldungen zusammen interessant sein?</span>
+            <textarea id="px-bridge-question-input" class="px-textarea" maxlength="500" placeholder="Formulieren Sie eine offene Frage oder vorsichtige Beobachtung."></textarea>
+          </label>
+
+          <label class="px-field is-wide">
+            <span class="px-label">Redaktionelle Randnotiz, optional</span>
+            <textarea id="px-bridge-note-input" class="px-textarea" maxlength="700" placeholder="Eigene Einordnung. Diese Angabe wird im Export nicht als Datenfakt behandelt."></textarea>
+          </label>
+        </div>
+
+        <div class="px-editor-actions">
+          <button id="px-save-button" class="px-button is-primary" type="button">Brücke speichern</button>
+          <button id="px-share-button" class="px-button" type="button">Brücke teilen</button>
+          <button id="px-export-button" class="px-button" type="button">Markdown exportieren</button>
+        </div>
+        <p id="px-saved-note" class="px-saved-note">Lokale Brücken werden nur in diesem Browser gespeichert.</p>
+      </section>
+    </main>
+  </div>
+
+  <div id="px-status" class="px-status" role="status" aria-live="polite"></div>
+
+  <div id="px-modal" class="px-modal" hidden role="dialog" aria-modal="true" aria-labelledby="px-modal-title">
+    <div class="px-modal-panel">
+      <div class="px-modal-head">
+        <h2 id="px-modal-title" class="px-modal-title">Markdown-Export</h2>
+        <button id="px-modal-close" class="px-icon-button" type="button" aria-label="Exportfenster schließen">×</button>
+      </div>
+      <pre id="px-markdown" class="px-markdown" tabindex="0" aria-label="Kopierbarer Markdown-Text"></pre>
+      <div class="px-modal-actions">
+        <button id="px-copy-markdown" class="px-button is-primary" type="button">Markdown kopieren</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/ki-icons.js"></script>
+  <script src="assets/ki-layout.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = selector => document.querySelector(selector);
+      const canvas = $("#px-canvas");
+      const context = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+      const reducedMotionQuery = window.matchMedia
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : { matches: false, addEventListener: null };
+
+      const fallbackArticles = [
+        {
+          _key: "fallback:a",
+          story_id: "lokal-fallback-a",
+          title: "Lokale Fallback-Karte A",
+          summary: "Keine belastbaren Artikeldaten geladen. Diese Karte dient nur als lokaler Platzhalter.",
+          full_text: "",
+          source: "Lokaler Prototyp",
+          region: "unbekannt",
+          score: 0,
+          date: "",
+          first_seen: "",
+          origin: "fallback",
+          isFallback: true
+        },
+        {
+          _key: "fallback:b",
+          story_id: "lokal-fallback-b",
+          title: "Lokale Fallback-Karte B",
+          summary: "Keine belastbaren Artikeldaten geladen. Diese Karte erzeugt keine inhaltliche Behauptung.",
+          full_text: "",
+          source: "Lokaler Prototyp",
+          region: "unbekannt",
+          score: 0,
+          date: "",
+          first_seen: "",
+          origin: "fallback",
+          isFallback: true
+        }
+      ];
+
+      const state = {
+        articles: [],
+        cards: [],
+        media: { podcasts: [], videos: [], xposts: [] },
+        entities: [],
+        graph: { nodes: [], edges: [] },
+        posts: [],
+        failures: [],
+        usedFallback: false,
+        newsStand: "",
+        graphStand: "",
+        selected: [fallbackArticles[0], fallbackArticles[1]],
+        turn: 1,
+        relations: [],
+        activeRelation: null,
+        hoverRelation: null,
+        bridgeOpen: false,
+        bridge: { title: "", question: "", note: "" },
+        saved: [],
+        timeline: { min: 0, max: 0, current: 0, markers: [] },
+        timelineTimer: null,
+        reducedMotion: reducedMotionQuery.matches,
+        filter: "",
+        statusTimer: null,
+        canvasWidth: 0,
+        canvasHeight: 0
+      };
+
+      function text(value, fallback = "") {
+        return String(value ?? fallback)
+          .replace(/\u2014/g, "-")
+          .replace(/\u2013/g, "-")
+          .replace(/\u00a0/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function short(value, length = 120) {
+        const clean = text(value);
+        if (clean.length <= length) return clean;
+        return clean.slice(0, Math.max(1, length - 1)).trimEnd() + "…";
+      }
+
+      function make(tag, className, value) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (value !== undefined) node.textContent = text(value);
+        return node;
+      }
+
+      function clear(node) {
+        if (!node) return;
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      function setText(selector, value) {
+        const node = $(selector);
+        if (node) node.textContent = text(value);
+      }
+
+      function showStatus(message) {
+        const node = $("#px-status");
+        node.textContent = text(message);
+        node.classList.add("is-visible");
+        window.clearTimeout(state.statusTimer);
+        state.statusTimer = window.setTimeout(() => {
+          node.classList.remove("is-visible");
+        }, 3200);
+      }
+
+      function safeHttpUrl(value) {
+        if (typeof value !== "string" || !value.trim()) return "";
+        try {
+          const url = new URL(value, document.baseURI);
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch (_) {
+          return "";
+        }
+      }
+
+      function safeLocalVideo(value) {
+        if (typeof value !== "string") return "";
+        const clean = value.trim();
+        if (!clean || /^[a-z][a-z0-9+.-]*:/i.test(clean)) return "";
+        return /^\.?\/?assets\//i.test(clean) ? clean : "";
+      }
+
+      function validDate(value) {
+        const match = text(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!match) return 0;
+        const result = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        return Number.isFinite(result) ? result : 0;
+      }
+
+      function formatDate(value, includeYear = true) {
+        const stamp = typeof value === "number" ? value : validDate(value);
+        if (!stamp) return "Datum unbekannt";
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "short",
+          year: includeYear ? "numeric" : undefined,
+          timeZone: "UTC"
+        }).format(new Date(stamp));
+      }
+
+      function arrayFrom(value, key) {
+        if (Array.isArray(value)) return value;
+        if (value && typeof value === "object" && Array.isArray(value[key])) return value[key];
+        return [];
+      }
+
+      function normalizeArticle(item, origin, index) {
+        if (!item || typeof item !== "object") return null;
+        const title = text(item.title);
+        if (!title) return null;
+        const storyId = text(item.story_id || `${origin}-${index}`);
+        return {
+          ...item,
+          _key: `${origin}:${storyId}:${index}`,
+          title,
+          summary: text(item.summary || item.full_text || "Keine Zusammenfassung im Datensatz."),
+          full_text: text(item.full_text),
+          link: text(item.link),
+          story_id: storyId,
+          source: text(item.source || "Quelle unbekannt"),
+          region: text(item.region || "unbekannt"),
+          date: text(item.date || item.first_seen),
+          first_seen: text(item.first_seen || item.date),
+          score: Number.isFinite(Number(item.score)) ? Number(item.score) : 0,
+          image: text(item.image),
+          origin,
+          isFallback: origin === "fallback"
+        };
+      }
+
+      function mergeArticles(current, archive) {
+        const seen = new Set();
+        const result = [];
+        [
+          { items: current, origin: "news" },
+          { items: archive, origin: "archive" }
+        ].forEach(group => {
+          group.items.forEach((item, index) => {
+            const article = normalizeArticle(item, group.origin, index);
+            if (!article) return;
+            const identity = article.link || `${article.story_id}:${article.title.toLocaleLowerCase("de")}`;
+            if (seen.has(identity)) return;
+            seen.add(identity);
+            result.push(article);
+          });
+        });
+        return result;
+      }
+
+      async function fetchJson(path) {
+        const response = await fetch(path, { cache: "no-cache" });
+        if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+        return response.json();
+      }
+
+      async function loadData() {
+        const paths = [
+          "news.json",
+          "archive.json",
+          "cards.json",
+          "media.json",
+          "entities.json",
+          "graph.json"
+        ];
+        const names = ["news", "archive", "cards", "media", "entities", "graph"];
+
+        const results = await Promise.allSettled(paths.map(fetchJson));
+        const values = {};
+
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            values[names[index]] = result.value;
+          } else {
+            state.failures.push(`${names[index]}.json`);
+          }
+        });
+
+        const loaded = mergeArticles(
+          arrayFrom(values.news, "news"),
+          arrayFrom(values.archive, "archive")
+        );
+
+        while (loaded.length < 2) {
+          loaded.push(fallbackArticles[loaded.length]);
+          state.usedFallback = true;
+        }
+
+        state.articles = loaded;
+        state.cards = arrayFrom(values.cards, "cards")
+          .filter(item => item && typeof item === "object")
+          .map(item => ({
+            id: text(item.id),
+            headline: text(item.headline || "Beweisfenster"),
+            mp4_url: text(item.mp4_url),
+            date: text(item.date),
+            source: text(item.source)
+          }))
+          .filter(item => item.id && item.headline);
+
+        const media = values.media && typeof values.media === "object" ? values.media : {};
+        state.media = {
+          podcasts: arrayFrom(media, "podcasts"),
+          videos: arrayFrom(media, "videos"),
+          xposts: arrayFrom(media, "xposts")
+        };
+
+        const entityData = values.entities && typeof values.entities === "object" ? values.entities : {};
+        state.entities = arrayFrom(entityData, "entities")
+          .filter(item => item && typeof item === "object");
+
+        const graphData = values.graph && typeof values.graph === "object" ? values.graph : {};
+        state.graph = {
+          nodes: arrayFrom(graphData, "nodes").filter(item => item && typeof item === "object"),
+          edges: arrayFrom(graphData, "edges").filter(item => item && typeof item === "object")
+        };
+
+        const newsData = values.news && typeof values.news === "object" ? values.news : {};
+        state.posts = arrayFrom(newsData, "posts");
+        state.newsStand = text(newsData.stand);
+        state.graphStand = text(graphData.stand);
+
+        loadSavedBridges();
+        selectDefaultArticles();
+        renderAll();
+        updateDataNotice();
+
+        const restored = restoreFromHash();
+        if (restored) {
+          const relation = state.relations.find(item => item.type === restored.relationType) || state.relations[0];
+          if (relation) window.setTimeout(() => openBridge(relation, false), 50);
+        }
+      }
+
+      function updateDataNotice() {
+        const stand = state.newsStand || state.graphStand;
+        const stateNode = $("#px-data-state");
+        const notice = $("#px-data-notice");
+        const incomplete = state.failures.length > 0 || state.usedFallback;
+
+        stateNode.classList.toggle("is-warning", incomplete);
+        notice.classList.toggle("is-warning", incomplete);
+
+        if (state.failures.length) {
+          stateNode.textContent = "Teilstand lokal";
+          notice.textContent =
+            `Fehlend oder fehlerhaft: ${state.failures.join(", ")}. ` +
+            (state.usedFallback ? "Neutrale lokale Fallback-Karten verhindern eine leere Ansicht. " : "") +
+            "Aus fehlenden Beständen werden keine zusätzlichen Beziehungen abgeleitet.";
+          return;
+        }
+
+        if (state.usedFallback) {
+          stateNode.textContent = "Lokaler Fallback aktiv";
+          notice.textContent =
+            "Mindestens zwei echte Nachrichteneinträge fehlen. Neutrale lokale Fallback-Karten halten das Labor bedienbar und erzeugen keine inhaltliche Behauptung.";
+          return;
+        }
+
+        stateNode.textContent = stand ? `Stand ${stand}` : "Lokaler Datenstand";
+        notice.textContent = stand
+          ? `Datenstand: ${stand}. Auswahl und Beziehungslogik bleiben lokal im Browser.`
+          : "Alle sechs lokalen Datenbestände wurden geladen. Auswahl und Beziehungslogik bleiben lokal im Browser.";
+      }
+
+      function loadSavedBridges() {
+        try {
+          const stored = JSON.parse(localStorage.getItem("ki-news-story-bridges") || "[]");
+          state.saved = Array.isArray(stored)
+            ? stored.filter(item => item && typeof item === "object")
+            : [];
+        } catch (_) {
+          state.saved = [];
+        }
+      }
+
+      function persistSavedBridges() {
+        try {
+          localStorage.setItem("ki-news-story-bridges", JSON.stringify(state.saved.slice(0, 8)));
+        } catch (_) {
+          showStatus("Lokales Speichern ist im Browser nicht verfügbar.");
+        }
+      }
+
+      function findArticle(key) {
+        const clean = text(key);
+        return state.articles.find(article => article._key === clean)
+          || state.articles.find(article => article.story_id === clean)
+          || null;
+      }
+
+      function restoreFromHash() {
+        if (!location.hash.startsWith("#bridge=")) return false;
+        try {
+          const payload = JSON.parse(decodeURIComponent(location.hash.slice(9)));
+          const keys = Array.isArray(payload.articleKeys) ? payload.articleKeys.map(text) : [];
+          const storyIds = Array.isArray(payload.storyIds) ? payload.storyIds.map(text) : [];
+          const candidates = keys.length >= 2 ? keys : storyIds;
+          const articles = candidates.map(findArticle);
+          if (articles.length < 2 || articles.some(item => !item)) return false;
+
+          state.selected = [articles[0], articles[1]];
+          state.bridge = {
+            title: text(payload.title),
+            question: text(payload.question),
+            note: text(payload.note)
+          };
+          $("#px-bridge-title-input").value = state.bridge.title;
+          $("#px-bridge-question-input").value = state.bridge.question;
+          $("#px-bridge-note-input").value = state.bridge.note;
+          return payload;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function selectDefaultArticles() {
+        const ranked = [...state.articles].sort((a, b) => {
+          const bonus = item => item.origin === "news" ? 8 : 0;
+          return (b.score + bonus(b)) - (a.score + bonus(a));
+        });
+        state.selected[0] = ranked[0] || fallbackArticles[0];
+        state.selected[1] = ranked.find(item => item !== state.selected[0]) || fallbackArticles[1];
+        state.turn = 1;
+      }
+
+      function randomCombination() {
+        const pool = state.articles.length >= 2 ? state.articles : fallbackArticles;
+        const firstIndex = Math.floor(Math.random() * pool.length);
+        let secondIndex = Math.floor(Math.random() * pool.length);
+        if (secondIndex === firstIndex) secondIndex = (secondIndex + 1) % pool.length;
+        state.selected = [pool[firstIndex], pool[secondIndex]];
+        state.turn = 0;
+        resetBridgeState();
+        renderAll();
+        showStatus("Neue Kombination erzeugt. Keine Kausalität wird behauptet.");
+      }
+
+      function normalized(value) {
+        return String(value || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLocaleLowerCase("de")
+          .replace(/[^a-z0-9+#-]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function articleText(article) {
+        if (!article) return "";
+        return normalized([
+          article.title,
+          article.summary,
+          text(article.full_text).slice(0, 2600)
+        ].join(" "));
+      }
+
+      function entityTerms(entity) {
+        const raw = [entity.id]
+          .concat(Array.isArray(entity.aliasse) ? entity.aliasse : [])
+          .map(item => text(item))
+          .map(item => item.replace(/\\[a-z]+\*?\??/gi, ""))
+          .map(normalized)
+          .filter(item => item.length > 1);
+        return [...new Set(raw)];
+      }
+
+      function entitiesFor(article) {
+        const haystack = articleText(article);
+        if (!haystack) return [];
+        return state.entities.filter(entity => {
+          return entity && typeof entity === "object"
+            && entityTerms(entity).some(term => haystack.includes(term));
+        });
+      }
+
+      const stopWords = new Set([
+        "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "eines", "und", "oder",
+        "für", "fuer", "mit", "von", "vom", "im", "in", "an", "auf", "aus", "bei", "zu", "zum", "zur", "als",
+        "ist", "sind", "war", "werden", "wird", "soll", "sollen", "kann", "können", "koennen", "nach", "über",
+        "ueber", "unter", "durch", "gegen", "ohne", "neue", "neuer", "neues", "sich", "mehr", "künstliche",
+        "kuenstliche", "intelligenz", "könnte", "koennte", "sollte", "will", "sowie", "auch", "noch", "sehr"
+      ]);
+
+      function topicTokens(article) {
+        if (!article) return [];
+        return [...new Set(
+          normalized(`${article.title} ${text(article.summary).slice(0, 700)}`)
+            .split(" ")
+            .filter(token => token.length > 3 && !stopWords.has(token) && !/^\d+$/.test(token))
+        )];
+      }
+
+      function entityKind(entity) {
+        return normalized(entity && entity.typ);
+      }
+
+      function isActor(entity) {
+        return /(anbieter|person|mensch|organisation|organization|unternehmen|firma|akteur)/.test(entityKind(entity));
+      }
+
+      function isInfrastructure(entity) {
+        const kind = entityKind(entity);
+        const id = normalized(entity && entity.id);
+        return /(chip|gpu|hardware|infra|infrastruktur|modell|produkt|plattform|rechen|system|tool|technologie)/.test(kind)
+          || /(chip|gpu|nvidia|hardware|rechenzentrum|infrastruktur)/.test(id);
+      }
+
+      function graphNode(id) {
+        return state.graph.nodes.find(node => text(node.id) === text(id)) || null;
+      }
+
+      function graphHasEdge(first, second) {
+        return state.graph.edges.some(edge => {
+          return (text(edge.source) === text(first) && text(edge.target) === text(second))
+            || (text(edge.source) === text(second) && text(edge.target) === text(first));
+        });
+      }
+
+      function addRelation(relations, relation) {
+        relation.id = `${relation.type}-${relations.filter(item => item.type === relation.type).length}`;
+        relations.push(relation);
+      }
+
+      function deriveRelations(first, second) {
+        const relations = [];
+        if (!first || !second) return relations;
+
+        const firstEntities = entitiesFor(first);
+        const secondEntities = entitiesFor(second);
+        const secondIds = new Set(secondEntities.map(item => text(item.id)));
+        const commonEntities = firstEntities.filter(item => secondIds.has(text(item.id)));
+        const actors = commonEntities.filter(isActor);
+        const infrastructure = commonEntities.filter(item => !isActor(item) && isInfrastructure(item));
+        const graphPairs = commonEntities.filter(item =>
+          commonEntities.some(other => other !== item && graphHasEdge(item.id, other.id))
+        );
+
+        if (infrastructure.length) {
+          addRelation(relations, {
+            type: "infrastruktur",
+            label: "Gemeinsame Infrastruktur",
+            color: "#00d4ff",
+            confidence: state.entities.length ? "mittel" : "niedrig, ohne Registry",
+            evidence: `Beide Datensätze nennen ${infrastructure.map(item => text(item.id)).join(", ")}. Das belegt Nennung, nicht Absicht oder Ursache.`,
+            question: "Welche Rolle spielt die gemeinsam genannte technische Infrastruktur in beiden Meldungen?",
+            entities: infrastructure.map(item => text(item.id))
+          });
+        }
+
+        if (actors.length) {
+          addRelation(relations, {
+            type: "akteur",
+            label: "Gemeinsame Akteure",
+            color: "#f4bf65",
+            confidence: normalized(first.source) === normalized(second.source) ? "hoch für Nennung" : "mittel",
+            evidence: `Übereinstimmende Entitäten: ${actors.map(item => text(item.id)).join(", ")}. Das belegt Nennung, nicht Absicht oder Ursache.`,
+            question: `Wie verändert die wiederkehrende Nennung von ${text(actors[0].id)} den Kontext beider Meldungen?`,
+            entities: actors.map(item => text(item.id))
+          });
+        }
+
+        if (graphPairs.length) {
+          addRelation(relations, {
+            type: "graph",
+            label: "Graph-Kante",
+            color: "#d9985b",
+            confidence: "mittel, registrybasiert",
+            evidence: `Im gelieferten Graphen sind ${graphPairs.map(item => text(item.id)).join(", ")} mit mindestens einer weiteren gemeinsamen Entität verbunden.`,
+            question: "Welche dokumentierte Graphstruktur verbindet die beteiligten Akteure oder Produkte?",
+            entities: graphPairs.map(item => text(item.id))
+          });
+        }
+
+        if (first.source && normalized(first.source) === normalized(second.source)) {
+          addRelation(relations, {
+            type: "quelle",
+            label: "Gemeinsame Quelle",
+            color: "#a78bfa",
+            confidence: "hoch für Herkunft",
+            evidence: `Beide Einträge stammen von ${text(first.source)}. Eine gemeinsame Quelle ist kein Beleg für dieselbe Tatsache.`,
+            question: `Welche zusätzliche Quelle könnte die Perspektive von ${text(first.source)} unabhängig prüfen?`,
+            entities: []
+          });
+        }
+
+        if (
+          first.region &&
+          normalized(first.region) === normalized(second.region) &&
+          normalized(first.region) !== "unbekannt"
+        ) {
+          addRelation(relations, {
+            type: "region",
+            label: "Gemeinsame Region",
+            color: "#6ee7b7",
+            confidence: "niedrig",
+            evidence: `Beide Datensätze tragen die Region ${text(first.region)}. Eine regionale Nähe erklärt keine inhaltliche Abhängigkeit.`,
+            question: "Welche lokale Infrastruktur oder welche regionale Regulierung könnte in beiden Fällen relevant sein?",
+            entities: []
+          });
+        }
+
+        const firstTopics = topicTokens(first);
+        const secondTopicSet = new Set(topicTokens(second));
+        const sharedTopics = firstTopics.filter(token => secondTopicSet.has(token));
+
+        if (sharedTopics.length) {
+          addRelation(relations, {
+            type: "thema",
+            label: "Thematische Verbindung",
+            color: "#ff9f82",
+            confidence: sharedTopics.length > 1 ? "mittel" : "niedrig",
+            evidence: `Gemeinsame Titel- und Summary-Begriffe: ${sharedTopics.join(", ")}. Die Übereinstimmung kann sprachlich oder inhaltlich sein.`,
+            question: `Beschreiben ${sharedTopics.join(" und ")} dieselbe Entwicklung oder nur unterschiedliche Schlaglichter desselben Themas?`,
+            entities: []
+          });
+        }
+
+        if (first.story_id && first.story_id === second.story_id && !first.isFallback) {
+          addRelation(relations, {
+            type: "story",
+            label: "Gleiche Story-ID",
+            color: "#c4b5fd",
+            confidence: "hoch für Datenzuordnung",
+            evidence: `Beide Datensätze tragen die Story-ID ${text(first.story_id)}. Das ist eine technische Zuordnung, keine zusätzliche Tatsache.`,
+            question: "Welche zusätzliche Meldung ergänzt diese Story-Kette?",
+            entities: []
+          });
+        }
+
+        const firstDate = validDate(first.date || first.first_seen);
+        const secondDate = validDate(second.date || second.first_seen);
+
+        if (firstDate && secondDate) {
+          const days = Math.abs(firstDate - secondDate) / 86400000;
+          if (days <= 14) {
+            addRelation(relations, {
+              type: "zeit",
+              label: days === 0 ? "Gleicher Tag" : "Zeitliche Nachbarschaft",
+              color: "#94a3b8",
+              confidence: "hoch für Datum",
+              evidence: `${formatDate(firstDate)} und ${formatDate(secondDate)}, Abstand: ${Math.round(days)} Tage. Daraus folgt keine Kausalität.`,
+              question: "Entwickelten sich beide Meldungen im selben Kontextfenster oder wurden sie nur ähnlich datiert?",
+              entities: []
+            });
+          }
+        }
+
+        if (!relations.length) {
+          addRelation(relations, {
+            type: "spannung",
+            label: "Thematische Spannung",
+            color: "#ff9f82",
+            confidence: "gering",
+            evidence: "In den verfügbaren Feldern wurde keine belastbare direkte Überschneidung erkannt. Diese Verbindung markiert nur die offene Frage.",
+            question: "Welche Grenze zwischen Technologie, Markt und Gesellschaft zeigen die beiden getrennten Meldungen?",
+            entities: []
+          });
+        }
+
+        const visible = relations.slice(0, 5);
+        const middle = (Math.min(relations.length, 5) - 1) / 2;
+        return visible.map((relation, index) => ({
+          ...relation,
+          index,
+          offset: (index - middle) * 11
+        }));
+      }
+
+      function resetBridgeState() {
+        state.bridgeOpen = false;
+        state.activeRelation = null;
+        state.hoverRelation = null;
+        state.bridge = { title: "", question: "", note: "" };
+        $("#px-bridge-editor").hidden = true;
+        $("#px-bridge-title-input").value = "";
+        $("#px-bridge-question-input").value = "";
+        $("#px-bridge-note-input").value = "";
+      }
+
+      function renderAll() {
+        state.relations = deriveRelations(state.selected[0], state.selected[1]);
+        renderSlots();
+        renderRelationBar();
+        renderEvidence(state.hoverRelation || state.activeRelation);
+        renderTimeline();
+        renderPool();
+        updateSavedLabel();
+      }
+
+      function renderSlots() {
+        [0, 1].forEach(index => {
+          const slot = $(`#px-slot-${index}`);
+          clear(slot);
+          const article = state.selected[index];
+          const indexNode = make("span", "px-slot-index", String(index + 1).padStart(2, "0"));
+          const content = make("div", "px-slot-content");
+          const meta = make("span", "px-slot-meta");
+          const title = make("span", "px-slot-title", article ? article.title : "Karte hier ablegen");
+
+          if (!article) title.classList.add("px-slot-empty");
+
+          const originLabel = article
+            ? article.origin === "news" ? "Aktuell" : article.origin === "archive" ? "Archiv" : "Fallback"
+            : "Slot offen";
+
+          meta.append(make("span", "", originLabel));
+          meta.append(document.createTextNode(` / ${article ? text(article.source) : "Auswahl"}`));
+          content.append(meta, title);
+          slot.append(indexNode, content);
+
+          if (article) {
+            const clearButton = make("button", "px-slot-clear", "×");
+            clearButton.type = "button";
+            clearButton.setAttribute("aria-label", `Meldung aus Slot ${index + 1} entfernen`);
+            clearButton.addEventListener("click", event => {
+              event.stopPropagation();
+              setSlot(index, null);
+            });
+            slot.append(clearButton);
+          }
+
+          slot.addEventListener("dragover", event => {
+            event.preventDefault();
+            slot.classList.add("is-target");
+          });
+          slot.addEventListener("dragleave", () => slot.classList.remove("is-target"));
+          slot.addEventListener("drop", event => {
+            event.preventDefault();
+            slot.classList.remove("is-target");
+            const key = event.dataTransfer ? event.dataTransfer.getData("text/plain") : "";
+            if (key) setSlot(index, key);
+          });
+        });
+      }
+
+      function renderRelationBar() {
+        const bar = $("#px-relation-bar");
+        clear(bar);
+        state.relations.forEach((relation, index) => {
+          const button = make("button", "px-relation-button", relation.label);
+          button.type = "button";
+          button.style.color = relation.color;
+          button.dataset.index = String(index);
+          button.setAttribute("aria-expanded", state.activeRelation && state.activeRelation.id === relation.id ? "true" : "false");
+          if (state.activeRelation && state.activeRelation.id === relation.id) button.classList.add("is-active");
+          button.addEventListener("click", () => openBridge(relation));
+          button.addEventListener("pointerenter", () => setHover(relation));
+          button.addEventListener("pointerleave", () => setHover(state.activeRelation));
+          bar.append(button);
+        });
+      }
+
+      function setHover(relation) {
+        const previous = state.hoverRelation ? state.hoverRelation.id : "";
+        const next = relation ? relation.id : "";
+        state.hoverRelation = relation;
+        if (previous !== next) {
+          renderEvidence(relation || state.activeRelation);
+          updateRelationButtons();
+        }
+      }
+
+      function updateRelationButtons() {
+        [...$("#px-relation-bar").children].forEach(button => {
+          const relation = state.relations[Number(button.dataset.index)];
+          const active = Boolean(
+            relation && (
+              relation.id === (state.activeRelation ? state.activeRelation.id : "") ||
+              relation.id === (state.hoverRelation ? state.hoverRelation.id : "")
+            )
+          );
+          button.classList.toggle("is-active", active);
+        });
+      }
+
+      function renderEvidence(relation) {
+        const body = $("#px-evidence-body");
+        clear(body);
+
+        if (!relation) {
+          setText("#px-evidence-kicker", "Begegnungsprotokoll");
+          setText("#px-evidence-title", "Zwei Meldungen, eine offene Frage");
+          setText("#px-evidence-question", "Wählen Sie einen Faden, um Belege und Unsicherheiten zu prüfen.");
+          setText("#px-confidence", "Noch keine Verbindung gewählt");
+
+          const empty = make("div", "px-empty-evidence");
+          empty.append(make("strong", "", "Der Raum zwischen den Meldungen ist noch leer."));
+          empty.append(document.createTextNode(
+            " Gemeinsame Entitäten, Quellen, Regionen, Themen oder ein naher Zeitraum werden hier als überprüfbare Hinweise aufbereitet."
+          ));
+          body.append(empty);
+
+          state.selected.filter(Boolean).forEach(article => body.append(renderProofArticle(article)));
+          renderAudio();
+          return;
+        }
+
+        const active = Boolean(state.activeRelation && state.activeRelation.id === relation.id);
+        setText("#px-evidence-kicker", active ? "Belegte Story-Brücke" : "Faden unter Berührung");
+        setText("#px-evidence-title", relation.label);
+        setText("#px-evidence-question", active && state.bridge.question ? state.bridge.question : relation.question);
+        setText("#px-confidence", `Beziehungswert: ${relation.confidence}`);
+
+        body.append(make("p", "px-relation-evidence", relation.evidence));
+        state.selected.filter(Boolean).forEach(article => body.append(renderProofArticle(article)));
+        renderUncertainty(body);
+        renderPostNotes(body);
+        renderMatchingVideos(body);
+        renderAudio();
+      }
+
+      function renderProofArticle(article) {
+        if (!article) return make("article", "px-proof-article", "Kein Datensatz");
+
+        const articleNode = make("article", "px-proof-article");
+        const imageUrl = safeHttpUrl(article.image);
+
+        if (imageUrl) {
+          const image = make("img", "px-proof-article-image");
+          image.src = imageUrl;
+          image.alt = "Artikelbild der ausgewählten Meldung";
+          image.loading = "lazy";
+          image.decoding = "async";
+          image.referrerPolicy = "no-referrer";
+          image.addEventListener("error", () => image.remove(), { once: true });
+          articleNode.append(image);
+        }
+
+        const copy = make("div", "px-proof-copy");
+        copy.append(make(
+          "p",
+          "px-proof-meta",
+          `${text(article.source)} / ${formatDate(article.date || article.first_seen)} / ${text(article.story_id)}`
+        ));
+        copy.append(make("h3", "px-proof-title", article.title));
+        copy.append(make("p", "px-proof-summary", article.summary));
+
+        const linkUrl = safeHttpUrl(article.link);
+        if (linkUrl) {
+          const link = make("a", "px-text-link", "Artikelquelle öffnen ↗");
+          link.href = linkUrl;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          copy.append(link);
+        }
+
+        articleNode.append(copy);
+        if (article.full_text) {
+          articleNode.append(make("p", "px-fulltext", `Gelieferter Textausschnitt: ${short(article.full_text, 360)}`));
+        }
+        return articleNode;
+      }
+
+      function renderUncertainty(container) {
+        const section = make("section", "px-uncertainty");
+        section.append(make("h3", "", "Unsicherheiten"));
+
+        const registryMissing = state.failures.includes("entities.json") || state.failures.includes("graph.json");
+        section.append(make(
+          "p",
+          "",
+          registryMissing
+            ? "Die Entitätsregistry oder der Graph ist nicht verfügbar. Entitätsbeziehungen wurden deshalb nicht erzaehlt. Verwandtschaften sind keine Kausalitaet. Volltext kann fehlen oder durch eine Bezahlschranke verkuerzt sein. Datenzitate geben nur den gelieferten Text wieder."
+            : "Verwandtschaften sind keine Kausalitaet. Entitätsbeziehungen stammen aus einer heuristischen Nennung. Volltext kann fehlen oder durch eine Bezahlschranke verkuerzt sein. Datenzitate geben nur den gelieferten Text wieder."
+        ));
+        container.append(section);
+      }
+
+      function renderPostNotes(container) {
+        state.selected.filter(Boolean).forEach(article => {
+          const post = state.posts.find(item => item && text(item.story_id) === text(article.story_id));
+          if (!post) return;
+          const noteText = text(post.erklaerung || post.teaser || (Array.isArray(post.thread) ? post.thread[0] : ""));
+          if (!noteText) return;
+
+          const note = make("section", "px-editorial-note");
+          note.append(make("h3", "", "Redaktionelle Randnotiz, kein Datenfakt"));
+          note.append(make("p", "", noteText));
+
+          const linkUrl = safeHttpUrl(post.link);
+          if (linkUrl) {
+            const link = make("a", "px-text-link", "Thread öffnen ↗");
+            link.href = linkUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            note.append(link);
+          }
+          container.append(note);
+        });
+      }
+
+      function cardMatchScore(card, article) {
+        if (!card || !article) return -1;
+        let score = 0;
+        if (normalized(card.source) && normalized(card.source) === normalized(article.source)) score += 5;
+        if (card.date && card.date === text(article.date || article.first_seen)) score += 4;
+        const articleTokens = new Set(topicTokens(article));
+        const cardTokens = normalized(card.headline).split(" ");
+        score += cardTokens.filter(token => token.length > 3 && articleTokens.has(token)).length * 2;
+        return score;
+      }
+
+      function matchingCards(article) {
+        return state.cards
+          .map(card => ({ card, score: cardMatchScore(card, article) }))
+          .filter(item => item.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 2)
+          .map(item => item.card);
+      }
+
+      function renderMatchingVideos(container) {
+        const ids = [...new Set(state.selected.flatMap(article => matchingCards(article).map(card => card.id)))];
+        const cards = ids.slice(0, 2).map(id => state.cards.find(card => card.id === id)).filter(Boolean);
+
+        cards.forEach(card => {
+          const section = make("section", "px-proof-video");
+          const head = make("div", "px-proof-video-head");
+          head.append(make("h3", "px-proof-video-title", card.headline));
+          head.append(make("span", "px-tag", "VIDEO"));
+
+          const button = make("button", "px-video-button", "Videobeweis laden");
+          button.type = "button";
+          button.addEventListener("click", () => {
+            if (section.querySelector("video")) return;
+            const source = safeLocalVideo(card.mp4_url);
+            if (!source) {
+              showStatus("Kein sicherer lokaler Videopfad vorhanden.");
+              return;
+            }
+
+            const video = make("video", "px-card-video");
+            video.controls = true;
+            video.playsInline = true;
+            video.preload = "metadata";
+            video.muted = true;
+
+            const sourceNode = document.createElement("source");
+            sourceNode.src = source;
+            sourceNode.type = "video/mp4";
+            video.append(sourceNode);
+            video.addEventListener("error", () => {
+              showStatus("Das Videobeweisfenster konnte nicht geladen werden.");
+            }, { once: true });
+
+            section.append(video);
+            button.disabled = true;
+            button.textContent = "Videofenster geladen";
+          }, { once: true });
+
+          section.append(
+            head,
+            make("p", "", "Lokales Beweisfenster aus cards.json. Kein automatischer Start und keine automatische Audiowiedergabe."),
+            button
+          );
+          container.append(section);
+        });
+      }
+
+      function renderAudio() {
+        let host = $("#px-audio-slot-host");
+        if (!host) {
+          host = make("div");
+          host.id = "px-audio-slot-host";
+          $("#px-evidence-body").append(host);
+        }
+        clear(host);
+
+        const podcasts = Array.isArray(state.media.podcasts) ? state.media.podcasts : [];
+        const podcast = podcasts.find(item => {
+          const title = normalized(item && item.title);
+          return state.selected.some(article => topicTokens(article).some(token => token.length > 4 && title.includes(token)));
+        }) || podcasts[0];
+
+        if (!podcast) return;
+
+        const section = make("section", "px-audio-slot");
+        section.append(make("h3", "", "Optionale Audio-Reaktion"));
+        section.append(make("p", "", "Stumm als Ausgangszustand. Erst der Klick erlaubt die Wiedergabe eines vorhandenen Medienlinks mit niedriger Lautstärke."));
+
+        const button = make("button", "px-audio-button", "Audioreaktion einschalten");
+        button.type = "button";
+        let audio = null;
+
+        button.addEventListener("click", async () => {
+          const source = safeHttpUrl(podcast.soundcloud_url);
+          if (!source) {
+            showStatus("Kein abspielbarer Medienlink vorhanden.");
+            return;
+          }
+
+          if (!audio) {
+            audio = make("audio", "px-audio-element");
+            audio.controls = true;
+            audio.preload = "none";
+            audio.src = source;
+            audio.volume = 0.16;
+            audio.addEventListener("error", () => {
+              showStatus("Der Medienlink ist kein direkt abspielbarer Ton. Die Podcastquelle bleibt verlinkt.");
+            }, { once: true });
+            section.insertBefore(audio, button.nextSibling);
+          }
+
+          try {
+            await audio.play();
+            button.textContent = "Audio stoppen";
+            audio.addEventListener("ended", () => { button.textContent = "Audioreaktion einschalten"; }, { once: true });
+            audio.addEventListener("pause", () => { button.textContent = "Audioreaktion einschalten"; });
+          } catch (_) {
+            showStatus("Die Audio-Reaktion konnte nicht gestartet werden.");
+          }
+        });
+
+        section.append(button);
+        const linkUrl = safeHttpUrl(podcast.soundcloud_url);
+        if (linkUrl) {
+          const link = make("a", "px-text-link", "Podcastquelle öffnen ↗");
+          link.href = linkUrl;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          section.append(link);
+        }
+        host.append(section);
+      }
+
+      function renderPool() {
+        const grid = $("#px-article-grid");
+        clear(grid);
+        const query = normalized(state.filter);
+        const ranked = [...state.articles].sort((a, b) => {
+          const bonus = item => item.origin === "news" ? 8 : 0;
+          return (b.score + bonus(b)) - (a.score + bonus(a));
+        });
+        const matches = ranked.filter(article => {
+          if (!query) return true;
+          return normalized([article.title, article.summary, article.source, article.region].join(" ")).includes(query);
+        }).slice(0, 40);
+
+        if (!matches.length) {
+          grid.append(make("p", "px-section-copy", "Keine Nachricht passt zum Filter. Der lokale Datenbestand bleibt unverändert."));
+          return;
+        }
+
+        matches.forEach(article => {
+          const card = make("button", "px-article-card");
+          card.type = "button";
+          card.draggable = true;
+          card.dataset.articleKey = article._key;
+          card.setAttribute("aria-label", `${article.title} auswählen`);
+          if (state.selected.some(item => item && item._key === article._key)) card.classList.add("is-selected");
+
+          const top = make("div", "px-card-top");
+          const originTag = make("span", "px-tag", article.origin === "news" ? "AKTUELL" : article.origin === "archive" ? "ARCHIV" : "LOKAL");
+          if (article.origin === "news") originTag.classList.add("is-current");
+          if (article.isFallback) originTag.classList.add("is-fallback");
+          top.append(originTag, make("span", "px-source-tag", `SCORE ${Math.round(article.score)}`));
+
+          const title = make("h3", "px-article-card-title", article.title);
+          const footer = make("div", "px-article-card-footer");
+          footer.append(make("span", "", text(article.source)), make("span", "", formatDate(article.date || article.first_seen, false)));
+          card.append(top, title, footer);
+
+          card.addEventListener("click", () => chooseArticle(article._key));
+          card.addEventListener("dragstart", event => {
+            event.dataTransfer.effectAllowed = "copy";
+            event.dataTransfer.setData("text/plain", article._key);
+          });
+          grid.append(card);
+        });
+      }
+
+      function chooseArticle(key) {
+        setSlot(state.turn, key);
+      }
+
+      function setSlot(index, key) {
+        if (index !== 0 && index !== 1) return;
+        const next = key ? findArticle(key) : null;
+        if (key && !next) return;
+        const otherIndex = 1 - index;
+
+        if (next && state.selected[otherIndex] && state.selected[otherIndex]._key === next._key) {
+          state.selected[otherIndex] = state.selected[index];
+        }
+
+        state.selected[index] = next;
+        state.turn = next ? otherIndex : index;
+        resetBridgeState();
+        state.relations = deriveRelations(state.selected[0], state.selected[1]);
+        renderSlots();
+        renderRelationBar();
+        renderEvidence(null);
+        renderTimeline();
+        renderPool();
+        drawCanvas(0);
+      }
+
+      function openBridge(relation, scroll = true) {
+        if (!relation) return;
+        state.activeRelation = relation;
+        state.hoverRelation = relation;
+        state.bridgeOpen = true;
+        $("#px-bridge-editor").hidden = false;
+        renderEvidence(relation);
+        renderRelationBar();
+        updateRelationButtons();
+
+        if (scroll) {
+          $("#px-bridge-editor").scrollIntoView({
+            behavior: state.reducedMotion ? "auto" : "smooth",
+            block: "start"
+          });
+        }
+      }
+
+      function closeBridge() {
+        state.bridgeOpen = false;
+        state.activeRelation = null;
+        $("#px-bridge-editor").hidden = true;
+        renderRelationBar();
+        renderEvidence(null);
+        drawCanvas(0);
+      }
+
+      function buildTimeline() {
+        const articles = state.selected.filter(Boolean);
+        const articleDates = articles.flatMap(article => [
+          validDate(article.first_seen),
+          validDate(article.date)
+        ]).filter(Boolean);
+
+        const entityIds = [...new Set(state.relations.flatMap(relation => Array.isArray(relation.entities) ? relation.entities : []))];
+        const graphNodes = entityIds.map(graphNode).filter(Boolean);
+        const graphDates = graphNodes.flatMap(node => [
+          validDate(node.first_seen),
+          validDate(node.last_seen)
+        ]).filter(Boolean);
+
+        const allDates = articleDates.concat(graphDates);
+        const markers = [];
+
+        articles.forEach(article => {
+          const first = validDate(article.first_seen);
+          const last = validDate(article.date || article.first_seen);
+          if (first) markers.push({ date: first, label: `${short(article.title, 34)} / erste` });
+          if (last && last !== first) markers.push({ date: last, label: `${short(article.title, 34)} / letzte` });
+        });
+
+        graphNodes.slice(0, 3).forEach(node => {
+          const first = validDate(node.first_seen);
+          const last = validDate(node.last_seen);
+          if (first) markers.push({ date: first, label: `${text(node.id)} / erste` });
+          if (last && last !== first) markers.push({ date: last, label: `${text(node.id)} / letzte` });
+        });
+
+        if (!allDates.length) {
+          state.timeline = { min: 0, max: 0, current: 0, markers: [] };
+          return;
+        }
+
+        const min = Math.min(...allDates);
+        const max = Math.max(...allDates);
+        state.timeline = {
+          min,
+          max: max === min ? min + 86400000 : max,
+          current: max,
+          markers
+        };
+      }
+
+      function renderTimeline() {
+        buildTimeline();
+        const range = $("#px-timeline-range");
+        const markerHost = $("#px-timeline-markers");
+        clear(markerHost);
+
+        const { min, max } = state.timeline;
+        const hasTime = Boolean(min);
+        range.disabled = !hasTime;
+        range.value = hasTime ? "1" : "0";
+        $("#px-timeline-play").disabled = !hasTime;
+        $("#px-timeline-progress").style.width = hasTime ? "calc(100% - 8px)" : "0";
+
+        setText("#px-timeline-start", hasTime ? formatDate(min) : "Kein Zeitraum");
+        setText("#px-timeline-end", hasTime ? formatDate(max) : "Kein Zeitraum");
+        setText("#px-timeline-current", hasTime ? formatDate(max) : "Datenstand offen");
+
+        if (!hasTime) return;
+
+        state.timeline.markers.forEach((marker, index) => {
+          const node = make("span", "px-timeline-marker");
+          const position = Math.max(0, Math.min(1, (marker.date - min) / (max - min))) * 100;
+          node.style.left = `${position}%`;
+          node.classList.add("is-past");
+
+          const cap = make("span", "px-marker-cap", marker.label);
+          if (index % 2 === 1) cap.style.top = "42px";
+          node.append(cap);
+          markerHost.append(node);
+        });
+      }
+
+      function updateTimeline(value) {
+        const { min, max } = state.timeline;
+        if (!min) return;
+        const ratio = Math.max(0, Math.min(1, Number(value) || 0));
+        const current = min + ratio * (max - min);
+        state.timeline.current = current;
+        setText("#px-timeline-current", formatDate(current));
+        $("#px-timeline-progress").style.width = `calc(${ratio * 100}% - ${ratio * 8}px)`;
+        $("#px-timeline-markers").querySelectorAll(".px-timeline-marker").forEach((node, index) => {
+          const marker = state.timeline.markers[index];
+          node.classList.toggle("is-past", Boolean(marker && marker.date <= current));
+        });
+      }
+
+      function toggleTimeline() {
+        if (state.timelineTimer) {
+          window.clearInterval(state.timelineTimer);
+          state.timelineTimer = null;
+          $("#px-timeline-play").textContent = "Zeit abspielen";
+          return;
+        }
+        if (!state.timeline.min) return;
+
+        $("#px-timeline-range").value = "0";
+        updateTimeline(0);
+        $("#px-timeline-play").textContent = "Zeit stoppen";
+
+        state.timelineTimer = window.setInterval(() => {
+          const range = $("#px-timeline-range");
+          const next = Number(range.value) + 0.012;
+          if (next >= 1) {
+            range.value = "1";
+            updateTimeline(1);
+            window.clearInterval(state.timelineTimer);
+            state.timelineTimer = null;
+            $("#px-timeline-play").textContent = "Zeit abspielen";
+            return;
+          }
+          range.value = String(next);
+          updateTimeline(next);
+        }, state.reducedMotion ? 300 : 110);
+      }
+
+      function roundedRect(target, x, y, width, height, radius) {
+        const value = Math.min(radius, width / 2, height / 2);
+        target.beginPath();
+        target.moveTo(x + value, y);
+        target.arcTo(x + width, y, x + width, y + height, value);
+        target.arcTo(x + width, y + height, x, y + height, value);
+        target.arcTo(x, y + height, x, y, value);
+        target.arcTo(x, y, x + width, y, value);
+        target.closePath();
+      }
+
+      function resizeCanvas() {
+        if (!context) return;
+        const rect = canvas.getBoundingClientRect();
+        const ratio = Math.min(window.devicePixelRatio || 1, 1.75);
+        state.canvasWidth = rect.width;
+        state.canvasHeight = rect.height;
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        drawCanvas(0);
+      }
+
+      function drawCanvas(time = 0) {
+        if (!context) return;
+        const width = state.canvasWidth;
+        const height = state.canvasHeight;
+        if (!width || !height) return;
+
+        const target = context;
+        target.clearRect(0, 0, width, height);
+        const compact = width < 500;
+        const centerY = height * 0.48;
+        const firstX = width * (compact ? 0.2 : 0.24);
+        const secondX = width * (compact ? 0.8 : 0.76);
+        const nodeWidth = Math.min(compact ? 96 : 154, width * 0.27);
+        const nodeHeight = Math.min(118, height * 0.24);
+        const flow = state.reducedMotion ? 0 : time * 0.00025;
+
+        const background = target.createLinearGradient(0, 0, 0, height);
+        background.addColorStop(0, "#080b0d");
+        background.addColorStop(0.58, "#171b1e");
+        background.addColorStop(1, "#0b0d0f");
+        target.fillStyle = background;
+        target.fillRect(0, 0, width, height);
+
+        const glow = target.createRadialGradient(
+          width * 0.5,
+          height * 0.27,
+          0,
+          width * 0.5,
+          height * 0.27,
+          width * 0.64
+        );
+        glow.addColorStop(0, state.bridgeOpen ? "rgba(217,152,91,.20)" : "rgba(217,152,91,.09)");
+        glow.addColorStop(0.5, "rgba(217,152,91,.035)");
+        glow.addColorStop(1, "rgba(217,152,91,0)");
+        target.fillStyle = glow;
+        target.fillRect(0, 0, width, height);
+
+        target.save();
+        target.strokeStyle = "rgba(241,240,233,.055)";
+        target.lineWidth = 1;
+        const grid = compact ? 27 : 34;
+        for (let x = 0; x < width; x += grid) {
+          target.beginPath();
+          target.moveTo(x, 0);
+          target.lineTo(x, height);
+          target.stroke();
+        }
+        for (let y = 0; y < height; y += grid) {
+          target.beginPath();
+          target.moveTo(0, y);
+          target.lineTo(width, y);
+          target.stroke();
+        }
+        target.restore();
+
+        for (let index = 0; index < 20; index += 1) {
+          const x = (index * 71 + flow * 30) % width;
+          const y = 38 + ((index * 47) % Math.max(1, height - 76));
+          const alpha = 0.12 + 0.07 * Math.sin(flow * 3 + index);
+          target.fillStyle = `rgba(0,212,255,${alpha})`;
+          target.beginPath();
+          target.arc(x, y, index % 5 === 0 ? 1.4 : 0.8, 0, Math.PI * 2);
+          target.fill();
+        }
+
+        const drawThread = (relation, y, alpha, secondPath) => {
+          target.save();
+          target.lineCap = "round";
+          target.strokeStyle = relation.color;
+          target.globalAlpha = alpha * 0.13;
+          target.lineWidth = 13;
+          target.beginPath();
+          target.moveTo(firstX + nodeWidth / 2, y);
+          target.bezierCurveTo(width * 0.39, y - 23, width * 0.61, y + 23, secondX - nodeWidth / 2, y);
+          target.stroke();
+
+          target.globalAlpha = alpha * 0.55;
+          target.lineWidth = 3.2;
+          target.stroke();
+
+          target.globalAlpha = alpha;
+          target.lineWidth = 0.9;
+          target.stroke();
+
+          target.setLineDash([2, 10]);
+          target.lineDashOffset = state.reducedMotion ? 0 : -flow * 120;
+          target.globalAlpha = alpha * 0.65;
+          target.beginPath();
+          target.moveTo(firstX + nodeWidth / 2, y);
+          target.bezierCurveTo(
+            width * 0.39,
+            secondPath ? y + 9 : y - 8,
+            width * 0.61,
+            secondPath ? y - 9 : y + 8,
+            secondX - nodeWidth / 2,
+            y
+          );
+          target.stroke();
+          target.restore();
+        };
+
+        state.relations.forEach(relation => {
+          const y = centerY + relation.offset;
+          const hovered = Boolean(state.hoverRelation && state.hoverRelation.id === relation.id);
+          const active = Boolean(state.activeRelation && state.activeRelation.id === relation.id);
+          const alpha = hovered ? 0.92 : active ? 0.78 : state.bridgeOpen ? 0.27 : 0.12;
+          drawThread(relation, y, alpha, relation.index % 2 === 0);
+        });
+
+        drawNode(firstX, centerY, nodeWidth, nodeHeight, true);
+        drawNode(secondX, centerY, nodeWidth, nodeHeight, false);
+
+        target.save();
+        target.textAlign = "center";
+        target.fillStyle = "rgba(241,240,233,.5)";
+        target.font = "9px ui-monospace, monospace";
+        target.fillText(
+          state.bridgeOpen ? "BELEGE PRÜFEN / BRÜCKE EDITIEREN" : "FADEN BERÜHREN / KLICK FÜR BELEGE",
+          width / 2,
+          height - 25
+        );
+        target.fillStyle = state.bridgeOpen ? "#f4bf65" : "rgba(241,240,233,.4)";
+        target.fillText(state.bridgeOpen ? "DATENEBENE AKTIV" : "NEUROMORPHE DATENEBENE", width / 2, height - 12);
+        target.restore();
+      }
+
+      function drawNode(x, y, width, height, left) {
+        if (!context) return;
+        const target = context;
+        const nodeX = x - width / 2;
+        const nodeY = y - height / 2;
+        const color = left ? "#00d4ff" : "#a78bfa";
+        const glow = left ? "rgba(0,212,255,.22)" : "rgba(167,139,250,.2)";
+
+        target.save();
+        target.shadowColor = glow;
+        target.shadowBlur = 30;
+        target.fillStyle = "rgba(22,27,30,.95)";
+        roundedRect(target, nodeX, nodeY, width, height, 15);
+        target.fill();
+
+        target.shadowBlur = 0;
+        target.strokeStyle = left ? "rgba(0,212,255,.62)" : "rgba(167,139,250,.58)";
+        target.lineWidth = 1;
+        target.stroke();
+
+        target.fillStyle = color;
+        target.beginPath();
+        target.arc(left ? nodeX + 15 : nodeX + width - 15, nodeY + 15, 3, 0, Math.PI * 2);
+        target.fill();
+
+        target.fillStyle = "rgba(241,240,233,.58)";
+        target.font = "9px ui-monospace, monospace";
+        target.textAlign = left ? "left" : "right";
+        target.fillText(left ? "MELDUNG A" : "MELDUNG B", left ? nodeX + 14 : nodeX + width - 14, nodeY + 18);
+        target.fillStyle = "rgba(241,240,233,.4)";
+        target.fillText("OFFENER DATENKNOTEN", left ? nodeX + 14 : nodeX + width - 14, nodeY + 35);
+        target.fillStyle = "#f1f0e9";
+        target.font = `700 ${width < 125 ? 11 : 13}px "Space Grotesk", sans-serif`;
+        target.fillText(left ? "MELDUNG EINS" : "MELDUNG ZWEI", left ? nodeX + 14 : nodeX + width - 14, nodeY + 61);
+
+        target.fillStyle = "#d9985b";
+        target.fillRect(
+          left ? nodeX + 14 : nodeX + width - 14 - Math.max(24, width * 0.3),
+          nodeY + height - 18,
+          Math.max(24, width * 0.3),
+          2
+        );
+        target.restore();
+      }
+
+      function canvasPoint(event) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      }
+
+      function hitRelation(point) {
+        const width = state.canvasWidth;
+        const height = state.canvasHeight;
+        if (!width || !height || !state.relations.length) return null;
+
+        const compact = width < 500;
+        const firstX = width * (compact ? 0.2 : 0.24);
+        const secondX = width * (compact ? 0.8 : 0.76);
+        const nodeWidth = Math.min(compact ? 96 : 154, width * 0.27);
+        if (point.x < firstX + nodeWidth / 2 + 4 || point.x > secondX - nodeWidth / 2 - 4) return null;
+
+        const centerY = height * 0.48;
+        return state.relations.find(relation => Math.abs(point.y - (centerY + relation.offset)) < 22) || null;
+      }
+
+      function onCanvasPointer(event) {
+        const relation = hitRelation(canvasPoint(event));
+        canvas.style.cursor = relation ? "pointer" : "default";
+        setHover(relation || state.activeRelation);
+      }
+
+      function animate(time) {
+        drawCanvas(time);
+        if (!state.reducedMotion) window.requestAnimationFrame(animate);
+      }
+
+      function updateBridgeFromInputs() {
+        state.bridge.title = text($("#px-bridge-title-input").value);
+        state.bridge.question = text($("#px-bridge-question-input").value);
+        state.bridge.note = text($("#px-bridge-note-input").value);
+      }
+
+      function bridgePayload() {
+        return {
+          version: 1,
+          savedAt: new Date().toISOString(),
+          articleKeys: state.selected.map(article => article ? article._key : ""),
+          storyIds: state.selected.map(article => article ? text(article.story_id) : ""),
+          relationType: state.activeRelation ? state.activeRelation.type : "",
+          title: state.bridge.title,
+          question: state.bridge.question,
+          note: state.bridge.note
+        };
+      }
+
+      function saveBridge() {
+        if (!state.bridgeOpen) {
+          showStatus("Zuerst eine Verbindung auswählen.");
+          return;
+        }
+        updateBridgeFromInputs();
+        state.saved.unshift(bridgePayload());
+        state.saved = state.saved.slice(0, 8);
+        persistSavedBridges();
+        updateSavedLabel();
+        showStatus("Brücke lokal gespeichert.");
+      }
+
+      function updateSavedLabel() {
+        setText(
+          "#px-saved-note",
+          state.saved.length
+            ? `${state.saved.length} lokal gespeicherte Brücke(n). Gespeichert wird nur im aktuellen Browser.`
+            : "Lokale Brücken werden nur in diesem Browser gespeichert."
+        );
+      }
+
+      async function copyText(value) {
+        try {
+          await navigator.clipboard.writeText(value);
+          return true;
+        } catch (_) {
+          const field = document.createElement("textarea");
+          field.value = value;
+          field.style.position = "fixed";
+          field.style.opacity = "0";
+          document.body.append(field);
+          field.select();
+          const copied = document.execCommand("copy");
+          field.remove();
+          return copied;
+        }
+      }
+
+      async function shareBridge() {
+        if (!state.bridgeOpen) {
+          showStatus("Zuerst eine Verbindung auswählen.");
+          return;
+        }
+        updateBridgeFromInputs();
+        const payload = bridgePayload();
+        const url = new URL(window.location.href);
+        url.hash = `bridge=${encodeURIComponent(JSON.stringify(payload))}`;
+
+        try {
+          history.replaceState(null, "", url);
+        } catch (_) {
+          window.location.hash = url.hash;
+        }
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: payload.title || "Story-Bridge",
+              text: payload.question,
+              url: url.href
+            });
+            showStatus("Teilfenster geöffnet.");
+          } catch (_) {
+            return;
+          }
+          return;
+        }
+
+        const copied = await copyText(url.href);
+        showStatus(copied ? "Brückenlink kopiert." : "Brückenlink konnte nicht kopiert werden.");
+      }
+
+      function markdownEscape(value) {
+        return text(value).replace(/([\\`*_{}\[\]()#+.!|>])/g, "\\$1");
+      }
+
+      function buildMarkdown() {
+        const relation = state.activeRelation || state.relations[0];
+        const title = state.bridge.title || (relation ? relation.label : "Story-Bridge");
+        const question = state.bridge.question || (relation ? relation.question : "Wie hängen die beiden Meldungen zusammen?");
+        const lines = [
+          `# ${markdownEscape(title)}`,
+          "",
+          "> Editoriale Beobachtung aus zwei Nachrichten. Dieser Text behauptet keine Kausalität.",
+          "",
+          "## Verbindungsart",
+          "",
+          `**${markdownEscape(relation ? relation.label : "Offene Begegnung")}**`,
+          "",
+          `**Frage:** ${markdownEscape(question)}`,
+          "",
+          "## Belege und Quellen"
+        ];
+
+        state.selected.filter(Boolean).forEach((article, index) => {
+          const source = safeHttpUrl(article.link);
+          lines.push(
+            "",
+            `### ${index + 1}. ${markdownEscape(article.title)}`,
+            "",
+            `- Quelle: ${markdownEscape(article.source)}`,
+            `- Region: ${markdownEscape(article.region || "unbekannt")}`,
+            `- Datum: ${markdownEscape(formatDate(article.date || article.first_seen))}`,
+            `- Story-ID: ${markdownEscape(article.story_id)}`,
+            source ? `- Artikel: ${source}` : "- Artikel: Kein sicherer Link im Datensatz"
+          );
+        });
+
+        lines.push(
+          "",
+          "## Beobachtete Verbindung",
+          "",
+          markdownEscape(relation ? relation.evidence : "Noch keine Verbindung geprüft."),
+          "",
+          "## Unsicherheitshinweis",
+          "",
+          "Gemeinsame Nennungen sind keine Kausalaussage. Entitätsbeziehungen werden heuristisch aus den gelieferten Feldern abgeleitet. Fehlende Volltexte, Zahlungsgrenzen und veränderte Datenstände können die Einordnung einschränken.",
+          "",
+          "## Datenzitate"
+        );
+
+        state.selected.filter(Boolean).forEach((article, index) => {
+          lines.push(
+            "",
+            `**Datenzitat ${index + 1}**`,
+            "",
+            `> ${markdownEscape(article.summary)}`
+          );
+          if (article.full_text) lines.push("", `> Textausschnitt: ${markdownEscape(short(article.full_text, 500))}`);
+        });
+
+        if (state.bridge.note) {
+          lines.push(
+            "",
+            "## Redaktionelle Randnotiz, kein Datenfakt",
+            "",
+            markdownEscape(state.bridge.note)
+          );
+        }
+
+        lines.push(
+          "",
+          "---",
+          "Erzeugt mit dem Ideen-Erzaehler-Labor von ki-news.live. Lokal erzeugt, ohne serverseitige Speicherung."
+        );
+        return lines.join("\n");
+      }
+
+      function exportBridge() {
+        if (!state.bridgeOpen) {
+          showStatus("Zuerst eine Verbindung auswählen.");
+          return;
+        }
+        updateBridgeFromInputs();
+        $("#px-markdown").textContent = buildMarkdown();
+        $("#px-modal").hidden = false;
+        $("#px-markdown").focus();
+      }
+
+      function closeModal() {
+        $("#px-modal").hidden = true;
+      }
+
+      function applyTheme() {
+        let stored = "";
+        try {
+          stored = localStorage.getItem("ki-news-theme") || "";
+        } catch (_) {
+          stored = "";
+        }
+        document.documentElement.dataset.theme = stored === "hell" || stored === "light" ? "hell" : "dunkel";
+      }
+
+      function toggleTheme() {
+        const next = document.documentElement.dataset.theme === "dunkel" ? "hell" : "dunkel";
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem("ki-news-theme", next);
+        } catch (_) {
+          showStatus("Das Theme konnte nicht dauerhaft gespeichert werden.");
+        }
+        showStatus(next === "hell" ? "Helles Schema aktiv." : "Dunkles Schema aktiv.");
+        drawCanvas(0);
+      }
+
+      function bindEvents() {
+        $("#px-random-button").addEventListener("click", randomCombination);
+        $("#px-swap-button").addEventListener("click", () => {
+          [state.selected[0], state.selected[1]] = [state.selected[1], state.selected[0]];
+          resetBridgeState();
+          renderAll();
+          drawCanvas(0);
+        });
+
+        $("#px-search").addEventListener("input", event => {
+          state.filter = event.target.value;
+          renderPool();
+        });
+        $("#px-reset-filter").addEventListener("click", () => {
+          state.filter = "";
+          $("#px-search").value = "";
+          renderPool();
+        });
+
+        $("#px-theme-button").addEventListener("click", toggleTheme);
+        $("#px-timeline-range").addEventListener("input", event => updateTimeline(event.target.value));
+        $("#px-timeline-play").addEventListener("click", toggleTimeline);
+        $("#px-close-bridge").addEventListener("click", closeBridge);
+
+        ["title", "question", "note"].forEach(name => {
+          $(`#px-bridge-${name}-input`).addEventListener("input", () => {
+            updateBridgeFromInputs();
+            if (state.activeRelation) renderEvidence(state.activeRelation);
+          });
+        });
+
+        $("#px-save-button").addEventListener("click", saveBridge);
+        $("#px-share-button").addEventListener("click", shareBridge);
+        $("#px-export-button").addEventListener("click", exportBridge);
+        $("#px-modal-close").addEventListener("click", closeModal);
+        $("#px-modal").addEventListener("click", event => {
+          if (event.target === $("#px-modal")) closeModal();
+        });
+        $("#px-copy-markdown").addEventListener("click", async () => {
+          const copied = await copyText($("#px-markdown").textContent);
+          showStatus(copied ? "Markdown kopiert." : "Kopieren nicht möglich.");
+        });
+
+        canvas.addEventListener("pointermove", onCanvasPointer);
+        canvas.addEventListener("pointerleave", () => setHover(state.activeRelation));
+        canvas.addEventListener("pointerdown", event => {
+          const relation = hitRelation(canvasPoint(event));
+          if (relation) openBridge(relation);
+        });
+        canvas.addEventListener("keydown", event => {
+          if ((event.key === "Enter" || event.key === " ") && state.relations.length) {
+            event.preventDefault();
+            openBridge(state.relations[0]);
+          }
+        });
+        document.addEventListener("keydown", event => {
+          if (event.key === "Escape" && !$("#px-modal").hidden) closeModal();
+        });
+
+        if (typeof reducedMotionQuery.addEventListener === "function") {
+          reducedMotionQuery.addEventListener("change", event => {
+            state.reducedMotion = event.matches;
+            drawCanvas(0);
+          });
+        }
+
+        if ("ResizeObserver" in window) {
+          const observer = new ResizeObserver(resizeCanvas);
+          observer.observe(canvas.parentElement);
+        } else {
+          window.addEventListener("resize", resizeCanvas);
+        }
+
+        window.addEventListener("hashchange", () => {
+          const restored = restoreFromHash();
+          if (!restored) return;
+          state.relations = deriveRelations(state.selected[0], state.selected[1]);
+          renderAll();
+          const relation = state.relations.find(item => item.type === restored.relationType) || state.relations[0];
+          if (relation) openBridge(relation, false);
+        });
+      }
+
+      applyTheme();
+      bindEvents();
+      loadSavedBridges();
+      renderAll();
+      resizeCanvas();
+      if (!state.reducedMotion) window.requestAnimationFrame(animate);
+      loadData();
+    })();
+  </script>
+</body>
+</html>

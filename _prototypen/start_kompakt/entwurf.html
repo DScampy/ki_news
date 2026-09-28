@@ -1,0 +1,3141 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Kompakte Themenübersicht, Meldungsliste, Dossiers und Analysen von ki-news.live">
+  <title>KI-News Kompakt | ki-news.live</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-bg: #edf4f7;
+      --px-bg-deep: #dfeaf0;
+      --px-panel: rgba(255, 255, 255, 0.96);
+      --px-solid: #ffffff;
+      --px-soft: #f3f7f9;
+      --px-text: #10182d;
+      --px-muted: #5c6d82;
+      --px-faint: #7d8c9e;
+      --px-line: #d1dfe6;
+      --px-line-strong: #b4c6d0;
+      --px-cyan: #00d4ff;
+      --px-cyan-ink: #007f99;
+      --px-green: #00d991;
+      --px-violet: #8b5cf6;
+      --px-violet-ink: #7147dc;
+      --px-pink: #ff5c8a;
+      --px-orange: #f59e0b;
+      --px-blue: #4f9df7;
+      --px-shadow-small: 0 7px 22px rgba(30, 53, 70, 0.07);
+      --px-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    html[data-theme="dark"],
+    html[data-px-theme="dark"],
+    body[data-theme="dark"],
+    body[data-px-theme="dark"],
+    body.px-dark {
+      color-scheme: dark;
+      --px-bg: #0a1017;
+      --px-bg-deep: #050a10;
+      --px-panel: rgba(16, 24, 33, 0.97);
+      --px-solid: #101820;
+      --px-soft: #17222d;
+      --px-text: #eef5f8;
+      --px-muted: #9aabb9;
+      --px-faint: #718394;
+      --px-line: #26343f;
+      --px-line-strong: #354753;
+      --px-cyan-ink: #55e4ff;
+      --px-violet-ink: #b69aff;
+      --px-shadow-small: 0 9px 26px rgba(0, 0, 0, 0.22);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html:not([data-theme="light"]):not([data-px-theme="light"]) {
+        color-scheme: dark;
+        --px-bg: #0a1017;
+        --px-bg-deep: #050a10;
+        --px-panel: rgba(16, 24, 33, 0.97);
+        --px-solid: #101820;
+        --px-soft: #17222d;
+        --px-text: #eef5f8;
+        --px-muted: #9aabb9;
+        --px-faint: #718394;
+        --px-line: #26343f;
+        --px-line-strong: #354753;
+        --px-cyan-ink: #55e4ff;
+        --px-violet-ink: #b69aff;
+        --px-shadow-small: 0 9px 26px rgba(0, 0, 0, 0.22);
+      }
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-width: 0;
+      max-width: 100%;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    html {
+      background: var(--px-bg);
+      scroll-padding-top: 78px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      color: var(--px-text);
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.025) 1px, transparent 1px),
+        radial-gradient(circle at 7% 5%, rgba(0, 212, 255, 0.1), transparent 27rem),
+        radial-gradient(circle at 94% 28%, rgba(139, 92, 246, 0.08), transparent 31rem),
+        linear-gradient(180deg, var(--px-bg), var(--px-bg-deep));
+      background-size: 32px 32px, 32px 32px, auto, auto, auto;
+      font-family: "Work Sans", system-ui, sans-serif;
+    }
+
+    button,
+    a,
+    summary {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    a,
+    summary {
+      touch-action: manipulation;
+    }
+
+    button {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid rgba(0, 212, 255, 0.68);
+      outline-offset: 3px;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .px-skip {
+      position: fixed;
+      z-index: 1200;
+      top: 10px;
+      left: 10px;
+      padding: 10px 14px;
+      transform: translateY(-180%);
+      border-radius: 10px;
+      color: #061018;
+      background: var(--px-cyan);
+      font-weight: 850;
+      text-decoration: none;
+    }
+
+    .px-skip:focus {
+      transform: translateY(0);
+    }
+
+    .px-main,
+    .px-main * {
+      min-width: 0;
+    }
+
+    .px-main a,
+    .px-main button,
+    .px-main p,
+    .px-main h2,
+    .px-main h3 {
+      overflow-wrap: anywhere;
+    }
+
+    .px-main {
+      width: calc(100% - 32px);
+      max-width: 1360px;
+      margin-inline: auto;
+      padding-block: 10px 34px;
+    }
+
+    .px-kicker,
+    .px-stand,
+    .px-count,
+    .px-tab-count,
+    .px-topic-meta,
+    .px-topic-rank,
+    .px-row-time,
+    .px-row-source,
+    .px-section-copy,
+    .px-dossier-meta,
+    .px-event-meta,
+    .px-footer,
+    .px-button-label,
+    .px-state-code,
+    .px-extra-rank,
+    .px-analysis-meta {
+      font-family: var(--px-mono);
+    }
+
+    .px-section {
+      --px-accent: var(--px-cyan);
+      position: relative;
+      margin-top: 12px;
+      padding: 14px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 16px;
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow-small);
+      backdrop-filter: blur(16px);
+      scroll-margin-top: 78px;
+    }
+
+    .px-section::before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 44%;
+      height: 2px;
+      border-radius: 0 0 4px;
+      background: linear-gradient(90deg, var(--px-accent), transparent);
+      box-shadow: 0 0 13px var(--px-accent);
+      content: "";
+      opacity: 0.86;
+      pointer-events: none;
+    }
+
+    .px-section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+
+    .px-section-kicker {
+      margin: 0 0 3px;
+      color: var(--px-accent);
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      line-height: 1.3;
+      text-transform: uppercase;
+    }
+
+    .px-section-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.28rem, 2vw, 1.68rem);
+      font-weight: 750;
+      letter-spacing: -0.04em;
+      line-height: 1.06;
+    }
+
+    .px-section-copy {
+      max-width: 620px;
+      margin: 5px 0 0;
+      color: var(--px-muted);
+      font-size: 0.67rem;
+      line-height: 1.45;
+    }
+
+    .px-count {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 9px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: var(--px-soft);
+      font-size: 0.6rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .px-count::before {
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--px-green);
+      box-shadow: 0 0 9px rgba(0, 217, 145, 0.72);
+      content: "";
+      animation: px-pulse 2.2s ease-in-out infinite;
+    }
+
+    .px-rail {
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+      padding: 1px 1px 5px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--px-line-strong) transparent;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .px-rail::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .px-rail::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+      background: var(--px-line-strong);
+    }
+
+    .px-morning {
+      --px-accent: var(--px-green);
+      display: grid;
+      grid-template-columns: 172px minmax(0, 1fr);
+      gap: 13px;
+      align-items: stretch;
+    }
+
+    .px-morning-label {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3px 11px 3px 0;
+      border-right: 1px solid var(--px-line);
+    }
+
+    .px-morning-label strong {
+      display: block;
+      color: var(--px-green);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+    }
+
+    .px-stand {
+      margin: 7px 0 0;
+      color: var(--px-faint);
+      font-size: 0.58rem;
+      line-height: 1.42;
+    }
+
+    .px-morning .px-rail {
+      min-height: 72px;
+    }
+
+    .px-morning-card {
+      position: relative;
+      display: flex;
+      min-width: min(25vw, 260px);
+      min-height: 70px;
+      flex: 0 0 min(25vw, 260px);
+      flex-direction: column;
+      justify-content: center;
+      padding: 9px 11px 9px 14px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      color: var(--px-text);
+      background: var(--px-solid);
+      scroll-snap-align: start;
+      text-decoration: none;
+    }
+
+    .px-morning-card::before {
+      position: absolute;
+      top: 9px;
+      bottom: 9px;
+      left: 0;
+      width: 2px;
+      border-radius: 0 4px 4px 0;
+      background: var(--px-green);
+      content: "";
+    }
+
+    .px-morning-card span {
+      display: block;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-family: var(--px-mono);
+      font-size: 0.6rem;
+      font-weight: 750;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-morning-card strong {
+      display: -webkit-box;
+      margin-top: 5px;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1.27;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-morning-card:hover {
+      border-color: var(--px-green);
+    }
+
+    .px-topics {
+      --px-accent: var(--px-cyan);
+    }
+
+    .px-tabs {
+      position: relative;
+      margin-bottom: 9px;
+      padding-right: 20px;
+    }
+
+    .px-tab {
+      --px-tab-accent: var(--px-cyan);
+      display: inline-flex;
+      min-height: 36px;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 7px;
+      padding: 0 9px 0 11px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: var(--px-solid);
+      font-size: 0.7rem;
+      font-weight: 820;
+      line-height: 1;
+      white-space: nowrap;
+      transition:
+        color 150ms ease,
+        border-color 150ms ease,
+        background 150ms ease;
+    }
+
+    .px-tab:hover {
+      color: var(--px-text);
+      border-color: var(--px-tab-accent);
+    }
+
+    .px-tab[aria-selected="true"] {
+      color: var(--px-text);
+      border-color: var(--px-tab-accent);
+      background: rgba(127, 127, 127, 0.05);
+      background: color-mix(in srgb, var(--px-tab-accent) 12%, var(--px-solid));
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.08);
+    }
+
+    .px-tab-count {
+      display: inline-grid;
+      min-width: 22px;
+      height: 21px;
+      padding-inline: 5px;
+      place-items: center;
+      border-radius: 999px;
+      color: #07131a;
+      background: var(--px-tab-accent);
+      font-size: 0.56rem;
+      font-weight: 950;
+    }
+
+    .px-topic-panel {
+      --px-accent: var(--px-cyan);
+      padding: 10px;
+      border: 1px solid var(--px-accent);
+      border-radius: 12px;
+      background: var(--px-solid);
+      box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.1);
+      scroll-margin-top: 78px;
+    }
+
+    .px-topic-panel-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+
+    .px-topic-panel-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    .px-topic-panel-meta {
+      margin: 3px 0 0;
+      color: var(--px-muted);
+      font-size: 0.65rem;
+      line-height: 1.35;
+    }
+
+    .px-view-switch {
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      background: var(--px-soft);
+    }
+
+    .px-view-button {
+      min-height: 29px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--px-muted);
+      background: transparent;
+      font-size: 0.61rem;
+      font-weight: 850;
+    }
+
+    .px-view-button[aria-pressed="true"] {
+      color: #07131a;
+      background: var(--px-accent);
+    }
+
+    .px-topic-bento,
+    .px-topic-extra {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .px-topic-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 31px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      min-height: 104px;
+      padding: 9px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-soft);
+    }
+
+    .px-topic-card::before {
+      position: absolute;
+      top: 9px;
+      bottom: 9px;
+      left: 0;
+      width: 2px;
+      border-radius: 0 4px 4px 0;
+      background: var(--px-accent);
+      content: "";
+    }
+
+    .px-topic-rank,
+    .px-extra-rank {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border: 1px solid var(--px-accent);
+      border-radius: 8px;
+      color: var(--px-accent);
+      background: var(--px-solid);
+      font-size: 0.59rem;
+      font-weight: 950;
+    }
+
+    .px-topic-body {
+      min-width: 0;
+    }
+
+    .px-topic-title {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-topic-title a {
+      text-decoration: none;
+    }
+
+    .px-topic-title a:hover {
+      color: var(--px-accent);
+    }
+
+    .px-topic-summary {
+      display: -webkit-box;
+      margin: 4px 0 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 0.64rem;
+      line-height: 1.37;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-topic-meta {
+      display: flex;
+      gap: 5px;
+      margin-top: 6px;
+      overflow: hidden;
+      color: var(--px-faint);
+      font-size: 0.54rem;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-topic-panel[data-view="compact"] .px-topic-card {
+      min-height: 65px;
+      align-items: center;
+      padding-block: 7px;
+    }
+
+    .px-topic-panel[data-view="compact"] .px-topic-summary {
+      display: none;
+    }
+
+    .px-topic-panel[data-view="compact"] .px-topic-title {
+      -webkit-line-clamp: 1;
+    }
+
+    .px-topic-panel[data-view="compact"] .px-topic-meta {
+      margin-top: 3px;
+    }
+
+    .px-topic-extra {
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px dashed var(--px-line-strong);
+    }
+
+    .px-topic-extra .px-topic-card {
+      min-height: 86px;
+    }
+
+    .px-more {
+      display: flex;
+      width: 100%;
+      min-height: 37px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-top: 8px;
+      padding: 6px 10px;
+      border: 1px dashed var(--px-line-strong);
+      border-radius: 10px;
+      color: var(--px-muted);
+      background: var(--px-soft);
+    }
+
+    .px-more:hover {
+      color: var(--px-text);
+      border-color: var(--px-accent);
+    }
+
+    .px-button-label {
+      font-size: 0.62rem;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .px-more-icon {
+      font-size: 0.84rem;
+      transition: transform 150ms ease;
+    }
+
+    .px-more[aria-expanded="true"] .px-more-icon {
+      transform: rotate(180deg);
+    }
+
+    .px-latest {
+      --px-accent: var(--px-violet);
+    }
+
+    .px-news-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .px-news-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr) 18px;
+      gap: 8px;
+      align-items: center;
+      min-height: 70px;
+      padding: 8px 9px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-solid);
+    }
+
+    .px-news-row::before {
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 0;
+      width: 2px;
+      background: var(--px-violet);
+      content: "";
+      opacity: 0.82;
+    }
+
+    .px-row-time {
+      color: var(--px-violet-ink);
+      font-size: 0.57rem;
+      font-weight: 950;
+      line-height: 1.2;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .px-row-body {
+      min-width: 0;
+    }
+
+    .px-row-title {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1.28;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+    }
+
+    .px-row-title a {
+      text-decoration: none;
+    }
+
+    .px-row-title a:hover {
+      color: var(--px-violet-ink);
+    }
+
+    .px-row-summary {
+      display: -webkit-box;
+      margin: 3px 0 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 0.63rem;
+      line-height: 1.31;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+    }
+
+    .px-row-source {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--px-faint);
+      font-size: 0.51rem;
+      font-weight: 700;
+      letter-spacing: 0.035em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-row-arrow {
+      color: var(--px-violet-ink);
+      font-size: 0.84rem;
+      text-align: right;
+    }
+
+    .px-dossiers {
+      --px-accent: var(--px-pink);
+    }
+
+    .px-dossier-card {
+      min-width: 286px;
+      min-height: 145px;
+      flex: 0 0 286px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-solid);
+      scroll-snap-align: start;
+    }
+
+    .px-dossier-main {
+      padding: 10px 11px;
+    }
+
+    .px-dossier-top {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .px-tag {
+      display: inline-flex;
+      min-height: 23px;
+      max-width: 100%;
+      align-items: center;
+      padding: 0 7px;
+      overflow: hidden;
+      border: 1px solid var(--px-pink);
+      border-radius: 6px;
+      color: var(--px-pink);
+      background: rgba(255, 92, 138, 0.08);
+      font-family: var(--px-mono);
+      font-size: 0.53rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-dossier-title {
+      display: -webkit-box;
+      margin: 8px 0 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-dossier-meta {
+      margin: 6px 0 0;
+      color: var(--px-faint);
+      font-size: 0.55rem;
+      line-height: 1.35;
+    }
+
+    .px-dossier-card summary {
+      display: flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 11px;
+      border-top: 1px solid var(--px-line);
+      color: var(--px-muted);
+      cursor: pointer;
+      font-family: var(--px-mono);
+      font-size: 0.56rem;
+      font-weight: 850;
+      list-style: none;
+    }
+
+    .px-dossier-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .px-dossier-card summary::after {
+      color: var(--px-pink);
+      content: "+";
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1rem;
+    }
+
+    .px-dossier-card[open] summary::after {
+      content: "-";
+    }
+
+    .px-event-list {
+      display: grid;
+      max-height: 220px;
+      margin: 0;
+      padding: 0 11px 8px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      list-style: none;
+    }
+
+    .px-event {
+      padding: 8px 0;
+      border-top: 1px solid var(--px-line);
+    }
+
+    .px-event-title {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 620;
+      line-height: 1.38;
+    }
+
+    .px-event-title a {
+      text-decoration: none;
+    }
+
+    .px-event-title a:hover {
+      color: var(--px-pink);
+    }
+
+    .px-event-meta {
+      margin: 3px 0 0;
+      color: var(--px-faint);
+      font-size: 0.52rem;
+      line-height: 1.35;
+    }
+
+    .px-analyses {
+      --px-accent: var(--px-orange);
+    }
+
+    .px-analysis-card {
+      display: flex;
+      min-width: 310px;
+      min-height: 144px;
+      flex: 0 0 310px;
+      flex-direction: column;
+      padding: 11px;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      color: var(--px-text);
+      background: var(--px-solid);
+      scroll-snap-align: start;
+      text-decoration: none;
+    }
+
+    .px-analysis-card .px-tag {
+      align-self: flex-start;
+      border-color: var(--px-orange);
+      color: var(--px-orange);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .px-analysis-title {
+      display: -webkit-box;
+      margin: 9px 0 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-analysis-copy {
+      display: -webkit-box;
+      margin: 6px 0 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 0.64rem;
+      line-height: 1.4;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-analysis-meta {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 8px;
+      color: var(--px-faint);
+      font-size: 0.53rem;
+    }
+
+    .px-analysis-card:hover {
+      border-color: var(--px-orange);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.08);
+    }
+
+    .px-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 18px;
+      justify-content: space-between;
+      margin: 11px 2px 0;
+      color: var(--px-faint);
+      font-size: 0.56rem;
+      line-height: 1.5;
+    }
+
+    .px-state {
+      display: grid;
+      width: 100%;
+      min-height: 110px;
+      padding: 16px 13px;
+      place-items: center;
+      border: 1px dashed var(--px-line-strong);
+      border-radius: 12px;
+      color: var(--px-muted);
+      background: var(--px-soft);
+      text-align: center;
+    }
+
+    .px-state-inner {
+      max-width: 540px;
+    }
+
+    .px-state-code {
+      display: inline-grid;
+      width: 39px;
+      height: 39px;
+      margin-bottom: 8px;
+      place-items: center;
+      border: 1px solid var(--px-accent);
+      border-radius: 11px;
+      color: var(--px-accent);
+      font-size: 0.66rem;
+      font-weight: 950;
+    }
+
+    .px-state-title {
+      margin: 0;
+      color: var(--px-text);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.07rem;
+      line-height: 1.22;
+    }
+
+    .px-state-copy {
+      margin: 5px 0 0;
+      font-size: 0.72rem;
+      line-height: 1.45;
+    }
+
+    .px-retry {
+      min-height: 36px;
+      margin-top: 10px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 9px;
+      color: #061018;
+      background: var(--px-accent);
+      font-family: var(--px-mono);
+      font-size: 0.59rem;
+      font-weight: 900;
+    }
+
+    .px-skeleton {
+      width: 100%;
+      height: 68px;
+      flex: 0 0 100%;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-soft);
+    }
+
+    .px-skeleton::after {
+      display: block;
+      width: 70%;
+      height: 10px;
+      margin: 28px 12px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--px-line), var(--px-solid), var(--px-line));
+      background-size: 220% 100%;
+      content: "";
+      animation: px-loading 1.4s linear infinite;
+    }
+
+    .px-noscript {
+      width: calc(100% - 32px);
+      max-width: 1360px;
+      margin: 20px auto;
+      padding: 16px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 12px;
+      color: var(--px-text);
+      background: var(--px-solid);
+    }
+
+    @keyframes px-pulse {
+      0%,
+      100% {
+        opacity: 0.55;
+        transform: scale(0.88);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes px-loading {
+      from {
+        background-position: 100% 0;
+      }
+
+      to {
+        background-position: -100% 0;
+      }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .px-news-row:hover,
+      .px-topic-card:hover,
+      .px-dossier-card:hover,
+      .px-analysis-card:hover {
+        border-color: var(--px-accent);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.08);
+      }
+    }
+
+    @media (max-width: 920px) {
+      .px-topic-bento,
+      .px-topic-extra {
+        grid-template-columns: 1fr;
+      }
+
+      .px-topic-card {
+        min-height: 76px;
+      }
+
+      .px-topic-title {
+        -webkit-line-clamp: 1;
+      }
+
+      .px-topic-summary {
+        -webkit-line-clamp: 1;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .px-main {
+        width: calc(100% - 16px);
+        padding-block: 9px 25px;
+      }
+
+      .px-section {
+        margin-top: 8px;
+        padding: 10px 8px 9px;
+        border-radius: 14px;
+        scroll-margin-top: 70px;
+      }
+
+      .px-section-head {
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .px-section-kicker {
+        font-size: 0.57rem;
+      }
+
+      .px-section-title {
+        font-size: 1.27rem;
+      }
+
+      .px-section-copy {
+        max-width: 270px;
+        font-size: 0.62rem;
+        line-height: 1.4;
+      }
+
+      .px-count {
+        min-height: 26px;
+        padding-inline: 7px;
+        font-size: 0.54rem;
+      }
+
+      .px-morning {
+        display: block;
+      }
+
+      .px-morning-label {
+        min-height: 36px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2px 8px;
+        border-right: 0;
+        border-bottom: 1px solid var(--px-line);
+      }
+
+      .px-morning-label > div {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .px-morning-label .px-section-kicker {
+        margin: 0;
+        font-size: 0.53rem;
+      }
+
+      .px-morning-label strong {
+        font-size: 1rem;
+        white-space: nowrap;
+      }
+
+      .px-stand {
+        max-width: 175px;
+        margin: 0;
+        font-size: 0.5rem;
+        text-align: right;
+      }
+
+      .px-morning .px-rail {
+        min-height: 70px;
+        margin-top: 7px;
+        padding-bottom: 2px;
+      }
+
+      .px-morning-card {
+        min-width: min(78vw, 286px);
+        min-height: 67px;
+        flex-basis: min(78vw, 286px);
+        padding: 8px 9px 8px 12px;
+      }
+
+      .px-morning-card span {
+        font-size: 0.56rem;
+      }
+
+      .px-morning-card strong {
+        font-size: 0.8rem;
+        line-height: 1.25;
+      }
+
+      .px-tabs {
+        margin-bottom: 7px;
+      }
+
+      .px-tab {
+        min-height: 33px;
+        padding-inline: 9px;
+        font-size: 0.65rem;
+      }
+
+      .px-tab-count {
+        min-width: 20px;
+        height: 19px;
+        font-size: 0.52rem;
+      }
+
+      .px-topic-panel {
+        padding: 8px;
+      }
+
+      .px-topic-panel-head {
+        gap: 7px;
+        margin-bottom: 7px;
+      }
+
+      .px-topic-panel-title {
+        font-size: 0.99rem;
+      }
+
+      .px-topic-panel-meta {
+        font-size: 0.58rem;
+      }
+
+      .px-view-button {
+        min-height: 27px;
+        padding-inline: 6px;
+        font-size: 0.55rem;
+      }
+
+      .px-topic-card {
+        min-height: 79px;
+        gap: 7px;
+        padding: 8px;
+      }
+
+      .px-topic-rank,
+      .px-extra-rank {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        font-size: 0.54rem;
+      }
+
+      .px-topic-title {
+        font-size: 0.78rem;
+        line-height: 1.29;
+      }
+
+      .px-topic-summary {
+        margin-top: 3px;
+        font-size: 0.62rem;
+        line-height: 1.33;
+      }
+
+      .px-topic-meta {
+        margin-top: 4px;
+        font-size: 0.51rem;
+      }
+
+      .px-topic-extra .px-topic-card {
+        min-height: 79px;
+      }
+
+      .px-more {
+        min-height: 36px;
+        margin-top: 6px;
+      }
+
+      .px-button-label {
+        font-size: 0.59rem;
+      }
+
+      .px-news-list {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      .px-news-row {
+        grid-template-columns: 49px minmax(0, 1fr) 15px;
+        min-height: 72px;
+        gap: 7px;
+        padding: 8px;
+      }
+
+      .px-row-time {
+        font-size: 0.52rem;
+      }
+
+      .px-row-title {
+        font-size: 0.78rem;
+        line-height: 1.28;
+      }
+
+      .px-row-summary {
+        font-size: 0.62rem;
+        line-height: 1.32;
+      }
+
+      .px-row-source {
+        font-size: 0.49rem;
+      }
+
+      .px-dossier-card {
+        min-width: min(84vw, 286px);
+        flex-basis: min(84vw, 286px);
+        min-height: 136px;
+      }
+
+      .px-dossier-title {
+        font-size: 0.82rem;
+      }
+
+      .px-analysis-card {
+        min-width: min(86vw, 310px);
+        flex-basis: min(86vw, 310px);
+        min-height: 136px;
+      }
+
+      .px-analysis-title {
+        font-size: 0.82rem;
+      }
+
+      .px-analysis-copy {
+        font-size: 0.62rem;
+      }
+
+      .px-footer {
+        display: block;
+        margin-inline: 2px;
+      }
+
+      .px-footer span {
+        display: block;
+        margin-top: 3px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .px-section-title {
+        font-size: 1.24rem;
+      }
+
+      .px-section-copy {
+        max-width: 235px;
+      }
+
+      .px-topic-panel-meta {
+        max-width: 180px;
+      }
+
+      .px-view-button {
+        padding-inline: 5px;
+      }
+
+      .px-morning-label > div {
+        gap: 6px;
+      }
+
+      .px-morning-label strong {
+        font-size: 0.96rem;
+      }
+
+      .px-stand {
+        max-width: 160px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="px-skip" href="#px-main">Zum kompakten Nachrichtenbereich springen</a>
+
+  <div
+    id="px-layout-slot"
+    data-ki-header
+    data-ki-layout="header"
+  ></div>
+
+  <main
+    id="px-main"
+    class="px-main"
+    aria-label="Kompakter Nachrichtenbereich"
+    aria-busy="true"
+  >
+    <section class="px-section px-morning" aria-labelledby="px-morning-title">
+      <div class="px-morning-label">
+        <div>
+          <p class="px-section-kicker">Morgenlage</p>
+          <h2 class="px-section-title" id="px-morning-title">Kurzlage</h2>
+        </div>
+        <p class="px-stand" id="px-stand">Daten werden geladen</p>
+      </div>
+
+      <div class="px-rail" id="px-morning-rail" aria-label="Aktuelle Meldungen">
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="px-section px-topics" aria-labelledby="px-topics-heading">
+      <header class="px-section-head">
+        <div>
+          <p class="px-section-kicker">Themenlage</p>
+          <h2 class="px-section-title" id="px-topics-heading">Drei Meldungen je Thema</h2>
+          <p class="px-section-copy">Thema wählen und die vollständige Liste aufklappen.</p>
+        </div>
+        <span class="px-count" id="px-topic-count">Lädt</span>
+      </header>
+
+      <div
+        class="px-rail px-tabs"
+        id="px-tabs"
+        role="tablist"
+        aria-label="Nachrichtenthemen"
+      ></div>
+
+      <article
+        class="px-topic-panel"
+        id="px-topic-panel"
+        role="tabpanel"
+        aria-labelledby="px-topics-heading"
+        data-view="cards"
+      >
+        <div class="px-skeleton" aria-hidden="true"></div>
+      </article>
+
+      <button
+        class="px-more"
+        id="px-topic-more"
+        type="button"
+        aria-expanded="false"
+        hidden
+      >
+        <span class="px-more-icon" aria-hidden="true">↓</span>
+        <span class="px-button-label">Vollständige Themenliste öffnen</span>
+      </button>
+    </section>
+
+    <section class="px-section px-latest" aria-labelledby="px-latest-heading">
+      <header class="px-section-head">
+        <div>
+          <p class="px-section-kicker">Restmeldungen</p>
+          <h2 class="px-section-title" id="px-latest-heading">Weitere Nachrichten</h2>
+          <p class="px-section-copy" id="px-latest-copy">Wird nach Aktualität geladen.</p>
+        </div>
+        <span class="px-count" id="px-latest-count">0</span>
+      </header>
+
+      <div class="px-news-list" id="px-news-list">
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+      </div>
+
+      <button class="px-more" id="px-news-more" type="button" hidden>
+        <span class="px-more-icon" aria-hidden="true">↓</span>
+        <span class="px-button-label">Mehr Meldungen zeigen</span>
+      </button>
+    </section>
+
+    <section class="px-section px-dossiers" aria-labelledby="px-dossiers-heading">
+      <header class="px-section-head">
+        <div>
+          <p class="px-section-kicker">Dossiers und Linien</p>
+          <h2 class="px-section-title" id="px-dossiers-heading">Beobachtete Entwicklungen</h2>
+          <p class="px-section-copy" id="px-dossiers-copy">Linien werden geladen.</p>
+        </div>
+        <span class="px-count" id="px-dossiers-count">0</span>
+      </header>
+
+      <div class="px-rail" id="px-dossier-rail" aria-label="Dossiers und Linien">
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="px-section px-analyses" aria-labelledby="px-analyses-heading">
+      <header class="px-section-head">
+        <div>
+          <p class="px-section-kicker">Neueste Analysen</p>
+          <h2 class="px-section-title" id="px-analyses-heading">Kurz eingeordnet</h2>
+          <p class="px-section-copy">Einordnung aus cards.json.</p>
+        </div>
+        <span class="px-count" id="px-analyses-count">Lädt</span>
+      </header>
+
+      <div class="px-rail" id="px-analysis-rail" aria-label="Neueste Analysen">
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+        <div class="px-skeleton" aria-hidden="true"></div>
+      </div>
+
+      <button class="px-more" id="px-analysis-more" type="button" hidden>
+        <span class="px-more-icon" aria-hidden="true">↓</span>
+        <span class="px-button-label">Weitere Analysen zeigen</span>
+      </button>
+    </section>
+
+    <footer class="px-footer">
+      <span>Relative Datenquellen: news.json und cards.json</span>
+      <span>Daniel, Scampy / KI NEWS</span>
+    </footer>
+  </main>
+
+  <noscript>
+    <p class="px-noscript">
+      Für die kompakte Themenübersicht wird JavaScript benötigt. Die Quelldateien bleiben unter news.json und cards.json erreichbar.
+    </p>
+  </noscript>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const root = document.getElementById("px-main");
+      if (!root) return;
+
+      const refs = {
+        stand: document.getElementById("px-stand"),
+        morningRail: document.getElementById("px-morning-rail"),
+        topicCount: document.getElementById("px-topic-count"),
+        tabs: document.getElementById("px-tabs"),
+        topicPanel: document.getElementById("px-topic-panel"),
+        topicMore: document.getElementById("px-topic-more"),
+        latestCopy: document.getElementById("px-latest-copy"),
+        latestCount: document.getElementById("px-latest-count"),
+        newsList: document.getElementById("px-news-list"),
+        newsMore: document.getElementById("px-news-more"),
+        dossierCopy: document.getElementById("px-dossiers-copy"),
+        dossierCount: document.getElementById("px-dossiers-count"),
+        dossierRail: document.getElementById("px-dossier-rail"),
+        analysisCount: document.getElementById("px-analyses-count"),
+        analysisRail: document.getElementById("px-analysis-rail"),
+        analysisMore: document.getElementById("px-analysis-more")
+      };
+
+      const themes = [
+        {
+          id: "modelle",
+          label: "KI-Modelle",
+          aliases: [
+            "modelle",
+            "model release",
+            "foundation models",
+            "sprachmodelle"
+          ],
+          color: "#00d4ff",
+          patterns: [
+            /\b(gpt|chatgpt|claude|gemini|llama|mistral|deepseek|qwen|grok|opus)\b/i,
+            /\b(openai|anthropic|google deepmind|deepmind|xai|ki[- ]?modell|sprachmodell|modellversion|model release|training)\b/i,
+            /\b(kodiermodell|coding[- ]?modell|open[- ]?weight|frontier[- ]?modell|reasoning[- ]?modell)\b/i
+          ]
+        },
+        {
+          id: "politik",
+          label: "Politik",
+          aliases: [
+            "politik",
+            "recht",
+            "regulierung",
+            "regulatorik",
+            "governance",
+            "ai act"
+          ],
+          color: "#8b5cf6",
+          patterns: [
+            /\b(eu[- ]?kommission|eu[- ]?rat|ai act|gesetzgebung|parlament|kongress|senat|wahl|bundesberufungsgericht)\b/i,
+            /\b(politik|recht|regulierung|regulator|gericht|urteil|behörde|gesetz|exportkontrollen|sanktionen|geopolitik)\b/i,
+            /\b(trump|white house|regierung|staatsvertrag|pentagon|demokratie|verfassung)\b/i
+          ]
+        },
+        {
+          id: "forschung",
+          label: "Forschung",
+          aliases: [
+            "forschung",
+            "research",
+            "wissenschaft",
+            "labor"
+          ],
+          color: "#f59e0b",
+          patterns: [
+            /\b(forschung|wissenschaft|forscher|studie|paper|arxiv|benchmark|neurips|icml|iclr|acl)\b/i,
+            /\b(labor|universität|universitaet|experiment|publikation|entdeckung|konferenz)\b/i,
+            /\b(scientific research|knowledge graph|reasoning benchmark|dataset)\b/i
+          ]
+        },
+        {
+          id: "wirtschaft",
+          label: "Wirtschaft",
+          aliases: [
+            "wirtschaft",
+            "business",
+            "finanzen",
+            "investitionen",
+            "maerkte"
+          ],
+          color: "#00d991",
+          patterns: [
+            /\b(investition|investitionen|finanzierung|funding|kapital|börse|boersen|aktie|aktien|valuation)\b/i,
+            /\b(umsatz|revenue|quartalszahlen|gewinne|gewinn|verlust|billionär|billionaer|übernahme|uebernahme|fusion|deal)\b/i,
+            /\b(wirtschaft|finanzen|business|economics|venture capital|marktanteil|kosten|gewerbe)\b/i
+          ]
+        },
+        {
+          id: "sicherheit",
+          label: "Sicherheit",
+          aliases: [
+            "sicherheit",
+            "security",
+            "cybersecurity",
+            "datenschutz"
+          ],
+          color: "#ff5c8a",
+          patterns: [
+            /\b(sicherheit|security|cyber|cyberangriff|cyberangriffe|cyber attack|hacker|angriff|attacke|malware|datenverlust|data breach)\b/i,
+            /\b(deepfake|prompt injection|jailbreak|schwachstelle|schwachstellen|exploit|sicherheitslücke|modellrisiko|ki risiko|schadsoftware)\b/i,
+            /\b(sicherheitsforscher|threat intelligence|phishing|ransomware|zugangsdaten|unbefugter zugriff)\b/i
+          ]
+        },
+        {
+          id: "produkte",
+          label: "Produkte & Tools",
+          aliases: [
+            "produkte",
+            "tools",
+            "software",
+            "anwendungen",
+            "robotik"
+          ],
+          color: "#4f9df7",
+          patterns: [
+            /\b(app|browser|software|plattform|tool|werkzeug|ki agent|agenten|assistent|chatbot|coding tool)\b/i,
+            /\b(roboter|robotik|humanoider|maschine|startup|feature|funktion|update|produkt|api)\b/i,
+            /\b(plugin|arbeitsablauf|automatisierung|anwendung|entwicklerwerkzeug|cursor)\b/i
+          ]
+        },
+        {
+          id: "sonstiges",
+          label: "Weitere Themen",
+          aliases: [
+            "sonstiges",
+            "allgemein",
+            "general"
+          ],
+          color: "#94a3b8",
+          patterns: []
+        }
+      ];
+
+      const numberFormat = new Intl.NumberFormat("de-DE");
+      const fullDateFormat = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC"
+      });
+
+      const shortDateFormat = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "UTC"
+      });
+
+      let newsItems = [];
+      let newsGroups = new Map();
+      let remainingItems = [];
+      let selectedThemeId = "";
+      let selectedThemeExpanded = false;
+      let shownNews = 6;
+      let shownAnalyses = 6;
+      let analysisItems = [];
+      let viewMode = "cards";
+      let requestId = 0;
+      let activeControllers = [];
+      let storedViewFound = false;
+
+      try {
+        const storedView = localStorage.getItem("ki-news-start-compact-view-v2");
+        storedViewFound = storedView === "cards" || storedView === "compact";
+
+        if (storedViewFound) {
+          viewMode = storedView;
+        } else {
+          viewMode = window.matchMedia("(max-width: 700px)").matches
+            ? "compact"
+            : "cards";
+        }
+      } catch (error) {
+        viewMode = "cards";
+      }
+
+      function create(tag, className, text) {
+        const element = document.createElement(tag);
+
+        if (className) {
+          element.className = className;
+        }
+
+        if (text !== undefined) {
+          element.textContent = text;
+        }
+
+        return element;
+      }
+
+      function cleanText(value, fallback = "") {
+        if (typeof value !== "string" && typeof value !== "number") {
+          return fallback;
+        }
+
+        return String(value)
+          .replace(/\u2014/g, "-")
+          .replace(/\u2013/g, "-")
+          .replace(/\u00AD/g, "")
+          .replace(/[\u0000-\u001F\u007F]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function normalizeText(value) {
+        return cleanText(value)
+          .toLocaleLowerCase("de-DE")
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9äöüß]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function safeUrl(value) {
+        const raw = cleanText(value);
+        if (!raw) return "";
+
+        try {
+          const url = new URL(raw, document.baseURI);
+
+          if (url.protocol !== "http:" && url.protocol !== "https:") {
+            return "";
+          }
+
+          return url.href;
+        } catch (error) {
+          return "";
+        }
+      }
+
+      function firstUrl(value, depth = 0, visited = new Set()) {
+        if (depth > 6 || value === null || value === undefined) {
+          return "";
+        }
+
+        if (typeof value === "string" || typeof value === "number") {
+          return safeUrl(value);
+        }
+
+        if (typeof value !== "object" || visited.has(value)) {
+          return "";
+        }
+
+        visited.add(value);
+
+        if (Array.isArray(value)) {
+          for (const entry of value) {
+            const found = firstUrl(entry, depth + 1, visited);
+            if (found) return found;
+          }
+
+          return "";
+        }
+
+        for (const entry of Object.values(value)) {
+          const found = firstUrl(entry, depth + 1, visited);
+          if (found) return found;
+        }
+
+        return "";
+      }
+
+      function numberValue(value, fallback = 0) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
+      }
+
+      function timestampOf(item) {
+        if (!item || typeof item !== "object") return 0;
+
+        const raw = cleanText(
+          item.date ||
+          item.first_seen ||
+          item.published_at ||
+          item.d
+        );
+
+        if (!raw) return 0;
+
+        let normalized = raw;
+
+        const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+
+        if (isoDate && !raw.includes("T")) {
+          normalized = raw + "T12:00:00Z";
+        }
+
+        const germanDate = /^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(raw);
+
+        if (germanDate) {
+          normalized =
+            germanDate[3] +
+            "-" +
+            germanDate[2] +
+            "-" +
+            germanDate[1] +
+            raw.slice(germanDate[0].length);
+        }
+
+        const timestamp = new Date(normalized).getTime();
+        return Number.isFinite(timestamp) ? timestamp : 0;
+      }
+
+      function rawDateValue(item) {
+        if (!item || typeof item !== "object") return "";
+
+        return cleanText(
+          item.date ||
+          item.first_seen ||
+          item.published_at ||
+          item.d
+        );
+      }
+
+      function formatDate(value) {
+        const item = typeof value === "object" ? value : { date: value };
+        const timestamp = timestampOf(item);
+
+        if (!timestamp) {
+          const raw = rawDateValue(item);
+          return raw ? raw.slice(0, 18) : "Datum offen";
+        }
+
+        try {
+          return fullDateFormat.format(new Date(timestamp));
+        } catch (error) {
+          return "Datum offen";
+        }
+      }
+
+      function formatShortDate(item) {
+        const timestamp = timestampOf(item);
+        if (!timestamp) return "OFFEN";
+
+        try {
+          return shortDateFormat.format(new Date(timestamp));
+        } catch (error) {
+          return "OFFEN";
+        }
+      }
+
+      function formatRowTime(item) {
+        const raw = rawDateValue(item);
+        const timeMatch = /(?:T|\s)(\d{1,2}:\d{2})/.exec(raw);
+
+        if (timeMatch) {
+          return timeMatch[1];
+        }
+
+        return formatShortDate(item);
+      }
+
+      function extractLabels(value, result = [], depth = 0) {
+        if (depth > 3 || value === null || value === undefined) {
+          return result;
+        }
+
+        if (Array.isArray(value)) {
+          value.forEach((entry) => {
+            extractLabels(entry, result, depth + 1);
+          });
+
+          return result;
+        }
+
+        if (typeof value === "object") {
+          const candidates = [
+            value.name,
+            value.label,
+            value.title,
+            value.topic,
+            value.category,
+            value.kategorie,
+            value.id
+          ];
+
+          for (const candidate of candidates) {
+            if (candidate !== undefined && candidate !== null) {
+              extractLabels(candidate, result, depth + 1);
+              break;
+            }
+          }
+
+          return result;
+        }
+
+        const text = cleanText(value);
+        if (!text) return result;
+
+        text.split(/\s*(?:,|;|\||\n)\s*/).forEach((part) => {
+          const label = cleanText(part).slice(0, 64);
+          if (label) result.push(label);
+        });
+
+        return result;
+      }
+
+      function explicitTheme(item) {
+        const labels = [];
+
+        [
+          "topic",
+          "topics",
+          "thema",
+          "themen",
+          "category",
+          "categories",
+          "kategorie",
+          "kategorien",
+          "rubrik",
+          "rubriken",
+          "section",
+          "primary_category",
+          "news_category"
+        ].forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(item, key)) {
+            extractLabels(item[key], labels);
+          }
+        });
+
+        const normalizedLabels = labels.map(normalizeText).filter(Boolean);
+
+        for (const theme of themes) {
+          if (theme.id === "sonstiges") continue;
+
+          const aliases = [theme.label, ...theme.aliases].map(normalizeText);
+
+          const matches = normalizedLabels.some((label) => {
+            return aliases.some((alias) => {
+              return (
+                label === alias ||
+                (alias.length >= 6 && label.includes(alias)) ||
+                (label.length >= 6 && alias.includes(label))
+              );
+            });
+          });
+
+          if (matches) return theme;
+        }
+
+        return null;
+      }
+
+      function keywordTheme(item) {
+        const title = cleanText(item.title || item.headline);
+        const summary = cleanText(item.summary);
+        const candidates = [];
+
+        themes.forEach((theme, themeIndex) => {
+          if (theme.id === "sonstiges") return;
+
+          let score = 0;
+
+          theme.patterns.forEach((pattern, patternIndex) => {
+            if (pattern.test(title)) {
+              score += patternIndex === 0 ? 9 : 7;
+            }
+
+            if (summary && pattern.test(summary)) {
+              score += patternIndex === 0 ? 4 : 3;
+            }
+          });
+
+          if (score > 0) {
+            candidates.push({
+              theme,
+              score,
+              order: themeIndex
+            });
+          }
+        });
+
+        candidates.sort((first, second) => {
+          return second.score - first.score || first.order - second.order;
+        });
+
+        return candidates.length
+          ? candidates[0].theme
+          : themes[themes.length - 1];
+      }
+
+      function resolveTheme(item) {
+        return explicitTheme(item) || keywordTheme(item);
+      }
+
+      function normaliseNews(raw) {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          return null;
+        }
+
+        const title = cleanText(raw.title || raw.headline).slice(0, 300);
+
+        if (!title) return null;
+
+        return {
+          title,
+          summary: cleanText(raw.summary).slice(0, 420),
+          link: safeUrl(firstUrl(raw.link || raw.url)),
+          source: cleanText(
+            raw.source || raw.publisher,
+            "Quelle offen"
+          ).slice(0, 70),
+          date: cleanText(
+            raw.date ||
+            raw.first_seen ||
+            raw.published_at
+          ),
+          timestamp: timestampOf(raw),
+          score: numberValue(
+            raw.story_cluster_score,
+            numberValue(raw.score, numberValue(raw.base_score, 0))
+          ),
+          articleCount: Math.max(
+            1,
+            numberValue(
+              raw.story_article_count,
+              numberValue(raw.article_count, 1)
+            )
+          ),
+          storyId: cleanText(raw.story_id),
+          theme: resolveTheme(raw)
+        };
+      }
+
+      function extractNews(payload) {
+        if (Array.isArray(payload)) return payload;
+        if (!payload || typeof payload !== "object") return [];
+
+        if (Array.isArray(payload.news)) return payload.news;
+        if (Array.isArray(payload.items)) return payload.items;
+        if (Array.isArray(payload.articles)) return payload.articles;
+
+        if (
+          payload.briefing &&
+          typeof payload.briefing === "object" &&
+          Array.isArray(payload.briefing.stories)
+        ) {
+          return payload.briefing.stories;
+        }
+
+        return [];
+      }
+
+      function prepareNews(rawItems) {
+        const seenLinks = new Set();
+        const seenTitles = new Set();
+        const prepared = [];
+
+        rawItems.forEach((raw, sourceIndex) => {
+          const item = normaliseNews(raw);
+          if (!item) return;
+
+          const titleKey = normalizeText(item.title);
+          const linkKey = item.link;
+
+          if (linkKey && seenLinks.has(linkKey)) return;
+          if (titleKey && seenTitles.has(titleKey)) return;
+
+          if (linkKey) seenLinks.add(linkKey);
+          if (titleKey) seenTitles.add(titleKey);
+
+          item.sourceIndex = sourceIndex;
+          prepared.push(item);
+        });
+
+        prepared.sort((first, second) => {
+          if (second.score !== first.score) {
+            return second.score - first.score;
+          }
+
+          if (second.articleCount !== first.articleCount) {
+            return second.articleCount - first.articleCount;
+          }
+
+          if (second.timestamp !== first.timestamp) {
+            return second.timestamp - first.timestamp;
+          }
+
+          return first.sourceIndex - second.sourceIndex;
+        });
+
+        return prepared;
+      }
+
+      function createExternalTitle(tag, item, className) {
+        const title = create(tag, className);
+
+        if (item.link) {
+          const link = create("a", "", item.title);
+          link.href = item.link;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          title.appendChild(link);
+        } else {
+          title.textContent = item.title;
+        }
+
+        return title;
+      }
+
+      function makeState(code, title, copy) {
+        const state = create("div", "px-state");
+        const inner = create("div", "px-state-inner");
+        const codeElement = create("div", "px-state-code", code);
+        codeElement.setAttribute("aria-hidden", "true");
+
+        inner.append(
+          codeElement,
+          create("h3", "px-state-title", title),
+          create("p", "px-state-copy", copy)
+        );
+
+        state.appendChild(inner);
+        return state;
+      }
+
+      function renderMorning() {
+        const latest = newsItems.slice()
+          .sort((first, second) => {
+            return second.timestamp - first.timestamp ||
+              second.score - first.score;
+          })
+          .slice(0, 10);
+
+        refs.morningRail.replaceChildren();
+
+        if (!latest.length) {
+          refs.morningRail.appendChild(makeState(
+            "0",
+            "Noch keine Meldungen",
+            "Der Datenstand enthält keine verwertbare Nachricht."
+          ));
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        latest.forEach((item) => {
+          const card = create(
+            item.link ? "a" : "article",
+            "px-morning-card"
+          );
+
+          if (item.link) {
+            card.href = item.link;
+            card.target = "_blank";
+            card.rel = "noopener noreferrer";
+          }
+
+          card.append(
+            create(
+              "span",
+              "",
+              item.source + " / " + formatShortDate(item)
+            ),
+            create("strong", "", item.title)
+          );
+
+          fragment.appendChild(card);
+        });
+
+        refs.morningRail.appendChild(fragment);
+      }
+
+      function setViewMode(mode, persist = true) {
+        if (mode !== "cards" && mode !== "compact") return;
+
+        viewMode = mode;
+        refs.topicPanel.dataset.view = mode;
+
+        refs.topicPanel.querySelectorAll("[data-px-view]").forEach((button) => {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.dataset.pxView === mode)
+          );
+        });
+
+        if (!persist) return;
+
+        try {
+          localStorage.setItem("ki-news-start-compact-view-v2", mode);
+        } catch (error) {
+          // Die Ansicht bleibt auch ohne localStorage nutzbar.
+        }
+      }
+
+      function makeTopicCard(item, rank) {
+        const card = create("article", "px-topic-card");
+        const body = create("div", "px-topic-body");
+        const metaParts = [item.source, formatShortDate(item)].filter(Boolean);
+
+        body.appendChild(
+          createExternalTitle("h3", item, "px-topic-title")
+        );
+
+        if (item.summary) {
+          body.appendChild(
+            create("p", "px-topic-summary", item.summary)
+          );
+        }
+
+        body.appendChild(
+          create(
+            "p",
+            "px-topic-meta",
+            metaParts.length ? metaParts.join(" / ") : "Quelle offen"
+          )
+        );
+
+        card.append(
+          create(
+            "span",
+            rank > 3 ? "px-extra-rank" : "px-topic-rank",
+            String(rank).padStart(2, "0")
+          ),
+          body
+        );
+
+        return card;
+      }
+
+      function renderSelectedTheme() {
+        const group = newsGroups.get(selectedThemeId);
+        refs.topicPanel.replaceChildren();
+
+        if (!group) {
+          refs.topicPanel.style.setProperty("--px-accent", "#94a3b8");
+          refs.topicPanel.setAttribute("aria-labelledby", "px-topics-heading");
+          refs.topicPanel.appendChild(makeState(
+            "0",
+            "Kein Thema ausgewählt",
+            "Für diesen Datenstand konnte kein Themenblock gebildet werden."
+          ));
+          refs.topicMore.hidden = true;
+          return;
+        }
+
+        refs.topicPanel.style.setProperty("--px-accent", group.theme.color);
+        refs.topicPanel.setAttribute("aria-labelledby", "px-topic-panel-title");
+
+        const head = create("div", "px-topic-panel-head");
+        const copy = create("div");
+        const title = create(
+          "h3",
+          "px-topic-panel-title",
+          group.theme.label
+        );
+        title.id = "px-topic-panel-title";
+
+        copy.append(
+          title,
+          create(
+            "p",
+            "px-topic-panel-meta",
+            numberFormat.format(group.items.length) +
+            " Meldungen im Themenblock"
+          )
+        );
+
+        const view = create("div", "px-view-switch");
+        view.setAttribute("aria-label", "Themenkarten darstellen");
+
+        ["cards", "compact"].forEach((mode) => {
+          const button = create(
+            "button",
+            "px-view-button",
+            mode === "cards" ? "Karten" : "Kompakt"
+          );
+
+          button.type = "button";
+          button.dataset.pxView = mode;
+          button.setAttribute("aria-pressed", String(mode === viewMode));
+          button.addEventListener("click", () => setViewMode(mode));
+          view.appendChild(button);
+        });
+
+        head.append(copy, view);
+        refs.topicPanel.appendChild(head);
+
+        const topGrid = create("div", "px-topic-bento");
+
+        group.items.slice(0, 3).forEach((item, index) => {
+          topGrid.appendChild(makeTopicCard(item, index + 1));
+        });
+
+        refs.topicPanel.appendChild(topGrid);
+
+        const extraCount = Math.max(0, group.items.length - 3);
+        const extra = create("div", "px-topic-extra");
+        extra.id = "px-topic-extra";
+
+        if (selectedThemeExpanded) {
+          group.items.slice(3).forEach((item, index) => {
+            extra.appendChild(makeTopicCard(item, index + 4));
+          });
+        }
+
+        extra.hidden = !selectedThemeExpanded;
+        refs.topicPanel.appendChild(extra);
+
+        refs.topicMore.hidden = extraCount <= 0;
+        refs.topicMore.setAttribute(
+          "aria-expanded",
+          String(selectedThemeExpanded)
+        );
+        refs.topicMore.setAttribute("aria-controls", "px-topic-extra");
+        refs.topicMore.querySelector(".px-button-label").textContent =
+          selectedThemeExpanded
+            ? "Themenliste schließen"
+            : numberFormat.format(extraCount) +
+              " weitere Meldungen öffnen";
+
+        setViewMode(viewMode, false);
+      }
+
+      function selectTheme(themeId, shouldScroll) {
+        if (!newsGroups.has(themeId)) return;
+
+        selectedThemeId = themeId;
+        selectedThemeExpanded = false;
+
+        refs.tabs.querySelectorAll('[role="tab"]').forEach((button) => {
+          const active = button.dataset.pxTheme === themeId;
+          button.setAttribute("aria-selected", String(active));
+          button.tabIndex = active ? 0 : -1;
+        });
+
+        renderSelectedTheme();
+
+        if (shouldScroll) {
+          requestAnimationFrame(() => {
+            refs.topicPanel.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest"
+            });
+          });
+        }
+      }
+
+      function updateTabs() {
+        refs.tabs.replaceChildren();
+
+        if (!newsGroups.size) return;
+
+        themes.forEach((theme) => {
+          const group = newsGroups.get(theme.id);
+          if (!group) return;
+
+          const button = create("button", "px-tab");
+          button.type = "button";
+          button.id = "px-tab-" + theme.id;
+          button.dataset.pxTheme = theme.id;
+          button.style.setProperty("--px-tab-accent", theme.color);
+          button.setAttribute("role", "tab");
+          button.setAttribute("aria-controls", "px-topic-panel");
+          button.setAttribute(
+            "aria-selected",
+            String(theme.id === selectedThemeId)
+          );
+          button.tabIndex = theme.id === selectedThemeId ? 0 : -1;
+
+          button.append(
+            document.createTextNode(theme.label),
+            create(
+              "span",
+              "px-tab-count",
+              numberFormat.format(group.items.length)
+            )
+          );
+
+          button.addEventListener("click", () => {
+            selectTheme(theme.id, true);
+          });
+
+          button.addEventListener("keydown", (event) => {
+            const visibleTabs = Array.from(
+              refs.tabs.querySelectorAll('[role="tab"]:not([hidden])')
+            );
+
+            const currentIndex = visibleTabs.indexOf(button);
+            let nextIndex = currentIndex;
+
+            if (event.key === "ArrowRight") {
+              nextIndex = (currentIndex + 1) % visibleTabs.length;
+            } else if (event.key === "ArrowLeft") {
+              nextIndex = (
+                currentIndex - 1 + visibleTabs.length
+              ) % visibleTabs.length;
+            } else if (event.key === "Home") {
+              nextIndex = 0;
+            } else if (event.key === "End") {
+              nextIndex = visibleTabs.length - 1;
+            } else {
+              return;
+            }
+
+            event.preventDefault();
+
+            const nextTab = visibleTabs[nextIndex];
+            if (!nextTab) return;
+
+            selectTheme(nextTab.dataset.pxTheme, false);
+            nextTab.focus();
+            nextTab.scrollIntoView({
+              block: "nearest",
+              inline: "center"
+            });
+          });
+
+          refs.tabs.appendChild(button);
+        });
+      }
+
+      function makeNewsRow(item) {
+        const row = create("article", "px-news-row");
+        const body = create("div", "px-row-body");
+
+        body.appendChild(
+          createExternalTitle("p", item, "px-row-title")
+        );
+
+        if (item.summary) {
+          body.appendChild(
+            create("p", "px-row-summary", item.summary)
+          );
+        }
+
+        body.appendChild(
+          create("span", "px-row-source", item.source)
+        );
+
+        row.append(
+          create("span", "px-row-time", formatRowTime(item)),
+          body,
+          create("span", "px-row-arrow", item.link ? "↗" : "·")
+        );
+
+        return row;
+      }
+
+      function renderNewsList() {
+        refs.newsList.replaceChildren();
+
+        if (!remainingItems.length) {
+          refs.newsList.appendChild(makeState(
+            "0",
+            newsItems.length ? "Alles eingeordnet" : "Keine Meldungen",
+            newsItems.length
+              ? "Die drei wichtigsten Meldungen jedes Themas stehen oben."
+              : "Der aktuelle Datenstand enthält keine verwertbare Nachricht."
+          ));
+          refs.newsMore.hidden = true;
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        remainingItems.slice(0, shownNews).forEach((item) => {
+          fragment.appendChild(makeNewsRow(item));
+        });
+
+        refs.newsList.appendChild(fragment);
+
+        const hiddenCount = Math.max(
+          0,
+          remainingItems.length - shownNews
+        );
+
+        refs.newsMore.hidden = hiddenCount <= 0;
+        refs.newsMore.querySelector(".px-button-label").textContent =
+          numberFormat.format(hiddenCount) +
+          " weitere Meldungen zeigen";
+      }
+
+      function extractLines(payload) {
+        if (
+          !payload ||
+          typeof payload !== "object" ||
+          !payload.linien ||
+          typeof payload.linien !== "object" ||
+          Array.isArray(payload.linien)
+        ) {
+          return [];
+        }
+
+        return Object.entries(payload.linien).map(([id, line]) => {
+          if (!line || typeof line !== "object") return null;
+
+          const rawEvents = Array.isArray(line.e)
+            ? line.e
+            : line.e && typeof line.e === "object"
+              ? Object.values(line.e)
+              : [];
+
+          const events = rawEvents
+            .filter((event) => {
+              return event && typeof event === "object";
+            })
+            .map((event, index) => {
+              return {
+                title: cleanText(
+                  event.t || event.title,
+                  "Ohne Überschrift"
+                ).slice(0, 320),
+                link: safeUrl(firstUrl(event.l || event.link)),
+                source: cleanText(
+                  event.q || event.source,
+                  "Quelle offen"
+                ),
+                date: cleanText(event.d || event.date),
+                timestamp: timestampOf(event),
+                index
+              };
+            })
+            .sort((first, second) => {
+              return second.timestamp - first.timestamp ||
+                first.index - second.index;
+            });
+
+          const dossier =
+            line.dossier && typeof line.dossier === "object"
+              ? line.dossier
+              : {};
+
+          return {
+            id,
+            title: cleanText(
+              dossier.titel ||
+              line.titel ||
+              (events[0] ? events[0].title : ""),
+              "Automatisches Dossier"
+            ),
+            since: cleanText(
+              line.seit ||
+              (events[0] ? events[0].date : "")
+            ),
+            count: Math.max(
+              1,
+              numberValue(line.n, events.length),
+              events.length
+            ),
+            events
+          };
+        }).filter(Boolean);
+      }
+
+      function makeDossierCard(line) {
+        const card = create("article", "px-dossier-card");
+        const main = create("div", "px-dossier-main");
+        const top = create("div", "px-dossier-top");
+        const countLabel = line.count === 1
+          ? "Meldung"
+          : "Meldungen";
+        const lineLabel =
+          "Linie " + line.id.slice(0, 4).toUpperCase();
+
+        top.append(
+          create("span", "px-tag", lineLabel),
+          create(
+            "span",
+            "px-dossier-meta",
+            numberFormat.format(line.count) + " " + countLabel
+          )
+        );
+
+        main.append(
+          top,
+          create("h3", "px-dossier-title", line.title)
+        );
+
+        if (line.since) {
+          main.appendChild(
+            create(
+              "p",
+              "px-dossier-meta",
+              "Seit " + formatDate(line.since)
+            )
+          );
+        }
+
+        const details = create("details");
+        const summary = create(
+          "summary",
+          "",
+          line.events.length
+            ? numberFormat.format(line.events.length) +
+              " Meldungen öffnen"
+            : "Noch keine Meldungsdetails"
+        );
+
+        details.appendChild(summary);
+
+        if (line.events.length) {
+          const list = create("ul", "px-event-list");
+
+          line.events.forEach((event) => {
+            const entry = create("li", "px-event");
+            const title = create("p", "px-event-title");
+
+            if (event.link) {
+              const link = create("a", "", event.title);
+              link.href = event.link;
+              link.target = "_blank";
+              link.rel = "noopener noreferrer";
+              title.appendChild(link);
+            } else {
+              title.textContent = event.title;
+            }
+
+            const meta = [
+              event.source,
+              formatDate(event.date)
+            ]
+              .filter(Boolean)
+              .join(" / ");
+
+            entry.append(
+              title,
+              create(
+                "p",
+                "px-event-meta",
+                meta || "Meldungsdetails"
+              )
+            );
+
+            list.appendChild(entry);
+          });
+
+          details.appendChild(list);
+        }
+
+        card.append(main, details);
+        return card;
+      }
+
+      function renderDossiers(payload) {
+        const lines = extractLines(payload);
+        refs.dossierRail.replaceChildren();
+
+        if (!lines.length) {
+          refs.dossierCount.textContent = "0";
+          refs.dossierCopy.textContent =
+            "Für diesen Stand sind keine Linien hinterlegt.";
+
+          refs.dossierRail.appendChild(makeState(
+            "0",
+            "Noch keine Linien",
+            "Dossiers werden mit einem passenden Datenstand ergänzt."
+          ));
+          return;
+        }
+
+        refs.dossierCount.textContent = numberFormat.format(lines.length);
+        refs.dossierCopy.textContent =
+          numberFormat.format(lines.length) +
+          " Linien horizontal öffnen.";
+
+        const fragment = document.createDocumentFragment();
+
+        lines.forEach((line) => {
+          fragment.appendChild(makeDossierCard(line));
+        });
+
+        refs.dossierRail.appendChild(fragment);
+      }
+
+      function normaliseAnalysis(raw) {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          return null;
+        }
+
+        const title = cleanText(
+          raw.headline || raw.title
+        ).slice(0, 320);
+
+        if (!title) return null;
+
+        const rawLinks = Array.isArray(raw.links)
+          ? raw.links
+          : [];
+
+        let link = "";
+
+        for (const candidate of rawLinks) {
+          link = firstUrl(candidate);
+          if (link) break;
+        }
+
+        if (!link) {
+          link = safeUrl(
+            firstUrl(raw.article_url || raw.url)
+          );
+        }
+
+        return {
+          title,
+          copy: cleanText(
+            raw.einordnung ||
+            raw.description ||
+            raw.summary
+          ).slice(0, 440),
+          source: cleanText(
+            raw.source,
+            "KI News"
+          ).slice(0, 60),
+          date: cleanText(raw.date),
+          link,
+          timestamp: timestampOf(raw)
+        };
+      }
+
+      function makeAnalysisCard(item) {
+        const card = create(
+          item.link ? "a" : "article",
+          "px-analysis-card"
+        );
+
+        if (item.link) {
+          card.href = item.link;
+          card.target = "_blank";
+          card.rel = "noopener noreferrer";
+        }
+
+        card.appendChild(create("span", "px-tag", "Analyse"));
+        card.appendChild(
+          create("h3", "px-analysis-title", item.title)
+        );
+
+        if (item.copy) {
+          card.appendChild(
+            create("p", "px-analysis-copy", item.copy)
+          );
+        }
+
+        const meta = create("div", "px-analysis-meta");
+        meta.append(
+          create("span", "", item.source),
+          create("span", "", formatDate(item.date))
+        );
+
+        card.appendChild(meta);
+        return card;
+      }
+
+      function renderAnalysisList() {
+        refs.analysisRail.replaceChildren();
+
+        if (!analysisItems.length) return;
+
+        const fragment = document.createDocumentFragment();
+
+        analysisItems.slice(0, shownAnalyses).forEach((item) => {
+          fragment.appendChild(makeAnalysisCard(item));
+        });
+
+        refs.analysisRail.appendChild(fragment);
+
+        const hiddenCount = Math.max(
+          0,
+          analysisItems.length - shownAnalyses
+        );
+
+        refs.analysisMore.hidden = hiddenCount <= 0;
+        refs.analysisMore.querySelector(".px-button-label").textContent =
+          numberFormat.format(hiddenCount) +
+          " weitere Analysen zeigen";
+      }
+
+      function renderAnalyses(payload, failureText = "") {
+        const rawItems = Array.isArray(payload)
+          ? payload
+          : payload && Array.isArray(payload.cards)
+            ? payload.cards
+            : [];
+
+        const seen = new Set();
+
+        analysisItems = rawItems
+          .map(normaliseAnalysis)
+          .filter((item) => {
+            if (!item) return false;
+
+            const identity = item.link
+              ? "link:" + item.link
+              : "analysis:" + normalizeText(item.title);
+
+            if (seen.has(identity)) return false;
+
+            seen.add(identity);
+            return true;
+          })
+          .sort((first, second) => {
+            return second.timestamp - first.timestamp;
+          });
+
+        shownAnalyses = 6;
+
+        refs.analysisCount.textContent = analysisItems.length
+          ? numberFormat.format(analysisItems.length)
+          : "0";
+
+        if (!analysisItems.length) {
+          refs.analysisRail.replaceChildren();
+          refs.analysisRail.appendChild(makeState(
+            "0",
+            "Keine Analysen",
+            failureText ||
+              "cards.json enthält derzeit keine Analyse mit einem vollständigen Titel."
+          ));
+          refs.analysisMore.hidden = true;
+          return;
+        }
+
+        renderAnalysisList();
+      }
+
+      function buildNewsModel(payload) {
+        newsItems = prepareNews(extractNews(payload));
+        newsGroups = new Map();
+
+        shownNews = window.matchMedia("(max-width: 700px)").matches
+          ? 4
+          : 8;
+
+        newsItems.forEach((item) => {
+          if (!newsGroups.has(item.theme.id)) {
+            newsGroups.set(item.theme.id, {
+              theme: item.theme,
+              items: []
+            });
+          }
+
+          newsGroups.get(item.theme.id).items.push(item);
+        });
+
+        const firstExistingTheme = themes.find((theme) => {
+          return newsGroups.has(theme.id);
+        });
+
+        selectedThemeId = firstExistingTheme
+          ? firstExistingTheme.id
+          : "";
+        selectedThemeExpanded = false;
+
+        const topItems = new Set();
+
+        newsGroups.forEach((group) => {
+          group.items.slice(0, 3).forEach((item) => {
+            topItems.add(item);
+          });
+        });
+
+        remainingItems = newsItems
+          .filter((item) => !topItems.has(item))
+          .sort((first, second) => {
+            if (second.timestamp !== first.timestamp) {
+              return second.timestamp - first.timestamp;
+            }
+
+            return second.score - first.score ||
+              first.sourceIndex - second.sourceIndex;
+          });
+
+        let stand = "Stand nicht angegeben";
+
+        if (
+          payload &&
+          typeof payload === "object" &&
+          !Array.isArray(payload)
+        ) {
+          stand = cleanText(
+            payload.stand ||
+            (payload.briefing && payload.briefing.stand)
+          ) || stand;
+        }
+
+        refs.stand.textContent = "Datenstand: " + stand;
+        refs.topicCount.textContent = newsGroups.size
+          ? numberFormat.format(newsGroups.size) + " Themen"
+          : "0 Themen";
+        refs.latestCount.textContent =
+          numberFormat.format(remainingItems.length);
+        refs.latestCopy.textContent = newsItems.length
+          ? numberFormat.format(newsItems.length) +
+            " Meldungen insgesamt, übrige nach Aktualität sortiert."
+          : "Der aktuelle Datenstand ist leer.";
+
+        renderMorning();
+        updateTabs();
+        renderSelectedTheme();
+        renderNewsList();
+        renderDossiers(payload);
+      }
+
+      function showNewsError() {
+        refs.stand.textContent = "Datenstand: nicht verfügbar";
+
+        refs.morningRail.replaceChildren();
+        refs.morningRail.appendChild(makeState(
+          "ERR",
+          "Nachrichten konnten nicht geladen werden",
+          "Die relative Datei news.json ist gerade nicht erreichbar."
+        ));
+
+        refs.tabs.replaceChildren();
+
+        refs.topicPanel.style.setProperty("--px-accent", "#ff5c8a");
+        refs.topicPanel.replaceChildren();
+        refs.topicPanel.setAttribute(
+          "aria-labelledby",
+          "px-topics-heading"
+        );
+
+        const state = makeState(
+          "ERR",
+          "Der kompakte Nachrichtenbereich ist vorübergehend nicht verfügbar",
+          "Andere Bereiche der Seite bleiben nutzbar. Die Meldungen können erneut geladen werden."
+        );
+
+        const retry = create("button", "px-retry", "Erneut versuchen");
+        retry.type = "button";
+
+        retry.addEventListener("click", () => {
+          void loadAll();
+        });
+
+        state.querySelector(".px-state-inner").appendChild(retry);
+        refs.topicPanel.appendChild(state);
+        refs.topicMore.hidden = true;
+
+        refs.latestCount.textContent = "0";
+        refs.latestCopy.textContent =
+          "Wegen eines Ladefehlers nicht verfügbar.";
+        refs.newsList.replaceChildren();
+        refs.newsMore.hidden = true;
+
+        refs.dossierCount.textContent = "0";
+        refs.dossierCopy.textContent =
+          "Wegen eines Ladefehlers nicht verfügbar.";
+        refs.dossierRail.replaceChildren();
+        refs.dossierRail.appendChild(makeState(
+          "ERR",
+          "Linien nicht verfügbar",
+          "Auch diese Daten stammen aus news.json."
+        ));
+      }
+
+      async function fetchJSON(path, timeoutMs) {
+        const controller = new AbortController();
+        activeControllers.push(controller);
+
+        const timeout = window.setTimeout(() => {
+          controller.abort();
+        }, timeoutMs);
+
+        try {
+          const response = await fetch(path, {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
+            signal: controller.signal
+          });
+
+          if (!response.ok) {
+            throw new Error(path + " HTTP " + response.status);
+          }
+
+          return await response.json();
+        } finally {
+          window.clearTimeout(timeout);
+          activeControllers = activeControllers.filter((entry) => {
+            return entry !== controller;
+          });
+        }
+      }
+
+      async function loadAll() {
+        const currentRequest = ++requestId;
+
+        activeControllers.forEach((controller) => {
+          controller.abort();
+        });
+        activeControllers = [];
+
+        root.setAttribute("aria-busy", "true");
+        refs.stand.textContent = "Relative Daten werden geladen";
+
+        try {
+          const results = await Promise.allSettled([
+            fetchJSON("news.json", 7500),
+            fetchJSON("cards.json", 6500)
+          ]);
+
+          if (currentRequest !== requestId) return;
+
+          const newsResult = results[0];
+          const cardsResult = results[1];
+
+          if (newsResult.status === "fulfilled") {
+            try {
+              buildNewsModel(newsResult.value);
+            } catch (error) {
+              showNewsError();
+            }
+          } else {
+            showNewsError();
+          }
+
+          if (cardsResult.status === "fulfilled") {
+            renderAnalyses(cardsResult.value);
+          } else {
+            renderAnalyses(
+              null,
+              "cards.json ist gerade nicht erreichbar. Die Nachrichtenübersicht bleibt verfügbar."
+            );
+          }
+        } catch (error) {
+          if (currentRequest !== requestId) return;
+
+          showNewsError();
+          renderAnalyses(
+            null,
+            "Analysen sind vorübergehend nicht verfügbar."
+          );
+        } finally {
+          if (currentRequest === requestId) {
+            root.setAttribute("aria-busy", "false");
+          }
+        }
+      }
+
+      refs.topicMore.addEventListener("click", () => {
+        const group = newsGroups.get(selectedThemeId);
+
+        if (!group || group.items.length <= 3) return;
+
+        selectedThemeExpanded = !selectedThemeExpanded;
+        renderSelectedTheme();
+      });
+
+      refs.newsMore.addEventListener("click", () => {
+        shownNews = Math.min(
+          remainingItems.length,
+          shownNews + 12
+        );
+        renderNewsList();
+      });
+
+      refs.analysisMore.addEventListener("click", () => {
+        shownAnalyses = Math.min(
+          analysisItems.length,
+          shownAnalyses + 6
+        );
+        renderAnalysisList();
+      });
+
+      window.addEventListener("pagehide", () => {
+        requestId += 1;
+
+        activeControllers.forEach((controller) => {
+          controller.abort();
+        });
+
+        activeControllers = [];
+      });
+
+      refs.topicPanel.dataset.view = viewMode;
+      void loadAll();
+    })();
+  </script>
+</body>
+</html>

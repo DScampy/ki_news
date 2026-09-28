@@ -1,0 +1,2858 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Interaktive Sims-Redaktion von ki-news.live mit echten Meldungen aus news.json und Karten aus cards.json.">
+  <title>Sims-Redaktion | ki-news.live</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-bg: #edf5f5;
+      --px-panel: #fffdf7;
+      --px-panel-2: #f4f8f6;
+      --px-ink: #101719;
+      --px-muted: #5e6b70;
+      --px-line: rgba(16, 23, 25, .17);
+      --px-night: #06110e;
+      --px-night-2: #0b1a15;
+      --px-cyan: #00d4ff;
+      --px-violet: #7c4dff;
+      --px-green: #20d993;
+      --px-red: #ef4d55;
+      --px-yellow: #ffd447;
+      --px-head: "Space Grotesk", system-ui, sans-serif;
+      --px-body: "Work Sans", system-ui, sans-serif;
+      --px-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    html[data-theme="dark"],
+    body[data-px-dark="true"] {
+      --px-bg: #0a0f12;
+      --px-panel: #141c20;
+      --px-panel-2: #10171a;
+      --px-ink: #f2f8f6;
+      --px-muted: #a9b6b9;
+      --px-line: rgba(255, 255, 255, .16);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html:not([data-theme="light"]):not([data-theme="dark"]) {
+        --px-bg: #0a0f12;
+        --px-panel: #141c20;
+        --px-panel-2: #10171a;
+        --px-ink: #f2f8f6;
+        --px-muted: #a9b6b9;
+        --px-line: rgba(255, 255, 255, .16);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 0;
+      overflow-x: hidden;
+      background: var(--px-bg);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-width: 0;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--px-ink);
+      background:
+        linear-gradient(rgba(0, 212, 255, .055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, .055) 1px, transparent 1px),
+        radial-gradient(circle at 88% 8%, rgba(124, 77, 255, .13), transparent 27rem),
+        var(--px-bg);
+      background-size: 24px 24px, 24px 24px, auto, auto;
+      font-family: var(--px-body);
+    }
+
+    button,
+    a {
+      min-width: 0;
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .48;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--px-cyan);
+      outline-offset: 3px;
+    }
+
+    .px-skip {
+      position: fixed;
+      z-index: 1000;
+      top: 9px;
+      left: 9px;
+      padding: 10px 14px;
+      transform: translateY(-160%);
+      border-radius: 8px;
+      color: #061116;
+      background: var(--px-cyan);
+      font: 800 .78rem var(--px-mono);
+    }
+
+    .px-skip:focus {
+      transform: none;
+    }
+
+    .px-ki-header {
+      position: relative;
+      z-index: 100;
+      min-width: 0;
+    }
+
+    .px-shell {
+      width: min(1480px, calc(100% - 24px));
+      min-width: 0;
+      margin: 0 auto;
+      padding: 12px 0 58px;
+    }
+
+    .px-hero {
+      position: relative;
+      isolation: isolate;
+      min-width: 0;
+      overflow: hidden;
+      padding: 18px 22px 20px;
+      color: #f5fbfa;
+      background:
+        radial-gradient(circle at 88% 12%, rgba(0, 212, 255, .23), transparent 18rem),
+        radial-gradient(circle at 4% 120%, rgba(124, 77, 255, .48), transparent 28rem),
+        #07110f;
+      border: 2px solid #020504;
+      border-radius: 19px;
+      box-shadow: 7px 7px 0 rgba(0, 212, 255, .28);
+    }
+
+    .px-hero::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      opacity: .18;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0, 212, 255, .2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, .2) 1px, transparent 1px);
+      background-size: 18px 18px;
+      mask-image: linear-gradient(90deg, #000, transparent 88%);
+    }
+
+    .px-hero-top,
+    .px-hero-grid,
+    .px-metrics,
+    .px-metric,
+    .px-sim-bar,
+    .px-stage-tools,
+    .px-stage-foot,
+    .px-side-title,
+    .px-role-top,
+    .px-help,
+    .px-footer,
+    .px-tag-row {
+      min-width: 0;
+    }
+
+    .px-hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 11px;
+    }
+
+    .px-kicker,
+    .px-stamp,
+    .px-tag,
+    .px-metric span,
+    .px-button,
+    .px-label,
+    .px-clock,
+    .px-popup-label,
+    .px-popup-source,
+    .px-ticker,
+    .px-log-meta,
+    .px-side-index,
+    .px-role-name,
+    .px-role-status,
+    .px-empty,
+    .px-footer {
+      font-family: var(--px-mono);
+    }
+
+    .px-kicker {
+      margin: 0;
+      color: var(--px-cyan);
+      font-size: .61rem;
+      font-weight: 900;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .px-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 48%;
+      padding: 6px 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .25);
+      border-radius: 999px;
+      color: #d8e7e3;
+      font-size: .55rem;
+      font-weight: 800;
+      letter-spacing: .07em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-stamp::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--px-green);
+      box-shadow: 0 0 12px rgba(32, 217, 147, .8);
+    }
+
+    .px-stamp[data-state="warning"]::before {
+      background: var(--px-yellow);
+      box-shadow: none;
+    }
+
+    .px-stamp[data-state="error"]::before {
+      background: var(--px-red);
+      box-shadow: none;
+    }
+
+    .px-hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, .75fr);
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .px-hero h1 {
+      margin: 0;
+      font: 800 clamp(2.35rem, 4.1vw, 3.85rem)/.86 var(--px-head);
+      letter-spacing: -.068em;
+      text-transform: uppercase;
+    }
+
+    .px-hero h1 span {
+      color: var(--px-yellow);
+    }
+
+    .px-lead {
+      max-width: 680px;
+      margin: 0;
+      color: #c0d1cd;
+      font-size: clamp(.86rem, 1.15vw, .98rem);
+      line-height: 1.43;
+    }
+
+    .px-hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 11px;
+    }
+
+    .px-tag {
+      padding: 4px 7px;
+      color: #cde3df;
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid rgba(0, 212, 255, .25);
+      border-radius: 5px;
+      font-size: .5rem;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .px-metric {
+      padding: 8px 11px;
+      color: var(--px-ink);
+      background: var(--px-panel);
+      border: 1px solid var(--px-line);
+      border-radius: 8px;
+    }
+
+    .px-metric:nth-child(2) {
+      background: var(--px-cyan);
+    }
+
+    .px-metric:nth-child(3) {
+      background: var(--px-yellow);
+    }
+
+    .px-metric:nth-child(4) {
+      color: #fff;
+      background: var(--px-violet);
+    }
+
+    .px-metric span {
+      display: block;
+      margin-bottom: 2px;
+      font-size: .49rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .px-metric strong {
+      display: block;
+      font: 800 clamp(1.03rem, 1.45vw, 1.42rem)/1 var(--px-head);
+      letter-spacing: -.035em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-sim {
+      position: relative;
+      min-width: 0;
+      margin-top: 14px;
+      overflow: hidden;
+      background: var(--px-panel);
+      border: 1px solid var(--px-line);
+      border-radius: 16px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .15);
+    }
+
+    .px-sim-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 11px;
+      color: #dcebe8;
+      background: #091612;
+      border-bottom: 1px solid rgba(0, 212, 255, .25);
+    }
+
+    .px-sim-brand,
+    .px-clock {
+      overflow: hidden;
+      font-size: .54rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-sim-brand {
+      color: var(--px-yellow);
+    }
+
+    .px-clock {
+      color: var(--px-cyan);
+      text-align: right;
+    }
+
+    .px-room-tabs {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      min-width: 0;
+      gap: 5px;
+      padding: 6px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      background: #101b17;
+      border-bottom: 1px solid rgba(0, 212, 255, .18);
+      scrollbar-width: thin;
+      touch-action: pan-x pan-y;
+    }
+
+    .px-room-tab {
+      min-width: 0;
+      min-height: 34px;
+      padding: 7px 5px;
+      overflow: hidden;
+      color: #91a49e;
+      background: #17231e;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 5px;
+      font: 900 clamp(.46rem, .65vw, .57rem) var(--px-mono);
+      letter-spacing: .035em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-room-tab[aria-selected="true"] {
+      color: #10130d;
+      background: var(--px-yellow);
+      border-color: #fff0a3;
+      box-shadow: 0 0 14px rgba(255, 212, 71, .18);
+    }
+
+    .px-game-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      min-width: 0;
+    }
+
+    .px-main-stage,
+    .px-sidebar {
+      min-width: 0;
+    }
+
+    .px-main-stage {
+      border-right: 1px solid var(--px-line);
+    }
+
+    .px-stage-tools,
+    .px-stage-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 9px;
+      background: var(--px-panel);
+    }
+
+    .px-stage-tools {
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-stage-foot {
+      border-top: 1px solid var(--px-line);
+    }
+
+    .px-label {
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: .5rem;
+      font-weight: 900;
+      letter-spacing: .07em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-stage-tools .px-label:last-child {
+      color: var(--px-green);
+    }
+
+    .px-ticker {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: .5rem;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-tag-row {
+      display: flex;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 5px;
+    }
+
+    .px-canvas-wrap {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--px-night);
+      isolation: isolate;
+    }
+
+    .px-canvas-wrap::after {
+      content: "";
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, .045) 3px 4px),
+        linear-gradient(180deg, transparent 60%, rgba(0, 0, 0, .22));
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, .38);
+    }
+
+    .px-canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 20 / 13;
+      image-rendering: pixelated;
+      touch-action: manipulation;
+      cursor: crosshair;
+    }
+
+    .px-popup {
+      position: absolute;
+      z-index: 5;
+      top: 12px;
+      left: 50%;
+      width: min(610px, calc(100% - 24px));
+      min-width: 0;
+      padding: 9px 11px;
+      transform: translateX(-50%);
+      color: #101711;
+      background: var(--px-yellow);
+      border: 2px solid #050806;
+      box-shadow: 6px 6px 0 rgba(32, 217, 147, .62);
+      pointer-events: none;
+      animation: px-pop-in .28s steps(4, end);
+    }
+
+    .px-popup::after {
+      content: "";
+      position: absolute;
+      right: 20px;
+      bottom: -8px;
+      width: 13px;
+      height: 13px;
+      background: inherit;
+      border-right: 2px solid #050806;
+      border-bottom: 2px solid #050806;
+      transform: rotate(45deg);
+    }
+
+    .px-popup-label {
+      display: block;
+      margin-bottom: 3px;
+      font-size: .47rem;
+      font-weight: 900;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .px-popup-title {
+      display: -webkit-box;
+      overflow: hidden;
+      font: 800 .84rem/1.2 var(--px-head);
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-popup-source {
+      display: block;
+      margin-top: 4px;
+      font-size: .48rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .px-data-message {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      bottom: 16px;
+      width: min(430px, calc(100% - 28px));
+      transform: translateX(-50%);
+      text-align: center;
+    }
+
+    .px-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      min-height: 31px;
+      padding: 6px 8px;
+      color: #061310;
+      background: var(--px-cyan);
+      border: 1px solid #009ebf;
+      border-radius: 6px;
+      font-size: .49rem;
+      font-weight: 900;
+      letter-spacing: .045em;
+      text-align: center;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .px-button:hover:not(:disabled) {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 var(--px-violet);
+    }
+
+    .px-button-live[aria-pressed="true"] {
+      background: var(--px-green);
+      border-color: #109b69;
+    }
+
+    .px-sidebar {
+      display: grid;
+      align-content: start;
+      background: var(--px-panel);
+    }
+
+    .px-side-block {
+      min-width: 0;
+      padding: 13px;
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-side-block:last-child {
+      border-bottom: 0;
+    }
+
+    .px-side-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 9px;
+      margin-bottom: 9px;
+    }
+
+    .px-side-title h2,
+    .px-side-title h3 {
+      margin: 0;
+      font: 800 17px/1 var(--px-head);
+      letter-spacing: -.025em;
+    }
+
+    .px-side-index {
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: .47rem;
+      letter-spacing: .06em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-today {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 9px;
+      padding: 9px 10px;
+      color: #f4fbfa;
+      background: #0b1713;
+      border-left: 4px solid var(--px-yellow);
+    }
+
+    .px-today strong {
+      font: 900 .55rem var(--px-mono);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .px-today b {
+      color: var(--px-cyan);
+      font: 800 23px/1 var(--px-head);
+    }
+
+    .px-log {
+      display: grid;
+      gap: 6px;
+      max-height: 500px;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      list-style: none;
+      scrollbar-width: thin;
+    }
+
+    .px-log-item {
+      position: relative;
+      min-width: 0;
+      padding: 8px 8px 8px 12px;
+      color: var(--px-muted);
+      background: var(--px-bg);
+      border: 1px solid var(--px-line);
+      border-radius: 7px;
+    }
+
+    .px-log-item::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 4px;
+      width: 4px;
+      height: 4px;
+      background: var(--px-cyan);
+    }
+
+    .px-log-item:first-child::before {
+      background: var(--px-yellow);
+    }
+
+    .px-log-title {
+      display: block;
+      color: var(--px-ink);
+      font-size: .72rem;
+      font-weight: 700;
+      line-height: 1.32;
+      overflow-wrap: anywhere;
+    }
+
+    .px-log-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px 8px;
+      margin-top: 4px;
+      color: var(--px-muted);
+      font-size: .45rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-log-link {
+      display: inline-block;
+      margin-top: 6px;
+      color: #079dbd;
+      font-size: .68rem;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    body[data-px-dark="true"] .px-log-link,
+    html[data-theme="dark"] .px-log-link {
+      color: var(--px-cyan);
+    }
+
+    .px-log-link:hover {
+      text-decoration: underline;
+    }
+
+    .px-role-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .px-role-button {
+      min-width: 0;
+      min-height: 31px;
+      padding: 6px;
+      overflow: hidden;
+      color: var(--px-muted);
+      background: var(--px-bg);
+      border: 1px solid var(--px-line);
+      border-radius: 6px;
+      font: 800 .47rem var(--px-mono);
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-role-button[aria-pressed="true"] {
+      color: #061310;
+      background: var(--px-yellow);
+      border-color: var(--px-ink);
+    }
+
+    .px-role-card {
+      margin-top: 8px;
+      padding: 10px;
+      color: #eaf5f2;
+      background: #0b1713;
+      border: 1px solid rgba(0, 212, 255, .3);
+      border-radius: 7px;
+    }
+
+    .px-role-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .px-role-name {
+      color: var(--px-muted);
+      font-size: .44rem;
+      font-weight: 900;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .px-role-card h4 {
+      margin: 3px 0 4px;
+      color: var(--px-cyan);
+      font: 800 15px/1 var(--px-head);
+    }
+
+    .px-role-status {
+      display: block;
+      color: var(--px-yellow);
+      font-size: .49rem;
+      line-height: 1.42;
+      overflow-wrap: anywhere;
+    }
+
+    .px-role-card p {
+      margin: 7px 0 0;
+      color: #a5b6b1;
+      font-size: .7rem;
+      line-height: 1.4;
+    }
+
+    .px-empty {
+      margin: 0;
+      padding: 12px;
+      color: var(--px-muted);
+      background: var(--px-panel-2);
+      border: 1px dashed var(--px-line);
+      border-radius: 7px;
+      font-size: .56rem;
+      line-height: 1.5;
+    }
+
+    .px-help {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      color: var(--px-muted);
+      background: var(--px-panel);
+      border: 1px solid var(--px-line);
+      border-radius: 9px;
+      font-size: .72rem;
+      line-height: 1.42;
+    }
+
+    .px-help strong {
+      color: var(--px-ink);
+    }
+
+    .px-footer {
+      margin-top: 13px;
+      color: var(--px-muted);
+      font-size: .52rem;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .px-toast {
+      position: fixed;
+      z-index: 2000;
+      right: 17px;
+      bottom: max(17px, env(safe-area-inset-bottom));
+      width: min(390px, calc(100% - 34px));
+      padding: 11px 13px;
+      color: #f4fffb;
+      background: #0b1713;
+      border: 2px solid var(--px-cyan);
+      border-radius: 8px;
+      box-shadow: 6px 6px 0 rgba(0, 0, 0, .25);
+      font: 700 .67rem/1.42 var(--px-mono);
+    }
+
+    @keyframes px-pop-in {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -14px);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+    }
+
+    @media (max-width: 1060px) {
+      .px-game-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-main-stage {
+        border-right: 0;
+      }
+
+      .px-sidebar {
+        grid-template-columns: 1fr 1fr;
+        border-top: 1px solid var(--px-line);
+      }
+
+      .px-side-block {
+        border-right: 1px solid var(--px-line);
+      }
+
+      .px-side-block:last-child {
+        border-right: 0;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .px-shell {
+        width: calc(100% - 10px);
+        padding-top: 6px;
+        padding-bottom: 36px;
+      }
+
+      .px-hero {
+        padding: 14px 12px 15px;
+        border-radius: 15px;
+        box-shadow: 5px 5px 0 rgba(0, 212, 255, .28);
+      }
+
+      .px-hero-top {
+        align-items: flex-start;
+        margin-bottom: 9px;
+      }
+
+      .px-kicker {
+        max-width: 170px;
+        font-size: .5rem;
+        line-height: 1.35;
+      }
+
+      .px-stamp {
+        max-width: 145px;
+        font-size: .47rem;
+      }
+
+      .px-hero-grid {
+        grid-template-columns: 1fr;
+        gap: 9px;
+        margin-bottom: 12px;
+      }
+
+      .px-hero h1 {
+        font-size: clamp(2.05rem, 10.6vw, 2.75rem);
+      }
+
+      .px-lead {
+        font-size: .78rem;
+        line-height: 1.4;
+      }
+
+      .px-hero-tags {
+        display: none;
+      }
+
+      .px-metrics {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .px-metric {
+        padding: 8px 9px;
+        border-radius: 7px;
+      }
+
+      .px-metric strong {
+        font-size: 1.16rem;
+      }
+
+      .px-sim {
+        margin-top: 10px;
+        border-radius: 12px;
+      }
+
+      .px-sim-bar {
+        padding: 7px 8px;
+      }
+
+      .px-sim-brand,
+      .px-clock {
+        font-size: .47rem;
+      }
+
+      .px-room-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 5px;
+        scroll-snap-type: x proximity;
+      }
+
+      .px-room-tab {
+        flex: 0 0 auto;
+        min-width: 76px;
+        min-height: 33px;
+        padding: 6px 7px;
+        font-size: .44rem;
+        scroll-snap-align: center;
+      }
+
+      .px-stage-tools,
+      .px-stage-foot {
+        padding: 6px 7px;
+      }
+
+      .px-label,
+      .px-ticker {
+        font-size: .45rem;
+      }
+
+      .px-button {
+        min-height: 29px;
+        padding: 5px 6px;
+        font-size: .44rem;
+      }
+
+      .px-popup {
+        top: 7px;
+        width: calc(100% - 16px);
+        padding: 7px 8px;
+        box-shadow: 4px 4px 0 rgba(32, 217, 147, .62);
+      }
+
+      .px-popup-label,
+      .px-popup-source {
+        font-size: .42rem;
+      }
+
+      .px-popup-title {
+        font-size: .68rem;
+      }
+
+      .px-sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .px-side-block {
+        border-right: 0;
+      }
+
+      .px-help {
+        align-items: flex-start;
+        flex-direction: column;
+        font-size: .68rem;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .px-room-tab {
+        min-width: 73px;
+      }
+
+      .px-stage-foot {
+        align-items: flex-start;
+      }
+
+      .px-ticker {
+        white-space: normal;
+      }
+
+      .px-footer {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="px-skip" href="#px-main">Zur Sims-Redaktion springen</a>
+  <div id="ki-header" class="px-ki-header" aria-label="Seitennavigation"></div>
+
+  <main class="px-shell" id="px-main">
+    <header class="px-hero">
+      <div class="px-hero-top">
+        <p class="px-kicker">Nachtschicht 07 / Newsroom Management</p>
+        <span class="px-stamp" id="px-load-state" data-state="loading" role="status" aria-live="polite">Daten werden geladen</span>
+      </div>
+
+      <div class="px-hero-grid">
+        <div>
+          <h1>Sims <span>Redaktion</span></h1>
+          <div class="px-hero-tags" aria-label="Merkmale des Prototyps">
+            <span class="px-tag">Canvas-Büro</span>
+            <span class="px-tag">Pixel-Sprites</span>
+            <span class="px-tag">5 Räume</span>
+            <span class="px-tag">Lokale JSON-Daten</span>
+            <span class="px-tag">Touch und Tastatur</span>
+          </div>
+        </div>
+
+        <p class="px-lead">
+          Scampy und das Redaktionsteam verfolgen echte Meldungen durch Recherche, Faktenabgleich,
+          Schnitt und Freigabe. Die Kameras zeigen eine isometrische Pixel-Bürowelt.
+        </p>
+      </div>
+
+      <div class="px-metrics" aria-label="Datenstatus">
+        <div class="px-metric">
+          <span>Meldungen</span>
+          <strong id="px-count-news">0</strong>
+        </div>
+        <div class="px-metric">
+          <span>Karten</span>
+          <strong id="px-count-cards">0</strong>
+        </div>
+        <div class="px-metric">
+          <span>Datenstand</span>
+          <strong id="px-data-stand">offen</strong>
+        </div>
+        <div class="px-metric">
+          <span>Produktion</span>
+          <strong id="px-count-production">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="px-sim" aria-labelledby="px-sim-title">
+      <h2 id="px-sim-title" hidden>Sims-Redaktion</h2>
+
+      <div class="px-sim-bar">
+        <span class="px-sim-brand">NIGHTDESK / LIVE SIM</span>
+        <span class="px-clock" id="px-clock">AFTER HOURS / DATEN WARTEN</span>
+      </div>
+
+      <div class="px-room-tabs" id="px-room-tabs" role="tablist" aria-label="Redaktionsräume">
+        <button class="px-room-tab" type="button" role="tab" data-room="overview" aria-selected="true">Übersicht</button>
+        <button class="px-room-tab" type="button" role="tab" data-room="desk" aria-selected="false">Newsdesk</button>
+        <button class="px-room-tab" type="button" role="tab" data-room="lab" aria-selected="false">Labor</button>
+        <button class="px-room-tab" type="button" role="tab" data-room="editing" aria-selected="false">Schnitt</button>
+        <button class="px-room-tab" type="button" role="tab" data-room="office" aria-selected="false">Chef</button>
+        <button class="px-room-tab" type="button" role="tab" data-room="lounge" aria-selected="false">Lounge</button>
+      </div>
+
+      <div class="px-game-grid">
+        <div class="px-main-stage">
+          <div class="px-stage-tools">
+            <span class="px-label" id="px-room-label">Kamera / Übersicht</span>
+            <span class="px-label" id="px-stage-state">Offline / Datenprüfung</span>
+          </div>
+
+          <div class="px-canvas-wrap" id="px-stage">
+            <canvas
+              class="px-canvas"
+              id="px-game"
+              width="1200"
+              height="780"
+              role="img"
+              aria-label="Isometrische Sims-Redaktion mit fünf Räumen und fünf Redaktionsfiguren. Figuren lassen sich anklicken."
+            ></canvas>
+
+            <div class="px-popup" id="px-event-popup" role="status" aria-live="polite" hidden>
+              <span class="px-popup-label" id="px-popup-label">Neue Meldung</span>
+              <span class="px-popup-title" id="px-popup-title"></span>
+              <span class="px-popup-source" id="px-popup-source"></span>
+            </div>
+
+            <div class="px-data-message" id="px-data-message" hidden>
+              <div class="px-empty" id="px-data-message-text">Die Redaktionsdaten werden geprüft.</div>
+            </div>
+          </div>
+
+          <div class="px-stage-foot">
+            <span class="px-ticker" id="px-production-ticker">Produktionsband wartet auf eine Meldung.</span>
+            <div class="px-tag-row">
+              <button class="px-button px-button-live" id="px-live-toggle" type="button" aria-pressed="true">Live</button>
+              <button class="px-button" type="button" id="px-next-story" disabled>Nächste Meldung</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="px-sidebar" aria-label="Redaktionsstatus">
+          <section class="px-side-block">
+            <div class="px-side-title">
+              <h2>Trp's Log</h2>
+              <span class="px-side-index" id="px-log-index">00 Einträge</span>
+            </div>
+
+            <div class="px-today">
+              <strong>Meldungen heute</strong>
+              <b id="px-today-count">0</b>
+            </div>
+
+            <ol class="px-log" id="px-log" aria-live="polite"></ol>
+          </section>
+
+          <section class="px-side-block">
+            <div class="px-side-title">
+              <h3>Personal</h3>
+              <span class="px-side-index">Figur anklicken</span>
+            </div>
+
+            <div class="px-role-buttons" id="px-role-buttons" aria-label="Redaktionsrollen"></div>
+
+            <div class="px-role-card" id="px-role-card" aria-live="polite">
+              <div class="px-role-top">
+                <span class="px-role-name" id="px-role-title">Chefredakteur</span>
+              </div>
+              <h4 id="px-role-name">Scampy</h4>
+              <span class="px-role-status" id="px-role-status">Bereit am Newsdesk</span>
+              <p id="px-role-description">
+                Nimmt echte Meldungen an und bringt sie in die redaktionelle Produktionskette.
+              </p>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <div class="px-help">
+      <span>
+        <strong>Bedienung:</strong> Raum-Reiter wählen, Figur anklicken oder im Canvas eine Figur treffen.
+        Auf dem Handy lassen sich die Raum-Reiter horizontal wischen.
+      </span>
+      <span class="px-label">Echte Daten. Klare Zustände. Keine Hype-Meldungen.</span>
+    </div>
+
+    <footer class="px-footer">
+      Prototyp für ki-news.live / Betreiber Daniel, Scampy.
+      Alle sichtbaren Meldungen stammen aus news.json oder cards.json.
+    </footer>
+  </main>
+
+  <div class="px-toast" id="px-toast" role="status" aria-live="polite" hidden></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const BASE_W = 1200;
+      const BASE_H = 780;
+      const TAU = Math.PI * 2;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const compactScreen = window.matchMedia("(max-width: 760px)").matches;
+
+      const rooms = {
+        overview: {
+          id: "overview",
+          label: "Übersicht"
+        },
+        desk: {
+          id: "desk",
+          label: "Newsdesk",
+          x: 20,
+          y: 30,
+          w: 250,
+          h: 190,
+          color: "#00d4ff"
+        },
+        lab: {
+          id: "lab",
+          label: "Recherche-Labor",
+          x: 300,
+          y: 20,
+          w: 300,
+          h: 220,
+          color: "#20d993"
+        },
+        editing: {
+          id: "editing",
+          label: "Schnittraum",
+          x: 650,
+          y: 20,
+          w: 230,
+          h: 220,
+          color: "#7c4dff"
+        },
+        office: {
+          id: "office",
+          label: "Chefbüro",
+          x: 20,
+          y: 270,
+          w: 250,
+          h: 200,
+          color: "#ef4d55"
+        },
+        lounge: {
+          id: "lounge",
+          label: "Lounge",
+          x: 300,
+          y: 300,
+          w: 540,
+          h: 220,
+          color: "#ffd447"
+        }
+      };
+
+      const roleDefinitions = [
+        {
+          id: "scampy",
+          name: "Scampy",
+          title: "Chefredakteur",
+          room: "desk",
+          x: 100,
+          y: 120,
+          homeX: 100,
+          homeY: 120,
+          color: "#00d4ff",
+          skin: "#dca67c",
+          hair: "#5b2d20",
+          kind: "human",
+          status: "Bereit am Newsdesk",
+          description: "Nimmt echte Meldungen an, priorisiert sie und übergibt prüfbare Aufgaben an das Team."
+        },
+        {
+          id: "research",
+          name: "Recherche-Bot",
+          title: "Recherche-Automat",
+          room: "lab",
+          x: 380,
+          y: 120,
+          homeX: 380,
+          homeY: 120,
+          color: "#20d993",
+          skin: "#b9d4ca",
+          hair: "#263a34",
+          kind: "bot",
+          status: "Sucht belastbare Zusatzquellen",
+          description: "Ordnet Quellen, Suchbegriffe und offene Fragen einer laufenden Meldung zu."
+        },
+        {
+          id: "facts",
+          name: "Faktenprüfer",
+          title: "Evidence Officer",
+          room: "lab",
+          x: 515,
+          y: 160,
+          homeX: 515,
+          homeY: 160,
+          color: "#ffd447",
+          skin: "#8c5b3e",
+          hair: "#181818",
+          kind: "human",
+          status: "Vergleicht Quelle, Datum und Aussage",
+          description: "Trennt bestätigte Angaben, Quellenhinweise und noch offene Punkte voneinander."
+        },
+        {
+          id: "renderer",
+          name: "Karten-Renderer",
+          title: "Visual Renderer",
+          room: "editing",
+          x: 700,
+          y: 120,
+          homeX: 700,
+          homeY: 120,
+          color: "#7c4dff",
+          skin: "#6d7b72",
+          hair: "#20252b",
+          kind: "bot",
+          status: "Wartet auf freigegebene Fakten",
+          description: "Erzeugt aus echten Meldungsdaten eine kompakte Karte und legt sie im Schnittraum ab."
+        },
+        {
+          id: "speaker",
+          name: "Sprecherin",
+          title: "Voice und Audio",
+          room: "lounge",
+          x: 610,
+          y: 440,
+          homeX: 610,
+          homeY: 440,
+          color: "#ef4d55",
+          skin: "#e0aa84",
+          hair: "#6d2632",
+          kind: "human",
+          status: "Prüft Stimme und Betonung",
+          description: "Bereitet die sachliche Vertonung vor und hält den Rhythmus der Produktionskette."
+        }
+      ];
+
+      const state = {
+        rawNews: {},
+        articles: [],
+        cards: [],
+        activeRoom: compactScreen ? "desk" : "overview",
+        selectedRole: "scampy",
+        roles: new Map(roleDefinitions.map(role => [
+          role.id,
+          {
+            ...role,
+            targetX: role.homeX,
+            targetY: role.homeY,
+            targetRoom: role.room,
+            moving: false
+          }
+        ])),
+        log: [],
+        completed: [],
+        eventIndex: -1,
+        event: null,
+        workflowTimers: [],
+        autoTimer: null,
+        autoEnabled: true,
+        hitboxes: [],
+        canvasVisible: true,
+        frame: 0,
+        previousFrame: performance.now(),
+        lastDraw: 0,
+        cameraReady: false,
+        camera: {
+          x: 600,
+          y: 390,
+          scale: 1,
+          targetX: 600,
+          targetY: 390,
+          targetScale: 1
+        }
+      };
+
+      const canvas = document.getElementById("px-game");
+      const context = canvas.getContext("2d", { alpha: false });
+      const stage = document.getElementById("px-stage");
+      const popup = document.getElementById("px-event-popup");
+      const roomTabs = Array.from(document.querySelectorAll("[data-room]"));
+
+      function node(tag, className = "", text = null) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (text !== null) element.textContent = String(text);
+        return element;
+      }
+
+      function clean(value, fallback = "") {
+        if (typeof value === "string" && value.trim()) {
+          return value
+            .replace(/[\u2014\u2013]/g, "-")
+            .replace(/\s+/g, " ")
+            .trim();
+        }
+
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return String(value);
+        }
+
+        return fallback;
+      }
+
+      function array(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function object(value) {
+        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      }
+
+      function safeURL(value) {
+        if (typeof value !== "string" || !value.trim()) return "";
+
+        try {
+          const url = new URL(value, document.baseURI);
+          return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+        } catch {
+          return "";
+        }
+      }
+
+      function dateString(value) {
+        if (typeof value !== "string" || !value.trim()) return "";
+
+        const parsed = Date.parse(value.length === 10 ? `${value}T00:00:00Z` : value);
+
+        if (!Number.isFinite(parsed)) {
+          return value.trim().slice(0, 10);
+        }
+
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          timeZone: "UTC"
+        }).format(new Date(parsed));
+      }
+
+      function words(value) {
+        return clean(value)
+          .toLocaleLowerCase("de")
+          .replace(/[^a-z0-9äöüß\s-]/g, " ")
+          .split(/\s+/)
+          .filter(word => word.length > 4)
+          .slice(0, 30);
+      }
+
+      function overlap(left, right) {
+        const leftWords = new Set(words(left));
+        const rightWords = new Set(words(right));
+        let score = 0;
+
+        leftWords.forEach(word => {
+          if (rightWords.has(word)) score += 1;
+        });
+
+        return score;
+      }
+
+      function latestDate() {
+        return state.articles
+          .map(article => article.date)
+          .filter(Boolean)
+          .slice()
+          .sort((left, right) => Date.parse(right) - Date.parse(left))[0] || "";
+      }
+
+      async function fetchJSON(path) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 9000);
+
+        try {
+          const response = await fetch(path, {
+            cache: "no-store",
+            signal: controller.signal,
+            headers: { Accept: "application/json" }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          return await response.json();
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      function normalizeArticles(raw) {
+        const root = object(raw);
+        const briefing = object(root.briefing);
+        const rows = array(root.news)
+          .concat(array(root.stories))
+          .concat(array(briefing.stories))
+          .concat(array(briefing.news));
+        const seen = new Set();
+        const result = [];
+
+        rows.forEach((article, index) => {
+          if (!article || typeof article !== "object") return;
+
+          const title = clean(article.title);
+          if (!title) return;
+
+          const link = clean(article.link);
+          const storyId = clean(article.story_id);
+          const key = link || storyId || title.toLocaleLowerCase("de");
+
+          if (seen.has(key)) return;
+          seen.add(key);
+
+          result.push({
+            id: storyId || link || `story-${index + 1}`,
+            title,
+            summary: clean(article.summary, "Keine Zusammenfassung vorhanden."),
+            source: clean(article.source, "Quelle offen"),
+            date: clean(article.date || article.first_seen),
+            link
+          });
+        });
+
+        return result;
+      }
+
+      function normalizeCards(raw) {
+        const source = Array.isArray(raw) ? raw : array(object(raw).cards);
+
+        return source
+          .filter(card => card && typeof card === "object" && clean(card.headline))
+          .map((card, index) => ({
+            id: clean(card.id, `card-${index + 1}`),
+            headline: clean(card.headline),
+            source: clean(card.source, "Quelle offen"),
+            date: clean(card.date),
+            link: clean(array(card.links).find(safeURL)),
+            duration: Number.isFinite(Number(card.duration)) ? Number(card.duration) : 0
+          }));
+      }
+
+      function findCard(article) {
+        const scored = state.cards
+          .map(card => ({
+            card,
+            score:
+              overlap(article.title, card.headline) * 3 +
+              (article.source.toLocaleLowerCase("de") === card.source.toLocaleLowerCase("de") ? 2 : 0) +
+              (article.date && article.date === card.date ? 1 : 0)
+          }))
+          .sort((left, right) => right.score - left.score);
+
+        return scored[0] && scored[0].score >= 3 ? scored[0].card : null;
+      }
+
+      function role(id) {
+        return state.roles.get(id);
+      }
+
+      function setRole(id, status, target = null) {
+        const item = role(id);
+        if (!item) return;
+
+        item.status = clean(status, "Bereit");
+
+        if (target) {
+          item.targetX = Number.isFinite(target.x) ? target.x : item.homeX;
+          item.targetY = Number.isFinite(target.y) ? target.y : item.homeY;
+          item.targetRoom = target.room || item.room;
+        }
+
+        if (state.selectedRole === id) {
+          renderRoleCard();
+        }
+      }
+
+      function resetRoles() {
+        state.roles.forEach(item => {
+          item.targetX = item.homeX;
+          item.targetY = item.homeY;
+          item.targetRoom = item.room;
+          item.status = item.id === "scampy"
+            ? "Bereit am Newsdesk"
+            : item.id === "research"
+              ? "Sucht belastbare Zusatzquellen"
+              : item.id === "facts"
+                ? "Vergleicht Quelle, Datum und Aussage"
+                : item.id === "renderer"
+                  ? "Wartet auf freigegebene Fakten"
+                  : "Prüft Stimme und Betonung";
+        });
+
+        if (role(state.selectedRole)) renderRoleCard();
+      }
+
+      function moveRoles(delta) {
+        state.roles.forEach(item => {
+          const dx = item.targetX - item.x;
+          const dy = item.targetY - item.y;
+          const distance = Math.hypot(dx, dy);
+
+          if (distance > .7) {
+            const step = Math.min(distance, (reducedMotion ? 1000 : 76) * delta);
+            item.x += dx / distance * step;
+            item.y += dy / distance * step;
+            item.moving = true;
+          } else {
+            item.x = item.targetX;
+            item.y = item.targetY;
+            item.moving = false;
+          }
+        });
+      }
+
+      function buildRoleButtons() {
+        const target = document.getElementById("px-role-buttons");
+        if (!target) return;
+
+        target.replaceChildren();
+
+        state.roles.forEach(item => {
+          const button = node("button", "px-role-button", item.name);
+          button.type = "button";
+          button.dataset.role = item.id;
+          button.setAttribute("aria-pressed", String(state.selectedRole === item.id));
+          button.addEventListener("click", () => selectRole(item.id));
+          target.append(button);
+        });
+      }
+
+      function selectRole(id) {
+        if (!role(id)) return;
+
+        state.selectedRole = id;
+
+        document.querySelectorAll("[data-role]").forEach(button => {
+          button.setAttribute("aria-pressed", String(button.dataset.role === id));
+        });
+
+        renderRoleCard();
+        ensureLoop();
+      }
+
+      function renderRoleCard() {
+        const item = role(state.selectedRole);
+        if (!item) return;
+
+        document.getElementById("px-role-title").textContent = clean(item.title, "Redaktionsrolle");
+        document.getElementById("px-role-name").textContent = clean(item.name);
+        document.getElementById("px-role-status").textContent = clean(item.status, "Bereit");
+        document.getElementById("px-role-description").textContent = clean(item.description);
+      }
+
+      function renderMetrics() {
+        document.getElementById("px-count-news").textContent = String(state.articles.length);
+        document.getElementById("px-count-cards").textContent = String(state.cards.length);
+        document.getElementById("px-count-production").textContent = String(state.completed.length);
+
+        const date = latestDate();
+        const stand = clean(state.rawNews.stand, date);
+
+        document.getElementById("px-data-stand").textContent = dateString(stand) || stand || "offen";
+        document.getElementById("px-today-count").textContent = String(
+          date
+            ? state.articles.filter(article => article.date === date).length
+            : 0
+        );
+      }
+
+      function renderLog() {
+        const target = document.getElementById("px-log");
+        if (!target) return;
+
+        target.replaceChildren();
+        document.getElementById("px-log-index").textContent =
+          `${String(state.log.length).padStart(2, "0")} Einträge`;
+
+        if (!state.log.length) {
+          target.append(node("li", "px-empty", "Noch keine Meldung im Redaktionslauf."));
+          return;
+        }
+
+        state.log.slice(0, 10).forEach(article => {
+          const item = node("li", "px-log-item");
+          item.append(node("span", "px-log-title", article.title));
+
+          const meta = node("span", "px-log-meta");
+          meta.append(node("span", "", article.source));
+          meta.append(node("span", "", dateString(article.date) || "ohne Datum"));
+          item.append(meta);
+
+          const href = safeURL(article.link);
+          if (href) {
+            const link = node("a", "px-log-link", "Artikel öffnen ↗");
+            link.href = href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            item.append(link);
+          }
+
+          target.append(item);
+        });
+      }
+
+      function showPopup(label, article) {
+        document.getElementById("px-popup-label").textContent = clean(label, "Neue Meldung");
+        document.getElementById("px-popup-title").textContent = clean(article.title, "Meldung ohne Titel");
+        document.getElementById("px-popup-source").textContent = clean(article.source, "Quelle offen");
+        popup.hidden = false;
+      }
+
+      function hidePopup() {
+        popup.hidden = true;
+      }
+
+      function clearWorkflow() {
+        state.workflowTimers.forEach(clearTimeout);
+        state.workflowTimers = [];
+        state.event = null;
+      }
+
+      function startEvent(article, index) {
+        if (!article) return;
+
+        clearWorkflow();
+        hidePopup();
+
+        const card = findCard(article);
+
+        state.eventIndex = index;
+        state.event = {
+          article,
+          card,
+          stage: 0
+        };
+
+        state.log = [article]
+          .concat(state.log.filter(item => item.id !== article.id))
+          .slice(0, 12);
+
+        renderLog();
+        showPopup(card ? "Meldung trifft Karte" : "Neue Meldung", article);
+        document.getElementById("px-stage-state").textContent = "Pipeline / Desk prüft";
+        document.getElementById("px-production-ticker").textContent =
+          "Scampy übernimmt eine echte Meldung aus news.json.";
+
+        setRole("scampy", "Übernimmt die Meldung am Newsdesk", {
+          x: 130,
+          y: 125,
+          room: "desk"
+        });
+
+        setRole("research", "Bringt die Meldung ins Quellensystem", {
+          x: 225,
+          y: 90,
+          room: "desk"
+        });
+
+        setRole("facts", "Bereitet den Faktenabgleich vor", {
+          x: 525,
+          y: 170,
+          room: "lab"
+        });
+
+        setRole("renderer", "Wartet auf freigegebene Fakten", {
+          x: 705,
+          y: 120,
+          room: "editing"
+        });
+
+        setRole("speaker", "Hält den Sprechtakt frei", {
+          x: 610,
+          y: 445,
+          room: "lounge"
+        });
+
+        state.workflowTimers.push(setTimeout(() => {
+          state.event.stage = 1;
+          setRole("scampy", "Priorisiert Titel, Quelle und Datum");
+          setRole("research", "Vergleicht die Quellenhinweise", {
+            x: 390,
+            y: 105,
+            room: "lab"
+          });
+          document.getElementById("px-stage-state").textContent = "Pipeline / Recherche läuft";
+          document.getElementById("px-production-ticker").textContent =
+            "Recherche-Bot prüft die Herkunft der Meldung.";
+        }, 1200));
+
+        state.workflowTimers.push(setTimeout(() => {
+          state.event.stage = 2;
+          setRole("facts", "Prüft die Fakten zur aktuellen Meldung", {
+            x: 470,
+            y: 145,
+            room: "lab"
+          });
+          document.getElementById("px-stage-state").textContent = "Pipeline / Faktenabgleich";
+          document.getElementById("px-production-ticker").textContent =
+            "Der Faktenprüfer trennt bestätigte Angaben von offenen Punkten.";
+        }, 2400));
+
+        state.workflowTimers.push(setTimeout(() => {
+          state.event.stage = 3;
+          setRole("renderer", "Setzt die freigegebene Karte zusammen", {
+            x: 770,
+            y: 130,
+            room: "editing"
+          });
+          setRole("speaker", "Bringt die Vertonung in den Schnitt", {
+            x: 810,
+            y: 175,
+            room: "editing"
+          });
+          document.getElementById("px-stage-state").textContent = "Pipeline / Schnitt läuft";
+          document.getElementById("px-production-ticker").textContent =
+            "Karten-Renderer und Sprecherin übergeben die Geschichte an den Schnitt.";
+        }, 3400));
+
+        state.workflowTimers.push(setTimeout(() => {
+          state.event.stage = 4;
+
+          const completion = {
+            id: card ? card.id : article.id,
+            title: card ? card.headline : article.title,
+            source: card ? card.source : article.source,
+            date: card ? card.date : article.date,
+            color: ["#00d4ff", "#7c4dff", "#20d993", "#ffd447"][state.completed.length % 4]
+          };
+
+          state.completed = [completion]
+            .concat(state.completed.filter(item => item.id !== completion.id))
+            .slice(0, 6);
+
+          setRole("facts", "Faktenabgleich abgeschlossen");
+          setRole("renderer", `Karte bereit: ${completion.title}`);
+          setRole("speaker", "Vertonung wartet auf redaktionelle Freigabe");
+
+          document.getElementById("px-stage-state").textContent = "Pipeline / Karte bereit";
+          document.getElementById("px-production-ticker").textContent = `Karte fertig: ${completion.title}`;
+
+          renderMetrics();
+          state.event = null;
+          hidePopup();
+        }, 5600));
+
+        state.workflowTimers.push(setTimeout(() => {
+          if (!state.event) resetRoles();
+        }, 10500));
+
+        ensureLoop();
+      }
+
+      function startNextEvent() {
+        if (!state.articles.length) return;
+        const nextIndex = (state.eventIndex + 1) % state.articles.length;
+        startEvent(state.articles[nextIndex], nextIndex);
+      }
+
+      function scheduleAutoEvents() {
+        clearInterval(state.autoTimer);
+
+        if (!state.articles.length || !state.autoEnabled) return;
+
+        state.autoTimer = setInterval(() => {
+          if (!document.hidden) startNextEvent();
+        }, 13000);
+      }
+
+      function iso(x, y, z = 0) {
+        return {
+          x: Math.round(600 + (x - y) * .72),
+          y: Math.round(90 + (x + y) * .36 - z)
+        };
+      }
+
+      function box(x, y, width, height, color) {
+        context.fillStyle = color;
+        context.fillRect(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
+      }
+
+      function line(x1, y1, x2, y2, color, width = 1) {
+        context.strokeStyle = color;
+        context.lineWidth = width;
+        context.beginPath();
+        context.moveTo(Math.round(x1) + .5, Math.round(y1) + .5);
+        context.lineTo(Math.round(x2) + .5, Math.round(y2) + .5);
+        context.stroke();
+      }
+
+      function poly(points, fill, stroke = null, width = 1) {
+        if (!points.length) return;
+
+        context.beginPath();
+        context.moveTo(points[0].x, points[0].y);
+
+        for (let index = 1; index < points.length; index += 1) {
+          context.lineTo(points[index].x, points[index].y);
+        }
+
+        context.closePath();
+
+        if (fill) {
+          context.fillStyle = fill;
+          context.fill();
+        }
+
+        if (stroke) {
+          context.strokeStyle = stroke;
+          context.lineWidth = width;
+          context.stroke();
+        }
+      }
+
+      function glow(x, y, width, height, color) {
+        context.save();
+        context.globalAlpha = .08;
+        box(x - 5, y - 5, width + 10, height + 10, color);
+        context.globalAlpha = .04;
+        box(x - 10, y - 10, width + 20, height + 20, color);
+        context.restore();
+      }
+
+      function roomPolygon(room, z = 0) {
+        return [
+          iso(room.x, room.y, z),
+          iso(room.x + room.w, room.y, z),
+          iso(room.x + room.w, room.y + room.h, z),
+          iso(room.x, room.y + room.h, z)
+        ];
+      }
+
+      function drawRoomFloor(room, index) {
+        const a = iso(room.x, room.y);
+        const b = iso(room.x + room.w, room.y);
+        const c = iso(room.x, room.y + room.h);
+        const d = iso(room.x + room.w, room.y + room.h);
+        const wall = 44;
+        const selected = state.activeRoom === room.id;
+        const floor = index % 2 ? "#263930" : "#293b32";
+
+        poly(roomPolygon(room), floor, selected ? room.color : "#557361", selected ? 4 : 2);
+
+        context.save();
+        context.globalAlpha = .1;
+
+        for (let x = room.x + 20; x < room.x + room.w; x += 20) {
+          line(
+            iso(x, room.y).x,
+            iso(x, room.y).y,
+            iso(x, room.y + room.h).x,
+            iso(x, room.y + room.h).y,
+            "#d9ebd7"
+          );
+        }
+
+        for (let y = room.y + 20; y < room.y + room.h; y += 20) {
+          line(
+            iso(room.x, y).x,
+            iso(room.x, y).y,
+            iso(room.x + room.w, y).x,
+            iso(room.x + room.w, y).y,
+            "#d9ebd7"
+          );
+        }
+
+        context.restore();
+
+        poly(
+          [a, b, { x: b.x, y: b.y - wall }, { x: a.x, y: a.y - wall }],
+          "#22362d",
+          "#4d6859",
+          2
+        );
+
+        poly(
+          [a, c, { x: c.x, y: c.y - wall }, { x: a.x, y: a.y - wall }],
+          "#1c2e26",
+          "#4b6455",
+          2
+        );
+
+        for (let x = room.x + 18; x < room.x + room.w - 8; x += 28) {
+          const point = iso(x, room.y);
+          box(point.x - 7, point.y - 30, 14, 13, "#17231f");
+          box(point.x - 5, point.y - 28, 10, 8, (x / 28 + index) % 3 === 0 ? "#d1b85b" : "#5b766a");
+        }
+
+        for (let y = room.y + 18; y < room.y + room.h - 8; y += 28) {
+          const point = iso(room.x, y);
+          box(point.x - 7, point.y - 30, 14, 13, "#17231f");
+          box(point.x - 5, point.y - 28, 10, 8, y / 28 % 2 ? "#71a18c" : "#506c60");
+        }
+
+        const labelPoint = iso(room.x + 5, room.y + 5, 61);
+        context.save();
+        context.font = "900 12px monospace";
+        context.textAlign = "left";
+        context.textBaseline = "middle";
+        const width = context.measureText(room.label.toUpperCase()).width + 18;
+        box(labelPoint.x - 5, labelPoint.y - 12, width, 24, "#07110e");
+        box(labelPoint.x - 5, labelPoint.y - 12, 5, 24, room.color);
+        context.fillStyle = room.color;
+        context.fillText(room.label.toUpperCase(), labelPoint.x + 5, labelPoint.y + 1);
+        context.restore();
+      }
+
+      function plant(x, y) {
+        const point = iso(x, y, 1);
+
+        poly([
+          { x: point.x - 8, y: point.y },
+          { x: point.x, y: point.y + 4 },
+          { x: point.x + 8, y: point.y },
+          { x: point.x, y: point.y - 4 }
+        ], "#9b6a47", "#4a3327", 1);
+
+        box(point.x - 1, point.y - 16, 3, 16, "#31573b");
+        box(point.x - 8, point.y - 19, 9, 5, "#4d9b61");
+        box(point.x + 1, point.y - 23, 9, 6, "#64bd70");
+        box(point.x - 3, point.y - 27, 6, 5, "#87d58b");
+      }
+
+      function monitor(x, y, z = 22, color = "#00d4ff") {
+        const point = iso(x, y, z);
+
+        box(point.x - 18, point.y - 19, 36, 27, "#080e0c");
+        box(point.x - 15, point.y - 16, 30, 21, "#122b28");
+        box(point.x - 12, point.y - 13, 12, 4, color);
+        box(point.x + 2, point.y - 8, 10, 3, "#20d993");
+        box(point.x - 12, point.y - 5, 18, 2, "#75998b");
+        box(point.x - 2, point.y + 8, 4, 6, "#50615a");
+        box(point.x - 8, point.y + 13, 17, 3, "#3a4a43");
+        glow(point.x - 15, point.y - 16, 30, 21, color);
+      }
+
+      function desk(x, y, color = "#a67546") {
+        const points = [
+          iso(x - 22, y - 12, 23),
+          iso(x + 22, y - 12, 23),
+          iso(x + 22, y + 12, 23),
+          iso(x - 22, y + 12, 23)
+        ];
+
+        poly(points, color, "#583d2a", 2);
+        line(points[0].x, points[0].y, points[0].x, points[0].y + 20, "#4a362a", 4);
+        line(points[3].x, points[3].y, points[3].x, points[3].y + 20, "#4a362a", 4);
+        monitor(x, y, 23, color === "#a67546" ? "#00d4ff" : "#20d993");
+
+        const lamp = iso(x + 28, y - 8, 23);
+        box(lamp.x - 2, lamp.y - 14, 4, 14, "#101614");
+        box(lamp.x - 7, lamp.y - 19, 14, 6, "#5a655f");
+        glow(lamp.x - 5, lamp.y - 14, 10, 4, "#ffd447");
+      }
+
+      function chair(x, y, color = "#446e5c") {
+        const point = iso(x, y, 10);
+        box(point.x - 9, point.y - 12, 18, 16, color);
+        box(point.x - 12, point.y + 5, 24, 5, "#263c32");
+        box(point.x - 2, point.y + 10, 4, 9, "#101915");
+        box(point.x - 12, point.y + 18, 9, 3, "#101915");
+        box(point.x + 4, point.y + 18, 9, 3, "#101915");
+      }
+
+      function shelf(x, y, z, width, height, color = "#3e5948") {
+        const point = iso(x, y, z);
+        box(point.x - width / 2, point.y - height, width, height, color);
+        box(point.x - width / 2, point.y - height, width, 4, "#81927d");
+
+        for (let row = 0; row < 3; row += 1) {
+          box(point.x - width / 2 + 4, point.y - height + 13 + row * 14, width - 8, 3, "#2b4034");
+
+          for (let col = 0; col < Math.max(2, Math.floor(width / 13)); col += 1) {
+            box(
+              point.x - width / 2 + 7 + col * 11,
+              point.y - height + 16 + row * 14,
+              7,
+              9,
+              col % 2 ? "#c1904c" : "#2f8060"
+            );
+          }
+        }
+      }
+
+      function drawDeskRoom() {
+        desk(70, 75);
+        desk(155, 75);
+        desk(70, 150);
+        desk(155, 150);
+        desk(225, 105, "#8d633e");
+        chair(70, 104, "#3f7967");
+        chair(155, 104, "#476c88");
+        chair(70, 180, "#66764d");
+        chair(155, 180, "#6e567e");
+
+        plant(250, 48);
+        plant(35, 194);
+
+        const board = iso(190, 48, 47);
+        box(board.x - 34, board.y - 27, 66, 36, "#0b1613");
+        box(board.x - 30, board.y - 23, 25, 6, "#00d4ff");
+        box(board.x - 30, board.y - 13, 42, 3, "#d0ded7");
+        box(board.x - 30, board.y - 6, 31, 3, "#8b9f96");
+      }
+
+      function drawLabRoom() {
+        desk(350, 72, "#86613e");
+        desk(430, 72, "#7e5c3b");
+        chair(350, 105, "#4a806b");
+        chair(430, 105, "#3e6f66");
+
+        const bench = iso(450, 160, 22);
+        poly([
+          iso(325, 135, 22),
+          iso(565, 135, 22),
+          iso(565, 175, 22),
+          iso(325, 175, 22)
+        ], "#96714a", "#513c29", 2);
+
+        box(bench.x - 12, bench.y - 27, 76, 27, "#07130f");
+        box(bench.x - 8, bench.y - 23, 17, 15, "#20d993");
+        box(bench.x + 13, bench.y - 18, 13, 10, "#ef4d55");
+        box(bench.x + 31, bench.y - 24, 21, 16, "#00d4ff");
+
+        shelf(560, 80, 34, 34, 58);
+        plant(580, 42);
+        plant(315, 215);
+
+        const fridge = iso(335, 210, 19);
+        box(fridge.x - 17, fridge.y - 42, 34, 45, "#8b9898");
+        box(fridge.x - 13, fridge.y - 37, 26, 12, "#b6c2c0");
+        box(fridge.x + 8, fridge.y - 18, 3, 10, "#40534b");
+      }
+
+      function drawEditingRoom() {
+        desk(695, 78, "#8a6544");
+        desk(785, 78, "#795b40");
+        chair(695, 110, "#675086");
+        chair(785, 110, "#536f8a");
+        monitor(695, 70, 24, "#7c4dff");
+        monitor(785, 70, 24, "#00d4ff");
+
+        const consolePoint = iso(810, 175, 18);
+        poly([
+          iso(670, 145, 18),
+          iso(855, 145, 18),
+          iso(855, 190, 18),
+          iso(670, 190, 18)
+        ], "#65472f", "#35271e", 2);
+
+        state.completed.forEach((card, index) => {
+          const point = iso(700 + index * 24, 55, 48 + index * 2);
+
+          context.save();
+          context.translate(point.x, point.y);
+          context.rotate(-.05 + index * .025);
+          box(-14, -18, 28, 36, card.color);
+          box(-11, -15, 22, 6, "#f6fffb");
+          box(-11, -6, 14, 3, "#22302a");
+          box(-11, 0, 19, 3, "#22302a");
+          box(-11, 6, 11, 3, "#22302a");
+          context.restore();
+        });
+
+        box(consolePoint.x - 31, consolePoint.y - 38, 62, 26, "#07110e");
+        box(consolePoint.x - 27, consolePoint.y - 34, 11, 17, "#7c4dff");
+        box(consolePoint.x - 12, consolePoint.y - 34, 17, 17, "#00d4ff");
+        box(consolePoint.x + 9, consolePoint.y - 34, 16, 17, "#20d993");
+
+        plant(865, 45);
+        plant(670, 220);
+      }
+
+      function drawOfficeRoom() {
+        desk(78, 325, "#7c5031");
+        chair(78, 360, "#547a48");
+        monitor(78, 318, 25, "#ef4d55");
+
+        shelf(205, 310, 23, 90, 58, "#5b3b27");
+
+        const lamp = iso(48, 300, 35);
+        box(lamp.x - 2, lamp.y - 22, 4, 25, "#172019");
+        box(lamp.x - 12, lamp.y - 30, 24, 9, "#d7a951");
+        glow(lamp.x - 9, lamp.y - 17, 18, 5, "#ffd447");
+
+        chair(175, 380, "#477a66");
+        chair(125, 435, "#6b5b86");
+        plant(245, 292);
+        plant(35, 448);
+      }
+
+      function drawLoungeRoom() {
+        const sofa = iso(390, 375, 15);
+        poly([
+          iso(330, 330, 15),
+          iso(455, 330, 15),
+          iso(455, 400, 15),
+          iso(330, 400, 15)
+        ], "#6b7c56", "#3a4931", 2);
+        box(sofa.x - 25, sofa.y - 17, 50, 20, "#87966c");
+        box(sofa.x - 32, sofa.y - 25, 10, 36, "#5c7047");
+        box(sofa.x + 23, sofa.y - 25, 10, 36, "#5c7047");
+
+        const bean = iso(470, 455, 4);
+        context.fillStyle = "#5e7f55";
+        context.beginPath();
+        context.ellipse(bean.x, bean.y, 30, 18, 0, 0, TAU);
+        context.fill();
+        context.fillStyle = "#739662";
+        context.beginPath();
+        context.ellipse(bean.x, bean.y - 4, 19, 10, 0, 0, TAU);
+        context.fill();
+
+        const table = iso(415, 390, 15);
+        poly([
+          iso(370, 355, 15),
+          iso(455, 355, 15),
+          iso(455, 405, 15),
+          iso(370, 405, 15)
+        ], "#9b7044", "#4e3727", 2);
+        box(table.x - 3, table.y + 6, 6, 19, "#513a2a");
+        box(table.x - 15, table.y + 24, 31, 3, "#513a2a");
+
+        const kitchen = iso(760, 420, 15);
+        poly([
+          iso(640, 340, 15),
+          iso(820, 340, 15),
+          iso(820, 425, 15),
+          iso(640, 425, 15)
+        ], "#78502e", "#3b281c", 3);
+        box(kitchen.x - 6, kitchen.y - 10, 92, 45, "#2b6d4b");
+
+        for (let row = 0; row < 6; row += 1) {
+          line(
+            kitchen.x - 40 + row * 16,
+            kitchen.y - 7,
+            kitchen.x - 8 + row * 16,
+            kitchen.y + 31,
+            "#72a16d",
+            1
+          );
+        }
+
+        const tableFoot = iso(565, 445, 15);
+        poly([
+          iso(485, 370, 15),
+          iso(645, 370, 15),
+          iso(645, 480, 15),
+          iso(485, 480, 15)
+        ], "#986b3c", "#4a3323", 3);
+
+        for (let index = 0; index < 8; index += 1) {
+          line(
+            tableFoot.x - 48 + index * 14,
+            tableFoot.y - 29,
+            tableFoot.x + 48 - index * 14,
+            tableFoot.y + 25,
+            "#327657",
+            2
+          );
+        }
+
+        chair(510, 420, "#7c4dff");
+        chair(625, 420, "#438c72");
+
+        const tv = iso(820, 340, 38);
+        box(tv.x - 41, tv.y - 36, 82, 49, "#09100e");
+        box(tv.x - 36, tv.y - 31, 72, 39, "#162a25");
+        box(tv.x - 29, tv.y - 24, 24, 6, "#00d4ff");
+        box(tv.x - 29, tv.y - 14, 38, 4, "#20d993");
+        box(tv.x - 29, tv.y - 7, 31, 4, "#7c4dff");
+
+        shelf(350, 325, 30, 85, 52, "#5b3b27");
+        plant(315, 320);
+        plant(825, 495);
+      }
+
+      function roomIsVisible(room) {
+        return state.activeRoom === "overview" || state.activeRoom === room.id;
+      }
+
+      function actorVisible(item) {
+        if (state.activeRoom === "overview") return true;
+        if ((item.targetRoom || item.room) === state.activeRoom) return true;
+        return Boolean(item.moving);
+      }
+
+      function drawActor(item, time) {
+        if (!actorVisible(item)) return;
+
+        const point = iso(item.x, item.y, 2);
+        const bob = item.moving && Math.sin(time * 13 + item.x) > 0 ? 1 : 0;
+        const selected = state.selectedRole === item.id;
+
+        context.fillStyle = "rgba(0, 0, 0, .3)";
+        context.beginPath();
+        context.ellipse(point.x, point.y + 2, 12, 6, 0, 0, TAU);
+        context.fill();
+
+        if (selected) {
+          context.strokeStyle = "#ffd447";
+          context.lineWidth = 2;
+          context.beginPath();
+          context.ellipse(point.x, point.y + 2, 15, 7, 0, 0, TAU);
+          context.stroke();
+        }
+
+        if (item.kind === "bot") {
+          box(point.x - 9, point.y - 31 + bob, 18, 18, item.color);
+          box(point.x - 7, point.y - 26 + bob, 5, 5, "#07110e");
+          box(point.x + 3, point.y - 26 + bob, 5, 5, "#07110e");
+          box(point.x - 3, point.y - 19 + bob, 7, 3, "#d9fff2");
+          box(point.x - 8, point.y - 13 + bob, 16, 10, "#263b34");
+          box(point.x - 3, point.y - 10 + bob, 6, 4, item.color);
+          box(point.x - 10, point.y - 4, 5, 7, "#101815");
+          box(point.x + 7, point.y - 4, 5, 7, "#101815");
+          box(point.x - 14, point.y - 22 + bob, 4, 10, item.color);
+          box(point.x + 12, point.y - 22 + bob, 4, 10, item.color);
+        } else {
+          box(point.x - 9, point.y - 27 + bob, 18, 17, item.color);
+          box(point.x - 8, point.y - 40 + bob, 16, 14, item.skin);
+          box(point.x - 9, point.y - 44 + bob, 18, 7, item.hair);
+          box(point.x - 11, point.y - 40 + bob, 4, 9, item.hair);
+          box(point.x - 4, point.y - 32 + bob, 3, 3, "#17201c");
+          box(point.x + 4, point.y - 32 + bob, 3, 3, "#17201c");
+          box(point.x - 4, point.y - 23 + bob, 9, 5, "#f2f0df");
+          box(point.x - 13, point.y - 24 + bob, 5, 14, item.skin);
+          box(point.x + 9, point.y - 24 + bob, 5, 14, item.skin);
+          box(point.x - 8, point.y - 10, 7, 13, "#202c36");
+          box(point.x + 2, point.y - 10, 7, 13, "#202c36");
+          box(point.x - 10, point.y + 2, 10, 4, "#111714");
+          box(point.x + 2, point.y + 2, 10, 4, "#111714");
+        }
+
+        context.save();
+        context.font = "900 11px monospace";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+
+        const width = context.measureText(item.name).width + 14;
+        const labelY = point.y - 63 + bob;
+
+        box(point.x - width / 2, labelY - 9, width, 18, "#07110e");
+        box(point.x - width / 2, labelY - 9, 3, 18, item.color);
+
+        context.fillStyle = item.color;
+        context.fillText(item.name, point.x + 1, labelY + 1);
+        context.restore();
+
+        state.hitboxes.push({
+          id: item.id,
+          x: point.x,
+          y: point.y - 26
+        });
+      }
+
+      function boundsForRoom(id) {
+        if (id !== "overview") {
+          const room = rooms[id];
+          return [iso(room.x, room.y, 68), iso(room.x + room.w, room.y, 68), iso(room.x + room.w, room.y + room.h), iso(room.x, room.y + room.h)];
+        }
+
+        return [
+          iso(20, 30, 68),
+          iso(880, 20, 68),
+          iso(880, 520),
+          iso(20, 470)
+        ];
+      }
+
+      function cameraForRoom() {
+        const points = boundsForRoom(state.activeRoom);
+        const paddingX = state.activeRoom === "overview" ? 20 : 80;
+        const paddingY = state.activeRoom === "overview" ? 20 : 90;
+        const minX = Math.min(...points.map(point => point.x)) - paddingX;
+        const maxX = Math.max(...points.map(point => point.x)) + paddingX;
+        const minY = Math.min(...points.map(point => point.y)) - paddingY;
+        const maxY = Math.max(...points.map(point => point.y)) + paddingY;
+        const fit = Math.min(BASE_W / (maxX - minX), BASE_H / (maxY - minY));
+        const scale = state.activeRoom === "overview"
+          ? Math.min(1.08, fit)
+          : Math.min(2.08, fit);
+
+        return {
+          scale,
+          x: (minX + maxX) / 2,
+          y: (minY + maxY) / 2
+        };
+      }
+
+      function resizeCanvas() {
+        const bounds = canvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const width = Math.max(1, Math.round(bounds.width * dpr));
+        const height = Math.max(1, Math.round(bounds.height * dpr));
+
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+      }
+
+      function draw(time) {
+        if (!context) return;
+
+        context.setTransform(
+          canvas.width / BASE_W,
+          0,
+          0,
+          canvas.height / BASE_H,
+          0,
+          0
+        );
+        context.imageSmoothingEnabled = false;
+
+        const background = context.createLinearGradient(0, 0, BASE_W, BASE_H);
+        background.addColorStop(0, "#06110d");
+        background.addColorStop(1, "#091a14");
+        context.fillStyle = background;
+        context.fillRect(0, 0, BASE_W, BASE_H);
+
+        context.save();
+        context.globalAlpha = .13;
+
+        for (let x = 0; x < BASE_W; x += 24) {
+          line(x, 0, x, BASE_H, "#00d4ff", 1);
+        }
+
+        for (let y = 0; y < BASE_H; y += 24) {
+          line(0, y, BASE_W, y, "#00d4ff", 1);
+        }
+
+        context.restore();
+
+        const target = cameraForRoom();
+        state.camera.targetX = target.x;
+        state.camera.targetY = target.y;
+        state.camera.targetScale = target.scale;
+
+        if (!state.cameraReady) {
+          state.camera.x = target.x;
+          state.camera.y = target.y;
+          state.camera.scale = target.scale;
+          state.cameraReady = true;
+        } else {
+          const ease = reducedMotion ? 1 : .12;
+          state.camera.x += (target.x - state.camera.x) * ease;
+          state.camera.y += (target.y - state.camera.y) * ease;
+          state.camera.scale += (target.scale - state.camera.scale) * ease;
+        }
+
+        state.hitboxes = [];
+
+        context.save();
+        context.translate(
+          BASE_W / 2 - state.camera.x * state.camera.scale,
+          BASE_H / 2 - state.camera.y * state.camera.scale
+        );
+        context.scale(state.camera.scale, state.camera.scale);
+
+        const roomDrawers = {
+          desk: drawDeskRoom,
+          lab: drawLabRoom,
+          editing: drawEditingRoom,
+          office: drawOfficeRoom,
+          lounge: drawLoungeRoom
+        };
+
+        const order = ["office", "lounge", "desk", "lab", "editing"];
+
+        order.forEach((id, index) => {
+          if (!roomIsVisible(rooms[id])) return;
+          drawRoomFloor(rooms[id], index);
+          roomDrawers[id]();
+        });
+
+        ["speaker", "scampy", "research", "facts", "renderer"].forEach(id => {
+          const item = role(id);
+          if (item) drawActor(item, time);
+        });
+
+        context.restore();
+
+        box(0, 0, BASE_W, 3, "#020806");
+        box(0, BASE_H - 3, BASE_W, 3, "#020806");
+        box(0, 0, 3, BASE_H, "#020806");
+        box(BASE_W - 3, 0, 3, BASE_H, "#020806");
+      }
+
+      function ensureLoop() {
+        if (state.frame || reducedMotion) {
+          if (reducedMotion) draw(performance.now() / 1000);
+          return;
+        }
+
+        state.previousFrame = performance.now();
+        state.lastDraw = 0;
+        state.frame = requestAnimationFrame(tick);
+      }
+
+      function stopLoopIfIdle() {
+        if (!state.canvasVisible && state.frame) {
+          cancelAnimationFrame(state.frame);
+          state.frame = 0;
+        }
+      }
+
+      function tick(now) {
+        state.frame = 0;
+
+        const delta = Math.min(.05, Math.max(0, (now - state.previousFrame) / 1000));
+        state.previousFrame = now;
+
+        if (state.canvasVisible) {
+          moveRoles(delta);
+
+          if (now - state.lastDraw >= 1000 / 30) {
+            state.lastDraw = now;
+            draw(now / 1000);
+          }
+
+          state.frame = requestAnimationFrame(tick);
+        }
+      }
+
+      function setRoom(id) {
+        if (!rooms[id]) return;
+
+        state.activeRoom = id;
+
+        roomTabs.forEach(tab => {
+          tab.setAttribute("aria-selected", String(tab.dataset.room === id));
+        });
+
+        document.getElementById("px-room-label").textContent = `Kamera / ${rooms[id].label}`;
+        canvas.setAttribute("aria-label", `${rooms[id].label}. Redaktionsfiguren lassen sich anklicken.`);
+
+        if (reducedMotion) {
+          draw(performance.now() / 1000);
+        } else {
+          ensureLoop();
+        }
+      }
+
+      function focusSelectedTab() {
+        const selected = roomTabs.find(tab => tab.dataset.room === state.activeRoom);
+        if (selected && selected.scrollIntoView) {
+          selected.scrollIntoView({ block: "nearest", inline: "center" });
+        }
+      }
+
+      function installSwipeTabs() {
+        const target = document.getElementById("px-room-tabs");
+        if (!target) return;
+
+        let startX = 0;
+        let startY = 0;
+        let active = false;
+
+        target.addEventListener("pointerdown", event => {
+          startX = event.clientX;
+          startY = event.clientY;
+          active = true;
+        });
+
+        target.addEventListener("pointerup", event => {
+          if (!active) return;
+          active = false;
+
+          const dx = event.clientX - startX;
+          const dy = event.clientY - startY;
+
+          if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.1) return;
+
+          const current = roomTabs.findIndex(tab => tab.dataset.room === state.activeRoom);
+          const next = Math.max(0, Math.min(roomTabs.length - 1, current + (dx < 0 ? 1 : -1)));
+
+          setRoom(roomTabs[next].dataset.room);
+          focusSelectedTab();
+        });
+
+        target.addEventListener("pointercancel", () => {
+          active = false;
+        });
+
+        target.addEventListener("keydown", event => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+
+          const current = roomTabs.findIndex(tab => tab.dataset.room === state.activeRoom);
+          let next = current;
+
+          if (event.key === "ArrowLeft") next = (current - 1 + roomTabs.length) % roomTabs.length;
+          if (event.key === "ArrowRight") next = (current + 1) % roomTabs.length;
+          if (event.key === "Home") next = 0;
+          if (event.key === "End") next = roomTabs.length - 1;
+
+          setRoom(roomTabs[next].dataset.room);
+          roomTabs[next].focus();
+        });
+      }
+
+      function observeStage() {
+        if (!("IntersectionObserver" in window)) return;
+
+        const observer = new IntersectionObserver(entries => {
+          state.canvasVisible = entries[0].isIntersecting;
+
+          if (state.canvasVisible) {
+            resizeCanvas();
+            ensureLoop();
+          } else {
+            stopLoopIfIdle();
+          }
+        }, {
+          rootMargin: "100px",
+          threshold: .02
+        });
+
+        observer.observe(stage);
+      }
+
+      function updateClock() {
+        const now = new Date();
+        const time = new Intl.DateTimeFormat("de-DE", {
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(now);
+
+        document.getElementById("px-clock").textContent = `NIGHTDESK / ${time} / LIVE`;
+      }
+
+      function showToast(message) {
+        const target = document.getElementById("px-toast");
+        target.textContent = clean(message);
+        target.hidden = false;
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => {
+          target.hidden = true;
+        }, 3500);
+      }
+
+      function showDataMessage(message) {
+        document.getElementById("px-data-message-text").textContent = clean(message);
+        document.getElementById("px-data-message").hidden = false;
+      }
+
+      function watchTheme() {
+        function update() {
+          const html = document.documentElement;
+          const dark = html.getAttribute("data-theme") === "dark"
+            || html.classList.contains("dark")
+            || document.body.getAttribute("data-theme") === "dark"
+            || document.body.classList.contains("dark");
+          document.body.dataset.pxDark = String(dark);
+        }
+
+        const observer = new MutationObserver(update);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
+        observer.observe(document.body, { attributes: true, attributeFilter: ["class", "data-theme"] });
+        update();
+      }
+
+      function installControls() {
+        roomTabs.forEach(tab => {
+          tab.addEventListener("click", () => {
+            setRoom(tab.dataset.room);
+            focusSelectedTab();
+          });
+        });
+
+        installSwipeTabs();
+
+        document.getElementById("px-next-story").addEventListener("click", startNextEvent);
+
+        const liveToggle = document.getElementById("px-live-toggle");
+        liveToggle.addEventListener("click", () => {
+          state.autoEnabled = !state.autoEnabled;
+          liveToggle.setAttribute("aria-pressed", String(state.autoEnabled));
+          liveToggle.textContent = state.autoEnabled ? "Live" : "Pause";
+          scheduleAutoEvents();
+          showToast(state.autoEnabled
+            ? "Die automatische Meldungsfolge läuft weiter."
+            : "Die automatische Meldungsfolge ist pausiert.");
+        });
+
+        canvas.addEventListener("click", event => {
+          const bounds = canvas.getBoundingClientRect();
+          const pointerX = (event.clientX - bounds.left) * BASE_W / bounds.width;
+          const pointerY = (event.clientY - bounds.top) * BASE_H / bounds.height;
+          const worldX = (pointerX - (BASE_W / 2 - state.camera.x * state.camera.scale)) / state.camera.scale;
+          const worldY = (pointerY - (BASE_H / 2 - state.camera.y * state.camera.scale)) / state.camera.scale;
+          const radius = 22 / state.camera.scale;
+
+          const hit = state.hitboxes.find(item => (
+            Math.abs(worldX - item.x) <= radius &&
+            Math.abs(worldY - item.y) <= 31 / state.camera.scale
+          ));
+
+          if (hit) selectRole(hit.id);
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            clearInterval(state.autoTimer);
+            if (state.frame) {
+              cancelAnimationFrame(state.frame);
+              state.frame = 0;
+            }
+          } else {
+            updateClock();
+            scheduleAutoEvents();
+            ensureLoop();
+          }
+        });
+
+        window.addEventListener("resize", () => {
+          resizeCanvas();
+          if (reducedMotion) draw(performance.now() / 1000);
+          else ensureLoop();
+        });
+
+        window.addEventListener("beforeunload", () => {
+          clearInterval(state.autoTimer);
+          state.workflowTimers.forEach(clearTimeout);
+          if (state.frame) cancelAnimationFrame(state.frame);
+        });
+      }
+
+      async function init() {
+        watchTheme();
+        buildRoleButtons();
+        renderRoleCard();
+        renderLog();
+        renderMetrics();
+        installControls();
+
+        const results = await Promise.allSettled([
+          fetchJSON("news.json"),
+          fetchJSON("cards.json")
+        ]);
+
+        const newsResult = results[0];
+        const cardsResult = results[1];
+
+        state.rawNews = newsResult.status === "fulfilled" ? object(newsResult.value) : {};
+        state.articles = newsResult.status === "fulfilled" ? normalizeArticles(newsResult.value) : [];
+        state.cards = cardsResult.status === "fulfilled" ? normalizeCards(cardsResult.value) : [];
+        state.log = state.articles.slice(0, 8);
+
+        renderLog();
+        renderMetrics();
+
+        const status = document.getElementById("px-load-state");
+        const next = document.getElementById("px-next-story");
+        const stageState = document.getElementById("px-stage-state");
+
+        if (newsResult.status === "rejected") {
+          status.textContent = "news.json nicht verfügbar";
+          status.dataset.state = "error";
+          stageState.textContent = "Offline / Fehler abgefangen";
+          showDataMessage("news.json ist nicht erreichbar. Die Bürowelt bleibt nutzbar, aber es werden keine Meldungen erfunden.");
+          showToast("Die Meldungsliste konnte nicht geladen werden. Karten und Räume bleiben erreichbar.");
+        } else if (!state.articles.length) {
+          status.textContent = "news.json ist leer";
+          status.dataset.state = "warning";
+          stageState.textContent = "Online / Leere Daten";
+          showDataMessage("news.json enthält keine verwertbaren Meldungen. Die Redaktion wartet auf neue Daten.");
+        } else {
+          status.textContent = cardsResult.status === "fulfilled" && state.cards.length
+            ? "News und Karten lokal"
+            : "News lokal / Karten fehlen";
+          status.dataset.state = cardsResult.status === "fulfilled" && state.cards.length
+            ? "ok"
+            : "warning";
+          stageState.textContent = "Online / Pipeline bereit";
+          next.disabled = false;
+        }
+
+        if (cardsResult.status === "rejected") {
+          showToast("cards.json ist nicht erreichbar. Aus Meldungen können trotzdem Kartenentwürfe entstehen.");
+        }
+
+        updateClock();
+        setInterval(updateClock, 30000);
+        observeStage();
+        setRoom(state.activeRoom);
+        resizeCanvas();
+        ensureLoop();
+
+        if (state.articles.length) {
+          setTimeout(startNextEvent, 950);
+          scheduleAutoEvents();
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init, { once: true });
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>

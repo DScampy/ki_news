@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Archiv Atlas | Zeichnungsatlas</title>
+  <meta name="description" content="Prototyp für Herstellerlogos, Monogramm-Embleme und Themenzeichnungen im Archiv Atlas von KI News.">
+  <meta name="author" content="Daniel S.">
+  <meta name="robots" content="noindex, follow">
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-neon-rgb: var(--neon-rgb, 0, 212, 255);
+      --px-cyan: #00d4ff;
+      --px-violet: #a78bfa;
+      --px-green: #21e6a1;
+      --px-orange: #fb923c;
+      --px-pink: #fb7185;
+      --px-radius: 12px;
+      --px-radius-small: 9px;
+      --px-pill: 999px;
+      --px-panel: var(--card, rgba(15, 23, 31, .95));
+      --px-panel-solid: var(--card-solid, #101820);
+      --px-field: var(--field, rgba(255, 255, 255, .045));
+      --px-text: var(--text, #e5eaf0);
+      --px-muted: var(--muted, #a0adba);
+      --px-faint: var(--muted, #728292);
+      --px-border: rgba(var(--px-neon-rgb), .16);
+      --px-border-strong: rgba(var(--px-neon-rgb), .36);
+      --px-glow: 0 16px 40px rgba(0, 0, 0, .14), 0 0 22px rgba(var(--px-neon-rgb), .04);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 280px;
+      min-height: 100%;
+      background: var(--bg, #05080c);
+      scroll-behavior: smooth;
+    }
+
+    body.px-body {
+      min-width: 280px;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--px-text);
+      background:
+        radial-gradient(circle at 88% 3%, rgba(var(--px-neon-rgb), .08), transparent 31rem),
+        radial-gradient(circle at 2% 44%, rgba(167, 139, 250, .055), transparent 27rem),
+        var(--bg, #05080c);
+      font-family: "Work Sans", sans-serif;
+      transition: color .25s ease, background-color .25s ease;
+    }
+
+    body.px-body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: .24;
+      background-image:
+        linear-gradient(rgba(var(--px-neon-rgb), .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--px-neon-rgb), .045) 1px, transparent 1px);
+      background-size: 42px 42px;
+      -webkit-mask-image: linear-gradient(to bottom, #000, transparent 96%);
+      mask-image: linear-gradient(to bottom, #000, transparent 96%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    a {
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      border: 0;
+    }
+
+    a,
+    p,
+    h1,
+    h2,
+    h3 {
+      overflow-wrap: anywhere;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent, var(--px-cyan));
+      outline-offset: 3px;
+    }
+
+    ::selection {
+      color: #001015;
+      background: var(--accent, var(--px-cyan));
+    }
+
+    html.light,
+    body.light {
+      --px-panel: var(--card, rgba(255, 255, 255, .96));
+      --px-panel-solid: var(--card-solid, #fff);
+      --px-field: var(--field, #edf3f8);
+      --px-text: var(--text, #0b1723);
+      --px-muted: var(--muted, #4b6173);
+      --px-faint: var(--muted, #788b9b);
+      --px-border: rgba(var(--px-neon-rgb), .19);
+      --px-border-strong: rgba(var(--px-neon-rgb), .38);
+      --px-glow: 0 14px 34px rgba(36, 73, 99, .075), 0 0 20px rgba(var(--px-neon-rgb), .05);
+    }
+
+    html.light body.px-body,
+    body.light.px-body {
+      background:
+        radial-gradient(circle at 88% 3%, rgba(var(--px-neon-rgb), .09), transparent 31rem),
+        radial-gradient(circle at 2% 44%, rgba(167, 139, 250, .055), transparent 27rem),
+        var(--bg, #edf3f8);
+    }
+
+    .px-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .px-main {
+      width: 100%;
+      min-height: 100vh;
+      padding: 80px 24px 40px;
+    }
+
+    .px-shell {
+      width: min(100%, 1320px);
+      margin: 0 auto;
+    }
+
+    .px-card {
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+      box-shadow: var(--px-glow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .px-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(350px, .65fr);
+      gap: 12px;
+    }
+
+    .px-hero-copy {
+      position: relative;
+      min-width: 0;
+      min-height: 350px;
+      overflow: hidden;
+      padding: 31px 32px 0;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+      box-shadow: var(--px-glow);
+    }
+
+    .px-hero-copy::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 4%, var(--accent, var(--px-cyan)), var(--px-violet));
+      box-shadow: 0 0 18px rgba(var(--px-neon-rgb), .38);
+    }
+
+    .px-hero-copy::after {
+      content: "";
+      position: absolute;
+      right: -76px;
+      bottom: -168px;
+      width: 350px;
+      height: 350px;
+      border: 1px solid rgba(var(--px-neon-rgb), .09);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 36px rgba(var(--px-neon-rgb), .018),
+        0 0 0 72px rgba(var(--px-neon-rgb), .012);
+      pointer-events: none;
+    }
+
+    .px-kicker,
+    .px-coordinate,
+    .px-status,
+    .px-code,
+    .px-footer {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-kicker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      color: var(--accent, var(--px-cyan));
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .px-kicker::before {
+      content: "";
+      width: 30px;
+      height: 1px;
+      background: currentColor;
+      box-shadow: 0 0 9px currentColor;
+    }
+
+    .px-title {
+      position: relative;
+      z-index: 1;
+      max-width: 850px;
+      margin: 0;
+      font: 700 clamp(42px, 5.2vw, 70px)/.97 "Space Grotesk", sans-serif;
+      letter-spacing: -.058em;
+    }
+
+    .px-title span {
+      color: var(--accent, var(--px-cyan));
+    }
+
+    .px-lead {
+      position: relative;
+      z-index: 1;
+      max-width: 790px;
+      margin: 19px 0 29px;
+      color: var(--px-muted);
+      font-size: 15px;
+      line-height: 1.57;
+    }
+
+    .px-data-strip {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      margin: 0 -32px;
+      overflow: hidden;
+      border-top: 1px solid var(--px-border);
+      background: var(--px-border);
+    }
+
+    .px-data-point {
+      min-width: 0;
+      padding: 13px 14px 15px;
+      background: var(--px-panel-solid);
+    }
+
+    .px-data-point strong {
+      display: block;
+      overflow: hidden;
+      font: 700 clamp(16px, 2vw, 22px)/1.1 "Space Grotesk", sans-serif;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-data-point span {
+      display: block;
+      margin-top: 5px;
+      color: var(--px-faint);
+      font-size: 8px;
+      line-height: 1.2;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .px-specimen {
+      position: relative;
+      min-width: 0;
+      min-height: 350px;
+      overflow: hidden;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-radius);
+      background: var(--px-panel-solid);
+      box-shadow: var(--px-glow);
+    }
+
+    .px-specimen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(var(--px-neon-rgb), .06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--px-neon-rgb), .06) 1px, transparent 1px);
+      background-size: 26px 26px;
+      -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 78%);
+      mask-image: radial-gradient(circle, #000 20%, transparent 78%);
+    }
+
+    .px-specimen-head {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 15px;
+      border-bottom: 1px solid var(--px-border);
+      color: var(--px-faint);
+      font: 8px ui-monospace, monospace;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .px-specimen-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--accent, var(--px-cyan));
+    }
+
+    .px-specimen-live::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 9px currentColor;
+      animation: px-pulse 2.3s ease-in-out infinite;
+    }
+
+    .px-orbit {
+      position: absolute;
+      top: 47%;
+      left: 50%;
+      z-index: 1;
+      width: min(65%, 220px);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+    }
+
+    .px-orbit-ring {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(var(--px-neon-rgb), .2);
+      border-radius: 50%;
+    }
+
+    .px-ring-two {
+      inset: 16%;
+      border-color: rgba(167, 139, 250, .2);
+    }
+
+    .px-ring-three {
+      inset: 33%;
+      border-color: rgba(var(--px-neon-rgb), .28);
+    }
+
+    .px-orbit-axis {
+      position: absolute;
+      top: 50%;
+      left: 7%;
+      width: 86%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent, var(--px-cyan)), transparent);
+      box-shadow: 0 0 9px rgba(var(--px-neon-rgb), .4);
+    }
+
+    .px-axis-vertical {
+      transform: rotate(90deg);
+    }
+
+    .px-orbit-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      width: 62px;
+      height: 62px;
+      place-items: center;
+      border: 1px solid var(--px-border-strong);
+      border-radius: 50%;
+      color: var(--accent, var(--px-cyan));
+      background: rgba(var(--px-neon-rgb), .08);
+      box-shadow: 0 0 25px rgba(var(--px-neon-rgb), .13);
+      font: 700 13px "Space Grotesk", sans-serif;
+      transform: translate(-50%, -50%);
+    }
+
+    .px-orbit-node {
+      position: absolute;
+      z-index: 2;
+      width: 8px;
+      height: 8px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      background: var(--px-panel-solid);
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .px-node-one {
+      top: 12%;
+      left: 47%;
+      color: var(--px-cyan);
+    }
+
+    .px-node-two {
+      right: 13%;
+      bottom: 27%;
+      color: var(--px-violet);
+    }
+
+    .px-node-three {
+      bottom: 14%;
+      left: 22%;
+      color: var(--px-green);
+    }
+
+    .px-orbit-label {
+      position: absolute;
+      color: var(--px-faint);
+      font: 7px ui-monospace, monospace;
+      letter-spacing: .06em;
+    }
+
+    .px-label-one {
+      top: 18%;
+      right: 1%;
+    }
+
+    .px-label-two {
+      bottom: 16%;
+      left: 0;
+    }
+
+    .px-label-three {
+      top: 48%;
+      left: 2%;
+    }
+
+    .px-specimen-legend {
+      position: absolute;
+      right: 14px;
+      bottom: 13px;
+      left: 14px;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-radius-small);
+      background: var(--px-border);
+    }
+
+    .px-legend-point {
+      min-width: 0;
+      padding: 8px;
+      background: var(--px-panel-solid);
+    }
+
+    .px-legend-point b {
+      display: block;
+      overflow: hidden;
+      color: var(--px-text);
+      font: 700 10px "Space Grotesk", sans-serif;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-legend-point span {
+      display: block;
+      margin-top: 3px;
+      color: var(--px-faint);
+      font-size: 7px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-intro {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 18px 0 0;
+      padding: 13px 16px;
+    }
+
+    .px-intro p {
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .px-state-pill {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      padding: 5px 10px;
+      border: 1px solid var(--px-border-strong);
+      border-radius: var(--px-pill);
+      color: var(--accent, var(--px-cyan));
+      background: rgba(var(--px-neon-rgb), .065);
+      font-size: 8px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-state-pill::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 7px currentColor;
+    }
+
+    .px-error {
+      margin: 10px 0 0;
+      padding: 13px 15px;
+      border: 1px solid rgba(251, 113, 133, .24);
+      border-radius: var(--px-radius-small);
+      color: var(--px-muted);
+      background: rgba(251, 113, 133, .06);
+      font: 10px/1.5 ui-monospace, monospace;
+    }
+
+    .px-section {
+      margin-top: 30px;
+    }
+
+    .px-section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 13px;
+    }
+
+    .px-section-label {
+      margin: 0 0 5px;
+      color: var(--accent, var(--px-cyan));
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .px-section-title {
+      margin: 0;
+      font: 700 clamp(23px, 3vw, 34px)/1.08 "Space Grotesk", sans-serif;
+      letter-spacing: -.04em;
+    }
+
+    .px-section-note {
+      max-width: 860px;
+      margin: 5px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .px-section-meta {
+      flex: 0 0 auto;
+      color: var(--px-faint);
+      font-size: 9px;
+      text-align: right;
+    }
+
+    .px-provider-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .px-provider-card {
+      position: relative;
+      min-width: 0;
+      min-height: 264px;
+      overflow: hidden;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+      box-shadow: var(--px-glow);
+      transition:
+        transform .18s ease,
+        border-color .18s ease,
+        background-color .18s ease,
+        box-shadow .18s ease;
+    }
+
+    .px-provider-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 5;
+      width: 58px;
+      height: 2px;
+      border-radius: 0 0 5px 5px;
+      background: var(--accent, var(--px-cyan));
+      box-shadow: 0 0 12px rgba(var(--px-neon-rgb), .45);
+      pointer-events: none;
+    }
+
+    .px-provider-card:hover,
+    .px-provider-card.px-selected {
+      border-color: var(--px-border-strong);
+      background: var(--px-panel-solid);
+      box-shadow: 0 18px 38px rgba(0, 0, 0, .12), 0 0 22px rgba(var(--px-neon-rgb), .07);
+      transform: translateY(-2px);
+    }
+
+    .px-provider-content {
+      min-width: 0;
+      padding: 15px 15px 13px;
+      pointer-events: none;
+    }
+
+    .px-provider-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .px-logo-field {
+      position: relative;
+      display: grid;
+      width: 82px;
+      height: 82px;
+      flex: 0 0 82px;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-radius);
+      color: var(--px-cyan);
+      background:
+        linear-gradient(rgba(var(--px-neon-rgb), .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--px-neon-rgb), .045) 1px, transparent 1px),
+        var(--px-field);
+      background-size: 13px 13px;
+      box-shadow: inset 0 0 18px rgba(var(--px-neon-rgb), .035);
+    }
+
+    .px-logo-field::after {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border: 1px solid rgba(var(--px-neon-rgb), .09);
+      border-radius: var(--px-radius-small);
+      pointer-events: none;
+    }
+
+    .px-logo-object,
+    .px-logo-fallback {
+      display: block;
+      width: 50px;
+      height: 50px;
+      max-width: 82%;
+      max-height: 82%;
+      overflow: visible;
+    }
+
+    .px-provider-index {
+      align-self: flex-start;
+      padding: 5px 7px;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-pill);
+      color: var(--px-faint);
+      font-size: 8px;
+    }
+
+    .px-provider-name {
+      display: block;
+      margin-top: 16px;
+      color: var(--px-text);
+      font: 700 20px/1.1 "Space Grotesk", sans-serif;
+      letter-spacing: -.025em;
+    }
+
+    .px-provider-state {
+      display: block;
+      min-height: 14px;
+      margin-top: 6px;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.4;
+    }
+
+    .px-provider-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 11px;
+      border-top: 1px solid var(--px-border);
+    }
+
+    .px-provider-count {
+      color: var(--accent, var(--px-cyan));
+      font: 700 24px/1 "Space Grotesk", sans-serif;
+    }
+
+    .px-provider-count-label {
+      display: block;
+      margin-top: 4px;
+      color: var(--px-faint);
+      font-size: 7px;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .px-select-dot {
+      width: 9px;
+      height: 9px;
+      margin-bottom: 4px;
+      border: 1px solid var(--px-border-strong);
+      border-radius: 50%;
+      background: transparent;
+      box-shadow: 0 0 0 transparent;
+      transition: background .18s, box-shadow .18s;
+    }
+
+    .px-provider-card.px-selected .px-select-dot {
+      background: var(--accent, var(--px-cyan));
+      box-shadow: 0 0 12px rgba(var(--px-neon-rgb), .7);
+    }
+
+    .px-provider-select {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border-radius: var(--px-radius);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .px-provider-select:focus-visible {
+      outline: 2px solid var(--accent, var(--px-cyan));
+      outline-offset: 2px;
+    }
+
+    .px-logo-probe {
+      position: absolute;
+      right: 14px;
+      bottom: 13px;
+      z-index: 4;
+      min-height: 27px;
+      max-width: 128px;
+      overflow: hidden;
+      padding: 4px 8px;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-pill);
+      color: var(--px-faint);
+      background: var(--px-panel-solid);
+      font: 7px ui-monospace, monospace;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: color .18s, background .18s, border-color .18s;
+    }
+
+    .px-logo-probe:hover,
+    .px-logo-probe:focus-visible {
+      color: var(--accent, var(--px-cyan));
+      border-color: var(--px-border-strong);
+      background: rgba(var(--px-neon-rgb), .07);
+    }
+
+    .px-logo-probe:disabled {
+      cursor: wait;
+      opacity: .62;
+    }
+
+    .px-topic-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .px-topic-card {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      min-height: 190px;
+      overflow: hidden;
+      flex-direction: column;
+      padding: 14px;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-radius);
+      color: var(--px-text);
+      text-align: left;
+      background: var(--px-panel);
+      box-shadow: var(--px-glow);
+      cursor: pointer;
+      transition:
+        transform .18s ease,
+        border-color .18s ease,
+        background .18s ease;
+    }
+
+    .px-topic-card::after {
+      content: "";
+      position: absolute;
+      right: -34px;
+      bottom: -44px;
+      width: 105px;
+      height: 105px;
+      border: 1px solid rgba(var(--px-neon-rgb), .08);
+      border-radius: 50%;
+      box-shadow: 0 0 0 19px rgba(var(--px-neon-rgb), .014);
+      pointer-events: none;
+    }
+
+    .px-topic-card:hover,
+    .px-topic-card.px-selected {
+      border-color: var(--px-border-strong);
+      background: var(--px-panel-solid);
+      transform: translateY(-2px);
+    }
+
+    .px-topic-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .px-topic-code {
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: .08em;
+    }
+
+    .px-topic-drawing {
+      position: absolute;
+      top: 29px;
+      right: 11px;
+      display: grid;
+      width: 68px;
+      height: 68px;
+      place-items: center;
+      color: var(--accent, var(--px-cyan));
+      filter: drop-shadow(0 0 8px rgba(var(--px-neon-rgb), .18));
+      transition: transform .2s ease, color .2s ease;
+    }
+
+    .px-topic-card:hover .px-topic-drawing,
+    .px-topic-card.px-selected .px-topic-drawing {
+      color: var(--px-violet);
+      transform: scale(1.06) rotate(-1deg);
+    }
+
+    .px-topic-drawing svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .px-draw-line {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.35;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-draw-fine {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: .85;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: .58;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-draw-accent {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .px-draw-hollow {
+      fill: rgba(var(--px-neon-rgb), .055);
+      stroke: currentColor;
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-draw-letter {
+      fill: currentColor;
+      stroke: none;
+      font: 700 25px "Space Grotesk", sans-serif;
+      letter-spacing: -.08em;
+      text-anchor: middle;
+    }
+
+    .px-draw-letter-small {
+      font-size: 15px;
+      letter-spacing: -.05em;
+    }
+
+    .px-topic-bottom {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .px-topic-name {
+      display: block;
+      font: 700 17px/1.1 "Space Grotesk", sans-serif;
+      letter-spacing: -.02em;
+    }
+
+    .px-topic-count {
+      display: block;
+      margin-top: 5px;
+      color: var(--px-muted);
+      font-size: 8px;
+    }
+
+    .px-topic-arrow {
+      color: var(--px-faint);
+      font: 14px ui-monospace, monospace;
+      transition: color .18s, transform .18s;
+    }
+
+    .px-topic-card:hover .px-topic-arrow,
+    .px-topic-card.px-selected .px-topic-arrow {
+      color: var(--accent, var(--px-cyan));
+      transform: translate(2px, -2px);
+    }
+
+    .px-selection {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      margin-top: 12px;
+      padding: 14px 16px;
+    }
+
+    .px-selection-mark {
+      position: relative;
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid var(--px-border-strong);
+      border-radius: 50%;
+      color: var(--accent, var(--px-cyan));
+      background: rgba(var(--px-neon-rgb), .07);
+      box-shadow: 0 0 18px rgba(var(--px-neon-rgb), .1);
+      font: 700 13px "Space Grotesk", sans-serif;
+    }
+
+    .px-selection-mark::after {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border: 1px solid rgba(var(--px-neon-rgb), .12);
+      border-radius: 50%;
+      animation: px-pulse 2.8s ease-in-out infinite;
+    }
+
+    .px-selection-copy {
+      min-width: 0;
+    }
+
+    .px-selection-copy strong {
+      display: block;
+      font: 700 14px "Space Grotesk", sans-serif;
+    }
+
+    .px-selection-copy span {
+      display: block;
+      margin-top: 3px;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.4;
+    }
+
+    .px-selection-code {
+      max-width: 250px;
+      overflow: hidden;
+      padding: 5px 8px;
+      border: 1px solid var(--px-border);
+      border-radius: var(--px-pill);
+      color: var(--px-faint);
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-object-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 20px;
+      margin-top: 30px;
+      padding: 18px;
+    }
+
+    .px-object-panel h2 {
+      margin: 0;
+      font: 700 20px "Space Grotesk", sans-serif;
+    }
+
+    .px-object-panel p {
+      max-width: 800px;
+      margin: 7px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .px-object-tag {
+      display: inline-flex;
+      min-height: 32px;
+      max-width: 100%;
+      align-items: center;
+      padding: 6px 10px;
+      border: 1px solid rgba(167, 139, 250, .3);
+      border-radius: var(--px-pill);
+      color: var(--px-violet);
+      background: rgba(167, 139, 250, .07);
+      font-size: 9px;
+      overflow-wrap: anywhere;
+    }
+
+    .px-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 34px;
+      padding: 21px 0 3px;
+      border-top: 1px solid var(--px-border);
+      color: var(--px-faint);
+      font-size: 9px;
+      line-height: 1.6;
+    }
+
+    .px-footer strong {
+      color: var(--px-text);
+      font: 700 15px "Space Grotesk", sans-serif;
+    }
+
+    @keyframes px-pulse {
+      50% {
+        opacity: .35;
+        transform: scale(.76);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .px-hero {
+        grid-template-columns: 1fr;
+      }
+
+      .px-specimen {
+        min-height: 292px;
+      }
+
+      .px-provider-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-topic-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .px-main {
+        padding: 70px 14px 30px;
+      }
+
+      .px-hero {
+        gap: 10px;
+      }
+
+      .px-hero-copy {
+        min-height: 0;
+        padding: 24px 19px 0;
+      }
+
+      .px-kicker {
+        margin-bottom: 15px;
+        font-size: 8px;
+      }
+
+      .px-title {
+        font-size: clamp(38px, 11.3vw, 52px);
+      }
+
+      .px-lead {
+        margin: 15px 0 22px;
+        font-size: 13px;
+        line-height: 1.52;
+      }
+
+      .px-data-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 0 -19px;
+      }
+
+      .px-data-point {
+        padding: 10px 12px 12px;
+      }
+
+      .px-data-point strong {
+        font-size: 17px;
+      }
+
+      .px-specimen {
+        min-height: 222px;
+      }
+
+      .px-specimen-head {
+        min-height: 38px;
+      }
+
+      .px-orbit {
+        top: 45%;
+        width: 164px;
+      }
+
+      .px-orbit-center {
+        width: 54px;
+        height: 54px;
+      }
+
+      .px-orbit-label {
+        font-size: 6px;
+      }
+
+      .px-specimen-legend {
+        right: 10px;
+        bottom: 9px;
+        left: 10px;
+      }
+
+      .px-legend-point {
+        padding: 6px 7px;
+      }
+
+      .px-intro,
+      .px-section-head,
+      .px-object-panel,
+      .px-footer {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .px-intro {
+        gap: 11px;
+      }
+
+      .px-section-head {
+        gap: 7px;
+      }
+
+      .px-section-meta {
+        text-align: left;
+      }
+
+      .px-provider-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-provider-card {
+        min-height: 252px;
+      }
+
+      .px-topic-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-topic-card {
+        min-height: 184px;
+      }
+
+      .px-selection {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .px-selection-code {
+        display: none;
+      }
+
+      .px-object-panel {
+        display: block;
+      }
+
+      .px-object-tag {
+        margin-top: 13px;
+      }
+    }
+
+    @media (max-width: 350px) {
+      .px-main {
+        padding-right: 10px;
+        padding-left: 10px;
+      }
+
+      .px-topic-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-orbit-label {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="px-body">
+  <a class="px-sr-only" href="#px-zeichnungen">Direkt zu den Zeichnungen</a>
+
+  <main class="px-main" id="main-content">
+    <div class="px-shell">
+      <header class="px-hero" aria-labelledby="px-page-title">
+        <section class="px-hero-copy">
+          <p class="px-kicker">Zeichnungsatlas / Prototyp 01</p>
+          <h1 class="px-title" id="px-page-title">Archiv <span>Marken</span></h1>
+          <p class="px-lead">
+            Modulare Logos, Monogramm-Embleme und Themenzeichen für den Archiv Atlas.
+            Jede Kachel bleibt auch dann lesbar, wenn eine lokale Logo-Datei fehlt.
+          </p>
+
+          <div class="px-data-strip" aria-label="Umfang des Zeichnungsatlas">
+            <div class="px-data-point">
+              <strong>9</strong>
+              <span>Hersteller</span>
+            </div>
+            <div class="px-data-point">
+              <strong>8</strong>
+              <span>Themenfelder</span>
+            </div>
+            <div class="px-data-point">
+              <strong>17</strong>
+              <span>Inline-SVGs</span>
+            </div>
+            <div class="px-data-point">
+              <strong id="px-data-stand">Lokale Demo</strong>
+              <span>Datenstand</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="px-specimen" aria-label="Technische Zeichenlegende">
+          <div class="px-specimen-head">
+            <span>Signalschema / 64 PX</span>
+            <span class="px-specimen-live">Inline aktiv</span>
+          </div>
+
+          <div class="px-orbit" aria-hidden="true">
+            <span class="px-orbit-ring"></span>
+            <span class="px-orbit-ring px-ring-two"></span>
+            <span class="px-orbit-ring px-ring-three"></span>
+            <span class="px-orbit-axis"></span>
+            <span class="px-orbit-axis px-axis-vertical"></span>
+            <span class="px-orbit-node px-node-one"></span>
+            <span class="px-orbit-node px-node-two"></span>
+            <span class="px-orbit-node px-node-three"></span>
+            <span class="px-orbit-center">PX</span>
+            <span class="px-orbit-label px-label-one">ASSET</span>
+            <span class="px-orbit-label px-label-two">FALLBACK</span>
+            <span class="px-orbit-label px-label-three">TOPIC</span>
+          </div>
+
+          <div class="px-specimen-legend">
+            <div class="px-legend-point">
+              <b>1 px</b>
+              <span>Hauptlinie</span>
+            </div>
+            <div class="px-legend-point">
+              <b>0,85 px</b>
+              <span>Feinlinie</span>
+            </div>
+            <div class="px-legend-point">
+              <b>12 px</b>
+              <span>Kartenradius</span>
+            </div>
+          </div>
+        </aside>
+      </header>
+
+      <section class="px-card px-intro" aria-label="Ladestatus">
+        <p id="px-data-state">
+          Die Archivdatei wird geprüft. Die vollständige Zeichen-Demo ist bereits verfügbar.
+        </p>
+        <span class="px-state-pill" id="px-object-state">Objekt bereit</span>
+      </section>
+
+      <p class="px-error" id="px-load-error" role="status" hidden></p>
+
+      <section class="px-section" id="px-zeichnungen" aria-labelledby="px-provider-title">
+        <div class="px-section-head">
+          <div>
+            <p class="px-section-label">Knoten 01 / Hersteller</p>
+            <h2 class="px-section-title" id="px-provider-title">Logo-Felder</h2>
+            <p class="px-section-note">
+              Lokaler Pfad: assets/logos/&lt;slug&gt;.svg. Fehlende Dateien werden automatisch
+              durch ein gezeichnetes Monogramm-Emblem ersetzt.
+            </p>
+          </div>
+          <div class="px-section-meta" id="px-provider-status">Lokale Zählung aktiv</div>
+        </div>
+
+        <div class="px-provider-grid" id="px-provider-grid"></div>
+      </section>
+
+      <section class="px-section" aria-labelledby="px-topic-title">
+        <div class="px-section-head">
+          <div>
+            <p class="px-section-label">Knoten 02 / Themen</p>
+            <h2 class="px-section-title" id="px-topic-title">Themenfelder</h2>
+            <p class="px-section-note">
+              Acht eigenständige Neon-Strichzeichnungen. Eine Kachelauswahl dient als Vorschau
+              für den späteren Atlas-Filter.
+            </p>
+          </div>
+          <div class="px-section-meta" id="px-topic-status">8 Inline-Zeichnungen montiert</div>
+        </div>
+
+        <div class="px-topic-grid" id="px-topic-grid"></div>
+
+        <aside class="px-card px-selection" aria-live="polite" aria-label="Aktuelle Kachelauswahl">
+          <div class="px-selection-mark" id="px-selection-mark">PX</div>
+          <div class="px-selection-copy">
+            <strong id="px-selection-title">Noch keine Kachel gewählt</strong>
+            <span id="px-selection-note">Klicke eine Hersteller- oder Themenkachel an.</span>
+          </div>
+          <div class="px-selection-code" id="px-selection-code">window.PX_ARCHIVE_DRAWINGS</div>
+        </aside>
+      </section>
+
+      <section class="px-card px-object-panel" aria-labelledby="px-object-title">
+        <div>
+          <h2 id="px-object-title">Wiederverwendbares Zeichenobjekt</h2>
+          <p>
+            Fallback-Embleme und Themenzeichnungen liegen als eingefrorenes JavaScript-Objekt vor.
+            Mit PXInstallArchiveDrawings und PXInstallArchiveLogo lassen sie sich auch in bestehende Karten einsetzen.
+          </p>
+        </div>
+        <span class="px-object-tag" id="px-object-count">PX_ARCHIVE_DRAWINGS / 0 Gruppen</span>
+      </section>
+
+      <footer class="px-footer">
+        <div>
+          <strong>KI NEWS / ARCHIV ATLAS</strong><br>
+          Zeichnungsprototyp für Daniel, Scampy.
+        </div>
+        <div>
+          Inline-SVGs, kein Tracking, keine Fremdschrift<br>
+          Relativ eingebundene Layout- und Datendateien
+        </div>
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const PX_NUMBER = new Intl.NumberFormat("de-DE");
+    const PX_SHORT_DATE = new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone: "UTC"
+    });
+
+    const PX_ARCHIVE_DRAWINGS = Object.freeze({
+      version: "4.0.0",
+      logoBase: "assets/logos/",
+      logos: Object.freeze({
+        anthropic: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <path class="px-draw-line" d="M19 45 29 17h6l10 28M24 35h17"></path>
+            <path class="px-draw-fine" d="M22 45h20"></path>
+            <circle class="px-draw-accent" cx="32" cy="49" r="2"></circle>
+          </svg>
+        `,
+        openai: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <g class="px-draw-fine">
+              <ellipse cx="32" cy="32" rx="20" ry="9"></ellipse>
+              <ellipse cx="32" cy="32" rx="20" ry="9" transform="rotate(60 32 32)"></ellipse>
+              <ellipse cx="32" cy="32" rx="20" ry="9" transform="rotate(120 32 32)"></ellipse>
+            </g>
+            <circle class="px-draw-accent" cx="32" cy="32" r="3.2"></circle>
+          </svg>
+        `,
+        google: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <text class="px-draw-letter" x="32" y="41">G</text>
+            <path class="px-draw-fine" d="M15 24h34M15 44h34"></path>
+            <circle class="px-draw-accent" cx="46" cy="24" r="2"></circle>
+          </svg>
+        `,
+        meta: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <text class="px-draw-letter" x="32" y="41">M</text>
+            <path class="px-draw-fine" d="M16 47h32M20 22h24"></path>
+            <circle class="px-draw-accent" cx="32" cy="18" r="2"></circle>
+          </svg>
+        `,
+        xai: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <path class="px-draw-line" d="m18 19 28 26M46 19 18 45M25 19l14 26M39 19 25 45"></path>
+            <circle class="px-draw-accent" cx="32" cy="32" r="2"></circle>
+          </svg>
+        `,
+        mistral: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <path class="px-draw-line" d="M19 19v16l13 10 13-10V19M19 19h26M25 19v15l7 5 7-5V19M14 35h8M42 35h8"></path>
+            <circle class="px-draw-accent" cx="32" cy="16" r="2"></circle>
+          </svg>
+        `,
+        qwen: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <text class="px-draw-letter" x="32" y="40">Q</text>
+            <path class="px-draw-line" d="m36 39 8 9"></path>
+            <path class="px-draw-fine" d="M16 20h32M16 45h32"></path>
+            <circle class="px-draw-accent" cx="46" cy="20" r="2"></circle>
+          </svg>
+        `,
+        deepseek: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <text class="px-draw-letter px-draw-letter-small" x="32" y="39">DS</text>
+            <path class="px-draw-fine" d="M17 45c8-8 14 8 22 0s9-5 10-2"></path>
+            <circle class="px-draw-accent" cx="32" cy="18" r="2"></circle>
+          </svg>
+        `,
+        nvidia: `
+          <svg class="px-logo-fallback" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="6" y="6" width="52" height="52" rx="13"></rect>
+            <text class="px-draw-letter px-draw-letter-small" x="32" y="39">NV</text>
+            <path class="px-draw-line" d="M17 46h30M20 19c8 2 15 9 20 20"></path>
+            <path class="px-draw-fine" d="M26 19c5 3 9 8 12 15"></path>
+            <circle class="px-draw-accent" cx="20" cy="19" r="2"></circle>
+          </svg>
+        `
+      }),
+
+      topics: Object.freeze({
+        agenten: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="23" y="23" width="18" height="18" rx="5"></rect>
+            <circle class="px-draw-hollow" cx="13" cy="17" r="5"></circle>
+            <circle class="px-draw-hollow" cx="51" cy="17" r="5"></circle>
+            <circle class="px-draw-hollow" cx="13" cy="47" r="5"></circle>
+            <circle class="px-draw-hollow" cx="51" cy="47" r="5"></circle>
+            <path class="px-draw-line" d="M18 20l6 6M46 20l-6 6M18 44l6-6M46 44l-6-6"></path>
+            <path class="px-draw-fine" d="M32 23V12M32 52v-9M23 32H12M52 32h-9"></path>
+            <circle class="px-draw-accent" cx="32" cy="32" r="2.5"></circle>
+          </svg>
+        `,
+        sicherheit: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path class="px-draw-hollow" d="M32 9 51 16v13c0 13-7.5 21-19 26C20.5 50 13 42 13 29V16Z"></path>
+            <path class="px-draw-line" d="m23 32 6 6 13-14"></path>
+            <path class="px-draw-fine" d="M19 16h26M32 9v7"></path>
+            <circle class="px-draw-accent" cx="32" cy="48" r="1.8"></circle>
+          </svg>
+        `,
+        politik: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path class="px-draw-line" d="m11 22 21-12 21 12H11Z"></path>
+            <path class="px-draw-hollow" d="M15 25h34v27H15Z"></path>
+            <path class="px-draw-line" d="M22 30v16M32 30v16M42 30v16M12 55h40"></path>
+            <path class="px-draw-fine" d="M15 25H8M49 25h7M18 12h28"></path>
+            <circle class="px-draw-accent" cx="32" cy="18" r="2"></circle>
+          </svg>
+        `,
+        forschung: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path class="px-draw-line" d="M25 9v17L14 47c-2 5 1 8 6 8h24c5 0 8-3 6-8L39 26V9"></path>
+            <path class="px-draw-fine" d="M22 9h20M20 40h24"></path>
+            <ellipse class="px-draw-line" cx="32" cy="42" rx="13" ry="5" transform="rotate(-24 32 42)"></ellipse>
+            <ellipse class="px-draw-fine" cx="32" cy="42" rx="13" ry="5" transform="rotate(38 32 42)"></ellipse>
+            <circle class="px-draw-accent" cx="32" cy="42" r="2.6"></circle>
+          </svg>
+        `,
+        hardware: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="17" y="17" width="30" height="30" rx="5"></rect>
+            <rect class="px-draw-line" x="25" y="25" width="14" height="14" rx="2"></rect>
+            <path class="px-draw-line" d="M24 17v-7M32 17v-7M40 17v-7M24 54v-7M32 54v-7M40 54v-7M17 24H10M17 32h-7M17 40h-7M54 24h-7M54 32h-7M54 40h-7"></path>
+            <path class="px-draw-fine" d="M20 21h-9M20 29h-9M20 37h-9M44 21h9M44 29h9M44 37h9"></path>
+            <circle class="px-draw-accent" cx="32" cy="32" r="2"></circle>
+          </svg>
+        `,
+        wirtschaft: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path class="px-draw-line" d="M11 53h43M14 48V34h9v14M27 48V23h9v25M40 48V29h9v19"></path>
+            <path class="px-draw-fine" d="m12 28 13-10 10 3 17-13"></path>
+            <path class="px-draw-line" d="M45 8h7v7"></path>
+            <circle class="px-draw-accent" cx="12" cy="28" r="2"></circle>
+            <circle class="px-draw-accent" cx="52" cy="8" r="2"></circle>
+          </svg>
+        `,
+        robotik: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path class="px-draw-line" d="M32 10v7M28 7h8"></path>
+            <rect class="px-draw-hollow" x="17" y="17" width="30" height="27" rx="7"></rect>
+            <circle class="px-draw-accent" cx="26" cy="29" r="2.5"></circle>
+            <circle class="px-draw-accent" cx="38" cy="29" r="2.5"></circle>
+            <path class="px-draw-line" d="M25 37h14M17 28H9v14M47 28h8v14M25 44l-4 10M39 44l4 10"></path>
+            <path class="px-draw-fine" d="M24 22h16"></path>
+          </svg>
+        `,
+        medizin: `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <rect class="px-draw-hollow" x="10" y="18" width="44" height="28" rx="6"></rect>
+            <path class="px-draw-line" d="M17 32h8l4-7 6 14 4-7h8"></path>
+            <path class="px-draw-fine" d="M17 51h10M37 51h10"></path>
+            <circle class="px-draw-accent" cx="32" cy="32" r="2"></circle>
+          </svg>
+        `
+      })
+    });
+
+    const PX_PROVIDERS = Object.freeze([
+      {
+        slug: "anthropic",
+        name: "Anthropic",
+        mark: "A",
+        assetPath: "assets/logos/anthropic.svg",
+        aliases: ["anthropic", "claude"]
+      },
+      {
+        slug: "openai",
+        name: "OpenAI",
+        mark: "O",
+        assetPath: "assets/logos/openai.svg",
+        aliases: ["openai", "chatgpt", "gpt"]
+      },
+      {
+        slug: "google",
+        name: "Google",
+        mark: "G",
+        assetPath: "assets/logos/google.svg",
+        aliases: ["google", "deepmind", "gemini"]
+      },
+      {
+        slug: "meta",
+        name: "Meta",
+        mark: "M",
+        assetPath: "assets/logos/meta.svg",
+        aliases: ["meta", "llama", "facebook ai"]
+      },
+      {
+        slug: "xai",
+        name: "xAI",
+        mark: "X",
+        assetPath: "assets/logos/xai.svg",
+        aliases: ["xai", "grok"]
+      },
+      {
+        slug: "mistral",
+        name: "Mistral",
+        mark: "M",
+        assetPath: "assets/logos/mistral.svg",
+        aliases: ["mistral", "mixtral", "le chat"]
+      },
+      {
+        slug: "qwen",
+        name: "Qwen",
+        mark: "Q",
+        assetPath: "assets/logos/qwen.svg",
+        aliases: ["qwen", "tongyi", "alibaba"]
+      },
+      {
+        slug: "deepseek",
+        name: "DeepSeek",
+        mark: "D",
+        assetPath: "assets/logos/deepseek.svg",
+        aliases: ["deepseek"]
+      },
+      {
+        slug: "nvidia",
+        name: "Nvidia",
+        mark: "N",
+        assetPath: "assets/logos/nvidia.svg",
+        aliases: ["nvidia", "cuda", "gpu", "tensor chip"]
+      }
+    ]);
+
+    const PX_TOPICS = Object.freeze([
+      {
+        slug: "agenten",
+        name: "Agenten",
+        code: "A-01",
+        aliases: ["agent", "agenten", "autonom", "tool use", "computer use"]
+      },
+      {
+        slug: "sicherheit",
+        name: "Sicherheit",
+        code: "S-01",
+        aliases: ["sicherheit", "safety", "alignment", "misuse", "red team", "hack"]
+      },
+      {
+        slug: "politik",
+        name: "Politik",
+        code: "P-01",
+        aliases: ["politik", "regulierung", "regierung", "gesetz", "wahl", "gericht", "behörde"]
+      },
+      {
+        slug: "forschung",
+        name: "Forschung",
+        code: "F-01",
+        aliases: ["forschung", "research", "wissenschaft", "studie", "paper", "arxiv", "labor"]
+      },
+      {
+        slug: "hardware",
+        name: "Hardware",
+        code: "H-01",
+        aliases: ["hardware", "chip", "chips", "gpu", "tpu", "halbleiter", "nvidia"]
+      },
+      {
+        slug: "wirtschaft",
+        name: "Wirtschaft",
+        code: "W-01",
+        aliases: ["wirtschaft", "markt", "investition", "umsatz", "geld", "börse", "firma"]
+      },
+      {
+        slug: "robotik",
+        name: "Robotik",
+        code: "B-01",
+        aliases: ["robotik", "roboter", "robot", "humanoider", "autonome maschine"]
+      },
+      {
+        slug: "medizin",
+        name: "Medizin",
+        code: "M-01",
+        aliases: ["medizin", "gesundheit", "klinik", "patient", "diagnose", "therapie"]
+      }
+    ]);
+
+    const PX_STATE = {
+      archive: [],
+      latestDate: ""
+    };
+
+    const PX_PROVIDER_MAP = new Map(
+      PX_PROVIDERS.map(provider => [provider.slug, provider])
+    );
+
+    const PX_LOGO_TOKENS = new Map();
+
+    function pxById(id) {
+      return document.getElementById(id);
+    }
+
+    function pxClean(value) {
+      return String(value == null ? "" : value)
+        .replace(/[\u2014\u2013]/g, "-")
+        .replace(/[\u0000-\u001f\u007f]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function pxCreate(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined && text !== null) node.textContent = pxClean(text);
+      return node;
+    }
+
+    function pxSetText(id, value) {
+      const node = pxById(id);
+      if (node) node.textContent = pxClean(value);
+    }
+
+    function pxNormalize(value) {
+      return String(value == null ? "" : value)
+        .toLocaleLowerCase("de-DE")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ß/g, "ss")
+        .replace(/[^a-z0-9\s-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function pxArray(value, key) {
+      if (Array.isArray(value)) return value;
+      if (value && Array.isArray(value[key])) return value[key];
+      return [];
+    }
+
+    function pxFetchJSON(path) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const separator = path.includes("?") ? "&" : "?";
+
+      return fetch(`${path}${separator}v=${Date.now()}`, {
+        cache: "no-store",
+        signal: controller.signal
+      })
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .finally(() => clearTimeout(timer));
+    }
+
+    function pxSvgFromMarkup(markup, className) {
+      if (typeof markup !== "string" || !markup.trim()) return null;
+
+      const template = document.createElement("template");
+      template.innerHTML = markup.trim();
+
+      const first = template.content.firstElementChild;
+      if (!first || first.localName !== "svg") return null;
+
+      const svg = first.cloneNode(true);
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+
+      if (className) svg.setAttribute("class", className);
+      return svg;
+    }
+
+    function pxMountTopicDrawings(scope) {
+      const root = scope && scope.querySelectorAll ? scope : document;
+
+      root.querySelectorAll("[data-px-topic-drawing]").forEach(host => {
+        const key = pxClean(host.getAttribute("data-px-topic-drawing"));
+        const svg = pxSvgFromMarkup(PX_ARCHIVE_DRAWINGS.topics[key]);
+
+        if (svg) host.replaceChildren(svg);
+      });
+    }
+
+    function pxCountMatches(aliases) {
+      const normalizedAliases = aliases
+        .map(pxNormalize)
+        .filter(alias => alias.length >= 2);
+
+      return PX_STATE.archive.reduce((count, item) => {
+        const text = pxNormalize([
+          item.title,
+          item.summary,
+          item.label,
+          item.topic
+        ].filter(Boolean).join(" "));
+
+        return normalizedAliases.some(alias => text.includes(alias))
+          ? count + 1
+          : count;
+      }, 0);
+    }
+
+    function pxEntityCount(name, aliases) {
+      return pxCountMatches(Array.isArray(aliases) && aliases.length ? aliases : [name]);
+    }
+
+    function pxUpdateProviderState(provider, stateText) {
+      const card = pxById(`px-provider-card-${provider.slug}`);
+      if (!card) return;
+
+      const node = card.querySelector(".px-provider-state");
+      if (node) node.textContent = pxClean(stateText);
+    }
+
+    function pxUpdateProbe(provider, text, disabled) {
+      const card = pxById(`px-provider-card-${provider.slug}`);
+      if (!card) return;
+
+      const probe = card.querySelector(".px-logo-probe");
+      if (!probe) return;
+
+      probe.textContent = pxClean(text);
+      probe.disabled = Boolean(disabled);
+    }
+
+    function pxMountLogoFallback(host, provider, stateText) {
+      const svg = pxSvgFromMarkup(
+        PX_ARCHIVE_DRAWINGS.logos[provider.slug],
+        "px-logo-fallback"
+      );
+
+      if (svg) host.replaceChildren(svg);
+
+      host.removeAttribute("aria-busy");
+      pxUpdateProviderState(provider, stateText || "Inline-Monogramm aktiv");
+      pxUpdateProbe(provider, "Erneut prüfen", false);
+    }
+
+    function pxInstallArchiveLogo(slug, options) {
+      const provider = PX_PROVIDER_MAP.get(pxClean(slug));
+      if (!provider) return false;
+
+      const config = options && typeof options === "object" ? options : {};
+      const card = pxById(`px-provider-card-${provider.slug}`);
+      const host = config.host || (card ? card.querySelector(".px-logo-field") : null);
+
+      if (!host) return false;
+
+      const token = (PX_LOGO_TOKENS.get(provider.slug) || 0) + 1;
+      PX_LOGO_TOKENS.set(provider.slug, token);
+
+      if (config.fallback === true) {
+        pxMountLogoFallback(host, provider, "Inline-Monogramm aktiv");
+
+        if (typeof config.onState === "function") {
+          config.onState("fallback", provider);
+        }
+        return true;
+      }
+
+      host.setAttribute("aria-busy", "true");
+      pxUpdateProviderState(provider, "Lokale Logo-Datei wird geprüft");
+      pxUpdateProbe(provider, "Datei wird geprüft", true);
+
+      const asset = document.createElement("object");
+      asset.className = "px-logo-object";
+      asset.type = "image/svg+xml";
+      asset.setAttribute("aria-hidden", "true");
+      asset.setAttribute("tabindex", "-1");
+
+      let finished = false;
+      let timer = null;
+
+      const finish = (state, message) => {
+        if (finished || PX_LOGO_TOKENS.get(provider.slug) !== token) return;
+        finished = true;
+        clearTimeout(timer);
+
+        if (state === "loaded") {
+          host.removeAttribute("aria-busy");
+          pxUpdateProviderState(provider, "Logo-Datei geladen");
+          pxUpdateProbe(provider, "Datei geladen", false);
+        } else {
+          pxMountLogoFallback(host, provider, "Datei fehlt, Inline aktiv");
+          pxUpdateProbe(provider, "Erneut prüfen", false);
+        }
+
+        if (typeof config.onState === "function") {
+          config.onState(state, provider);
+        }
+      };
+
+      asset.addEventListener("load", () => finish("loaded", "Logo-Datei geladen"), { once: true });
+      asset.addEventListener("error", () => finish("fallback", "Datei fehlt, Inline aktiv"), { once: true });
+
+      timer = setTimeout(() => {
+        finish("fallback", "Datei fehlt, Inline aktiv");
+      }, 3500);
+
+      host.replaceChildren(asset);
+
+      /*
+        Ein SVG-Objekt lädt die geforderte lokale Datei, ohne den Fehlerstatus
+        wie ein normales img-Element in der Browserkonsole zu protokollieren.
+      */
+      asset.data = provider.assetPath;
+      return true;
+    }
+
+    function pxUpdateSelection(type, definition, mark) {
+      document.querySelectorAll(".px-provider-card, .px-topic-card").forEach(card => {
+        card.classList.remove("px-selected");
+        const button = card.querySelector(".px-provider-select, .px-topic-card");
+        if (button) button.setAttribute("aria-pressed", "false");
+      });
+
+      const cardId = type === "provider"
+        ? `px-provider-card-${definition.slug}`
+        : `px-topic-card-${definition.slug}`;
+
+      const activeCard = pxById(cardId);
+
+      if (activeCard) {
+        activeCard.classList.add("px-selected");
+        const activeButton = activeCard.querySelector(".px-provider-select, .px-topic-card");
+        if (activeButton) activeButton.setAttribute("aria-pressed", "true");
+      }
+
+      pxSetText("px-selection-mark", mark);
+      pxSetText("px-selection-title", definition.name);
+      pxSetText(
+        "px-selection-note",
+        `${type === "provider" ? "Hersteller" : "Themenfeld"} ausgewählt. ${PX_NUMBER.format(pxEntityCount(definition.name, definition.aliases))} Meldungen erkannt.`
+      );
+      pxSetText(
+        "px-selection-code",
+        type === "provider"
+          ? `PX_ARCHIVE_DRAWINGS.logos.${definition.slug}`
+          : `PX_ARCHIVE_DRAWINGS.topics.${definition.slug}`
+      );
+    }
+
+    function pxBuildProviderCard(provider, index) {
+      const card = pxCreate("article", "px-provider-card");
+      card.id = `px-provider-card-${provider.slug}`;
+      card.setAttribute("data-px-kind", "provider");
+      card.setAttribute("data-px-slug", provider.slug);
+
+      const content = pxCreate("div", "px-provider-content");
+      const top = pxCreate("div", "px-provider-top");
+      const logoField = pxCreate("div", "px-logo-field");
+
+      logoField.setAttribute("role", "img");
+      logoField.setAttribute("aria-label", `Logo-Feld für ${provider.name}`);
+
+      top.append(
+        logoField,
+        pxCreate("span", "px-provider-index", String(index + 1).padStart(2, "0"))
+      );
+
+      const bottom = pxCreate("div", "px-provider-bottom");
+      const countWrap = pxCreate("div");
+
+      countWrap.append(
+        pxCreate(
+          "strong",
+          "px-provider-count",
+          PX_NUMBER.format(pxEntityCount(provider.name, provider.aliases))
+        ),
+        pxCreate("span", "px-provider-count-label", "Meldungen im Archiv")
+      );
+
+      bottom.append(countWrap, pxCreate("span", "px-select-dot"));
+
+      content.append(
+        top,
+        pxCreate("span", "px-provider-name", provider.name),
+        pxCreate("span", "px-provider-state", "Logo-Status wird geprüft"),
+        bottom
+      );
+
+      const select = pxCreate("button", "px-provider-select");
+      select.type = "button";
+      select.setAttribute("aria-label", `${provider.name} als Herstellerkachel auswählen`);
+      select.setAttribute("aria-pressed", "false");
+      select.addEventListener("click", () => {
+        pxUpdateSelection("provider", provider, provider.mark);
+      });
+
+      const probe = pxCreate("button", "px-logo-probe", "Erneut prüfen");
+      probe.type = "button";
+      probe.setAttribute("aria-label", `Logo-Datei für ${provider.name} erneut prüfen`);
+      probe.title = provider.assetPath;
+      probe.addEventListener("click", () => {
+        pxInstallArchiveLogo(provider.slug);
+      });
+
+      card.append(content, select, probe);
+      pxMountLogoFallback(logoField, provider, "Fallback wartet auf Prüfung");
+      return card;
+    }
+
+    function pxBuildTopicCard(topic, index) {
+      const card = pxCreate("button", "px-topic-card");
+      card.type = "button";
+      card.id = `px-topic-card-${topic.slug}`;
+      card.setAttribute("aria-pressed", "false");
+      card.setAttribute("aria-label", `${topic.name} als Themenfeld auswählen`);
+      card.setAttribute("data-px-kind", "topic");
+      card.setAttribute("data-px-slug", topic.slug);
+      card.setAttribute("data-px-index", String(index + 1));
+
+      const top = pxCreate("div", "px-topic-top");
+      const drawing = pxCreate("div", "px-topic-drawing");
+      drawing.setAttribute("data-px-topic-drawing", topic.slug);
+
+      top.append(pxCreate("span", "px-topic-code", topic.code), drawing);
+
+      const bottom = pxCreate("div", "px-topic-bottom");
+      const copy = pxCreate("div");
+
+      copy.append(
+        pxCreate("span", "px-topic-name", topic.name),
+        pxCreate(
+          "span",
+          "px-topic-count",
+          `${PX_NUMBER.format(pxEntityCount(topic.name, topic.aliases))} Meldungen`
+        )
+      );
+
+      bottom.append(copy, pxCreate("span", "px-topic-arrow", "↗"));
+      card.append(top, bottom);
+
+      card.addEventListener("click", () => {
+        pxUpdateSelection("topic", topic, topic.code.split("-")[0]);
+      });
+
+      return card;
+    }
+
+    function pxRenderCards() {
+      const providerGrid = pxById("px-provider-grid");
+      const topicGrid = pxById("px-topic-grid");
+
+      if (!providerGrid || !topicGrid) return;
+
+      const providerFragment = document.createDocumentFragment();
+      const topicFragment = document.createDocumentFragment();
+
+      PX_PROVIDERS.forEach((provider, index) => {
+        providerFragment.appendChild(pxBuildProviderCard(provider, index));
+      });
+
+      PX_TOPICS.forEach((topic, index) => {
+        topicFragment.appendChild(pxBuildTopicCard(topic, index));
+      });
+
+      providerGrid.replaceChildren(providerFragment);
+      topicGrid.replaceChildren(topicFragment);
+      pxMountTopicDrawings(topicGrid);
+      pxSetText("px-topic-status", "8 Inline-Zeichnungen montiert");
+    }
+
+    function pxRefreshCounts() {
+      PX_PROVIDERS.forEach(provider => {
+        const card = pxById(`px-provider-card-${provider.slug}`);
+        if (!card) return;
+
+        const count = card.querySelector(".px-provider-count");
+        if (count) {
+          count.textContent = PX_NUMBER.format(
+            pxEntityCount(provider.name, provider.aliases)
+          );
+        }
+      });
+
+      PX_TOPICS.forEach(topic => {
+        const card = pxById(`px-topic-card-${topic.slug}`);
+        if (!card) return;
+
+        const count = card.querySelector(".px-topic-count");
+        if (count) {
+          count.textContent = `${PX_NUMBER.format(
+            pxEntityCount(topic.name, topic.aliases)
+          )} Meldungen`;
+        }
+      });
+    }
+
+    function pxDateLabel(value) {
+      const match = String(value == null ? "" : value)
+        .trim()
+        .match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+      if (!match) return "";
+
+      const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`);
+      return Number.isNaN(date.getTime()) ? "" : PX_SHORT_DATE.format(date);
+    }
+
+    function pxNormalizeArchiveItem(item) {
+      if (!item || typeof item !== "object") return null;
+
+      const title = pxClean(item.title);
+      const summary = pxClean(item.summary || item.full_text);
+
+      if (!title && !summary) return null;
+
+      return {
+        title,
+        summary,
+        label: pxClean(item.label),
+        topic: pxClean(item.topic || item.thema),
+        date: pxClean(item.date || item.first_seen)
+      };
+    }
+
+    async function pxLoadData() {
+      try {
+        const data = await pxFetchJSON("archive.json");
+        const items = pxArray(data, "items")
+          .map(pxNormalizeArchiveItem)
+          .filter(Boolean);
+
+        PX_STATE.archive = items;
+        PX_STATE.latestDate = items
+          .map(item => item.date)
+          .filter(Boolean)
+          .sort()
+          .pop() || "";
+
+        pxSetText(
+          "px-data-state",
+          items.length
+            ? `${PX_NUMBER.format(items.length)} Archivmeldungen geprüft. Lokale Logos werden geladen, fehlende Dateien bleiben durch Inline-Embleme sichtbar.`
+            : "Die Archivdatei enthält derzeit keine verwertbaren Meldungen. Die Zeichen-Demo bleibt vollständig nutzbar."
+        );
+
+        pxSetText(
+          "px-provider-status",
+          items.length
+            ? `${PX_NUMBER.format(items.length)} Meldungen lokal gezählt`
+            : "Lokale Zählung aktiv"
+        );
+      } catch (error) {
+        PX_STATE.archive = [];
+        PX_STATE.latestDate = "";
+
+        pxSetText(
+          "px-data-state",
+          "Die Archivdatei konnte nicht geladen werden. Alle Kacheln bleiben mit lokalen Zeichen und Logo-Fallbacks verfügbar."
+        );
+        pxSetText("px-provider-status", "Lokale Zählung aktiv");
+
+        const errorNode = pxById("px-load-error");
+        if (errorNode) {
+          errorNode.hidden = false;
+          errorNode.textContent = "Hinweis: Für diese Zeichen-Demo ist archive.json optional. Ohne die Datei werden die lokalen Kartenanzahlen als null angezeigt.";
+        }
+      } finally {
+        pxSetText(
+          "px-data-stand",
+          pxDateLabel(PX_STATE.latestDate) || "Lokale Demo"
+        );
+
+        pxRefreshCounts();
+      }
+    }
+
+    window.PX_ARCHIVE_DRAWINGS = PX_ARCHIVE_DRAWINGS;
+    window.PXInstallArchiveDrawings = pxMountTopicDrawings;
+    window.PXInstallArchiveLogo = pxInstallArchiveLogo;
+    window.PX_ARCHIVE_ATLAS = Object.freeze({
+      drawings: PX_ARCHIVE_DRAWINGS,
+      providers: PX_PROVIDERS,
+      topics: PX_TOPICS,
+      mountDrawings: pxMountTopicDrawings,
+      mountLogo: pxInstallArchiveLogo
+    });
+
+    const pxLogoCount = Object.keys(PX_ARCHIVE_DRAWINGS.logos).length;
+    const pxTopicCount = Object.keys(PX_ARCHIVE_DRAWINGS.topics).length;
+
+    pxSetText(
+      "px-object-count",
+      `PX_ARCHIVE_DRAWINGS / ${PX_NUMBER.format(pxLogoCount + pxTopicCount)} SVG`
+    );
+
+    pxRenderCards();
+
+    PX_PROVIDERS.forEach((provider, index) => {
+      window.setTimeout(() => {
+        pxInstallArchiveLogo(provider.slug);
+      }, index === 0 ? 0 : 40);
+    });
+
+    pxLoadData().catch(() => {
+      pxSetText(
+        "px-data-state",
+        "Die Daten konnten nicht verarbeitet werden. Die lokale Zeichen-Demo bleibt aktiv."
+      );
+      pxSetText("px-data-stand", "Lokale Demo");
+      pxSetText("px-provider-status", "Lokale Zählung aktiv");
+    });
+  </script>
+</body>
+</html>

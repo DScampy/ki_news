@@ -1,0 +1,3694 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#edf4f8">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Wochen-Rückblick | KI News">
+  <meta property="og:description" content="Datenbasierter Wochen-Rückblick mit Geschichten, Dossiers und passenden Video-Cards.">
+  <title>Wochen-Rückblick | KI News</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --px-neon-rgb: var(--neon-rgb, 0, 212, 255);
+      --px-cyan: #00d4ff;
+      --px-green: #00e59a;
+      --px-violet: #8b5cf6;
+      --px-orange: #ff8a3d;
+      --px-red: #ff4567;
+      --px-page: #edf4f8;
+      --px-card: #ffffff;
+      --px-card-soft: #f6fafe;
+      --px-ink: #111a35;
+      --px-muted: #5b6d89;
+      --px-faint: #7b8ba5;
+      --px-line: rgba(var(--px-neon-rgb), .18);
+      --px-line-strong: rgba(var(--px-neon-rgb), .44);
+      --px-shadow: 0 22px 65px rgba(26, 52, 83, .11);
+      --px-shadow-soft: 0 10px 32px rgba(26, 52, 83, .075);
+    }
+
+    :root[data-theme="dark"],
+    html.dark,
+    body[data-theme="dark"],
+    body.dark {
+      color-scheme: dark;
+      --px-page: #080d1b;
+      --px-card: #0f162b;
+      --px-card-soft: #121c34;
+      --px-ink: #f4f7ff;
+      --px-muted: #adbbd1;
+      --px-faint: #8493ad;
+      --px-line: rgba(var(--px-neon-rgb), .21);
+      --px-line-strong: rgba(var(--px-neon-rgb), .5);
+      --px-shadow: 0 26px 80px rgba(0, 0, 0, .42);
+      --px-shadow-soft: 0 12px 38px rgba(0, 0, 0, .27);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 0;
+      overflow-x: hidden;
+      background: var(--px-page);
+      scroll-behavior: smooth;
+    }
+
+    body.px-page {
+      min-width: 0;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--px-ink);
+      background:
+        linear-gradient(90deg, rgba(var(--px-neon-rgb), .03) 1px, transparent 1px),
+        linear-gradient(rgba(var(--px-neon-rgb), .03) 1px, transparent 1px),
+        radial-gradient(circle at 94% 0, rgba(139, 92, 246, .12), transparent 30%),
+        radial-gradient(circle at 2% 38%, rgba(0, 212, 255, .055), transparent 25%),
+        var(--px-page);
+      background-size: 34px 34px, 34px 34px, auto, auto, auto;
+      font-family: "Work Sans", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      color: inherit;
+      font: inherit;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    img,
+    video,
+    canvas,
+    svg {
+      max-width: 100%;
+    }
+
+    ::selection {
+      color: #061022;
+      background: var(--px-cyan);
+    }
+
+    .px-skip {
+      position: fixed;
+      z-index: 1000;
+      top: 8px;
+      left: 8px;
+      padding: 10px 13px;
+      border-radius: 8px;
+      color: #04111d;
+      background: var(--px-cyan);
+      font-weight: 800;
+      transform: translateY(-160%);
+    }
+
+    .px-skip:focus {
+      transform: translateY(0);
+    }
+
+    .px-fallback-header {
+      position: relative;
+      z-index: 50;
+      display: flex;
+      min-width: 0;
+      min-height: 60px;
+      align-items: center;
+      gap: 24px;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--px-line);
+      background: var(--px-card);
+      box-shadow: 0 8px 28px rgba(20, 40, 65, .04);
+    }
+
+    .px-brand {
+      display: inline-flex;
+      min-width: 0;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 9px;
+      color: var(--px-green);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -.04em;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .px-brand-mark {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 9px;
+      color: #061320;
+      background: linear-gradient(135deg, var(--px-cyan), var(--px-green));
+      box-shadow: 0 0 24px rgba(var(--px-neon-rgb), .23);
+      font-size: 20px;
+    }
+
+    .px-brand-locale {
+      padding-left: 2px;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9px;
+      letter-spacing: .12em;
+    }
+
+    .px-fallback-nav {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .px-fallback-nav a {
+      position: relative;
+      padding: 20px 0 18px;
+      color: var(--px-muted);
+      font-size: 14px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .px-fallback-nav a:hover,
+    .px-fallback-nav a[aria-current="page"] {
+      color: var(--px-ink);
+    }
+
+    .px-fallback-nav a[aria-current="page"]::after {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: var(--px-green);
+      box-shadow: 0 0 10px rgba(0, 229, 154, .6);
+      content: "";
+    }
+
+    .px-theme-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      margin-left: auto;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid var(--px-line);
+      border-radius: 50%;
+      background: var(--px-card);
+      cursor: pointer;
+    }
+
+    .px-theme-dot {
+      width: 14px;
+      height: 14px;
+      border: 4px solid var(--px-cyan);
+      border-radius: 50%;
+      background: var(--px-violet);
+      box-shadow: 0 0 12px rgba(139, 92, 246, .35);
+    }
+
+    .px-shell {
+      position: relative;
+      z-index: 2;
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 28px 28px 72px;
+    }
+
+    .px-hero {
+      position: relative;
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1.25fr) minmax(330px, .62fr);
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 16px;
+      isolation: isolate;
+    }
+
+    .px-hero::before {
+      position: absolute;
+      z-index: -1;
+      top: -150px;
+      right: -90px;
+      width: 500px;
+      height: 500px;
+      border: 1px solid rgba(var(--px-neon-rgb), .08);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 68px rgba(var(--px-neon-rgb), .018),
+        0 0 0 140px rgba(139, 92, 246), .015);
+      content: "";
+      pointer-events: none;
+    }
+
+    .px-hero-copy,
+    .px-week-panel {
+      min-width: 0;
+    }
+
+    .px-eyebrow,
+    .px-kicker,
+    .px-meta,
+    .px-pill,
+    .px-stat-label,
+    .px-stat-value,
+    .px-week-label,
+    .px-week-button,
+    .px-section-count,
+    .px-rank,
+    .px-score,
+    .px-video-label,
+    .px-video-duration,
+    .px-video-hint,
+    .px-card-meta,
+    .px-day-count,
+    .px-dossier-label,
+    .px-footer,
+    .px-load-status {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 8px;
+      color: var(--px-green);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .px-eyebrow::before {
+      width: 34px;
+      height: 1px;
+      flex: 0 0 auto;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
+      content: "";
+    }
+
+    .px-title {
+      max-width: 900px;
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(48px, 5.2vw, 72px);
+      font-weight: 760;
+      letter-spacing: -.07em;
+      line-height: .94;
+      overflow-wrap: anywhere;
+    }
+
+    .px-title-accent {
+      color: var(--px-cyan);
+      text-shadow: 0 0 32px rgba(var(--px-neon-rgb), .2);
+    }
+
+    .px-deck {
+      max-width: 760px;
+      margin: 12px 0 0;
+      color: var(--px-muted);
+      font-size: clamp(14px, 1.35vw, 16px);
+      line-height: 1.48;
+    }
+
+    .px-week-panel {
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-card);
+      box-shadow: var(--px-shadow);
+    }
+
+    .px-week-top {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 11px;
+      border-bottom: 1px solid var(--px-line);
+      background: rgba(var(--px-neon-rgb), .035);
+    }
+
+    .px-week-label {
+      min-width: 0;
+      margin-right: auto;
+      color: var(--px-muted);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .px-week-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid var(--px-line);
+      border-radius: 50%;
+      color: var(--px-ink);
+      background: var(--px-card-soft);
+      cursor: pointer;
+      font-size: 17px;
+      transition: border-color .18s, color .18s, transform .18s, opacity .18s;
+    }
+
+    .px-week-button:hover:not(:disabled) {
+      border-color: var(--px-cyan);
+      color: var(--px-cyan);
+      transform: translateY(-1px);
+    }
+
+    .px-week-button:disabled {
+      cursor: not-allowed;
+      opacity: .25;
+    }
+
+    .px-week-main {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1fr) 124px;
+      gap: 13px;
+      align-items: center;
+      padding: 13px 14px;
+    }
+
+    .px-week-copy {
+      min-width: 0;
+    }
+
+    .px-week-title {
+      margin: 0 0 4px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 20px;
+      font-weight: 720;
+      letter-spacing: -.04em;
+      line-height: 1.08;
+      overflow-wrap: anywhere;
+    }
+
+    .px-week-range,
+    .px-week-stand {
+      margin: 2px 0;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .px-week-pulse {
+      display: flex;
+      height: 62px;
+      min-width: 0;
+      align-items: end;
+      gap: 4px;
+      padding: 7px 7px 6px;
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      background:
+        linear-gradient(rgba(var(--px-neon-rgb), .035) 1px, transparent 1px),
+        var(--px-card-soft);
+      background-size: 100% 11px;
+    }
+
+    .px-pulse-bar {
+      display: block;
+      min-width: 3px;
+      height: var(--px-pulse-height, 8%);
+      flex: 1 1 0;
+      border-radius: 3px 3px 1px 1px;
+      background: linear-gradient(to top, rgba(var(--px-neon-rgb), .12), var(--px-cyan));
+      box-shadow: 0 0 8px rgba(var(--px-neon-rgb), .16);
+      transform-origin: bottom;
+      animation: px-pulse 1.7s ease-in-out infinite alternate;
+    }
+
+    .px-pulse-bar:nth-child(3n + 2) {
+      background: linear-gradient(to top, rgba(139, 92, 246, .12), var(--px-violet));
+    }
+
+    .px-pulse-bar:nth-child(3n) {
+      background: linear-gradient(to top, rgba(0, 229, 154, .12), var(--px-green));
+    }
+
+    .px-pulse-bar:nth-child(2n) {
+      animation-delay: -.4s;
+    }
+
+    .px-pulse-bar:nth-child(3n) {
+      animation-delay: -.8s;
+    }
+
+    .px-stat-grid {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 27px;
+    }
+
+    .px-stat {
+      position: relative;
+      min-width: 0;
+      min-height: 100px;
+      overflow: hidden;
+      padding: 14px 16px 12px;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-card);
+      box-shadow: var(--px-shadow-soft);
+    }
+
+    .px-stat::before {
+      position: absolute;
+      top: 0;
+      left: 16px;
+      width: 36px;
+      height: 2px;
+      background: var(--px-cyan);
+      box-shadow: 0 0 11px var(--px-cyan);
+      content: "";
+    }
+
+    .px-stat:nth-child(2)::before {
+      background: var(--px-violet);
+      box-shadow: 0 0 11px var(--px-violet);
+    }
+
+    .px-stat:nth-child(3)::before {
+      background: var(--px-green);
+      box-shadow: 0 0 11px var(--px-green);
+    }
+
+    .px-stat-label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--px-muted);
+      font-size: 8px;
+      font-weight: 780;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .px-stat-value {
+      display: block;
+      max-width: 100%;
+      color: var(--px-ink);
+      font-size: clamp(25px, 2.7vw, 34px);
+      font-weight: 820;
+      letter-spacing: -.065em;
+      line-height: 1.04;
+      overflow-wrap: anywhere;
+    }
+
+    .px-stat-value.px-stat-text {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(21px, 2.2vw, 29px);
+      letter-spacing: -.04em;
+    }
+
+    .px-stat-note {
+      display: block;
+      margin-top: 5px;
+      color: var(--px-faint);
+      font-size: 8px;
+      line-height: 1.35;
+    }
+
+    .px-section {
+      min-width: 0;
+      margin: 0 0 46px;
+      scroll-margin-top: 20px;
+    }
+
+    .px-section-head {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 17px;
+      align-items: end;
+      margin-bottom: 13px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-section-number {
+      display: grid;
+      width: 43px;
+      height: 43px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 50%;
+      color: var(--px-cyan);
+      background: rgba(var(--px-neon-rgb), .06);
+      box-shadow: inset 0 0 18px rgba(var(--px-neon-rgb), .05);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 16px;
+    }
+
+    .px-kicker {
+      margin: 0 0 4px;
+      color: var(--px-cyan);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .px-section-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(27px, 3vw, 40px);
+      font-weight: 720;
+      letter-spacing: -.055em;
+      line-height: 1;
+    }
+
+    .px-section-count {
+      max-width: 300px;
+      padding-bottom: 2px;
+      color: var(--px-muted);
+      font-size: 8px;
+      line-height: 1.4;
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    .px-top-layout {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1.46fr) minmax(380px, .74fr);
+      gap: 13px;
+      align-items: stretch;
+    }
+
+    .px-top-layout.px-top-single {
+      grid-template-columns: 1fr;
+    }
+
+    .px-focus-lead,
+    .px-focus-side,
+    .px-story-card {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-card);
+      box-shadow: var(--px-shadow-soft);
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+
+    .px-focus-lead:hover,
+    .px-focus-side:hover,
+    .px-story-card:hover {
+      border-color: rgba(var(--px-neon-rgb), .4);
+      box-shadow: var(--px-shadow);
+      transform: translateY(-2px);
+    }
+
+    .px-focus-lead::before,
+    .px-focus-side::before,
+    .px-story-card::before {
+      position: absolute;
+      z-index: 5;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 72px;
+      border-radius: 12px 0 999px 999px;
+      background: var(--px-story-color, var(--px-cyan));
+      box-shadow: 0 0 16px var(--px-story-color, var(--px-cyan));
+      content: "";
+    }
+
+    .px-focus-lead {
+      display: grid;
+      min-height: 438px;
+      grid-template-columns: minmax(0, 1.04fr) minmax(290px, .96fr);
+    }
+
+    .px-focus-copy {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 22px 21px 18px 27px;
+    }
+
+    .px-focus-side-copy {
+      min-width: 0;
+      padding: 15px 10px 14px 18px;
+    }
+
+    .px-focus-top,
+    .px-story-top {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      margin-bottom: 11px;
+    }
+
+    .px-rank {
+      flex: 0 0 auto;
+      color: var(--px-story-color, var(--px-cyan));
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .px-pill {
+      display: inline-flex;
+      min-width: 0;
+      min-height: 24px;
+      max-width: 100%;
+      align-items: center;
+      padding: 4px 9px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-story-color, var(--px-cyan));
+      background: rgba(var(--px-neon-rgb), .045);
+      font-size: 8px;
+      font-weight: 850;
+      letter-spacing: .04em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-score {
+      margin-left: auto;
+      flex: 0 0 auto;
+      color: var(--px-muted);
+      font-size: 8px;
+      white-space: nowrap;
+    }
+
+    .px-focus-title,
+    .px-side-title,
+    .px-story-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 710;
+      letter-spacing: -.045em;
+      line-height: 1.08;
+      overflow-wrap: anywhere;
+    }
+
+    .px-focus-title {
+      font-size: clamp(28px, 2.7vw, 40px);
+    }
+
+    .px-side-title {
+      display: -webkit-box;
+      overflow: hidden;
+      font-size: clamp(17px, 1.45vw, 22px);
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-story-title {
+      font-size: 20px;
+    }
+
+    .px-focus-summary,
+    .px-side-summary,
+    .px-story-summary {
+      display: -webkit-box;
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      line-height: 1.48;
+      -webkit-box-orient: vertical;
+    }
+
+    .px-focus-summary {
+      margin: 12px 0 14px;
+      font-size: 13px;
+      -webkit-line-clamp: 5;
+    }
+
+    .px-side-summary {
+      margin: 6px 0 9px;
+      font-size: 10px;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-story-summary {
+      margin: 8px 0 11px;
+      font-size: 11.5px;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-focus-media {
+      min-width: 0;
+      min-height: 0;
+      padding: 15px 15px 15px 8px;
+    }
+
+    .px-focus-footer {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 8px 13px;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--px-line);
+    }
+
+    .px-meta {
+      min-width: 0;
+      color: var(--px-muted);
+      font-size: 8px;
+      line-height: 1.4;
+    }
+
+    .px-source {
+      max-width: min(100%, 340px);
+      overflow: hidden;
+      color: var(--px-ink);
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-side-grid {
+      display: grid;
+      min-width: 0;
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 13px;
+    }
+
+    .px-side-story {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1fr) 150px;
+      gap: 0;
+    }
+
+    .px-side-story .px-video-figure {
+      align-self: stretch;
+      padding: 14px 14px 14px 2px;
+    }
+
+    .px-side-story .px-video-frame {
+      height: 100%;
+      min-height: 110px;
+      aspect-ratio: auto;
+    }
+
+    .px-video-figure {
+      display: grid;
+      min-width: 0;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .px-video-frame {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid rgba(var(--px-neon-rgb), .22);
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, .18), transparent 34%),
+        linear-gradient(135deg, #101a36, #050916 70%);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .22), 0 0 24px rgba(var(--px-neon-rgb), .05);
+      cursor: pointer;
+      isolation: isolate;
+      touch-action: manipulation;
+    }
+
+    .px-focus-media .px-video-frame {
+      height: 100%;
+      min-height: 370px;
+    }
+
+    .px-video-image,
+    .px-video {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+
+    .px-video-image {
+      opacity: .94;
+      transition: opacity .2s, transform .35s ease;
+    }
+
+    .px-video-frame:hover .px-video-image {
+      transform: scale(1.018);
+    }
+
+    .px-video {
+      z-index: 1;
+      opacity: 0;
+      background: #050916;
+      transition: opacity .18s;
+    }
+
+    .px-video.px-video-ready {
+      opacity: 1;
+    }
+
+    .px-video-frame::after {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(3, 7, 18, .25),
+        transparent 40%,
+        rgba(3, 7, 18, .78)
+      );
+      content: "";
+      pointer-events: none;
+    }
+
+    .px-video-top {
+      position: absolute;
+      z-index: 3;
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 7px;
+      pointer-events: none;
+    }
+
+    .px-video-label,
+    .px-video-duration {
+      display: inline-flex;
+      min-height: 23px;
+      max-width: 48%;
+      align-items: center;
+      padding: 4px 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .17);
+      border-radius: 999px;
+      color: #eefcff;
+      background: rgba(3, 9, 22, .74);
+      backdrop-filter: blur(10px);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .07em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-video-label {
+      border-color: rgba(var(--px-neon-rgb), .27);
+      color: var(--px-cyan);
+    }
+
+    .px-video-duration {
+      margin-left: auto;
+    }
+
+    .px-video-play {
+      position: absolute;
+      z-index: 4;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      width: 52px;
+      height: 52px;
+      place-items: center;
+      border: 1px solid rgba(var(--px-neon-rgb), .56);
+      border-radius: 50%;
+      color: #06131d;
+      background: var(--px-cyan);
+      box-shadow: 0 0 28px rgba(var(--px-neon-rgb), .35);
+      cursor: pointer;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 15px;
+      transform: translate(-50%, -50%);
+      transition: transform .2s, filter .2s;
+    }
+
+    .px-video-play:hover {
+      filter: brightness(1.08);
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+
+    .px-video-play:disabled {
+      border-color: rgba(255, 255, 255, .18);
+      color: #b4bfd0;
+      background: rgba(9, 15, 31, .84);
+      cursor: not-allowed;
+    }
+
+    .px-video-hint {
+      position: absolute;
+      z-index: 4;
+      right: 10px;
+      bottom: 9px;
+      left: 10px;
+      color: #cad6e8;
+      font-size: 8px;
+      letter-spacing: .05em;
+      text-align: right;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .px-video-missing {
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      color: #b9c8dd;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9px;
+      letter-spacing: .08em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .px-video-caption {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .px-dossier {
+      min-width: 0;
+      margin-top: 10px;
+      border-top: 1px solid var(--px-line);
+    }
+
+    .px-dossier summary {
+      display: inline-flex;
+      min-height: 32px;
+      max-width: 100%;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 800;
+      list-style: none;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-dossier summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .px-dossier summary::after {
+      flex: 0 0 auto;
+      color: var(--px-cyan);
+      content: "+";
+      font-size: 14px;
+    }
+
+    .px-dossier[open] summary::after {
+      content: "-";
+    }
+
+    .px-dossier summary:hover {
+      border-color: var(--px-cyan);
+      color: var(--px-ink);
+    }
+
+    .px-dossier-body {
+      min-width: 0;
+      margin-top: 9px;
+      padding: 12px;
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      background: rgba(var(--px-neon-rgb), .025);
+    }
+
+    .px-dossier-label {
+      margin: 0 0 6px;
+      color: var(--px-cyan);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .px-dossier-label:not(:first-child) {
+      margin-top: 12px;
+    }
+
+    .px-dossier-text {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.52;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 7;
+    }
+
+    .px-dossier-links {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .px-source-link {
+      display: inline-flex;
+      min-width: 0;
+      min-height: 30px;
+      max-width: 100%;
+      align-items: center;
+      padding: 6px 10px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-ink);
+      background: var(--px-card);
+      font-size: 9px;
+      font-weight: 800;
+      text-decoration: none;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-source-link:hover {
+      border-color: var(--px-cyan);
+      color: var(--px-cyan);
+    }
+
+    .px-days {
+      display: grid;
+      min-width: 0;
+      gap: 29px;
+    }
+
+    .px-day {
+      min-width: 0;
+      scroll-margin-top: 20px;
+    }
+
+    .px-day-head {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, auto) minmax(80px, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .px-day-heading {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(23px, 2.5vw, 34px);
+      font-weight: 710;
+      letter-spacing: -.05em;
+      line-height: 1.05;
+    }
+
+    .px-day-line {
+      height: 1px;
+      background: linear-gradient(90deg, var(--px-cyan), rgba(var(--px-neon-rgb), .04));
+      box-shadow: 0 0 10px rgba(var(--px-neon-rgb), .16);
+    }
+
+    .px-day-count {
+      color: var(--px-muted);
+      font-size: 8px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-story-grid {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .px-story-card {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1fr) minmax(205px, .66fr);
+    }
+
+    .px-story-copy {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 15px 13px 14px 19px;
+    }
+
+    .px-story-media {
+      min-width: 0;
+      padding: 11px 11px 11px 3px;
+    }
+
+    .px-story-media .px-video-frame {
+      height: 100%;
+      min-height: 190px;
+    }
+
+    .px-card-meta {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 5px 9px;
+      margin-top: auto;
+      color: var(--px-muted);
+      font-size: 8px;
+      line-height: 1.4;
+      letter-spacing: .025em;
+      text-transform: uppercase;
+    }
+
+    .px-card-meta strong {
+      max-width: min(250px, 100%);
+      overflow: hidden;
+      color: var(--px-ink);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-empty {
+      display: grid;
+      min-width: 0;
+      min-height: 250px;
+      place-items: center;
+      padding: 32px 20px;
+      border: 1px dashed var(--px-line-strong);
+      border-radius: 12px;
+      background: var(--px-card);
+      text-align: center;
+    }
+
+    .px-empty-day {
+      min-height: 120px;
+    }
+
+    .px-empty-symbol {
+      display: grid;
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 13px;
+      place-items: center;
+      border: 1px solid var(--px-line);
+      border-radius: 50%;
+      color: var(--px-cyan);
+      background: rgba(var(--px-neon-rgb), .07);
+      box-shadow: 0 0 24px rgba(var(--px-neon-rgb), .08);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 19px;
+    }
+
+    .px-empty h2,
+    .px-empty h3 {
+      margin: 0 0 8px;
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: -.04em;
+    }
+
+    .px-empty h2 {
+      font-size: 23px;
+    }
+
+    .px-empty h3 {
+      font-size: 17px;
+    }
+
+    .px-empty p {
+      max-width: 600px;
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .px-load-status {
+      margin-top: 11px !important;
+      color: var(--px-cyan) !important;
+      font-size: 8px !important;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .px-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 14px;
+      padding-top: 16px;
+      border-top: 1px solid var(--px-line);
+      color: var(--px-muted);
+      font-size: 8px;
+      letter-spacing: .05em;
+      line-height: 1.5;
+      text-transform: uppercase;
+    }
+
+    .px-live-message {
+      position: fixed;
+      z-index: 300;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(410px, calc(100% - 36px));
+      padding: 12px 15px;
+      border: 1px solid var(--px-cyan);
+      border-radius: 10px;
+      color: #effcff;
+      background: rgba(4, 13, 28, .96);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, .3);
+      font-size: 12px;
+      line-height: 1.4;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity .2s, transform .2s;
+    }
+
+    .px-live-message.px-live-message-on {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .px-noscript {
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
+      border: 1px solid var(--px-orange);
+      border-radius: 10px;
+      color: #101828;
+      background: #fff5e9;
+    }
+
+    .px-week-button:focus-visible,
+    .px-video-play:focus-visible,
+    .px-source-link:focus-visible,
+    .px-dossier summary:focus-visible,
+    .px-theme-button:focus-visible,
+    .px-skip:focus-visible {
+      outline: 3px solid var(--px-cyan);
+      outline-offset: 3px;
+    }
+
+    @keyframes px-pulse {
+      from {
+        filter: brightness(.9);
+        transform: scaleY(.88);
+      }
+
+      to {
+        filter: brightness(1.12);
+        transform: scaleY(1);
+      }
+    }
+
+    @keyframes px-enter {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .px-focus-side,
+    .px-story-card {
+      animation: px-enter .32s ease both;
+    }
+
+    @media (max-width: 1160px) {
+      .px-fallback-nav {
+        gap: 15px;
+      }
+
+      .px-top-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .px-side-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: none;
+      }
+
+      .px-side-story {
+        min-height: 210px;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .px-fallback-header {
+        padding: 0 18px;
+      }
+
+      .px-shell {
+        padding: 26px 18px 62px;
+      }
+
+      .px-hero {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .px-story-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-story-card {
+        grid-template-columns: minmax(0, 1fr) minmax(230px, .52fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .px-fallback-nav {
+        display: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .px-focus-lead {
+        min-height: 0;
+        grid-template-columns: 1fr;
+      }
+
+      .px-focus-media {
+        padding: 0 15px 15px 27px;
+      }
+
+      .px-focus-media .px-video-frame {
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 4 / 3;
+      }
+
+      .px-side-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-side-story {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+
+      .px-side-story .px-video-figure {
+        padding: 0 15px 15px 18px;
+      }
+
+      .px-side-story .px-video-frame {
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 16 / 7.5;
+      }
+
+      .px-story-card {
+        grid-template-columns: 1fr;
+      }
+
+      .px-story-media {
+        padding: 0 14px 14px 19px;
+      }
+
+      .px-story-media .px-video-frame {
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 16 / 8;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .px-section-head {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 11px;
+      }
+
+      .px-section-count {
+        grid-column: 2;
+        max-width: 100%;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .px-fallback-header {
+        min-height: 58px;
+        padding: 0 12px;
+      }
+
+      .px-brand-locale {
+        display: none;
+      }
+
+      .px-shell {
+        padding: 18px 12px 48px;
+      }
+
+      .px-hero {
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .px-eyebrow {
+        margin-bottom: 6px;
+        font-size: 8px;
+      }
+
+      .px-title {
+        font-size: clamp(42px, 11.6vw, 51px);
+        line-height: .92;
+      }
+
+      .px-title-accent {
+        display: block;
+      }
+
+      .px-deck {
+        margin-top: 9px;
+        font-size: 12.5px;
+        line-height: 1.42;
+      }
+
+      .px-week-top {
+        padding: 7px 9px;
+      }
+
+      .px-week-button {
+        width: 36px;
+        height: 36px;
+      }
+
+      .px-week-main {
+        grid-template-columns: 1fr;
+        gap: 9px;
+        padding: 11px 12px 12px;
+      }
+
+      .px-week-title {
+        font-size: 19px;
+      }
+
+      .px-week-range,
+      .px-week-stand {
+        font-size: 9px;
+      }
+
+      .px-week-pulse {
+        height: 44px;
+        padding: 5px 7px;
+      }
+
+      .px-stat-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 25px;
+      }
+
+      .px-stat {
+        min-height: 98px;
+        padding: 12px 8px 9px;
+      }
+
+      .px-stat::before {
+        left: 9px;
+        width: 25px;
+      }
+
+      .px-stat-label {
+        min-height: 21px;
+        margin-bottom: 4px;
+        font-size: 7px;
+        line-height: 1.25;
+        letter-spacing: .025em;
+        overflow-wrap: anywhere;
+      }
+
+      .px-stat-value {
+        font-size: 22px;
+      }
+
+      .px-stat-value.px-stat-text {
+        font-size: 15px;
+        line-height: 1.08;
+      }
+
+      .px-stat-note {
+        margin-top: 5px;
+        font-size: 7px;
+        line-height: 1.25;
+      }
+
+      .px-section {
+        margin-bottom: 36px;
+      }
+
+      .px-section-head {
+        margin-bottom: 11px;
+        padding-bottom: 10px;
+      }
+
+      .px-section-number {
+        width: 39px;
+        height: 39px;
+      }
+
+      .px-section-title {
+        font-size: 28px;
+      }
+
+      .px-section-count {
+        margin-top: -4px;
+        font-size: 7px;
+      }
+
+      .px-focus-copy {
+        padding: 17px 14px 15px 21px;
+      }
+
+      .px-focus-media {
+        padding: 0 12px 12px 21px;
+      }
+
+      .px-focus-title {
+        font-size: 28px;
+      }
+
+      .px-focus-summary {
+        margin: 10px 0 13px;
+        font-size: 12px;
+        line-height: 1.45;
+        -webkit-line-clamp: 4;
+      }
+
+      .px-score {
+        display: none;
+      }
+
+      .px-side-title {
+        font-size: 19px;
+      }
+
+      .px-story-copy {
+        padding: 15px 13px 13px 19px;
+      }
+
+      .px-story-title {
+        font-size: 19px;
+      }
+
+      .px-day-head {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 9px;
+      }
+
+      .px-day-line {
+        display: none;
+      }
+
+      .px-day-heading {
+        font-size: 23px;
+      }
+
+      .px-day-count {
+        font-size: 7px;
+      }
+
+      .px-footer {
+        flex-direction: column;
+        gap: 7px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .px-brand {
+        font-size: 17px;
+      }
+
+      .px-brand-mark {
+        width: 31px;
+        height: 31px;
+      }
+
+      .px-theme-button {
+        width: 37px;
+        height: 37px;
+      }
+
+      .px-week-label {
+        font-size: 7px;
+      }
+
+      .px-week-button {
+        width: 35px;
+        height: 35px;
+      }
+
+      .px-stat-value {
+        font-size: 20px;
+      }
+
+      .px-stat-value.px-stat-text {
+        font-size: 14px;
+      }
+
+      .px-video-play {
+        width: 48px;
+        height: 48px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="px-page" data-page="wochen-rueckblick">
+  <a class="px-skip" href="#px-main">Zum Inhalt springen</a>
+
+  <header class="px-fallback-header" id="px-fallback-header" aria-label="Seitennavigation">
+    <a class="px-brand" href="./" aria-label="KI News Startseite">
+      <span class="px-brand-mark" aria-hidden="true">S</span>
+      <span>KI NEWS</span>
+      <span class="px-brand-locale">DE</span>
+    </a>
+
+    <nav class="px-fallback-nav" aria-label="Hauptnavigation">
+      <a href="./">Aktuell</a>
+      <a href="./archiv.html">Archiv</a>
+      <a href="./artikel.html">Artikel</a>
+      <a href="./podcast.html">Podcast</a>
+      <a href="./statistik.html">Statistik</a>
+      <a href="./profil.html">Profil</a>
+      <a href="#px-main" aria-current="page">Wochen-Rückblick</a>
+    </nav>
+
+    <button class="px-theme-button" id="px-theme-button" type="button" aria-label="Farbschema wechseln">
+      <span class="px-theme-dot" aria-hidden="true"></span>
+    </button>
+  </header>
+
+  <main class="px-shell" id="px-main">
+    <section class="px-hero" aria-labelledby="px-page-title">
+      <div class="px-hero-copy">
+        <p class="px-eyebrow">Sieben Tage KI-Nachrichten</p>
+        <h1 class="px-title" id="px-page-title">Wochen-<span class="px-title-accent">Rückblick</span></h1>
+        <p class="px-deck">
+          Die stärksten Geschichten der ausgewählten Woche, verdichtet aus lokalen Nachrichten,
+          Dossier-Daten und thematisch passenden Video-Cards.
+        </p>
+      </div>
+
+      <section class="px-week-panel" aria-labelledby="px-week-title">
+        <div class="px-week-top">
+          <span class="px-week-label">Woche wechseln</span>
+          <button class="px-week-button" id="px-week-prev" type="button" aria-label="Vorherige Woche">←</button>
+          <button class="px-week-button" id="px-week-next" type="button" aria-label="Nächste Woche">→</button>
+        </div>
+
+        <div class="px-week-main">
+          <div class="px-week-copy">
+            <h2 class="px-week-title" id="px-week-title">Woche wird geladen</h2>
+            <p class="px-week-range" id="px-week-range">Zeitraum wird ermittelt</p>
+            <p class="px-week-stand" id="px-week-stand">Datenstand: offen</p>
+          </div>
+
+          <div class="px-week-pulse" id="px-week-pulse" aria-label="Meldungen pro Tag" hidden></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="px-stat-grid" id="px-stats" aria-label="Drei Zahlen der Woche" aria-live="polite">
+      <article class="px-stat">
+        <span class="px-stat-label">Meldungen</span>
+        <strong class="px-stat-value">0</strong>
+        <span class="px-stat-note">Datensätze in der Woche</span>
+      </article>
+
+      <article class="px-stat">
+        <span class="px-stat-label">Dossiers</span>
+        <strong class="px-stat-value">0</strong>
+        <span class="px-stat-note">Themenlinien mit Datumsbezug</span>
+      </article>
+
+      <article class="px-stat">
+        <span class="px-stat-label">Meistgenannter Hersteller</span>
+        <strong class="px-stat-value px-stat-text">offen</strong>
+        <span class="px-stat-note">Aus der Entity-Registry</span>
+      </article>
+    </section>
+
+    <section class="px-section" aria-labelledby="px-top-heading">
+      <div class="px-section-head">
+        <span class="px-section-number" aria-hidden="true">01</span>
+        <div>
+          <p class="px-kicker">Rangliste nach Datenwerten</p>
+          <h2 class="px-section-title" id="px-top-heading">Drei Stories im Fokus</h2>
+        </div>
+        <span class="px-section-count">Poster zuerst, MP4 nur nach Hover oder Tippen</span>
+      </div>
+
+      <div class="px-top-layout" id="px-top-layout" aria-live="polite">
+        <div class="px-empty">
+          <div>
+            <div class="px-empty-symbol">...</div>
+            <h2>Woche wird geladen</h2>
+            <p>Die lokalen Dateien werden geprüft und nach Kalenderwochen gruppiert.</p>
+            <p class="px-load-status">news.json, archive.json, cards.json und entities.json werden gelesen</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="px-section" aria-labelledby="px-days-heading">
+      <div class="px-section-head">
+        <span class="px-section-number" aria-hidden="true">02</span>
+        <div>
+          <p class="px-kicker">Chronologische Spur</p>
+          <h2 class="px-section-title" id="px-days-heading">Die übrigen Meldungen</h2>
+        </div>
+        <span class="px-section-count">Video-Poster aus cards.json</span>
+      </div>
+
+      <div class="px-days" id="px-days" aria-live="polite">
+        <div class="px-empty">
+          <div>
+            <div class="px-empty-symbol">7</div>
+            <h2>Tage werden vorbereitet</h2>
+            <p>Danach erscheinen die verbleibenden Geschichten nach Tagen sortiert.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="px-footer">
+      <span>Prototyp für ki-news.live von Scampy</span>
+      <span>Alle Inhalte stammen aus relativen lokalen JSON-Dateien.</span>
+    </footer>
+  </main>
+
+  <div class="px-live-message" id="px-live-message" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <div class="px-noscript">
+      Für diesen Wochen-Rückblick wird JavaScript benötigt. Die Daten werden ausschließlich über relative lokale Dateien geladen.
+    </div>
+  </noscript>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const DAY_MS = 86400000;
+      const MAX_WEEKS = 180;
+      const numberFormatter = new Intl.NumberFormat("de-DE");
+
+      const palette = {
+        cyan: "#00d4ff",
+        green: "#00e59a",
+        violet: "#8b5cf6",
+        orange: "#ff8a3d",
+        red: "#ff4567"
+      };
+
+      const state = {
+        weeks: [],
+        weekIndex: 0,
+        selectedArticles: [],
+        stories: [],
+        topStories: [],
+        cards: [],
+        entities: [],
+        lines: [],
+        stand: "",
+        messageTimer: 0
+      };
+
+      const nodes = {
+        weekTitle: document.getElementById("px-week-title"),
+        weekRange: document.getElementById("px-week-range"),
+        weekStand: document.getElementById("px-week-stand"),
+        weekPulse: document.getElementById("px-week-pulse"),
+        weekPrev: document.getElementById("px-week-prev"),
+        weekNext: document.getElementById("px-week-next"),
+        stats: document.getElementById("px-stats"),
+        topLayout: document.getElementById("px-top-layout"),
+        days: document.getElementById("px-days"),
+        message: document.getElementById("px-live-message"),
+        themeButton: document.getElementById("px-theme-button"),
+        fallbackHeader: document.getElementById("px-fallback-header")
+      };
+
+      const hoverMedia = typeof window.matchMedia === "function"
+        ? window.matchMedia("(hover: hover) and (pointer: fine)")
+        : { matches: false };
+
+      const reducedMotion = typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : { matches: false };
+
+      const stopWords = new Set([
+        "aber", "alle", "auch", "auf", "aus", "bei", "das", "dass", "dem", "den", "der", "des",
+        "die", "ein", "eine", "einen", "einem", "einer", "für", "hat", "haben", "im", "in", "ist",
+        "mit", "nach", "nicht", "oder", "sich", "sie", "und", "von", "vor", "wird", "zum", "zur",
+        "über", "können", "kann", "soll", "sollen", "mehr", "neue", "neuen", "neuer", "wurde",
+        "werden", "the", "and", "for", "with", "from", "that", "this", "will", "seiner", "seine"
+      ]);
+
+      function clean(value) {
+        return String(value == null ? "" : value)
+          .replace(/\u2014/g, "-")
+          .replace(/\u2013/g, "-")
+          .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+          .trim();
+      }
+
+      function element(tag, className, text) {
+        const node = document.createElement(tag);
+
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = clean(text);
+
+        return node;
+      }
+
+      function number(value, fallback = 0) {
+        const result = Number(value);
+        return Number.isFinite(result) ? result : fallback;
+      }
+
+      function safeColor(value, fallback = palette.cyan) {
+        const result = clean(value).toLowerCase();
+
+        if (/^#[0-9a-f]{6}$/.test(result)) return result;
+
+        if (/^#[0-9a-f]{3}$/.test(result)) {
+          return "#" + result.slice(1).split("").map(character => character + character).join("");
+        }
+
+        return fallback;
+      }
+
+      function safeUrl(value) {
+        try {
+          const result = new URL(clean(value), document.baseURI);
+          return ["http:", "https:"].includes(result.protocol) ? result.href : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function canonicalUrl(value) {
+        const valid = safeUrl(value);
+        if (!valid) return "";
+
+        try {
+          const result = new URL(valid);
+          result.hash = "";
+          result.search = "";
+
+          const path = result.pathname.replace(/\/+$/, "");
+
+          return result.hostname.toLowerCase()
+            + result.port
+            + (path || "/")
+            + result.username
+            + result.password;
+        } catch (_) {
+          return valid;
+        }
+      }
+
+      function normalizeWord(value) {
+        return clean(value)
+          .toLocaleLowerCase("de-DE")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/ß/g, "ss")
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
+      }
+
+      function normalizeKey(value) {
+        return normalizeWord(value).replace(/\s+/g, "-").slice(0, 180);
+      }
+
+      function terms(value) {
+        return [...new Set(normalizeWord(value).split(/\s+/).filter(term => {
+          return term.length >= 3
+            && !stopWords.has(term)
+            && (/[a-z]/.test(term) || /\d/.test(term));
+        }))];
+      }
+
+      function hashString(value) {
+        let hash = 2166136261;
+        const text = clean(value);
+
+        for (let index = 0; index < text.length; index += 1) {
+          hash ^= text.charCodeAt(index);
+          hash = Math.imul(hash, 16777619);
+        }
+
+        return hash >>> 0;
+      }
+
+      function lineColor(value) {
+        const colors = [
+          palette.cyan,
+          palette.violet,
+          palette.green,
+          palette.orange,
+          palette.red
+        ];
+
+        return colors[hashString(value) % colors.length];
+      }
+
+      function parseDate(value) {
+        const raw = clean(value);
+        if (!raw) return null;
+
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+        if (match) {
+          const year = number(match[1], -1);
+          const month = number(match[2], -1);
+          const day = number(match[3], -1);
+          const result = new Date(Date.UTC(year, month - 1, day, 12));
+
+          if (
+            result.getUTCFullYear() !== year
+            || result.getUTCMonth() !== month - 1
+            || result.getUTCDate() !== day
+          ) {
+            return null;
+          }
+
+          return result;
+        }
+
+        const result = new Date(raw);
+        return Number.isNaN(result.getTime()) ? null : result;
+      }
+
+      function dateKey(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+
+        return [
+          date.getUTCFullYear(),
+          String(date.getUTCMonth() + 1).padStart(2, "0"),
+          String(date.getUTCDate()).padStart(2, "0")
+        ].join("-");
+      }
+
+      function articleDate(article) {
+        if (!article || typeof article !== "object") return null;
+        return parseDate(article.date) || parseDate(article.first_seen);
+      }
+
+      function articleScore(article) {
+        if (!article || typeof article !== "object") return 0;
+
+        return Math.max(
+          number(article.story_cluster_score),
+          number(article.score),
+          number(article.base_score)
+        );
+      }
+
+      function formatShortDate(date) {
+        if (!date) return "Datum offen";
+
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          timeZone: "UTC"
+        }).format(date);
+      }
+
+      function formatLongDate(date) {
+        if (!date) return "Datum offen";
+
+        const value = new Intl.DateTimeFormat("de-DE", {
+          weekday: "long",
+          day: "2-digit",
+          month: "long",
+          timeZone: "UTC"
+        }).format(date);
+
+        return value.charAt(0).toLocaleUpperCase("de-DE") + value.slice(1);
+      }
+
+      function formatRange(start, end) {
+        if (!start || !end) return "Zeitraum nicht verfügbar";
+
+        const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
+        const startText = new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          ...(sameYear ? {} : { year: "numeric" }),
+          timeZone: "UTC"
+        }).format(start);
+
+        const endText = new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          timeZone: "UTC"
+        }).format(end);
+
+        return startText + " bis " + endText;
+      }
+
+      function formatStand(value) {
+        const raw = clean(value);
+        if (!raw) return "offen";
+
+        const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/);
+
+        if (iso) {
+          const day = iso[1] + "." + iso[2] + "." + iso[3];
+          return iso[4] ? day + ", " + iso[4] : day;
+        }
+
+        const german = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}:\d{2}))?/);
+
+        if (german) {
+          const day = german[1] + "." + german[2] + "." + german[3];
+          return german[4] ? day + ", " + german[4] : day;
+        }
+
+        return raw.slice(0, 28);
+      }
+
+      function formatDuration(value) {
+        const seconds = number(value, 0);
+        if (seconds <= 0) return "Video";
+
+        const minutes = Math.floor(seconds / 60);
+        const rest = seconds % 60;
+
+        return minutes + ":" + String(rest).padStart(2, "0");
+      }
+
+      function isoWeek(date) {
+        if (!date) return 0;
+
+        const target = new Date(Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate()
+        ));
+
+        const day = target.getUTCDay() || 7;
+        target.setUTCDate(target.getUTCDate() + 4 - day);
+        const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+
+        return Math.ceil((((target - yearStart) / DAY_MS) + 1) / 7);
+      }
+
+      function extractNews(payload) {
+        if (Array.isArray(payload)) {
+          return payload.filter(item => item && typeof item === "object");
+        }
+
+        if (payload && Array.isArray(payload.news)) {
+          return payload.news.filter(item => item && typeof item === "object");
+        }
+
+        if (
+          payload
+          && payload.briefing
+          && Array.isArray(payload.briefing.stories)
+        ) {
+          return payload.briefing.stories
+            .filter(item => item && typeof item === "object")
+            .map(item => Object.assign({}, item, {
+              date: item.date || payload.briefing.datum
+            }));
+        }
+
+        return [];
+      }
+
+      function extractCards(payload) {
+        if (Array.isArray(payload)) {
+          return payload.filter(item => item && typeof item === "object");
+        }
+
+        if (payload && Array.isArray(payload.cards)) {
+          return payload.cards.filter(item => item && typeof item === "object");
+        }
+
+        return [];
+      }
+
+      function extractEntities(payload) {
+        if (payload && Array.isArray(payload.entities)) {
+          return payload.entities.filter(item => item && typeof item === "object");
+        }
+
+        if (Array.isArray(payload)) {
+          return payload.filter(item => item && typeof item === "object");
+        }
+
+        return [];
+      }
+
+      function extractLines(payload) {
+        if (!payload || !payload.linien || typeof payload.linien !== "object") return [];
+
+        return Object.entries(payload.linien).map(([id, value]) => {
+          const line = value && typeof value === "object" ? value : {};
+          const dossier = line.dossier && typeof line.dossier === "object"
+            ? line.dossier
+            : {};
+          const entries = Array.isArray(line.e) ? line.e : [];
+          const title = clean(dossier.titel)
+            || clean(line.titel)
+            || "Themencluster";
+          const description = clean(dossier.worum) || clean(line.worum);
+          const entryText = entries
+            .map(entry => clean(entry && (entry.t || entry.z)))
+            .filter(Boolean)
+            .join(" ");
+
+          return {
+            id: clean(id) || "linie-" + normalizeKey(title),
+            title,
+            description,
+            terms: terms(title + " " + description + " " + entryText),
+            entryDates: entries
+              .map(entry => parseDate(entry && entry.d))
+              .filter(Boolean),
+            color: lineColor(clean(id) + " " + title)
+          };
+        }).filter(line => line.terms.length);
+      }
+
+      function mergeLines(primary, secondary) {
+        const result = new Map();
+
+        [...primary, ...secondary].forEach(line => {
+          if (!result.has(line.id)) result.set(line.id, line);
+        });
+
+        return [...result.values()];
+      }
+
+      function deduplicateArticles(articles) {
+        const result = [];
+        const seen = new Set();
+
+        articles.forEach(article => {
+          if (!article || typeof article !== "object") return;
+
+          const link = canonicalUrl(article.link);
+          const title = normalizeKey(article.title || article.summary);
+          const key = link
+            ? "link:" + link
+            : "title:" + title;
+
+          if (!title && !link) return;
+          if (seen.has(key)) return;
+
+          seen.add(key);
+          result.push(article);
+        });
+
+        return result;
+      }
+
+      function mondayOf(date) {
+        const result = new Date(Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate()
+        ));
+
+        const offset = (result.getUTCDay() + 6) % 7;
+        result.setUTCDate(result.getUTCDate() - offset);
+
+        return result;
+      }
+
+      function buildWeeks(newsArticles, archiveArticles) {
+        const combined = deduplicateArticles([
+          ...newsArticles,
+          ...archiveArticles
+        ]);
+
+        const dates = combined
+          .map(articleDate)
+          .filter(Boolean)
+          .sort((a, b) => b - a);
+
+        if (!dates.length) return [];
+
+        let start = mondayOf(dates[0]);
+        const weeks = [];
+
+        for (let index = 0; index < MAX_WEEKS; index += 1) {
+          const end = new Date(start.getTime() + 6 * DAY_MS);
+          const articles = combined.filter(article => {
+            const date = articleDate(article);
+            return date && date >= start && date <= end;
+          });
+
+          if (articles.length) {
+            weeks.push({
+              index,
+              start: new Date(start),
+              end,
+              articles
+            });
+          }
+
+          start = new Date(start.getTime() - 7 * DAY_MS);
+        }
+
+        return weeks;
+      }
+
+      function buildStory(key, articles) {
+        const fullArticles = articles
+          .filter(article => clean(article.full_text))
+          .sort((a, b) => clean(b.full_text).length - clean(a.full_text).length);
+
+        const titleArticles = articles
+          .filter(article => clean(article.title))
+          .sort((a, b) => {
+            return clean(b.full_text).length - clean(a.full_text).length
+              || articleScore(b) - articleScore(a);
+          });
+
+        const representative = titleArticles[0] || articles[0] || {};
+        const dates = articles
+          .map(articleDate)
+          .filter(Boolean)
+          .sort((a, b) => b - a);
+
+        if (!dates.length) return null;
+
+        const summaries = articles
+          .map(article => clean(article.summary))
+          .filter(Boolean)
+          .sort((a, b) => b.length - a.length);
+
+        const sources = [...new Set(
+          articles.map(article => clean(article.source)).filter(Boolean)
+        )];
+
+        const links = [];
+        const seenLinks = new Set();
+
+        articles.forEach(article => {
+          const url = safeUrl(article && article.link);
+          if (!url || seenLinks.has(url)) return;
+
+          seenLinks.add(url);
+          links.push({
+            source: clean(article.source) || "Original",
+            url
+          });
+        });
+
+        const dubLinks = [];
+        const seenDubLinks = new Set();
+
+        articles.forEach(article => {
+          const url = safeUrl(article && article.dub_von);
+          if (!url || seenDubLinks.has(url)) return;
+
+          seenDubLinks.add(url);
+          dubLinks.push({
+            source: clean(article.source) || "Dub-Quelle",
+            url
+          });
+        });
+
+        return {
+          id: clean(representative.story_id)
+            || clean(key)
+            || normalizeKey(representative.title),
+          key,
+          title: clean(representative.title) || "Story ohne Titel",
+          summary: summaries[0] || "Für diese Meldung liegt keine Kurzfassung vor.",
+          date: dates[0],
+          day: dateKey(dates[0]),
+          score: Math.max(1, ...articles.map(articleScore)),
+          articleCount: articles.length,
+          sources,
+          links,
+          dubLinks,
+          canonicalLinks: links.map(item => canonicalUrl(item.url)).filter(Boolean),
+          fullText: clean((fullArticles[0] || {}).full_text),
+          paywalled: articles.some(article => article.paywalled === true),
+          color: safeColor(representative.color, palette.cyan),
+          line: null,
+          dossier: false,
+          videoCard: null
+        };
+      }
+
+      function clusterStories(articles) {
+        const groups = new Map();
+
+        articles.forEach(article => {
+          const storyId = clean(article.story_id);
+          const key = storyId
+            || "title:" + (normalizeKey(article.title || article.link) || "unbekannt");
+
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(article);
+        });
+
+        return [...groups.entries()]
+          .map(entry => buildStory(entry[0], entry[1]))
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score || b.date - a.date);
+      }
+
+      const fallbackCategories = [
+        {
+          id: "chips-infrastruktur",
+          title: "Chips und Infrastruktur",
+          test: /chip|gpu|prozessor|rechenzentrum|nvidia|amd|intel|tensor|hardware|server|cloud|speicher|rechenleistung/
+        },
+        {
+          id: "sicherheit-kontrolle",
+          title: "Sicherheit und Kontrolle",
+          test: /sicherheit|sicherheitslücke|hack|hackerangriff|malware|datenklau|prompt injection|schwachstelle|missbrauch|kontroll/
+        },
+        {
+          id: "recht-politik",
+          title: "Recht und Politik",
+          test: /gericht|gesetz|regierung|behörde|autorität|europa|usa|senat|vertrag|politisch|politik|entscheidung|rechtsstreit/
+        },
+        {
+          id: "agenten-anwendungen",
+          title: "Agenten und Anwendungen",
+          test: /agent|assistant|chatbot|suchmaschine|app|application|automation|shopping|browser|arbeitsagent/
+        },
+        {
+          id: "forschung-modelle",
+          title: "Forschung und Modelle",
+          test: /modell|training|forscher|forschung|orbit|roboter|multimodal|benchmark|lernen|entwicklung/
+        },
+        {
+          id: "medien-arbeitswelt",
+          title: "Medien und Arbeitswelt",
+          test: /medien|verlag|journalist|arbeitsplatz|boschaft|creator|content|urheber|kreativ/
+        },
+        {
+          id: "unternehmen-maerkte",
+          title: "Unternehmen und Märkte",
+          test: /unternehmen|investition|markt|aktie|umsatz|gewinn|plattform|kund|amazon|microsoft|google|openai|anthropic|meta|xai/
+        }
+      ];
+
+      function fallbackLine(story) {
+        const text = normalizeWord(story.title + " " + story.summary);
+        const found = fallbackCategories.find(category => category.test.test(text)) || {
+          id: "weitere-ki-entwicklung",
+          title: "Weitere KI-Entwicklung"
+        };
+
+        return {
+          id: found.id,
+          title: found.title,
+          description: "Für diese Meldung liegt keine eindeutige Dossier-Zuordnung im lokalen Datensatz vor.",
+          color: lineColor(found.id)
+        };
+      }
+
+      function assignLines() {
+        state.stories.forEach(story => {
+          const storyText = normalizeWord(story.title + " " + story.summary);
+          const storyTermSet = new Set(terms(storyText));
+          let best = null;
+          let bestScore = 0;
+
+          state.lines.forEach(line => {
+            const overlap = line.terms.filter(term => storyTermSet.has(term)).length;
+            const normalizedTitle = normalizeWord(line.title);
+            const exact = normalizedTitle.length > 8 && storyText.includes(normalizedTitle);
+            const score = overlap + (exact ? 8 : 0);
+
+            if (score > bestScore && (score >= 2 || exact)) {
+              best = line;
+              bestScore = score;
+            }
+          });
+
+          if (best) {
+            story.line = {
+              id: best.id,
+              title: best.title,
+              description: best.description
+                || "Für diese Themenlinie liegt im lokalen Datensatz keine Beschreibung vor.",
+              color: best.color
+            };
+            story.dossier = true;
+          } else {
+            story.line = fallbackLine(story);
+            story.dossier = false;
+          }
+
+          story.color = safeColor(story.color, story.line.color);
+        });
+      }
+
+      function similarity(first, second) {
+        const firstTerms = terms(first);
+        const secondTerms = terms(second);
+
+        if (!firstTerms.length || !secondTerms.length) {
+          return { overlap: 0, jaccard: 0, containment: 0 };
+        }
+
+        const firstSet = new Set(firstTerms);
+        const secondSet = new Set(secondTerms);
+        let overlap = 0;
+
+        firstSet.forEach(term => {
+          if (secondSet.has(term)) overlap += 1;
+        });
+
+        const union = firstSet.size + secondSet.size - overlap;
+
+        return {
+          overlap,
+          jaccard: union ? overlap / union : 0,
+          containment: overlap / Math.max(1, Math.min(firstSet.size, secondSet.size))
+        };
+      }
+
+      function extractCardLinks(value) {
+        if (!Array.isArray(value)) return [];
+
+        return value.map(item => {
+          if (item && typeof item === "object") {
+            return safeUrl(item.url || item.link);
+          }
+
+          return safeUrl(item);
+        }).filter(Boolean);
+      }
+
+      function prepareCards(cards) {
+        return cards
+          .filter(card => card && typeof card === "object")
+          .map((card, index) => ({
+            index,
+            raw: card,
+            headline: clean(card.headline) || "Video-Card",
+            posterUrl: safeUrl(card.poster_url),
+            mp4Url: safeUrl(card.mp4_url),
+            date: parseDate(card.date),
+            source: clean(card.source),
+            links: extractCardLinks(card.links),
+            canonicalLinks: extractCardLinks(card.links).map(canonicalUrl).filter(Boolean)
+          }))
+          .filter(card => card.posterUrl);
+      }
+
+      function matchInfo(story, card, week) {
+        const direct = card.canonicalLinks.some(link => {
+          return story.canonicalLinks.includes(link);
+        });
+
+        const storyTitle = normalizeWord(story.title);
+        const cardTitle = normalizeWord(card.headline);
+        const exactPhrase = storyTitle.length > 5
+          && cardTitle.length > 5
+          && (cardTitle.includes(storyTitle) || storyTitle.includes(cardTitle));
+
+        const text = similarity(
+          story.title + " " + story.summary,
+          card.headline
+        );
+
+        const sourceMatch = story.sources.some(source => {
+          return normalizeWord(source) === normalizeWord(card.source);
+        });
+
+        let dateScore = 0;
+        let dateDistance = 999;
+
+        if (card.date) {
+          dateDistance = Math.abs(Math.round((story.date - card.date) / DAY_MS));
+
+          if (dateDistance <= 1) dateScore = 8;
+          else if (dateDistance <= 3) dateScore = 5;
+          else if (dateDistance <= 7) dateScore = 2;
+          else if (dateDistance <= 14) dateScore = -1;
+          else dateScore = -5;
+        }
+
+        const qualifies = direct
+          || exactPhrase
+          || (text.overlap >= 2 && text.containment >= .35)
+          || (text.overlap >= 3 && text.jaccard >= .16)
+          || (text.overlap >= 1 && text.containment >= .7 && sourceMatch);
+
+        const score = (direct ? 10000 : 0)
+          + (exactPhrase ? 80 : 0)
+          + text.overlap * 7
+          + text.jaccard * 24
+          + text.containment * 13
+          + (sourceMatch ? 3 : 0)
+          + dateScore
+          + story.score * .001;
+
+        return {
+          direct,
+          qualifies,
+          score,
+          dateDistance,
+          text
+        };
+      }
+
+      function attachCards(week) {
+        state.stories.forEach(story => {
+          story.videoCard = null;
+        });
+
+        if (!state.cards.length || !state.stories.length) return;
+
+        const candidates = [];
+        const usedCards = new Set();
+        const assignedStories = new Set();
+
+        state.stories.forEach(story => {
+          state.cards.forEach(card => {
+            const info = matchInfo(story, card, week);
+            if (!info.qualifies) return;
+
+            candidates.push({
+              story,
+              card,
+              info
+            });
+          });
+        });
+
+        candidates.sort((first, second) => {
+          return second.info.score - first.info.score
+            || first.info.dateDistance - second.info.dateDistance
+            || second.story.score - first.story.score;
+        });
+
+        candidates.forEach(candidate => {
+          if (usedCards.has(candidate.card.index)) return;
+          if (assignedStories.has(candidate.story.id)) return;
+
+          candidate.story.videoCard = candidate.card;
+          usedCards.add(candidate.card.index);
+          assignedStories.add(candidate.story.id);
+        });
+      }
+
+      function rankScore(story, week) {
+        const age = Math.max(
+          0,
+          Math.floor((week.end - story.date) / DAY_MS)
+        );
+
+        return story.score
+          + Math.max(0, 4 - age) * 1.25
+          + Math.max(0, story.articleCount - 1) * 2;
+      }
+
+      function countDossiers(week) {
+        const ids = new Set();
+
+        state.lines.forEach(line => {
+          const inWeek = line.entryDates.some(date => {
+            return date >= week.start && date <= week.end;
+          });
+
+          if (inWeek) ids.add(line.id);
+        });
+
+        state.stories.forEach(story => {
+          if (story.dossier) ids.add(story.line.id);
+        });
+
+        return ids.size;
+      }
+
+      function entityCandidates(entity) {
+        const values = [clean(entity && entity.id)];
+
+        if (Array.isArray(entity && entity.aliasse)) {
+          entity.aliasse.forEach(alias => {
+            const simplified = clean(alias)
+              .replace(/\\s\??/gi, " ")
+              .replace(/\\s\*/gi, "")
+              .replace(/[\\^$*+?.()|[\]{}]/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+
+            if (simplified) values.push(simplified);
+          });
+        }
+
+        return [...new Set(values
+          .map(value => normalizeWord(value))
+          .filter(value => value.length >= 3)
+        )];
+      }
+
+      function articleMentionsEntity(article, candidates) {
+        const text = normalizeWord(
+          clean(article.title)
+          + " "
+          + clean(article.summary)
+          + " "
+          + clean(article.dub_von)
+        );
+
+        if (!text) return false;
+
+        const words = text.split(/\s+/);
+
+        return candidates.some(candidate => {
+          if (candidate.includes(" ") && text.includes(candidate)) return true;
+
+          if (!candidate.includes(" ") && candidate.length >= 4 && text.includes(candidate)) {
+            return true;
+          }
+
+          const parts = candidate.split(/\s+/).filter(Boolean);
+
+          if (parts.length > 1) {
+            return parts.every(part => words.includes(part));
+          }
+
+          return words.some(word => {
+            return word === candidate
+              || (candidate.length >= 4 && word === candidate + "s")
+              || (candidate.length >= 5 && word === candidate + "e");
+          });
+        });
+      }
+
+      function mostMentionedManufacturers() {
+        const manufacturers = state.entities
+          .filter(entity => {
+            return /anbieter|hersteller|company/i.test(clean(entity && entity.typ));
+          })
+          .map(entity => ({
+            name: clean(entity.id),
+            candidates: entityCandidates(entity),
+            count: 0
+          }))
+          .filter(manufacturer => {
+            return manufacturer.name && manufacturer.candidates.length;
+          });
+
+        if (!manufacturers.length) return [];
+
+        state.selectedArticles.forEach(article => {
+          manufacturers.forEach(manufacturer => {
+            if (articleMentionsEntity(article, manufacturer.candidates)) {
+              manufacturer.count += 1;
+            }
+          });
+        });
+
+        const maximum = Math.max(
+          ...manufacturers.map(manufacturer => manufacturer.count)
+        );
+
+        if (maximum <= 0) return [];
+
+        return manufacturers
+          .filter(manufacturer => manufacturer.count === maximum)
+          .sort((a, b) => a.name.localeCompare(b.name, "de"));
+      }
+
+      function createEmpty(title, text, extraClass = "") {
+        const empty = element("div", ("px-empty " + extraClass).trim());
+        const inner = document.createElement("div");
+
+        if (extraClass.indexOf("px-empty-day") !== -1) {
+          inner.append(
+            element("h3", "", title),
+            element("p", "", text)
+          );
+        } else {
+          inner.append(
+            element("div", "px-empty-symbol", "0"),
+            element("h2", "", title),
+            element("p", "", text)
+          );
+        }
+
+        empty.append(inner);
+        return empty;
+      }
+
+      function renderWeekMeta(week) {
+        nodes.weekTitle.textContent = formatRange(week.start, week.end);
+        nodes.weekRange.textContent = week.index === 0
+          ? "Aktuelle Datenwoche"
+          : "Archivwoche " + numberFormatter.format(week.index);
+
+        nodes.weekStand.textContent = "Datenstand: " + formatStand(state.stand);
+        nodes.weekPrev.disabled = state.weekIndex >= state.weeks.length - 1;
+        nodes.weekNext.disabled = state.weekIndex <= 0;
+      }
+
+      function buildWeekDates(week) {
+        const dates = [];
+
+        for (let index = 0; index < 7; index += 1) {
+          const date = new Date(week.start.getTime() + index * DAY_MS);
+          dates.push({ date, key: dateKey(date) });
+        }
+
+        return dates;
+      }
+
+      function renderPulse(week) {
+        const days = buildWeekDates(week);
+        const counts = days.map(day => {
+          return state.selectedArticles.filter(article => {
+            return dateKey(articleDate(article)) === day.key;
+          }).length;
+        });
+
+        const maximum = Math.max(1, ...counts);
+        const fragment = document.createDocumentFragment();
+
+        days.forEach((day, index) => {
+          const bar = element("span", "px-pulse-bar");
+          const height = counts[index]
+            ? 18 + Math.round((counts[index] / maximum) * 78)
+            : 8;
+
+          bar.style.setProperty("--px-pulse-height", height + "%");
+          bar.setAttribute("aria-hidden", "true");
+
+          fragment.append(bar);
+        });
+
+        nodes.weekPulse.replaceChildren(fragment);
+        nodes.weekPulse.hidden = false;
+      }
+
+      function renderStats(week) {
+        const dossierCount = countDossiers(week);
+        const manufacturers = mostMentionedManufacturers();
+        const fragment = document.createDocumentFragment();
+
+        const stats = [
+          {
+            label: "Meldungen",
+            value: numberFormatter.format(state.selectedArticles.length),
+            note: "Datensätze in der ausgewählten Woche",
+            text: false
+          },
+          {
+            label: "Dossiers",
+            value: numberFormatter.format(dossierCount),
+            note: "Themenlinien mit Datumsbezug",
+            text: false
+          },
+          {
+            label: "Meistgenannter Hersteller",
+            value: manufacturers.length
+              ? manufacturers.map(item => item.name).join(" / ")
+              : "nicht ermittelbar",
+            note: manufacturers.length
+              ? numberFormatter.format(manufacturers[0].count) + " Artikel mit Treffern"
+              : "Keine belastbare Zuordnung",
+            text: true
+          }
+        ];
+
+        stats.forEach(item => {
+          const card = element("article", "px-stat");
+          const value = element(
+            "strong",
+            "px-stat-value" + (item.text ? " px-stat-text" : ""),
+            item.value
+          );
+
+          card.append(
+            element("span", "px-stat-label", item.label),
+            value,
+            element("span", "px-stat-note", item.note)
+          );
+
+          fragment.append(card);
+        });
+
+        nodes.stats.replaceChildren(fragment);
+      }
+
+      function releaseMedia(container) {
+        if (!container) return;
+
+        container.querySelectorAll("video").forEach(video => {
+          try {
+            video.pause();
+          } catch (_) {}
+        });
+      }
+
+      function createVideoFigure(story, featured = false) {
+        const card = story.videoCard;
+        const figure = element("figure", "px-video-figure");
+        const frame = element("div", "px-video-frame");
+        const missing = element(
+          "div",
+          "px-video-missing",
+          card ? "Video-Card" : "Keine belastbare Zuordnung"
+        );
+
+        frame.append(missing);
+
+        let image = null;
+        let video = null;
+        let activated = false;
+
+        if (card) {
+          image = document.createElement("img");
+          image.className = "px-video-image";
+          image.src = card.posterUrl;
+          image.alt = "Poster der zugeordneten Video-Card";
+          image.loading = featured ? "eager" : "lazy";
+          image.decoding = "async";
+          image.referrerPolicy = "no-referrer";
+
+          try {
+            image.fetchPriority = featured ? "high" : "auto";
+          } catch (_) {}
+
+          image.addEventListener("error", () => {
+            image.hidden = true;
+            missing.textContent = "Poster nicht verfügbar";
+          }, { once: true });
+
+          frame.append(image);
+        }
+
+        const top = element("div", "px-video-top");
+
+        top.append(
+          element("span", "px-video-label", card ? "Video-Card" : "Ohne Karte"),
+          element(
+            "span",
+            "px-video-duration",
+            card ? formatDuration(card.raw.duration) : "Hinweis"
+          )
+        );
+
+        const hint = featured
+          ? "Desktop: Hover, Mobil: Tippen"
+          : "Tippen für stummen Loop";
+
+        const playButton = element("button", "px-video-play", card ? "▶" : "-");
+        playButton.type = "button";
+        playButton.disabled = !card || !card.mp4Url;
+        playButton.setAttribute("aria-pressed", "false");
+        playButton.setAttribute(
+          "aria-label",
+          card && card.mp4Url
+            ? "Stummes Video abspielen oder pausieren"
+            : "Für diese Zuordnung ist kein MP4 verfügbar"
+        );
+
+        frame.append(top, playButton, element("span", "px-video-hint", hint));
+
+        function syncButton() {
+          const playing = Boolean(video && !video.paused && !video.ended);
+
+          playButton.textContent = playing ? "Ⅱ" : "▶";
+          playButton.setAttribute("aria-pressed", playing ? "true" : "false");
+          playButton.setAttribute(
+            "aria-label",
+            playing
+              ? "Stummes Video pausieren"
+              : "Stummes Video abspielen"
+          );
+        }
+
+        function activate() {
+          if (!card || !card.mp4Url || activated) return Boolean(video);
+
+          activated = true;
+          video = document.createElement("video");
+          video.className = "px-video";
+          video.preload = "none";
+          video.muted = true;
+          video.defaultMuted = true;
+          video.loop = true;
+          video.playsInline = true;
+          video.controls = false;
+          video.disablePictureInPicture = true;
+          video.poster = card.posterUrl;
+          video.setAttribute("preload", "none");
+          video.setAttribute("playsinline", "");
+          video.setAttribute("muted", "");
+          video.setAttribute("loop", "");
+          video.setAttribute("aria-label", "Stumme Video-Card");
+
+          const source = document.createElement("source");
+          source.src = card.mp4Url;
+          source.type = "video/mp4";
+          video.append(source);
+
+          frame.insertBefore(video, top);
+
+          video.addEventListener("play", syncButton);
+          video.addEventListener("pause", syncButton);
+          video.addEventListener("ended", syncButton);
+
+          video.addEventListener("loadeddata", () => {
+            video.classList.add("px-video-ready");
+            if (image) image.style.opacity = "0";
+          });
+
+          video.addEventListener("error", () => {
+            video.classList.remove("px-video-ready");
+            playButton.disabled = true;
+            playButton.textContent = "!";
+            playButton.setAttribute("aria-label", "Video konnte nicht geladen werden");
+            missing.textContent = "Video nicht verfügbar";
+          }, { once: true });
+
+          return true;
+        }
+
+        function play() {
+          if (!card || !card.mp4Url) return;
+
+          activate();
+          if (!video) return;
+
+          try {
+            const request = video.play();
+
+            if (request && typeof request.catch === "function") {
+              request.catch(() => {
+                syncButton();
+              });
+            }
+          } catch (_) {
+            syncButton();
+          }
+        }
+
+        function pause() {
+          if (!video) return;
+
+          try {
+            video.pause();
+          } catch (_) {}
+        }
+
+        function toggle() {
+          if (!card || !card.mp4Url) return;
+
+          if (!video) {
+            play();
+            return;
+          }
+
+          if (video.paused || video.ended) play();
+          else pause();
+        }
+
+        playButton.addEventListener("click", event => {
+          event.preventDefault();
+          event.stopPropagation();
+          toggle();
+        });
+
+        frame.addEventListener("click", event => {
+          if (
+            event.target === frame
+            || event.target === image
+            || event.target === video
+            || event.target === missing
+          ) {
+            toggle();
+          }
+        });
+
+        frame.addEventListener("pointerenter", event => {
+          if (
+            !card
+            || !card.mp4Url
+            || !hoverMedia.matches
+            || reducedMotion.matches
+            || event.pointerType === "touch"
+          ) {
+            return;
+          }
+
+          play();
+        });
+
+        frame.addEventListener("pointerleave", event => {
+          if (hoverMedia.matches && event.pointerType !== "touch") pause();
+        });
+
+        frame.addEventListener("pointercancel", pause);
+
+        figure.append(frame);
+        figure.append(element(
+          "figcaption",
+          "px-video-caption",
+          card ? card.headline : "Keine passende Video-Card gefunden"
+        ));
+
+        return figure;
+      }
+
+      function createDossier(story) {
+        const details = element("details", "px-dossier");
+        const summary = element("summary", "", "Dossier und Quellen");
+        const body = element("div", "px-dossier-body");
+
+        body.append(
+          element("p", "px-dossier-label", "Themenlinie"),
+          element("p", "px-dossier-text", story.line.description)
+        );
+
+        if (story.fullText) {
+          body.append(
+            element("p", "px-dossier-label", "Lokaler Volltext"),
+            element("p", "px-dossier-text", story.fullText.slice(0, 4500))
+          );
+        } else {
+          body.append(
+            element("p", "px-dossier-label", "Datenhinweis"),
+            element(
+              "p",
+              "px-dossier-text",
+              "Der lokale Datensatz enthält keinen Volltext. Die verlinkte Originalquelle bleibt verfügbar."
+            )
+          );
+        }
+
+        if (story.videoCard) {
+          body.append(
+            element("p", "px-dossier-label", "Video-Card"),
+            element("p", "px-dossier-text", story.videoCard.headline)
+          );
+        }
+
+        const links = [...story.links, ...story.dubLinks].slice(0, 6);
+
+        if (links.length) {
+          const linkWrap = element("div", "px-dossier-links");
+
+          links.forEach(item => {
+            const link = element("a", "px-source-link", item.source + " öffnen ↗");
+            link.href = item.url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            linkWrap.append(link);
+          });
+
+          body.append(linkWrap);
+        }
+
+        details.append(summary, body);
+        return details;
+      }
+
+      function weekLabel(week) {
+        return "KW " + numberFormatter.format(isoWeek(week.start));
+      }
+
+      function createLeadStory(story, week) {
+        const card = element("article", "px-focus-lead");
+        card.style.setProperty("--px-story-color", story.color);
+
+        const copy = element("div", "px-focus-copy");
+        const top = element("div", "px-focus-top");
+
+        top.append(
+          element("span", "px-rank", "Rang 01"),
+          element("span", "px-pill", story.line.title),
+          element("span", "px-score", "Score " + numberFormatter.format(Math.round(story.score)))
+        );
+
+        copy.append(
+          top,
+          element("h3", "px-focus-title", story.title),
+          element("p", "px-focus-summary", story.summary)
+        );
+
+        const footer = element("div", "px-focus-footer");
+
+        footer.append(
+          element("span", "px-meta px-source", story.sources.slice(0, 3).join(" / ") || "Quelle offen"),
+          element("span", "px-meta", formatLongDate(story.date) + " / " + weekLabel(week))
+        );
+
+        copy.append(footer, createDossier(story));
+
+        const media = element("div", "px-focus-media");
+        media.append(createVideoFigure(story, true));
+
+        card.append(copy, media);
+        return card;
+      }
+
+      function createSideStory(story, index) {
+        const card = element("article", "px-focus-side px-side-story");
+        card.style.setProperty("--px-story-color", story.color);
+
+        const copy = element("div", "px-focus-side-copy");
+        const top = element("div", "px-focus-top");
+
+        top.append(
+          element("span", "px-rank", "Rang 0" + String(index)),
+          element("span", "px-pill", story.line.title),
+          element("span", "px-score", "Score " + numberFormatter.format(Math.round(story.score)))
+        );
+
+        copy.append(
+          top,
+          element("h3", "px-side-title", story.title),
+          element("p", "px-side-summary", story.summary),
+          createDossier(story)
+        );
+
+        card.append(copy, createVideoFigure(story, false));
+        return card;
+      }
+
+      function renderTop(week) {
+        releaseMedia(nodes.topLayout);
+        nodes.topLayout.classList.remove("px-top-single");
+
+        if (!state.topStories.length) {
+          nodes.topLayout.replaceChildren(createEmpty(
+            "Keine Top-Storys",
+            "Für diesen Zeitraum liegen keine verwertbaren Nachrichten vor."
+          ));
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        fragment.append(createLeadStory(state.topStories[0], week));
+
+        if (state.topStories.length > 1) {
+          const side = element("div", "px-side-grid");
+
+          state.topStories.slice(1, 3).forEach((story, index) => {
+            side.append(createSideStory(story, index + 2));
+          });
+
+          fragment.append(side);
+        } else {
+          nodes.topLayout.classList.add("px-top-single");
+        }
+
+        nodes.topLayout.replaceChildren(fragment);
+      }
+
+      function createStoryCard(story, week) {
+        const card = element("article", "px-story-card");
+        card.style.setProperty("--px-story-color", story.color);
+
+        const copy = element("div", "px-story-copy");
+        const top = element("div", "px-story-top");
+
+        top.append(
+          element("span", "px-rank", "Story"),
+          element("span", "px-pill", story.line.title),
+          element("span", "px-score", "Score " + numberFormatter.format(Math.round(story.score)))
+        );
+
+        copy.append(
+          top,
+          element("h3", "px-story-title", story.title),
+          element("p", "px-story-summary", story.summary)
+        );
+
+        const meta = element("div", "px-card-meta");
+
+        meta.append(
+          element("strong", "", story.sources.slice(0, 2).join(" / ") || "Quelle offen"),
+          element("span", "", numberFormatter.format(story.articleCount) + " Artikel"),
+          element("span", "", weekLabel(week)),
+          element("span", "", story.videoCard ? "Video" : "Nur Text")
+        );
+
+        copy.append(meta, createDossier(story));
+
+        const media = element("div", "px-story-media");
+        media.append(createVideoFigure(story, false));
+
+        card.append(copy, media);
+        return card;
+      }
+
+      function renderDays(week) {
+        releaseMedia(nodes.days);
+
+        const fragment = document.createDocumentFragment();
+        const featuredIds = new Set(state.topStories.map(story => story.id));
+        const remaining = state.stories.filter(story => !featuredIds.has(story.id));
+
+        buildWeekDates(week).forEach(day => {
+          const section = element("section", "px-day");
+          section.id = "px-day-" + day.key;
+          section.setAttribute("aria-labelledby", "px-day-heading-" + day.key);
+
+          const stories = remaining
+            .filter(story => story.day === day.key)
+            .sort((a, b) => rankScore(b, week) - rankScore(a, week));
+
+          const head = element("div", "px-day-head");
+          const heading = element("h3", "px-day-heading", formatLongDate(day.date));
+          heading.id = "px-day-heading-" + day.key;
+
+          head.append(
+            heading,
+            element("span", "px-day-line"),
+            element(
+              "span",
+              "px-day-count",
+              formatShortDate(day.date) + " / " + stories.length
+            )
+          );
+
+          section.append(head);
+
+          if (!stories.length) {
+            section.append(createEmpty(
+              "Keine weiteren Meldungen",
+              "Für dieses Datum enthält der lokale Datensatz keine weitere lesbare Story.",
+              "px-empty-day"
+            ));
+          } else {
+            const grid = element("div", "px-story-grid");
+
+            stories.forEach(story => {
+              grid.append(createStoryCard(story, week));
+            });
+
+            section.append(grid);
+          }
+
+          fragment.append(section);
+        });
+
+        nodes.days.replaceChildren(fragment);
+      }
+
+      function renderCurrentWeek() {
+        const week = state.weeks[state.weekIndex];
+        if (!week) return;
+
+        state.selectedArticles = week.articles.slice();
+        state.stories = clusterStories(state.selectedArticles);
+        assignLines();
+        attachCards(week);
+
+        state.topStories = state.stories
+          .slice()
+          .sort((a, b) => rankScore(b, week) - rankScore(a, week))
+          .slice(0, 3);
+
+        renderWeekMeta(week);
+        renderPulse(week);
+        renderStats(week);
+        renderTop(week);
+        renderDays(week);
+      }
+
+      function showMessage(message) {
+        clearTimeout(state.messageTimer);
+        nodes.message.textContent = clean(message);
+        nodes.message.classList.add("px-live-message-on");
+
+        state.messageTimer = window.setTimeout(() => {
+          nodes.message.classList.remove("px-live-message-on");
+        }, 4800);
+      }
+
+      async function fetchRelative(path) {
+        const response = await fetch(path, {
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error(path + " konnte nicht geladen werden");
+        }
+
+        return response.json();
+      }
+
+      function isDarkTheme() {
+        return document.documentElement.dataset.theme === "dark"
+          || document.documentElement.classList.contains("dark")
+          || document.body.dataset.theme === "dark"
+          || document.body.classList.contains("dark");
+      }
+
+      function syncThemeMeta() {
+        const meta = document.querySelector('meta[name="theme-color"]');
+
+        if (meta) {
+          meta.setAttribute(
+            "content",
+            isDarkTheme() ? "#080d1b" : "#edf4f8"
+          );
+        }
+      }
+
+      function setTheme(theme, persist) {
+        const value = theme === "dark" ? "dark" : "light";
+
+        document.documentElement.dataset.theme = value;
+        document.body.dataset.theme = value;
+        syncThemeMeta();
+
+        if (persist) {
+          try {
+            localStorage.setItem("ki-theme", value);
+          } catch (_) {}
+        }
+      }
+
+      function initTheme() {
+        let stored = null;
+
+        try {
+          stored = localStorage.getItem("ki-theme");
+        } catch (_) {}
+
+        const existing = document.documentElement.dataset.theme
+          || document.body.dataset.theme
+          || document.documentElement.classList.contains("dark")
+          || document.body.classList.contains("dark");
+
+        const prefersDark = typeof window.matchMedia === "function"
+          && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        if (!existing) {
+          setTheme(stored || (prefersDark ? "dark" : "light"), false);
+        } else {
+          syncThemeMeta();
+        }
+
+        if (nodes.themeButton) {
+          nodes.themeButton.addEventListener("click", () => {
+            setTheme(isDarkTheme() ? "light" : "dark", true);
+          });
+        }
+
+        if ("MutationObserver" in window) {
+          const observer = new MutationObserver(syncThemeMeta);
+
+          observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["data-theme", "class"]
+          });
+
+          observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ["data-theme", "class"]
+          });
+        }
+      }
+
+      function ensureSharedLayout() {
+        if (!nodes.fallbackHeader) return;
+
+        let attempts = 0;
+        const timer = window.setInterval(() => {
+          attempts += 1;
+
+          const shared = [...document.querySelectorAll("header")].find(header => {
+            return header !== nodes.fallbackHeader
+              && !header.contains(nodes.fallbackHeader)
+              && !nodes.fallbackHeader.contains(header);
+          });
+
+          const mountedLayout = document.querySelector(
+            "body > [data-ki-header], body > #ki-header, body > #site-header"
+          );
+
+          if (shared || mountedLayout) {
+            nodes.fallbackHeader.remove();
+            window.clearInterval(timer);
+            syncThemeMeta();
+          } else if (attempts >= 16) {
+            window.clearInterval(timer);
+          }
+        }, 100);
+      }
+
+      function bindWeekControls() {
+        nodes.weekPrev.addEventListener("click", () => {
+          if (state.weekIndex >= state.weeks.length - 1) return;
+
+          state.weekIndex += 1;
+          renderCurrentWeek();
+          window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
+        });
+
+        nodes.weekNext.addEventListener("click", () => {
+          if (state.weekIndex <= 0) return;
+
+          state.weekIndex -= 1;
+          renderCurrentWeek();
+          window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
+        });
+      }
+
+      function setUnavailable() {
+        nodes.weekTitle.textContent = "Keine Woche verfügbar";
+        nodes.weekRange.textContent = "Der lokale Datenpfad ist nicht erreichbar.";
+        nodes.weekStand.textContent = "Datenstand: offen";
+        nodes.weekPulse.hidden = true;
+        nodes.weekPulse.replaceChildren();
+        nodes.weekPrev.disabled = true;
+        nodes.weekNext.disabled = true;
+
+        const fragment = document.createDocumentFragment();
+        const values = ["0", "0", "nicht ermittelbar"];
+        const labels = ["Meldungen", "Dossiers", "Meistgenannter Hersteller"];
+        const notes = ["keine lokalen Daten", "keine lokalen Daten", "keine Entity-Registry"];
+
+        for (let index = 0; index < values.length; index += 1) {
+          const card = element("article", "px-stat");
+
+          card.append(
+            element("span", "px-stat-label", labels[index]),
+            element(
+              "strong",
+              "px-stat-value" + (index === 2 ? " px-stat-text" : ""),
+              values[index]
+            ),
+            element("span", "px-stat-note", notes[index])
+          );
+
+          fragment.append(card);
+        }
+
+        nodes.stats.replaceChildren(fragment);
+
+        nodes.topLayout.replaceChildren(createEmpty(
+          "Daten nicht verfügbar",
+          "news.json und archive.json konnten nicht geladen werden. Bitte prüfe die relativen Pfade und starte die Seite über einen Webserver."
+        ));
+
+        nodes.days.replaceChildren(createEmpty(
+          "Keine Wochenübersicht",
+          "Die lokale Datendatei ist nicht erreichbar oder enthält kein unterstütztes Format."
+        ));
+      }
+
+      async function initData() {
+        try {
+          const results = await Promise.allSettled([
+            fetchRelative("news.json"),
+            fetchRelative("archive.json"),
+            fetchRelative("cards.json"),
+            fetchRelative("entities.json")
+          ]);
+
+          const newsPayload = results[0].status === "fulfilled"
+            ? results[0].value
+            : null;
+
+          const archivePayload = results[1].status === "fulfilled"
+            ? results[1].value
+            : null;
+
+          const cardsPayload = results[2].status === "fulfilled"
+            ? results[2].value
+            : null;
+
+          const entitiesPayload = results[3].status === "fulfilled"
+            ? results[3].value
+            : null;
+
+          const newsArticles = extractNews(newsPayload);
+          const archiveArticles = extractNews(archivePayload);
+
+          if (!newsArticles.length && !archiveArticles.length) {
+            throw new Error("Keine lesbaren Nachrichtendaten");
+          }
+
+          state.cards = prepareCards(extractCards(cardsPayload));
+          state.entities = extractEntities(entitiesPayload);
+          state.lines = mergeLines(
+            extractLines(newsPayload),
+            extractLines(archivePayload)
+          );
+
+          state.weeks = buildWeeks(newsArticles, archiveArticles);
+          state.weekIndex = 0;
+
+          if (newsPayload && typeof newsPayload === "object" && !Array.isArray(newsPayload)) {
+            state.stand = clean(
+              newsPayload.stand
+              || (newsPayload.briefing && newsPayload.briefing.datum)
+            );
+          }
+
+          if (
+            !state.stand
+            && archivePayload
+            && typeof archivePayload === "object"
+            && !Array.isArray(archivePayload)
+          ) {
+            state.stand = clean(archivePayload.stand);
+          }
+
+          if (!state.weeks.length) {
+            throw new Error("Keine gültigen Datumswerte");
+          }
+
+          renderCurrentWeek();
+
+          const failed = [];
+
+          if (results[0].status === "rejected") failed.push("news.json");
+          if (results[1].status === "rejected") failed.push("archive.json");
+          if (results[2].status === "rejected") failed.push("cards.json");
+          if (results[3].status === "rejected") failed.push("entities.json");
+
+          if (failed.length) {
+            showMessage(
+              "Nicht verfügbar: " + failed.join(", ")
+                + ". Die übrigen lokalen Daten werden weiter genutzt."
+            );
+          }
+        } catch (_) {
+          setUnavailable();
+        }
+      }
+
+      function init() {
+        initTheme();
+        ensureSharedLayout();
+        bindWeekControls();
+        initData();
+
+        window.setTimeout(() => {
+          if (window.kiIcons && typeof window.kiIcons.render === "function") {
+            try {
+              window.kiIcons.render(document.body);
+            } catch (_) {}
+          }
+        }, 350);
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            releaseMedia(nodes.topLayout);
+            releaseMedia(nodes.days);
+          }
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init, { once: true });
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>
