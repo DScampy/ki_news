@@ -1640,9 +1640,12 @@
 
       function normalizeURL(value) {
         if (typeof value !== "string" || !value.trim()) return "";
+        // Nur absolute Links: ein Quellname wie "Golem" wurde sonst relativ zur Seite
+        // aufgeloest ("127.0.0.1/Golem") und ordnete jeder Golem-Meldung irgendeine Golem-Karte zu.
+        if (!/^https?:\/\//i.test(value.trim())) return "";
 
         try {
-          const parsed = new URL(value, window.location.href);
+          const parsed = new URL(value.trim());
           if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "";
 
           parsed.hash = "";
@@ -1765,8 +1768,10 @@
       }
 
       function recordKey(record) {
-        if (record.storyId) return "story:" + record.storyId;
+        // Link vor story_id: die story_id wird je Pipeline-Lauf neu vergeben (s001 von Montag ist
+        // nicht s001 von Dienstag), taugt also ueber Tage hinweg nicht als Schluessel.
         if (record.normalizedLink) return "link:" + record.normalizedLink;
+        if (record.storyId) return "story:" + record.storyId;
         return "title:" + record.title.toLocaleLowerCase("de-DE");
       }
 
@@ -3375,9 +3380,9 @@
           const usedCards = new Set();
 
           for (const story of selected) {
-            story.key = story.storyId
-              ? "story:" + story.storyId
-              : story.normalizedLink || "title:" + story.title;
+            story.key = story.normalizedLink
+              ? "link:" + story.normalizedLink
+              : story.storyId ? "story:" + story.storyId : "title:" + story.title;
 
             const match = matchCard(story, cardIndex, usedCards);
             story.card = match ? match.card : null;
