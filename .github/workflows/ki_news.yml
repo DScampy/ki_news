@@ -177,6 +177,17 @@ jobs:
         run: python3 hersteller_feed.py 2>&1 | tee -a ki_news.log
         continue-on-error: true
 
+      # 28.09.26 (Auftrag 10 Punkt 7): X-Post, Video und Analysen zu Releases (hersteller.json)
+      # und X-Post der Quelle zu Top-Meldungen (news.json) - ausschliesslich ueber die
+      # HuggingNews-API (selectedTweets / Story-Video), nur fest gepflegte offizielle Konten.
+      # Keine X-API. Funde in x_quellen.json (Feed reicht nur 3 Tage zurueck).
+      - name: X-Posts ueber HuggingNews (x_quellen.py)
+        env:
+          HUGGINGNEWS_API_KEY: ${{ secrets.HUGGINGNEWS_API }}
+        run: python3 x_quellen.py 2>&1 | tee -a ki_news.log
+        timeout-minutes: 4
+        continue-on-error: true
+
       # Entwurfs-Automaten (28.09.26, Auftrag 5/7.1): Chronoskop-Dossiers aus den Linien
       # (news.json) und "<Modell>: was es kann" aus hersteller.json. --nur-entwurf: schreibt
       # ausschliesslich nach artikel/entwurf/ (noindex, nirgends verlinkt); Freigaben aus
@@ -288,6 +299,8 @@ jobs:
             git add belegarchiv.json 2>/dev/null || true
             # Hersteller-Releases (28.09.26): Kachel "Frisch auf dem Markt" im Start-Hero.
             git add hersteller.json 2>/dev/null || true
+            # X-Posts ueber HuggingNews (28.09.26): Gedaechtnis der Funde
+            git add x_quellen.json 2>/dev/null || true
             # Entwurfs-Automaten (28.09.26): nur der Entwurfsordner, noindex.
             git add artikel/entwurf/ 2>/dev/null || true
             # Themenkette (14.09.26): Schattendatei, Urteils-Cache fuer den naechsten Lauf.
