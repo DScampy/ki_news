@@ -209,6 +209,38 @@ jobs:
           # gar kein news.json.
           python3 add_reactions.py || echo "::warning::add_reactions.py fehlgeschlagen - news.json bleibt ohne Reactions-Update"
 
+      # 28.09.26 (Auftrag 10, Daniel): Meldungsbilder einmal als WebP ins Medien-Repo
+      # (ki_news_media/bilder/640 + /1600, Name = Hash der Original-URL) und image_local /
+      # image_local_gross in news.json + archive.json. Die Seiten nutzen image_local, sonst das
+      # Original - Bilder bleiben so auch erhalten, wenn die Quelle sie loescht.
+      # Gleiches Muster wie "Karten ins Medien-Repo": ein Orphan-Commit, force-push; cards/ aus
+      # dem Klon bleibt unberuehrt. GitHub Pages erlaubt 1 GB je Site -> 1600er nach
+      # BILDER_GROSS_TAGE Tagen weg (640er bleiben). Ohne SECRETS_PAT oder bei Fehler: nichts.
+      - name: Bilder ins Medien-Repo (image_local)
+        env:
+          SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
+          BILDER_GROSS_TAGE: "60"
+        run: |
+          if [ -z "$SECRETS_PAT" ]; then echo "SECRETS_PAT fehlt - kein Bilder-Spiegel."; exit 0; fi
+          pip install --quiet pillow
+          M=/tmp/ki_news_media_bilder
+          URL="https://x-access-token:${SECRETS_PAT}@github.com/DScampy/ki_news_media.git"
+          rm -rf "$M"
+          git clone --quiet --depth 1 "$URL" "$M"
+          cp news.json archive.json /tmp/ 2>/dev/null || true
+          python3 bilder_spiegel.py --ziel "$M/bilder" 2>&1 | tee -a ki_news.log
+          cd "$M"
+          git checkout --quiet --orphan neu
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "Bilder-Spiegel $(date -u +%Y-%m-%dT%H:%MZ)"
+          if ! git push --quiet --force origin neu:main; then
+            echo "::warning::Bilder-Spiegel: Push fehlgeschlagen - image_local wird zurueckgenommen."
+            cd "$GITHUB_WORKSPACE"; cp /tmp/news.json /tmp/archive.json . ; exit 0
+          fi
+        timeout-minutes: 8
+        continue-on-error: true
+
       - name: Dateien ins Repo committen
         run: |
           git config user.name "github-actions"
