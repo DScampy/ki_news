@@ -215,7 +215,7 @@ function neonBloom(){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalComposit
 
 // Typo: Stichworte kommen aus karten_v2.typo_worte (Zahl, Modell, Anbieter, laengste Hauptwoerter)
 function typoWorte(){let w=(K.typo_worte||[]).filter(Boolean);
-  if(!w.length)w=(K.titel||'').split(/[\s\-:,.;!?„“"]+/).filter(x=>x.length>4).sort((a,b)=>b.length-a.length).slice(0,2);
+  // kein Rueckfall auf beliebige Titelwoerter: ohne Stichworte vergibt karten_v2.py gar keinen Typo-Stil
   return w.slice(0,3).map(x=>x.toUpperCase())}
 const TW=typoWorte();
 function typoGrund(t){
