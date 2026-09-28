@@ -518,13 +518,17 @@ def _ssr_briefing_block(briefing):
         "        .ki-morgenlage-rahmen:focus-within .ki-morgenlage-band{animation-play-state:paused}",
         "        @media (prefers-reduced-motion:reduce){",
         "          .ki-morgenlage-band{animation:none}",
-        "          .ki-morgenlage-rahmen{overflow-x:auto}",
+        "          .ki-morgenlage-fenster{overflow-x:auto}",
         "          .ki-morgenlage-band a[aria-hidden]{display:none}",
         "        }",
         "      </style>",
         f'      <div class="ki-morgenlage-rahmen" style="{style_rahmen}" aria-label="Morgenlage">',
         f'        <span style="{style_label}">Morgenlage {_html.escape(uhrzeit)}</span>',
-        f'        <div class="ki-morgenlage-band">{band}{kopie}</div>',
+        # Eigenes Fenster fuers Band (28.09.26): vorher lief das Band per translateX
+        # unter die Beschriftung "Morgenlage" (auf dem Handy sichtbar ueberlappend).
+        '        <div class="ki-morgenlage-fenster" style="flex:1 1 auto;min-width:0;overflow:hidden;">',
+        f'          <div class="ki-morgenlage-band">{band}{kopie}</div>',
+        "        </div>",
     ]
     teile.append("      </div>")
     teile.append("      <!-- SSR:BRIEFING:END -->")
