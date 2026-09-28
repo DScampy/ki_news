@@ -64,4 +64,31 @@
     wrap.appendChild(img);
     return wrap;
   };
+  /* 29.09.26: kiLogosAuto(selector) - setzt ein kleines Logo vor jede passende Ueberschrift,
+     auch fuer spaeter nachgeladene Inhalte (MutationObserver). Nur ein Logo je Element. */
+  window.kiLogosAuto = function (selector, px) {
+    var sel = selector || 'main h2, main h3';
+    function deko(root) {
+      var els = (root.querySelectorAll ? root.querySelectorAll(sel) : []);
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.__kiLogo || el.closest('nav, header, .ki-nav, #kl-nav, .ki-logo')) continue;
+        el.__kiLogo = true;
+        var logo = window.kiLogoEl(el.textContent.slice(0, 160), px || 20);
+        if (!logo) continue;
+        logo.style.marginRight = '8px';
+        logo.style.verticalAlign = '-3px';
+        el.insertBefore(logo, el.firstChild);
+      }
+    }
+    function start() {
+      deko(document);
+      try {
+        var t = null;
+        new MutationObserver(function () { if (t) return; t = setTimeout(function () { t = null; deko(document); }, 250); })
+          .observe(document.body, { childList: true, subtree: true });
+      } catch (e) {}
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  };
 })();

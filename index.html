@@ -5213,6 +5213,42 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       void loadAll();
     })();
   </script>
+<section id="kiw-woche" aria-label="Die Woche" hidden style="margin:0 0 32px;padding:16px clamp(12px,2vw,24px);border:1px solid rgba(var(--neon-rgb,0,212,255),.2);border-radius:16px;background:rgba(var(--neon-rgb,0,212,255),.04)">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+    <h3 style="margin:0;font:700 20px/1.2 'Space Grotesk',sans-serif">Die Woche in 3 Stories</h3>
+    <a href="woche.html" style="font:600 13px 'Space Grotesk',sans-serif;color:var(--accent,#00d4ff);text-decoration:none">Zum Wochen-Rückblick &rarr;</a>
+  </div>
+  <ol id="kiw-liste" style="margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px"></ol>
+</section>
+<script>
+  /* 29.09.26: Wochen-Streifen - staerkste 3 Storys der letzten 7 Tage (story_cluster_score, sonst score) */
+  (function () {
+    fetch("news.json").then(function (r) { return r.json(); }).then(function (d) {
+      var liste = (d && d.news) || [], grenze = Date.now() - 7 * 864e5, je = {};
+      liste.forEach(function (n) {
+        var t = Date.parse(n.first_seen || n.date || ""); if (isNaN(t) || t < grenze) return;
+        var k = n.story_id || n.link, w = Number(n.story_cluster_score || n.score) || 0;
+        if (!je[k] || w > je[k].w) je[k] = { n: n, w: w };
+      });
+      var top = Object.keys(je).map(function (k) { return je[k]; }).sort(function (a, b) { return b.w - a.w; }).slice(0, 3);
+      if (!top.length) return;
+      var ol = document.getElementById("kiw-liste");
+      top.forEach(function (x, i) {
+        var n = x.n, li = document.createElement("li"), a = document.createElement("a");
+        a.href = "woche.html";
+        a.style.cssText = "display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--neon-rgb,0,212,255),.14);text-decoration:none;color:inherit;min-height:100%";
+        var nr = document.createElement("span"); nr.textContent = "0" + (i + 1);
+        nr.style.cssText = "font:700 12px ui-monospace,monospace;color:var(--accent,#00d4ff);padding-top:2px";
+        var t = document.createElement("span"); t.textContent = n.title || "";
+        t.style.cssText = "font:600 14px/1.35 'Space Grotesk',sans-serif";
+        a.append(nr);
+        var logo = window.kiLogoEl && window.kiLogoEl(n.title, 18); if (logo) a.append(logo);
+        a.append(t); li.append(a); ol.append(li);
+      });
+      document.getElementById("kiw-woche").hidden = false;
+    }).catch(function () {});
+  })();
+</script>
 <!-- KOMPAKT:END -->
 <!-- SSR:NEWS:START -->
       <script type="application/ld+json" id="ssr-newslist">
