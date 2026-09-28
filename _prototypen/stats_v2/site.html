@@ -1,0 +1,2994 @@
+<!DOCTYPE html>
+<html class="dark" data-theme="genesis" lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Datenradar und Statistik von ki-news.live">
+  <meta name="theme-color" content="#061018">
+  <title>Statistik | KI News</title>
+
+  <link rel="icon" type="image/png" href="s-logo.png">
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-bg: var(--bg, #050b11);
+      --px-card: rgba(13, 21, 32, .94);
+      --px-card-solid: #0d1520;
+      --px-soft: rgba(var(--neon-rgb, 0, 212, 255), .055);
+      --px-soft-hover: rgba(var(--neon-rgb, 0, 212, 255), .09);
+      --px-border: rgba(var(--neon-rgb, 0, 212, 255), .20);
+      --px-border-soft: rgba(var(--neon-rgb, 0, 212, 255), .11);
+      --px-border-hover: rgba(var(--neon-rgb, 0, 212, 255), .36);
+      --px-ink: var(--text, #e8eef5);
+      --px-muted: #8495a5;
+      --px-faint: #6a7c8c;
+      --px-accent: var(--accent, #00d4ff);
+      --px-violet: #a78bfa;
+      --px-green: #34d399;
+      --px-orange: #fb923c;
+      --px-pink: #fb7185;
+      --px-glow: 0 0 18px rgba(var(--neon-rgb, 0, 212, 255), .08);
+      --px-shadow: 0 12px 34px rgba(0, 0, 0, .14);
+    }
+
+    html.light {
+      --px-bg: var(--bg, #f0f4f8);
+      --px-card: rgba(255, 255, 255, .94);
+      --px-card-solid: #ffffff;
+      --px-soft: rgba(var(--neon-rgb, 0, 212, 255), .045);
+      --px-soft-hover: rgba(var(--neon-rgb, 0, 212, 255), .075);
+      --px-border: rgba(var(--neon-rgb, 0, 212, 255), .22);
+      --px-border-soft: rgba(var(--neon-rgb, 0, 212, 255), .12);
+      --px-border-hover: rgba(var(--neon-rgb, 0, 212, 255), .38);
+      --px-ink: #102638;
+      --px-muted: #506879;
+      --px-faint: #718695;
+      --px-glow: 0 0 16px rgba(var(--neon-rgb, 0, 212, 255), .065);
+      --px-shadow: 0 12px 30px rgba(39, 78, 101, .07);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    html {
+      scroll-padding-top: 82px;
+    }
+
+    body {
+      margin: 0;
+      color: var(--px-ink);
+      background:
+        radial-gradient(circle at 88% 0%, rgba(var(--neon-rgb, 0, 212, 255), .09), transparent 34rem),
+        radial-gradient(circle at 4% 28%, rgba(167, 139, 250, .055), transparent 30rem),
+        var(--px-bg);
+      font-family: "Work Sans", sans-serif;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .px-backdrop {
+      position: fixed;
+      z-index: -2;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: .31;
+      background-image:
+        linear-gradient(rgba(var(--neon-rgb, 0, 212, 255), .032) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--neon-rgb, 0, 212, 255), .032) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, #000 0, transparent 94%);
+    }
+
+    .px-backdrop::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: linear-gradient(180deg, transparent 0, rgba(0, 0, 0, .07) 66%, var(--px-bg) 100%);
+    }
+
+    html.light .px-backdrop {
+      opacity: .38;
+    }
+
+    html.light .px-backdrop::after {
+      background: linear-gradient(180deg, transparent 0, rgba(255, 255, 255, .14) 66%, var(--px-bg) 100%);
+    }
+
+    .px-shell {
+      width: min(1400px, 100%);
+      margin: 0 auto;
+      padding: 80px 24px 42px;
+    }
+
+    .px-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 32px;
+      min-height: 138px;
+      padding: 0 0 20px;
+    }
+
+    .px-kicker,
+    .px-label,
+    .px-button,
+    .px-axis,
+    .px-signal-label,
+    .px-source-rank,
+    .px-source-metric,
+    .px-kpi-meta,
+    .px-article-rank,
+    .px-article-foot,
+    .px-footer,
+    .px-empty,
+    .px-badge,
+    .px-time-note {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .px-kicker {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 9px;
+      color: var(--px-accent);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .px-kicker::before {
+      width: 25px;
+      height: 1px;
+      flex: 0 0 auto;
+      content: "";
+      border-radius: 999px;
+      background: var(--px-accent);
+      box-shadow: 0 0 10px var(--px-accent);
+    }
+
+    .px-title {
+      max-width: 760px;
+      margin: 0;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(38px, 4.2vw, 54px);
+      font-weight: 800;
+      letter-spacing: -.055em;
+      line-height: 1;
+    }
+
+    .px-title span {
+      color: var(--px-accent);
+      text-shadow: 0 0 22px rgba(var(--neon-rgb, 0, 212, 255), .18);
+    }
+
+    .px-intro {
+      max-width: 720px;
+      margin: 12px 0 0;
+      color: var(--px-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .px-signal {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(94px, 1fr));
+      width: 224px;
+      gap: 7px;
+      padding: 8px;
+      border: 1px solid var(--px-border);
+      border-radius: 16px;
+      background:
+        linear-gradient(145deg, rgba(var(--neon-rgb, 0, 212, 255), .085), rgba(167, 139, 250, .025)),
+        var(--px-card);
+      box-shadow: var(--px-glow), var(--px-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-signal-cell {
+      min-width: 0;
+      min-height: 65px;
+      padding: 9px 10px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 9px;
+      background: var(--px-soft);
+    }
+
+    .px-signal-num {
+      display: block;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-signal-label {
+      display: block;
+      margin-top: 7px;
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .px-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 52px;
+      margin: 0 0 12px;
+      padding: 9px 11px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 12px;
+      background: var(--px-card);
+      box-shadow: var(--px-glow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-period {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .px-period-label {
+      margin-right: 5px;
+      color: var(--px-faint);
+      font-size: 9px;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .px-button {
+      min-height: 30px;
+      padding: 6px 11px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      transition:
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
+    }
+
+    .px-button:hover,
+    .px-button:focus-visible,
+    .px-button[aria-pressed="true"] {
+      border-color: rgba(var(--neon-rgb, 0, 212, 255), .4);
+      color: var(--px-ink);
+      background: rgba(var(--neon-rgb, 0, 212, 255), .12);
+      box-shadow: 0 0 14px rgba(var(--neon-rgb, 0, 212, 255), .12);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .px-status {
+      max-width: 58%;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .px-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .px-card,
+    .px-kpi {
+      min-width: 0;
+      border: 1px solid var(--px-border);
+      border-radius: 12px;
+      background: var(--px-card);
+      box-shadow: var(--px-glow), var(--px-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-kpi {
+      position: relative;
+      min-height: 145px;
+      padding: 15px 16px 10px;
+      overflow: hidden;
+      transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
+    }
+
+    .px-kpi:hover {
+      border-color: var(--px-border-hover);
+      box-shadow:
+        0 0 22px rgba(var(--neon-rgb, 0, 212, 255), .11),
+        var(--px-shadow);
+      transform: translateY(-1px);
+    }
+
+    .px-kpi::before {
+      position: absolute;
+      top: 0;
+      left: 16px;
+      width: 34px;
+      height: 2px;
+      content: "";
+      border-radius: 0 0 999px 999px;
+      background: var(--px-accent);
+      box-shadow: 0 0 12px var(--px-accent);
+    }
+
+    .px-kpi:nth-child(2)::before {
+      background: var(--px-violet);
+      box-shadow: 0 0 12px var(--px-violet);
+    }
+
+    .px-kpi:nth-child(3)::before {
+      background: var(--px-green);
+      box-shadow: 0 0 12px var(--px-green);
+    }
+
+    .px-kpi:nth-child(4)::before {
+      background: var(--px-orange);
+      box-shadow: 0 0 12px var(--px-orange);
+    }
+
+    .px-label {
+      color: var(--px-faint);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .px-kpi-value {
+      margin-top: 8px;
+      overflow: hidden;
+      color: var(--px-accent);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(27px, 3vw, 38px);
+      font-weight: 800;
+      letter-spacing: -.055em;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-kpi:nth-child(2) .px-kpi-value {
+      color: var(--px-violet);
+    }
+
+    .px-kpi:nth-child(3) .px-kpi-value {
+      color: var(--px-green);
+    }
+
+    .px-kpi:nth-child(4) .px-kpi-value {
+      color: var(--px-orange);
+    }
+
+    .px-kpi-meta {
+      margin-top: 7px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-spark {
+      display: block;
+      width: 100%;
+      height: 40px;
+      margin-top: 8px;
+      overflow: visible;
+    }
+
+    .px-grid {
+      display: grid;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .px-primary-grid {
+      grid-template-columns: minmax(0, 1.65fr) minmax(330px, 1fr);
+    }
+
+    .px-bottom-grid {
+      grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+    }
+
+    .px-card {
+      padding: 20px;
+    }
+
+    .px-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 5px;
+    }
+
+    .px-card-title {
+      margin: 0;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: -.025em;
+      line-height: 1.2;
+    }
+
+    .px-card-note {
+      max-width: 650px;
+      margin: 5px 0 0;
+      color: var(--px-muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .px-badge {
+      flex: 0 0 auto;
+      padding: 5px 8px;
+      border: 1px solid var(--px-border);
+      border-radius: 999px;
+      color: var(--px-accent);
+      background: rgba(var(--neon-rgb, 0, 212, 255), .055);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-chart-wrap {
+      width: 100%;
+      min-width: 0;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+
+    .px-chart-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .px-axis {
+      fill: var(--px-faint);
+      font-size: 10px;
+    }
+
+    .px-axis-strong {
+      fill: var(--px-muted);
+    }
+
+    .px-gridline {
+      stroke: var(--px-border-soft);
+      stroke-width: 1;
+    }
+
+    .px-heat-grid {
+      display: grid;
+      grid-template-columns: 42px repeat(7, minmax(0, 1fr));
+      gap: 3px 5px;
+      min-width: 0;
+    }
+
+    .px-heat-spacer {
+      min-height: 19px;
+    }
+
+    .px-heat-day,
+    .px-week-label {
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .px-heat-hour {
+      align-self: center;
+      color: var(--px-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8px;
+      text-align: right;
+    }
+
+    .px-heat-cell {
+      min-width: 0;
+      height: 10px;
+      border-radius: 4px;
+      background: rgba(125, 170, 190, .065);
+    }
+
+    .px-heat-cell[data-active="true"] {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+    }
+
+    .px-heat-scale,
+    .px-week-bars {
+      display: grid;
+      grid-template-columns: 42px repeat(7, minmax(0, 1fr));
+      gap: 5px;
+      margin-top: 12px;
+      padding-top: 11px;
+      border-top: 1px solid var(--px-border-soft);
+    }
+
+    .px-heat-scale-label {
+      align-self: center;
+      color: var(--px-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8px;
+    }
+
+    .px-heat-scale-bar {
+      height: 7px;
+      border-radius: 999px;
+    }
+
+    .px-week-bars {
+      margin-top: 0;
+    }
+
+    .px-week-item {
+      min-width: 0;
+      text-align: center;
+    }
+
+    .px-week-track {
+      position: relative;
+      height: 64px;
+      margin: 0 auto 7px;
+      overflow: hidden;
+      border-radius: 9px;
+      background: rgba(var(--neon-rgb, 0, 212, 255), .055);
+    }
+
+    .px-week-fill {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      min-height: 4px;
+      border-radius: 9px;
+      background: linear-gradient(
+        180deg,
+        var(--px-accent),
+        rgba(var(--neon-rgb, 0, 212, 255), .22)
+      );
+      box-shadow: 0 0 12px rgba(var(--neon-rgb, 0, 212, 255), .1);
+      transition: height .5s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .px-time-note {
+      margin-top: 11px;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.55;
+    }
+
+    .px-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 15px;
+      margin-top: 13px;
+    }
+
+    .px-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--px-muted);
+      font-size: 10px;
+    }
+
+    .px-legend-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+    }
+
+    .px-source-list {
+      display: grid;
+      gap: 11px;
+      margin-top: 18px;
+    }
+
+    .px-source-row {
+      display: grid;
+      grid-template-columns: 24px minmax(90px, 1.1fr) minmax(72px, 1fr) 42px 54px;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      min-height: 29px;
+    }
+
+    .px-source-rank {
+      color: var(--px-faint);
+      font-size: 9px;
+    }
+
+    .px-source-name {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-source-track {
+      min-width: 0;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(var(--neon-rgb, 0, 212, 255), .065);
+    }
+
+    .px-source-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      box-shadow: 0 0 11px rgba(var(--neon-rgb, 0, 212, 255), .16);
+      transition: width .5s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .px-source-count,
+    .px-source-average {
+      min-width: 0;
+      color: var(--px-muted);
+      font-size: 8px;
+      line-height: 1.2;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .px-source-count {
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .px-stream-wrap {
+      min-height: 300px;
+    }
+
+    .px-pipeline-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 7px;
+      margin: 15px 0 11px;
+    }
+
+    .px-pipeline-stat {
+      min-width: 0;
+      padding: 9px 8px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 9px;
+      background: var(--px-soft);
+    }
+
+    .px-pipeline-stat strong {
+      display: block;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-pipeline-stat span {
+      display: block;
+      margin-top: 3px;
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-pipeline-list {
+      display: grid;
+      max-height: 274px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+
+    .px-pipeline-row {
+      display: grid;
+      grid-template-columns: minmax(125px, 1.2fr) minmax(70px, .8fr) 48px;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--px-border-soft);
+    }
+
+    .px-pipeline-info {
+      min-width: 0;
+    }
+
+    .px-pipeline-time {
+      display: block;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-pipeline-detail {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--px-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-pipeline-duration {
+      position: relative;
+      min-width: 0;
+      height: 29px;
+      padding-top: 5px;
+      border-left: 1px solid var(--px-border-soft);
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-align: right;
+    }
+
+    .px-duration-track {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 60px;
+      height: 3px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--px-border-soft);
+    }
+
+    .px-duration-fill {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--px-accent);
+      box-shadow: 0 0 8px rgba(var(--neon-rgb, 0, 212, 255), .25);
+    }
+
+    .px-pipeline-state {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-align: right;
+    }
+
+    .px-pipeline-state-ok {
+      color: var(--px-green);
+    }
+
+    .px-pipeline-state-warn {
+      color: var(--px-orange);
+    }
+
+    .px-pipeline-state-bad {
+      color: var(--px-pink);
+    }
+
+    .px-empty {
+      display: grid;
+      min-height: 132px;
+      place-content: center;
+      padding: 22px 12px;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .px-empty-detail {
+      margin-top: 3px;
+      color: var(--px-faint);
+      font-size: 9px;
+    }
+
+    .px-article-list {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .px-article {
+      display: block;
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 10px;
+      color: var(--px-ink);
+      background: var(--px-soft);
+      text-decoration: none;
+      transition:
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
+    }
+
+    .px-article:hover,
+    .px-article:focus-visible {
+      border-color: var(--px-border-hover);
+      background: var(--px-soft-hover);
+      box-shadow: 0 0 16px rgba(var(--neon-rgb, 0, 212, 255), .1);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .px-article[aria-disabled="true"] {
+      cursor: default;
+    }
+
+    .px-article-rank {
+      color: var(--px-accent);
+      font-size: 9px;
+    }
+
+    .px-article-title {
+      display: -webkit-box;
+      min-height: 54px;
+      margin: 9px 0 12px;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-article-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--px-faint);
+      font-size: 8px;
+    }
+
+    .px-article-foot span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 24px;
+      padding: 18px 0 0;
+      border-top: 1px solid var(--px-border-soft);
+      color: var(--px-faint);
+      font-size: 9px;
+      line-height: 1.6;
+    }
+
+    .px-footer a {
+      color: var(--px-accent);
+      text-decoration: none;
+    }
+
+    .px-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .px-footer-stand {
+      white-space: pre-line;
+      text-align: right;
+    }
+
+    @media (max-width: 1080px) {
+      .px-primary-grid,
+      .px-bottom-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-article-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .px-shell {
+        padding: 72px 14px 34px;
+      }
+
+      .px-hero {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        min-height: 0;
+        padding: 0 0 17px;
+      }
+
+      .px-title {
+        font-size: 40px;
+      }
+
+      .px-intro {
+        margin-top: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .px-signal {
+        width: 100%;
+      }
+
+      .px-signal-cell {
+        min-height: 60px;
+      }
+
+      .px-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+        padding: 10px;
+      }
+
+      .px-period {
+        width: 100%;
+      }
+
+      .px-status {
+        max-width: 100%;
+        text-align: left;
+      }
+
+      .px-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .px-kpi {
+        min-height: 138px;
+        padding: 13px 12px 9px;
+      }
+
+      .px-kpi::before {
+        left: 12px;
+      }
+
+      .px-kpi-value {
+        font-size: 27px;
+      }
+
+      .px-kpi-meta {
+        font-size: 8px;
+      }
+
+      .px-card {
+        padding: 16px 12px;
+      }
+
+      .px-card-head {
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .px-card-note {
+        max-width: none;
+      }
+
+      .px-heat-grid,
+      .px-heat-scale,
+      .px-week-bars {
+        grid-template-columns: 36px repeat(7, minmax(0, 1fr));
+        gap: 3px 4px;
+      }
+
+      .px-heat-hour {
+        font-size: 7px;
+      }
+
+      .px-heat-day,
+      .px-week-label {
+        font-size: 8px;
+      }
+
+      .px-heat-cell {
+        height: 9px;
+      }
+
+      .px-source-list {
+        gap: 12px;
+      }
+
+      .px-source-row {
+        grid-template-columns: 20px minmax(80px, 1fr) 42px 54px;
+        gap: 6px;
+      }
+
+      .px-source-track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        height: 7px;
+      }
+
+      .px-source-name {
+        font-size: 10px;
+      }
+
+      .px-stream-wrap {
+        min-height: 240px;
+      }
+
+      .px-pipeline-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-pipeline-row {
+        grid-template-columns: minmax(108px, 1fr) minmax(65px, .8fr) 45px;
+      }
+
+      .px-article-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-footer {
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .px-footer-stand {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .px-kicker {
+        font-size: 8px;
+      }
+
+      .px-title {
+        font-size: 38px;
+      }
+
+      .px-signal {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        padding: 7px;
+        border-radius: 12px;
+      }
+
+      .px-signal-cell {
+        min-height: 61px;
+        padding: 9px 6px;
+      }
+
+      .px-signal-num {
+        font-size: 19px;
+      }
+
+      .px-signal-label {
+        font-size: 7px;
+        letter-spacing: .05em;
+      }
+
+      .px-period-label {
+        width: 100%;
+        margin-bottom: 1px;
+      }
+
+      .px-button {
+        flex: 1 1 0;
+        padding-right: 7px;
+        padding-left: 7px;
+      }
+
+      .px-week-track {
+        height: 52px;
+      }
+
+      .px-article-list {
+        grid-template-columns: 1fr;
+      }
+
+      .px-article-title {
+        min-height: 0;
+      }
+
+      .px-pipeline-row {
+        grid-template-columns: minmax(101px, 1fr) 59px 41px;
+        gap: 6px;
+      }
+
+      .px-pipeline-time,
+      .px-pipeline-duration {
+        font-size: 8px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="px-backdrop" aria-hidden="true"></div>
+
+  <main class="px-shell" id="main-content">
+    <header class="px-hero">
+      <div>
+        <div class="px-kicker">Datenradar / Version 2</div>
+        <h1 class="px-title">Statistik <span>↗</span></h1>
+        <p class="px-intro">
+          Aufkommen, Quellen, Themen und Pipeline in einer sachlichen Übersicht.
+          Grundlage sind die lokalen News-, Archiv-, Karten-, Graph- und Betriebsdaten.
+        </p>
+      </div>
+
+      <div class="px-signal" aria-label="Datenstatus">
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalArticles">0</span>
+          <span class="px-signal-label">Artikel</span>
+        </div>
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalSources">0</span>
+          <span class="px-signal-label">Quellen</span>
+        </div>
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalDays">0</span>
+          <span class="px-signal-label">Tage</span>
+        </div>
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalRuns">0</span>
+          <span class="px-signal-label">Läufe</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="px-toolbar">
+      <div class="px-period" role="group" aria-label="Zeitraum wählen">
+        <span class="px-period-label">Zeitraum</span>
+        <button class="px-button" type="button" data-days="7" aria-pressed="true">7 Tage</button>
+        <button class="px-button" type="button" data-days="30" aria-pressed="false">30 Tage</button>
+        <button class="px-button" type="button" data-days="90" aria-pressed="false">90 Tage</button>
+        <button class="px-button" type="button" data-days="0" aria-pressed="false">Gesamt</button>
+      </div>
+      <div class="px-status" id="px-loadStatus" aria-live="polite">Datensätze werden geladen.</div>
+    </div>
+
+    <section class="px-kpis" aria-label="Kennzahlen">
+      <article class="px-kpi">
+        <div class="px-label">Artikel im Zeitraum</div>
+        <div class="px-kpi-value" id="px-kpiArticles">0</div>
+        <div class="px-kpi-meta" id="px-kpiArticlesMeta">Keine Daten</div>
+        <svg class="px-spark" id="px-sparkArticles" viewBox="0 0 220 48" role="img" aria-label="Sparkline Artikel"></svg>
+      </article>
+
+      <article class="px-kpi">
+        <div class="px-label">Aktive Quellen</div>
+        <div class="px-kpi-value" id="px-kpiSources">0</div>
+        <div class="px-kpi-meta" id="px-kpiSourcesMeta">Keine Daten</div>
+        <svg class="px-spark" id="px-sparkSources" viewBox="0 0 220 48" role="img" aria-label="Sparkline Quellen"></svg>
+      </article>
+
+      <article class="px-kpi">
+        <div class="px-label">Durchschnittlicher Score</div>
+        <div class="px-kpi-value" id="px-kpiScore">n/v</div>
+        <div class="px-kpi-meta" id="px-kpiScoreMeta">Relevanz aus News und Archiv</div>
+        <svg class="px-spark" id="px-sparkScore" viewBox="0 0 220 48" role="img" aria-label="Sparkline Score"></svg>
+      </article>
+
+      <article class="px-kpi">
+        <div class="px-label">Erzeugte Karten</div>
+        <div class="px-kpi-value" id="px-kpiCards">0</div>
+        <div class="px-kpi-meta" id="px-kpiCardsMeta">Keine Karten</div>
+        <svg class="px-spark" id="px-sparkCards" viewBox="0 0 220 48" role="img" aria-label="Sparkline Karten"></svg>
+      </article>
+    </section>
+
+    <section class="px-grid px-primary-grid">
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Aufnahme-Zeit</h2>
+            <p class="px-card-note">
+              Heatmap für Wochentag und Uhrzeit. Berücksichtigt werden nur Datensätze mit einer verlässlichen Zeitangabe.
+            </p>
+          </div>
+          <span class="px-badge" id="px-heatmapBadge">Zeitdaten prüfen</span>
+        </div>
+
+        <div class="px-chart-wrap" id="px-heatmap"></div>
+        <div class="px-time-note" id="px-heatmapNote"></div>
+      </article>
+
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Quellen-Ranking</h2>
+            <p class="px-card-note">Anzahl der Beiträge und mittlerer Relevanz-Score je Quelle.</p>
+          </div>
+          <span class="px-badge">Top 10</span>
+        </div>
+
+        <div class="px-source-list" id="px-sourceRanking"></div>
+      </article>
+    </section>
+
+    <section class="px-card" style="margin-bottom: 12px">
+      <div class="px-card-head">
+        <div>
+          <h2 class="px-card-title">Themen-Verlauf</h2>
+          <p class="px-card-note">
+            Streamgraph aus Titel und Kurztext. Ein Artikel kann mehrere Themen enthalten und daher in mehreren Bändern erscheinen.
+          </p>
+        </div>
+        <span class="px-badge" id="px-streamBadge">max. 30 Punkte</span>
+      </div>
+
+      <div class="px-chart-wrap px-stream-wrap" id="px-stream"></div>
+      <div class="px-legend" id="px-streamLegend"></div>
+    </section>
+
+    <section class="px-grid px-bottom-grid">
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Score-Verteilung</h2>
+            <p class="px-card-note">Relevanz-Score in fünf Klassen, basierend auf den vorhandenen Artikeln.</p>
+          </div>
+          <span class="px-badge">5 Klassen</span>
+        </div>
+
+        <div class="px-chart-wrap" id="px-scoreChart"></div>
+      </article>
+
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Pipeline-Laufzeiten</h2>
+            <p class="px-card-note">
+              Aus ki_news.log. Laufmarker, Status, Batches und Laufzeit werden defensiv aus verschiedenen Log-Formaten gelesen.
+            </p>
+          </div>
+          <span class="px-badge">internes Log</span>
+        </div>
+
+        <div class="px-pipeline-stats">
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineRuns">0</strong>
+            <span>Läufe erkannt</span>
+          </div>
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineAvg">n/v</strong>
+            <span>Ø Laufzeit</span>
+          </div>
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineOk">n/v</strong>
+            <span>Batch-Quote</span>
+          </div>
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineWarnings">0</strong>
+            <span>Warnungen</span>
+          </div>
+        </div>
+
+        <div class="px-pipeline-list" id="px-pipelineList"></div>
+      </article>
+    </section>
+
+    <section class="px-card">
+      <div class="px-card-head">
+        <div>
+          <h2 class="px-card-title">Stärkste Stories</h2>
+          <p class="px-card-note">Die fünf höchsten Scores im gewählten Zeitraum.</p>
+        </div>
+        <span class="px-badge">Sortiert nach Score</span>
+      </div>
+
+      <div class="px-article-list" id="px-articleList"></div>
+    </section>
+
+    <footer class="px-footer">
+      <div>
+        KI NEWS · Datenprototyp für Scampy<br>
+        <a href="Impressum.html">Impressum</a> ·
+        <a href="Datenschutz.html">Datenschutz</a>
+      </div>
+      <div class="px-footer-stand" id="px-footerStand">Datenstand: n/v
+Quelle: lokale JSON- und Log-Dateien</div>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const state = {
+        days: 7,
+        articles: [],
+        current: [],
+        archive: [],
+        cards: [],
+        graph: {},
+        log: "",
+        stand: "n/v",
+        failures: []
+      };
+
+      const DAY = 86400000;
+      const numberFormatter = new Intl.NumberFormat("de-DE");
+      const $ = id => document.getElementById(id);
+
+      const cleanText = value => String(value ?? "")
+        .replace(/\u2014/g, "-")
+        .replace(/\u2013/g, "-");
+
+      const formatNumber = value => numberFormatter.format(value);
+
+      function isObject(value) {
+        return value !== null && typeof value === "object" && !Array.isArray(value);
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined || value === "") return 0;
+        const result = Number(value);
+        return Number.isFinite(result) ? result : 0;
+      }
+
+      function scoreOf(article) {
+        if (!isObject(article)) return 0;
+        return toNumber(article.score ?? article.base_score);
+      }
+
+      function hasScore(article) {
+        if (!isObject(article)) return false;
+        return article.score !== undefined || article.base_score !== undefined;
+      }
+
+      function parseDate(value) {
+        if (value === null || value === undefined || value === "") return null;
+
+        const rawNumber = String(value).trim();
+
+        if (typeof value === "number" || /^\d{10,13}$/.test(rawNumber)) {
+          const numeric = Number(value);
+          const timestamp = rawNumber.length === 10 ? numeric * 1000 : numeric;
+          const date = new Date(timestamp);
+          return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        let raw = String(value).trim();
+        if (!raw) return null;
+
+        raw = raw
+          .replace(/^(\d{2})\.(\d{2})\.(\d{4})/, "$3-$2-$1")
+          .replace(/^(\d{4})\/(\d{2})\/(\d{2})/, "$1-$2-$3");
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) raw += "T12:00:00";
+        if (/^\d{4}-\d{2}-\d{2}\s/.test(raw)) raw = raw.replace(" ", "T");
+
+        const date = new Date(raw);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+
+      function dayKey(value) {
+        const date = value instanceof Date ? value : parseDate(value);
+        if (!date || Number.isNaN(date.getTime())) return null;
+
+        return [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0")
+        ].join("-");
+      }
+
+      function articleDate(article) {
+        if (!isObject(article)) return null;
+
+        return parseDate(
+          article.first_seen ||
+          article.date ||
+          article.published_at ||
+          article.created_at ||
+          article.timestamp
+        );
+      }
+
+      function articleHour(article) {
+        if (!isObject(article)) return null;
+
+        const candidates = [
+          article.first_seen,
+          article.published_at,
+          article.created_at,
+          article.timestamp,
+          article.date,
+          article.time
+        ];
+
+        for (const candidate of candidates) {
+          if (candidate === null || candidate === undefined || candidate === "") continue;
+
+          const raw = String(candidate).trim();
+          const clock = raw.match(/(?:T|\s)(\d{1,2}):(\d{2})/);
+
+          if (clock) {
+            const hour = Number(clock[1]);
+            if (hour >= 0 && hour <= 23) return hour;
+          }
+
+          const clockOnly = raw.match(/^(\d{1,2}):\d{2}$/);
+          if (clockOnly) {
+            const hour = Number(clockOnly[1]);
+            if (hour >= 0 && hour <= 23) return hour;
+          }
+
+          if (typeof candidate === "number" || /^\d{10,13}$/.test(raw)) {
+            const date = parseDate(candidate);
+            if (date) return date.getHours();
+          }
+        }
+
+        return null;
+      }
+
+      function articleKey(article) {
+        if (!isObject(article)) return "";
+
+        return cleanText(
+          article.link ||
+          [article.story_id, article.title, article.date, article.source].join("|")
+        );
+      }
+
+      function cardDate(card) {
+        if (!isObject(card)) return null;
+        return parseDate(card.date || card.created_at || card.timestamp);
+      }
+
+      function average(values) {
+        const valid = values.filter(value => Number.isFinite(value));
+        if (!valid.length) return null;
+        return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+      }
+
+      function maxDateOf(items, reader = articleDate) {
+        const dates = items.map(reader).filter(Boolean);
+        return dates.length
+          ? new Date(Math.max(...dates.map(date => date.getTime())))
+          : new Date();
+      }
+
+      function minDateOf(items, reader = articleDate) {
+        const dates = items.map(reader).filter(Boolean);
+        return dates.length
+          ? new Date(Math.min(...dates.map(date => date.getTime())))
+          : new Date();
+      }
+
+      function getPeriodBounds(items = state.articles) {
+        if (!state.days) return null;
+
+        const endDate = maxDateOf(items);
+        const end = new Date(
+          endDate.getFullYear(),
+          endDate.getMonth(),
+          endDate.getDate(),
+          23,
+          59,
+          59,
+          999
+        );
+
+        const start = new Date(end.getTime() - (state.days - 1) * DAY);
+        start.setHours(0, 0, 0, 0);
+
+        return { start, end };
+      }
+
+      function isInPeriod(date, bounds) {
+        if (!bounds) return true;
+        if (!date) return false;
+        return date >= bounds.start && date <= bounds.end;
+      }
+
+      function getPeriodArticles() {
+        const bounds = getPeriodBounds(state.articles);
+        return state.articles.filter(article => isInPeriod(articleDate(article), bounds));
+      }
+
+      function getPeriodCards() {
+        const bounds = getPeriodBounds(state.articles);
+
+        return state.cards.filter(card => {
+          const date = cardDate(card);
+          return !bounds || isInPeriod(date, bounds);
+        });
+      }
+
+      function getPreviousBounds() {
+        if (!state.days) return null;
+
+        const current = getPeriodBounds(state.articles);
+        if (!current) return null;
+
+        const end = new Date(current.start.getTime() - 1);
+        const start = new Date(end.getTime() - (state.days - 1) * DAY);
+        start.setHours(0, 0, 0, 0);
+
+        return { start, end };
+      }
+
+      function createBucketPlan(items) {
+        const bounds = getPeriodBounds(items);
+        const start = bounds
+          ? new Date(bounds.start)
+          : new Date(minDateOf(items));
+
+        const end = bounds
+          ? new Date(bounds.end)
+          : new Date(maxDateOf(items));
+
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+
+        const spanDays = Math.max(1, Math.round((end - start) / DAY) + 1);
+        const bucketDays = state.days && state.days <= 30
+          ? 1
+          : Math.max(1, Math.ceil(spanDays / 30));
+
+        const buckets = [];
+        let cursor = new Date(start);
+
+        while (cursor <= end && buckets.length < 40) {
+          const bucketStart = new Date(cursor);
+          const bucketEnd = new Date(
+            Math.min(end.getTime(), cursor.getTime() + (bucketDays - 1) * DAY)
+          );
+
+          bucketEnd.setHours(23, 59, 59, 999);
+          buckets.push({
+            start: bucketStart,
+            end: bucketEnd,
+            label: dayKey(bucketStart)
+          });
+
+          cursor = new Date(cursor.getTime() + bucketDays * DAY);
+          cursor.setHours(0, 0, 0, 0);
+        }
+
+        return { bounds, start, end, bucketDays, buckets };
+      }
+
+      function bucketIndexForDate(date, plan) {
+        if (!date || !plan || !plan.buckets.length) return -1;
+
+        const offset = date.getTime() - plan.start.getTime();
+        if (offset < 0) return -1;
+
+        return Math.floor(offset / DAY / plan.bucketDays);
+      }
+
+      function countSeries(items, plan, dateReader) {
+        const counts = plan.buckets.map(() => 0);
+
+        items.forEach(item => {
+          const index = bucketIndexForDate(dateReader(item), plan);
+          if (index >= 0 && index < counts.length) counts[index] += 1;
+        });
+
+        return counts;
+      }
+
+      function colorFromName(name, index) {
+        const palette = [
+          "#00d4ff",
+          "#a78bfa",
+          "#34d399",
+          "#fb923c",
+          "#f472b6",
+          "#60a5fa",
+          "#facc15",
+          "#2dd4bf",
+          "#c084fc",
+          "#fb7185"
+        ];
+
+        if (!name) return palette[index % palette.length];
+
+        let hash = 0;
+        for (let position = 0; position < name.length; position += 1) {
+          hash = (hash * 31 + name.charCodeAt(position)) >>> 0;
+        }
+
+        return palette[hash % palette.length];
+      }
+
+      function svgNode(tag, attributes = {}) {
+        const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+
+        Object.entries(attributes).forEach(([key, value]) => {
+          node.setAttribute(key, String(value));
+        });
+
+        return node;
+      }
+
+      function svgText(parent, x, y, value, className = "px-axis", anchor = "start") {
+        const node = svgNode("text", {
+          x,
+          y,
+          class: className,
+          "text-anchor": anchor
+        });
+
+        node.textContent = cleanText(value);
+        parent.appendChild(node);
+        return node;
+      }
+
+      function addSvgTitle(parent, value) {
+        const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        title.textContent = cleanText(value);
+        parent.appendChild(title);
+      }
+
+      function clear(node) {
+        if (node) node.replaceChildren();
+      }
+
+      function addEmpty(node, message, detail = "") {
+        clear(node);
+
+        const box = document.createElement("div");
+        box.className = "px-empty";
+
+        const main = document.createElement("div");
+        main.textContent = cleanText(message);
+        box.appendChild(main);
+
+        if (detail) {
+          const small = document.createElement("div");
+          small.className = "px-empty-detail";
+          small.textContent = cleanText(detail);
+          box.appendChild(small);
+        }
+
+        node.appendChild(box);
+      }
+
+      function renderSparkline(id, values, color) {
+        const svg = $(id);
+        clear(svg);
+
+        const validValues = values.filter(value => Number.isFinite(value));
+        if (!validValues.length) return;
+
+        const max = Math.max(...validValues);
+        const min = Math.min(...validValues);
+        const span = max - min || 1;
+
+        const pointFor = (value, index) => {
+          const x = values.length === 1
+            ? 110
+            : 4 + index / (values.length - 1) * 212;
+
+          const y = max === min
+            ? 28
+            : 38 - (value - min) / span * 29;
+
+          return { x, y };
+        };
+
+        let segment = [];
+        let lastPoint = null;
+
+        const flushSegment = () => {
+          if (!segment.length) return;
+
+          const line = segment.map(point => point.x + "," + point.y).join(" ");
+
+          if (segment.length === 1) {
+            svg.appendChild(svgNode("circle", {
+              cx: segment[0].x,
+              cy: segment[0].y,
+              r: 2.4,
+              fill: color
+            }));
+          } else {
+            svg.appendChild(svgNode("polygon", {
+              points: "4,43 " + line + " 216,43",
+              fill: color,
+              opacity: .1
+            }));
+
+            svg.appendChild(svgNode("polyline", {
+              points: line,
+              fill: "none",
+              stroke: color,
+              "stroke-width": 1.8,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "vector-effect": "non-scaling-stroke"
+            }));
+          }
+
+          lastPoint = segment[segment.length - 1];
+          segment = [];
+        };
+
+        values.forEach((value, index) => {
+          if (!Number.isFinite(value)) {
+            flushSegment();
+            return;
+          }
+
+          segment.push(pointFor(value, index));
+        });
+
+        flushSegment();
+
+        if (lastPoint) {
+          svg.appendChild(svgNode("circle", {
+            cx: lastPoint.x,
+            cy: lastPoint.y,
+            r: 2.4,
+            fill: color
+          }));
+        }
+      }
+
+      function comparisonText(current, previous) {
+        if (!state.days) return "Archiv inklusive aktueller News";
+        if (!previous) return "Keine Vergleichsbasis";
+        if (!current) return "0 im gewählten Zeitraum";
+
+        const change = Math.round((current - previous) / previous * 100);
+        if (change === 0) return "Unverändert zum Zeitraum davor";
+
+        return (change > 0 ? "+" : "") + change + "% zum Zeitraum davor";
+      }
+
+      function renderKpis(articles) {
+        const sources = new Set(
+          articles
+            .map(article => cleanText(article.source).trim())
+            .filter(Boolean)
+        );
+
+        const cards = getPeriodCards();
+        const scoredArticles = articles.filter(hasScore);
+        const averageScore = average(scoredArticles.map(scoreOf));
+        const plan = createBucketPlan(state.articles);
+        const previousBounds = getPreviousBounds();
+
+        const previousArticles = state.articles.filter(article => {
+          return isInPeriod(articleDate(article), previousBounds);
+        });
+
+        const previousCards = state.cards.filter(card => {
+          return isInPeriod(cardDate(card), previousBounds);
+        });
+
+        const articleSeries = countSeries(articles, plan, articleDate);
+
+        const sourceSeries = plan.buckets.map((_, index) => {
+          const bucketArticles = articles.filter(article => {
+            return bucketIndexForDate(articleDate(article), plan) === index;
+          });
+
+          return new Set(
+            bucketArticles
+              .map(article => cleanText(article.source).trim())
+              .filter(Boolean)
+          ).size;
+        });
+
+        const scoreSeries = plan.buckets.map((_, index) => {
+          const values = articles
+            .filter(article => {
+              return bucketIndexForDate(articleDate(article), plan) === index && hasScore(article);
+            })
+            .map(scoreOf);
+
+          return average(values);
+        });
+
+        const cardSeries = countSeries(cards, plan, cardDate);
+
+        $("px-kpiArticles").textContent = formatNumber(articles.length);
+        $("px-kpiSources").textContent = formatNumber(sources.size);
+        $("px-kpiScore").textContent = averageScore === null
+          ? "n/v"
+          : averageScore.toFixed(1);
+        $("px-kpiCards").textContent = formatNumber(cards.length);
+
+        $("px-kpiArticlesMeta").textContent = comparisonText(
+          articles.length,
+          previousArticles.length
+        );
+
+        $("px-kpiSourcesMeta").textContent = sources.size
+          ? [...sources].slice(0, 3).join(" · ")
+          : "Keine benannten Quellen";
+
+        $("px-kpiScoreMeta").textContent = averageScore === null
+          ? "Keine Scores vorhanden"
+          : "Ø aus " + formatNumber(scoredArticles.length) + " Artikeln";
+
+        $("px-kpiCardsMeta").textContent = comparisonText(
+          cards.length,
+          previousCards.length
+        );
+
+        renderSparkline("px-sparkArticles", articleSeries, "#00d4ff");
+        renderSparkline("px-sparkSources", sourceSeries, "#a78bfa");
+        renderSparkline("px-sparkScore", scoreSeries, "#34d399");
+        renderSparkline("px-sparkCards", cardSeries, "#fb923c");
+
+        $("px-signalArticles").textContent = formatNumber(articles.length);
+        $("px-signalSources").textContent = formatNumber(sources.size);
+        $("px-signalDays").textContent = formatNumber(
+          new Set(
+            articles
+              .map(article => dayKey(articleDate(article)))
+              .filter(Boolean)
+          ).size
+        );
+      }
+
+      function renderWeekdayBars(host, weekdayCounts) {
+        const bars = document.createElement("div");
+        bars.className = "px-week-bars";
+
+        const caption = document.createElement("div");
+        caption.className = "px-heat-scale-label";
+        caption.textContent = "Wochentag";
+        bars.appendChild(caption);
+
+        const dayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+        const maxWeekday = Math.max(...weekdayCounts, 1);
+
+        dayLabels.forEach((day, index) => {
+          const item = document.createElement("div");
+          item.className = "px-week-item";
+
+          const track = document.createElement("div");
+          track.className = "px-week-track";
+
+          const fill = document.createElement("div");
+          fill.className = "px-week-fill";
+          fill.style.height = Math.max(4, weekdayCounts[index] / maxWeekday * 100) + "%";
+          track.appendChild(fill);
+
+          const label = document.createElement("span");
+          label.className = "px-week-label";
+          label.textContent = day + " " + weekdayCounts[index];
+
+          item.append(track, label);
+          bars.appendChild(item);
+        });
+
+        host.appendChild(bars);
+      }
+
+      function renderHeatmap(articles) {
+        const host = $("px-heatmap");
+        const note = $("px-heatmapNote");
+        const map = new Map();
+        const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
+        const dayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+        let valid = 0;
+
+        articles.forEach(article => {
+          const date = articleDate(article);
+          if (!date) return;
+
+          const weekday = (date.getDay() + 6) % 7;
+          weekdayCounts[weekday] += 1;
+
+          const hour = articleHour(article);
+          if (hour === null) return;
+
+          const key = weekday + "-" + hour;
+          map.set(key, (map.get(key) || 0) + 1);
+          valid += 1;
+        });
+
+        clear(host);
+        note.textContent = "";
+
+        $("px-heatmapBadge").textContent = valid
+          ? formatNumber(valid) + " Zeitangaben"
+          : "Keine Uhrzeiten";
+
+        if (!articles.length) {
+          addEmpty(
+            host,
+            "Für die Heatmap fehlen datierte Artikel.",
+            "Sobald News oder Archiv verfügbar sind, erscheint die Auswertung automatisch."
+          );
+          return;
+        }
+
+        if (!valid) {
+          renderWeekdayBars(host, weekdayCounts);
+          note.textContent =
+            "Die Daten enthalten Kalenderdaten, aber keine verlässliche Uhrzeit. Deshalb zeigt das Diagramm die Aufnahmen nach Wochentag.";
+          return;
+        }
+
+        const grid = document.createElement("div");
+        grid.className = "px-heat-grid";
+        grid.setAttribute("role", "img");
+        grid.setAttribute(
+          "aria-label",
+          "Heatmap der Aufnahmezeiten nach Wochentag und Uhrzeit"
+        );
+
+        const spacer = document.createElement("div");
+        spacer.className = "px-heat-spacer";
+        grid.appendChild(spacer);
+
+        dayLabels.forEach(day => {
+          const label = document.createElement("div");
+          label.className = "px-heat-day";
+          label.textContent = day;
+          grid.appendChild(label);
+        });
+
+        const max = Math.max(...map.values(), 1);
+
+        for (let hour = 0; hour < 24; hour += 1) {
+          const label = document.createElement("div");
+          label.className = "px-heat-hour";
+          label.textContent = String(hour).padStart(2, "0") + ":00";
+          grid.appendChild(label);
+
+          for (let weekday = 0; weekday < 7; weekday += 1) {
+            const count = map.get(weekday + "-" + hour) || 0;
+            const cell = document.createElement("div");
+            cell.className = "px-heat-cell";
+            cell.dataset.active = count ? "true" : "false";
+
+            if (count) {
+              cell.style.background =
+                "rgba(var(--neon-rgb), " + (0.16 + count / max * 0.75) + ")";
+            }
+
+            cell.title =
+              dayLabels[weekday] + ", " +
+              String(hour).padStart(2, "0") +
+              ":00 Uhr: " +
+              count +
+              " Beiträge";
+
+            cell.setAttribute("aria-label", cell.title);
+            grid.appendChild(cell);
+          }
+        }
+
+        host.appendChild(grid);
+
+        const scale = document.createElement("div");
+        scale.className = "px-heat-scale";
+
+        const less = document.createElement("div");
+        less.className = "px-heat-scale-label";
+        less.textContent = "weniger";
+        scale.appendChild(less);
+
+        [0, 25, 50, 75, 100].forEach(value => {
+          const bar = document.createElement("div");
+          bar.className = "px-heat-scale-bar";
+          bar.style.background =
+            "rgba(var(--neon-rgb), " + (0.08 + value / 130) + ")";
+          scale.appendChild(bar);
+        });
+
+        host.appendChild(scale);
+        note.textContent =
+          "Helligkeit zeigt die relative Anzahl der Aufnahmen. Ohne Uhrzeitfeld bleibt der betreffende Tag leer.";
+      }
+
+      function renderSources(articles) {
+        const host = $("px-sourceRanking");
+        const groups = new Map();
+
+        articles.forEach(article => {
+          const name = cleanText(article.source).trim() || "Unbekannt";
+
+          if (!groups.has(name)) {
+            groups.set(name, { count: 0, scores: [] });
+          }
+
+          const group = groups.get(name);
+          group.count += 1;
+
+          if (hasScore(article)) {
+            group.scores.push(scoreOf(article));
+          }
+        });
+
+        const sorted = [...groups.entries()]
+          .map(([name, value]) => ({
+            name,
+            count: value.count,
+            average: average(value.scores)
+          }))
+          .sort((a, b) => {
+            return b.count - a.count || (b.average ?? 0) - (a.average ?? 0);
+          })
+          .slice(0, 10);
+
+        clear(host);
+
+        if (!sorted.length) {
+          addEmpty(host, "Keine Quellen im gewählten Zeitraum.");
+          return;
+        }
+
+        const max = Math.max(...sorted.map(item => item.count), 1);
+
+        sorted.forEach((item, index) => {
+          const row = document.createElement("div");
+          row.className = "px-source-row";
+
+          const rank = document.createElement("span");
+          rank.className = "px-source-rank";
+          rank.textContent = String(index + 1).padStart(2, "0");
+
+          const name = document.createElement("span");
+          name.className = "px-source-name";
+          name.textContent = item.name;
+          name.title = item.name;
+
+          const track = document.createElement("div");
+          track.className = "px-source-track";
+
+          const fill = document.createElement("div");
+          fill.className = "px-source-fill";
+          fill.style.width = Math.max(3, item.count / max * 100) + "%";
+          fill.style.background =
+            "linear-gradient(90deg, " +
+            colorFromName(item.name, index) +
+            ", rgba(167,139,250,.82))";
+
+          track.appendChild(fill);
+
+          const count = document.createElement("span");
+          count.className = "px-source-count";
+          count.textContent = formatNumber(item.count);
+          count.title = formatNumber(item.count) + " Beiträge";
+
+          const averageNode = document.createElement("span");
+          averageNode.className = "px-source-average";
+          averageNode.textContent = item.average === null
+            ? "Ø n/v"
+            : "Ø " + item.average.toFixed(1);
+
+          row.append(rank, name, track, count, averageNode);
+          host.appendChild(row);
+        });
+      }
+
+      function topicMatches(article, term) {
+        const title = cleanText(article && article.title).toLowerCase();
+        const summary = cleanText(article && article.summary).toLowerCase();
+        const search = term.toLowerCase();
+
+        return title.includes(search) || summary.includes(search);
+      }
+
+      function smoothLine(points) {
+        if (!points.length) return "";
+        if (points.length === 1) return "M" + points[0].x + "," + points[0].y;
+
+        let path = "M" + points[0].x + "," + points[0].y;
+
+        for (let index = 1; index < points.length; index += 1) {
+          const previous = points[index - 1];
+          const current = points[index];
+          const middleX = (previous.x + current.x) / 2;
+
+          path +=
+            " C" + middleX + "," + previous.y +
+            " " + middleX + "," + current.y +
+            " " + current.x + "," + current.y;
+        }
+
+        return path;
+      }
+
+      function renderStream(articles) {
+        const host = $("px-stream");
+        const legend = $("px-streamLegend");
+        const plan = createBucketPlan(state.articles);
+
+        clear(host);
+        clear(legend);
+
+        if (!articles.length || !plan.buckets.length) {
+          $("px-streamBadge").textContent = "keine Datierung";
+          addEmpty(host, "Für den Themen-Verlauf sind keine datierten Artikel vorhanden.");
+          return;
+        }
+
+        $("px-streamBadge").textContent = plan.buckets.length
+          ? plan.buckets.length + (plan.buckets.length === 1 ? " Punkt" : " Punkte")
+          : "keine Datierung";
+
+        const graphTerms = isObject(state.graph) && Array.isArray(state.graph.nodes)
+          ? state.graph.nodes
+              .filter(isObject)
+              .map(node => cleanText(node.id).trim())
+              .filter(term => term.length >= 3 && term.length <= 26)
+              .sort((a, b) => toNumber(b.count) - toNumber(a.count))
+              .slice(0, 20)
+          : [];
+
+        const terms = [...new Set([
+          "OpenAI",
+          "Google",
+          "Anthropic",
+          "Meta",
+          "Microsoft",
+          "Nvidia",
+          "Roboter",
+          "Sicherheit",
+          "Regulierung",
+          "Open Source",
+          "Chips",
+          "DeepSeek",
+          "Mistral",
+          "xAI",
+          "Perplexity",
+          ...graphTerms
+        ])];
+
+        const series = terms
+          .map((term, index) => {
+            const values = plan.buckets.map((bucket, bucketIndex) => {
+              return articles.filter(article => {
+                return (
+                  bucketIndexForDate(articleDate(article), plan) === bucketIndex &&
+                  topicMatches(article, term)
+                );
+              }).length;
+            });
+
+            return {
+              term,
+              values,
+              total: values.reduce((sum, value) => sum + value, 0),
+              color: colorFromName(term, index)
+            };
+          })
+          .filter(item => item.total > 0)
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 8);
+
+        if (!series.length) {
+          addEmpty(host, "In diesem Zeitraum wurden keine der beobachteten Themen gefunden.");
+          return;
+        }
+
+        const compact = window.innerWidth <= 600;
+        const width = compact ? 360 : 1000;
+        const height = compact ? 270 : 320;
+        const left = compact ? 18 : 25;
+        const right = compact ? 12 : 22;
+        const top = 18;
+        const bottom = 35;
+        const innerWidth = width - left - right;
+        const innerHeight = height - top - bottom;
+
+        const totalPerDay = plan.buckets.map((_, index) => {
+          return series.reduce((sum, item) => sum + item.values[index], 0);
+        });
+
+        const maxTotal = Math.max(...totalPerDay, 1);
+
+        const x = index => {
+          return left + (
+            plan.buckets.length === 1
+              ? innerWidth / 2
+              : index / (plan.buckets.length - 1) * innerWidth
+          );
+        };
+
+        const y = value => {
+          return top + (1 - value / maxTotal) * innerHeight;
+        };
+
+        const svg = svgNode("svg", {
+          viewBox: "0 0 " + width + " " + height,
+          role: "img",
+          "aria-label": "Streamgraph der häufigsten Themen"
+        });
+
+        [0, .25, .5, .75, 1].forEach(ratio => {
+          const gridY = top + ratio * innerHeight;
+
+          svg.appendChild(svgNode("line", {
+            x1: left,
+            x2: width - right,
+            y1: gridY,
+            y2: gridY,
+            class: "px-gridline"
+          }));
+        });
+
+        const layers = series.map(() => []);
+
+        plan.buckets.forEach((bucket, index) => {
+          const total = totalPerDay[index];
+          let cursor = total / 2;
+
+          series.forEach((item, layer) => {
+            const value = item.values[index];
+            const upper = cursor;
+            const lower = cursor - value;
+
+            layers[layer].push({
+              x: x(index),
+              upper: y(upper),
+              lower: y(lower)
+            });
+
+            cursor = lower;
+          });
+        });
+
+        series.forEach((item, index) => {
+          const points = layers[index];
+
+          const topPath = smoothLine(
+            points.map(point => ({
+              x: point.x,
+              y: point.upper
+            }))
+          );
+
+          const bottomPath = smoothLine(
+            points.slice().reverse().map(point => ({
+              x: point.x,
+              y: point.lower
+            }))
+          );
+
+          svg.appendChild(svgNode("path", {
+            d: topPath + " " + bottomPath + " Z",
+            fill: item.color,
+            opacity: .52,
+            stroke: item.color,
+            "stroke-width": 1.2,
+            "vector-effect": "non-scaling-stroke"
+          }));
+        });
+
+        const labelStep = compact
+          ? 5
+          : plan.buckets.length <= 8
+            ? 1
+            : 5;
+
+        for (let index = 0; index < plan.buckets.length; index += labelStep) {
+          const bucket = plan.buckets[index];
+          const date = parseDate(bucket.label);
+
+          const label = date
+            ? date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
+            : bucket.label;
+
+          svgText(svg, x(index), height - 11, label, "px-axis", "middle");
+        }
+
+        if (plan.buckets.length > 1) {
+          const last = plan.buckets[plan.buckets.length - 1];
+          const lastDate = parseDate(last.label);
+
+          const lastLabel = lastDate
+            ? lastDate.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
+            : last.label;
+
+          svgText(
+            svg,
+            x(plan.buckets.length - 1),
+            height - 11,
+            lastLabel,
+            "px-axis",
+            "end"
+          );
+        }
+
+        host.appendChild(svg);
+
+        series.forEach(item => {
+          const legendItem = document.createElement("div");
+          legendItem.className = "px-legend-item";
+
+          const dot = document.createElement("span");
+          dot.className = "px-legend-dot";
+          dot.style.background = item.color;
+
+          const label = document.createElement("span");
+          label.textContent = cleanText(item.term) + " · " + formatNumber(item.total);
+
+          legendItem.append(dot, label);
+          legend.appendChild(legendItem);
+        });
+      }
+
+      function renderScores(articles) {
+        const host = $("px-scoreChart");
+        const scoredArticles = articles.filter(hasScore);
+
+        const bins = [
+          { label: "0 bis 9", min: 0, max: 10, color: "#64748b" },
+          { label: "10 bis 19", min: 10, max: 20, color: "#00d4ff" },
+          { label: "20 bis 29", min: 20, max: 30, color: "#34d399" },
+          { label: "30 bis 39", min: 30, max: 40, color: "#a78bfa" },
+          { label: "40 plus", min: 40, max: Infinity, color: "#fb923c" }
+        ];
+
+        bins.forEach(bin => {
+          bin.value = scoredArticles.filter(article => {
+            const score = scoreOf(article);
+            return score >= bin.min && score < bin.max;
+          }).length;
+        });
+
+        clear(host);
+
+        if (!scoredArticles.length) {
+          addEmpty(
+            host,
+            "Für den gewählten Zeitraum liegen keine Scores vor.",
+            "Artikel ohne Score werden nicht künstlich als null bewertet."
+          );
+          return;
+        }
+
+        const compact = window.innerWidth <= 600;
+        const width = compact ? 350 : 680;
+        const height = compact ? 250 : 260;
+        const left = compact ? 36 : 42;
+        const chartHeight = compact ? 164 : 172;
+        const gap = compact ? 8 : 20;
+        const barWidth = (width - left - (compact ? 8 : 15) - gap * 4) / 5;
+        const max = Math.max(...bins.map(bin => bin.value), 1);
+        const averageScore = average(scoredArticles.map(scoreOf));
+
+        const svg = svgNode("svg", {
+          viewBox: "0 0 " + width + " " + height,
+          role: "img",
+          "aria-label": "Histogramm der Relevanz-Scores"
+        });
+
+        [0, .5, 1].forEach(ratio => {
+          const gridY = 16 + chartHeight * ratio;
+
+          svg.appendChild(svgNode("line", {
+            x1: left,
+            x2: width - (compact ? 8 : 15),
+            y1: gridY,
+            y2: gridY,
+            class: "px-gridline"
+          }));
+
+          svgText(
+            svg,
+            left - 8,
+            gridY + 4,
+            Math.round(max * (1 - ratio)),
+            "px-axis",
+            "end"
+          );
+        });
+
+        bins.forEach((bin, index) => {
+          const x = left + index * (barWidth + gap);
+          const barHeight = bin.value / max * chartHeight;
+          const y = 16 + chartHeight - barHeight;
+
+          const bar = svgNode("rect", {
+            x,
+            y,
+            width: barWidth,
+            height: barHeight,
+            rx: 7,
+            fill: bin.color,
+            opacity: .8
+          });
+
+          addSvgTitle(bar, bin.label + ": " + bin.value + " Artikel");
+          svg.appendChild(bar);
+
+          svgText(
+            svg,
+            x + barWidth / 2,
+            16 + chartHeight + 24,
+            bin.label,
+            "px-axis",
+            "middle"
+          );
+
+          svgText(
+            svg,
+            x + barWidth / 2,
+            Math.max(10, y - 9),
+            formatNumber(bin.value),
+            "px-axis-strong",
+            "middle"
+          );
+        });
+
+        svgText(
+          svg,
+          left,
+          height - 9,
+          "Ø Score: " + averageScore.toFixed(1),
+          "px-axis"
+        );
+
+        host.appendChild(svg);
+      }
+
+      function formatDuration(seconds) {
+        if (!Number.isFinite(seconds)) return "n/v";
+
+        if (seconds < 60) {
+          return seconds.toFixed(seconds < 10 ? 1 : 0) + " s";
+        }
+
+        const minutes = Math.floor(seconds / 60);
+        const rest = Math.round(seconds % 60);
+
+        return minutes + ":" + String(rest).padStart(2, "0") + " min";
+      }
+
+      function parseRuntime(chunk) {
+        const clock = chunk.match(
+          /(?:(?:gesamt)?dauer|laufzeit|duration|runtime)\s*[:=]?\s*(\d{1,3}):(\d{2})(?::(\d{2}))?/i
+        );
+
+        if (clock) {
+          const first = Number(clock[1]);
+          const second = Number(clock[2]);
+          const third = Number(clock[3] || 0);
+
+          if (clock[3]) return first * 3600 + second * 60 + third;
+          return first * 60 + second;
+        }
+
+        const minuteSecond = chunk.match(
+          /(?:dauer|laufzeit|duration|runtime)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*min(?:uten)?\s*(\d+(?:[.,]\d+)?)\s*(?:s|sek(?:unden)?)/i
+        );
+
+        if (minuteSecond) {
+          return (
+            Number(minuteSecond[1].replace(",", ".")) * 60 +
+            Number(minuteSecond[2].replace(",", "."))
+          );
+        }
+
+        const explicit = chunk.match(
+          /(?:dauer|laufzeit|duration|runtime)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(ms|millisekunden|s|sekunden?|min|minuten)?/i
+        );
+
+        if (explicit) {
+          const value = Number(explicit[1].replace(",", "."));
+          const unit = String(explicit[2] || "s").toLowerCase();
+
+          if (unit.startsWith("ms")) return value / 1000;
+          if (unit.startsWith("min")) return value * 60;
+          return value;
+        }
+
+        const start = chunk.match(
+          /(?:start|beginn|gestartet)\s*[:=]?\s*(20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?)/i
+        );
+
+        const end = chunk.match(
+          /(?:ende|fertig|abgeschlossen)\s*[:=]?\s*(20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?)/i
+        );
+
+        if (start && end) {
+          const startDate = parseDate(start[1]);
+          const endDate = parseDate(end[1]);
+
+          if (startDate && endDate) {
+            return Math.max(0, (endDate - startDate) / 1000);
+          }
+        }
+
+        const timestamps = [...chunk.matchAll(
+          /\b20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?\b/g
+        )]
+          .map(match => parseDate(match[0]))
+          .filter(Boolean);
+
+        if (timestamps.length > 1) {
+          return Math.max(0, (timestamps[timestamps.length - 1] - timestamps[0]) / 1000);
+        }
+
+        return null;
+      }
+
+      function findRunMarkers(logText) {
+        const strong = [...logText.matchAll(
+          /={3,}\s*LAUF\s+([^\n=]+?)\s*={3,}/gi
+        )].map(match => ({
+          date: match[1].trim(),
+          index: match.index || 0
+        }));
+
+        if (strong.length) return strong;
+
+        return [...logText.matchAll(
+          /^[^\S\r\n]*(?:={2,}\s*)?LAUF\s+([^\n]+?)(?:\s*=+)?$/gim
+        )].map(match => ({
+          date: match[1].trim().replace(/=+$/, "").trim(),
+          index: match.index || 0
+        }));
+      }
+
+      function parseRuns(logText) {
+        if (!logText || typeof logText !== "string") return [];
+
+        const markers = findRunMarkers(logText);
+
+        return markers.map((marker, index) => {
+          const end = index + 1 < markers.length
+            ? markers[index + 1].index
+            : logText.length;
+
+          const chunk = logText.slice(marker.index, end);
+          const warningCount = (chunk.match(/\bWARNING\b/gi) || []).length;
+
+          const balance = chunk.match(
+            /Batches\s+(\d+)\s+versucht\s*\/\s*(\d+)\s+OK/i
+          );
+
+          const genericAttempted = chunk.match(/(\d+)\s+versucht/i);
+          const genericOk = chunk.match(/(\d+)\s+OK/i);
+
+          return {
+            date: parseDate(marker.date),
+            rawDate: marker.date,
+            duration: parseRuntime(chunk),
+            warningCount,
+            attempted: balance
+              ? Number(balance[1])
+              : genericAttempted
+                ? Number(genericAttempted[1])
+                : null,
+            ok: balance
+              ? Number(balance[2])
+              : genericOk
+                ? Number(genericOk[1])
+                : null
+          };
+        })
+          .filter(run => run.date || run.rawDate)
+          .sort((a, b) => {
+            const left = a.date ? a.date.getTime() : 0;
+            const right = b.date ? b.date.getTime() : 0;
+            return right - left;
+          });
+      }
+
+      function renderPipeline() {
+        const bounds = getPeriodBounds(state.articles);
+        const allRuns = parseRuns(state.log);
+
+        const runs = allRuns.filter(run => {
+          if (!bounds || !run.date) return true;
+          return isInPeriod(run.date, bounds);
+        });
+
+        const durations = runs
+          .map(run => run.duration)
+          .filter(value => Number.isFinite(value));
+
+        const averageDuration = average(durations);
+        const totalWarnings = runs.reduce(
+          (sum, run) => sum + run.warningCount,
+          0
+        );
+
+        const comparable = runs.filter(run => {
+          return run.attempted !== null &&
+            run.ok !== null &&
+            run.attempted > 0;
+        });
+
+        const totalAttempted = comparable.reduce(
+          (sum, run) => sum + run.attempted,
+          0
+        );
+
+        const totalOk = comparable.reduce(
+          (sum, run) => sum + run.ok,
+          0
+        );
+
+        const success = totalAttempted ? totalOk / totalAttempted : null;
+        const maxDuration = Math.max(...durations, 1);
+
+        $("px-signalRuns").textContent = formatNumber(runs.length);
+        $("px-pipelineRuns").textContent = formatNumber(runs.length);
+
+        $("px-pipelineAvg").textContent = averageDuration === null
+          ? "n/v"
+          : formatDuration(averageDuration);
+
+        $("px-pipelineOk").textContent = success === null
+          ? "n/v"
+          : Math.round(success * 100) + " %";
+
+        $("px-pipelineWarnings").textContent = formatNumber(totalWarnings);
+
+        const host = $("px-pipelineList");
+        clear(host);
+
+        if (!runs.length) {
+          addEmpty(
+            host,
+            state.log
+              ? "Keine passenden Laufmarker im Betriebslog gefunden."
+              : "Das Betriebslog ist nicht erreichbar.",
+            "Alle übrigen Auswertungen bleiben auch ohne ki_news.log nutzbar."
+          );
+          return;
+        }
+
+        runs.slice(0, 10).forEach(run => {
+          const row = document.createElement("div");
+          row.className = "px-pipeline-row";
+
+          const info = document.createElement("div");
+          info.className = "px-pipeline-info";
+
+          const time = document.createElement("span");
+          time.className = "px-pipeline-time";
+          time.textContent = run.date
+            ? run.date.toLocaleString("de-DE", {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+              })
+            : cleanText(run.rawDate);
+
+          const detail = document.createElement("span");
+          detail.className = "px-pipeline-detail";
+          detail.textContent = run.attempted !== null && run.ok !== null
+            ? run.attempted + " Batches · " + run.ok + " OK · " + run.warningCount + " Warnungen"
+            : run.warningCount + " Warnungen · Batches n/v";
+
+          info.append(time, detail);
+
+          const duration = document.createElement("div");
+          duration.className = "px-pipeline-duration";
+          duration.textContent = run.duration === null
+            ? "Laufzeit n/v"
+            : formatDuration(run.duration);
+
+          const track = document.createElement("span");
+          track.className = "px-duration-track";
+
+          const fill = document.createElement("span");
+          fill.className = "px-duration-fill";
+          fill.style.width = Number.isFinite(run.duration)
+            ? Math.max(2, run.duration / maxDuration * 100) + "%"
+            : "0%";
+
+          track.appendChild(fill);
+          duration.appendChild(track);
+
+          const status = document.createElement("div");
+          const incomplete =
+            run.attempted !== null &&
+            run.ok !== null &&
+            run.ok < run.attempted;
+
+          status.className = "px-pipeline-state " + (
+            run.warningCount > 15
+              ? "px-pipeline-state-bad"
+              : incomplete || run.warningCount
+                ? "px-pipeline-state-warn"
+                : "px-pipeline-state-ok"
+          );
+
+          status.textContent = incomplete
+            ? "teilweise"
+            : run.warningCount
+              ? "Hinweis"
+              : "ok";
+
+          row.append(info, duration, status);
+          host.appendChild(row);
+        });
+      }
+
+      function safeHref(value) {
+        if (!value) return "";
+
+        try {
+          const url = new URL(String(value), window.location.href);
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch (error) {
+          return "";
+        }
+      }
+
+      function renderArticles(articles) {
+        const host = $("px-articleList");
+        clear(host);
+
+        const top = [...articles]
+          .filter(isObject)
+          .sort((a, b) => scoreOf(b) - scoreOf(a))
+          .slice(0, 5);
+
+        if (!top.length) {
+          addEmpty(host, "Keine Stories im gewählten Zeitraum.");
+          return;
+        }
+
+        top.forEach((article, index) => {
+          const link = document.createElement("a");
+          link.className = "px-article";
+
+          const href = safeHref(article.link);
+
+          if (href) {
+            link.href = href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+          } else {
+            link.setAttribute("aria-disabled", "true");
+          }
+
+          const rank = document.createElement("div");
+          rank.className = "px-article-rank";
+          rank.textContent = "STORY " + String(index + 1).padStart(2, "0");
+
+          const title = document.createElement("div");
+          title.className = "px-article-title";
+          title.textContent = cleanText(article.title || "Ohne Titel");
+          title.title = cleanText(article.title || "Ohne Titel");
+
+          const foot = document.createElement("div");
+          foot.className = "px-article-foot";
+
+          const source = document.createElement("span");
+          source.textContent = cleanText(article.source || "Unbekannt");
+
+          const score = document.createElement("span");
+          score.textContent = "Score " + formatNumber(scoreOf(article));
+
+          foot.append(source, score);
+          link.append(rank, title, foot);
+          host.appendChild(link);
+        });
+      }
+
+      function render() {
+        const articles = getPeriodArticles();
+
+        renderKpis(articles);
+        renderHeatmap(articles);
+        renderSources(articles);
+        renderStream(articles);
+        renderScores(articles);
+        renderPipeline();
+        renderArticles(articles);
+
+        $("px-footerStand").textContent =
+          "Datenstand: " + cleanText(state.stand) + "\n" +
+          "Quelle: lokale JSON- und Log-Dateien";
+      }
+
+      async function fetchJSON(path) {
+        const response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      }
+
+      async function fetchText(path) {
+        const response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.text();
+      }
+
+      async function loadData() {
+        const paths = [
+          "news.json",
+          "archive.json",
+          "cards.json",
+          "graph.json",
+          "ki_news.log"
+        ];
+
+        const results = await Promise.allSettled([
+          fetchJSON(paths[0]),
+          fetchJSON(paths[1]),
+          fetchJSON(paths[2]),
+          fetchJSON(paths[3]),
+          fetchText(paths[4])
+        ]);
+
+        results.forEach((result, index) => {
+          if (result.status === "rejected") {
+            state.failures.push(paths[index]);
+          }
+        });
+
+        const news = results[0].status === "fulfilled" &&
+          isObject(results[0].value)
+          ? results[0].value
+          : {};
+
+        const archive = results[1].status === "fulfilled" &&
+          Array.isArray(results[1].value)
+          ? results[1].value
+          : [];
+
+        const cards = results[2].status === "fulfilled" &&
+          Array.isArray(results[2].value)
+          ? results[2].value
+          : [];
+
+        state.current = Array.isArray(news.news)
+          ? news.news.filter(isObject)
+          : [];
+
+        state.archive = archive.filter(isObject);
+        state.cards = cards.filter(isObject);
+
+        state.graph = results[3].status === "fulfilled" &&
+          isObject(results[3].value)
+          ? results[3].value
+          : {};
+
+        state.log = results[4].status === "fulfilled"
+          ? String(results[4].value || "")
+          : "";
+
+        state.stand = cleanText(news.stand || state.graph.stand || "n/v");
+
+        const seen = new Set();
+
+        state.articles = [...state.current, ...state.archive].filter(article => {
+          const key = articleKey(article);
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        const status = $("px-loadStatus");
+
+        if (state.failures.length) {
+          status.textContent =
+            "Teildaten geladen. Nicht verfügbar: " +
+            state.failures.join(" · ");
+        } else {
+          status.textContent =
+            "Alle lokalen Datenquellen geladen · " +
+            formatNumber(state.articles.length) +
+            " Artikel im Archivbestand";
+        }
+
+        render();
+      }
+
+      document.querySelectorAll("[data-days]").forEach(button => {
+        button.addEventListener("click", () => {
+          state.days = Number(button.dataset.days) || 0;
+
+          document.querySelectorAll("[data-days]").forEach(item => {
+            item.setAttribute(
+              "aria-pressed",
+              item === button ? "true" : "false"
+            );
+          });
+
+          render();
+        });
+      });
+
+      let resizeTimer = null;
+
+      window.addEventListener("resize", () => {
+        window.clearTimeout(resizeTimer);
+
+        resizeTimer = window.setTimeout(() => {
+          const articles = getPeriodArticles();
+          renderStream(articles);
+          renderScores(articles);
+        }, 160);
+      });
+
+      window.__kiThemeHook = function () {
+        const root = document.documentElement;
+
+        root.style.setProperty(
+          "color-scheme",
+          root.classList.contains("light") ? "light" : "dark"
+        );
+      };
+
+      loadData().catch(() => {
+        $("px-loadStatus").textContent =
+          "Die Daten konnten nicht geladen werden. Bitte die lokalen Dateien prüfen.";
+        render();
+      });
+    })();
+  </script>
+</body>
+</html>
