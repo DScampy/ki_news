@@ -38,6 +38,7 @@ def main():
     ap.add_argument("--stile", default=",".join(karten_v2.NEUE_STILE), help="neue Stile reihum, z. B. typo")
     ap.add_argument("--ziel", default="", help="Unterordner in _vorschau/")
     ap.add_argument("--nur-geeignet", action="store_true", help="nur Meldungen mit >= 2 Typo-Stichworten")
+    ap.add_argument("--ids-aus", default="", help="dieselben Meldungen wie in diesem kontaktbogen.json")
     a = ap.parse_args()
     global AUS
     if a.ziel:
@@ -46,6 +47,9 @@ def main():
 
     karten = [c for c in json.loads((ROOT / "cards.json").read_text(encoding="utf-8"))
               if str(c.get("karte", "")).startswith("v2:")]
+    if a.ids_aus:
+        ids = [e["id"] for e in json.loads(Path(a.ids_aus).read_text(encoding="utf-8"))]
+        karten = sorted([c for c in karten if c["id"] in ids], key=lambda c: ids.index(c["id"]))
     if a.nur_geeignet:
         karten = [c for c in karten if len(karten_v2.typo_worte(c["headline"], karten_v2._geld(c["headline"]))) >= 2]
     karten = karten[:a.anzahl]
@@ -56,8 +60,16 @@ def main():
     for i, c in enumerate(karten):
         motiv, stil_alt = c["karte"][3:].split("/", 1)
         stil_neu = stile[i % len(stile)]
+        hinweis = ""
+        worte = karten_v2.typo_worte(c["headline"], karten_v2._geld(c["headline"]))
+        if stil_neu == "typo" and len(worte) < 2:
+            # So wie live: zu wenige tragende Stichworte -> kein Typo, Stil aus der normalen Rotation
+            os.environ.pop("KARTEN_STIL_ZWANG", None)
+            stil_neu = karten_v2._stil(motiv, c["headline"])
+            hinweis = "kein typo (nur %d Stichwort%s: %s)" % (len(worte), "" if len(worte) == 1 else "e",
+                                                             " / ".join(worte) or "-")
         eintrag = {"id": c["id"], "titel": c["headline"], "quelle": c.get("source", ""), "motiv": motiv,
-                   "datum": c.get("date", ""), "dauer": int(c.get("duration") or 20)}
+                   "datum": c.get("date", ""), "dauer": int(c.get("duration") or 20), "hinweis": hinweis}
         for art, stil in (("alt", stil_alt), ("neu", stil_neu)):
             os.environ["KARTEN_STIL_ZWANG"] = stil
             k = karten_v2.karte_daten(c["headline"], c.get("einordnung", ""), "", c.get("source", ""),
