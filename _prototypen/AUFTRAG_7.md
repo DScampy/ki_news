@@ -9,9 +9,11 @@ Hell/Dunkel, `ki-layout.js`), 0 JS-Fehler, 390 px ohne Überlauf. Jede Nummer ei
    Sie hat Vorrang vor meinen dortigen Layout-Angaben.
 2. **Voxel-KI-Welt** (`voxel_ki_welt`): Die Idee ist eine isometrische Stadt, jeder Hersteller ein Viertel, Aktivität aus den News.
    Baue **eine eigene Version mit eigenen Grafiken** und kopiere den Entwurf nicht, er ist nur die Idee. Austoben erlaubt, gerne Three.js/Canvas.
-3. **Sims-Version** (neu, keine Vorlage): Dieselbe Idee im Sims-Look. Die Hersteller sind Figuren/Häuser, die News sind
-   Ereignisse, Sprechblasen und Stimmungsbalken („Bedürfnisse“ wie Rechenleistung, Geld, Ärger mit Behörden). Humorvoll, aber
-   nur echte Meldungen als Auslöser.
+3. **Sims-Redaktion**: Das ist unsere Redaktion als isometrisches Pixel-Managementspiel. Figuren (Scampy, Recherche-Bot,
+   Faktenprüfer, Karten-Renderer, Sprecherin) laufen zwischen den Räumen hin und her (Newsdesk, Recherche-Labor, Schnittraum,
+   Chefbüro, Lounge), sobald eine **echte** Meldung reinkommt. Vorbild ist ein Video von einem Trading-Büro. Die Beschreibung steht in
+   `_prototypen/sims_redaktion/video_beschreibung.md`. Ein Prototyp des anderen Modells kommt als `entwurf.html` automatisch nach.
+   Eigene Grafiken, humorvoll, aber nur echte Meldungen als Auslöser.
 4. **Neueste Analysen im Reportage-Look** (`idee_start_neueste_analysen_reporta`): als Abschnitt der Startseite einbauen,
    unter dem neuen Hero.
 5. **Redaktions-Wahnsinn** (`idee_redaktions_wahnsinn`): als eigene Seite umsetzen.
@@ -22,4 +24,9 @@ Hell/Dunkel, `ki-layout.js`), 0 JS-Fehler, 390 px ohne Überlauf. Jede Nummer ei
 8. **Erzähler-Labor** (`idee_erzaehler_labor`): **nur als Idee aufnehmen**. Bitte noch nicht bauen, sondern in einer Ideen-Liste im Repo
    notieren (z. B. `docs/ideen.md`) mit 3 Sätzen, was es wäre und was es bräuchte.
 
-Reihenfolge nach Wert: 6, 4, 1 (mit Auftrag 5), 7, 5, 2, 3, 8.
+**Reihenfolge (Daniel, 28.09.):**
+1. **Chronoskop-Dossier** (Punkt 1 + Auftrag 5, Dossier-Teil) zuerst.
+2. **Sobald das Dossier läuft: der Hersteller-Feed (Auftrag 3).** Die Startseite (Hero-Kachel „Frisch auf dem Markt“) soll immer die
+   neuesten Modelle mit Links zeigen: offizielle Seite, X-Post, Video. Die Links kommen aus den News, die die Pipeline ohnehin
+   einsammelt (Quellen-URLs der Meldungen, die ein Release betreffen), dazu die offiziellen Hersteller-Blogs.
+3. Danach 6, 4, 7, 5, 3 (Sims), 2, 8.
