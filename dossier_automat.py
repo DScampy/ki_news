@@ -539,6 +539,7 @@ def main():
     print(f"dossier_automat: {len(ids)} Linien mit geprueftem Titel und >= {MIN_EREIGNISSE} Ereignissen")
     if not a.dry_run:
         ENTWURF_DIR.mkdir(parents=True, exist_ok=True)
+    verzeichnis = []
     for lid in ids:
         d = baue_linie(lid, linien[lid], nach_link, nach_story, karten)
         funde = hype_funde(d)
@@ -548,10 +549,25 @@ def main():
         if a.dry_run:
             continue
         (ENTWURF_DIR / f"linie-{lid}.html").write_text(rendere(d, stand, entwurf=True), encoding="utf-8")
+        verzeichnis.append({"id": lid, "titel": d["titel"], "ereignisse": len(d["ereignisse"]),
+                            "datei": f"artikel/entwurf/linie-{lid}.html", "hype": funde})
         if lid in freigabe:
             (BASE / "artikel" / f"dossier-{lid}.html").write_text(rendere(d, stand, entwurf=False), encoding="utf-8")
             if sitemap_eintrag(f"https://ki-news.live/artikel/dossier-{lid}.html"):
                 print(f"    freigegeben -> artikel/dossier-{lid}.html, Sitemap ergaenzt")
+    if not a.dry_run:
+        # Verzeichnis fuer redaktion.html (welche Entwuerfe es gibt), ergaenzt statt ersetzt,
+        # damit ein Lauf mit --linie/--max aeltere Entwuerfe nicht aus der Liste wirft.
+        ziel = ENTWURF_DIR / "entwuerfe.json"
+        try:
+            alt = {e["id"]: e for e in json.loads(ziel.read_text(encoding="utf-8")).get("entwuerfe", [])}
+        except Exception:
+            alt = {}
+        alt = {k: v for k, v in alt.items() if (BASE / v.get("datei", "")).exists()}
+        for e in verzeichnis:
+            alt[e["id"]] = e
+        ziel.write_text(json.dumps({"stand": stand, "entwuerfe": sorted(alt.values(), key=lambda e: -e["ereignisse"])},
+                                   ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return 0
 
 

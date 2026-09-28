@@ -23,7 +23,7 @@
   if (inSub || file === 'artikel.html') ACTIVE = 'artikel';
   else if (file === 'archiv.html') ACTIVE = 'archiv';
   else if (file === 'stats.html') ACTIVE = 'statistik';
-  else if (file === 'profil.html') ACTIVE = 'profil';
+  else if (file === 'profil.html' || file === 'redaktion.html') ACTIVE = 'profil';
   else if (file === '' || file === 'index.html') ACTIVE = 'aktuell';
   else ACTIVE = 'none';
 
