@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="dark" lang="de">
 <head>
-<!-- VORSCHAU (28.09.26): Kopie von index.html vom Arbeits-Branch, nicht verlinkt, noindex. Daniel gibt einzeln frei; bis dahin bleibt index.html live. -->
+<!-- VORSCHAU (28.09.26): gebaut aus index.html mit tools/vorschau_seiten.py, nicht verlinkt, noindex. Daniel gibt einzeln frei; bis dahin bleibt index.html live. -->
 <meta name="robots" content="noindex, nofollow"/>
 <meta charset="utf-8"/>
 <link rel="icon" type="image/png" href="s-logo.png"/>
@@ -2093,25 +2093,23 @@ html.light .kk-ansicht-knopf[aria-pressed="true"]{color:#fff;background:#0891b2}
           <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Stand: 28.09.2026 12:07</span>
         </div>
       </div>
+<style id="ki-lage-stil">
+/* Morgenlage + Neueste Analysen im Browser (28.09.26): Stil unabhaengig vom SSR-Block,
+   damit die per JS gebauten Bloecke auch aussehen, wenn die Pipeline nichts eingesetzt hat. */
+@keyframes kiMorgenlage{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ki-morgenlage-band{display:flex;gap:12px;flex:0 0 auto;animation:kiMorgenlage 50s linear infinite;will-change:transform;}
+.ki-morgenlage-rahmen:hover .ki-morgenlage-band,.ki-morgenlage-rahmen:focus-within .ki-morgenlage-band{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.ki-morgenlage-band{animation:none}.ki-morgenlage-fenster{overflow-x:auto}.ki-morgenlage-band a[aria-hidden]{display:none}}
+.ki-morgenlage-rahmen{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:8px 0;border-top:1px solid var(--hairline,#2f3336);border-bottom:1px solid var(--hairline,#2f3336);overflow:hidden;white-space:nowrap;font-size:14px}
+.ki-morgenlage-label{flex:0 0 auto;font-family:monospace;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted,#8b98a5)}
+.ki-morgenlage-fenster{flex:1 1 auto;min-width:0;overflow:hidden}
+.ki-morgenlage-band a{flex:0 0 auto;text-decoration:none;color:inherit}
+.ki-morgenlage-band a span{color:var(--muted,#8b98a5)}
+.ki-rp{margin-top:40px}.ki-rp-kopf{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--hairline,#2f3336)}.ki-rp-ober{font:600 10px/1.2 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--accent,#00d4ff);margin:0 0 4px}.ki-rp-h{font:600 clamp(24px,2.6vw,32px)/1.1 'Fraunces',Georgia,serif;margin:0}.ki-rp-alle{font:600 11px/1 ui-monospace,monospace;color:var(--accent,#00d4ff);text-decoration:none}.ki-rp-raster{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);grid-template-rows:auto auto;gap:16px}.ki-rp-karte{display:flex;flex-direction:column;border:1px solid rgba(var(--neon-rgb,0,212,255),.18);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;background:rgba(var(--neon-rgb,0,212,255),.02);transition:border-color .2s,box-shadow .2s}.ki-rp-karte:hover,.ki-rp-karte:focus-visible{border-color:rgba(var(--neon-rgb,0,212,255),.6);box-shadow:0 0 22px rgba(var(--neon-rgb,0,212,255),.18);outline:none}.ki-rp-haupt{grid-row:1/span 2}.ki-rp-bild{position:relative;display:block;aspect-ratio:1200/630;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)}.ki-rp-bild img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.ki-rp-text{display:flex;flex-direction:column;gap:8px;padding:16px 18px 18px;flex:1}.ki-rp-kicker{font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,#00d4ff)}.ki-rp-titel{font:600 19px/1.22 'Fraunces',Georgia,serif}.ki-rp-haupt .ki-rp-titel{font-size:clamp(24px,2.4vw,32px);line-height:1.12}.ki-rp-desc{font:400 14px/1.6 'Work Sans',sans-serif;opacity:.72;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.ki-rp-haupt .ki-rp-desc{font-size:16px;-webkit-line-clamp:4}.ki-rp-meta{margin-top:auto;font:600 11px/1.2 ui-monospace,monospace;opacity:.5}@media(max-width:860px){.ki-rp-raster{grid-template-columns:minmax(0,1fr)}.ki-rp-haupt{grid-row:auto}}@media(max-width:640px){.ki-rp{margin-top:24px}.ki-rp-raster{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x proximity;padding-bottom:6px}.ki-rp-karte{flex:0 0 80%;scroll-snap-align:start}.ki-rp-haupt .ki-rp-titel{font-size:20px}.ki-rp-haupt .ki-rp-desc,.ki-rp-desc{font-size:13px;-webkit-line-clamp:2}}
+</style>
 <!-- SSR:BRIEFING:START -->
-      <style>
-        @keyframes kiMorgenlage{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-        .ki-morgenlage-band{display:flex;gap:12px;flex:0 0 auto;animation:kiMorgenlage 50s linear infinite;will-change:transform;}
-        .ki-morgenlage-rahmen:hover .ki-morgenlage-band,
-        .ki-morgenlage-rahmen:focus-within .ki-morgenlage-band{animation-play-state:paused}
-        @media (prefers-reduced-motion:reduce){
-          .ki-morgenlage-band{animation:none}
-          .ki-morgenlage-fenster{overflow-x:auto}
-          .ki-morgenlage-band a[aria-hidden]{display:none}
-        }
-      </style>
-      <div class="ki-morgenlage-rahmen" style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:8px 0;border-top:1px solid var(--hairline,#2f3336);border-bottom:1px solid var(--hairline,#2f3336);overflow:hidden;white-space:nowrap;font-size:14px;" aria-label="Morgenlage">
-        <span style="flex:0 0 auto;font-family:monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--muted,#8b98a5);">Morgenlage 07:06</span>
-        <div class="ki-morgenlage-fenster" style="flex:1 1 auto;min-width:0;overflow:hidden;">
-          <div class="ki-morgenlage-band"><a href="https://ki-news.live/#a=19zv2k7" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">1.</span> Welt in Kürze: Dutzende weitere OpenAI-Hacks; Trump lehnt laut Bericht iranisches Waffenst</a><a href="https://ki-news.live/#a=1ebl53s" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">2.</span> NaiveAI veröffentlicht ein Open-Weight-Coding-Modell mit einer Million Token Kontext und S</a><a href="https://ki-news.live/#a=q8yc7g" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">3.</span> Australien wirft OpenAI-Agent einem Hackerangriff auf eine staatliche Gesundheitswebsite v</a><a href="https://ki-news.live/#a=qgyauw" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">4.</span> Anthropic-CEO Amodei trifft sich nach verpasstem Staatsessen mit Trump.</a><a href="https://ki-news.live/#a=10ya2lk" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">5.</span> Bill Gates sagt, Trump liege falsch mit seiner Ablehnung von KI-Sicherheitsvorkehrungen.</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=19zv2k7" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">1.</span> Welt in Kürze: Dutzende weitere OpenAI-Hacks; Trump lehnt laut Bericht iranisches Waffenst</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=1ebl53s" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">2.</span> NaiveAI veröffentlicht ein Open-Weight-Coding-Modell mit einer Million Token Kontext und S</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=q8yc7g" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">3.</span> Australien wirft OpenAI-Agent einem Hackerangriff auf eine staatliche Gesundheitswebsite v</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=qgyauw" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">4.</span> Anthropic-CEO Amodei trifft sich nach verpasstem Staatsessen mit Trump.</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=10ya2lk" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">5.</span> Bill Gates sagt, Trump liege falsch mit seiner Ablehnung von KI-Sicherheitsvorkehrungen.</a></div>
-        </div>
-      </div>
       <!-- SSR:BRIEFING:END -->
+      <div id="ki-morgenlage-slot" hidden></div>
 <!-- SSR:NEWS:START -->
       <script type="application/ld+json" id="ssr-newslist">
 {
@@ -2319,19 +2317,8 @@ html.light .kk-ansicht-knopf[aria-pressed="true"]{color:#fff;background:#0891b2}
     </div>
 
     <!-- SSR:ARTIKEL:START -->
-    <section class="ki-rp" aria-labelledby="neueste-analysen">
-      <style>.ki-rp{margin-top:40px}.ki-rp-kopf{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--hairline,#2f3336)}.ki-rp-ober{font:600 10px/1.2 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--accent,#00d4ff);margin:0 0 4px}.ki-rp-h{font:600 clamp(24px,2.6vw,32px)/1.1 'Fraunces',Georgia,serif;margin:0}.ki-rp-alle{font:600 11px/1 ui-monospace,monospace;color:var(--accent,#00d4ff);text-decoration:none}.ki-rp-raster{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);grid-template-rows:auto auto;gap:16px}.ki-rp-karte{display:flex;flex-direction:column;border:1px solid rgba(var(--neon-rgb,0,212,255),.18);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;background:rgba(var(--neon-rgb,0,212,255),.02);transition:border-color .2s,box-shadow .2s}.ki-rp-karte:hover,.ki-rp-karte:focus-visible{border-color:rgba(var(--neon-rgb,0,212,255),.6);box-shadow:0 0 22px rgba(var(--neon-rgb,0,212,255),.18);outline:none}.ki-rp-haupt{grid-row:1/span 2}.ki-rp-bild{position:relative;display:block;aspect-ratio:1200/630;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)}.ki-rp-bild img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.ki-rp-text{display:flex;flex-direction:column;gap:8px;padding:16px 18px 18px;flex:1}.ki-rp-kicker{font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,#00d4ff)}.ki-rp-titel{font:600 19px/1.22 'Fraunces',Georgia,serif}.ki-rp-haupt .ki-rp-titel{font-size:clamp(24px,2.4vw,32px);line-height:1.12}.ki-rp-desc{font:400 14px/1.6 'Work Sans',sans-serif;opacity:.72;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.ki-rp-haupt .ki-rp-desc{font-size:16px;-webkit-line-clamp:4}.ki-rp-meta{margin-top:auto;font:600 11px/1.2 ui-monospace,monospace;opacity:.5}@media(max-width:860px){.ki-rp-raster{grid-template-columns:minmax(0,1fr)}.ki-rp-haupt{grid-row:auto}}@media(max-width:640px){.ki-rp{margin-top:24px}.ki-rp-raster{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x proximity;padding-bottom:6px}.ki-rp-karte{flex:0 0 80%;scroll-snap-align:start}.ki-rp-haupt .ki-rp-titel{font-size:20px}.ki-rp-haupt .ki-rp-desc,.ki-rp-desc{font-size:13px;-webkit-line-clamp:2}}</style>
-      <div class="ki-rp-kopf">
-        <div><p class="ki-rp-ober">Eigene Analysen</p><h3 id="neueste-analysen" class="ki-rp-h ki-main">Neueste Analysen</h3></div>
-        <a href="artikel.html" class="ki-rp-alle">alle Artikel &rarr;</a>
-      </div>
-      <div class="ki-rp-raster">
-        <a href="artikel/anthropic-missbrauchsbericht-september-2026.html" class="ki-rp-karte ki-rp-haupt"><span class="ki-rp-bild"><img src="artikel/anthropic-missbrauchsbericht-september-2026-og.png" alt="" loading="lazy"></span><span class="ki-rp-text"><span class="ki-rp-kicker">Analyse</span><span class="ki-rp-titel">Anthropics Bericht zum Missbrauch seiner KI Claude</span><span class="ki-rp-desc">154 Seiten, sieben Schadensbereiche: was die eigene KI-Firma über den Missbrauch ihrer Technologie zugegeben hat, von Raketen-Software bis 151 Millionen abgeschöpften Gesprächen.</span><span class="ki-rp-meta">11.09.2026 · 9 Min. Lesezeit</span></span></a>
-        <a href="artikel/alphagenome-atlas.html" class="ki-rp-karte ki-rp-neben"><span class="ki-rp-bild"><img src="artikel/alphagenome-atlas-og.png" alt="" loading="lazy"></span><span class="ki-rp-text"><span class="ki-rp-kicker">News</span><span class="ki-rp-titel">9 Milliarden Möglichkeiten: der größte Datensatz der Biologie-Geschichte</span><span class="ki-rp-desc">AlphaGenome Atlas: Google DeepMind hat für jede mögliche Einzelbuchstaben-Veränderung der menschlichen DNA eine Vorhersage berechnet, kostenlos für die Forschung.</span><span class="ki-rp-meta">09.09.2026 · 4 Min. Lesezeit</span></span></a>
-        <a href="artikel/dsewiki-leseluecke.html" class="ki-rp-karte ki-rp-neben"><span class="ki-rp-bild"><img src="artikel/dsewiki-leseluecke-og.png" alt="" loading="lazy"></span><span class="ki-rp-text"><span class="ki-rp-kicker">Analyse</span><span class="ki-rp-titel">Der Lesezugriff, der zum Schreibzugriff wurde</span><span class="ki-rp-desc">Wie eine 25 Jahre alte Wiki-Software aus einem reinen Leserecht einen Schreibzugriff machte, und was sich vom DseWiki-Fall wirklich beweisen laesst, Zeile fuer Zeile gegengelesen.</span><span class="ki-rp-meta">05.09.2026 · 8 Min. Lesezeit</span></span></a>
-      </div>
-    </section>
     <!-- SSR:ARTIKEL:END -->
+    <div id="ki-analysen-slot" hidden></div>
 
     <div class="mt-12 pb-12 ki-border border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div>
@@ -5363,6 +5350,105 @@ window.addEventListener('resize',()=>{
       setEmptyStories();
     });
   })();
+</script>
+<script>
+/* Morgenlage + Neueste Analysen im Browser (28.09.26, Daniel): Beide Bloecke laden nach dem ersten
+   Bildschirm aus news.json (briefing) bzw. artikel/artikel-index.json und ersetzen den SSR-Stand.
+   Der Hero wartet nicht darauf (eigener Abruf, erst wenn der Browser Luft hat). Fehlen Daten oder
+   schlaegt ein Abruf fehl, bleibt der SSR-Block stehen bzw. der Bereich leer - nie ein JS-Fehler. */
+(function () {
+  'use strict';
+  var ANZAHL_ANALYSEN = 3;
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function holen(url, art, ms) {
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var uhr = ctrl ? setTimeout(function () { ctrl.abort(); }, ms || 6000) : null;
+    return fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return art === 'text' ? r.text() : r.json();
+    }).finally(function () { if (uhr) clearTimeout(uhr); });
+  }
+  function ssrWeg(auswahl, slot) {
+    Array.prototype.forEach.call(document.querySelectorAll(auswahl), function (el) {
+      if (!slot.contains(el) && el.parentNode) el.parentNode.removeChild(el);
+    });
+  }
+
+  function morgenlage(daten) {
+    var slot = document.getElementById('ki-morgenlage-slot');
+    var b = daten && daten.briefing;
+    var stories = (b && Array.isArray(b.stories) ? b.stories : []).filter(function (s) { return s && s.title; });
+    if (!slot || !stories.length) return;
+    var imNews = {};
+    (Array.isArray(daten.news) ? daten.news : []).forEach(function (n) { if (n && n.link) imNews[n.link] = 1; });
+    var band = stories.map(function (s, i) {
+      var titel = esc(String(s.title).slice(0, 90));
+      var intern = s.link && imNews[s.link] && typeof window.klHashId === 'function';
+      var ziel = intern ? '#a=' + window.klHashId(s.link) : (s.link || '#');
+      var extra = intern || !s.link ? '' : ' target="_blank" rel="noopener"';
+      return '<a href="' + esc(ziel) + '"' + extra + '><span>' + (i + 1) + '.</span> ' + titel + '</a>';
+    }).join('');
+    var kopie = band.replace(/<a href=/g, '<a aria-hidden="true" tabindex="-1" href=');
+    var uhrzeit = String(b.stand || '').split(' ').pop();
+    slot.innerHTML = '<div class="ki-morgenlage-rahmen" aria-label="Morgenlage">' +
+      '<span class="ki-morgenlage-label">Morgenlage ' + esc(uhrzeit) + '</span>' +
+      '<div class="ki-morgenlage-fenster"><div class="ki-morgenlage-band" style="animation-duration:' +
+      Math.max(30, 10 * stories.length) + 's">' + band + kopie + '</div></div></div>';
+    ssrWeg('.ki-morgenlage-rahmen', slot);
+    slot.hidden = false;
+  }
+
+  function analysen(index) {
+    var slot = document.getElementById('ki-analysen-slot');
+    if (!slot || !Array.isArray(index)) return;
+    var liste = index.filter(function (a) { return a && a.slug && /^[a-z0-9-]+$/.test(a.slug); })
+      .sort(function (a, b) { return String(b.datum || '').localeCompare(String(a.datum || '')); })
+      .slice(0, ANZAHL_ANALYSEN);
+    if (!liste.length) return;
+    // Bild = og:image des Artikels; fehlt der Artikel (404), faellt die Kachel weg wie im SSR
+    return Promise.all(liste.map(function (a) {
+      return holen('artikel/' + a.slug + '.html', 'text', 5000).then(function (html) {
+        var m = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html.slice(0, 20000));
+        var bild = m ? m[1].replace(/^https:\/\/ki-news\.live\//, '') : '';
+        return { a: a, bild: bild };
+      }, function () { return null; });
+    })).then(function (werte) {
+      var kacheln = werte.filter(Boolean).map(function (w, i) {
+        var a = w.a, d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(a.datum || '');
+        var datum = d ? d[3] + '.' + d[2] + '.' + d[1] : '';
+        var zeit = /^\d+$/.test(String(a.lesezeit || '')) ? ' · ' + a.lesezeit + ' Min. Lesezeit' : '';
+        return '<a href="artikel/' + esc(a.slug) + '.html" class="ki-rp-karte ' + (i ? 'ki-rp-neben' : 'ki-rp-haupt') + '">' +
+          (w.bild ? '<span class="ki-rp-bild"><img src="' + esc(w.bild) + '" alt="" loading="lazy"></span>' : '') +
+          '<span class="ki-rp-text"><span class="ki-rp-kicker">' + esc((a.tags || ['Analyse'])[0]) + '</span>' +
+          '<span class="ki-rp-titel">' + esc(a.titel) + '</span><span class="ki-rp-desc">' + esc(a.desc) + '</span>' +
+          '<span class="ki-rp-meta">' + esc(datum) + zeit + '</span></span></a>';
+      });
+      if (!kacheln.length) return;
+      slot.innerHTML = '<section class="ki-rp" aria-labelledby="neueste-analysen-js"><div class="ki-rp-kopf">' +
+        '<div><p class="ki-rp-ober">Eigene Analysen</p><h3 id="neueste-analysen-js" class="ki-rp-h ki-main">Neueste Analysen</h3></div>' +
+        '<a href="artikel.html" class="ki-rp-alle">alle Artikel &rarr;</a></div><div class="ki-rp-raster">' +
+        kacheln.join('') + '</div></section>';
+      ssrWeg('section.ki-rp', slot);
+      slot.hidden = false;
+    });
+  }
+
+  function start() {
+    var t = Date.now();
+    holen('news.json?t=' + t).then(morgenlage).catch(function (e) { console.warn('Morgenlage: SSR-Stand bleibt', e); });
+    holen('artikel/artikel-index.json?t=' + t).then(analysen).catch(function (e) { console.warn('Analysen: SSR-Stand bleibt', e); });
+  }
+  function spaeter() {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(start, { timeout: 1500 });
+    else setTimeout(start, 300);
+  }
+  if (document.readyState === 'complete') spaeter();
+  else window.addEventListener('load', spaeter);
+})();
 </script>
 </body>
 </html>
