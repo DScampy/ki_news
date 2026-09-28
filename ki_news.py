@@ -166,6 +166,18 @@ except Exception:          # pragma: no cover - nur ohne installiertes Paket
 _LANGID_EN_SCHWELLE = 0.99
 
 
+# Deutschsprachige Quellen: dort ist ein Titel ohne Marker kein Zeichen fehlender Uebersetzung
+# (Heise '#heiseshow: EU Kids Act, ...', Golem 'Eviltokens zerschlagen: ...').
+_DEUTSCHE_QUELLEN = {"Heise", "Golem", "Caschy Blog", "The Decoder", "Sächsische Zeitung KI", "t3n"}
+
+
+def _hat_deutsches_signal(text: str) -> bool:
+    """Umlaut/ss oder deutsches Signalwort (Regeln 1+2 aus _looks_german, ohne Sprach-ID)."""
+    t = _fix_latex_escapes(text or "").strip()
+    lower = f" {t.lower()} "
+    return any(c in GERMAN_CHARS for c in t) or any(m in lower for m in GERMAN_MARKERS)
+
+
 def _looks_german(text: str, original: str = None) -> bool:
     """True wenn der Text als Deutsch durchgehen darf.
 
@@ -5359,7 +5371,14 @@ def main():
         # 26.08.26: Originaltitel wird mitgegeben, aber von _looks_german()
         # bewusst nicht mehr ausgewertet - Begruendung im Docstring dort
         # (deutsche Quellen liefern title_de == Original als Normalfall).
-        if _title_de_check and not _looks_german(_title_de_check, n.get("title", "")):
+        # 28.09.26 (Auftrag 9): 'ACEMAGIC Launches World's First Ryzen AI Max+ ...' (WCCFtech)
+        # rutschte durch - py3langid hielt den Titel fuer Deutsch (p=0.61, Produktnamen),
+        # die Uebersetzung war ausgefallen (summary leer). Ohne deutsche Zusammenfassung
+        # UND ohne jedes deutsche Signal im Titel (Umlaut, Marker) gilt er als unuebersetzt.
+        _ohne_teaser = not (s.get("summary") or "").strip()
+        if _title_de_check and (not _looks_german(_title_de_check, n.get("title", ""))
+                                or (_ohne_teaser and n.get("source", "") not in _DEUTSCHE_QUELLEN
+                                    and not _hat_deutsches_signal(_title_de_check))):
             globals()["_GUARD_VERWORFEN"] = globals()["_GUARD_VERWORFEN"] + 1
             _VERWORFEN_LISTE.append({"link": link, "quelle": n.get("source", ""),
                                      "titel": _title_de_check[:160]})
