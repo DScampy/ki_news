@@ -1,0 +1,3052 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>KI News Live | Hero-Modul</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+
+  <style id="px-hero-css">
+    #px-hero,
+    #px-hero *,
+    #px-hero *::before,
+    #px-hero *::after {
+      box-sizing: border-box;
+    }
+
+    #px-hero {
+      --px-ink: #101d2d;
+      --px-muted: #64748b;
+      --px-card: rgba(255, 255, 255, 0.97);
+      --px-line: rgba(31, 52, 70, 0.11);
+      --px-cyan: #00aeca;
+      --px-green: #00ae8c;
+      --px-violet: #7b4dff;
+      --px-shadow: 0 22px 60px rgba(4, 14, 24, 0.2);
+      position: relative;
+      isolation: isolate;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      min-height: 760px;
+      overflow: hidden;
+      color: var(--px-ink);
+      background:
+        linear-gradient(
+          180deg,
+          #03090e 0,
+          #09141c 24%,
+          #354651 56%,
+          #dce5e9 79%,
+          #edf2f4 100%
+        );
+    }
+
+    body[data-theme="dark"] #px-hero,
+    html[data-theme="dark"] #px-hero {
+      --px-ink: #eaf5f8;
+      --px-muted: #9cb0bb;
+      --px-card: rgba(12, 24, 33, 0.97);
+      --px-line: rgba(165, 220, 235, 0.12);
+      --px-shadow: 0 24px 68px rgba(0, 0, 0, 0.4);
+      background:
+        linear-gradient(
+          180deg,
+          #02070a 0,
+          #07131b 34%,
+          #0b1c26 72%,
+          #10232e 100%
+        );
+    }
+
+    #px-hero::before {
+      position: absolute;
+      z-index: -3;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background-image:
+        linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      -webkit-mask-image: linear-gradient(180deg, #000 0, #000 54%, transparent 84%);
+      mask-image: linear-gradient(180deg, #000 0, #000 54%, transparent 84%);
+    }
+
+    .px-hero-canvas {
+      position: absolute;
+      z-index: -2;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: min(760px, 100%);
+      pointer-events: none;
+      opacity: 0.75;
+    }
+
+    .px-hero-aurora {
+      position: absolute;
+      z-index: -2;
+      top: 170px;
+      left: 56%;
+      width: min(72vw, 960px);
+      height: 340px;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse,
+        rgba(0, 212, 255, 0.14),
+        transparent 68%
+      );
+      filter: blur(36px);
+      transform: translateX(-50%);
+    }
+
+    .px-hero-shell {
+      width: min(calc(100% - 32px), 1500px);
+      min-width: 0;
+      margin: 0 auto;
+      padding: 18px 0 68px;
+    }
+
+    .px-hero-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      width: 100%;
+      min-width: 0;
+      margin: 0 10px 11px;
+      color: #9ceff5;
+      font: 650 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .px-hero-status::before {
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+      content: "";
+      background: #00f0bd;
+      border-radius: 50%;
+      box-shadow: 0 0 12px #00f0bd;
+    }
+
+    .px-hero-stand {
+      min-width: 0;
+      overflow: hidden;
+      color: rgba(202, 238, 244, 0.84);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.82fr) minmax(410px, 0.95fr);
+      align-items: stretch;
+      gap: 15px;
+      min-width: 0;
+    }
+
+    .px-hero-main-column,
+    .px-hero-side-column,
+    .px-hero-side-column > div {
+      min-width: 0;
+    }
+
+    .px-hero-side-column > div {
+      height: 100%;
+    }
+
+    .px-hero-main-column {
+      position: relative;
+    }
+
+    .px-hero-main-card {
+      position: relative;
+      min-width: 0;
+      min-height: 660px;
+      overflow: hidden;
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.99),
+          rgba(247, 252, 253, 0.95)
+        );
+      border: 1px solid rgba(0, 212, 255, 0.4);
+      border-radius: 20px;
+      box-shadow:
+        var(--px-shadow),
+        0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    }
+
+    .px-hero-main-card::before {
+      position: absolute;
+      z-index: 5;
+      top: -1px;
+      right: 9%;
+      left: 0;
+      height: 2px;
+      pointer-events: none;
+      content: "";
+      background: linear-gradient(90deg, #00d4ff, #00d9aa 45%, #7b4dff 100%);
+      opacity: 0.82;
+    }
+
+    .px-hero-main-card::after {
+      position: absolute;
+      z-index: 0;
+      right: 27%;
+      bottom: -120px;
+      width: 380px;
+      height: 260px;
+      pointer-events: none;
+      content: "";
+      background: radial-gradient(
+        ellipse,
+        rgba(0, 212, 255, 0.13),
+        transparent 70%
+      );
+      filter: blur(20px);
+    }
+
+    body[data-theme="dark"] .px-hero-main-card,
+    html[data-theme="dark"] .px-hero-main-card {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(14, 28, 38, 0.98),
+          rgba(9, 19, 27, 0.97)
+        );
+    }
+
+    .px-hero-slide {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 660px;
+      padding: clamp(25px, 2.7vw, 38px);
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .px-hero-slide.px-hero--enter {
+      opacity: 0;
+      transform: translateY(7px);
+    }
+
+    .px-hero-main-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: var(--px-cyan);
+      font: 650 10px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .px-hero-counter::after {
+      width: clamp(30px, 5vw, 74px);
+      height: 1px;
+      content: "";
+      background: currentColor;
+      opacity: 0.42;
+    }
+
+    .px-hero-importance {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #e77f00;
+      white-space: nowrap;
+    }
+
+    .px-hero-importance::before {
+      width: 7px;
+      height: 7px;
+      content: "";
+      background: #ff9100;
+      border-radius: 1px;
+      box-shadow: 0 0 9px rgba(255, 145, 0, 0.5);
+    }
+
+    .px-hero-main-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(205px, 0.42fr);
+      align-items: center;
+      gap: clamp(22px, 2.8vw, 38px);
+      min-width: 0;
+    }
+
+    .px-hero-main-copy {
+      min-width: 0;
+    }
+
+    .px-hero-pill {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-height: 23px;
+      padding: 4px 8px;
+      overflow: hidden;
+      color: #334155;
+      background: #e5e9ed;
+      border-radius: 3px;
+      font: 750 9px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.07em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-hero-pill-cyan {
+      color: #007f98;
+      background: #d7f8ff;
+    }
+
+    .px-hero-pill-violet {
+      color: #5932ca;
+      background: #ede7ff;
+    }
+
+    .px-hero-pill-dark {
+      color: #dffaff;
+      background: #263340;
+    }
+
+    body[data-theme="dark"] .px-hero-pill,
+    html[data-theme="dark"] .px-hero-pill {
+      color: #c3d4dc;
+      background: #24333e;
+    }
+
+    .px-hero-main-title {
+      display: -webkit-box;
+      max-width: 800px;
+      margin: 15px 0;
+      overflow: hidden;
+      color: var(--px-ink);
+      font: 750 clamp(31px, 3.15vw, 47px)/1.04 "Space Grotesk", sans-serif;
+      letter-spacing: -0.048em;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 5;
+    }
+
+    .px-hero-main-summary {
+      display: -webkit-box;
+      max-width: 820px;
+      margin: 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font: 450 clamp(15px, 1.2vw, 17px)/1.57 "Work Sans", sans-serif;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+    }
+
+    .px-hero-article-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 19px;
+      color: #008f74;
+      text-decoration: none;
+      font: 750 13px/1.2 "Work Sans", sans-serif;
+    }
+
+    body[data-theme="dark"] .px-hero-article-link,
+    html[data-theme="dark"] .px-hero-article-link {
+      color: #4ee4c7;
+    }
+
+    .px-hero-article-link::after {
+      content: "↗";
+      transition: transform 160ms ease;
+    }
+
+    .px-hero-article-link:hover::after {
+      transform: translate(2px, -2px);
+    }
+
+    .px-hero-main-media {
+      position: relative;
+      min-width: 0;
+      aspect-ratio: 0.76;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 70% 18%, rgba(0, 212, 255, 0.2), transparent 34%),
+        linear-gradient(145deg, #07141d, #182a3a 58%, #10121c);
+      border: 1px solid #31495a;
+      border-radius: 17px;
+      box-shadow: 0 22px 40px rgba(6, 13, 20, 0.34);
+      transform: rotate(1deg);
+    }
+
+    .px-hero-main-media::before,
+    .px-hero-side-image::before,
+    .px-hero-video-preview::before {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.09) 1px, transparent 1px);
+      background-size: 18px 18px;
+      -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%);
+      mask-image: linear-gradient(180deg, #000, transparent 85%);
+    }
+
+    .px-hero-main-media img,
+    .px-hero-side-image img,
+    .px-hero-video-preview img {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .px-hero-main-media img[hidden],
+    .px-hero-side-image img[hidden],
+    .px-hero-video-preview img[hidden] {
+      display: none;
+    }
+
+    .px-hero-poster-fallback {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      color: #a9c5d1;
+      font: 650 8px/1.25 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-poster-fallback::after {
+      position: absolute;
+      top: 24%;
+      left: 50%;
+      width: 66%;
+      height: 34%;
+      content: "";
+      border: 1px solid rgba(0, 212, 255, 0.28);
+      border-radius: 50%;
+      box-shadow:
+        0 0 36px rgba(0, 212, 255, 0.12),
+        inset 0 0 24px rgba(123, 77, 255, 0.1);
+      transform: translateX(-50%);
+    }
+
+    .px-hero-media-code {
+      position: absolute;
+      z-index: 3;
+      right: 12px;
+      bottom: 12px;
+      left: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: #c1dce6;
+      font: 650 8px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.08em;
+      text-shadow: 0 2px 5px #02080c;
+      text-transform: uppercase;
+    }
+
+    .px-hero-main-context {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 20px;
+      min-width: 0;
+      margin-top: 18px;
+      padding: 19px 0 31px;
+      border-top: 1px solid var(--px-line);
+    }
+
+    .px-hero-main-context-copy {
+      min-width: 0;
+    }
+
+    .px-hero-context-label {
+      margin-bottom: 7px;
+      color: var(--px-cyan);
+      font: 650 9px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-context-title {
+      max-width: 680px;
+      margin: 0;
+      overflow: hidden;
+      color: var(--px-ink);
+      font: 600 13px/1.35 "Space Grotesk", sans-serif;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-hero-dossier {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #00a789;
+      font: 650 9px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-hero-dossier::before {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      content: "";
+      background: currentColor;
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(0, 217, 170, 0.1);
+    }
+
+    .px-hero-dossier-single {
+      color: #708493;
+    }
+
+    .px-hero-carousel-controls {
+      position: absolute;
+      z-index: 7;
+      right: 20px;
+      bottom: 9px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .px-hero-carousel-button {
+      display: grid;
+      width: 30px;
+      height: 26px;
+      padding: 0;
+      place-items: center;
+      color: #163244;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(0, 212, 255, 0.26);
+      border-radius: 7px;
+      box-shadow: 0 6px 16px rgba(0.03, 0.15, 0.24, 0.13);
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    body[data-theme="dark"] .px-hero-carousel-button,
+    html[data-theme="dark"] .px-hero-carousel-button {
+      color: #dffaff;
+      background: rgba(17, 36, 47, 0.92);
+    }
+
+    .px-hero-carousel-button:hover {
+      background: #f4ffff;
+      border-color: #00d4ff;
+      transform: translateY(-2px);
+    }
+
+    .px-hero-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .px-hero-dot {
+      width: 7px;
+      height: 7px;
+      padding: 0;
+      cursor: pointer;
+      background: rgba(86, 111, 128, 0.32);
+      border: 0;
+      border-radius: 50%;
+      transition: width 160ms ease, background 160ms ease;
+    }
+
+    .px-hero-dot[aria-current="true"] {
+      width: 22px;
+      background: #00cfa8;
+      border-radius: 8px;
+    }
+
+    .px-hero-side-column {
+      display: grid;
+      grid-template-rows: minmax(198px, 1fr) minmax(198px, 1fr) minmax(240px, auto);
+      gap: 12px;
+    }
+
+    .px-hero-side-column.px-hero--no-release {
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+
+    .px-hero-side-card,
+    .px-hero-release {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-ink);
+      background: var(--px-card);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 17px;
+      box-shadow: 0 17px 42px rgba(3, 14, 24, 0.17);
+      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .px-hero-side-card:hover,
+    .px-hero-release:hover {
+      border-color: rgba(0, 212, 255, 0.58);
+      box-shadow:
+        0 20px 48px rgba(3, 14, 24, 0.25),
+        0 0 0 1px rgba(0, 212, 255, 0.08);
+      transform: translateY(-3px);
+    }
+
+    .px-hero-side-link {
+      display: grid;
+      grid-template-columns: clamp(128px, 40%, 176px) minmax(0, 1fr);
+      width: 100%;
+      height: 100%;
+      min-height: 198px;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .px-hero-side-link[aria-disabled="true"] {
+      cursor: default;
+    }
+
+    .px-hero-side-image {
+      position: relative;
+      min-width: 0;
+      min-height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 65% 20%, rgba(0, 212, 255, 0.22), transparent 35%),
+        linear-gradient(155deg, #06131b, #172c3a);
+    }
+
+    .px-hero-side-image::after {
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background: linear-gradient(90deg, transparent 64%, rgba(4, 13, 20, 0.16));
+    }
+
+    .px-hero-side-image img {
+      transition: transform 420ms cubic-bezier(0.2, 0.75, 0.2, 1), filter 180ms ease;
+    }
+
+    .px-hero-side-card:hover .px-hero-side-image img {
+      filter: saturate(1.08) contrast(1.03);
+      transform: scale(1.055);
+    }
+
+    .px-hero-side-rank {
+      position: absolute;
+      z-index: 4;
+      top: 10px;
+      left: 10px;
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      color: #06151c;
+      background: #6ef9df;
+      border-radius: 7px;
+      box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
+      font: 800 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .px-hero-side-body {
+      display: flex;
+      min-width: 0;
+      padding: 14px 16px 13px;
+      flex-direction: column;
+    }
+
+    .px-hero-side-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+      margin-bottom: 8px;
+    }
+
+    .px-hero-side-head .px-hero-pill {
+      max-width: 70%;
+    }
+
+    .px-hero-side-index {
+      flex: 0 0 auto;
+      color: #718294;
+      font: 650 7px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-hero-side-title {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      color: var(--px-ink);
+      font: 720 clamp(15px, 1.24vw, 18px)/1.16 "Space Grotesk", sans-serif;
+      letter-spacing: -0.026em;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+    }
+
+    .px-hero-side-summary {
+      display: -webkit-box;
+      margin: 7px 0 9px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font: 430 11px/1.4 "Work Sans", sans-serif;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-hero-score-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      margin-top: auto;
+    }
+
+    .px-hero-score-label {
+      flex: 0 0 auto;
+      color: #718294;
+      font: 650 7px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-score {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      overflow: hidden;
+      background: #dce5e9;
+      border-radius: 99px;
+    }
+
+    .px-hero-score::after {
+      display: block;
+      width: var(--px-score-width, 0%);
+      height: 100%;
+      content: "";
+      background: linear-gradient(90deg, #00cda7, #00d4ff 58%, #7b4dff);
+      border-radius: inherit;
+      transition: width 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    body[data-theme="dark"] .px-hero-score,
+    html[data-theme="dark"] .px-hero-score {
+      background: #243540;
+    }
+
+    .px-hero-dossier-note {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 7px;
+      color: #00a789;
+      font: 650 7px/1.25 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-dossier-note::before {
+      width: 5px;
+      height: 5px;
+      flex: 0 0 auto;
+      content: "";
+      background: currentColor;
+      border-radius: 50%;
+    }
+
+    .px-hero-release-mount[hidden] {
+      display: none;
+    }
+
+    .px-hero-release {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 240px;
+      padding: 16px;
+      color: #e9f9fc;
+      background:
+        radial-gradient(circle at 88% 8%, rgba(123, 77, 255, 0.29), transparent 35%),
+        linear-gradient(145deg, #06121a, #0a1d29 62%, #111428);
+      border-color: rgba(0, 212, 255, 0.3);
+    }
+
+    .px-hero-release::before {
+      position: absolute;
+      top: 0;
+      right: 20%;
+      left: 0;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, #00d4ff, #7b4dff, transparent);
+    }
+
+    .px-hero-release-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+      margin-bottom: 10px;
+    }
+
+    .px-hero-release-kicker {
+      color: #65f5df;
+      font: 700 9px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-release-badge {
+      flex: 0 0 auto;
+      padding: 4px 7px;
+      color: #d8faff;
+      background: rgba(0, 212, 255, 0.11);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 4px;
+      font: 700 7px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-release-badge-example {
+      color: #f0d7ff;
+      background: rgba(123, 77, 255, 0.2);
+      border-color: rgba(181, 139, 255, 0.45);
+    }
+
+    .px-hero-release-body {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 112px;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .px-hero-release-copy {
+      min-width: 0;
+    }
+
+    .px-hero-release-title {
+      display: -webkit-box;
+      margin: 8px 0 6px;
+      overflow: hidden;
+      font: 700 clamp(17px, 1.4vw, 21px)/1.1 "Space Grotesk", sans-serif;
+      letter-spacing: -0.035em;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-hero-release-text {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      color: #b3c9d2;
+      font: 420 10px/1.4 "Work Sans", sans-serif;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-hero-release-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px 8px;
+      margin-top: 8px;
+      color: #75f4e1;
+      font: 650 7px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .px-hero-video-preview,
+    .px-hero-video-player {
+      position: relative;
+      width: 112px;
+      aspect-ratio: 0.94;
+      overflow: hidden;
+      color: #e9f9fc;
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.09) 1px, transparent 1px),
+        radial-gradient(circle at 50% 45%, rgba(123, 77, 255, 0.3), transparent 42%),
+        linear-gradient(145deg, #17283b, #241b4c);
+      background-size: 15px 15px, 15px 15px, auto, auto;
+      border: 1px solid rgba(0, 212, 255, 0.36);
+      border-radius: 13px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+    }
+
+    .px-hero-video-preview {
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .px-hero-video-preview:hover:not(:disabled) {
+      border-color: #00d4ff;
+      box-shadow:
+        0 0 0 3px rgba(0, 212, 255, 0.1),
+        0 12px 24px rgba(0, 0, 0, 0.24);
+    }
+
+    .px-hero-video-preview:disabled {
+      cursor: default;
+      opacity: 0.76;
+    }
+
+    .px-hero-play {
+      position: absolute;
+      z-index: 4;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(1, 9, 15, 0.26);
+    }
+
+    .px-hero-play::before {
+      display: grid;
+      width: 37px;
+      height: 37px;
+      padding-left: 2px;
+      place-items: center;
+      content: "▶";
+      color: #06151b;
+      background: #55f3dc;
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 7px rgba(85, 243, 220, 0.13),
+        0 8px 22px rgba(0, 0, 0, 0.35);
+      font: 700 12px/1 sans-serif;
+    }
+
+    .px-hero-video-preview:disabled .px-hero-play::before {
+      content: "+";
+      color: #dffaff;
+      background: #29384b;
+    }
+
+    .px-hero-video-caption {
+      position: absolute;
+      z-index: 5;
+      right: 7px;
+      bottom: 7px;
+      left: 7px;
+      padding: 4px 5px;
+      overflow: hidden;
+      color: #dffaff;
+      background: rgba(3, 10, 16, 0.75);
+      border-radius: 4px;
+      font: 700 6px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.05em;
+      text-align: center;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-hero-video-player iframe,
+    .px-hero-video-player video {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .px-hero-release-links {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      min-width: 0;
+      margin-top: 11px;
+    }
+
+    .px-hero-release-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      min-width: 0;
+      min-height: 31px;
+      padding: 7px 9px;
+      overflow: hidden;
+      color: #dffbff;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(0, 212, 255, 0.25);
+      border-radius: 7px;
+      font: 650 8px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: 0.05em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .px-hero-release-link:hover {
+      color: #6af6e1;
+      background: rgba(0, 212, 255, 0.09);
+      border-color: #00d4ff;
+    }
+
+    .px-hero-release-link-x {
+      color: #e4dcff;
+      background: rgba(123, 77, 255, 0.09);
+      border-color: rgba(153, 113, 255, 0.34);
+    }
+
+    .px-hero-release-link[aria-disabled="true"] {
+      color: #7e929d;
+      border-color: rgba(130, 151, 164, 0.2);
+    }
+
+    .px-hero-empty-card {
+      display: grid;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 22px;
+      place-items: center;
+      color: var(--px-muted);
+      text-align: center;
+      background: var(--px-card);
+      border: 1px solid var(--px-line);
+      border-radius: 17px;
+      font: 500 13px/1.5 "Work Sans", sans-serif;
+    }
+
+    .px-hero-main-empty {
+      min-height: 100%;
+      margin: 28px 0;
+    }
+
+    .px-hero-article-link:focus-visible,
+    .px-hero-carousel-button:focus-visible,
+    .px-hero-dot:focus-visible,
+    .px-hero-release-link:focus-visible,
+    .px-hero-video-preview:focus-visible,
+    .px-hero-side-link:focus-visible {
+      outline: 3px solid rgba(0, 212, 255, 0.72);
+      outline-offset: 3px;
+    }
+
+    @media (max-width: 1180px) {
+      .px-hero-grid {
+        grid-template-columns: minmax(0, 1.55fr) minmax(365px, 0.9fr);
+      }
+
+      .px-hero-main-body {
+        grid-template-columns: minmax(0, 1fr) 180px;
+        gap: 23px;
+      }
+
+      .px-hero-main-title {
+        font-size: clamp(28px, 3vw, 38px);
+      }
+
+      .px-hero-side-link {
+        grid-template-columns: 118px minmax(0, 1fr);
+      }
+
+      .px-hero-side-body {
+        padding: 12px 13px;
+      }
+
+      .px-hero-side-title {
+        font-size: 16px;
+      }
+
+      .px-hero-side-summary {
+        margin-top: 6px;
+        margin-bottom: 7px;
+        font-size: 10.5px;
+      }
+
+      .px-hero-release-body {
+        grid-template-columns: minmax(0, 1fr) 94px;
+      }
+
+      .px-hero-video-preview,
+      .px-hero-video-player {
+        width: 94px;
+      }
+    }
+
+    @media (max-width: 960px) {
+      #px-hero {
+        background:
+          linear-gradient(180deg, #03090e 0, #09141c 27%, #3f515d 61%, #dce5e9 82%, #edf2f4 100%);
+      }
+
+      .px-hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-hero-main-card,
+      .px-hero-slide {
+        min-height: 620px;
+      }
+
+      .px-hero-side-column {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: 218px 278px;
+      }
+
+      .px-hero-side-column.px-hero--no-release {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: 330px;
+      }
+
+      .px-hero-release {
+        grid-column: 1 / -1;
+      }
+
+      .px-hero-release-body {
+        grid-template-columns: minmax(0, 1fr) 145px;
+      }
+
+      .px-hero-video-preview,
+      .px-hero-video-player {
+        width: 145px;
+      }
+
+      .px-hero-release-title {
+        font-size: 21px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .px-hero-shell {
+        width: min(calc(100% - 24px), 680px);
+        padding-top: 18px;
+        padding-bottom: 58px;
+      }
+
+      .px-hero-status-row {
+        margin-right: 6px;
+        margin-left: 6px;
+      }
+
+      .px-hero-stand {
+        display: none;
+      }
+
+      .px-hero-side-column {
+        grid-template-columns: 1fr;
+        grid-template-rows: 230px 230px 292px;
+      }
+
+      .px-hero-side-column.px-hero--no-release {
+        grid-template-columns: 1fr;
+        grid-template-rows: 250px 250px;
+      }
+
+      .px-hero-release {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 540px) {
+      .px-hero-shell {
+        width: calc(100% - 24px);
+        padding-top: 15px;
+      }
+
+      .px-hero-status-row {
+        margin-bottom: 9px;
+        font-size: 8px;
+      }
+
+      .px-hero-main-card,
+      .px-hero-slide {
+        min-height: 0;
+      }
+
+      .px-hero-main-card {
+        border-radius: 17px;
+      }
+
+      .px-hero-slide {
+        padding: 20px 17px 22px;
+      }
+
+      .px-hero-main-topline {
+        margin-bottom: 17px;
+        font-size: 8px;
+      }
+
+      .px-hero-importance {
+        font-size: 8px;
+      }
+
+      .px-hero-main-body {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+      }
+
+      .px-hero-main-title {
+        margin-top: 13px;
+        font-size: clamp(26px, 7.7vw, 32px);
+        line-height: 1.04;
+        -webkit-line-clamp: 7;
+      }
+
+      .px-hero-main-summary {
+        font-size: 13.5px;
+        line-height: 1.5;
+        -webkit-line-clamp: 4;
+      }
+
+      .px-hero-article-link {
+        margin-top: 15px;
+      }
+
+      .px-hero-main-media {
+        width: 100%;
+        max-height: 218px;
+        aspect-ratio: 1.72;
+        order: 2;
+        transform: none;
+      }
+
+      .px-hero-main-context {
+        margin-top: 18px;
+        padding: 17px 0 39px;
+      }
+
+      .px-hero-context-title {
+        font-size: 11px;
+      }
+
+      .px-hero-dossier {
+        max-width: 105px;
+        white-space: normal;
+        text-align: right;
+      }
+
+      .px-hero-carousel-controls {
+        right: 10px;
+        bottom: 8px;
+        left: 10px;
+      }
+
+      .px-hero-carousel-button {
+        width: 29px;
+        height: 25px;
+      }
+
+      .px-hero-side-column,
+      .px-hero-side-column.px-hero--no-release {
+        gap: 10px;
+        margin-top: 5px;
+      }
+
+      .px-hero-side-column {
+        grid-template-rows: 230px 230px 292px;
+      }
+
+      .px-hero-side-column.px-hero--no-release {
+        grid-template-rows: 238px 238px;
+      }
+
+      .px-hero-side-link {
+        grid-template-columns: 34% minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      .px-hero-side-body {
+        padding: 12px 12px 11px;
+      }
+
+      .px-hero-side-head {
+        margin-bottom: 6px;
+      }
+
+      .px-hero-side-title {
+        font-size: 15px;
+        line-height: 1.14;
+        -webkit-line-clamp: 4;
+      }
+
+      .px-hero-side-summary {
+        margin-top: 5px;
+        margin-bottom: 7px;
+        font-size: 10.5px;
+        line-height: 1.34;
+        -webkit-line-clamp: 3;
+      }
+
+      .px-hero-score-row {
+        gap: 6px;
+      }
+
+      .px-hero-score-label {
+        font-size: 6.5px;
+      }
+
+      .px-hero-dossier-note {
+        margin-top: 5px;
+        font-size: 6.5px;
+      }
+
+      .px-hero-release {
+        padding: 15px;
+      }
+
+      .px-hero-release-body {
+        grid-template-columns: minmax(0, 1fr) 112px;
+        gap: 11px;
+      }
+
+      .px-hero-video-preview,
+      .px-hero-video-player {
+        width: 112px;
+      }
+
+      .px-hero-release-title {
+        font-size: 18px;
+      }
+
+      .px-hero-release-text {
+        font-size: 9.5px;
+        -webkit-line-clamp: 3;
+      }
+
+      .px-hero-release-link {
+        padding-right: 7px;
+        padding-left: 7px;
+        font-size: 7px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .px-hero-side-link {
+        grid-template-columns: 112px minmax(0, 1fr);
+      }
+
+      .px-hero-release-body {
+        grid-template-columns: minmax(0, 1fr) 92px;
+      }
+
+      .px-hero-video-preview,
+      .px-hero-video-player {
+        width: 92px;
+      }
+    }
+
+    @media (hover: none) {
+      .px-hero-side-card:hover,
+      .px-hero-release:hover {
+        transform: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #px-hero *,
+      #px-hero *::before,
+      #px-hero *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <section id="px-hero" aria-label="Aktuelle Nachrichten und Hersteller-Release" aria-busy="true">
+    <canvas class="px-hero-canvas" data-px-field aria-hidden="true"></canvas>
+    <div class="px-hero-aurora" aria-hidden="true"></div>
+
+    <div class="px-hero-shell">
+      <div class="px-hero-status-row" aria-live="polite">
+        <span class="px-hero-status" data-px-load-status>
+          Aktuelle Meldungen werden geladen
+        </span>
+        <span class="px-hero-stand" data-px-stand></span>
+      </div>
+
+      <div class="px-hero-grid" data-px-grid>
+        <div class="px-hero-main-column">
+          <article class="px-hero-main-card" data-px-main-card>
+            <div data-px-main-slide aria-live="polite">
+              <div class="px-hero-empty-card px-hero-main-empty">
+                Top-Storys werden geladen.
+              </div>
+            </div>
+
+            <div
+              class="px-hero-carousel-controls"
+              data-px-carousel-controls
+              aria-label="Top-Story Karussell"
+            ></div>
+          </article>
+        </div>
+
+        <aside
+          class="px-hero-side-column px-hero--no-release"
+          data-px-side-column
+          aria-label="Weitere Nachrichten und Markt-Release"
+        >
+          <div data-px-side-one>
+            <div class="px-hero-empty-card">
+              Weitere Meldung wird geladen.
+            </div>
+          </div>
+
+          <div data-px-side-two>
+            <div class="px-hero-empty-card">
+              Weitere Meldung wird geladen.
+            </div>
+          </div>
+
+          <div class="px-hero-release-mount" data-px-release hidden></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <script src="assets/ki-icons.js"></script>
+  <script src="assets/ki-layout.js"></script>
+
+  <script id="px-hero-js">
+    (() => {
+      "use strict";
+
+      const EXAMPLE_RELEASE = {
+        hersteller: "Anthropic",
+        modell: "Claude Opus 5.5",
+        datum: "2026-09-16",
+        titel: "Claude Opus 5.5",
+        text: "Beispiel-Eintrag für die Release-Sektion. Mit ?demo=1 wird diese Kachel ausschließlich im Prototyp angezeigt.",
+        url: "https://www.anthropic.com/news",
+        x_url: "https://x.com/claudeai",
+        video_url: "",
+        poster: ""
+      };
+
+      const hero = document.getElementById("px-hero");
+      if (!hero) return;
+
+      const query = (node, selector) => node && node.querySelector(selector);
+
+      const mainSlide = query(hero, "[data-px-main-slide]");
+      const mainCard = query(hero, "[data-px-main-card]");
+      const controls = query(hero, "[data-px-carousel-controls]");
+      const sideColumn = query(hero, "[data-px-side-column]");
+      const sideOne = query(hero, "[data-px-side-one]");
+      const sideTwo = query(hero, "[data-px-side-two]");
+      const releaseMount = query(hero, "[data-px-release]");
+      const statusNode = query(hero, "[data-px-load-status]");
+      const standNode = query(hero, "[data-px-stand]");
+      const canvas = query(hero, "[data-px-field]");
+
+      if (
+        !mainSlide ||
+        !mainCard ||
+        !controls ||
+        !sideColumn ||
+        !sideOne ||
+        !sideTwo ||
+        !releaseMount ||
+        !statusNode ||
+        !standNode
+      ) {
+        return;
+      }
+
+      const demoMode =
+        new URLSearchParams(window.location.search).get("demo") === "1";
+      const reducedMotion =
+        window.matchMedia("(prefers-reduced-motion: reduce)");
+
+      let stories = [];
+      let currentStory = 0;
+      let releaseData = null;
+      let releaseIsExample = false;
+      let carouselTimer = null;
+      let touchStartX = null;
+      let destroyed = false;
+      let resizeObserver = null;
+      let resizeHandler = null;
+
+      let cardIndex = {
+        links: new Map(),
+        identifiers: new Map(),
+        entries: []
+      };
+
+      const cleanText = value => {
+        if (typeof value !== "string" && typeof value !== "number") {
+          return "";
+        }
+
+        return String(value)
+          .replace(/[\u2014\u2013]/g, "-")
+          .replace(/[\u200B-\u200D\uFEFF]/g, "")
+          .trim();
+      };
+
+      const make = (
+        tag,
+        className = "",
+        content = null
+      ) => {
+        const element = document.createElement(tag);
+
+        if (className) element.className = className;
+
+        if (content !== null && content !== undefined) {
+          element.textContent = cleanText(content);
+        }
+
+        return element;
+      };
+
+      const clamp = (value, min, max) =>
+        Math.min(max, Math.max(min, value));
+
+      const listFromPayload = (value, key) => {
+        if (Array.isArray(value)) return value;
+
+        if (
+          value &&
+          typeof value === "object" &&
+          Array.isArray(value[key])
+        ) {
+          return value[key];
+        }
+
+        return [];
+      };
+
+      const safeHref = value => {
+        const candidate = cleanText(value);
+        if (!candidate) return "";
+
+        try {
+          const parsed = new URL(candidate, document.baseURI);
+
+          return parsed.protocol === "http:" ||
+            parsed.protocol === "https:"
+            ? parsed.href
+            : "";
+        } catch (_) {
+          return "";
+        }
+      };
+
+      const safeImage = value => safeHref(value);
+
+      const normalizeUrl = value => {
+        const href = safeHref(value);
+        if (!href) return "";
+
+        try {
+          const parsed = new URL(href);
+          const host = parsed.hostname
+            .replace(/^www\./i, "")
+            .toLocaleLowerCase("en");
+          const path = decodeURIComponent(parsed.pathname)
+            .replace(/\/+$/, "")
+            .toLocaleLowerCase("en");
+
+          return `${host}${path}`;
+        } catch (_) {
+          return "";
+        }
+      };
+
+      const normalizeTitle = value =>
+        cleanText(value)
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLocaleLowerCase("de-DE")
+          .replace(/ß/g, "ss")
+          .replace(/&/g, " und ")
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
+
+      const titleTokens = value =>
+        new Set(
+          normalizeTitle(value)
+            .split(" ")
+            .filter(token => token.length > 2)
+        );
+
+      const titleSimilarity = (first, second) => {
+        const firstText = normalizeTitle(first);
+        const secondText = normalizeTitle(second);
+
+        if (!firstText || !secondText) return 0;
+        if (firstText === secondText) return 1;
+
+        if (firstText.length > 18 && secondText.length > 18) {
+          if (
+            firstText.includes(secondText) ||
+            secondText.includes(firstText)
+          ) {
+            return 0.92;
+          }
+        }
+
+        const firstTokens = titleTokens(first);
+        const secondTokens = titleTokens(second);
+
+        if (!firstTokens.size || !secondTokens.size) return 0;
+
+        let intersection = 0;
+
+        firstTokens.forEach(token => {
+          if (secondTokens.has(token)) intersection += 1;
+        });
+
+        return (2 * intersection) /
+          (firstTokens.size + secondTokens.size);
+      };
+
+      const formatDate = value => {
+        const candidate = cleanText(value);
+        const match = candidate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!match) return candidate;
+
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+
+        if (
+          date.getFullYear() !== year ||
+          date.getMonth() !== month - 1 ||
+          date.getDate() !== day
+        ) {
+          return candidate;
+        }
+
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric"
+        }).format(date);
+      };
+
+      const scoreOf = story => {
+        if (!story || typeof story !== "object") return 0;
+
+        const score = Number(
+          story.score ??
+          story.base_score ??
+          story.story_cluster_score
+        );
+
+        return Number.isFinite(score) ? clamp(score, 0, 100) : 0;
+      };
+
+      const storyTitle = story => {
+        if (!story || typeof story !== "object") return "";
+
+        return cleanText(story.title) ||
+          cleanText(story.headline) ||
+          cleanText(story.titel);
+      };
+
+      const storySummary = story => {
+        if (!story || typeof story !== "object") return "";
+
+        return cleanText(story.summary) ||
+          cleanText(story.erklaerung) ||
+          cleanText(story.teaser) ||
+          cleanText(story.text);
+      };
+
+      const collectStrings = (
+        value,
+        output = new Set(),
+        depth = 0
+      ) => {
+        if (
+          depth > 5 ||
+          value === null ||
+          value === undefined
+        ) {
+          return output;
+        }
+
+        if (Array.isArray(value)) {
+          value.forEach(item =>
+            collectStrings(item, output, depth + 1)
+          );
+          return output;
+        }
+
+        if (typeof value === "object") {
+          Object.entries(value).forEach(([key, item]) => {
+            if (
+              [
+                "poster_url",
+                "poster",
+                "thumbnail_url",
+                "thumbnail",
+                "image",
+                "image_url",
+                "mp4_url",
+                "video_url"
+              ].includes(key)
+            ) {
+              return;
+            }
+
+            collectStrings(item, output, depth + 1);
+          });
+
+          return output;
+        }
+
+        if (typeof value === "string" || typeof value === "number") {
+          const item = cleanText(value);
+          if (item) output.add(item);
+        }
+
+        return output;
+      };
+
+      const cardTitleCandidates = card => {
+        if (!card || typeof card !== "object") return [];
+
+        return [
+          cleanText(card.headline),
+          cleanText(card.title),
+          cleanText(card.text),
+          cleanText(card.name),
+          cleanText(card.id)
+        ].filter(Boolean);
+      };
+
+      const createCardIndex = cards => {
+        const links = new Map();
+        const identifiers = new Map();
+        const entries = [];
+
+        cards.forEach(card => {
+          if (
+            !card ||
+            typeof card !== "object" ||
+            Array.isArray(card)
+          ) {
+            return;
+          }
+
+          collectStrings(card).forEach(value => {
+            const normalized = normalizeUrl(value);
+
+            if (normalized && !links.has(normalized)) {
+              links.set(normalized, card);
+            }
+          });
+
+          [
+            cleanText(card.story_id),
+            cleanText(card.storyId),
+            cleanText(card.news_id),
+            cleanText(card.newsId)
+          ].filter(Boolean).forEach(id => {
+            if (!identifiers.has(id)) {
+              identifiers.set(id, card);
+            }
+          });
+
+          entries.push({
+            card,
+            titles: cardTitleCandidates(card)
+          });
+        });
+
+        return { links, identifiers, entries };
+      };
+
+      const resolveCard = story => {
+        if (!story || typeof story !== "object") return null;
+
+        const storyLinks = [];
+        const storyIds = [
+          cleanText(story.story_id),
+          cleanText(story.storyId)
+        ].filter(Boolean);
+
+        collectStrings(story).forEach(value => {
+          const normalized = normalizeUrl(value);
+          if (normalized) storyLinks.push(normalized);
+        });
+
+        for (const link of storyLinks) {
+          if (cardIndex.links.has(link)) {
+            return cardIndex.links.get(link);
+          }
+        }
+
+        for (const id of storyIds) {
+          if (cardIndex.identifiers.has(id)) {
+            return cardIndex.identifiers.get(id);
+          }
+        }
+
+        const title = storyTitle(story);
+        if (!title) return null;
+
+        let bestCard = null;
+        let bestScore = 0;
+
+        cardIndex.entries.forEach(entry => {
+          entry.titles.forEach(candidate => {
+            const similarity = titleSimilarity(title, candidate);
+
+            if (similarity > bestScore) {
+              bestScore = similarity;
+              bestCard = entry.card;
+            }
+          });
+        });
+
+        return bestScore >= 0.46 ? bestCard : null;
+      };
+
+      const posterOf = card => {
+        if (!card || typeof card !== "object") return "";
+
+        return safeImage(card.poster_url) ||
+          safeImage(card.poster) ||
+          safeImage(card.thumbnail_url) ||
+          safeImage(card.thumbnail);
+      };
+
+      const storyImageOf = story => {
+        if (!story || typeof story !== "object") return "";
+
+        return safeImage(story.image) ||
+          safeImage(story.image_url) ||
+          safeImage(story.thumbnail);
+      };
+
+      const dossierData = story => {
+        const raw =
+          story && typeof story === "object"
+            ? story.linien
+            : null;
+
+        const hasDossier =
+          (Array.isArray(raw) && raw.length > 0) ||
+          (
+            raw !== null &&
+            raw !== undefined &&
+            raw !== "" &&
+            raw !== false
+          );
+
+        const names = [];
+
+        const addName = value => {
+          if (
+            typeof value === "string" ||
+            typeof value === "number"
+          ) {
+            const name = cleanText(value);
+
+            if (name && !names.includes(name)) names.push(name);
+            return;
+          }
+
+          if (value && typeof value === "object") {
+            const name = cleanText(value.name) ||
+              cleanText(value.titel) ||
+              cleanText(value.title) ||
+              cleanText(value.label) ||
+              cleanText(value.id);
+
+            if (name && !names.includes(name)) names.push(name);
+          }
+        };
+
+        if (Array.isArray(raw)) raw.forEach(addName);
+        else addName(raw);
+
+        return { hasDossier, names };
+      };
+
+      const recordKey = item => {
+        if (!item || typeof item !== "object") return "";
+
+        const storyId =
+          cleanText(item.story_id) ||
+          cleanText(item.storyId);
+
+        if (storyId) return `id:${storyId}`;
+
+        const link = cleanText(item.link);
+        if (link) return `url:${normalizeUrl(link) || link}`;
+
+        const title = storyTitle(item);
+        return title ? `title:${normalizeTitle(title)}` : "";
+      };
+
+      const mergeStories = (newsData, archiveData) => {
+        const briefing =
+          newsData &&
+          typeof newsData.briefing === "object" &&
+          Array.isArray(newsData.briefing.stories)
+            ? newsData.briefing.stories
+            : [];
+
+        const newsItems = listFromPayload(newsData, "news");
+        const posts = listFromPayload(newsData, "posts");
+        const archiveItems = listFromPayload(archiveData, "archive");
+        const lookup = new Map();
+        const ordered = [];
+
+        [
+          ...briefing,
+          ...newsItems,
+          ...posts,
+          ...archiveItems
+        ].forEach(item => {
+          if (
+            !item ||
+            typeof item !== "object" ||
+            Array.isArray(item)
+          ) {
+            return;
+          }
+
+          const key = recordKey(item);
+          if (!key) return;
+
+          if (!lookup.has(key)) {
+            const record = { ...item };
+            lookup.set(key, record);
+            ordered.push(record);
+            return;
+          }
+
+          const record = lookup.get(key);
+
+          Object.entries(item).forEach(([field, value]) => {
+            const empty =
+              value === null ||
+              value === undefined ||
+              (
+                typeof value === "string" &&
+                !value.trim()
+              );
+
+            if (empty) return;
+
+            if (
+              !Object.prototype.hasOwnProperty.call(record, field) ||
+              record[field] === null ||
+              record[field] === undefined ||
+              (
+                typeof record[field] === "string" &&
+                !record[field].trim()
+              )
+            ) {
+              record[field] = value;
+            }
+          });
+        });
+
+        return ordered
+          .filter(item => storyTitle(item))
+          .map((item, index) => ({
+            item,
+            index,
+            score: scoreOf(item)
+          }))
+          .sort((first, second) => {
+            if (first.score !== second.score) {
+              return second.score - first.score;
+            }
+
+            return first.index - second.index;
+          })
+          .map(entry => entry.item)
+          .slice(0, 6);
+      };
+
+      const addImage = (
+        parent,
+        source,
+        eager = false
+      ) => {
+        const url = safeImage(source);
+        if (!url) return false;
+
+        const image = make("img");
+
+        image.alt = "Newsbild zur Meldung";
+        image.loading = eager ? "eager" : "lazy";
+        image.decoding = "async";
+        image.referrerPolicy = "no-referrer";
+
+        if (eager) image.fetchPriority = "high";
+
+        image.addEventListener("error", () => {
+          image.hidden = true;
+        }, { once: true });
+
+        image.src = url;
+        parent.append(image);
+
+        return true;
+      };
+
+      const addPosterFallback = (parent, left, right) => {
+        const fallback = make("div", "px-hero-poster-fallback");
+
+        fallback.append(
+          make("span", "", left),
+          make("span", "", right)
+        );
+
+        parent.append(fallback);
+      };
+
+      const buildPill = (label, variant = "") => {
+        const value = cleanText(label) || "Quelle unbekannt";
+
+        return make(
+          "span",
+          `px-hero-pill${variant ? ` ${variant}` : ""}`,
+          value
+        );
+      };
+
+      const buildScore = story => {
+        const score = scoreOf(story);
+        const row = make("div", "px-hero-score-row");
+        const label = make(
+          "span",
+          "px-hero-score-label",
+          "Wichtigkeit"
+        );
+        const track = make("span", "px-hero-score");
+
+        track.setAttribute("role", "progressbar");
+        track.setAttribute("aria-label", "Wichtigkeit der Meldung");
+        track.setAttribute("aria-valuemin", "0");
+        track.setAttribute("aria-valuemax", "100");
+        track.setAttribute("aria-valuenow", String(score));
+
+        requestAnimationFrame(() => {
+          if (track.isConnected) {
+            track.style.setProperty("--px-score-width", `${score}%`);
+          }
+        });
+
+        row.append(label, track);
+        return row;
+      };
+
+      const makeExternalLink = (
+        label,
+        url,
+        className
+      ) => {
+        const anchor = make("a", className, label);
+        const href = safeHref(url);
+
+        if (href) {
+          anchor.href = href;
+          anchor.target = "_blank";
+          anchor.rel = "noopener noreferrer";
+        } else {
+          anchor.setAttribute("aria-disabled", "true");
+          anchor.tabIndex = -1;
+        }
+
+        return anchor;
+      };
+
+      const stopCarousel = () => {
+        if (carouselTimer !== null) {
+          window.clearTimeout(carouselTimer);
+          carouselTimer = null;
+        }
+      };
+
+      const goToStory = index => {
+        if (!stories.length) return;
+
+        currentStory = (index + stories.length) % stories.length;
+        renderMainStory();
+        renderControls();
+        startCarousel();
+      };
+
+      const startCarousel = () => {
+        stopCarousel();
+
+        if (
+          destroyed ||
+          stories.length < 2 ||
+          document.hidden ||
+          reducedMotion.matches
+        ) {
+          return;
+        }
+
+        carouselTimer = window.setTimeout(() => {
+          goToStory(currentStory + 1);
+        }, 10000);
+      };
+
+      const renderMainStory = () => {
+        const story = stories[currentStory];
+        mainSlide.replaceChildren();
+
+        if (!story) {
+          mainSlide.append(make(
+            "div",
+            "px-hero-empty-card px-hero-main-empty",
+            "Gerade sind keine Top-Storys verfügbar. Schau später noch einmal vorbei."
+          ));
+          return;
+        }
+
+        const title = storyTitle(story) || "Ohne Titel";
+        const summary = storySummary(story) ||
+          "Für diese Meldung liegt noch keine kurze Zusammenfassung vor.";
+        const source = cleanText(story.source) || "Unbekannte Quelle";
+        const card = resolveCard(story);
+        const poster = posterOf(card) || storyImageOf(story);
+        const dossier = dossierData(story);
+        const slide = make("div", "px-hero-slide");
+
+        const topline = make("div", "px-hero-main-topline");
+
+        topline.append(
+          make(
+            "span",
+            "px-hero-counter",
+            `Top Story / ${currentStory + 1} von ${stories.length}`
+          ),
+          make("span", "px-hero-importance", "Im Fokus")
+        );
+
+        const body = make("div", "px-hero-main-body");
+        const copy = make("div", "px-hero-main-copy");
+
+        copy.append(
+          buildPill(source),
+          make("h1", "px-hero-main-title", title),
+          make("p", "px-hero-main-summary", summary)
+        );
+
+        if (safeHref(story.link)) {
+          copy.append(makeExternalLink(
+            "Artikel lesen",
+            story.link,
+            "px-hero-article-link"
+          ));
+        }
+
+        const media = make("div", "px-hero-main-media");
+
+        addPosterFallback(
+          media,
+          "KI NEWS",
+          card ? "CARD POSTER" : "NEWS STILL"
+        );
+
+        addImage(media, poster, currentStory === 0);
+
+        const mediaCode = make("div", "px-hero-media-code");
+
+        mediaCode.append(
+          make("span", "", "KI NEWS / SIGNAL"),
+          make(
+            "span",
+            "",
+            card ? "CARD POSTER" : "TOP STORY"
+          )
+        );
+
+        media.append(mediaCode);
+        body.append(copy, media);
+
+        const context = make("div", "px-hero-main-context");
+        const contextCopy = make("div", "px-hero-main-context-copy");
+        const firstSeen = formatDate(story.first_seen || story.date);
+
+        const contextText = dossier.hasDossier
+          ? dossier.names.join(" / ") ||
+            "Die Meldung ist einer laufenden Linie zugeordnet."
+          : firstSeen
+            ? `Erstmals erfasst am ${firstSeen}`
+            : "Einzelmeldung aus dem aktuellen Nachrichtenlauf.";
+
+        contextCopy.append(
+          make(
+            "div",
+            "px-hero-context-label",
+            dossier.hasDossier
+              ? "Linie im Dossier"
+              : "Meldungskontext"
+          ),
+          make("p", "px-hero-context-title", contextText)
+        );
+
+        context.append(
+          contextCopy,
+          make(
+            "span",
+            `px-hero-dossier${dossier.hasDossier ? "" : " px-hero-dossier-single"}`,
+            dossier.hasDossier
+              ? "Teil eines Dossiers"
+              : "Freistehende Meldung"
+          )
+        );
+
+        slide.append(topline, body, context);
+        mainSlide.append(slide);
+
+        if (!reducedMotion.matches) {
+          requestAnimationFrame(() => {
+            if (!slide.isConnected) return;
+
+            slide.classList.add("px-hero--enter");
+            requestAnimationFrame(() => {
+              slide.classList.remove("px-hero--enter");
+            });
+          });
+        }
+      };
+
+      const renderControls = () => {
+        controls.replaceChildren();
+        if (stories.length < 2) return;
+
+        const previous = make(
+          "button",
+          "px-hero-carousel-button",
+          "←"
+        );
+
+        previous.type = "button";
+        previous.setAttribute("aria-label", "Vorherige Top-Story");
+
+        const dots = make("div", "px-hero-dots");
+        dots.setAttribute("aria-label", "Top-Story auswählen");
+
+        stories.forEach((story, index) => {
+          const dot = make("button", "px-hero-dot");
+
+          dot.type = "button";
+          dot.setAttribute(
+            "aria-label",
+            `Top Story ${index + 1} auswählen`
+          );
+          dot.setAttribute(
+            "aria-current",
+            index === currentStory ? "true" : "false"
+          );
+          dot.addEventListener("click", () => goToStory(index));
+          dots.append(dot);
+        });
+
+        const next = make(
+          "button",
+          "px-hero-carousel-button",
+          "→"
+        );
+
+        next.type = "button";
+        next.setAttribute("aria-label", "Nächste Top-Story");
+        previous.addEventListener("click", () => goToStory(currentStory - 1));
+        next.addEventListener("click", () => goToStory(currentStory + 1));
+        controls.append(previous, dots, next);
+      };
+
+      const renderSideStory = (story, index) => {
+        if (!story) {
+          return make(
+            "div",
+            "px-hero-empty-card",
+            "Keine weitere Meldung verfügbar."
+          );
+        }
+
+        const title = storyTitle(story) || "Ohne Titel";
+        const summary = storySummary(story) ||
+          "Keine Zusammenfassung hinterlegt.";
+        const source = cleanText(story.source) || "Quelle unbekannt";
+        const card = resolveCard(story);
+        const poster = posterOf(card) || storyImageOf(story);
+        const dossier = dossierData(story);
+        const article = make("article", "px-hero-side-card");
+        const href = safeHref(story.link);
+        const link = href
+          ? make("a", "px-hero-side-link")
+          : make("div", "px-hero-side-link");
+
+        if (href) {
+          link.href = href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        } else {
+          link.setAttribute("aria-disabled", "true");
+        }
+
+        link.setAttribute(
+          "aria-label",
+          "Weitere Top-Story öffnen"
+        );
+
+        const media = make("div", "px-hero-side-image");
+
+        media.append(make(
+          "span",
+          "px-hero-side-rank",
+          String(index).padStart(2, "0")
+        ));
+
+        addPosterFallback(
+          media,
+          "KI NEWS",
+          card ? "CARD / SIGNAL" : "NEWS STILL"
+        );
+
+        addImage(media, poster);
+
+        const body = make("div", "px-hero-side-body");
+        const head = make("div", "px-hero-side-head");
+        const sideDate = formatDate(story.date || story.first_seen);
+
+        head.append(
+          buildPill(source),
+          make(
+            "span",
+            "px-hero-side-index",
+            sideDate || `Story ${index}`
+          )
+        );
+
+        body.append(
+          head,
+          make("h2", "px-hero-side-title", title),
+          make("p", "px-hero-side-summary", summary),
+          buildScore(story)
+        );
+
+        if (dossier.hasDossier) {
+          body.append(make(
+            "span",
+            "px-hero-dossier-note",
+            "Teil eines Dossiers"
+          ));
+        }
+
+        link.append(media, body);
+        article.append(link);
+        return article;
+      };
+
+      const normalizeRelease = value => {
+        if (
+          !value ||
+          typeof value !== "object" ||
+          Array.isArray(value)
+        ) {
+          return null;
+        }
+
+        const manufacturer =
+          cleanText(value.hersteller) ||
+          cleanText(value.manufacturer);
+        const model =
+          cleanText(value.modell) ||
+          cleanText(value.model);
+        const title =
+          cleanText(value.titel) ||
+          cleanText(value.title);
+
+        if (!manufacturer && !model && !title) return null;
+
+        return {
+          hersteller: manufacturer,
+          modell: model,
+          datum: cleanText(value.datum) || cleanText(value.date),
+          titel: title || model || manufacturer,
+          text: cleanText(value.text) || cleanText(value.description),
+          url: cleanText(value.url),
+          x_url: cleanText(value.x_url) || cleanText(value.xUrl),
+          video_url: cleanText(value.video_url) || cleanText(value.videoUrl),
+          poster: cleanText(value.poster) || cleanText(value.poster_url)
+        };
+      };
+
+      const extractReleases = payload => {
+        if (Array.isArray(payload)) return payload;
+
+        if (payload && typeof payload === "object") {
+          if (Array.isArray(payload.releases)) {
+            return payload.releases;
+          }
+
+          if (Array.isArray(payload.hersteller)) {
+            return payload.hersteller;
+          }
+
+          if (
+            payload.hersteller ||
+            payload.manufacturer ||
+            payload.titel ||
+            payload.title
+          ) {
+            return [payload];
+          }
+        }
+
+        return [];
+      };
+
+      const sortReleases = releases =>
+        releases
+          .map((item, index) => ({ item, index }))
+          .sort((first, second) => {
+            const firstDate =
+              /^\d{4}-\d{2}-\d{2}$/.test(first.item.datum)
+                ? first.item.datum
+                : "";
+            const secondDate =
+              /^\d{4}-\d{2}-\d{2}$/.test(second.item.datum)
+                ? second.item.datum
+                : "";
+
+            if (
+              firstDate &&
+              secondDate &&
+              firstDate !== secondDate
+            ) {
+              return secondDate.localeCompare(firstDate);
+            }
+
+            if (firstDate && !secondDate) return -1;
+            if (!firstDate && secondDate) return 1;
+            return first.index - second.index;
+          })
+          .map(entry => entry.item);
+
+      const youtubeEmbedUrl = value => {
+        const href = safeHref(value);
+        if (!href) return "";
+
+        try {
+          const parsed = new URL(href);
+          const host = parsed.hostname
+            .replace(/^www\./i, "")
+            .toLocaleLowerCase("en");
+
+          let id = "";
+
+          if (host === "youtu.be") {
+            id = parsed.pathname.split("/").filter(Boolean)[0] || "";
+          } else if (
+            ["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)
+          ) {
+            id = parsed.searchParams.get("v") || "";
+
+            if (!id) {
+              id = (
+                parsed.pathname.match(/\/(?:embed|shorts|live)\/([^/?]+)/) || []
+              )[1] || "";
+            }
+          }
+
+          if (!/^[a-z\d_-]{6,}$/i.test(id)) return "";
+
+          const embed = new URL(
+            `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`
+          );
+
+          embed.searchParams.set("autoplay", "1");
+          embed.searchParams.set("rel", "0");
+          embed.searchParams.set("modestbranding", "1");
+          return embed.href;
+        } catch (_) {
+          return "";
+        }
+      };
+
+      const directVideoUrl = value => {
+        const href = safeHref(value);
+        if (!href) return "";
+
+        try {
+          const parsed = new URL(href, document.baseURI);
+          const path = parsed.pathname.toLocaleLowerCase("en");
+          const allowedExtension = /\.(mp4|webm|ogg|ogv|m4v|mov)$/.test(path);
+          const localAsset =
+            parsed.origin === window.location.origin &&
+            path.startsWith("/assets/");
+
+          return allowedExtension || localAsset ? parsed.href : "";
+        } catch (_) {
+          return "";
+        }
+      };
+
+      const attachVideoOnClick = (preview, item) => {
+        const youtube = youtubeEmbedUrl(item.video_url);
+        const directVideo = directVideoUrl(item.video_url);
+
+        if (!youtube && !directVideo) {
+          preview.disabled = true;
+          preview.setAttribute(
+            "aria-label",
+            "Für dieses Release ist noch kein Video hinterlegt"
+          );
+          preview.append(make(
+            "span",
+            "px-hero-video-caption",
+            "Kein Video"
+          ));
+          return;
+        }
+
+        preview.addEventListener("click", () => {
+          const player = make("div", "px-hero-video-player");
+
+          if (youtube) {
+            const iframe = make("iframe");
+
+            iframe.title = "Video zum Hersteller-Release";
+            iframe.src = youtube;
+            iframe.loading = "lazy";
+            iframe.allow =
+              "accelerometer; autoplay; clipboard-write; " +
+              "encrypted-media; gyroscope; picture-in-picture; web-share";
+            iframe.allowFullscreen = true;
+            iframe.referrerPolicy = "strict-origin-when-cross-origin";
+            player.append(iframe);
+          } else {
+            const video = make("video");
+
+            video.src = directVideo;
+            video.controls = true;
+            video.playsInline = true;
+            video.preload = "metadata";
+            video.setAttribute("controlslist", "nodownload");
+            video.setAttribute("playsinline", "");
+
+            video.addEventListener("error", () => {
+              player.setAttribute(
+                "aria-label",
+                "Video konnte nicht geladen werden"
+              );
+            }, { once: true });
+
+            player.append(video);
+
+            const playPromise = video.play();
+
+            if (
+              playPromise &&
+              typeof playPromise.catch === "function"
+            ) {
+              playPromise.catch(() => {});
+            }
+          }
+
+          preview.replaceWith(player);
+        }, { once: true });
+      };
+
+      const setReleaseVisibility = visible => {
+        releaseMount.hidden = !visible;
+        sideColumn.classList.toggle("px-hero--no-release", !visible);
+      };
+
+      const renderRelease = () => {
+        if (!releaseData) {
+          releaseMount.replaceChildren();
+          setReleaseVisibility(false);
+          return;
+        }
+
+        const title =
+          cleanText(releaseData.titel) ||
+          cleanText(releaseData.modell) ||
+          cleanText(releaseData.hersteller) ||
+          "Neues Release";
+        const manufacturer =
+          cleanText(releaseData.hersteller) || "Hersteller";
+        const model = cleanText(releaseData.modell);
+        const date = formatDate(releaseData.datum);
+        const article = make("article", "px-hero-release");
+
+        const top = make("div", "px-hero-release-top");
+
+        top.append(make(
+          "span",
+          "px-hero-release-kicker",
+          "Frisch auf dem Markt"
+        ));
+
+        if (releaseIsExample) {
+          top.append(make(
+            "span",
+            "px-hero-release-badge px-hero-release-badge-example",
+            "Beispiel"
+          ));
+        } else {
+          top.append(make(
+            "span",
+            "px-hero-release-badge",
+            date || "Neues Release"
+          ));
+        }
+
+        const body = make("div", "px-hero-release-body");
+        const copy = make("div", "px-hero-release-copy");
+        const meta = make("div", "px-hero-release-meta");
+
+        meta.append(make("span", "", manufacturer));
+
+        if (model && model !== title) {
+          meta.append(make("span", "", model));
+        }
+
+        if (!releaseIsExample && date) {
+          meta.append(make("span", "", date));
+        }
+
+        copy.append(
+          buildPill(manufacturer, "px-hero-pill-dark"),
+          make("h2", "px-hero-release-title", title),
+          make(
+            "p",
+            "px-hero-release-text",
+            cleanText(releaseData.text) ||
+              "Details zu diesem Release folgen."
+          ),
+          meta
+        );
+
+        const preview = make("button", "px-hero-video-preview");
+
+        preview.type = "button";
+        preview.setAttribute(
+          "aria-label",
+          "Video zum Hersteller-Release laden"
+        );
+
+        addImage(
+          preview,
+          safeImage(releaseData.poster)
+        );
+
+        preview.append(make("span", "px-hero-play"));
+        attachVideoOnClick(preview, releaseData);
+
+        if (safeHref(releaseData.video_url)) {
+          preview.append(make(
+            "span",
+            "px-hero-video-caption",
+            "Video auf Klick"
+          ));
+        }
+
+        body.append(copy, preview);
+
+        const links = make("div", "px-hero-release-links");
+        const manufacturerLink = makeExternalLink(
+          "Herstellerseite",
+          releaseData.url,
+          "px-hero-release-link"
+        );
+        const xLink = makeExternalLink(
+          "X-Post",
+          releaseData.x_url,
+          "px-hero-release-link px-hero-release-link-x"
+        );
+
+        manufacturerLink.append(make("span", "", "↗"));
+        xLink.append(make("span", "", "↗"));
+        links.append(manufacturerLink, xLink);
+
+        article.append(top, body, links);
+        releaseMount.replaceChildren(article);
+        setReleaseVisibility(true);
+      };
+
+      const drawField = () => {
+        if (!canvas) return;
+
+        const context = canvas.getContext("2d", { alpha: true });
+        if (!context) return;
+
+        const draw = () => {
+          if (destroyed) return;
+
+          const bounds = canvas.getBoundingClientRect();
+          const width = Math.max(1, Math.round(bounds.width));
+          const height = Math.max(1, Math.round(bounds.height));
+          const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+
+          canvas.width = Math.round(width * ratio);
+          canvas.height = Math.round(height * ratio);
+          context.setTransform(ratio, 0, 0, ratio, 0, 0);
+          context.clearRect(0, 0, width, height);
+
+          let seed = 7919;
+          const random = () => {
+            seed = (seed * 16807) % 2147483647;
+            return (seed - 1) / 2147483646;
+          };
+
+          const count = Math.min(
+            120,
+            Math.max(28, Math.floor(width / 14))
+          );
+          const points = Array.from({ length: count }, () => ({
+            x: random() * width,
+            y: random() * Math.min(height, 720),
+            size: 0.35 + random() * 1.2
+          }));
+
+          points.forEach((point, index) => {
+            context.beginPath();
+            context.fillStyle = index % 8 === 0
+              ? "rgba(0,212,255,.58)"
+              : "rgba(220,246,255,.25)";
+            context.arc(
+              point.x,
+              point.y,
+              point.size,
+              0,
+              Math.PI * 2
+            );
+            context.fill();
+          });
+
+          for (let index = 0; index < points.length - 1; index += 1) {
+            const first = points[index];
+            const second = points[index + 1];
+            const distance = Math.hypot(
+              first.x - second.x,
+              first.y - second.y
+            );
+
+            if (distance > 155) continue;
+
+            context.beginPath();
+            context.moveTo(first.x, first.y);
+            context.lineTo(second.x, second.y);
+            context.strokeStyle =
+              `rgba(0,212,255,${Math.max(0, 0.07 - distance / 2800)})`;
+            context.lineWidth = 0.55;
+            context.stroke();
+          }
+        };
+
+        draw();
+
+        if ("ResizeObserver" in window) {
+          resizeObserver = new ResizeObserver(draw);
+          resizeObserver.observe(canvas);
+        } else {
+          resizeHandler = draw;
+          window.addEventListener("resize", resizeHandler, {
+            passive: true
+          });
+        }
+      };
+
+      const fetchJSON = async (
+        path,
+        timeout = 4500
+      ) => {
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+          controller.abort();
+        }, timeout);
+
+        try {
+          const response = await fetch(path, {
+            signal: controller.signal,
+            cache: "no-cache",
+            credentials: "same-origin"
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          return await response.json();
+        } finally {
+          window.clearTimeout(timer);
+        }
+      };
+
+      const setEmptyStories = () => {
+        mainSlide.replaceChildren(make(
+          "div",
+          "px-hero-empty-card px-hero-main-empty",
+          "Die Nachrichtendaten konnten nicht geladen werden. Bitte später noch einmal versuchen."
+        ));
+
+        sideOne.replaceChildren(make(
+          "div",
+          "px-hero-empty-card",
+          "Keine weiteren Meldungen verfügbar."
+        ));
+
+        sideTwo.replaceChildren(make(
+          "div",
+          "px-hero-empty-card",
+          "Keine weiteren Meldungen verfügbar."
+        ));
+
+        controls.replaceChildren();
+        hero.setAttribute("aria-busy", "false");
+      };
+
+      const setupCarouselInteraction = () => {
+        mainCard.addEventListener("mouseenter", stopCarousel);
+        mainCard.addEventListener("mouseleave", startCarousel);
+        mainCard.addEventListener("focusin", stopCarousel);
+        mainCard.addEventListener("focusout", () => {
+          if (!mainCard.contains(document.activeElement)) {
+            startCarousel();
+          }
+        });
+
+        mainCard.addEventListener("touchstart", event => {
+          touchStartX = event.touches[0]
+            ? event.touches[0].clientX
+            : null;
+          stopCarousel();
+        }, { passive: true });
+
+        mainCard.addEventListener("touchend", event => {
+          if (touchStartX === null) {
+            startCarousel();
+            return;
+          }
+
+          const touch = event.changedTouches[0];
+
+          if (touch) {
+            const distance = touch.clientX - touchStartX;
+
+            if (Math.abs(distance) > 45) {
+              goToStory(
+                distance < 0
+                  ? currentStory + 1
+                  : currentStory - 1
+              );
+            }
+          }
+
+          touchStartX = null;
+          startCarousel();
+        }, { passive: true });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) stopCarousel();
+          else startCarousel();
+        });
+
+        reducedMotion.addEventListener?.("change", () => {
+          if (reducedMotion.matches) stopCarousel();
+          else startCarousel();
+        });
+
+        window.addEventListener("pagehide", () => {
+          destroyed = true;
+          stopCarousel();
+
+          if (resizeObserver) {
+            resizeObserver.disconnect();
+          } else if (resizeHandler) {
+            window.removeEventListener("resize", resizeHandler);
+          }
+        }, { once: true });
+      };
+
+      const init = async () => {
+        drawField();
+        setupCarouselInteraction();
+
+        if (demoMode) {
+          releaseData = { ...EXAMPLE_RELEASE };
+          releaseIsExample = true;
+          renderRelease();
+        } else {
+          releaseData = null;
+          releaseIsExample = false;
+          setReleaseVisibility(false);
+        }
+
+        const requestPaths = [
+          "news.json",
+          "cards.json",
+          "archive.json"
+        ];
+
+        if (!demoMode) {
+          requestPaths.push("hersteller.json");
+        }
+
+        const results = await Promise.allSettled(
+          requestPaths.map(path => fetchJSON(path))
+        );
+
+        const resultAt = index =>
+          results[index].status === "fulfilled"
+            ? results[index].value
+            : null;
+
+        const newsData = resultAt(0);
+        const cardsPayload = resultAt(1);
+        const archiveData = resultAt(2);
+        const releasePayload = demoMode ? null : resultAt(3);
+
+        cardIndex = createCardIndex(
+          listFromPayload(cardsPayload, "cards")
+        );
+        stories = mergeStories(newsData, archiveData);
+
+        const releases = sortReleases(
+          extractReleases(releasePayload)
+            .map(normalizeRelease)
+            .filter(Boolean)
+        );
+
+        if (releases.length) {
+          releaseData = releases[0];
+          releaseIsExample = false;
+          renderRelease();
+        } else if (demoMode) {
+          releaseData = { ...EXAMPLE_RELEASE };
+          releaseIsExample = true;
+          renderRelease();
+        } else {
+          releaseData = null;
+          releaseIsExample = false;
+          setReleaseVisibility(false);
+        }
+
+        if (
+          newsData &&
+          typeof newsData === "object" &&
+          cleanText(newsData.stand)
+        ) {
+          standNode.textContent = `Stand ${cleanText(newsData.stand)}`;
+        }
+
+        statusNode.textContent = stories.length
+          ? `${stories.length} Meldungen im Fokus`
+          : "Nachrichten gerade nicht verfügbar";
+
+        hero.setAttribute("aria-busy", "false");
+
+        if (!stories.length) {
+          setEmptyStories();
+          return;
+        }
+
+        sideOne.replaceChildren(
+          renderSideStory(stories[1] || null, 2)
+        );
+        sideTwo.replaceChildren(
+          renderSideStory(stories[2] || null, 3)
+        );
+
+        currentStory = 0;
+        renderMainStory();
+        renderControls();
+        startCarousel();
+      };
+
+      init().catch(() => {
+        if (destroyed) return;
+
+        statusNode.textContent = "Daten konnten nicht geladen werden";
+
+        if (demoMode) {
+          releaseData = { ...EXAMPLE_RELEASE };
+          releaseIsExample = true;
+          renderRelease();
+        } else {
+          releaseData = null;
+          releaseIsExample = false;
+          setReleaseVisibility(false);
+        }
+
+        setEmptyStories();
+      });
+    })();
+  </script>
+</body>
+</html>
