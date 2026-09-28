@@ -15,13 +15,15 @@
   /* ── Pfad-Präfix + aktive Seite automatisch erkennen ───────── */
   var path = location.pathname.replace(/\\/g, '/');
   var inSub = /\/artikel\//.test(path);
-  var ROOT = inSub ? '../' : '';
+  // window.KI_ROOT (28.09.26): Seiten tiefer als eine Ebene (artikel/entwurf/)
+  // setzen den Pfad zum Repo-Root selbst, z.B. '../../'.
+  var ROOT = (typeof window.KI_ROOT === 'string') ? window.KI_ROOT : (inSub ? '../' : '');
   var file = (path.split('/').pop() || 'index.html').toLowerCase();
   var ACTIVE = 'aktuell';
   if (inSub || file === 'artikel.html') ACTIVE = 'artikel';
   else if (file === 'archiv.html') ACTIVE = 'archiv';
   else if (file === 'stats.html') ACTIVE = 'statistik';
-  else if (file === 'profil.html') ACTIVE = 'profil';
+  else if (file === 'profil.html' || file === 'cockpit-neu.html') ACTIVE = 'profil';
   else if (file === '' || file === 'index.html') ACTIVE = 'aktuell';
   else ACTIVE = 'none';
 
