@@ -13,6 +13,7 @@ function lade(modul, reserve) { try { return require(modul); } catch (e) { retur
 const { chromium } = lade("playwright", process.env.PLAYWRIGHT_PATH || "/opt/node22/lib/node_modules/playwright");
 
 const ORDNER = path.resolve(process.argv[2] || "_vorschau");
+const TEXT = process.argv[3] || "Links wie live gerendert, rechts gleiches Motiv in einem neuen Stil.";
 const FFMPEG = process.env.FFMPEG || "ffmpeg";
 const FPS = 24, POSTER_T = 6;
 const liste = JSON.parse(fs.readFileSync(path.join(ORDNER, "kontaktbogen.json"), "utf8"));
@@ -73,7 +74,7 @@ async function seite(ctx, rel) {
     <div class="meta"><b>${String(i + 1).padStart(2, "0")}</b> ${esc(e.titel)}<span>${esc(e.quelle)} · Motiv ${esc(e.motiv)}</span></div>
     <figure><img src="${e.alt.png}" alt="alt ${esc(e.alt.stil)}" loading="lazy"><figcaption>alt · ${esc(e.alt.stil)}</figcaption></figure>
     <figure>${e.neu.mp4 ? `<video src="${e.neu.mp4}" poster="${e.neu.png}" controls muted loop playsinline></video>`
-      : `<img src="${e.neu.png}" alt="neu ${esc(e.neu.stil)}" loading="lazy">`}<figcaption>neu · ${esc(e.neu.stil)}${e.neu.mp4 ? " · MP4" : ""}</figcaption></figure>
+      : `<img src="${e.neu.png}" alt="neu ${esc(e.neu.stil)}" loading="lazy">`}<figcaption>neu · ${esc(e.neu.stil)}${(e.neu.worte || []).length ? " · " + esc(e.neu.worte.join(" / ")) : ""}${e.neu.mp4 ? " · MP4" : ""}</figcaption></figure>
   </section>`).join("");
   fs.writeFileSync(path.join(ORDNER, "index.html"), `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -91,8 +92,7 @@ figure{margin:0}img,video{width:100%;height:auto;display:block;border-radius:6px
 figcaption{font:12px ui-monospace,monospace;color:var(--sub);margin-top:6px}
 </style></head><body><main>
 <h1>Kontaktbogen: Karten alt und neu</h1>
-<p class="l">${liste.length} echte Meldungen aus cards.json. Links wie live gerendert, rechts gleiches Motiv in einem neuen Stil
-(neon, typo, riso reihum). Standbild bei 6 s wie das Poster der Pipeline. Nichts davon ist live geschaltet.</p>
+<p class="l">${esc(TEXT)}</p>
 ${zeilen}
 </main></body></html>
 `);

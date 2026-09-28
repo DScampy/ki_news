@@ -58,11 +58,13 @@ MOTIV_BESCHREIBUNG = {
 # Rueckwaerts-Kompatibilitaet (erster Stil je Motiv)
 STIL_JE_MOTIV = {m: st[0] for m, st in STILE_JE_MOTIV.items()}
 
-# Auftrag 6 (28.09.26): neue Stile, standardmaessig AUS - die Live-Karten bleiben unveraendert.
-# Einschalten per Umgebungsvariable im Workflow:
-#   KARTEN_NEUE_STILE="neon,typo,riso"  (oder "alle")  -> Stile kommen je Motiv zur Auswahl dazu
-#   KARTEN_STIL_ZWANG="riso"                           -> jede Karte in diesem Stil (Vorschau/Test)
+# Auftrag 6 (28.09.26): neue Stile. Daniel 28.09.: neon live in der Rotation, typo und riso aus.
+# Steuerung per Umgebungsvariable:
+#   KARTEN_NEUE_STILE nicht gesetzt  -> NEUE_STILE_STANDARD (heute nur "neon")
+#   KARTEN_NEUE_STILE="neon,typo"    -> diese Stile kommen je Motiv zur Auswahl dazu ("alle" = alle, "aus" = keiner)
+#   KARTEN_STIL_ZWANG="riso"         -> jede Karte in diesem Stil (Vorschau/Test)
 NEUE_STILE = ["neon", "typo", "riso"]
+NEUE_STILE_STANDARD = "neon"
 NEUE_STILE_JE_MOTIV = {
     "gericht": ["typo", "riso"], "politik": ["typo", "riso"], "rechenzentrum": ["neon"],
     "chip": ["neon", "typo"], "hack": ["neon", "typo"], "zahl": ["typo", "neon"], "netz": ["neon", "typo", "riso"],
@@ -74,7 +76,7 @@ NEUE_STILE_JE_MOTIV = {
 
 
 def _aktive_neue_stile():
-    roh = os.environ.get("KARTEN_NEUE_STILE", "").strip().lower()
+    roh = os.environ.get("KARTEN_NEUE_STILE", NEUE_STILE_STANDARD).strip().lower()
     if roh in ("1", "alle", "all", "ja"):
         return list(NEUE_STILE)
     return [s for s in re.split(r"[,\s]+", roh) if s in NEUE_STILE]
@@ -92,50 +94,101 @@ def _stil(motiv, headline):
         h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
     aktiv = _aktive_neue_stile()
     stile = STILE_JE_MOTIV[motiv] + [st for st in NEUE_STILE_JE_MOTIV.get(motiv, []) if st in aktiv]
+    if "typo" in stile and len(typo_worte(headline, _geld(headline))) < 2:
+        stile.remove("typo")  # Typo nur mit mindestens zwei tragenden Stichworten
     return stile[h % len(stile)]
 
 
-_TYPO_STOPP = set("""aber allem allen alles als also auch auf aus bei beim bereits beziehungsweise damit dann dass
-dem den der des die dies diese diesem diesen dieser dieses doch durch eine einem einen einer eines etwa fuer für gegen
-haben hat hatte ihre ihren ihrem jetzt kann kein keine mehr mit nach neue neuen neuer neues nicht noch nun oder ohne
-sich sind soll sollen sowie ueber über unter vom von vor waren warum was weil weiter weitere welche wenn werden wie
-will wird wurde zum zur zwischen laut bericht meldung heute""".split())
+# Typo-Stil (28.09.26, Daniels Kritik am ersten Kontaktbogen: "KUERZE, DUTZENDE, UNTERSTUETZUNG"):
+# Stichworte nur noch aus Zahlen/Betraegen, Modellnamen, bekannten Firmen/Produkten (entities.json),
+# Personen und klar erkennbaren Eigennamen. Kein Fuellwort, keine allgemeinen Hauptwoerter.
+# Findet sich weniger als zwei solche Woerter, bekommt die Karte keinen Typo-Stil.
+_TYPO_KEINE = {"KI", "AI", "CEO", "CTO", "CFO", "US", "EX", "IT", "PC", "TV", "APP", "API"}
+_TYPO_ORTE = ("USA", "EU", "China", "Europa", "Deutschland", "Japan", "Indien", "Frankreich", "Großbritannien",
+              "Russland", "Iran", "Israel", "Taiwan", "Südkorea", "Korea", "Australien", "Ukraine", "Kanada",
+              "Brasilien", "Kalifornien", "Brüssel", "Washington", "Peking", "Pentagon", "Weißes Haus", "Vatikan")
+_TYPO_PERSONEN = ("Trump", "Musk", "Altman", "Amodei", "Zuckerberg", "Huang", "Nadella", "Pichai", "Hassabis",
+                  "Bezos", "Cook", "Suleyman", "LeCun", "Hinton", "Sutskever", "Murati", "Xi", "Macron", "Merz",
+                  "von der Leyen", "Leo XIV")
+_TYPO_ROLLE = re.compile(r"(CEO|[Cc]hef(in)?|minister(in)?|[Pp]räsident(in)?|[Gg]ründer(in)?|[Ff]orscher(in)?|"
+                         r"[Ss]precher(in)?|[Ss]enator(in)?|[Pp]apst)$")
+_TYPO_BETRAG = re.compile(r"\b\d+(?:[.,]\d+)*\s?(?:Billionen|Milliarden|Millionen|Mrd\.|Mio\.)")
+_ENTITAETEN = None
+
+
+def _entitaeten():
+    """Firmen, Modelle, Produkte aus entities.json (ohne Themen wie 'Energie'). Leer bei Fehler."""
+    global _ENTITAETEN
+    if _ENTITAETEN is None:
+        _ENTITAETEN = []
+        try:
+            pfad = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entities.json")
+            with open(pfad, encoding="utf-8") as f:
+                for e in json.load(f).get("entities", []):
+                    if e.get("typ") in ("anbieter", "modell", "produkt"):
+                        for a in e.get("aliasse") or []:
+                            a = re.sub(r"\\b$", "", a)  # Wortende prueft das Muster selbst (Genitiv-s erlaubt)
+                            _ENTITAETEN.append(re.compile(r"(?<![\w-])((?:%s))s?(?![a-zäöüß])" % a, re.I))
+        except Exception:
+            _ENTITAETEN = []
+    return _ENTITAETEN
+
+
+def _typo_eigennamen(titel):
+    """(Position, Wort) fuer Eigennamen im Titel, in Titelreihenfolge."""
+    funde = []
+    for rx in _entitaeten():
+        for m in rx.finditer(titel):
+            # Wortteil einer Zusammensetzung hinten im Titel ("... fuer Google-Kalender") zaehlt nicht
+            if titel[m.end():m.end() + 1] == "-" and m.start() > len(titel) * 0.5:
+                continue
+            funde.append((m.start(), m.group(1)))
+    for name in _TYPO_ORTE + _TYPO_PERSONEN:
+        for m in re.finditer(r"(?<!\w)%s(?:s)?(?!\w)" % re.escape(name), titel):
+            funde.append((m.start(), name))
+    toks = list(re.finditer(r"[\wÄÖÜäöüß][\w.ÄÖÜäöüß'’+-]*", titel))
+    for i, m in enumerate(toks):
+        w = m.group(0).strip(".-'’")
+        if re.fullmatch(r".*[a-z][A-Z]+s", w):
+            w = w[:-1]  # Genitiv: OpenAIs -> OpenAI
+        if len(w) < 2 or w.upper() in _TYPO_KEINE:
+            continue
+        # Binnenmajuskel oder Ziffer im Wort: ClickFix, macOS, NeMo, GPT-7, H200
+        if (re.search(r"[a-zäöü][A-Z]", w) or (re.search(r"\d", w) and re.search(r"[A-Za-z]", w))) \
+                and not re.fullmatch(r"\d+[.,]?\d*", w):
+            funde.append((m.start(), w))
+        # Akronym: EU, TSMC, NASA
+        elif re.fullmatch(r"[A-ZÄÖÜ]{2,6}", w):
+            funde.append((m.start(), w))
+        # Name nach Rolle: "Anthropic-CEO Amodei", "Verteidigungsminister Fedorov"
+        elif i > 0 and w[:1].isupper() and _TYPO_ROLLE.search(toks[i - 1].group(0).split("-")[-1]):
+            funde.append((m.start(), w))
+    return sorted(funde)
 
 
 def typo_worte(headline, geld=None, anbieter=None, einordnung=""):
-    """Stichworte fuer den Typo-Stil: nur Woerter, die woertlich im Titel stehen (Zahl, Modellname,
-    Anbieter, dann die laengsten Hauptwoerter). Hoechstens drei, keine Erfindung."""
+    """Stichworte fuer den Typo-Stil (hoechstens drei, woertlich aus dem Titel):
+    zuerst Betrag/Prozent/Modellname, dann Eigennamen in Titelreihenfolge."""
     titel = headline or ""
     worte = []
     if geld:
         worte.append(geld["zahl"])
     else:
+        b = _TYPO_BETRAG.search(titel)
         pr = _PROZENT.search(titel)
-        if pr:
+        if b:
+            worte.append(b.group(0))
+        elif pr:
             worte.append(pr.group(1) + " %")
     m = _MODELL.search(titel)
     if m:
         worte.append(m.group(1))
-    # Anbieter nur, wenn er vorne im Titel steht (Hauptakteur, nicht "... fuer Google-Kalender")
-    muster = dict(ANBIETER).get(anbieter[0]) if anbieter else None
-    treffer = re.search(muster, titel) if muster else None
-    if treffer and treffer.start() < len(titel) * 0.5 and len(worte) < 2:
-        worte.append(ANZEIGE.get(anbieter[0], anbieter[0]))
-    # Hauptwoerter: lang und in der Einordnung wieder aufgegriffen = tragend fuer die Meldung
-    eo = (einordnung or "").lower()
-    kandidaten = []
-    for i, tok in enumerate(re.split(r"[\s:;,.!?\u201e\u201c\"()/]+", titel)):
-        for teil in tok.split("-"):
-            teil = teil.strip("'’")
-            if len(teil) < 5 or len(teil) > 20 or teil.lower() in _TYPO_STOPP or not teil[:1].isupper():
-                continue
-            echo = eo.count(teil.lower()[:6]) if len(teil) >= 6 else eo.count(teil.lower())
-            kandidaten.append((-(len(teil) + 6 * min(echo, 2)), i, teil))
-    for _, _, teil in sorted(kandidaten):
+    for _, w in _typo_eigennamen(titel):
         if len(worte) >= 3:
             break
-        if not any(teil.lower() in w.lower() or w.lower() in teil.lower() for w in worte):
-            worte.append(teil)
+        kern = w.split("-")[0].lower()
+        if not any(w.lower() in x.lower() or x.lower() in w.lower() or kern in x.lower() for x in worte):
+            worte.append(w)
     return worte[:3]
 
 
