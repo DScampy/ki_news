@@ -44,3 +44,12 @@ Arbeits-Branch: `daniel/youthful-wozniak-tyzceg`. Die Session wurde nach PR 1 we
   - 4: `archive.json` auf der Startseite erst bei Leerlauf laden
   - 5: Füllmotiv statt leerer Gitterfläche
   - 7: `video_url` und `x_url` aus HuggingNews (`x_quellen.py`, Branch `daniel/pr5-x-links`)
+
+## 28.09.26 spät: PR #13 und #14
+- **#13 Startseite:** Genesis ist wieder sichtbar (nur CSS, der Code ist unverändert). Alle drei Hero-Kacheln zeigen ein Bild: zuerst ein Bild aus derselben Story, sonst ein Füllmotiv. archive.json lädt nicht mehr beim Start. Die Seitenkacheln laden eager.
+- **#14 X-Posts über HuggingNews:** `x_quellen.py` im Workflow. Sonnet 5.5 bekommt den Post von @claudeai und eine Analyse von @ArtificialAnlys.
+- Offen:
+  - Anzeige „Auf X“ (`x_quelle`) an den Top-Meldungen im Hero
+  - Story-Clustering in ki_news.py: Nvidia Bloomberg (s000) und Reuters (s002) laufen als zwei Storys
+  - Artikel-, Archiv- und Dossier-Seiten nutzen `image_local` noch nicht
+  - Prompt-Ursache (Rollen und Wertungen)
