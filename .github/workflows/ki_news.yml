@@ -171,6 +171,14 @@ jobs:
       # Laeuft NACH ki_news.py, weil es news.json zum Abgleich liest.
       # Fehlertolerant: faellt der Schritt aus, bleibt die alte Datei stehen und die
       # Kachel zeigt den letzten Stand (bzw. blendet sich ohne Datei aus).
+      # Deckungspruefung (28.09.26): prueft Titel/Zusammenfassung gegen Quelltext und die
+      # Aemterliste (erfundene Rollen wie "ehemaliger Praesident", fremde Zahlen). NUR Warnung
+      # ins Log, aendert nichts und kann den Lauf nicht kippen. Ergebnis landet nicht auf main.
+      - name: Deckungspruefung (nur Warnung)
+        run: python3 tools/deckungspruefung.py --n 40 2>&1 | tail -40 | tee -a ki_news.log
+        timeout-minutes: 6
+        continue-on-error: true
+
       - name: Hersteller-Releases (hersteller.json)
         env:
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
