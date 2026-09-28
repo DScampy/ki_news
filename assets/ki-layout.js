@@ -15,7 +15,9 @@
   /* ── Pfad-Präfix + aktive Seite automatisch erkennen ───────── */
   var path = location.pathname.replace(/\\/g, '/');
   var inSub = /\/artikel\//.test(path);
-  var ROOT = inSub ? '../' : '';
+  // window.KI_ROOT (28.09.26): Seiten tiefer als eine Ebene (artikel/entwurf/)
+  // setzen den Pfad zum Repo-Root selbst, z.B. '../../'.
+  var ROOT = (typeof window.KI_ROOT === 'string') ? window.KI_ROOT : (inSub ? '../' : '');
   var file = (path.split('/').pop() || 'index.html').toLowerCase();
   var ACTIVE = 'aktuell';
   if (inSub || file === 'artikel.html') ACTIVE = 'artikel';
