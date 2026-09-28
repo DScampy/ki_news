@@ -1907,7 +1907,10 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   /* clip statt hidden: kein Scroll-Container, Fokus/scrollIntoView verschiebt den Inhalt nicht (Glow ragt 120px heraus) */
   #px-hero .px-hero-main-card { overflow: clip; }
   #px-hero .px-hero-card-video { position: absolute; z-index: 3; inset: 0; cursor: pointer; background: #000; }
-  #px-hero .px-hero-card-video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #px-hero .px-hero-card-video video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  /* Kartenposter vollstaendig (28.09.26): cover schnitt links/rechts Text ab */
+  #px-hero img.px-hero-img-card { object-fit: contain; }
+  #px-hero img.px-hero-img-backdrop { position: absolute; z-index: 2; inset: -12px; width: calc(100% + 24px); height: calc(100% + 24px); object-fit: cover; filter: blur(14px) brightness(0.55); }
   #px-hero .px-hero-card-video-mute { position: absolute; right: 8px; bottom: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 13px; cursor: pointer; }
   /* Linienband als eigene Zeile; der Mittelteil darf nicht unter seinen Inhalt schrumpfen */
   #px-hero .px-hero-slide { grid-template-rows: auto 1fr auto auto; }
@@ -3388,6 +3391,7 @@ window.addEventListener('resize',()=>{
       window.matchMedia("(prefers-reduced-motion: reduce)");
 
     let stories = [];
+    let klCardsReady = false;
     let currentStory = 0;
     let releaseData = null;
     let releaseIsExample = false;
@@ -3694,6 +3698,13 @@ window.addEventListener('resize',()=>{
     const resolveCard = story => {
       if (!story || typeof story !== "object") return null;
 
+      // Einbau index.html (28.09.26): Zuordnung der Seite (klCardFor, Link dann
+      // Titel-Praefix) statt eigenem Aehnlichkeitsvergleich, der NaiveAI die
+      // Karte einer anderen Meldung gab. Gleiche Quelle wie Video und Vorlesen.
+      if (klCardsReady && typeof window.klCardFor === "function") {
+        return window.klCardFor(story) || null;
+      }
+
       const storyLinks = [];
       const storyIds = [
         cleanText(story.story_id),
@@ -3901,7 +3912,8 @@ window.addEventListener('resize',()=>{
     const addImage = (
       parent,
       source,
-      eager = false
+      eager = false,
+      isCardPoster = false
     ) => {
       const url = safeImage(source);
       if (!url) return false;
@@ -3921,6 +3933,21 @@ window.addEventListener('resize',()=>{
 
       image.src = url;
       parent.append(image);
+
+      // Kartenposter (Hochformat 420:660) ganz zeigen statt beschneiden; dahinter
+      // dasselbe Bild unscharf als Fuellung der freien Raender.
+      if (isCardPoster) {
+        image.classList.add("px-hero-img-card");
+        const backdrop = make("img", "px-hero-img-backdrop");
+        backdrop.alt = "";
+        backdrop.setAttribute("aria-hidden", "true");
+        backdrop.loading = image.loading;
+        backdrop.decoding = "async";
+        backdrop.referrerPolicy = "no-referrer";
+        backdrop.addEventListener("error", () => { backdrop.hidden = true; }, { once: true });
+        backdrop.src = url;
+        parent.insertBefore(backdrop, image);
+      }
 
       return true;
     };
@@ -4148,7 +4175,7 @@ window.addEventListener('resize',()=>{
         card ? "CARD POSTER" : "NEWS STILL"
       );
 
-      addImage(media, poster, currentStory === 0);
+      addImage(media, poster, currentStory === 0, !!card && poster === posterOf(card));
 
       const mediaCode = make("div", "px-hero-media-code");
 
@@ -4316,7 +4343,7 @@ window.addEventListener('resize',()=>{
         card ? "CARD / SIGNAL" : "NEWS STILL"
       );
 
-      addImage(media, poster);
+      addImage(media, poster, false, !!card && poster === posterOf(card));
 
       const body = make("div", "px-hero-side-body");
       const head = make("div", "px-hero-side-head");
@@ -4902,6 +4929,15 @@ window.addEventListener('resize',()=>{
       const results = await Promise.allSettled(
         requestPaths.map(path => fetchJSON(path))
       );
+
+      if (typeof window.klLoadCards === "function") {
+        try {
+          await window.klLoadCards();
+          klCardsReady = true;
+        } catch (error) {
+          klCardsReady = false;
+        }
+      }
 
       const resultAt = index =>
         results[index].status === "fulfilled"
