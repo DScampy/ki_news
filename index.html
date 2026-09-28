@@ -485,6 +485,18 @@ html.light .card-scrim{background:linear-gradient(180deg,rgba(255,255,255,0.35) 
 .ki-card:not(:has(img)){--map-opacity:0.5;--flag-opacity:0.4;}
 html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 </style>
+<style id="px-hero-genesis">
+  /* 28.09.26: Seit dem Start-Hero (69e6a17) deckte dessen Verlauf den Genesis-3D-Hintergrund
+     (#genesis-wrap, fixed) komplett ab. Laeuft Genesis (Desktop, ohne reduced-motion),
+     wird der Verlauf oben durchsichtig; unten bleibt er deckend, damit die Karten lesbar bleiben. */
+  html.ki-genesis-an #px-hero {
+    background: linear-gradient(180deg, rgba(3,9,14,0) 0, rgba(9,20,28,0.18) 30%, rgba(53,70,81,0.55) 60%, rgba(220,229,233,0.92) 84%, #edf2f4 100%) !important;
+  }
+  html.ki-genesis-an.dark #px-hero,
+  html.ki-genesis-an[data-theme="dark"] #px-hero {
+    background: linear-gradient(180deg, rgba(2,7,10,0) 0, rgba(2,7,10,0.12) 45%, rgba(2,7,10,0.6) 85%, #02070a 100%) !important;
+  }
+</style>
 <style id="px-hero-css">
   #px-hero,
   #px-hero *,
@@ -647,6 +659,14 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
   .px-hero-main-column {
     position: relative;
+    /* 28.09.26: Karte fuellt die ganze Grid-Zeile. Vorher blieb sie bei min-height
+       stehen, waehrend die rechte Spalte (Release-Kachel) 2 px hoeher wurde -> Kante. */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .px-hero-main-column > .px-hero-main-card {
+    flex: 1 1 auto;
   }
 
   .px-hero-main-card {
@@ -2051,6 +2071,19 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
           <span id="stand-label" class="text-xs font-mono ki-muted uppercase tracking-widest">Stand: 28.09.2026 17:17</span>
         </div>
       </div>
+<style id="ki-lage-stil">
+/* Morgenlage-Laufband im Browser (28.09.26): eigenes Fenster fuers Band, damit es nicht mehr
+   unter die Beschriftung "Morgenlage" laeuft (auf dem Handy sichtbar ueberlappend). */
+@keyframes kiMorgenlage{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ki-morgenlage-band{display:flex;gap:12px;flex:0 0 auto;animation:kiMorgenlage 50s linear infinite;will-change:transform;}
+.ki-morgenlage-rahmen:hover .ki-morgenlage-band,.ki-morgenlage-rahmen:focus-within .ki-morgenlage-band{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.ki-morgenlage-band{animation:none}.ki-morgenlage-fenster{overflow-x:auto}.ki-morgenlage-band a[aria-hidden]{display:none}}
+.ki-morgenlage-rahmen{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:8px 0;border-top:1px solid var(--hairline,#2f3336);border-bottom:1px solid var(--hairline,#2f3336);overflow:hidden;white-space:nowrap;font-size:14px}
+.ki-morgenlage-label{flex:0 0 auto;font-family:monospace;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted,#8b98a5)}
+.ki-morgenlage-fenster{flex:1 1 auto;min-width:0;overflow:hidden}
+.ki-morgenlage-band a{flex:0 0 auto;text-decoration:none;color:inherit}
+.ki-morgenlage-band a span{color:var(--muted,#8b98a5)}
+</style>
 <!-- SSR:BRIEFING:START -->
       <style>
         @keyframes kiMorgenlage{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -2068,6 +2101,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         <div class="ki-morgenlage-band"><a href="https://ki-news.live/#a=19zv2k7" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">1.</span> Welt in Kürze: Dutzende weitere OpenAI-Hacks; Trump lehnt laut Bericht iranisches Waffenst</a><a href="https://ki-news.live/#a=1ebl53s" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">2.</span> NaiveAI veröffentlicht ein Open-Weight-Coding-Modell mit einer Million Token Kontext und S</a><a href="https://ki-news.live/#a=q8yc7g" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">3.</span> Australien wirft OpenAI-Agent einem Hackerangriff auf eine staatliche Gesundheitswebsite v</a><a href="https://ki-news.live/#a=qgyauw" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">4.</span> Anthropic-CEO Amodei trifft sich nach verpasstem Staatsessen mit Trump.</a><a href="https://ki-news.live/#a=10ya2lk" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">5.</span> Bill Gates sagt, Trump liege falsch mit seiner Ablehnung von KI-Sicherheitsvorkehrungen.</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=19zv2k7" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">1.</span> Welt in Kürze: Dutzende weitere OpenAI-Hacks; Trump lehnt laut Bericht iranisches Waffenst</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=1ebl53s" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">2.</span> NaiveAI veröffentlicht ein Open-Weight-Coding-Modell mit einer Million Token Kontext und S</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=q8yc7g" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">3.</span> Australien wirft OpenAI-Agent einem Hackerangriff auf eine staatliche Gesundheitswebsite v</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=qgyauw" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">4.</span> Anthropic-CEO Amodei trifft sich nach verpasstem Staatsessen mit Trump.</a><a aria-hidden="true" tabindex="-1" href="https://ki-news.live/#a=10ya2lk" style="flex:0 0 auto;text-decoration:none;color:inherit;"><span style="color:var(--muted,#8b98a5);">5.</span> Bill Gates sagt, Trump liege falsch mit seiner Ablehnung von KI-Sicherheitsvorkehrungen.</a></div>
       </div>
       <!-- SSR:BRIEFING:END -->
+      <div id="ki-morgenlage-slot" hidden></div>
 <!-- SSR:NEWS:START -->
       <script type="application/ld+json" id="ssr-newslist">
 {
@@ -3145,6 +3179,8 @@ window.addEventListener('resize',()=>{
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   var src = document.getElementById('ki-genesis-src');
   if (!src) return;
+  // Hero laesst den Genesis-Hintergrund durchscheinen (CSS html.ki-genesis-an)
+  document.documentElement.classList.add('ki-genesis-an');
   var s = document.createElement('script');
   s.type = 'module';
   s.textContent = src.textContent;
@@ -5130,6 +5166,59 @@ window.addEventListener('resize',()=>{
       setEmptyStories();
     });
   })();
+</script>
+<script>
+/* Morgenlage-Laufband im Browser (28.09.26, Daniel): laedt nach dem ersten Bildschirm aus
+   news.json (briefing) und ersetzt den SSR-Stand; Band in eigenem Fenster neben dem Label.
+   Fehlen Daten oder schlaegt der Abruf fehl, bleibt der SSR-Block stehen - nie ein JS-Fehler. */
+(function () {
+  'use strict';
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function morgenlage(daten) {
+    var slot = document.getElementById('ki-morgenlage-slot');
+    var b = daten && daten.briefing;
+    var stories = (b && Array.isArray(b.stories) ? b.stories : []).filter(function (s) { return s && s.title; });
+    if (!slot || !stories.length) return;
+    var imNews = {};
+    (Array.isArray(daten.news) ? daten.news : []).forEach(function (n) { if (n && n.link) imNews[n.link] = 1; });
+    var band = stories.map(function (s, i) {
+      var titel = esc(String(s.title).slice(0, 90));
+      var intern = s.link && imNews[s.link] && typeof window.klHashId === 'function';
+      var ziel = intern ? '#a=' + window.klHashId(s.link) : (s.link || '#');
+      var extra = intern || !s.link ? '' : ' target="_blank" rel="noopener"';
+      return '<a href="' + esc(ziel) + '"' + extra + '><span>' + (i + 1) + '.</span> ' + titel + '</a>';
+    }).join('');
+    var kopie = band.replace(/<a href=/g, '<a aria-hidden="true" tabindex="-1" href=');
+    var uhrzeit = String(b.stand || '').split(' ').pop();
+    slot.innerHTML = '<div class="ki-morgenlage-rahmen" aria-label="Morgenlage">' +
+      '<span class="ki-morgenlage-label">Morgenlage ' + esc(uhrzeit) + '</span>' +
+      '<div class="ki-morgenlage-fenster"><div class="ki-morgenlage-band" style="animation-duration:' +
+      Math.max(30, 10 * stories.length) + 's">' + band + kopie + '</div></div></div>';
+    Array.prototype.forEach.call(document.querySelectorAll('.ki-morgenlage-rahmen'), function (el) {
+      if (!slot.contains(el) && el.parentNode) el.parentNode.removeChild(el);
+    });
+    slot.hidden = false;
+  }
+  function start() {
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var uhr = ctrl ? setTimeout(function () { ctrl.abort(); }, 6000) : null;
+    fetch('news.json?t=' + Date.now(), ctrl ? { signal: ctrl.signal } : {}).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(morgenlage).catch(function (e) { console.warn('Morgenlage: SSR-Stand bleibt', e); })
+      .finally(function () { if (uhr) clearTimeout(uhr); });
+  }
+  function spaeter() {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(start, { timeout: 1500 });
+    else setTimeout(start, 300);
+  }
+  if (document.readyState === 'complete') spaeter();
+  else window.addEventListener('load', spaeter);
+})();
 </script>
 </body>
 </html>
