@@ -213,6 +213,7 @@
     '.kl-ov-img-wrap.kl-ov-card-mode video#kl-ov-video{object-fit:contain;background:transparent;z-index:1;cursor:pointer;}',
     '.kl-ov-img-bg{position:absolute;inset:-12px;background-size:cover;background-position:center;filter:blur(18px) brightness(0.45);transform:scale(1.06);}',
     '.kl-ov-video-mute{position:absolute;right:10px;bottom:10px;z-index:2;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;pointer-events:none;}',
+    '.kl-ov-video-mute.kl-ov-ton-an{width:auto;height:auto;padding:9px 15px;border-radius:20px;background:rgba(0,212,255,0.94);color:#03121a;font:700 13px/1 sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.45);}',
     '.kl-ov-body{padding:22px 24px 24px;}',
     '.kl-ov-meta{font-size:11px;font-family:monospace;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted,#8b98a5);margin-bottom:8px;}',
     '.kl-ov-title{font-family:\'Space Grotesk\',sans-serif;font-size:22px;font-weight:800;line-height:1.28;color:var(--text,#e8f8ff);margin:0 0 12px;}',
@@ -707,7 +708,13 @@
     v.muted = klOvVidMuted;
     if (!klOvVidMuted) v.currentTime = 0;
     v.play().catch(function () {});
-    if (btn) btn.textContent = klOvVidMuted ? '🔇' : '🔊';
+    klOvTonKnopf(btn);
+  }
+  // Auftrag 9 (28.09.26): stumm = deutlicher "Ton an"-Knopf, mit Ton = kleines Symbol
+  function klOvTonKnopf(btn) {
+    if (!btn) return;
+    btn.textContent = klOvVidMuted ? '🔇 Ton an' : '🔊';
+    btn.classList.toggle('kl-ov-ton-an', klOvVidMuted);
   }
   // Zeigt die Karte (cards.json) statt og:image/Fallback-Clip im Bildbereich.
   // Hochformat-Video NICHT beschnitten (object-fit:contain), dahinter das Poster
@@ -722,17 +729,23 @@
       if (bgSrc) { bg.style.backgroundImage = 'url("' + String(bgSrc).replace(/["\\]/g, '') + '")'; bg.hidden = false; }
       else { bg.style.backgroundImage = ''; bg.hidden = true; }
     }
-    klOvVidMuted = true;
+    // Auftrag 9: der Klick auf die Meldung ist die Nutzergeste -> mit Ton starten;
+    // lehnt der Browser ab, stumm weiter und deutlicher "Ton an"-Knopf
+    klOvVidMuted = false;
     videoEl.loop = false; // Karten-Video laeuft einmal durch, kein Dauer-Loop wie der Fallback-Clip
-    videoEl.muted = true;
+    videoEl.muted = false;
     if (card.poster) videoEl.poster = card.poster; else videoEl.removeAttribute('poster');
     videoEl.src = card.mp4;
     videoEl.hidden = false;
     videoEl.currentTime = 0;
-    videoEl.play().catch(function () {});
-    imgWrap.onclick = klOvVideoTap;
     var muteBtn = document.getElementById('kl-ov-video-mute');
-    if (muteBtn) { muteBtn.hidden = false; muteBtn.textContent = '🔇'; }
+    videoEl.play().catch(function () {
+      klOvVidMuted = true; videoEl.muted = true;
+      videoEl.play().catch(function () {});
+      klOvTonKnopf(muteBtn);
+    });
+    imgWrap.onclick = klOvVideoTap;
+    if (muteBtn) { muteBtn.hidden = false; klOvTonKnopf(muteBtn); }
     imgWrap.hidden = false;
   }
   window.klOpenArticle = function (data) {

@@ -486,16 +486,11 @@ html.light .card-scrim{background:linear-gradient(180deg,rgba(255,255,255,0.35) 
 html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 </style>
 <style id="px-hero-genesis">
-  /* 28.09.26: Seit dem Start-Hero (69e6a17) deckte dessen Verlauf den Genesis-3D-Hintergrund
-     (#genesis-wrap, fixed) komplett ab. Laeuft Genesis (Desktop, ohne reduced-motion),
-     wird der Verlauf oben durchsichtig; unten bleibt er deckend, damit die Karten lesbar bleiben. */
-  html.ki-genesis-an #px-hero {
-    background: linear-gradient(180deg, rgba(3,9,14,0) 0, rgba(9,20,28,0.18) 30%, rgba(53,70,81,0.55) 60%, rgba(220,229,233,0.92) 84%, #edf2f4 100%) !important;
-  }
-  html.ki-genesis-an.dark #px-hero,
-  html.ki-genesis-an[data-theme="dark"] #px-hero {
-    background: linear-gradient(180deg, rgba(2,7,10,0) 0, rgba(2,7,10,0.12) 45%, rgba(2,7,10,0.6) 85%, #02070a 100%) !important;
-  }
+  /* Auftrag 9 (28.09.26): Genesis ist wieder der Hintergrund der Startseite. Laeuft Genesis
+     (Desktop, ohne reduced-motion; Klasse ki-genesis-an), ist der Hero komplett durchsichtig
+     und sein eigenes Punktfeld aus; die Farbe kommt aus der Genesis-Wahl im Profil. */
+  html.ki-genesis-an #px-hero { background: transparent !important; }
+  html.ki-genesis-an #px-hero .px-hero-canvas { display: none; }
 </style>
 <style id="px-hero-css">
   #px-hero,
@@ -3878,6 +3873,19 @@ window.addEventListener('resize',()=>{
       return title ? `title:${normalizeTitle(title)}` : "";
     };
 
+    // Auftrag 9: dieselbe Meldung nie zweimal (z.B. Briefing- und News-Eintrag mit anderem Link)
+    const eindeutig = list => {
+      const gesehen = new Set();
+      return (Array.isArray(list) ? list : []).filter(item => {
+        const titel = String(storyTitle(item) || "").toLowerCase().replace(/[^a-z0-9äöüß]+/g, "").slice(0, 48);
+        const link = normalizeUrl(cleanText(item && item.link)) || "";
+        if ((titel && gesehen.has("t:" + titel)) || (link && gesehen.has("l:" + link))) return false;
+        if (titel) gesehen.add("t:" + titel);
+        if (link) gesehen.add("l:" + link);
+        return true;
+      });
+    };
+
     const mergeStories = (newsData, archiveData) => {
       const briefing =
         newsData &&
@@ -4228,7 +4236,8 @@ window.addEventListener('resize',()=>{
         "Für diese Meldung liegt noch keine kurze Zusammenfassung vor.";
       const source = cleanText(story.source) || "Unbekannte Quelle";
       const card = resolveCard(story);
-      const poster = posterOf(card) || storyImageOf(story);
+      // Auftrag 9: Bild der Meldung (image), nie das Kartenposter; fehlt es, bleibt der Platzhalter
+      const poster = storyImageOf(story);
       const dossier = dossierData(story);
       const slide = make("div", "px-hero-slide");
 
@@ -4268,7 +4277,7 @@ window.addEventListener('resize',()=>{
         card ? "CARD POSTER" : "NEWS STILL"
       );
 
-      addImage(media, poster, currentStory === 0, !!card && poster === posterOf(card));
+      addImage(media, poster, currentStory === 0);
 
       const mediaCode = make("div", "px-hero-media-code");
 
@@ -4402,7 +4411,8 @@ window.addEventListener('resize',()=>{
         "Keine Zusammenfassung hinterlegt.";
       const source = cleanText(story.source) || "Quelle unbekannt";
       const card = resolveCard(story);
-      const poster = posterOf(card) || storyImageOf(story);
+      // Auftrag 9: Bild der Meldung (image), nie das Kartenposter; fehlt es, bleibt der Platzhalter
+      const poster = storyImageOf(story);
       const dossier = dossierData(story);
       const article = make("article", "px-hero-side-card");
       const href = safeHref(story.link);
@@ -4437,7 +4447,7 @@ window.addEventListener('resize',()=>{
         card ? "CARD / SIGNAL" : "NEWS STILL"
       );
 
-      addImage(media, poster, false, !!card && poster === posterOf(card));
+      addImage(media, poster, false);
 
       const body = make("div", "px-hero-side-body");
       const head = make("div", "px-hero-side-head");
@@ -4678,13 +4688,15 @@ window.addEventListener('resize',()=>{
 
           player.append(video);
 
+          video.muted = false;
           const playPromise = video.play();
 
           if (
             playPromise &&
             typeof playPromise.catch === "function"
           ) {
-            playPromise.catch(() => {});
+            // Klick ist die Nutzergeste; lehnt der Browser Ton ab: stumm starten, Steuerleiste zeigt Ton an
+            playPromise.catch(() => { video.muted = true; video.play().catch(() => {}); });
           }
         }
 
@@ -5055,11 +5067,11 @@ window.addEventListener('resize',()=>{
       cardIndex = createCardIndex(
         listFromPayload(cardsPayload, "cards")
       );
-      stories = mergeStories(newsData, archiveData);
+      stories = eindeutig(mergeStories(newsData, archiveData));
       // Einbau index.html: die Seite waehlt die Top-Storys (initHero), dieselben
       // fehlen dann im News-Raster. Liegt ihre Auswahl vor, gilt sie auch hier.
       if (Array.isArray(window.__pxHeroTop) && window.__pxHeroTop.length) {
-        stories = window.__pxHeroTop.slice(0, 6);
+        stories = eindeutig(window.__pxHeroTop).slice(0, 6);
       }
 
       const releases = sortReleases(
@@ -5135,7 +5147,7 @@ window.addEventListener('resize',()=>{
     window.pxHeroSetStories = list => {
       if (destroyed || !Array.isArray(list) || !list.length) return;
       if (hero.getAttribute("aria-busy") !== "false") return;
-      stories = list.slice(0, 6);
+      stories = eindeutig(list).slice(0, 6);
       statusNode.textContent = `${stories.length} Meldungen im Fokus`;
       if (!releaseIsExample && allReleases.length) {
         releaseData = pickRelease();
