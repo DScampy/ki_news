@@ -110,6 +110,16 @@ _TYPO_ORTE = ("USA", "EU", "China", "Europa", "Deutschland", "Japan", "Indien", 
 _TYPO_PERSONEN = ("Trump", "Musk", "Altman", "Amodei", "Zuckerberg", "Huang", "Nadella", "Pichai", "Hassabis",
                   "Bezos", "Cook", "Suleyman", "LeCun", "Hinton", "Sutskever", "Murati", "Xi", "Macron", "Merz",
                   "von der Leyen", "Leo XIV")
+# Firmen/Namen ausserhalb der KI-Entitaeten (Banken, Investoren, bekannte Marken) - nur woertliche Treffer
+_TYPO_FIRMEN = ("Goldman Sachs", "Morgan Stanley", "JPMorgan", "BlackRock", "Sequoia", "SoftBank", "Andreessen Horowitz",
+                "Akamai", "Docker", "Trello", "IKEA", "Waymo", "Figure", "Boston Dynamics", "Netflix", "Spotify", "Disney",
+                "Reddit", "Wikipedia", "YouTube", "TikTok", "Instagram", "WhatsApp", "Telegram", "Uber", "Airbnb",
+                "Siemens", "SAP", "Bosch", "Volkswagen", "Mercedes", "BMW", "Deutsche Telekom", "Bundesregierung",
+                "Bundestag", "Weißes Haus", "Vereinte Nationen", "UN", "NATO", "EU AI Act", "AI Act")
+# Eigenname vor dem Doppelpunkt am Titelanfang ("Super Productivity: ..."), aber keine Rubrik
+_TYPO_RUBRIK = {"welt in kürze", "analyse", "kommentar", "exklusiv", "studie", "bericht", "update", "interview",
+                "eilmeldung", "breaking", "podcast", "video", "meinung", "hintergrund", "ticker", "live"}
+_TYPO_VERSION = re.compile(r"\b(?:Version|Update|v)\s?(\d+\.\d+(?:\.\d+)?)\b")
 _TYPO_ROLLE = re.compile(r"(CEO|[Cc]hef(in)?|minister(in)?|[Pp]räsident(in)?|[Gg]ründer(in)?|[Ff]orscher(in)?|"
                          r"[Ss]precher(in)?|[Ss]enator(in)?|[Pp]apst)$")
 _TYPO_BETRAG = re.compile(r"\b\d+(?:[.,]\d+)*\s?(?:Billionen|Milliarden|Millionen|Mrd\.|Mio\.)")
@@ -143,7 +153,11 @@ def _typo_eigennamen(titel):
             if titel[m.end():m.end() + 1] == "-" and m.start() > len(titel) * 0.5:
                 continue
             funde.append((m.start(), m.group(1)))
-    for name in _TYPO_ORTE + _TYPO_PERSONEN:
+    kopf = titel.split(":", 1)[0].strip() if ":" in titel[:40] else ""
+    if kopf and "-" not in kopf and kopf.lower() not in _TYPO_RUBRIK and len(kopf.split()) <= 3 \
+            and all(t[:1].isupper() or t[:1].isdigit() for t in kopf.split()):
+        funde.append((0, kopf))
+    for name in _TYPO_ORTE + _TYPO_PERSONEN + _TYPO_FIRMEN:
         for m in re.finditer(r"(?<!\w)%s(?:s)?(?!\w)" % re.escape(name), titel):
             funde.append((m.start(), name))
     toks = list(re.finditer(r"[\wÄÖÜäöüß][\w.ÄÖÜäöüß'’+-]*", titel))
@@ -154,6 +168,10 @@ def _typo_eigennamen(titel):
         if len(w) < 2 or w.upper() in _TYPO_KEINE:
             continue
         # Binnenmajuskel oder Ziffer im Wort: ClickFix, macOS, NeMo, GPT-7, H200
+        if "-" in w and not re.search(r"\d", w):
+            # Zusammensetzung: nur der Namensteil zaehlt ("OpenAI-Agent" -> "OpenAI")
+            teile = [t for t in w.split("-") if re.search(r"[a-zäöü][A-Z]", t)]
+            w = teile[0] if teile else w
         if (re.search(r"[a-zäöü][A-Z]", w) or (re.search(r"\d", w) and re.search(r"[A-Za-z]", w))) \
                 and not re.fullmatch(r"\d+[.,]?\d*", w):
             funde.append((m.start(), w))
@@ -163,7 +181,8 @@ def _typo_eigennamen(titel):
         # Name nach Rolle: "Anthropic-CEO Amodei", "Verteidigungsminister Fedorov"
         elif i > 0 and w[:1].isupper() and _TYPO_ROLLE.search(toks[i - 1].group(0).split("-")[-1]):
             funde.append((m.start(), w))
-    return sorted(funde)
+    # gleiche Position: laengeres Wort zuerst ("EU AI Act" vor "EU")
+    return sorted(funde, key=lambda f: (f[0], -len(f[1])))
 
 
 def typo_worte(headline, geld=None, anbieter=None, einordnung=""):
@@ -176,10 +195,13 @@ def typo_worte(headline, geld=None, anbieter=None, einordnung=""):
     else:
         b = _TYPO_BETRAG.search(titel)
         pr = _PROZENT.search(titel)
+        v = _TYPO_VERSION.search(titel)
         if b:
             worte.append(b.group(0))
         elif pr:
             worte.append(pr.group(1) + " %")
+        elif v:
+            worte.append(v.group(1))
     m = _MODELL.search(titel)
     if m:
         worte.append(m.group(1))

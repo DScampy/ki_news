@@ -74,7 +74,7 @@ async function seite(ctx, rel) {
     <div class="meta"><b>${String(i + 1).padStart(2, "0")}</b> ${esc(e.titel)}<span>${esc(e.quelle)} · Motiv ${esc(e.motiv)}</span></div>
     <figure><img src="${e.alt.png}" alt="alt ${esc(e.alt.stil)}" loading="lazy"><figcaption>alt · ${esc(e.alt.stil)}</figcaption></figure>
     <figure>${e.neu.mp4 ? `<video src="${e.neu.mp4}" poster="${e.neu.png}" controls muted loop playsinline></video>`
-      : `<img src="${e.neu.png}" alt="neu ${esc(e.neu.stil)}" loading="lazy">`}<figcaption>neu · ${esc(e.neu.stil)}${(e.neu.worte || []).length ? " · " + esc(e.neu.worte.join(" / ")) : ""}${e.neu.mp4 ? " · MP4" : ""}</figcaption></figure>
+      : `<img src="${e.neu.png}" alt="neu ${esc(e.neu.stil)}" loading="lazy">`}<figcaption>neu · ${esc(e.neu.stil)}${e.hinweis ? " · " + esc(e.hinweis) : ""}${(e.neu.worte || []).length ? " · " + esc(e.neu.worte.join(" / ")) : ""}${e.neu.mp4 ? " · MP4" : ""}</figcaption></figure>
   </section>`).join("");
   fs.writeFileSync(path.join(ORDNER, "index.html"), `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
