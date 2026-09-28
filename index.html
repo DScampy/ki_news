@@ -2511,12 +2511,14 @@ function phFor(item) {
 }
 function cardThumb(item) {
   var ph = phFor(item);
-  var src = item.image || ph;
+  // 28.09.26: gespiegeltes WebP (image_local, ki_news_media) zuerst, dann Original, dann Platzhalter
+  var src = item.image_local || item.image || ph;
   // Kaputtes og:image faellt jetzt auf den Platzhalter zurueck statt den Slot
   // zu verstecken; scheitert auch der, wird die Zone ausgeblendet (alter Stand).
-  var onerr = item.image
-    ? 'this.onerror=function(){this.parentNode.style.display=\'none\'};this.src=\'' + ph + '\''
-    : 'this.parentNode.style.display=\'none\'';
+  var zuPh = 'this.onerror=function(){this.parentNode.style.display=\'none\'};this.src=\'' + ph + '\'';
+  var onerr = item.image_local && item.image
+    ? 'this.onerror=function(){' + zuPh.replace(/'/g, '&#39;') + '};this.src=\'' + escapeHtml(item.image) + '\''
+    : (item.image ? zuPh : 'this.parentNode.style.display=\'none\'');
   return '<div class="ki-card-thumb" style="margin:-16px -16px 14px;position:relative;padding-top:52%;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)">' +
       '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
       'onerror="' + onerr + '" ' +
@@ -3807,7 +3809,8 @@ window.addEventListener('resize',()=>{
     const storyImageOf = story => {
       if (!story || typeof story !== "object") return "";
 
-      return safeImage(story.image) ||
+      return safeImage(story.image_local) ||
+        safeImage(story.image) ||
         safeImage(story.image_url) ||
         safeImage(story.thumbnail);
     };
