@@ -1,1180 +1,3108 @@
 <!DOCTYPE html>
-<html class="dark" lang="de">
+<html class="dark" data-theme="genesis" lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Statistik – KI News</title>
-<link rel="icon" type="image/png" href="s-logo.png"/>
-<meta name="description" content="Content-Statistiken von ki-news.live – Quellen, Scores, Themen."/>
-<link rel="stylesheet" href="assets/ki-tw.css"/>
-<link rel="stylesheet" href="assets/ki-fonts.css"/>
-<script src="assets/ki-icons.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script type="importmap">
-{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
-</script>
-<!-- Material Symbols lokal via assets/ki-icons.js -->
-<script type="application/json" id="tailwind-config">
-  tailwind.config = {
-    darkMode: "class",
-    theme: { extend: {
-      fontFamily: { headline: ["Space Grotesk"], body: ["Work Sans"] },
-      spacing: { gutter: "16px" }
-    }}
-  }
-</script>
-<style>
-  :root { --neon: var(--accent); }
-  body { background:#000; color:#dfe3ea; font-family:'Work Sans',sans-serif; }
-  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
-  ::-webkit-scrollbar { width:4px; }
-  ::-webkit-scrollbar-track { background:#000; }
-  ::-webkit-scrollbar-thumb { background:#2f3336; border-radius:10px; }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Content-Statistiken von ki-news.live – Quellen, Scores, Themen."/>
+  <meta name="theme-color" content="#061018">
+  <title>Statistik – KI News</title>
 
-  /* ── Light Mode ── */
-  html.light body { background:#f0f4f8!important; color:#0f172a!important; }
-  html.light nav.fixed { background:rgba(248,250,252,0.92)!important; backdrop-filter:blur(14px); border-color:#e2e8f0!important; }
-  html.light aside.fixed { background:#e8edf4!important; border-color:rgba(var(--neon-rgb),0.25)!important; }
-  html.light main { background:#f0f4f8!important; }
-  html.light .stat-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.22)!important; }
-  html.light .chart-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.18)!important; }
-  html.light .text-white { color:#0f172a!important; }
-  html.light .text-gray-400 { color:#334155!important; }
-  html.light .text-gray-500 { color:#475569!important; }
-  html.light .border-\[#2f3336\] { border-color:#e2e8f0!important; }
-  html.light ::-webkit-scrollbar-thumb { background:#cbd5e1!important; }
-  html.light { --article-title-color: #0f172a; }
-  html.light .top-article-row { background:#f8fafc!important; border-color:rgba(var(--neon-rgb),0.15)!important; }
-  html.light .top-article-row:hover { background:#eff6ff!important; }
-  html.light .section-title { color:#0f172a!important; }
-  html.light .meta-text { color:#475569!important; }
-  /* ── Chart-Cards & Sidebar-Boxen Light Mode ── */
-  html.light .chart-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.20)!important; }
-  html.light aside.fixed > div:last-of-type { border-color:rgba(var(--neon-rgb),0.10)!important; }
-  html.light #score-legend { color:#334155!important; }
-  /* Sidebar Live-Metriken-Boxen */
-  html.light aside .flex.flex-col.gap-2 > div { background:#f0f4f8!important; border-color:rgba(var(--neon-rgb),0.18)!important; }
-  html.light aside .flex.flex-col.gap-2 > div p:last-child { color:#0f172a!important; }
-  /* Hero-Karten */
-  html.light .stat-card { background:#ffffff!important; border-color:rgba(var(--neon-rgb),0.28)!important; box-shadow:0 0 10px rgba(var(--neon-rgb),0.08)!important; }
-  /* Cloudflare Tipp Box */
-  html.light .chart-card > div[style*="rgba(var(--neon-rgb),0.05)"] { background:rgba(var(--neon-rgb),0.04)!important; }
+  <link rel="icon" type="image/png" href="s-logo.png">
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
 
-  /* ── Cards ── */
-  .stat-card {
-    background:#111827;
-    border:1px solid rgba(var(--neon-rgb),0.30);
-    border-radius:10px;
-    padding:12px 14px;
-    box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.06),0 0 16px rgba(var(--neon-rgb),0.10);
-    transition:all 0.2s;
-  }
-  .stat-card:hover {
-    border-color:rgba(var(--neon-rgb),0.55);
-    box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.12),0 0 24px rgba(var(--neon-rgb),0.18);
-  }
-  .chart-card {
-    background:#0d1520;
-    border:1px solid rgba(var(--neon-rgb),0.18);
-    border-radius:12px;
-    padding:24px;
-    box-shadow:0 0 0 1px rgba(var(--neon-rgb),0.05),0 0 14px rgba(var(--neon-rgb),0.08);
-  }
-  /* ── Quellen-Ranking (ersetzt Chart.js-Balken) ── */
-  .srcrow{display:flex;align-items:center;gap:10px;padding:4px 0;}
-  .srcrow-rank{font-family:monospace;font-size:10px;color:rgba(var(--neon-rgb),0.5);width:20px;flex-shrink:0;text-align:right;}
-  .srcrow-name{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;width:128px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .srcrow-bar{flex:1;height:14px;border-radius:4px;background:rgba(var(--neon-rgb),0.06);overflow:hidden;position:relative;}
-  .srcrow-bar>div{height:100%;border-radius:4px;transition:width .45s cubic-bezier(.22,1,.36,1);box-shadow:0 0 8px rgba(var(--neon-rgb),0.25);}
-  .srcrow-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--text,#e8f8ff);width:38px;text-align:right;flex-shrink:0;}
-  .srcrow-avg{font-family:monospace;font-size:10px;color:var(--muted,#6b7280);width:52px;flex-shrink:0;text-align:right;}
-  html.light .srcrow-val{color:#0f172a;}
-  .section-title {
-    font-family:'Space Grotesk',sans-serif;
-    font-weight:700; font-size:18px;
-    color:#dfe3ea; margin-bottom:6px;
-  }
-  .meta-text { font-size:12px; color:#6b7280; font-family:monospace; }
+  <style>
+    :root {
+      --px-bg: var(--bg, #050b11);
+      --px-card: rgba(13, 21, 32, .94);
+      --px-card-solid: #0d1520;
+      --px-soft: rgba(var(--neon-rgb, 0, 212, 255), .055);
+      --px-soft-hover: rgba(var(--neon-rgb, 0, 212, 255), .09);
+      --px-border: rgba(var(--neon-rgb, 0, 212, 255), .20);
+      --px-border-soft: rgba(var(--neon-rgb, 0, 212, 255), .11);
+      --px-border-hover: rgba(var(--neon-rgb, 0, 212, 255), .36);
+      --px-ink: var(--text, #e8eef5);
+      --px-muted: #8495a5;
+      --px-faint: #6a7c8c;
+      --px-accent: var(--accent, #00d4ff);
+      --px-violet: #a78bfa;
+      --px-green: #34d399;
+      --px-orange: #fb923c;
+      --px-pink: #fb7185;
+      --px-glow: 0 0 18px rgba(var(--neon-rgb, 0, 212, 255), .08);
+      --px-shadow: 0 12px 34px rgba(0, 0, 0, .14);
+    }
 
-  /* ── Score badges ── */
-  .badge { display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:800;letter-spacing:0.06em;font-family:monospace; }
-  .badge-breaking { background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3); }
-  .badge-top      { background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3); }
-  .badge-wichtig  { background:rgba(234,179,8,0.15);color:#eab308;border:1px solid rgba(234,179,8,0.3); }
-  .badge-aktuell  { background:rgba(var(--neon-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3); }
-  .badge-info     { background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.25); }
+    html.light {
+      --px-bg: var(--bg, #f0f4f8);
+      --px-card: rgba(255, 255, 255, .94);
+      --px-card-solid: #ffffff;
+      --px-soft: rgba(var(--neon-rgb, 0, 212, 255), .045);
+      --px-soft-hover: rgba(var(--neon-rgb, 0, 212, 255), .075);
+      --px-border: rgba(var(--neon-rgb, 0, 212, 255), .22);
+      --px-border-soft: rgba(var(--neon-rgb, 0, 212, 255), .12);
+      --px-border-hover: rgba(var(--neon-rgb, 0, 212, 255), .38);
+      --px-ink: #102638;
+      --px-muted: #506879;
+      --px-faint: #718695;
+      --px-glow: 0 0 16px rgba(var(--neon-rgb, 0, 212, 255), .065);
+      --px-shadow: 0 12px 30px rgba(39, 78, 101, .07);
+    }
 
-  /* ── Top articles ── */
-  .top-article-row {
-    display:flex;align-items:center;gap:12px;
-    padding:12px 16px;border-radius:8px;
-    border:1px solid rgba(var(--neon-rgb),0.12);
-    background:#111827;margin-bottom:8px;
-    text-decoration:none;transition:all 0.15s;
-  }
-  .top-article-row:hover {
-    border-color:rgba(var(--neon-rgb),0.35);
-    background:#1a2235;
-  }
-  .rank-num {
-    font-family:'Space Grotesk',sans-serif;font-weight:900;
-    font-size:20px;color:rgba(var(--neon-rgb),0.25);
-    width:28px;flex-shrink:0;text-align:center;line-height:1;
-  }
-  .rank-num.gold   { color:#f59e0b; }
-  .rank-num.silver { color:#94a3b8; }
-  .rank-num.bronze { color:#cd7c36; }
+    * {
+      box-sizing: border-box;
+    }
 
-  /* ── 5-Theme System ── */
-  [data-theme="genesis"]{--neon-rgb:0,212,255;--accent:#00d4ff;--bg:#000000;--sidebar-bg:#0c1220;--nav-bg:rgba(0,0,0,0.72);}
-  [data-theme="karst"]{--neon-rgb:52,211,153;--accent:#34d399;--bg:#060e08;--sidebar-bg:#06100a;--nav-bg:rgba(4,12,6,0.80);}
-  [data-theme="aurora"]{--neon-rgb:167,139,250;--accent:#a78bfa;--bg:#04020f;--sidebar-bg:#0a0818;--nav-bg:rgba(4,2,15,0.80);}
-  [data-theme="meridian"]{--neon-rgb:251,146,60;--accent:#fb923c;--bg:#090300;--sidebar-bg:#100600;--nav-bg:rgba(9,3,0,0.80);}
-  [data-theme="blanc"]{--neon-rgb:14,165,233;--accent:#0ea5e9;--bg:#f0f6ff;--sidebar-bg:#e8edf4;--nav-bg:rgba(255,255,255,0.88);}
+    html,
+    body {
+      min-width: 0;
+      overflow-x: hidden;
+    }
 
-  /* ── Hell-Modus koppeln: Struktur-Variablen hell, Akzent bleibt vom aktiven Theme ── */
-  html.light{
-    --bg:#f0f4f8;
-    --surface:rgba(var(--neon-rgb),0.06);
-    --sidebar-bg:#e8edf4;
-    --nav-bg:rgba(255,255,255,0.88);
-    --card:#ffffff;
-    --field:#eef3fa;
-    --hairline:#e2e8f0;
-    --text:#0f172a;
-    --muted:rgba(30,80,140,0.55);
-  }
-  html.light #sidebar{background:#e8edf4 !important;}
-  html.light nav.fixed{background:rgba(255,255,255,0.88) !important;}
-  body{background:var(--bg,#000);transition:background 0.4s;}
-  /* ── Sidebar ── */
-  #sidebar{transition:width 0.25s ease,opacity 0.2s ease;width:240px;background:var(--sidebar-bg,#0c1220)!important;}
-  #sidebar.collapsed{width:0;opacity:0;overflow:hidden;pointer-events:none;}
-  nav.fixed{background:var(--nav-bg,rgba(0,0,0,0.72))!important;}
-  .sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:11px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .15s;border-left:2px solid transparent;color:rgba(180,220,240,0.55);text-decoration:none;}
-  .sidebar-nav-link:hover{background:rgba(29,37,53,0.85);color:#fff;border-left-color:var(--accent);}
-  html.light .sidebar-nav-link{color:rgba(30,80,140,0.7);}
-  html.light .sidebar-nav-link:hover{background:#deeaf7;color:#0f172a;border-left-color:var(--accent,#0ea5e9);}
-  html.light .ki-sidebar-active{background:#eff6ff!important;}
-  #sidebar-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;background:var(--accent);border:none;cursor:pointer;width:20px;height:60px;display:none;align-items:center;justify-content:center;color:#000;transition:left 0.25s ease,box-shadow 0.2s;border-radius:0 6px 6px 0;box-shadow:0 0 12px rgba(var(--neon-rgb),0.5);}
-  #sidebar-toggle:hover{box-shadow:0 0 20px rgba(var(--neon-rgb),0.8);}
-  @media(min-width:1024px){#sidebar-toggle.visible{display:flex;}}
-  #genesis-dots{display:flex;align-items:center;gap:5px;}
-  .gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;background:none;}
-  .gdot:hover{transform:scale(1.25);}
-  .gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
-  html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
-  .gdot[data-t="genesis"]{background:#00d4ff;}
-  .gdot[data-t="karst"]{background:#34d399;}
-  .gdot[data-t="aurora"]{background:#a78bfa;}
-  .gdot[data-t="meridian"]{background:#fb923c;}
-  .gdot[data-t="blanc"]{background:#e2e8f0;border-color:rgba(0,0,0,0.2);}
-  .ki-border{border-color:rgba(var(--neon-rgb),0.18);}
-  .ki-muted{color:rgba(180,220,240,0.55);}
-  html.light .ki-muted{color:rgba(30,80,140,0.7);}
-</style>
-<style id="km-drawer">
-#brand-menu-hint{display:none;}
-@media(max-width:767px){#brand-menu-hint{display:inline-flex !important;align-items:center;gap:4px;}#brand-link{cursor:pointer;}}
-#sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}
-#sidebar-backdrop.open{opacity:1;visibility:visible;}
-@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}
-@media(max-width:1023px){
-#sidebar{display:flex !important;width:284px !important;max-width:84vw;transform:translateX(-100%);transition:transform .28s ease;opacity:1 !important;z-index:60;pointer-events:none;box-shadow:8px 0 40px rgba(0,0,0,0.55);}
-#sidebar.collapsed{width:284px !important;max-width:84vw;opacity:1 !important;transform:translateX(-100%);pointer-events:none;}
-#sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}
-}
-</style>
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ea70ee2-8b69-4624-bf16-fb3f7e4a6431"></script>
+    html {
+      scroll-padding-top: 82px;
+    }
+
+    body {
+      margin: 0;
+      color: var(--px-ink);
+      background:
+        radial-gradient(circle at 88% 0%, rgba(var(--neon-rgb, 0, 212, 255), .09), transparent 34rem),
+        radial-gradient(circle at 4% 28%, rgba(167, 139, 250, .055), transparent 30rem),
+        var(--px-bg);
+      font-family: "Work Sans", sans-serif;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .px-backdrop {
+      position: fixed;
+      z-index: -2;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: .31;
+      background-image:
+        linear-gradient(rgba(var(--neon-rgb, 0, 212, 255), .032) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--neon-rgb, 0, 212, 255), .032) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, #000 0, transparent 94%);
+    }
+
+    .px-backdrop::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: linear-gradient(180deg, transparent 0, rgba(0, 0, 0, .07) 66%, var(--px-bg) 100%);
+    }
+
+    html.light .px-backdrop {
+      opacity: .38;
+    }
+
+    html.light .px-backdrop::after {
+      background: linear-gradient(180deg, transparent 0, rgba(255, 255, 255, .14) 66%, var(--px-bg) 100%);
+    }
+
+    .px-shell {
+      width: min(1400px, 100%);
+      margin: 0 auto;
+      padding: 80px 24px 42px;
+    }
+
+    .px-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 32px;
+      min-height: 138px;
+      padding: 0 0 20px;
+    }
+
+    .px-kicker,
+    .px-label,
+    .px-button,
+    .px-axis,
+    .px-signal-label,
+    .px-source-rank,
+    .px-source-metric,
+    .px-kpi-meta,
+    .px-article-rank,
+    .px-article-foot,
+    .px-footer,
+    .px-empty,
+    .px-badge,
+    .px-time-note {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .px-kicker {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 9px;
+      color: var(--px-accent);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .px-kicker::before {
+      width: 25px;
+      height: 1px;
+      flex: 0 0 auto;
+      content: "";
+      border-radius: 999px;
+      background: var(--px-accent);
+      box-shadow: 0 0 10px var(--px-accent);
+    }
+
+    .px-title {
+      max-width: 760px;
+      margin: 0;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(38px, 4.2vw, 54px);
+      font-weight: 800;
+      letter-spacing: -.055em;
+      line-height: 1;
+    }
+
+    .px-title span {
+      color: var(--px-accent);
+      text-shadow: 0 0 22px rgba(var(--neon-rgb, 0, 212, 255), .18);
+    }
+
+    .px-intro {
+      max-width: 720px;
+      margin: 12px 0 0;
+      color: var(--px-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .px-signal {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(94px, 1fr));
+      width: 224px;
+      gap: 7px;
+      padding: 8px;
+      border: 1px solid var(--px-border);
+      border-radius: 16px;
+      background:
+        linear-gradient(145deg, rgba(var(--neon-rgb, 0, 212, 255), .085), rgba(167, 139, 250, .025)),
+        var(--px-card);
+      box-shadow: var(--px-glow), var(--px-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-signal-cell {
+      min-width: 0;
+      min-height: 65px;
+      padding: 9px 10px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 9px;
+      background: var(--px-soft);
+    }
+
+    .px-signal-num {
+      display: block;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-signal-label {
+      display: block;
+      margin-top: 7px;
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .px-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 52px;
+      margin: 0 0 12px;
+      padding: 9px 11px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 12px;
+      background: var(--px-card);
+      box-shadow: var(--px-glow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-period {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .px-period-label {
+      margin-right: 5px;
+      color: var(--px-faint);
+      font-size: 9px;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .px-button {
+      min-height: 30px;
+      padding: 6px 11px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      transition:
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
+    }
+
+    .px-button:hover,
+    .px-button:focus-visible,
+    .px-button[aria-pressed="true"] {
+      border-color: rgba(var(--neon-rgb, 0, 212, 255), .4);
+      color: var(--px-ink);
+      background: rgba(var(--neon-rgb, 0, 212, 255), .12);
+      box-shadow: 0 0 14px rgba(var(--neon-rgb, 0, 212, 255), .12);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .px-status {
+      max-width: 58%;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .px-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .px-card,
+    .px-kpi {
+      min-width: 0;
+      border: 1px solid var(--px-border);
+      border-radius: 12px;
+      background: var(--px-card);
+      box-shadow: var(--px-glow), var(--px-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-kpi {
+      position: relative;
+      min-height: 145px;
+      padding: 15px 16px 10px;
+      overflow: hidden;
+      transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
+    }
+
+    .px-kpi:hover {
+      border-color: var(--px-border-hover);
+      box-shadow:
+        0 0 22px rgba(var(--neon-rgb, 0, 212, 255), .11),
+        var(--px-shadow);
+      transform: translateY(-1px);
+    }
+
+    .px-kpi::before {
+      position: absolute;
+      top: 0;
+      left: 16px;
+      width: 34px;
+      height: 2px;
+      content: "";
+      border-radius: 0 0 999px 999px;
+      background: var(--px-accent);
+      box-shadow: 0 0 12px var(--px-accent);
+    }
+
+    .px-kpi:nth-child(2)::before {
+      background: var(--px-violet);
+      box-shadow: 0 0 12px var(--px-violet);
+    }
+
+    .px-kpi:nth-child(3)::before {
+      background: var(--px-green);
+      box-shadow: 0 0 12px var(--px-green);
+    }
+
+    .px-kpi:nth-child(4)::before {
+      background: var(--px-orange);
+      box-shadow: 0 0 12px var(--px-orange);
+    }
+
+    .px-label {
+      color: var(--px-faint);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .px-kpi-value {
+      margin-top: 8px;
+      overflow: hidden;
+      color: var(--px-accent);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(27px, 3vw, 38px);
+      font-weight: 800;
+      letter-spacing: -.055em;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-kpi:nth-child(2) .px-kpi-value {
+      color: var(--px-violet);
+    }
+
+    .px-kpi:nth-child(3) .px-kpi-value {
+      color: var(--px-green);
+    }
+
+    .px-kpi:nth-child(4) .px-kpi-value {
+      color: var(--px-orange);
+    }
+
+    .px-kpi-meta {
+      margin-top: 7px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-spark {
+      display: block;
+      width: 100%;
+      height: 40px;
+      margin-top: 8px;
+      overflow: visible;
+    }
+
+    .px-grid {
+      display: grid;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .px-primary-grid {
+      grid-template-columns: minmax(0, 1.65fr) minmax(330px, 1fr);
+    }
+
+    .px-bottom-grid {
+      grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+    }
+
+    .px-card {
+      padding: 20px;
+    }
+
+    .px-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 5px;
+    }
+
+    .px-card-title {
+      margin: 0;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: -.025em;
+      line-height: 1.2;
+    }
+
+    .px-card-note {
+      max-width: 650px;
+      margin: 5px 0 0;
+      color: var(--px-muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .px-badge {
+      flex: 0 0 auto;
+      padding: 5px 8px;
+      border: 1px solid var(--px-border);
+      border-radius: 999px;
+      color: var(--px-accent);
+      background: rgba(var(--neon-rgb, 0, 212, 255), .055);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-chart-wrap {
+      width: 100%;
+      min-width: 0;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+
+    .px-chart-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .px-axis {
+      fill: var(--px-faint);
+      font-size: 10px;
+    }
+
+    .px-axis-strong {
+      fill: var(--px-muted);
+    }
+
+    .px-gridline {
+      stroke: var(--px-border-soft);
+      stroke-width: 1;
+    }
+
+    .px-heat-grid {
+      display: grid;
+      grid-template-columns: 42px repeat(7, minmax(0, 1fr));
+      gap: 3px 5px;
+      min-width: 0;
+    }
+
+    .px-heat-spacer {
+      min-height: 19px;
+    }
+
+    .px-heat-day,
+    .px-week-label {
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .px-heat-hour {
+      align-self: center;
+      color: var(--px-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8px;
+      text-align: right;
+    }
+
+    .px-heat-cell {
+      min-width: 0;
+      height: 10px;
+      border-radius: 4px;
+      background: rgba(125, 170, 190, .065);
+    }
+
+    .px-heat-cell[data-active="true"] {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+    }
+
+    .px-heat-scale,
+    .px-week-bars {
+      display: grid;
+      grid-template-columns: 42px repeat(7, minmax(0, 1fr));
+      gap: 5px;
+      margin-top: 12px;
+      padding-top: 11px;
+      border-top: 1px solid var(--px-border-soft);
+    }
+
+    .px-heat-scale-label {
+      align-self: center;
+      color: var(--px-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8px;
+    }
+
+    .px-heat-scale-bar {
+      height: 7px;
+      border-radius: 999px;
+    }
+
+    .px-week-bars {
+      margin-top: 0;
+    }
+
+    .px-week-item {
+      min-width: 0;
+      text-align: center;
+    }
+
+    .px-week-track {
+      position: relative;
+      height: 64px;
+      margin: 0 auto 7px;
+      overflow: hidden;
+      border-radius: 9px;
+      background: rgba(var(--neon-rgb, 0, 212, 255), .055);
+    }
+
+    .px-week-fill {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      min-height: 4px;
+      border-radius: 9px;
+      background: linear-gradient(
+        180deg,
+        var(--px-accent),
+        rgba(var(--neon-rgb, 0, 212, 255), .22)
+      );
+      box-shadow: 0 0 12px rgba(var(--neon-rgb, 0, 212, 255), .1);
+      transition: height .5s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .px-time-note {
+      margin-top: 11px;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.55;
+    }
+
+    .px-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 15px;
+      margin-top: 13px;
+    }
+
+    .px-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--px-muted);
+      font-size: 10px;
+    }
+
+    .px-legend-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+    }
+
+    .px-source-list {
+      display: grid;
+      gap: 11px;
+      margin-top: 18px;
+    }
+
+    .px-source-row {
+      display: grid;
+      grid-template-columns: 24px minmax(90px, 1.1fr) minmax(72px, 1fr) 42px 54px;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      min-height: 29px;
+    }
+
+    .px-source-rank {
+      color: var(--px-faint);
+      font-size: 9px;
+    }
+
+    .px-source-name {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-source-track {
+      min-width: 0;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(var(--neon-rgb, 0, 212, 255), .065);
+    }
+
+    .px-source-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      box-shadow: 0 0 11px rgba(var(--neon-rgb, 0, 212, 255), .16);
+      transition: width .5s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .px-source-count,
+    .px-source-average {
+      min-width: 0;
+      color: var(--px-muted);
+      font-size: 8px;
+      line-height: 1.2;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .px-source-count {
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .px-stream-wrap {
+      min-height: 300px;
+    }
+
+    .px-pipeline-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 7px;
+      margin: 15px 0 11px;
+    }
+
+    .px-pipeline-stat {
+      min-width: 0;
+      padding: 9px 8px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 9px;
+      background: var(--px-soft);
+    }
+
+    .px-pipeline-stat strong {
+      display: block;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-pipeline-stat span {
+      display: block;
+      margin-top: 3px;
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .px-pipeline-list {
+      display: grid;
+      max-height: 274px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+
+    .px-pipeline-row {
+      display: grid;
+      grid-template-columns: minmax(125px, 1.2fr) minmax(70px, .8fr) 48px;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--px-border-soft);
+    }
+
+    .px-pipeline-info {
+      min-width: 0;
+    }
+
+    .px-pipeline-time {
+      display: block;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-pipeline-detail {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--px-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-pipeline-duration {
+      position: relative;
+      min-width: 0;
+      height: 29px;
+      padding-top: 5px;
+      border-left: 1px solid var(--px-border-soft);
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-align: right;
+    }
+
+    .px-duration-track {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 60px;
+      height: 3px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--px-border-soft);
+    }
+
+    .px-duration-fill {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--px-accent);
+      box-shadow: 0 0 8px rgba(var(--neon-rgb, 0, 212, 255), .25);
+    }
+
+    .px-pipeline-state {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      text-align: right;
+    }
+
+    .px-pipeline-state-ok {
+      color: var(--px-green);
+    }
+
+    .px-pipeline-state-warn {
+      color: var(--px-orange);
+    }
+
+    .px-pipeline-state-bad {
+      color: var(--px-pink);
+    }
+
+    .px-empty {
+      display: grid;
+      min-height: 132px;
+      place-content: center;
+      padding: 22px 12px;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .px-empty-detail {
+      margin-top: 3px;
+      color: var(--px-faint);
+      font-size: 9px;
+    }
+
+    .px-article-list {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .px-article {
+      display: block;
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--px-border-soft);
+      border-radius: 10px;
+      color: var(--px-ink);
+      background: var(--px-soft);
+      text-decoration: none;
+      transition:
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
+    }
+
+    .px-article:hover,
+    .px-article:focus-visible {
+      border-color: var(--px-border-hover);
+      background: var(--px-soft-hover);
+      box-shadow: 0 0 16px rgba(var(--neon-rgb, 0, 212, 255), .1);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .px-article[aria-disabled="true"] {
+      cursor: default;
+    }
+
+    .px-article-rank {
+      color: var(--px-accent);
+      font-size: 9px;
+    }
+
+    .px-article-title {
+      display: -webkit-box;
+      min-height: 54px;
+      margin: 9px 0 12px;
+      overflow: hidden;
+      color: var(--px-ink);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-article-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--px-faint);
+      font-size: 8px;
+    }
+
+    .px-article-foot span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 24px;
+      padding: 18px 0 0;
+      border-top: 1px solid var(--px-border-soft);
+      color: var(--px-faint);
+      font-size: 9px;
+      line-height: 1.6;
+    }
+
+    .px-footer a {
+      color: var(--px-accent);
+      text-decoration: none;
+    }
+
+    .px-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .px-footer-stand {
+      white-space: pre-line;
+      text-align: right;
+    }
+
+    @media (max-width: 1080px) {
+      .px-primary-grid,
+      .px-bottom-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-article-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .px-shell {
+        padding: 72px 14px 34px;
+      }
+
+      .px-hero {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        min-height: 0;
+        padding: 0 0 17px;
+      }
+
+      .px-title {
+        font-size: 40px;
+      }
+
+      .px-intro {
+        margin-top: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .px-signal {
+        width: 100%;
+      }
+
+      .px-signal-cell {
+        min-height: 60px;
+      }
+
+      .px-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+        padding: 10px;
+      }
+
+      .px-period {
+        width: 100%;
+      }
+
+      .px-status {
+        max-width: 100%;
+        text-align: left;
+      }
+
+      .px-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .px-kpi {
+        min-height: 138px;
+        padding: 13px 12px 9px;
+      }
+
+      .px-kpi::before {
+        left: 12px;
+      }
+
+      .px-kpi-value {
+        font-size: 27px;
+      }
+
+      .px-kpi-meta {
+        font-size: 8px;
+      }
+
+      .px-card {
+        padding: 16px 12px;
+      }
+
+      .px-card-head {
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .px-card-note {
+        max-width: none;
+      }
+
+      .px-heat-grid,
+      .px-heat-scale,
+      .px-week-bars {
+        grid-template-columns: 36px repeat(7, minmax(0, 1fr));
+        gap: 3px 4px;
+      }
+
+      .px-heat-hour {
+        font-size: 7px;
+      }
+
+      .px-heat-day,
+      .px-week-label {
+        font-size: 8px;
+      }
+
+      .px-heat-cell {
+        height: 9px;
+      }
+
+      .px-source-list {
+        gap: 12px;
+      }
+
+      .px-source-row {
+        grid-template-columns: 20px minmax(80px, 1fr) 42px 54px;
+        gap: 6px;
+      }
+
+      .px-source-track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        height: 7px;
+      }
+
+      .px-source-name {
+        font-size: 10px;
+      }
+
+      .px-stream-wrap {
+        min-height: 240px;
+      }
+
+      .px-pipeline-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-pipeline-row {
+        grid-template-columns: minmax(108px, 1fr) minmax(65px, .8fr) 45px;
+      }
+
+      .px-article-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-footer {
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .px-footer-stand {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .px-kicker {
+        font-size: 8px;
+      }
+
+      .px-title {
+        font-size: 38px;
+      }
+
+      .px-signal {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        padding: 7px;
+        border-radius: 12px;
+      }
+
+      .px-signal-cell {
+        min-height: 61px;
+        padding: 9px 6px;
+      }
+
+      .px-signal-num {
+        font-size: 19px;
+      }
+
+      .px-signal-label {
+        font-size: 7px;
+        letter-spacing: .05em;
+      }
+
+      .px-period-label {
+        width: 100%;
+        margin-bottom: 1px;
+      }
+
+      .px-button {
+        flex: 1 1 0;
+        padding-right: 7px;
+        padding-left: 7px;
+      }
+
+      .px-week-track {
+        height: 52px;
+      }
+
+      .px-article-list {
+        grid-template-columns: 1fr;
+      }
+
+      .px-article-title {
+        min-height: 0;
+      }
+
+      .px-pipeline-row {
+        grid-template-columns: minmax(101px, 1fr) 59px 41px;
+        gap: 6px;
+      }
+
+      .px-pipeline-time,
+      .px-pipeline-duration {
+        font-size: 8px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+      }
+    }
+
+    /* Uebernommene Bereiche (Creator Radar, Pipeline-Gesundheit) */
+    .ki-radar-zeile { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 4px; border-bottom: 1px solid rgba(var(--neon-rgb, 0, 212, 255), .08); color: inherit; text-decoration: none; }
+    .ki-radar-zeile:hover .ki-radar-titel { color: var(--accent, #00d4ff); }
+    .ki-radar-rang { font: 700 13px/1 'Space Grotesk', sans-serif; color: var(--accent, #00d4ff); text-align: center; }
+    .ki-radar-text { display: grid; gap: 3px; min-width: 0; }
+    .ki-radar-titel { font: 600 13px/1.35 'Space Grotesk', sans-serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .ki-radar-quelle, .ki-radar-score { font: 700 10px/1 ui-monospace, monospace; letter-spacing: .05em; text-transform: uppercase; opacity: .65; }
+    .ki-health-zeile { display: grid; gap: 3px; padding: 7px 4px; border-bottom: 1px solid rgba(var(--neon-rgb, 0, 212, 255), .07); font: 11px/1.4 ui-monospace, monospace; }
+    .ki-health-auff { background: rgba(249, 115, 22, .06); }
+    .ki-health-kopf { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; opacity: .85; }
+    .ki-health-zeit { color: var(--accent, #00d4ff); min-width: 92px; }
+    .ki-health-zahl { margin-left: auto; }
+    .ki-health-warn { color: #f97316; } .ki-health-bad { color: #f87171; }
+    .ki-health-detail { font-size: 10px; opacity: .6; }
+  </style>
+  
 </head>
+
 <body>
-<!-- window.KI_SIDEBAR_EXTRA ("Schnellueberblick") am 30.08. entfernt: doppelte
-     sich mit den Hero-Kacheln oben auf der Seite und brach Daniels Wunsch nach
-     einer auf jeder Seite gleichen Sidebar (Suche + Stand-Box kommen zentral
-     aus ki-layout.js). -->
-<script src="assets/ki-layout.js"></script>
-<script src="assets/ki-custom-theme.js"></script>
+  <div class="px-backdrop" aria-hidden="true"></div>
 
-<!-- ── Genesis 3D Background ─────────────────────────────── -->
-<div id="genesis-wrap" style="position:fixed;inset:0;z-index:0;pointer-events:none"></div>
-<div id="bg-overlay" style="position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.45) 38%,rgba(0,0,0,0.88) 68%,rgba(0,0,0,0.94) 100%);transition:background 0.4s"></div>
-<style>html.light #bg-overlay{background:linear-gradient(to bottom,rgba(240,246,255,0.06) 0%,rgba(240,246,255,0.30) 40%,rgba(240,246,255,0.93) 68%,rgba(240,246,255,0.99) 100%) !important;}main,nav,aside{position:relative;z-index:10;}main{background:rgba(0,0,0,0.88);}html.light main{background:rgba(248,250,252,0.96);}</style>
+  <main class="px-shell" id="main-content">
+    <header class="px-hero">
+      <div>
+        <div class="px-kicker">Datenradar / Version 2</div>
+        <h1 class="px-title">Statistik <span>↗</span></h1>
+        <p class="px-intro">
+          Aufkommen, Quellen, Themen und Pipeline in einer sachlichen Übersicht.
+          Grundlage sind die lokalen News-, Archiv-, Karten-, Graph- und Betriebsdaten.
+        </p>
+      </div>
 
-<!-- ── Theme-Hook: Charts bei Theme-Wechsel umfärben ──
-     (Theme-Logik selbst kommt zentral aus assets/ki-layout.js) -->
-<script>
-window.__kiThemeHook = function(){
-  if (window._charts && typeof updateChartTheme === 'function') window._charts.forEach(function(c){ updateChartTheme(c); });
-  if (window.renderSrcRanking) window.renderSrcRanking();
-};
-document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTheme) window.__kiApplyTheme(); });
-</script>
+      <div class="px-signal" aria-label="Datenstatus">
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalArticles">0</span>
+          <span class="px-signal-label">Artikel</span>
+        </div>
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalSources">0</span>
+          <span class="px-signal-label">Quellen</span>
+        </div>
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalDays">0</span>
+          <span class="px-signal-label">Tage</span>
+        </div>
+        <div class="px-signal-cell">
+          <span class="px-signal-num" id="px-signalRuns">0</span>
+          <span class="px-signal-label">Läufe</span>
+        </div>
+      </div>
+    </header>
 
-<!-- ── Main ── -->
-<main id="main-content" class="pt-14 min-h-screen" style="background:var(--bg,#000);transition:margin-left 0.25s ease,background 0.4s;">
-  <div class="max-w-[1400px] mx-auto p-6">
-
-    <!-- Header -->
-    <div class="mt-6 mb-8">
-      <h1 class="font-black text-3xl tracking-tight text-white mb-1" style="font-family:'Space Grotesk',sans-serif">
-        Statistik <span style="color:var(--accent)">↗</span>
-      </h1>
-      <p class="text-gray-500 text-sm font-mono" id="stats-subtitle">Wird geladen…</p>
+    <div class="px-toolbar">
+      <div class="px-period" role="group" aria-label="Zeitraum wählen">
+        <span class="px-period-label">Zeitraum</span>
+        <button class="px-button" type="button" data-days="7" aria-pressed="true">7 Tage</button>
+        <button class="px-button" type="button" data-days="30" aria-pressed="false">30 Tage</button>
+        <button class="px-button" type="button" data-days="90" aria-pressed="false">90 Tage</button>
+        <button class="px-button" type="button" data-days="0" aria-pressed="false">Gesamt</button>
+      </div>
+      <div class="px-status" id="px-loadStatus" aria-live="polite">Datensätze werden geladen.</div>
     </div>
 
-    <!-- ── Hero Metriken (30.08. verkleinert: waren mit 20px Padding + 36px-
-         Zahlen deutlich zu ausladend fuer vier reine Kennzahlen-Kacheln) ── -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      <div class="stat-card">
-        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Artikel gesamt</p>
-        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-total">—</p>
-        <p class="text-[10px] text-gray-500 font-mono">news.json + archive.json</p>
-      </div>
-      <div class="stat-card">
-        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Quellen aktiv</p>
-        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-sources">—</p>
-        <p class="text-[10px] text-gray-500 font-mono truncate" id="m-sources-names">—</p>
-      </div>
-      <div class="stat-card">
-        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Ø Score gesamt</p>
-        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-avgscore">—</p>
-        <p class="text-[10px] text-gray-500 font-mono">Relevanz-Durchschnitt</p>
-      </div>
-      <div class="stat-card">
-        <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Höchster Score</p>
-        <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:#f97316" id="m-topscore">—</p>
-        <p class="text-[10px] text-gray-500 font-mono truncate" id="m-topscore-title">—</p>
-      </div>
-    </div>
+    <section class="px-kpis" aria-label="Kennzahlen">
+      <article class="px-kpi">
+        <div class="px-label">Artikel im Zeitraum</div>
+        <div class="px-kpi-value" id="px-kpiArticles">0</div>
+        <div class="px-kpi-meta" id="px-kpiArticlesMeta">Keine Daten</div>
+        <svg class="px-spark" id="px-sparkArticles" viewBox="0 0 220 48" role="img" aria-label="Sparkline Artikel"></svg>
+      </article>
 
-    <!-- ── Tagesverlauf (bis 30.08. "Wöchentliche Statistik": nur 17% Abdeckung,
-         weil sie ein Datum aus der Artikel-URL zu raten versuchte statt das
-         vorhandene first_seen-Feld zu nutzen -- jetzt 100% Abdeckung, taeglich
-         statt woechentlich, weil die Pipeline eh 4x/Tag laeuft) ── -->
-    <div class="chart-card mb-6">
-      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
-        <p class="section-title">Tagesverlauf</p>
-        <span class="meta-text" id="daily-summary" style="font-size:11px"></span>
-      </div>
-      <p class="meta-text mb-4">Artikel pro Tag (letzte 10 Tage) · Linie = Ø Score (rechte Achse)</p>
-      <div style="position:relative;height:220px">
-        <canvas id="chart-daily"></canvas>
-      </div>
-      <div id="daily-table" class="mt-4"></div>
-    </div>
+      <article class="px-kpi">
+        <div class="px-label">Aktive Quellen</div>
+        <div class="px-kpi-value" id="px-kpiSources">0</div>
+        <div class="px-kpi-meta" id="px-kpiSourcesMeta">Keine Daten</div>
+        <svg class="px-spark" id="px-sparkSources" viewBox="0 0 220 48" role="img" aria-label="Sparkline Quellen"></svg>
+      </article>
 
-    <!-- ── Row 1: Quellen + Score-Verteilung ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <article class="px-kpi">
+        <div class="px-label">Durchschnittlicher Score</div>
+        <div class="px-kpi-value" id="px-kpiScore">n/v</div>
+        <div class="px-kpi-meta" id="px-kpiScoreMeta">Relevanz aus News und Archiv</div>
+        <svg class="px-spark" id="px-sparkScore" viewBox="0 0 220 48" role="img" aria-label="Sparkline Score"></svg>
+      </article>
 
-      <!-- Quellen-Chart (2/3) -->
-      <div class="chart-card lg:col-span-2">
-        <div class="flex items-center justify-between mb-1">
-          <p class="section-title">Quellen-Analyse</p>
-          <div class="flex gap-2 flex-wrap">
-            <button onclick="toggleSourceMetric('count')" id="btn-count"
-              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
-              style="background:rgba(var(--neon-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3)">
-              Artikel
-            </button>
-            <button onclick="toggleSourceMetric('score')" id="btn-score"
-              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
-              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
-              Ø Score
-            </button>
-            <div style="width:1px;background:rgba(107,114,128,0.2);margin:0 2px"></div>
-            <button onclick="toggleSourceWindow(5)"  id="btn-w5"
-              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
-              style="background:rgba(var(--neon-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--neon-rgb),0.3)">
-              5 Tage
-            </button>
-            <button onclick="toggleSourceWindow(30)" id="btn-w30"
-              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
-              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
-              30 Tage
-            </button>
-            <button onclick="toggleSourceWindow(0)"  id="btn-wall"
-              class="text-[10px] font-mono uppercase px-3 py-1 rounded transition-all"
-              style="background:transparent;color:#6b7280;border:1px solid rgba(107,114,128,0.2)">
-              Gesamt
-            </button>
+      <article class="px-kpi">
+        <div class="px-label">Erzeugte Karten</div>
+        <div class="px-kpi-value" id="px-kpiCards">0</div>
+        <div class="px-kpi-meta" id="px-kpiCardsMeta">Keine Karten</div>
+        <svg class="px-spark" id="px-sparkCards" viewBox="0 0 220 48" role="img" aria-label="Sparkline Karten"></svg>
+      </article>
+    </section>
+
+    <section class="px-grid px-primary-grid">
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Aufnahme-Zeit</h2>
+            <p class="px-card-note">
+              Heatmap für Wochentag und Uhrzeit. Berücksichtigt werden nur Datensätze mit einer verlässlichen Zeitangabe.
+            </p>
+          </div>
+          <span class="px-badge" id="px-heatmapBadge">Zeitdaten prüfen</span>
+        </div>
+
+        <div class="px-chart-wrap" id="px-heatmap"></div>
+        <div class="px-time-note" id="px-heatmapNote"></div>
+      </article>
+
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Quellen-Ranking</h2>
+            <p class="px-card-note">Anzahl der Beiträge und mittlerer Relevanz-Score je Quelle.</p>
+          </div>
+          <span class="px-badge">Top 10</span>
+        </div>
+
+        <div class="px-source-list" id="px-sourceRanking"></div>
+      </article>
+    </section>
+
+    <section class="px-card" style="margin-bottom: 12px">
+      <div class="px-card-head">
+        <div>
+          <h2 class="px-card-title">Themen-Verlauf</h2>
+          <p class="px-card-note">
+            Streamgraph aus Titel und Kurztext. Ein Artikel kann mehrere Themen enthalten und daher in mehreren Bändern erscheinen.
+          </p>
+        </div>
+        <span class="px-badge" id="px-streamBadge">max. 30 Punkte</span>
+      </div>
+
+      <div class="px-chart-wrap px-stream-wrap" id="px-stream"></div>
+      <div class="px-legend" id="px-streamLegend"></div>
+    </section>
+
+    <section class="px-grid px-bottom-grid">
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Score-Verteilung</h2>
+            <p class="px-card-note">Relevanz-Score in fünf Klassen, basierend auf den vorhandenen Artikeln.</p>
+          </div>
+          <span class="px-badge">5 Klassen</span>
+        </div>
+
+        <div class="px-chart-wrap" id="px-scoreChart"></div>
+      </article>
+
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Pipeline-Laufzeiten</h2>
+            <p class="px-card-note">
+              Aus ki_news.log. Laufmarker, Status, Batches und Laufzeit werden defensiv aus verschiedenen Log-Formaten gelesen.
+            </p>
+          </div>
+          <span class="px-badge">internes Log</span>
+        </div>
+
+        <div class="px-pipeline-stats">
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineRuns">0</strong>
+            <span>Läufe erkannt</span>
+          </div>
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineAvg">n/v</strong>
+            <span>Ø Laufzeit</span>
+          </div>
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineOk">n/v</strong>
+            <span>Batch-Quote</span>
+          </div>
+          <div class="px-pipeline-stat">
+            <strong id="px-pipelineWarnings">0</strong>
+            <span>Warnungen</span>
           </div>
         </div>
-        <p class="meta-text mb-4" id="src-window-label">Artikel-Anzahl und Durchschnitts-Score je Quelle · letzte 5 Tage</p>
-        <div id="src-ranking" style="display:flex;flex-direction:column;gap:5px;min-height:260px;justify-content:center;"></div>
-      </div>
 
-      <!-- Score-Verteilung Donut (1/3) -->
-      <div class="chart-card">
-        <p class="section-title mb-1">Score-Verteilung</p>
-        <p class="meta-text mb-4">Alle Artikel nach Relevanz-Level</p>
-        <div style="position:relative;height:200px;margin-bottom:16px">
-          <canvas id="chart-scores"></canvas>
+        <div class="px-pipeline-list" id="px-pipelineList"></div>
+      </article>
+    </section>
+
+    <section class="px-card">
+      <div class="px-card-head">
+        <div>
+          <h2 class="px-card-title">Stärkste Stories</h2>
+          <p class="px-card-note">Die fünf höchsten Scores im gewählten Zeitraum.</p>
         </div>
-        <div class="flex flex-col gap-2" id="score-legend"></div>
-      </div>
-    </div>
-
-    <!-- ── Row 2: Themen-Radar ── -->
-    <div class="chart-card mb-6">
-      <p class="section-title mb-1">Themen-Radar</p>
-      <p class="meta-text mb-4">Wie oft werden KI-Player und Themen in Artikeln erwähnt</p>
-      <div style="position:relative;height:220px">
-        <canvas id="chart-topics"></canvas>
-      </div>
-    </div>
-
-    <!-- ── Themen-Trend + Pipeline-Gesundheit (30.08., neu) ──
-         Nebeneinander auf Desktop (Daniels Wunsch), gestapelt auf Mobil. ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="chart-card">
-        <p class="section-title mb-1">Themen-Trend</p>
-        <p class="meta-text mb-4">Verlauf der letzten 10 Tage je Thema · absteigend nach Erwähnungen</p>
-        <div id="theme-trends"></div>
+        <span class="px-badge">Sortiert nach Score</span>
       </div>
 
-      <div class="chart-card">
-        <p class="section-title mb-1">Pipeline-Gesundheit</p>
-        <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus dem internen Betriebs-Log (die letzten ~10 Läufe)</p>
-        <div id="pipeline-health"></div>
-      </div>
-    </div>
+      <div class="px-article-list" id="px-articleList"></div>
+    </section>
 
-    <!-- ── Row 3: Creator Dashboard ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <section class="px-grid px-bottom-grid">
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Creator Radar</h2>
+            <p class="px-card-note">Was in der aktuellen News-Session gerade relevant ist (eine Story, ein Eintrag).</p>
+          </div>
+        </div>
+        <div class="px-article-list" id="px-radar"></div>
+      </article>
+      <article class="px-card">
+        <div class="px-card-head">
+          <div>
+            <h2 class="px-card-title">Pipeline-Gesundheit</h2>
+            <p class="px-card-note">Letzte Läufe: Batches, Sprach-Guard und Warnungsgründe aus dem Betriebs-Log.</p>
+          </div>
+        </div>
+        <div id="px-health"></div>
+      </article>
+    </section>
 
-      <!-- Top Artikel -->
-      <div class="chart-card">
-        <p class="section-title mb-1">🏆 Top Artikel nach Score</p>
-        <p class="meta-text mb-4">Die relevantesten Stories aus dem gesamten Archiv</p>
-        <div id="top-articles-list"></div>
-      </div>
-
-      <!-- Aktuelle Top-News + Insight -->
-      <div class="chart-card">
-        <p class="section-title mb-1">⚡ Creator Radar</p>
-        <p class="meta-text mb-4">Aktuelle News-Session – was ist gerade relevant</p>
-        <div id="current-top-list"></div>
-
-        <!-- Tip -->
-        <div class="mt-5 p-4 rounded-lg" style="background:rgba(var(--neon-rgb),0.05);border:1px solid rgba(var(--neon-rgb),0.15)">
-          <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(var(--neon-rgb),0.5)">💡 Tipp: Besucher-Daten</p>
-          <p class="text-[12px] text-gray-400 leading-relaxed">Diese Statistik zeigt deine <strong style="color:#dfe3ea">Content-Daten</strong>. Für echte Besucher-Zahlen (Seitenaufrufe, Klicks, Herkunft) ist <strong style="color:var(--accent)">Cloudflare Web Analytics</strong> kostenlos – ein Script-Tag reicht, kein Server nötig.</p>
+    <section class="px-card" style="margin-bottom: 12px">
+      <div class="px-card-head">
+        <div>
+          <h2 class="px-card-title">Score-Formel</h2>
+          <p class="px-card-note">Wie der Relevanz-Score jedes Artikels berechnet wird.</p>
         </div>
       </div>
-    </div>
-
-    <!-- ── Score-Formel ── -->
-    <div class="chart-card mb-8">
-      <p class="section-title mb-1">⚙️ Score-Formel</p>
-      <p class="meta-text mb-5">Wie der Relevanz-Score jedes Artikels berechnet wird</p>
-
-      <!-- 30.08.: Diagramm (Archify) direkt eingebettet statt nur verlinkt.
-           Die alte Box-Darstellung + Quellen-Prestige/Keyword-Boni/Malus-
-           Tabellen sind raus -- das Diagramm selbst zeigt Haupt- UND
-           Fallback-Pfad, die Detailtabellen waren auf Daniels Wunsch zu
-           viel/zu alt. Onload-Skript blendet Bedienelemente aus, die
-           Besucher hier nicht brauchen (Visual-Style/Export/Path/Map/Lens) --
-           die Diagramm-Datei selbst bleibt unangetastet voll ausgestattet,
-           nur diese eine Einbettung ist bewusst reduziert. -->
-      <div style="border:1px solid rgba(var(--neon-rgb),0.15);border-radius:10px;overflow:hidden">
-        <iframe src="score-formel-diagramm.html" title="Score-Formel-Diagramm"
-                style="width:100%;height:720px;border:none;display:block;background:var(--card,#0d1520)"
-                loading="lazy" onload="simplifyScoreFormelViewer(this)"></iframe>
+      <div style="border:1px solid rgba(var(--neon-rgb,0,212,255),.15);border-radius:12px;overflow:hidden">
+        <iframe src="score-formel-diagramm.html" title="Score-Formel-Diagramm" style="width:100%;height:720px;border:none;display:block;background:var(--card,#0d1520)" loading="lazy" onload="kiStatsScoreFormel(this)"></iframe>
       </div>
+      <p class="px-card-note" style="margin-top:12px">Artikel werden erst zu Clustern gruppiert (mindestens 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster - je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus. Artikel verschwinden nach 5 Tagen von der Hauptseite und wandern ins Archiv.</p>
+    </section>
 
-      <!-- Hinweis -->
-      <p style="font-size:11px;font-family:monospace;color:#4b5563;margin-top:16px;line-height:1.6">
-        Artikel werden erst zu <strong style="color:#6b7280">Clustern</strong> gruppiert (≥ 2 gemeinsame Titelwörter = gleiche Story). Der Score gilt für den ganzen Cluster – je mehr Quellen dieselbe Story bringen, desto höher der Quellen-Bonus. Artikel verschwinden nach <strong style="color:#14b8a6">5 Tagen</strong> von der Hauptseite und wandern ins Archiv.
-      </p>
-    </div>
-
-    <!-- Footer -->
-    <div class="mt-8 pb-12 border-t border-[#2f3336] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <footer class="px-footer">
       <div>
-        <span class="text-white font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
-        <p class="text-[11px] text-gray-500 font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/ScampyKI" target="_blank" style="color:var(--accent)">@ScampyKI</a></p>
+        KI NEWS · Täglich. Auf Deutsch. Mit Kontext. · <a href="https://x.com/ScampyKI" target="_blank" rel="noopener noreferrer">@ScampyKI</a><br>
+        <a href="Impressum.html">Impressum</a> ·
+        <a href="Datenschutz.html">Datenschutz</a>
       </div>
-      <p class="text-[11px] text-gray-600 font-mono" id="stats-footer-stand">—</p>
-    </div>
+      <div class="px-footer-stand" id="px-footerStand">Datenstand: n/v
+Quelle: lokale JSON- und Log-Dateien</div>
+    </footer>
+  </main>
 
-  </div>
-<footer style="position:relative;z-index:20;border-top:1px solid rgba(127,127,127,0.18);padding:22px 24px;text-align:center;font-family:'Space Grotesk',sans-serif;font-size:12px;letter-spacing:0.02em;color:#64748b;">
-  <a href="Impressum.html" style="color:inherit;text-decoration:none;margin:0 10px;">Impressum</a>·
-  <a href="Datenschutz.html" style="color:inherit;text-decoration:none;margin:0 10px;">Datenschutz</a>
-</footer>
-</main>
+  <script>
+    (() => {
+      "use strict";
 
-<script>
-// ── Konfiguration ───────────────────────────────────────────────────────────
-const SOURCE_COLORS = {
-  'The Decoder':    '#1d9bf0',
-  'TechCrunch AI':  '#ff6b35',
-  'VentureBeat AI': '#a78bfa',
-  'MIT Tech Review':'#f87171',
-  'Ars Technica':   '#4ade80',
-  'Heise':          '#60a5fa',
-  'Golem':          '#34d399',
-  'Caschy Blog':    '#fb923c',
-  'AlignedNews':    '#c084fc',
-  'Bloomberg':      '#f59e0b',
-  'SiliconAngle':   '#e879f9',
-  'TechRepublic':   '#38bdf8',
-  'Wired':          '#a3e635',
-};
-function srcColor(s){ return SOURCE_COLORS[s] || 'var(--accent)'; }
-// XSS-Schutz: Fremddaten (Feed-Titel) vor innerHTML escapen.
-function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+      const state = {
+        days: 7,
+        articles: [],
+        current: [],
+        archive: [],
+        cards: [],
+        graph: {},
+        log: "",
+        stand: "n/v",
+        failures: []
+      };
 
-const SCORE_LEVELS = [
-  { label:'BREAKING', min:40, color:'#ef4444', bg:'rgba(239,68,68,0.15)',   badge:'badge-breaking' },
-  { label:'TOP',      min:30, color:'#f97316', bg:'rgba(249,115,22,0.15)',  badge:'badge-top'      },
-  { label:'WICHTIG',  min:20, color:'#eab308', bg:'rgba(234,179,8,0.15)',   badge:'badge-wichtig'  },
-  { label:'AKTUELL',  min:10, color:'var(--accent)', bg:'rgba(var(--neon-rgb),0.12)',   badge:'badge-aktuell'  },
-  { label:'INFO',     min:0,  color:'#6b7280', bg:'rgba(107,114,128,0.15)', badge:'badge-info'     },
-];
-function scoreLevel(s){
-  for(const l of SCORE_LEVELS) if(s>=l.min) return l;
-  return SCORE_LEVELS[4];
-}
+      const DAY = 86400000;
+      const numberFormatter = new Intl.NumberFormat("de-DE");
+      const $ = id => document.getElementById(id);
 
-const KEY_TERMS = [
-  'OpenAI','Google','Anthropic','Meta','Microsoft','Apple','Nvidia','DeepMind','xAI','Mistral','Cohere','Perplexity',
-  'GPT','Claude','Gemini','Llama','Grok','Copilot','ChatGPT','Sora','Midjourney',
-  'AGI','LLM','Roboter','Deepfake','Datenschutz','Regulierung','Open Source','Chip','GPU',
-  'China','Android','Gesetz','Recht','Klage','Sicherheit',
-];
+      const cleanText = value => String(value ?? "")
+        .replace(/\u2014/g, "-")
+        .replace(/\u2013/g, "-");
 
-// ── Chart.js Defaults ────────────────────────────────────────────────────────
-Chart.defaults.color = '#6b7280';
-Chart.defaults.font.family = "'Work Sans', sans-serif";
-Chart.defaults.font.size = 12;
+      const formatNumber = value => numberFormatter.format(value);
 
-window._charts = [];
-let allArticles = [];
-let sourceMetric = 'count';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function isDark(){ return document.documentElement.classList.contains('dark'); }
-function gridColor(){ return isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'; }
-function labelColor(){ return isDark() ? '#6b7280' : '#64748b'; }
-
-// ── Load Data ────────────────────────────────────────────────────────────────
-async function loadData(){
-  let current = [], archive = [];
-  try {
-    const r = await fetch('news.json?t='+Date.now());
-    const d = await r.json();
-    current = d.news || [];
-    const stand = d.stand || '';
-    document.getElementById('stats-footer-stand').textContent = 'Stand: ' + stand;
-  } catch(e){}
-
-  try {
-    const r = await fetch('archive.json?t='+Date.now());
-    archive = await r.json();
-    if(!Array.isArray(archive)) archive = [];
-  } catch(e){}
-
-  let logText = '';
-  try {
-    const r = await fetch('ki_news.log?t='+Date.now());
-    logText = await r.text();
-  } catch(e){}
-
-  // Deduplizieren per Link
-  const seen = new Set(current.map(a=>a.link));
-  const merged = [...current, ...archive.filter(a=>!seen.has(a.link))];
-  allArticles = merged;
-
-  renderAll(current, merged);
-  renderPipelineHealth(logText);
-}
-
-function renderAll(current, all){
-  const isDarkMode = isDark();
-
-  // ── Hero Metriken ──────────────────────────────────────────────────────────
-  const sources = [...new Set(all.map(a=>a.source).filter(Boolean))];
-  const scores  = all.map(a=>a.score||0);
-  const avgScore = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
-  const topArt  = [...all].sort((a,b)=>(b.score||0)-(a.score||0))[0];
-
-  document.getElementById('m-total').textContent      = all.length;
-  document.getElementById('m-sources').textContent    = sources.length;
-  document.getElementById('m-sources-names').textContent = sources.slice(0,3).join(', ') + (sources.length>3 ? ' …' : '');
-  document.getElementById('m-avgscore').textContent   = avgScore;
-  document.getElementById('m-topscore').textContent   = topArt?.score || '—';
-  document.getElementById('m-topscore-title').textContent = topArt?.title?.slice(0,40)+'…' || '—';
-  document.getElementById('stats-subtitle').textContent = `${all.length} Artikel · ${sources.length} Quellen · Stand: ${document.getElementById('stats-footer-stand').textContent.replace('Stand: ','')}`;
-
-  // Sidebar Metriken
-  // sb-* Elemente kamen aus dem am 30.08. entfernten Sidebar-Schnellueberblick;
-  // Zuweisungen bleiben defensiv falls die IDs irgendwo wieder auftauchen.
-  if (document.getElementById('sb-total')) document.getElementById('sb-total').textContent = all.length;
-  if (document.getElementById('sb-sources')) document.getElementById('sb-sources').textContent = sources.length;
-  if (document.getElementById('sb-avgscore')) document.getElementById('sb-avgscore').textContent = avgScore;
-  if (document.getElementById('sb-topscore')) document.getElementById('sb-topscore').textContent = topArt?.score || '—';
-
-  // ── Quellen Chart ──────────────────────────────────────────────────────────
-  window._allNews = all;
-  window._sourceWindow = 5; // default: 5 Tage
-
-  // Global definiert damit toggleSourceWindow darauf zugreifen kann
-  window.buildSrcData = function(days) {
-    const news = window._allNews || [];
-    const cutoff = days > 0 ? Date.now() - days * 86400000 : 0;
-    const filtered = days > 0 ? news.filter(a => {
-      const raw = a.first_seen || a.date || '';
-      const t = raw ? new Date(raw).getTime() : 0;
-      return t >= cutoff;
-    }) : news;
-    const srcData = {};
-    filtered.forEach(a=>{
-      const s = a.source||'Unbekannt';
-      if(!srcData[s]) srcData[s]={count:0,scoreSum:0};
-      srcData[s].count++;
-      srcData[s].scoreSum += (a.score||0);
-    });
-    const sorted = Object.entries(srcData).sort((a,b)=>b[1].count-a[1].count);
-    return {
-      labels: sorted.map(([s])=>s),
-      counts: sorted.map(([,v])=>v.count),
-      avgs:   sorted.map(([,v])=>+(v.scoreSum/v.count).toFixed(1)),
-      colors: sorted.map(([s])=>srcColor(s)),
-    };
-  };
-
-  const initSrc = window.buildSrcData(7);
-  window._srcChartData = initSrc;
-
-  // Quellen-Ranking als HTML-Reihen (theme-reaktiv, kein Chart.js)
-  window.renderSrcRanking = function(){
-    const d = window._srcChartData;
-    const box = document.getElementById('src-ranking');
-    if (!d || !box) return;
-    const metric = (typeof _sourceMetric !== 'undefined' && _sourceMetric === 'score') ? 'avgs' : 'counts';
-    const vals = d[metric];
-    const max = Math.max.apply(null, vals.concat([1]));
-    const order = vals.map((v,i)=>i).sort((a,b)=>vals[b]-vals[a]);
-    // Quellen ohne definierte Farbe: stabile Farbe aus dem Namen ableiten
-    function srcHue(name){ let h=0; for(let k=0;k<name.length;k++) h=(h*31+name.charCodeAt(k))>>>0; return h%360; }
-    box.innerHTML = order.slice(0,12).map(function(i, rank){
-      let c = d.colors[i];
-      let c1, c2;
-      if (c && c.charAt(0) === '#') { c1 = c+'cc'; c2 = c+'55'; }
-      else { const h = srcHue(d.labels[i]); c = 'hsl('+h+',80%,62%)'; c1 = 'hsla('+h+',80%,62%,0.8)'; c2 = 'hsla('+h+',80%,62%,0.33)'; }
-      const pct = Math.max(4, Math.round(vals[i]/max*100));
-      return '<div class="srcrow">' +
-        '<span class="srcrow-rank">'+String(rank+1).padStart(2,'0')+'</span>' +
-        '<span class="srcrow-name" style="color:'+c+'">'+d.labels[i]+'</span>' +
-        '<div class="srcrow-bar"><div style="width:'+pct+'%;background:linear-gradient(90deg,'+c1+','+c2+')"></div></div>' +
-        '<span class="srcrow-val">'+vals[i]+'</span>' +
-        '<span class="srcrow-avg">Ø '+d.avgs[i]+'</span>' +
-      '</div>';
-    }).join('');
-  };
-  window.renderSrcRanking();
-
-  // ── Score Donut ────────────────────────────────────────────────────────────
-  const levelCounts = SCORE_LEVELS.map(l=>{
-    const next = SCORE_LEVELS[SCORE_LEVELS.indexOf(l)-1];
-    return all.filter(a=>{
-      const s=a.score||0;
-      return s>=l.min && (next?s<next.min:true);
-    }).length;
-  });
-
-  const ctxD = document.getElementById('chart-scores').getContext('2d');
-  const chartDoughnut = new Chart(ctxD,{
-    type:'doughnut',
-    data:{
-      labels: SCORE_LEVELS.map(l=>l.label),
-      datasets:[{
-        data: levelCounts,
-        backgroundColor: SCORE_LEVELS.map(l=>l.bg.replace('0.15','0.7')),
-        borderColor: SCORE_LEVELS.map(l=>l.color),
-        borderWidth:1.5,
-        hoverOffset:6,
-      }]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      cutout:'68%',
-      plugins:{
-        legend:{display:false},
-        tooltip:{callbacks:{label:ctx=>{
-          const pct=((ctx.parsed/all.length)*100).toFixed(1);
-          return ` ${ctx.parsed} Artikel (${pct}%)`;
-        }}}
+      function isObject(value) {
+        return value !== null && typeof value === "object" && !Array.isArray(value);
       }
-    }
-  });
-  window._charts.push(chartDoughnut);
 
-  // Score Legend
-  const leg = document.getElementById('score-legend');
-  SCORE_LEVELS.forEach((l,i)=>{
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px';
-    row.innerHTML=`
-      <div style="display:flex;align-items:center;gap:6px">
-        <div style="width:10px;height:10px;border-radius:2px;background:${l.color};flex-shrink:0"></div>
-        <span style="font-size:11px;font-family:monospace;color:${l.color};font-weight:700">${l.label}</span>
-        <span style="font-size:10px;color:#6b7280">≥${l.min}</span>
-      </div>
-      <span style="font-size:11px;font-family:monospace;color:#9ca3af">${levelCounts[i]}</span>`;
-    leg.appendChild(row);
-  });
-
-  // ── Themen Radar ───────────────────────────────────────────────────────────
-  const termCounts = KEY_TERMS.map(t=>{
-    const re=new RegExp(t,'i');
-    return { term:t, count: all.filter(a=>(a.title||'').match(re)||(a.summary||'').match(re)).length };
-  }).filter(t=>t.count>0).sort((a,b)=>b.count-a.count).slice(0,16);
-
-  const ctxT = document.getElementById('chart-topics').getContext('2d');
-  const barColors = termCounts.map((_,i)=>{
-    const hue = 180 + (i/termCounts.length)*120;
-    return `hsla(${hue},80%,60%,0.75)`;
-  });
-  const chartTopics = new Chart(ctxT,{
-    type:'bar',
-    data:{
-      labels: termCounts.map(t=>t.term),
-      datasets:[{
-        label:'Erwähnungen',
-        data: termCounts.map(t=>t.count),
-        backgroundColor: barColors,
-        borderColor: barColors.map(c=>c.replace('0.75','1')),
-        borderWidth:1,
-        borderRadius:4,
-        borderSkipped:false,
-      }]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y}× erwähnt`}}},
-      scales:{
-        x:{grid:{display:false},ticks:{color:labelColor(),font:{size:11}}},
-        y:{grid:{color:gridColor()},ticks:{color:labelColor(),stepSize:1}}
+      function toNumber(value) {
+        if (value === null || value === undefined || value === "") return 0;
+        const result = Number(value);
+        return Number.isFinite(result) ? result : 0;
       }
-    }
-  });
-  window._charts.push(chartTopics);
-  renderThemeTrends(all);
 
-  // ── Top Artikel ────────────────────────────────────────────────────────────
-  const top10 = [...all].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,8);
-  const topList = document.getElementById('top-articles-list');
-  top10.forEach((art,i)=>{
-    const lv = scoreLevel(art.score||0);
-    const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    const a=document.createElement('a');
-    a.href=art.link||'#';
-    if(art.link) a.target='_blank';
-    a.className='top-article-row';
-    a.innerHTML=`
-      <span class="rank-num ${rankClass}">${i+1}</span>
-      <div style="flex:1;min-width:0">
-        <p style="font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:var(--article-title-color,#dfe3ea);line-height:1.3;margin-bottom:3px" class="line-clamp-2">${escapeHtml(art.title||'—')}</p>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:9px;font-family:monospace;color:${srcColor(art.source)};font-weight:700">${escapeHtml(art.source||'—')}</span>
-          <span style="font-size:9px;font-family:monospace;color:var(--muted,#6b7280)">${(function(){const r=art.first_seen||art.date||'';if(!r)return '';const d=new Date(String(r).length<=10?r+'T00:00:00':r);return isNaN(d)?'':'· '+d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});})()}</span>
-        </div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <span class="badge ${lv.badge}">${lv.label}</span>
-        <p style="font-size:16px;font-weight:900;font-family:'Space Grotesk',sans-serif;color:${lv.color};margin-top:2px">${art.score||0}</p>
-      </div>`;
-    topList.appendChild(a);
-  });
+      function scoreOf(article) {
+        if (!isObject(article)) return 0;
+        return toNumber(article.score ?? article.base_score);
+      }
 
-  // ── Creator Radar (aktuelle Session) ──────────────────────────────────────
-  const curList = document.getElementById('current-top-list');
-  // 02.07.26: gleiche Story-Dedup wie die Startseite (pro story_id nur der
-  // staerkste Artikel). Vorher zeigte das Radar mehrere Artikel DERSELBEN
-  // Story (z.B. 2x Claude Sonnet 5) und damit "News, die auf der Startseite
-  // gar nicht auftauchen" - die Startseite dedupliziert, das Radar tat es nicht.
-  const _bestByStory = {};
-  current.forEach(n => {
-    const sid = n.story_id;
-    if (sid && (!_bestByStory[sid] || (n.score||0) > (_bestByStory[sid].score||0))) _bestByStory[sid] = n;
-  });
-  const _dedupedCurrent = current.filter(n => !n.story_id || _bestByStory[n.story_id] === n);
-  const cur5 = [..._dedupedCurrent].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
-  if(cur5.length===0){
-    curList.innerHTML='<p style="font-size:12px;color:#6b7280;font-family:monospace">Keine aktuellen Artikel geladen.</p>';
-  } else {
-    cur5.forEach((art,i)=>{
-      const lv=scoreLevel(art.score||0);
-      const a=document.createElement('a');
-      a.href=art.link||'#'; if(art.link)a.target='_blank';
-      a.className='top-article-row';
-      a.innerHTML=`
-        <span class="rank-num ${i===0?'gold':''}">${i+1}</span>
-        <div style="flex:1;min-width:0">
-          <p style="font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:var(--article-title-color,#dfe3ea);line-height:1.3;margin-bottom:3px" class="line-clamp-2">${art.title||'—'}</p>
-          <span style="font-size:9px;font-family:monospace;color:${srcColor(art.source)};font-weight:700">${art.source||'—'}</span>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <span class="badge ${lv.badge}">${lv.label}</span>
-          <p style="font-size:16px;font-weight:900;font-family:'Space Grotesk',sans-serif;color:${lv.color};margin-top:2px">${art.score||0}</p>
-        </div>`;
-      curList.appendChild(a);
-    });
-  }
+      function hasScore(article) {
+        if (!isObject(article)) return false;
+        return article.score !== undefined || article.base_score !== undefined;
+      }
 
-  // ── Tagesverlauf ──────────────────────────────────────────────────────────
-  renderDailyStats(all);
-}
+      function parseDate(value) {
+        if (value === null || value === undefined || value === "") return null;
 
-// ── Source Metric Toggle ─────────────────────────────────────────────────────
-let _sourceMetric = 'count';
+        const rawNumber = String(value).trim();
 
-function _refreshSourceChart() {
-  if(!window.buildSrcData) return;
-  window._srcChartData = window.buildSrcData(window._sourceWindow);
-  if (window.renderSrcRanking) window.renderSrcRanking();
-}
-
-function toggleSourceMetric(metric){
-  _sourceMetric = metric;
-  _refreshSourceChart();
-  const btnCount=document.getElementById('btn-count');
-  const btnScore=document.getElementById('btn-score');
-  const isCount = metric==='count';
-  if(isCount){
-    btnCount.style.background='rgba(var(--neon-rgb),0.15)'; btnCount.style.color='var(--accent)'; btnCount.style.borderColor='rgba(var(--neon-rgb),0.3)';
-    btnScore.style.background='transparent'; btnScore.style.color='#6b7280'; btnScore.style.borderColor='rgba(107,114,128,0.2)';
-  } else {
-    btnScore.style.background='rgba(var(--neon-rgb),0.15)'; btnScore.style.color='var(--accent)'; btnScore.style.borderColor='rgba(var(--neon-rgb),0.3)';
-    btnCount.style.background='transparent'; btnCount.style.color='#6b7280'; btnCount.style.borderColor='rgba(107,114,128,0.2)';
-  }
-}
-
-function toggleSourceWindow(days){
-  window._sourceWindow = days;
-  _refreshSourceChart();
-  const labels = { 5:'letzte 5 Tage', 30:'letzte 30 Tage', 0:'Gesamtzeitraum' };
-  document.getElementById('src-window-label').textContent =
-    `Artikel-Anzahl und Durchschnitts-Score je Quelle · ${labels[days]}`;
-  ['btn-w5','btn-w30','btn-wall'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.style.background='transparent'; el.style.color='#6b7280'; el.style.borderColor='rgba(107,114,128,0.2)';
-  });
-  const activeId = days===5?'btn-w5':days===30?'btn-w30':'btn-wall';
-  const active = document.getElementById(activeId);
-  if(active){ active.style.background='rgba(var(--neon-rgb),0.15)'; active.style.color='var(--accent)'; active.style.borderColor='rgba(var(--neon-rgb),0.3)'; }
-}
-
-// ── Tagesverlauf ──────────────────────────────────────────────────────────────
-// Bis 30.08. versuchte dieser Chart, ein Datum aus der Artikel-URL zu raten
-// (nur TechCrunch/SiliconAngle/Ars Technica/Wired haben /YYYY/MM/DD/ im Pfad) --
-// gemessen 17% Abdeckung (188 von 1075 Artikeln). Jedes Archiv-/News-Objekt hat
-// aber first_seen/date direkt -- 100% Abdeckung, kein Raten mehr noetig.
-const DAILY_WINDOW = 10; // Tage
-
-function renderDailyStats(all) {
-  const dated = all
-    .map(a => ({ ...a, _day: (a.first_seen || a.date || '').slice(0, 10) }))
-    .filter(a => a._day);
-
-  const summaryEl = document.getElementById('daily-summary');
-
-  if (dated.length < 3) { if (summaryEl) summaryEl.textContent = ''; return; }
-
-  // Gruppieren nach Kalendertag
-  const days = {};
-  dated.forEach(a => {
-    const key = a._day;
-    if (!days[key]) days[key] = { count: 0, scoreSum: 0, scored: 0, scoredSum: 0, sources: {} };
-    days[key].count++;
-    days[key].scoreSum += (a.score || 0);
-    if ((a.score || 0) > 0) { days[key].scored++; days[key].scoredSum += a.score; }
-    days[key].sources[a.source] = (days[key].sources[a.source] || 0) + 1;
-  });
-
-  const sorted = Object.entries(days).sort(([a], [b]) => a.localeCompare(b)).slice(-DAILY_WINDOW);
-  if (!sorted.length) return;
-
-  if (summaryEl) {
-    const totalArt = sorted.reduce((s, [, v]) => s + v.count, 0);
-    summaryEl.textContent = `${sorted.length} Tage · ${totalArt} Artikel`;
-  }
-
-  const labels = sorted.map(([key]) => {
-    const d = new Date(key + 'T00:00:00');
-    return isNaN(d) ? key : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-  });
-  const counts = sorted.map(([, v]) => v.count);
-  /* Ø nur über tatsächlich gescorte Artikel — Tage ohne Scores (Alt-Archiv)
-     bekommen null und die Linie setzt dort aus, statt auf 0 zu stürzen */
-  const avgs   = sorted.map(([, v]) => v.scored ? +(v.scoredSum / v.scored).toFixed(1) : null);
-
-  const ctx = document.getElementById('chart-daily');
-  if (!ctx) return;
-
-  // Tages-Chart immer in Cyan – unabhängig vom aktiven Theme
-  const barFill   = 'rgba(0,212,255,0.35)';
-  const barStroke = 'rgba(0,212,255,0.85)';
-
-  const dailyChart = new Chart(ctx.getContext('2d'), {
-    data: {
-      labels,
-      datasets: [
-        {
-          type: 'bar',
-          label: 'Artikel',
-          data: counts,
-          backgroundColor: barFill,
-          borderColor: barStroke,
-          borderWidth: 1.5,
-          borderRadius: 5,
-          minBarLength: 6,
-          yAxisID: 'y',
-          order: 2,
-        },
-        {
-          type: 'line',
-          label: 'Ø Score',
-          data: avgs,
-          borderColor: '#f97316',
-          backgroundColor: 'rgba(249,115,22,0.08)',
-          borderWidth: 2,
-          pointRadius: 4,
-          pointBackgroundColor: '#f97316',
-          pointBorderColor: '#000',
-          spanGaps: false,
-          pointBorderWidth: 1,
-          tension: 0.35,
-          fill: true,
-          yAxisID: 'y2',
-          order: 1,
+        if (typeof value === "number" || /^\d{10,13}$/.test(rawNumber)) {
+          const numeric = Number(value);
+          const timestamp = rawNumber.length === 10 ? numeric * 1000 : numeric;
+          const date = new Date(timestamp);
+          return Number.isNaN(date.getTime()) ? null : date;
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: {
-          display: true,
-          labels: { color: '#6b7280', font: { size: 10, family: "'Space Grotesk',sans-serif" }, boxWidth: 12, padding: 16 }
-        },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.dataset.label === 'Ø Score'
-              ? ` Ø Score: ${ctx.parsed.y}`
-              : ` ${ctx.parsed.y} Artikel`
+
+        let raw = String(value).trim();
+        if (!raw) return null;
+
+        raw = raw
+          .replace(/^(\d{2})\.(\d{2})\.(\d{4})/, "$3-$2-$1")
+          .replace(/^(\d{4})\/(\d{2})\/(\d{2})/, "$1-$2-$3");
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) raw += "T12:00:00";
+        if (/^\d{4}-\d{2}-\d{2}\s/.test(raw)) raw = raw.replace(" ", "T");
+
+        const date = new Date(raw);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+
+      function dayKey(value) {
+        const date = value instanceof Date ? value : parseDate(value);
+        if (!date || Number.isNaN(date.getTime())) return null;
+
+        return [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0")
+        ].join("-");
+      }
+
+      function articleDate(article) {
+        if (!isObject(article)) return null;
+
+        return parseDate(
+          article.first_seen ||
+          article.date ||
+          article.published_at ||
+          article.created_at ||
+          article.timestamp
+        );
+      }
+
+      function articleHour(article) {
+        if (!isObject(article)) return null;
+
+        const candidates = [
+          article.first_seen,
+          article.published_at,
+          article.created_at,
+          article.timestamp,
+          article.date,
+          article.time
+        ];
+
+        for (const candidate of candidates) {
+          if (candidate === null || candidate === undefined || candidate === "") continue;
+
+          const raw = String(candidate).trim();
+          const clock = raw.match(/(?:T|\s)(\d{1,2}):(\d{2})/);
+
+          if (clock) {
+            const hour = Number(clock[1]);
+            if (hour >= 0 && hour <= 23) return hour;
+          }
+
+          const clockOnly = raw.match(/^(\d{1,2}):\d{2}$/);
+          if (clockOnly) {
+            const hour = Number(clockOnly[1]);
+            if (hour >= 0 && hour <= 23) return hour;
+          }
+
+          if (typeof candidate === "number" || /^\d{10,13}$/.test(raw)) {
+            const date = parseDate(candidate);
+            if (date) return date.getHours();
           }
         }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: labelColor(), font: { size: 11 } } },
-        y: {
-          position: 'left',
-          grid: { color: gridColor() },
-          ticks: { color: labelColor(), stepSize: 1, font: { size: 11 } },
-          title: { display: true, text: 'Artikel', color: '#6b7280', font: { size: 10 } }
-        },
-        y2: {
-          position: 'right',
-          grid: { display: false },
-          ticks: { color: '#f97316', font: { size: 11 } },
-          title: { display: true, text: 'Ø Score', color: '#f97316', font: { size: 10 } }
+
+        return null;
+      }
+
+      function articleKey(article) {
+        if (!isObject(article)) return "";
+
+        return cleanText(
+          article.link ||
+          [article.story_id, article.title, article.date, article.source].join("|")
+        );
+      }
+
+      function cardDate(card) {
+        if (!isObject(card)) return null;
+        return parseDate(card.date || card.created_at || card.timestamp);
+      }
+
+      function average(values) {
+        const valid = values.filter(value => Number.isFinite(value));
+        if (!valid.length) return null;
+        return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+      }
+
+      function maxDateOf(items, reader = articleDate) {
+        const dates = items.map(reader).filter(Boolean);
+        return dates.length
+          ? new Date(Math.max(...dates.map(date => date.getTime())))
+          : new Date();
+      }
+
+      function minDateOf(items, reader = articleDate) {
+        const dates = items.map(reader).filter(Boolean);
+        return dates.length
+          ? new Date(Math.min(...dates.map(date => date.getTime())))
+          : new Date();
+      }
+
+      function getPeriodBounds(items = state.articles) {
+        if (!state.days) return null;
+
+        const endDate = maxDateOf(items);
+        const end = new Date(
+          endDate.getFullYear(),
+          endDate.getMonth(),
+          endDate.getDate(),
+          23,
+          59,
+          59,
+          999
+        );
+
+        const start = new Date(end.getTime() - (state.days - 1) * DAY);
+        start.setHours(0, 0, 0, 0);
+
+        return { start, end };
+      }
+
+      function isInPeriod(date, bounds) {
+        if (!bounds) return true;
+        if (!date) return false;
+        return date >= bounds.start && date <= bounds.end;
+      }
+
+      function getPeriodArticles() {
+        const bounds = getPeriodBounds(state.articles);
+        return state.articles.filter(article => isInPeriod(articleDate(article), bounds));
+      }
+
+      function getPeriodCards() {
+        const bounds = getPeriodBounds(state.articles);
+
+        return state.cards.filter(card => {
+          const date = cardDate(card);
+          return !bounds || isInPeriod(date, bounds);
+        });
+      }
+
+      function getPreviousBounds() {
+        if (!state.days) return null;
+
+        const current = getPeriodBounds(state.articles);
+        if (!current) return null;
+
+        const end = new Date(current.start.getTime() - 1);
+        const start = new Date(end.getTime() - (state.days - 1) * DAY);
+        start.setHours(0, 0, 0, 0);
+
+        return { start, end };
+      }
+
+      function createBucketPlan(items) {
+        const bounds = getPeriodBounds(items);
+        const start = bounds
+          ? new Date(bounds.start)
+          : new Date(minDateOf(items));
+
+        const end = bounds
+          ? new Date(bounds.end)
+          : new Date(maxDateOf(items));
+
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+
+        const spanDays = Math.max(1, Math.round((end - start) / DAY) + 1);
+        const bucketDays = state.days && state.days <= 30
+          ? 1
+          : Math.max(1, Math.ceil(spanDays / 30));
+
+        const buckets = [];
+        let cursor = new Date(start);
+
+        while (cursor <= end && buckets.length < 40) {
+          const bucketStart = new Date(cursor);
+          const bucketEnd = new Date(
+            Math.min(end.getTime(), cursor.getTime() + (bucketDays - 1) * DAY)
+          );
+
+          bucketEnd.setHours(23, 59, 59, 999);
+          buckets.push({
+            start: bucketStart,
+            end: bucketEnd,
+            label: dayKey(bucketStart)
+          });
+
+          cursor = new Date(cursor.getTime() + bucketDays * DAY);
+          cursor.setHours(0, 0, 0, 0);
+        }
+
+        return { bounds, start, end, bucketDays, buckets };
+      }
+
+      function bucketIndexForDate(date, plan) {
+        if (!date || !plan || !plan.buckets.length) return -1;
+
+        const offset = date.getTime() - plan.start.getTime();
+        if (offset < 0) return -1;
+
+        return Math.floor(offset / DAY / plan.bucketDays);
+      }
+
+      function countSeries(items, plan, dateReader) {
+        const counts = plan.buckets.map(() => 0);
+
+        items.forEach(item => {
+          const index = bucketIndexForDate(dateReader(item), plan);
+          if (index >= 0 && index < counts.length) counts[index] += 1;
+        });
+
+        return counts;
+      }
+
+      function colorFromName(name, index) {
+        const palette = [
+          "#00d4ff",
+          "#a78bfa",
+          "#34d399",
+          "#fb923c",
+          "#f472b6",
+          "#60a5fa",
+          "#facc15",
+          "#2dd4bf",
+          "#c084fc",
+          "#fb7185"
+        ];
+
+        if (!name) return palette[index % palette.length];
+
+        let hash = 0;
+        for (let position = 0; position < name.length; position += 1) {
+          hash = (hash * 31 + name.charCodeAt(position)) >>> 0;
+        }
+
+        return palette[hash % palette.length];
+      }
+
+      function svgNode(tag, attributes = {}) {
+        const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+
+        Object.entries(attributes).forEach(([key, value]) => {
+          node.setAttribute(key, String(value));
+        });
+
+        return node;
+      }
+
+      function svgText(parent, x, y, value, className = "px-axis", anchor = "start") {
+        const node = svgNode("text", {
+          x,
+          y,
+          class: className,
+          "text-anchor": anchor
+        });
+
+        node.textContent = cleanText(value);
+        parent.appendChild(node);
+        return node;
+      }
+
+      function addSvgTitle(parent, value) {
+        const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        title.textContent = cleanText(value);
+        parent.appendChild(title);
+      }
+
+      function clear(node) {
+        if (node) node.replaceChildren();
+      }
+
+      function addEmpty(node, message, detail = "") {
+        clear(node);
+
+        const box = document.createElement("div");
+        box.className = "px-empty";
+
+        const main = document.createElement("div");
+        main.textContent = cleanText(message);
+        box.appendChild(main);
+
+        if (detail) {
+          const small = document.createElement("div");
+          small.className = "px-empty-detail";
+          small.textContent = cleanText(detail);
+          box.appendChild(small);
+        }
+
+        node.appendChild(box);
+      }
+
+      function renderSparkline(id, values, color) {
+        const svg = $(id);
+        clear(svg);
+
+        const validValues = values.filter(value => Number.isFinite(value));
+        if (!validValues.length) return;
+
+        const max = Math.max(...validValues);
+        const min = Math.min(...validValues);
+        const span = max - min || 1;
+
+        const pointFor = (value, index) => {
+          const x = values.length === 1
+            ? 110
+            : 4 + index / (values.length - 1) * 212;
+
+          const y = max === min
+            ? 28
+            : 38 - (value - min) / span * 29;
+
+          return { x, y };
+        };
+
+        let segment = [];
+        let lastPoint = null;
+
+        const flushSegment = () => {
+          if (!segment.length) return;
+
+          const line = segment.map(point => point.x + "," + point.y).join(" ");
+
+          if (segment.length === 1) {
+            svg.appendChild(svgNode("circle", {
+              cx: segment[0].x,
+              cy: segment[0].y,
+              r: 2.4,
+              fill: color
+            }));
+          } else {
+            svg.appendChild(svgNode("polygon", {
+              points: "4,43 " + line + " 216,43",
+              fill: color,
+              opacity: .1
+            }));
+
+            svg.appendChild(svgNode("polyline", {
+              points: line,
+              fill: "none",
+              stroke: color,
+              "stroke-width": 1.8,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "vector-effect": "non-scaling-stroke"
+            }));
+          }
+
+          lastPoint = segment[segment.length - 1];
+          segment = [];
+        };
+
+        values.forEach((value, index) => {
+          if (!Number.isFinite(value)) {
+            flushSegment();
+            return;
+          }
+
+          segment.push(pointFor(value, index));
+        });
+
+        flushSegment();
+
+        if (lastPoint) {
+          svg.appendChild(svgNode("circle", {
+            cx: lastPoint.x,
+            cy: lastPoint.y,
+            r: 2.4,
+            fill: color
+          }));
         }
       }
+
+      function comparisonText(current, previous) {
+        if (!state.days) return "Archiv inklusive aktueller News";
+        if (!previous) return "Keine Vergleichsbasis";
+        if (!current) return "0 im gewählten Zeitraum";
+
+        const change = Math.round((current - previous) / previous * 100);
+        if (change === 0) return "Unverändert zum Zeitraum davor";
+
+        return (change > 0 ? "+" : "") + change + "% zum Zeitraum davor";
+      }
+
+      function renderKpis(articles) {
+        const sources = new Set(
+          articles
+            .map(article => cleanText(article.source).trim())
+            .filter(Boolean)
+        );
+
+        const cards = getPeriodCards();
+        const scoredArticles = articles.filter(hasScore);
+        const averageScore = average(scoredArticles.map(scoreOf));
+        const plan = createBucketPlan(state.articles);
+        const previousBounds = getPreviousBounds();
+
+        const previousArticles = state.articles.filter(article => {
+          return isInPeriod(articleDate(article), previousBounds);
+        });
+
+        const previousCards = state.cards.filter(card => {
+          return isInPeriod(cardDate(card), previousBounds);
+        });
+
+        const articleSeries = countSeries(articles, plan, articleDate);
+
+        const sourceSeries = plan.buckets.map((_, index) => {
+          const bucketArticles = articles.filter(article => {
+            return bucketIndexForDate(articleDate(article), plan) === index;
+          });
+
+          return new Set(
+            bucketArticles
+              .map(article => cleanText(article.source).trim())
+              .filter(Boolean)
+          ).size;
+        });
+
+        const scoreSeries = plan.buckets.map((_, index) => {
+          const values = articles
+            .filter(article => {
+              return bucketIndexForDate(articleDate(article), plan) === index && hasScore(article);
+            })
+            .map(scoreOf);
+
+          return average(values);
+        });
+
+        const cardSeries = countSeries(cards, plan, cardDate);
+
+        $("px-kpiArticles").textContent = formatNumber(articles.length);
+        $("px-kpiSources").textContent = formatNumber(sources.size);
+        $("px-kpiScore").textContent = averageScore === null
+          ? "n/v"
+          : averageScore.toFixed(1);
+        $("px-kpiCards").textContent = formatNumber(cards.length);
+
+        $("px-kpiArticlesMeta").textContent = comparisonText(
+          articles.length,
+          previousArticles.length
+        );
+
+        $("px-kpiSourcesMeta").textContent = sources.size
+          ? [...sources].slice(0, 3).join(" · ")
+          : "Keine benannten Quellen";
+
+        $("px-kpiScoreMeta").textContent = averageScore === null
+          ? "Keine Scores vorhanden"
+          : "Ø aus " + formatNumber(scoredArticles.length) + " Artikeln";
+
+        $("px-kpiCardsMeta").textContent = comparisonText(
+          cards.length,
+          previousCards.length
+        );
+
+        renderSparkline("px-sparkArticles", articleSeries, "#00d4ff");
+        renderSparkline("px-sparkSources", sourceSeries, "#a78bfa");
+        renderSparkline("px-sparkScore", scoreSeries, "#34d399");
+        renderSparkline("px-sparkCards", cardSeries, "#fb923c");
+
+        $("px-signalArticles").textContent = formatNumber(articles.length);
+        $("px-signalSources").textContent = formatNumber(sources.size);
+        $("px-signalDays").textContent = formatNumber(
+          new Set(
+            articles
+              .map(article => dayKey(articleDate(article)))
+              .filter(Boolean)
+          ).size
+        );
+      }
+
+      function renderWeekdayBars(host, weekdayCounts) {
+        const bars = document.createElement("div");
+        bars.className = "px-week-bars";
+
+        const caption = document.createElement("div");
+        caption.className = "px-heat-scale-label";
+        caption.textContent = "Wochentag";
+        bars.appendChild(caption);
+
+        const dayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+        const maxWeekday = Math.max(...weekdayCounts, 1);
+
+        dayLabels.forEach((day, index) => {
+          const item = document.createElement("div");
+          item.className = "px-week-item";
+
+          const track = document.createElement("div");
+          track.className = "px-week-track";
+
+          const fill = document.createElement("div");
+          fill.className = "px-week-fill";
+          fill.style.height = Math.max(4, weekdayCounts[index] / maxWeekday * 100) + "%";
+          track.appendChild(fill);
+
+          const label = document.createElement("span");
+          label.className = "px-week-label";
+          label.textContent = day + " " + weekdayCounts[index];
+
+          item.append(track, label);
+          bars.appendChild(item);
+        });
+
+        host.appendChild(bars);
+      }
+
+      function renderHeatmap(articles) {
+        const host = $("px-heatmap");
+        const note = $("px-heatmapNote");
+        const map = new Map();
+        const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
+        const dayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+        let valid = 0;
+
+        articles.forEach(article => {
+          const date = articleDate(article);
+          if (!date) return;
+
+          const weekday = (date.getDay() + 6) % 7;
+          weekdayCounts[weekday] += 1;
+
+          const hour = articleHour(article);
+          if (hour === null) return;
+
+          const key = weekday + "-" + hour;
+          map.set(key, (map.get(key) || 0) + 1);
+          valid += 1;
+        });
+
+        clear(host);
+        note.textContent = "";
+
+        $("px-heatmapBadge").textContent = valid
+          ? formatNumber(valid) + " Zeitangaben"
+          : "Keine Uhrzeiten";
+
+        if (!articles.length) {
+          addEmpty(
+            host,
+            "Für die Heatmap fehlen datierte Artikel.",
+            "Sobald News oder Archiv verfügbar sind, erscheint die Auswertung automatisch."
+          );
+          return;
+        }
+
+        if (!valid) {
+          renderWeekdayBars(host, weekdayCounts);
+          note.textContent =
+            "Die Daten enthalten Kalenderdaten, aber keine verlässliche Uhrzeit. Deshalb zeigt das Diagramm die Aufnahmen nach Wochentag.";
+          return;
+        }
+
+        const grid = document.createElement("div");
+        grid.className = "px-heat-grid";
+        grid.setAttribute("role", "img");
+        grid.setAttribute(
+          "aria-label",
+          "Heatmap der Aufnahmezeiten nach Wochentag und Uhrzeit"
+        );
+
+        const spacer = document.createElement("div");
+        spacer.className = "px-heat-spacer";
+        grid.appendChild(spacer);
+
+        dayLabels.forEach(day => {
+          const label = document.createElement("div");
+          label.className = "px-heat-day";
+          label.textContent = day;
+          grid.appendChild(label);
+        });
+
+        const max = Math.max(...map.values(), 1);
+
+        for (let hour = 0; hour < 24; hour += 1) {
+          const label = document.createElement("div");
+          label.className = "px-heat-hour";
+          label.textContent = String(hour).padStart(2, "0") + ":00";
+          grid.appendChild(label);
+
+          for (let weekday = 0; weekday < 7; weekday += 1) {
+            const count = map.get(weekday + "-" + hour) || 0;
+            const cell = document.createElement("div");
+            cell.className = "px-heat-cell";
+            cell.dataset.active = count ? "true" : "false";
+
+            if (count) {
+              cell.style.background =
+                "rgba(var(--neon-rgb), " + (0.16 + count / max * 0.75) + ")";
+            }
+
+            cell.title =
+              dayLabels[weekday] + ", " +
+              String(hour).padStart(2, "0") +
+              ":00 Uhr: " +
+              count +
+              " Beiträge";
+
+            cell.setAttribute("aria-label", cell.title);
+            grid.appendChild(cell);
+          }
+        }
+
+        host.appendChild(grid);
+
+        const scale = document.createElement("div");
+        scale.className = "px-heat-scale";
+
+        const less = document.createElement("div");
+        less.className = "px-heat-scale-label";
+        less.textContent = "weniger";
+        scale.appendChild(less);
+
+        [0, 25, 50, 75, 100].forEach(value => {
+          const bar = document.createElement("div");
+          bar.className = "px-heat-scale-bar";
+          bar.style.background =
+            "rgba(var(--neon-rgb), " + (0.08 + value / 130) + ")";
+          scale.appendChild(bar);
+        });
+
+        host.appendChild(scale);
+        note.textContent =
+          "Helligkeit zeigt die relative Anzahl der Aufnahmen. Ohne Uhrzeitfeld bleibt der betreffende Tag leer.";
+      }
+
+      function renderSources(articles) {
+        const host = $("px-sourceRanking");
+        const groups = new Map();
+
+        articles.forEach(article => {
+          const name = cleanText(article.source).trim() || "Unbekannt";
+
+          if (!groups.has(name)) {
+            groups.set(name, { count: 0, scores: [] });
+          }
+
+          const group = groups.get(name);
+          group.count += 1;
+
+          if (hasScore(article)) {
+            group.scores.push(scoreOf(article));
+          }
+        });
+
+        const sorted = [...groups.entries()]
+          .map(([name, value]) => ({
+            name,
+            count: value.count,
+            average: average(value.scores)
+          }))
+          .sort((a, b) => {
+            return b.count - a.count || (b.average ?? 0) - (a.average ?? 0);
+          })
+          .slice(0, 10);
+
+        clear(host);
+
+        if (!sorted.length) {
+          addEmpty(host, "Keine Quellen im gewählten Zeitraum.");
+          return;
+        }
+
+        const max = Math.max(...sorted.map(item => item.count), 1);
+
+        sorted.forEach((item, index) => {
+          const row = document.createElement("div");
+          row.className = "px-source-row";
+
+          const rank = document.createElement("span");
+          rank.className = "px-source-rank";
+          rank.textContent = String(index + 1).padStart(2, "0");
+
+          const name = document.createElement("span");
+          name.className = "px-source-name";
+          name.textContent = item.name;
+          name.title = item.name;
+
+          const track = document.createElement("div");
+          track.className = "px-source-track";
+
+          const fill = document.createElement("div");
+          fill.className = "px-source-fill";
+          fill.style.width = Math.max(3, item.count / max * 100) + "%";
+          fill.style.background =
+            "linear-gradient(90deg, " +
+            colorFromName(item.name, index) +
+            ", rgba(167,139,250,.82))";
+
+          track.appendChild(fill);
+
+          const count = document.createElement("span");
+          count.className = "px-source-count";
+          count.textContent = formatNumber(item.count);
+          count.title = formatNumber(item.count) + " Beiträge";
+
+          const averageNode = document.createElement("span");
+          averageNode.className = "px-source-average";
+          averageNode.textContent = item.average === null
+            ? "Ø n/v"
+            : "Ø " + item.average.toFixed(1);
+
+          row.append(rank, name, track, count, averageNode);
+          host.appendChild(row);
+        });
+      }
+
+      function topicMatches(article, term) {
+        const title = cleanText(article && article.title).toLowerCase();
+        const summary = cleanText(article && article.summary).toLowerCase();
+        const search = term.toLowerCase();
+
+        return title.includes(search) || summary.includes(search);
+      }
+
+      function smoothLine(points) {
+        if (!points.length) return "";
+        if (points.length === 1) return "M" + points[0].x + "," + points[0].y;
+
+        let path = "M" + points[0].x + "," + points[0].y;
+
+        for (let index = 1; index < points.length; index += 1) {
+          const previous = points[index - 1];
+          const current = points[index];
+          const middleX = (previous.x + current.x) / 2;
+
+          path +=
+            " C" + middleX + "," + previous.y +
+            " " + middleX + "," + current.y +
+            " " + current.x + "," + current.y;
+        }
+
+        return path;
+      }
+
+      function renderStream(articles) {
+        const host = $("px-stream");
+        const legend = $("px-streamLegend");
+        const plan = createBucketPlan(state.articles);
+
+        clear(host);
+        clear(legend);
+
+        if (!articles.length || !plan.buckets.length) {
+          $("px-streamBadge").textContent = "keine Datierung";
+          addEmpty(host, "Für den Themen-Verlauf sind keine datierten Artikel vorhanden.");
+          return;
+        }
+
+        $("px-streamBadge").textContent = plan.buckets.length
+          ? plan.buckets.length + (plan.buckets.length === 1 ? " Punkt" : " Punkte")
+          : "keine Datierung";
+
+        const graphTerms = isObject(state.graph) && Array.isArray(state.graph.nodes)
+          ? state.graph.nodes
+              .filter(isObject)
+              .map(node => cleanText(node.id).trim())
+              .filter(term => term.length >= 3 && term.length <= 26)
+              .sort((a, b) => toNumber(b.count) - toNumber(a.count))
+              .slice(0, 20)
+          : [];
+
+        const terms = [...new Set([
+          "OpenAI",
+          "Google",
+          "Anthropic",
+          "Meta",
+          "Microsoft",
+          "Nvidia",
+          "Roboter",
+          "Sicherheit",
+          "Regulierung",
+          "Open Source",
+          "Chips",
+          "DeepSeek",
+          "Mistral",
+          "xAI",
+          "Perplexity",
+          ...graphTerms
+        ])];
+
+        const series = terms
+          .map((term, index) => {
+            const values = plan.buckets.map((bucket, bucketIndex) => {
+              return articles.filter(article => {
+                return (
+                  bucketIndexForDate(articleDate(article), plan) === bucketIndex &&
+                  topicMatches(article, term)
+                );
+              }).length;
+            });
+
+            return {
+              term,
+              values,
+              total: values.reduce((sum, value) => sum + value, 0),
+              color: colorFromName(term, index)
+            };
+          })
+          .filter(item => item.total > 0)
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 8);
+
+        if (!series.length) {
+          addEmpty(host, "In diesem Zeitraum wurden keine der beobachteten Themen gefunden.");
+          return;
+        }
+
+        const compact = window.innerWidth <= 600;
+        const width = compact ? 360 : 1000;
+        const height = compact ? 270 : 320;
+        const left = compact ? 18 : 25;
+        const right = compact ? 12 : 22;
+        const top = 18;
+        const bottom = 35;
+        const innerWidth = width - left - right;
+        const innerHeight = height - top - bottom;
+
+        const totalPerDay = plan.buckets.map((_, index) => {
+          return series.reduce((sum, item) => sum + item.values[index], 0);
+        });
+
+        const maxTotal = Math.max(...totalPerDay, 1);
+
+        const x = index => {
+          return left + (
+            plan.buckets.length === 1
+              ? innerWidth / 2
+              : index / (plan.buckets.length - 1) * innerWidth
+          );
+        };
+
+        const y = value => {
+          return top + (1 - value / maxTotal) * innerHeight;
+        };
+
+        const svg = svgNode("svg", {
+          viewBox: "0 0 " + width + " " + height,
+          role: "img",
+          "aria-label": "Streamgraph der häufigsten Themen"
+        });
+
+        [0, .25, .5, .75, 1].forEach(ratio => {
+          const gridY = top + ratio * innerHeight;
+
+          svg.appendChild(svgNode("line", {
+            x1: left,
+            x2: width - right,
+            y1: gridY,
+            y2: gridY,
+            class: "px-gridline"
+          }));
+        });
+
+        const layers = series.map(() => []);
+
+        plan.buckets.forEach((bucket, index) => {
+          const total = totalPerDay[index];
+          let cursor = total / 2;
+
+          series.forEach((item, layer) => {
+            const value = item.values[index];
+            const upper = cursor;
+            const lower = cursor - value;
+
+            layers[layer].push({
+              x: x(index),
+              upper: y(upper),
+              lower: y(lower)
+            });
+
+            cursor = lower;
+          });
+        });
+
+        series.forEach((item, index) => {
+          const points = layers[index];
+
+          const topPath = smoothLine(
+            points.map(point => ({
+              x: point.x,
+              y: point.upper
+            }))
+          );
+
+          const bottomPath = smoothLine(
+            points.slice().reverse().map(point => ({
+              x: point.x,
+              y: point.lower
+            }))
+          );
+
+          svg.appendChild(svgNode("path", {
+            d: topPath + " " + bottomPath + " Z",
+            fill: item.color,
+            opacity: .52,
+            stroke: item.color,
+            "stroke-width": 1.2,
+            "vector-effect": "non-scaling-stroke"
+          }));
+        });
+
+        const labelStep = compact
+          ? 5
+          : plan.buckets.length <= 8
+            ? 1
+            : 5;
+
+        for (let index = 0; index < plan.buckets.length; index += labelStep) {
+          const bucket = plan.buckets[index];
+          const date = parseDate(bucket.label);
+
+          const label = date
+            ? date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
+            : bucket.label;
+
+          svgText(svg, x(index), height - 11, label, "px-axis", "middle");
+        }
+
+        if (plan.buckets.length > 1) {
+          const last = plan.buckets[plan.buckets.length - 1];
+          const lastDate = parseDate(last.label);
+
+          const lastLabel = lastDate
+            ? lastDate.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
+            : last.label;
+
+          svgText(
+            svg,
+            x(plan.buckets.length - 1),
+            height - 11,
+            lastLabel,
+            "px-axis",
+            "end"
+          );
+        }
+
+        host.appendChild(svg);
+
+        series.forEach(item => {
+          const legendItem = document.createElement("div");
+          legendItem.className = "px-legend-item";
+
+          const dot = document.createElement("span");
+          dot.className = "px-legend-dot";
+          dot.style.background = item.color;
+
+          const label = document.createElement("span");
+          label.textContent = cleanText(item.term) + " · " + formatNumber(item.total);
+
+          legendItem.append(dot, label);
+          legend.appendChild(legendItem);
+        });
+      }
+
+      function renderScores(articles) {
+        const host = $("px-scoreChart");
+        const scoredArticles = articles.filter(hasScore);
+
+        const bins = [
+          { label: "0 bis 9", min: 0, max: 10, color: "#64748b" },
+          { label: "10 bis 19", min: 10, max: 20, color: "#00d4ff" },
+          { label: "20 bis 29", min: 20, max: 30, color: "#34d399" },
+          { label: "30 bis 39", min: 30, max: 40, color: "#a78bfa" },
+          { label: "40 plus", min: 40, max: Infinity, color: "#fb923c" }
+        ];
+
+        bins.forEach(bin => {
+          bin.value = scoredArticles.filter(article => {
+            const score = scoreOf(article);
+            return score >= bin.min && score < bin.max;
+          }).length;
+        });
+
+        clear(host);
+
+        if (!scoredArticles.length) {
+          addEmpty(
+            host,
+            "Für den gewählten Zeitraum liegen keine Scores vor.",
+            "Artikel ohne Score werden nicht künstlich als null bewertet."
+          );
+          return;
+        }
+
+        const compact = window.innerWidth <= 600;
+        const width = compact ? 350 : 680;
+        const height = compact ? 250 : 260;
+        const left = compact ? 36 : 42;
+        const chartHeight = compact ? 164 : 172;
+        const gap = compact ? 8 : 20;
+        const barWidth = (width - left - (compact ? 8 : 15) - gap * 4) / 5;
+        const max = Math.max(...bins.map(bin => bin.value), 1);
+        const averageScore = average(scoredArticles.map(scoreOf));
+
+        const svg = svgNode("svg", {
+          viewBox: "0 0 " + width + " " + height,
+          role: "img",
+          "aria-label": "Histogramm der Relevanz-Scores"
+        });
+
+        [0, .5, 1].forEach(ratio => {
+          const gridY = 16 + chartHeight * ratio;
+
+          svg.appendChild(svgNode("line", {
+            x1: left,
+            x2: width - (compact ? 8 : 15),
+            y1: gridY,
+            y2: gridY,
+            class: "px-gridline"
+          }));
+
+          svgText(
+            svg,
+            left - 8,
+            gridY + 4,
+            Math.round(max * (1 - ratio)),
+            "px-axis",
+            "end"
+          );
+        });
+
+        bins.forEach((bin, index) => {
+          const x = left + index * (barWidth + gap);
+          const barHeight = bin.value / max * chartHeight;
+          const y = 16 + chartHeight - barHeight;
+
+          const bar = svgNode("rect", {
+            x,
+            y,
+            width: barWidth,
+            height: barHeight,
+            rx: 7,
+            fill: bin.color,
+            opacity: .8
+          });
+
+          addSvgTitle(bar, bin.label + ": " + bin.value + " Artikel");
+          svg.appendChild(bar);
+
+          svgText(
+            svg,
+            x + barWidth / 2,
+            16 + chartHeight + 24,
+            bin.label,
+            "px-axis",
+            "middle"
+          );
+
+          svgText(
+            svg,
+            x + barWidth / 2,
+            Math.max(10, y - 9),
+            formatNumber(bin.value),
+            "px-axis-strong",
+            "middle"
+          );
+        });
+
+        svgText(
+          svg,
+          left,
+          height - 9,
+          "Ø Score: " + averageScore.toFixed(1),
+          "px-axis"
+        );
+
+        host.appendChild(svg);
+      }
+
+      function formatDuration(seconds) {
+        if (!Number.isFinite(seconds)) return "n/v";
+
+        if (seconds < 60) {
+          return seconds.toFixed(seconds < 10 ? 1 : 0) + " s";
+        }
+
+        const minutes = Math.floor(seconds / 60);
+        const rest = Math.round(seconds % 60);
+
+        return minutes + ":" + String(rest).padStart(2, "0") + " min";
+      }
+
+      function parseRuntime(chunk) {
+        const clock = chunk.match(
+          /(?:(?:gesamt)?dauer|laufzeit|duration|runtime)\s*[:=]?\s*(\d{1,3}):(\d{2})(?::(\d{2}))?/i
+        );
+
+        if (clock) {
+          const first = Number(clock[1]);
+          const second = Number(clock[2]);
+          const third = Number(clock[3] || 0);
+
+          if (clock[3]) return first * 3600 + second * 60 + third;
+          return first * 60 + second;
+        }
+
+        const minuteSecond = chunk.match(
+          /(?:dauer|laufzeit|duration|runtime)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*min(?:uten)?\s*(\d+(?:[.,]\d+)?)\s*(?:s|sek(?:unden)?)/i
+        );
+
+        if (minuteSecond) {
+          return (
+            Number(minuteSecond[1].replace(",", ".")) * 60 +
+            Number(minuteSecond[2].replace(",", "."))
+          );
+        }
+
+        const explicit = chunk.match(
+          /(?:dauer|laufzeit|duration|runtime)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(ms|millisekunden|s|sekunden?|min|minuten)?/i
+        );
+
+        if (explicit) {
+          const value = Number(explicit[1].replace(",", "."));
+          const unit = String(explicit[2] || "s").toLowerCase();
+
+          if (unit.startsWith("ms")) return value / 1000;
+          if (unit.startsWith("min")) return value * 60;
+          return value;
+        }
+
+        const start = chunk.match(
+          /(?:start|beginn|gestartet)\s*[:=]?\s*(20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?)/i
+        );
+
+        const end = chunk.match(
+          /(?:ende|fertig|abgeschlossen)\s*[:=]?\s*(20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?)/i
+        );
+
+        if (start && end) {
+          const startDate = parseDate(start[1]);
+          const endDate = parseDate(end[1]);
+
+          if (startDate && endDate) {
+            return Math.max(0, (endDate - startDate) / 1000);
+          }
+        }
+
+        const timestamps = [...chunk.matchAll(
+          /\b20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?\b/g
+        )]
+          .map(match => parseDate(match[0]))
+          .filter(Boolean);
+
+        if (timestamps.length > 1) {
+          return Math.max(0, (timestamps[timestamps.length - 1] - timestamps[0]) / 1000);
+        }
+
+        return null;
+      }
+
+      function findRunMarkers(logText) {
+        const strong = [...logText.matchAll(
+          /={3,}\s*LAUF\s+([^\n=]+?)\s*={3,}/gi
+        )].map(match => ({
+          date: match[1].trim(),
+          index: match.index || 0
+        }));
+
+        if (strong.length) return strong;
+
+        return [...logText.matchAll(
+          /^[^\S\r\n]*(?:={2,}\s*)?LAUF\s+([^\n]+?)(?:\s*=+)?$/gim
+        )].map(match => ({
+          date: match[1].trim().replace(/=+$/, "").trim(),
+          index: match.index || 0
+        }));
+      }
+
+      function parseRuns(logText) {
+        if (!logText || typeof logText !== "string") return [];
+
+        const markers = findRunMarkers(logText);
+
+        return markers.map((marker, index) => {
+          const end = index + 1 < markers.length
+            ? markers[index + 1].index
+            : logText.length;
+
+          const chunk = logText.slice(marker.index, end);
+          const warningCount = (chunk.match(/\bWARNING\b/gi) || []).length;
+
+          const balance = chunk.match(
+            /Batches\s+(\d+)\s+versucht\s*\/\s*(\d+)\s+OK/i
+          );
+
+          const genericAttempted = chunk.match(/(\d+)\s+versucht/i);
+          const genericOk = chunk.match(/(\d+)\s+OK/i);
+
+          return {
+            date: parseDate(marker.date),
+            rawDate: marker.date,
+            duration: parseRuntime(chunk),
+            warningCount,
+            attempted: balance
+              ? Number(balance[1])
+              : genericAttempted
+                ? Number(genericAttempted[1])
+                : null,
+            ok: balance
+              ? Number(balance[2])
+              : genericOk
+                ? Number(genericOk[1])
+                : null
+          };
+        })
+          .filter(run => run.date || run.rawDate)
+          .sort((a, b) => {
+            const left = a.date ? a.date.getTime() : 0;
+            const right = b.date ? b.date.getTime() : 0;
+            return right - left;
+          });
+      }
+
+      function renderPipeline() {
+        const bounds = getPeriodBounds(state.articles);
+        const allRuns = parseRuns(state.log);
+
+        const runs = allRuns.filter(run => {
+          if (!bounds || !run.date) return true;
+          return isInPeriod(run.date, bounds);
+        });
+
+        const durations = runs
+          .map(run => run.duration)
+          .filter(value => Number.isFinite(value));
+
+        const averageDuration = average(durations);
+        const totalWarnings = runs.reduce(
+          (sum, run) => sum + run.warningCount,
+          0
+        );
+
+        const comparable = runs.filter(run => {
+          return run.attempted !== null &&
+            run.ok !== null &&
+            run.attempted > 0;
+        });
+
+        const totalAttempted = comparable.reduce(
+          (sum, run) => sum + run.attempted,
+          0
+        );
+
+        const totalOk = comparable.reduce(
+          (sum, run) => sum + run.ok,
+          0
+        );
+
+        const success = totalAttempted ? totalOk / totalAttempted : null;
+        const maxDuration = Math.max(...durations, 1);
+
+        $("px-signalRuns").textContent = formatNumber(runs.length);
+        $("px-pipelineRuns").textContent = formatNumber(runs.length);
+
+        $("px-pipelineAvg").textContent = averageDuration === null
+          ? "n/v"
+          : formatDuration(averageDuration);
+
+        $("px-pipelineOk").textContent = success === null
+          ? "n/v"
+          : Math.round(success * 100) + " %";
+
+        $("px-pipelineWarnings").textContent = formatNumber(totalWarnings);
+
+        const host = $("px-pipelineList");
+        clear(host);
+
+        if (!runs.length) {
+          addEmpty(
+            host,
+            state.log
+              ? "Keine passenden Laufmarker im Betriebslog gefunden."
+              : "Das Betriebslog ist nicht erreichbar.",
+            "Alle übrigen Auswertungen bleiben auch ohne ki_news.log nutzbar."
+          );
+          return;
+        }
+
+        runs.slice(0, 10).forEach(run => {
+          const row = document.createElement("div");
+          row.className = "px-pipeline-row";
+
+          const info = document.createElement("div");
+          info.className = "px-pipeline-info";
+
+          const time = document.createElement("span");
+          time.className = "px-pipeline-time";
+          time.textContent = run.date
+            ? run.date.toLocaleString("de-DE", {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+              })
+            : cleanText(run.rawDate);
+
+          const detail = document.createElement("span");
+          detail.className = "px-pipeline-detail";
+          detail.textContent = run.attempted !== null && run.ok !== null
+            ? run.attempted + " Batches · " + run.ok + " OK · " + run.warningCount + " Warnungen"
+            : run.warningCount + " Warnungen · Batches n/v";
+
+          info.append(time, detail);
+
+          const duration = document.createElement("div");
+          duration.className = "px-pipeline-duration";
+          duration.textContent = run.duration === null
+            ? "Laufzeit n/v"
+            : formatDuration(run.duration);
+
+          const track = document.createElement("span");
+          track.className = "px-duration-track";
+
+          const fill = document.createElement("span");
+          fill.className = "px-duration-fill";
+          fill.style.width = Number.isFinite(run.duration)
+            ? Math.max(2, run.duration / maxDuration * 100) + "%"
+            : "0%";
+
+          track.appendChild(fill);
+          duration.appendChild(track);
+
+          const status = document.createElement("div");
+          const incomplete =
+            run.attempted !== null &&
+            run.ok !== null &&
+            run.ok < run.attempted;
+
+          status.className = "px-pipeline-state " + (
+            run.warningCount > 15
+              ? "px-pipeline-state-bad"
+              : incomplete || run.warningCount
+                ? "px-pipeline-state-warn"
+                : "px-pipeline-state-ok"
+          );
+
+          status.textContent = incomplete
+            ? "teilweise"
+            : run.warningCount
+              ? "Hinweis"
+              : "ok";
+
+          row.append(info, duration, status);
+          host.appendChild(row);
+        });
+      }
+
+      function safeHref(value) {
+        if (!value) return "";
+
+        try {
+          const url = new URL(String(value), window.location.href);
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch (error) {
+          return "";
+        }
+      }
+
+      function renderArticles(articles) {
+        const host = $("px-articleList");
+        clear(host);
+
+        const top = [...articles]
+          .filter(isObject)
+          .sort((a, b) => scoreOf(b) - scoreOf(a))
+          .slice(0, 5);
+
+        if (!top.length) {
+          addEmpty(host, "Keine Stories im gewählten Zeitraum.");
+          return;
+        }
+
+        top.forEach((article, index) => {
+          const link = document.createElement("a");
+          link.className = "px-article";
+
+          const href = safeHref(article.link);
+
+          if (href) {
+            link.href = href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+          } else {
+            link.setAttribute("aria-disabled", "true");
+          }
+
+          const rank = document.createElement("div");
+          rank.className = "px-article-rank";
+          rank.textContent = "STORY " + String(index + 1).padStart(2, "0");
+
+          const title = document.createElement("div");
+          title.className = "px-article-title";
+          title.textContent = cleanText(article.title || "Ohne Titel");
+          title.title = cleanText(article.title || "Ohne Titel");
+
+          const foot = document.createElement("div");
+          foot.className = "px-article-foot";
+
+          const source = document.createElement("span");
+          source.textContent = cleanText(article.source || "Unbekannt");
+
+          const score = document.createElement("span");
+          score.textContent = "Score " + formatNumber(scoreOf(article));
+
+          foot.append(source, score);
+          link.append(rank, title, foot);
+          host.appendChild(link);
+        });
+      }
+
+      function render() {
+        const articles = getPeriodArticles();
+
+        renderKpis(articles);
+        renderHeatmap(articles);
+        renderSources(articles);
+        renderStream(articles);
+        renderScores(articles);
+        renderPipeline();
+        renderArticles(articles);
+
+        $("px-footerStand").textContent =
+          "Datenstand: " + cleanText(state.stand) + "\n" +
+          "Quelle: lokale JSON- und Log-Dateien";
+      }
+
+      async function fetchJSON(path) {
+        const response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      }
+
+      async function fetchText(path) {
+        const response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.text();
+      }
+
+      async function loadData() {
+        const paths = [
+          "news.json",
+          "archive.json",
+          "cards.json",
+          "graph.json",
+          "ki_news.log"
+        ];
+
+        const results = await Promise.allSettled([
+          fetchJSON(paths[0]),
+          fetchJSON(paths[1]),
+          fetchJSON(paths[2]),
+          fetchJSON(paths[3]),
+          fetchText(paths[4])
+        ]);
+
+        results.forEach((result, index) => {
+          if (result.status === "rejected") {
+            state.failures.push(paths[index]);
+          }
+        });
+
+        const news = results[0].status === "fulfilled" &&
+          isObject(results[0].value)
+          ? results[0].value
+          : {};
+
+        const archive = results[1].status === "fulfilled" &&
+          Array.isArray(results[1].value)
+          ? results[1].value
+          : [];
+
+        const cards = results[2].status === "fulfilled" &&
+          Array.isArray(results[2].value)
+          ? results[2].value
+          : [];
+
+        state.current = Array.isArray(news.news)
+          ? news.news.filter(isObject)
+          : [];
+
+        state.archive = archive.filter(isObject);
+        state.cards = cards.filter(isObject);
+
+        state.graph = results[3].status === "fulfilled" &&
+          isObject(results[3].value)
+          ? results[3].value
+          : {};
+
+        state.log = results[4].status === "fulfilled"
+          ? String(results[4].value || "")
+          : "";
+
+        state.stand = cleanText(news.stand || state.graph.stand || "n/v");
+
+        const seen = new Set();
+
+        state.articles = [...state.current, ...state.archive].filter(article => {
+          const key = articleKey(article);
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        const status = $("px-loadStatus");
+
+        if (state.failures.length) {
+          status.textContent =
+            "Teildaten geladen. Nicht verfügbar: " +
+            state.failures.join(" · ");
+        } else {
+          status.textContent =
+            "Alle lokalen Datenquellen geladen · " +
+            formatNumber(state.articles.length) +
+            " Artikel im Archivbestand";
+        }
+
+        render();
+      }
+
+      document.querySelectorAll("[data-days]").forEach(button => {
+        button.addEventListener("click", () => {
+          state.days = Number(button.dataset.days) || 0;
+
+          document.querySelectorAll("[data-days]").forEach(item => {
+            item.setAttribute(
+              "aria-pressed",
+              item === button ? "true" : "false"
+            );
+          });
+
+          render();
+        });
+      });
+
+      let resizeTimer = null;
+
+      window.addEventListener("resize", () => {
+        window.clearTimeout(resizeTimer);
+
+        resizeTimer = window.setTimeout(() => {
+          const articles = getPeriodArticles();
+          renderStream(articles);
+          renderScores(articles);
+        }, 160);
+      });
+
+      window.__kiThemeHook = function () {
+        const root = document.documentElement;
+
+        root.style.setProperty(
+          "color-scheme",
+          root.classList.contains("light") ? "light" : "dark"
+        );
+      };
+
+      loadData().catch(() => {
+        $("px-loadStatus").textContent =
+          "Die Daten konnten nicht geladen werden. Bitte die lokalen Dateien prüfen.";
+        render();
+      });
+    })();
+  </script>
+
+  <script>
+  /* Aus der alten stats.html uebernommen (28.09.26): Creator Radar, Pipeline-Gesundheit, Score-Formel-Einbettung. */
+  function kiStatsScoreFormel(iframe) {
+    try {
+      var doc = iframe.contentDocument; if (!doc) return;
+      var st = doc.createElement("style");
+      st.textContent = 'button[aria-label*="Visual style"],button[aria-label="Export diagram"],button[aria-label*="Trace a directed route"],button[aria-label*="Open semantic radar"],button[aria-label*="Open semantic lens"]{display:none!important}';
+      doc.head.appendChild(st);
+    } catch (e) {}
+  }
+  (function () {
+    "use strict";
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function kategorien(chunk) {
+      var b = { rateLimit: 0, unusable: 0, feedBlocked: 0, translation: 0, other: 0 };
+      (chunk.match(/^.*\bWARNING\b.*$/gm) || []).forEach(function (l) {
+        if (/Rate-Limit \(429\)|429 in Folge|HTTP Error 429/i.test(l)) b.rateLimit++;
+        else if (/unbrauchbar|leerem Content|fehlgeschlagen/i.test(l)) b.unusable++;
+        else if (/Feed blockiert|HTTP (Error )?(403|400|404)/i.test(l)) b.feedBlocked++;
+        else if (/unuebersetzt|nicht Deutsch/i.test(l)) b.translation++;
+        else b.other++;
+      });
+      return b;
     }
-  });
-  window._charts.push(dailyChart);
-
-  // Tagestabelle (letzte 6 Tage)
-  const tableEl = document.getElementById('daily-table');
-  if (!tableEl) return;
-  const recent = sorted.slice(-6).reverse();
-  tableEl.innerHTML = recent.map(([key, v]) => {
-    const d = new Date(key + 'T00:00:00');
-    const label = isNaN(d) ? key : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-    const avg = v.count ? (v.scoreSum / v.count).toFixed(1) : '—';
-    const topSrc = Object.entries(v.sources).sort(([,a],[,b]) => b - a)[0];
-    return `<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;flex-wrap:wrap">
-      <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;color:var(--accent);width:80px;flex-shrink:0">${label}</span>
-      <span style="font-family:monospace;color:#6b7280">${v.count} Artikel</span>
-      <span style="font-family:monospace;color:#f97316">Ø ${avg} Score</span>
-      ${topSrc ? `<span style="font-family:monospace;color:${srcColor(topSrc[0])};margin-left:auto">Top-Quelle: ${topSrc[0]} (${topSrc[1]})</span>` : ''}
-    </div>`;
-  }).join('');
-}
-
-// ── Themen-Trend (30.08.) ──────────────────────────────────────────────────────
-// Wiederverwendet KEY_TERMS + dieselbe Match-Logik wie das Themen-Radar, nur
-// pro Kalendertag statt als Gesamtsumme gebrochen -- keine zweite Begriffsliste,
-// kein zusaetzlicher Fetch. Fenster = DAILY_WINDOW, wie beim Tagesverlauf.
-function renderThemeTrends(all) {
-  const container = document.getElementById('theme-trends');
-  if (!container) return;
-  const dated = all
-    .map(a => ({ ...a, _day: (a.first_seen || a.date || '').slice(0, 10) }))
-    .filter(a => a._day);
-  const days = [...new Set(dated.map(a => a._day))].sort().slice(-DAILY_WINDOW);
-  if (days.length < 3) { container.innerHTML = ''; return; }
-  const dayIndex = {}; days.forEach((d, i) => dayIndex[d] = i);
-
-  const rows = KEY_TERMS.map(term => {
-    const re = new RegExp(term, 'i');
-    const counts = new Array(days.length).fill(0);
-    let total = 0;
-    dated.forEach(a => {
-      const idx = dayIndex[a._day];
-      if (idx === undefined) return;
-      if (re.test(a.title || '') || re.test(a.summary || '')) { counts[idx]++; total++; }
+    function warnText(b) {
+      var p = [];
+      if (b.rateLimit) p.push(b.rateLimit + "× Rate-Limit");
+      if (b.unusable) p.push(b.unusable + "× Modell-Ausgabe unbrauchbar");
+      if (b.feedBlocked) p.push(b.feedBlocked + "× Quelle blockiert");
+      if (b.translation) p.push(b.translation + "× Übersetzung fehlgeschlagen");
+      if (b.other) p.push(b.other + "× Sonstige");
+      return p.join(" · ") || "keine Auffälligkeiten";
+    }
+    fetch("ki_news.log?t=" + Date.now()).then(function (r) { return r.ok ? r.text() : ""; }).catch(function () { return ""; }).then(function (log) {
+      var box = document.getElementById("px-health"); if (!box) return;
+      if (!log) { box.innerHTML = '<p class="px-card-note">Betriebs-Log nicht erreichbar.</p>'; return; }
+      var runs = log.split(/(?==+ LAUF )/).filter(function (c) { return /^=+\s*LAUF/.test(c.trim()); }).map(function (c) {
+        var ts = c.match(/LAUF\s+(\S+)\s*=+/), bil = c.match(/BILANZ:\s*Batches\s+(\d+)\s+versucht\s*\/\s*(\d+)\s+OK\s*\|\s*Traeger:\s*(.+?)\s*\|\s*Sprach-Guard verwarf\s+(\d+)\s+Artikel/i);
+        return { ts: ts && ts[1], ver: bil ? +bil[1] : null, ok: bil ? +bil[2] : null, guard: bil ? +bil[4] : null, warn: (c.match(/\bWARNING\b/g) || []).length, b: kategorien(c) };
+      }).filter(function (r) { return r.ts; }).reverse();
+      if (!runs.length) { box.innerHTML = '<p class="px-card-note">Keine Lauf-Marker im Log gefunden.</p>'; return; }
+      box.innerHTML = runs.map(function (r) {
+        var d = new Date(r.ts), label = isNaN(d) ? r.ts : d.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        var unvoll = r.ver != null && r.ok != null && r.ok < r.ver, auff = unvoll || r.warn > 15;
+        return '<div class="ki-health-zeile' + (auff ? ' ki-health-auff' : '') + '"><div class="ki-health-kopf"><span class="ki-health-zeit">' + esc(label) + '</span>' +
+          '<span class="' + (unvoll ? 'ki-health-warn' : '') + '">' + (r.ver != null ? r.ver + " versucht / " + r.ok + " OK" : "-") + '</span>' +
+          '<span class="' + (r.guard ? 'ki-health-warn' : '') + '">Sprach-Guard: ' + (r.guard != null ? r.guard : "-") + '</span>' +
+          '<span class="ki-health-zahl' + (r.warn > 15 ? ' ki-health-bad' : '') + '">' + r.warn + ' Warnungen</span></div><div class="ki-health-detail">' + esc(warnText(r.b)) + '</div></div>';
+      }).join("");
     });
-    return { term, counts, total };
-  }).filter(r => r.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
-
-  if (!rows.length) { container.innerHTML = ''; return; }
-
-  const w = 120, h = 26;
-  container.innerHTML = rows.map(r => {
-    const max = Math.max(...r.counts, 1);
-    const step = r.counts.length > 1 ? w / (r.counts.length - 1) : 0;
-    const points = r.counts.map((c, i) => `${(i * step).toFixed(1)},${(h - (c / max) * h).toFixed(1)}`).join(' ');
-    const mid = Math.floor(r.counts.length / 2);
-    const firstHalf = r.counts.slice(0, mid).reduce((a, b) => a + b, 0);
-    const secondHalf = r.counts.slice(mid).reduce((a, b) => a + b, 0);
-    const trendColor = secondHalf > firstHalf ? '#34d399' : secondHalf < firstHalf ? '#f87171' : '#6b7280';
-    const trendIcon  = secondHalf > firstHalf ? '▲' : secondHalf < firstHalf ? '▼' : '▬';
-    return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px">
-      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;width:100px;flex-shrink:0;color:var(--text,#dfe3ea)" class="truncate">${escapeHtml(r.term)}</span>
-      <svg width="${w}" height="${h}" style="flex-shrink:0;overflow:visible"><polyline points="${points}" fill="none" stroke="var(--accent,#00d4ff)" stroke-width="1.5"/></svg>
-      <span style="font-family:monospace;color:#6b7280;width:26px;text-align:right;flex-shrink:0">${r.total}</span>
-      <span style="color:${trendColor};flex-shrink:0">${trendIcon}</span>
-    </div>`;
-  }).join('');
-}
-
-// ── Pipeline-Gesundheit (30.08.) ────────────────────────────────────────────
-// Parst ki_news.log clientseitig (keine Server-/Python-Aenderung noetig) --
-// Log traegt sich selbst auf die letzten ~10 Laeufe zurueck, siehe ki_news.yml.
-// Kategorisiert WARNING-Zeilen eines Laufs, statt nur zu zaehlen (30.08.,
-// Daniels Wunsch: "warum/wieso/weshalb" statt nur einer nackten Zahl).
-// Traeger-Modellnamen werden bewusst NICHT gezeigt (Daniels Wunsch).
-function categorizeWarnings(chunk) {
-  const lines = chunk.match(/^.*\bWARNING\b.*$/gm) || [];
-  const b = { rateLimit: 0, unusable: 0, feedBlocked: 0, translation: 0, other: 0 };
-  lines.forEach(line => {
-    if (/Rate-Limit \(429\)|429 in Folge|HTTP Error 429/i.test(line)) b.rateLimit++;
-    else if (/unbrauchbar|leerem Content|fehlgeschlagen/i.test(line)) b.unusable++;
-    else if (/Feed blockiert|HTTP (Error )?(403|400|404)/i.test(line)) b.feedBlocked++;
-    else if (/unuebersetzt|nicht Deutsch/i.test(line)) b.translation++;
-    else b.other++;
-  });
-  return b;
-}
-function warnLabel(b) {
-  const parts = [];
-  if (b.rateLimit)    parts.push(`${b.rateLimit}&times; Rate-Limit`);
-  if (b.unusable)     parts.push(`${b.unusable}&times; Modell-Ausgabe unbrauchbar`);
-  if (b.feedBlocked)  parts.push(`${b.feedBlocked}&times; Quelle blockiert`);
-  if (b.translation)  parts.push(`${b.translation}&times; &Uuml;bersetzung fehlgeschlagen`);
-  if (b.other)        parts.push(`${b.other}&times; Sonstige`);
-  return parts.join(' &middot; ') || 'keine Auffaelligkeiten';
-}
-
-function renderPipelineHealth(logText) {
-  const container = document.getElementById('pipeline-health');
-  if (!container) return;
-  if (!logText) { container.innerHTML = '<p class="meta-text">Betriebs-Log nicht erreichbar.</p>'; return; }
-
-  const chunks = logText.split(/(?===+ LAUF )/).filter(c => /^=+\s*LAUF/.test(c.trim()));
-  const runs = chunks.map(chunk => {
-    const tsMatch = chunk.match(/LAUF\s+(\S+)\s*=+/);
-    const bilanzMatch = chunk.match(/BILANZ:\s*Batches\s+(\d+)\s+versucht\s*\/\s*(\d+)\s+OK\s*\|\s*Traeger:\s*(.+?)\s*\|\s*Sprach-Guard verwarf\s+(\d+)\s+Artikel/i);
-    const warnCount = (chunk.match(/\bWARNING\b/g) || []).length;
-    return {
-      ts: tsMatch ? tsMatch[1] : null,
-      attempted: bilanzMatch ? +bilanzMatch[1] : null,
-      ok: bilanzMatch ? +bilanzMatch[2] : null,
-      guardRejects: bilanzMatch ? +bilanzMatch[4] : null,
-      warnCount,
-      warnBuckets: categorizeWarnings(chunk)
-    };
-  }).filter(r => r.ts).reverse(); // neuester Lauf zuerst
-
-  if (!runs.length) { container.innerHTML = '<p class="meta-text">Keine Lauf-Marker im Log gefunden.</p>'; return; }
-
-  container.innerHTML = runs.map(r => {
-    const d = new Date(r.ts);
-    const label = isNaN(d) ? r.ts : d.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-    const incomplete = r.attempted != null && r.ok != null && r.ok < r.attempted;
-    const flagged = incomplete || r.warnCount > 15;
-    return `<div style="display:flex;flex-direction:column;gap:3px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;${flagged ? 'background:rgba(249,115,22,0.06)' : ''}">
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <span style="font-family:monospace;color:var(--accent);width:100px;flex-shrink:0">${label}</span>
-        <span style="font-family:monospace;color:${incomplete ? '#f97316' : '#6b7280'}">${r.attempted != null ? r.attempted + ' versucht / ' + r.ok + ' OK' : '—'}</span>
-        <span style="font-family:monospace;color:${r.guardRejects ? '#f97316' : '#6b7280'}">Sprach-Guard: ${r.guardRejects ?? '—'}</span>
-        <span style="font-family:monospace;color:${r.warnCount > 15 ? '#f87171' : '#6b7280'};margin-left:auto">${r.warnCount} Warnungen</span>
-      </div>
-      <div style="font-family:monospace;font-size:10px;color:#6b7280;padding-left:114px">${warnLabel(r.warnBuckets)}</div>
-    </div>`;
-  }).join('');
-}
-
-// renderScoreBreakdown() (Quellen-Prestige/Keyword-Boni/Malus-Tabellen) am
-// 30.08. entfernt: Score-Formel-Sektion zeigt jetzt das eingebettete Archify-
-// Diagramm (score-formel-diagramm.html) statt der alten Detailtabellen.
-
-// Blendet in der eingebetteten Diagramm-Vorschau die Bedienelemente aus, die
-// normale Besucher nicht brauchen (Daniels Wunsch: "richtig minimal halten").
-// Same-Origin-Iframe, daher per JS aus der Elternseite erlaubt. Die Datei
-// score-formel-diagramm.html selbst bleibt unveraendert voll ausgestattet.
-function simplifyScoreFormelViewer(iframe) {
-  try {
-    const doc = iframe.contentDocument;
-    if (!doc) return;
-    const style = doc.createElement('style');
-    style.textContent = `
-      button[aria-label*="Visual style"],
-      button[aria-label="Export diagram"],
-      button[aria-label*="Trace a directed route"],
-      button[aria-label*="Open semantic radar"],
-      button[aria-label*="Open semantic lens"] { display: none !important; }
-    `;
-    doc.head.appendChild(style);
-  } catch (e) { /* falls sich der Viewer aendert: Iframe bleibt einfach voll ausgestattet */ }
-}
-
-// ── Chart Theme Update ────────────────────────────────────────────────────────
-function updateChartTheme(chart){
-  if(!chart?.options?.scales) return;
-  Object.values(chart.options.scales).forEach(s=>{
-    if(s.grid) s.grid.color = gridColor();
-    if(s.ticks) s.ticks.color = labelColor();
-  });
-  chart.update();
-}
-
-// ── Init ─────────────────────────────────────────────────────────────────────
-loadData();
-</script>
-
-
-<!-- ── Three.js Genesis Particle Scene ───────────────────── -->
-<script type="text/plain" id="ki-genesis-src">
-import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-const COUNT=14000,SCALE=45,SPEED=0.8,COMPLEXITY=1.5;
-const scene=new THREE.Scene();
-scene.fog=new THREE.FogExp2(0x000000,0.007);
-const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,2000);
-camera.position.set(0,0,120);
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.setClearColor(0x000000,0);
-document.getElementById('genesis-wrap').appendChild(renderer.domElement);
-const composer=new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene,camera));
-const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.2,0.5,0);
-composer.addPass(bloom);
-const group=new THREE.Group();group.position.set(-8,5,0);scene.add(group);
-const geo=new THREE.TetrahedronGeometry(0.22),mat=new THREE.MeshBasicMaterial({color:0xffffff});
-const mesh=new THREE.InstancedMesh(geo,mat,COUNT);mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.add(mesh);
-const positions=Array.from({length:COUNT},()=>new THREE.Vector3((Math.random()-.5)*100,(Math.random()-.5)*100,(Math.random()-.5)*100));
-const dummy=new THREE.Object3D(),color=new THREE.Color(),target=new THREE.Vector3(),clock=new THREE.Clock();
-let rotY=0;
-const T3D={
-  genesis: {fog:0x000000,fogD:0.007,bloom:1.2,bloomT:0.0,coreH:0.78,coreS:0.70,tailH:0.55,tailS:0.70},
-  karst:   {fog:0x060e08,fogD:0.006,bloom:0.80,bloomT:0.0,coreH:0.36,coreS:0.85,tailH:0.14,tailS:0.70},
-  aurora:  {fog:0x04020f,fogD:0.007,bloom:1.50,bloomT:0.0,coreH:0.74,coreS:0.85,tailH:0.60,tailS:0.70},
-  meridian:{fog:0x090300,fogD:0.007,bloom:1.00,bloomT:0.0,coreH:0.065,coreS:0.90,tailH:0.12,tailS:0.80},
-  blanc:   {fog:0xfafcff,fogD:0.006,bloom:0.20,bloomT:0.5,coreH:0.60,coreS:0.70,tailH:0.55,tailS:0.55}
-};
-function getCurrentTheme(){return document.documentElement.getAttribute('data-theme')||'genesis';}
-function applyTheme3D(){var t=T3D[getCurrentTheme()]||T3D.genesis;scene.fog.color.set(t.fog);scene.fog.density=t.fogD;bloom.strength=t.bloom;bloom.threshold=t.bloomT;}
-applyTheme3D();
-new MutationObserver(()=>applyTheme3D()).observe(document.documentElement,{attributes:true,attributeFilter:['class','data-theme']});
-function animate(){
-  requestAnimationFrame(animate);
-  const time=clock.getElapsedTime();rotY+=0.0015;group.rotation.y=rotY;
-  const t=time*SPEED,coreCount=Math.floor(COUNT*0.25);
-  const _tc=T3D[getCurrentTheme()]||T3D.genesis;
-  for(let i=0;i<COUNT;i++){
-    const isCore=i<coreCount;let x=0,y=0,z=0,h=0,s=0,l=0;
-    if(isCore){
-      const cn=i/coreCount,phi=Math.acos(1-2*cn),theta=Math.PI*(1+Math.sqrt(5))*i;
-      const sp=Math.sin(t*3+phi*5+theta*3)*COMPLEXITY,r=SCALE*0.4+sp;
-      x=Math.sin(phi)*Math.cos(theta)*r;y=Math.sin(phi)*Math.sin(theta)*r;z=Math.cos(phi)*r;
-      h=_tc.coreH+Math.sin(t+cn*10)*0.05;s=_tc.coreS;l=0.2+sp*0.04;
-    }else{
-      const si=i-coreCount,ppc=25,tc=Math.max(1,Math.floor((COUNT-coreCount)/ppc));
-      const cid=Math.floor(si/ppc),pid=si%ppc,pn=pid/ppc,cn2=cid/tc;
-      const cp=Math.acos(1-2*cn2),ct=Math.PI*(1+Math.sqrt(5))*cid;
-      const dx=Math.sin(cp)*Math.cos(ct),dy=Math.sin(cp)*Math.sin(ct),dz=Math.cos(cp);
-      const cph=t*3+cid*10,lt=Math.abs((cid*78.9+t*20)%200),dfc=200-lt,ap=Math.max(SCALE*0.4,dfc);
-      const u=Math.sin(cph*5-pn*15)*(pn*3);
-      const wx=Math.sin(cph+pn*2)*u*COMPLEXITY,wy=Math.cos(cph+pn*2)*u*COMPLEXITY,wz=Math.sin(cph*.5+pn*2)*u*COMPLEXITY;
-      const tl=SCALE*0.3;
-      x=dx*(ap+pn*tl)+wx;y=dy*(ap+pn*tl)+wy;z=dz*(ap+pn*tl)+wz;
-      h=_tc.tailH+pn*0.06;s=_tc.tailS;l=(0.55-pn*0.4)*0.7;
-    }
-    target.set(x,y,z);color.setHSL(h,s,l);
-    positions[i].lerp(target,0.1);dummy.position.copy(positions[i]);dummy.updateMatrix();
-    mesh.setMatrixAt(i,dummy.matrix);mesh.setColorAt(i,color);
-  }
-  mesh.instanceMatrix.needsUpdate=true;
-  if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
-  composer.render();
-}
-animate();
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
-</script>
-<script>
-/* Mobile-Schonung: 3D-Hintergrund nur auf Desktop und ohne reduced-motion.
-   Auf Mobilgeräten wird three.js gar nicht erst heruntergeladen. */
-(function(){
-  if (window.innerWidth < 768) return;
-  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var src = document.getElementById('ki-genesis-src');
-  if (!src) return;
-  var s = document.createElement('script');
-  s.type = 'module';
-  s.textContent = src.textContent;
-  document.body.appendChild(s);
-})();
-</script>
-<!-- ── KI Theme-Kopplung + Seiten-Hook (Slider/Charts) ── -->
-<script>
-window.__kiThemeHook=function(light,active){
-  var knob=document.querySelector('.theme-slider-knob');
-  if(knob){knob.style.left=light?'2px':'22px';knob.style.background=light?'#f59e0b':'var(--accent)';}
-  if(window._charts&&window._charts.forEach){window._charts.forEach(function(c){try{updateChartTheme(c);}catch(e){}});}
-};
-(function(){
-  var GEN=['genesis','karst','aurora','meridian','blanc'];
-  function prefersLight(){return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);}
-  var memGen=null, memContrast=null;
-  function getContrast(){var v=null;try{v=localStorage.getItem('ki_theme');}catch(e){}return v||memContrast||'auto';}
-  function rawGenesis(){var v=null;try{v=localStorage.getItem('ki_genesis_theme');}catch(e){}return v||memGen||'genesis';}
-  function getGenesis(){var g=rawGenesis();return GEN.indexOf(g)===-1?'genesis':g;}
-  function resolveLight(){
-    if(getGenesis()==='blanc')return true;
-    var c=getContrast();
-    return c==='light'?true:(c==='dark'?false:prefersLight());
-  }
-  function applyAll(){
-    var root=document.documentElement, raw=rawGenesis();
-    if(raw==='custom'){
-      root.setAttribute('data-theme','custom');
-      root.classList.remove('light','dark');
-    }else{
-      var g=getGenesis(), light=resolveLight();
-      root.setAttribute('data-theme',g);
-      root.classList.toggle('light',light);
-      root.classList.toggle('dark',!light);
-    }
-    var active=(raw==='custom')?'custom':getGen
+    fetch("news.json?t=" + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+      var box = document.getElementById("px-radar"); if (!box) return;
+      var cur = (d.news || []).filter(function (n) { return !n.dub_von; }), best = {};
+      cur.forEach(function (n) { var s = n.story_id; if (s && (!best[s] || (n.score || 0) > (best[s].score || 0))) best[s] = n; });
+      var top = cur.filter(function (n) { return !n.story_id || best[n.story_id] === n; }).sort(function (a, b) { return (b.score || 0) - (a.score || 0); }).slice(0, 5);
+      box.innerHTML = top.length ? top.map(function (n, i) {
+        return '<a class="ki-radar-zeile" href="' + esc(n.link || "#") + '" target="_blank" rel="noopener noreferrer"><span class="ki-radar-rang">' + (i + 1) + '</span>' +
+          '<span class="ki-radar-text"><span class="ki-radar-titel">' + esc(n.title) + '</span><span class="ki-radar-quelle">' + esc(n.source) + '</span></span>' +
+          '<span class="ki-radar-score">' + Math.round(n.score || 0) + '</span></a>';
+      }).join("") : '<p class="px-card-note">Keine aktuellen Artikel geladen.</p>';
+    }).catch(function () {});
+  })();
+  </script>
+</body>
+</html>
