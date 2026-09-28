@@ -4408,8 +4408,17 @@ window.addEventListener('resize',()=>{
         url: cleanText(value.url),
         x_url: cleanText(value.x_url) || cleanText(value.xUrl),
         video_url: cleanText(value.video_url) || cleanText(value.videoUrl),
-        poster: cleanText(value.poster) || cleanText(value.poster_url)
+        poster: cleanText(value.poster) || cleanText(value.poster_url),
+        news_link: cleanText(value.news_link)
       };
+    };
+
+    // hersteller.json (28.09.26): laeuft dieselbe Meldung gerade als Top-Story,
+    // kommt der naechste Release in die Kachel (sonst doppelt auf der Startseite).
+    let allReleases = [];
+    const pickRelease = () => {
+      const heroLinks = new Set(stories.map(story => cleanText(story && story.link)).filter(Boolean));
+      return allReleases.find(release => !release.news_link || !heroLinks.has(release.news_link)) || null;
     };
 
     const extractReleases = payload => {
@@ -4965,8 +4974,11 @@ window.addEventListener('resize',()=>{
           .filter(Boolean)
       );
 
-      if (releases.length) {
-        releaseData = releases[0];
+      allReleases = releases;
+      const picked = pickRelease();
+
+      if (picked) {
+        releaseData = picked;
         releaseIsExample = false;
         renderRelease();
       } else if (demoMode) {
@@ -5038,6 +5050,11 @@ window.addEventListener('resize',()=>{
       if (hero.getAttribute("aria-busy") !== "false") return;
       stories = list.slice(0, 6);
       statusNode.textContent = `${stories.length} Meldungen im Fokus`;
+      if (!releaseIsExample && allReleases.length) {
+        releaseData = pickRelease();
+        if (releaseData) renderRelease();
+        else setReleaseVisibility(false);
+      }
       sideOne.replaceChildren(renderSideStory(stories[1] || null, 2));
       sideTwo.replaceChildren(renderSideStory(stories[2] || null, 3));
       currentStory = 0;
