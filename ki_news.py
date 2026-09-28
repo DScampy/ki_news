@@ -2936,6 +2936,28 @@ def _first_child_text(el, name):
             return (ch.text or "").strip()
     return ""
 
+
+def _feed_anriss(item, title):
+    """Anriss aus dem Feed (description/summary/content), ohne HTML, max. 500 Zeichen.
+
+    28.09.26: summarize_news() bekam bisher NUR den Titel und sollte daraus 2-3 Saetze
+    schreiben - das Modell musste Rollen, Wertungen und Folgen erfinden ("ehemaliger/
+    designierter Praesident Trump", "hat das Potenzial ..."). Mit Anriss hat es Stoff.
+    Leer, wenn der Anriss nur den Titel wiederholt (Google News liefert oft nur Links)."""
+    roh = (_first_child_text(item, "description") or _first_child_text(item, "summary")
+           or _first_child_text(item, "encoded") or _first_child_text(item, "content"))
+    if not roh:
+        return ""
+    import html as _html
+    text = _html.unescape(re.sub(r"<[^>]+>", " ", _html.unescape(roh)))
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) < 40:
+        return ""
+    if title and difflib.SequenceMatcher(None, text[:len(title) + 20].lower(), title.lower()).ratio() > 0.8 \
+            and len(text) < len(title) + 60:
+        return ""
+    return text[:500]
+
 # Feeds, die im laufenden Lauf HART ausgefallen sind (kein Inhalt / kaputtes XML).
 # main() leert die Menge vor der Feed-Schleife. Ein Feed, der antwortet, aber 0
 # Items liefert, zaehlt bewusst NICHT dazu - das kann eine echte leere Lage sein.
@@ -3050,6 +3072,9 @@ def fetch_feed(name, url):
                 pass  # Datum nicht parsebar -> wie bisher behandeln, nicht raten
         if title and (name in ALWAYS_KI_RELEVANT_SOURCES or _is_ki_relevant(title)):
             eintrag = {"title": title, "link": link, "source": name}
+            anriss = _feed_anriss(item, title)
+            if anriss:
+                eintrag["feed_text"] = anriss
             bild = _feed_bild(item)
             if bild:
                 eintrag["feed_image"] = bild
@@ -3649,13 +3674,23 @@ def summarize_news(alle_news, summary_cache=None):
         globals()["_BATCH_VERSUCHE"] = globals()["_BATCH_VERSUCHE"] + 1
         batch_indices = pending[batch_start:batch_start + batch_size]
         batch = [alle_news[gi] for gi in batch_indices]
-        news_text = "\n".join([f"{i+1}. {n['title']} (via {n['source']})" for i, n in enumerate(batch)])
+        news_text = "\n".join([
+            f"{i+1}. {n['title']} (via {n['source']})"
+            + (f"\n   Anriss: {n['feed_text'][:450]}" if n.get("feed_text") else "\n   Anriss: (keiner)")
+            for i, n in enumerate(batch)])
         prompt = f"""Du bist ein deutschsprachiger KI-News-Redakteur.
 Uebersetze und fasse JEDE der folgenden News auf Deutsch zusammen.
 Antworte AUSSCHLIESSLICH mit einem JSON-Array – kein Text davor oder danach, keine Backticks, kein Markdown.
 
 Format (ersetze Inhalt mit echten Werten fuer jede News):
-[{{"id": 1, "src_title": "die ersten Woerter des ORIGINAL-Titels exakt kopiert", "title_de": "Echter deutscher Titel der News", "summary": "2-3 Saetze: was ist passiert und warum relevant fuer KI-Interessierte."}}, ...]
+[{{"id": 1, "src_title": "die ersten Woerter des ORIGINAL-Titels exakt kopiert", "title_de": "Echter deutscher Titel der News", "summary": "1-3 Saetze: was ist passiert, nur aus Titel und Anriss."}}, ...]
+
+NICHTS ERFINDEN (wichtigste Regel, 28.09.26):
+- summary darf NUR enthalten, was in Titel oder Anriss steht. Kein Weltwissen ergaenzen.
+- Personen KEINE Rolle, kein Amt und keinen Zusatz geben, der nicht im Titel/Anriss steht: nicht "ehemaliger", "designierter", "frueherer", "kuenftiger", "scheidender" Praesident/Minister/Chef. Steht nur "Trump", schreibe "Trump" oder "US-Praesident Trump" NUR wenn das Amt im Text steht.
+- KEINE Wertungen, Prognosen oder Bedeutungs-Saetze: nicht "hat das Potenzial", "koennte die Branche veraendern", "zeigt, wie wichtig", "ein wichtiger Schritt", "unterstreicht", "verdeutlicht".
+- KEINE Zahl, kein Datum, kein Name, der nicht im Titel/Anriss steht.
+- Anriss "(keiner)": summary ist EIN sachlicher Satz, der den Titel ausformuliert, sonst nichts.
 
 Wichtig:
 - src_title MUSS die ersten Woerter des jeweiligen Original-Titels WORTWOERTLICH (unveraendert, gleiche Sprache) kopieren – das dient der Zuordnung
