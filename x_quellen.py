@@ -171,6 +171,16 @@ def release_posts(releases, storys, speicher):
             # Zeitfenster: Hersteller-Post nur aus der Story zur Ankuendigung (+-2 Tage), sonst
             # traefe z.B. "OpenAI fixes GPT-6 vision bug" (Tage spaeter) als "Release-Post".
             abstand = _tage_abstand(d.get("eventTimeApprox"), r.get("datum"))
+            # 28.09.26: Fortsetzungs-Storys ("UPDATE: ... Sonnet 5.5", continuesFrom Opus 5.5)
+            # behalten eventTimeApprox der Ursprungs-Story (24.09.) - publishedAt zaehlt mit.
+            try:
+                from datetime import datetime, timezone
+                pub = datetime.fromtimestamp(int(d.get("publishedAt")) / 1000, timezone.utc).date().isoformat()
+                ab2 = _tage_abstand(pub, r.get("datum"))
+                if ab2 is not None and (abstand is None or abs(ab2) < abs(abstand)):
+                    abstand = ab2
+            except (TypeError, ValueError):
+                pass
             if abstand is None or abstand < -2 or abstand > 7:
                 continue
             tweets = [x for x in (_tweet(t) for t in d.get("selectedTweets") or []) if x]

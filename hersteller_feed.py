@@ -231,6 +231,14 @@ def og_tags(url):
         r'<meta[^>]+content="([^"]*)"[^>]+(?:property|name)="(og:[a-z:_]+|description)"', seite
     ):
         tags.setdefault(prop, html.unescape(content))
+    # 28.09.26: Hersteller setzen selten og:video. Das Hero-Video der Release-Seite steht
+    # aber als erste MP4 im Quelltext (Anthropic: cdn.sanity.io "MobyHero", ElevenLabs:
+    # eleven-public-cdn h264_720.mp4). Nur https-MP4 auf der eigenen CDN des Herstellers.
+    m = re.search(r'https://(?:cdn\.sanity\.io|eleven-public-cdn\.elevenlabs\.io|[a-z0-9.-]*'
+                  r'(?:openai|anthropic|google|deepmind|gstatic|googleusercontent|meta|fbcdn|mistral|'
+                  r'x\.ai|qwen|deepseek)[a-z0-9.-]*)/[^"\'\\\s<>]+?\.mp4', seite)
+    if m:
+        tags.setdefault("seite:video", m.group(0))
     return tags
 
 
@@ -353,7 +361,8 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
             og = og_tags(r["url"])
             r["poster"] = r["poster"] or _nur_https(og.get("og:image") or og.get("twitter:image", ""))
             r["video_url"] = r["video_url"] or _nur_https(og.get("og:video") or og.get("og:video:url")
-                                                           or og.get("og:video:secure_url", ""))
+                                                           or og.get("og:video:secure_url", "")
+                                                           or og.get("seite:video", ""))
             if not r["text"]:
                 r["text"] = _text(og.get("og:description") or og.get("description", ""))
         if r["text"]:
