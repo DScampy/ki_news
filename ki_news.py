@@ -270,12 +270,16 @@ ARTIKEL_AUF_STARTSEITE = 3
 
 def _ssr_artikel_block(base_dir):
     """Rubrik "Neueste Analysen" (25.09.26, F1): die jüngsten eigenen Artikel aus
-    artikel/artikel-index.json als Kacheln auf der Startseite - bis heute verlinkte
-    index.html keinen einzigen eigenen Artikel. Bild = og:image des Artikels."""
+    artikel/artikel-index.json auf der Startseite - bis heute verlinkte
+    index.html keinen einzigen eigenen Artikel. Bild = og:image des Artikels.
+    28.09.26 (Auftrag 7.4): Reportage-Look - grosser Aufmacher links, zwei
+    Begleitartikel rechts, Fraunces-Ueberschriften; auf dem Handy ein
+    waagrechter Streifen (Startseite bleibt kurz, Auftrag 8)."""
     base = Path(base_dir)
     idx = json.loads((base / "artikel" / "artikel-index.json").read_text(encoding="utf-8"))
     idx = sorted([a for a in idx if isinstance(a, dict) and a.get("slug")],
                  key=lambda a: a.get("datum", ""), reverse=True)[:ARTIKEL_AUF_STARTSEITE]
+    e = lambda t: _html.escape(str(t or ""), quote=True)
     kacheln = []
     for a in idx:
         pfad = base / "artikel" / (a["slug"] + ".html")
@@ -291,29 +295,52 @@ def _ssr_artikel_block(base_dir):
         except ValueError:
             datum = ""
         tag = (a.get("tags") or ["Analyse"])[0]
-        e = lambda t: _html.escape(str(t or ""), quote=True)
+        klasse = "ki-rp-haupt" if not kacheln else "ki-rp-neben"
         kacheln.append(
-            f'<a href="artikel/{e(a["slug"])}.html" class="ki-card ki-border border flex flex-col h-full" '
-            'style="overflow:hidden;text-decoration:none;border-radius:12px">'
-            + (f'<div style="position:relative;padding-top:52.5%;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)">'
-               f'<img src="{e(bild)}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div>'
-               if bild else "")
-            + '<div style="padding:16px;display:flex;flex-direction:column;gap:8px;flex:1">'
-            f'<span style="font-family:monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,#00d4ff)">{e(tag)}</span>'
-            f'<h4 class="ki-main" style="font-family:\'Space Grotesk\',sans-serif;font-size:18px;font-weight:700;line-height:1.25;margin:0">{e(a.get("titel"))}</h4>'
-            f'<p class="ki-muted" style="font-size:13px;line-height:1.5;margin:0;flex:1">{e(a.get("desc"))}</p>'
-            f'<span class="ki-faint" style="font-family:monospace;font-size:11px">{e(datum)}'
-            + (f' · {int(a["lesezeit"])} Min.' if str(a.get("lesezeit", "")).isdigit() else "")
-            + '</span></div></a>')
+            f'<a href="artikel/{e(a["slug"])}.html" class="ki-rp-karte {klasse}">'
+            + (f'<span class="ki-rp-bild"><img src="{e(bild)}" alt="" loading="lazy"></span>' if bild else "")
+            + '<span class="ki-rp-text">'
+            f'<span class="ki-rp-kicker">{e(tag)}</span>'
+            f'<span class="ki-rp-titel">{e(a.get("titel"))}</span>'
+            f'<span class="ki-rp-desc">{e(a.get("desc"))}</span>'
+            f'<span class="ki-rp-meta">{e(datum)}'
+            + (f' · {int(a["lesezeit"])} Min. Lesezeit' if str(a.get("lesezeit", "")).isdigit() else "")
+            + '</span></span></a>')
     if not kacheln:
         return ""
+    stil = (
+        "<style>"
+        ".ki-rp{margin-top:40px}"
+        ".ki-rp-kopf{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--hairline,#2f3336)}"
+        ".ki-rp-ober{font:600 10px/1.2 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--accent,#00d4ff);margin:0 0 4px}"
+        ".ki-rp-h{font:600 clamp(24px,2.6vw,32px)/1.1 'Fraunces',Georgia,serif;margin:0}"
+        ".ki-rp-alle{font:600 11px/1 ui-monospace,monospace;color:var(--accent,#00d4ff);text-decoration:none}"
+        ".ki-rp-raster{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);grid-template-rows:auto auto;gap:16px}"
+        ".ki-rp-karte{display:flex;flex-direction:column;border:1px solid rgba(var(--neon-rgb,0,212,255),.18);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;background:rgba(var(--neon-rgb,0,212,255),.02);transition:border-color .2s,box-shadow .2s}"
+        ".ki-rp-karte:hover,.ki-rp-karte:focus-visible{border-color:rgba(var(--neon-rgb,0,212,255),.6);box-shadow:0 0 22px rgba(var(--neon-rgb,0,212,255),.18);outline:none}"
+        ".ki-rp-haupt{grid-row:1/span 2}"
+        ".ki-rp-bild{position:relative;display:block;aspect-ratio:1200/630;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)}"
+        ".ki-rp-bild img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}"
+        ".ki-rp-text{display:flex;flex-direction:column;gap:8px;padding:16px 18px 18px;flex:1}"
+        ".ki-rp-kicker{font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,#00d4ff)}"
+        ".ki-rp-titel{font:600 19px/1.22 'Fraunces',Georgia,serif}"
+        ".ki-rp-haupt .ki-rp-titel{font-size:clamp(24px,2.4vw,32px);line-height:1.12}"
+        ".ki-rp-desc{font:400 14px/1.6 'Work Sans',sans-serif;opacity:.72;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}"
+        ".ki-rp-haupt .ki-rp-desc{font-size:16px;-webkit-line-clamp:4}"
+        ".ki-rp-meta{margin-top:auto;font:600 11px/1.2 ui-monospace,monospace;opacity:.5}"
+        "@media(max-width:860px){.ki-rp-raster{grid-template-columns:minmax(0,1fr)}.ki-rp-haupt{grid-row:auto}}"
+        "@media(max-width:640px){.ki-rp{margin-top:24px}.ki-rp-raster{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x proximity;padding-bottom:6px}"
+        ".ki-rp-karte{flex:0 0 80%;scroll-snap-align:start}.ki-rp-haupt .ki-rp-titel{font-size:20px}.ki-rp-haupt .ki-rp-desc,.ki-rp-desc{font-size:13px;-webkit-line-clamp:2}}"
+        "</style>"
+    )
     return ("<!-- SSR:ARTIKEL:START -->\n"
-            '    <section class="mt-12" aria-labelledby="neueste-analysen">\n'
-            '      <div class="mb-6 flex items-center justify-between gap-3 flex-wrap">\n'
-            '        <h3 id="neueste-analysen" class="ki-main font-bold" style="font-family:\'Space Grotesk\',sans-serif;font-size:24px">Neueste Analysen</h3>\n'
-            '        <a href="artikel.html" class="text-xs font-mono" style="color:var(--accent,#00d4ff);text-decoration:none">alle Artikel &rarr;</a>\n'
+            '    <section class="ki-rp" aria-labelledby="neueste-analysen">\n'
+            f"      {stil}\n"
+            '      <div class="ki-rp-kopf">\n'
+            '        <div><p class="ki-rp-ober">Eigene Analysen</p><h3 id="neueste-analysen" class="ki-rp-h ki-main">Neueste Analysen</h3></div>\n'
+            '        <a href="artikel.html" class="ki-rp-alle">alle Artikel &rarr;</a>\n'
             '      </div>\n'
-            '      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">\n        '
+            '      <div class="ki-rp-raster">\n        '
             + "\n        ".join(kacheln) +
             "\n      </div>\n    </section>\n    <!-- SSR:ARTIKEL:END -->")
 
