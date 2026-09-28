@@ -828,6 +828,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     font: 750 clamp(31px, 3.15vw, 47px)/1.04 "Space Grotesk", sans-serif;
     letter-spacing: -0.048em;
     overflow-wrap: anywhere;
+    hyphens: auto;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 5;
   }
@@ -840,6 +841,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     color: var(--px-muted);
     font: 450 clamp(15px, 1.2vw, 17px)/1.57 "Work Sans", sans-serif;
     overflow-wrap: anywhere;
+    hyphens: auto;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
   }
@@ -1214,6 +1216,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     font: 720 clamp(15px, 1.24vw, 18px)/1.16 "Space Grotesk", sans-serif;
     letter-spacing: -0.026em;
     overflow-wrap: anywhere;
+    hyphens: auto;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
   }
@@ -1225,6 +1228,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     color: var(--px-muted);
     font: 430 11px/1.4 "Work Sans", sans-serif;
     overflow-wrap: anywhere;
+    hyphens: auto;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
@@ -1373,6 +1377,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     font: 700 clamp(17px, 1.4vw, 21px)/1.1 "Space Grotesk", sans-serif;
     letter-spacing: -0.035em;
     overflow-wrap: anywhere;
+    hyphens: auto;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
@@ -1384,6 +1389,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     color: #b3c9d2;
     font: 420 10px/1.4 "Work Sans", sans-serif;
     overflow-wrap: anywhere;
+    hyphens: auto;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
@@ -1728,8 +1734,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
     .px-hero-main-title {
       margin-top: 13px;
-      font-size: clamp(26px, 7.7vw, 32px);
-      line-height: 1.04;
+      font-size: clamp(24px, 6.9vw, 30px);
+      line-height: 1.06;
       -webkit-line-clamp: 7;
     }
 
@@ -1897,6 +1903,16 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   /* Einbau index.html (28.09.26): fester Seitenkopf (#kl-nav, 56px) und
      Genesis-Hintergrund liegen ausserhalb des Moduls. */
   #px-hero { z-index: 10; padding-top: 56px; }
+  #px-hero [data-px-main-card], #px-hero .px-hero-side-link { cursor: pointer; }
+  /* clip statt hidden: kein Scroll-Container, Fokus/scrollIntoView verschiebt den Inhalt nicht (Glow ragt 120px heraus) */
+  #px-hero .px-hero-main-card { overflow: clip; }
+  #px-hero .px-hero-card-video { position: absolute; z-index: 3; inset: 0; cursor: pointer; background: #000; }
+  #px-hero .px-hero-card-video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #px-hero .px-hero-card-video-mute { position: absolute; right: 8px; bottom: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 13px; cursor: pointer; }
+  /* Linienband als eigene Zeile; der Mittelteil darf nicht unter seinen Inhalt schrumpfen */
+  #px-hero .px-hero-slide { grid-template-rows: auto 1fr auto auto; }
+  #px-hero .px-hero-linie { margin: 0 0 18px; min-width: 0; contain: inline-size; }
+  #px-hero .px-hero-linie .c-linie-glied { color: var(--px-ink); }
   /* SSR-Vorschau (ki_news.py inject_ssr), bis das Modul-JS die Folie rendert */
   #px-hero [data-px-main-slide] > .c-text { padding: clamp(25px, 2.7vw, 38px); }
   #px-hero [data-px-main-slide] > .c-text h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(24px, 2.2vw, 30px); font-weight: 700; line-height: 1.3; margin: 0 0 12px; color: var(--px-ink); }
@@ -4009,6 +4025,71 @@ window.addEventListener('resize',()=>{
       }, 10000);
     };
 
+    // Karten-Video der Top-Story (27.09.26, aus dem alten Hero uebernommen):
+    // klLoadCards()/klCardFor() aus ki-layout.js. Stumm und nur im Blick; Antippen
+    // schaltet Ton an und haelt das Karussell an, bis das Video durch ist.
+    let videoObserver = null;
+    const attachCardVideo = (media, story) => {
+      if (videoObserver) { videoObserver.disconnect(); videoObserver = null; }
+      if (
+        typeof window.klLoadCards !== "function" ||
+        typeof window.klCardFor !== "function"
+      ) return;
+
+      window.klLoadCards().then(() => {
+        if (destroyed || !media.isConnected || stories[currentStory] !== story) return;
+        const card = window.klCardFor(story);
+        if (!card || !card.mp4) return;
+
+        const wrap = make("div", "px-hero-card-video");
+        const video = document.createElement("video");
+        const mute = make("button", "px-hero-card-video-mute", "🔇");
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        if (card.poster) video.poster = card.poster;
+        video.src = card.mp4;
+        mute.type = "button";
+        mute.setAttribute("aria-label", "Ton an");
+        wrap.append(video, mute);
+        media.append(wrap);
+
+        const setSound = on => {
+          video.muted = !on;
+          video.loop = !on;
+          mute.textContent = on ? "🔊" : "🔇";
+          mute.setAttribute("aria-label", on ? "Ton aus" : "Ton an");
+          if (on) {
+            stopCarousel();
+            video.currentTime = 0;
+          } else {
+            startCarousel();
+          }
+          video.play().catch(() => {});
+        };
+
+        wrap.addEventListener("click", event => {
+          event.stopPropagation();
+          setSound(video.muted);
+        });
+        video.addEventListener("ended", () => setSound(false));
+
+        if (reducedMotion.matches) return;
+        if (!("IntersectionObserver" in window)) {
+          video.play().catch(() => {});
+          return;
+        }
+        videoObserver = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) video.play().catch(() => {});
+            else video.pause();
+          });
+        }, { threshold: 0.35 });
+        videoObserver.observe(wrap);
+      }).catch(() => {});
+    };
+
     const renderMainStory = () => {
       const story = stories[currentStory];
       mainSlide.replaceChildren();
@@ -4082,6 +4163,12 @@ window.addEventListener('resize',()=>{
 
       media.append(mediaCode);
       body.append(copy, media);
+      attachCardVideo(media, story);
+
+      // Entwicklungslinie (19.09.26): heroLinie() der Seite fuellt #c-linie
+      const linieBox = make("div", "c-linie px-hero-linie");
+      linieBox.id = "c-linie";
+      linieBox.hidden = true;
 
       const context = make("div", "px-hero-main-context");
       const contextCopy = make("div", "px-hero-main-context-copy");
@@ -4116,8 +4203,12 @@ window.addEventListener('resize',()=>{
         )
       );
 
-      slide.append(topline, body, context);
+      slide.append(topline, body, linieBox, context);
       mainSlide.append(slide);
+
+      if (typeof window.heroLinie === "function") {
+        try { window.heroLinie(mainCard, story); } catch (error) { linieBox.hidden = true; }
+      }
 
       if (!reducedMotion.matches) {
         requestAnimationFrame(() => {
@@ -4883,6 +4974,27 @@ window.addEventListener('resize',()=>{
       renderControls();
       startCarousel();
     };
+
+    // Klick auf eine Karte oeffnet das Artikel-Overlay (30.08.26, wie im alten
+    // Hero). "Artikel lesen", Karussell-Steuerung, Linienband, Video und die
+    // Release-Kachel behalten ihr eigenes Ziel; Strg-/Mittelklick oeffnet die Quelle.
+    hero.addEventListener("click", event => {
+      if (typeof window.klOpenArticle !== "function") return;
+      if (typeof window.klPlainClick === "function" && !window.klPlainClick(event)) return;
+      const target = event.target;
+      if (target.closest(
+        ".px-hero-article-link, [data-px-carousel-controls], #c-linie, .px-hero-card-video, [data-px-release]"
+      )) return;
+
+      let story = null;
+      if (target.closest("[data-px-main-card]")) story = stories[currentStory];
+      else if (target.closest("[data-px-side-one]")) story = stories[1];
+      else if (target.closest("[data-px-side-two]")) story = stories[2];
+      if (!story) return;
+
+      event.preventDefault();
+      window.klOpenArticle(story);
+    });
 
     // Kommt die Auswahl der Seite erst nach init() an, neu zeichnen.
     window.pxHeroSetStories = list => {
