@@ -283,7 +283,23 @@ jobs:
           # worden). Mixed reset setzt den Index auf origin/main; git add stagt danach
           # NUR die generierten Dateien aus der Arbeitskopie - alles andere bleibt
           # exakt auf dem Stand von origin/main.
+          # 28.09.26: index.html ist Vorlage UND Generat. Wurde die Vorlage waehrend des
+          # Laufs auf main geaendert (PR gemergt), die generierten SSR-Bereiche in die NEUE
+          # Vorlage uebertragen statt die alte Vorlage zurueckzuschreiben (PR #18 wurde so
+          # von e021015 still zurueckgedreht). Scheitert das, bleibt es beim Generat.
+          START_SHA=$(git rev-parse HEAD)
+          vorlage_nachziehen() {
+            git cat-file -e origin/main:index.html 2>/dev/null || return 0
+            git diff --quiet "$START_SHA" origin/main -- index.html && return 0
+            git show origin/main:index.html > /tmp/idx_vorlage.html
+            if python3 tools/ssr_uebertragen.py /tmp/idx_vorlage.html index.html /tmp/idx_neu.html; then
+              cp /tmp/idx_neu.html index.html
+            else
+              echo "::warning::index.html: Vorlage von main nicht uebernommen (SSR-Bereiche passen nicht)"
+            fi
+          }
           add_and_commit() {
+            vorlage_nachziehen
             git add index.html ki_news.html news.json admin-posts.html post-cache.json 2>/dev/null || true
             git add summary-cache.json 2>/dev/null || true
             git add archive.json ki_news.log 2>/dev/null || true
