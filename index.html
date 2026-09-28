@@ -1937,6 +1937,54 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   #px-hero [data-px-main-slide] > .c-text h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(24px, 2.2vw, 30px); font-weight: 700; line-height: 1.3; margin: 0 0 12px; color: var(--px-ink); }
   #px-hero [data-px-main-slide] > .c-text p { font-size: 15px; line-height: 1.7; margin: 0; color: var(--px-muted); }
 </style>
+<style>
+/* Kompakte Startseite (28.09.26, Auftrag 8) */
+.kk{display:grid;gap:18px}
+.kk[hidden]{display:none}
+.kk-ansicht{justify-self:end;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--hairline,#2f3336);border-radius:999px}
+.kk-ansicht-knopf{border:0;background:transparent;color:var(--muted,#8b98a5);font:600 11px/1 'Work Sans',sans-serif;padding:6px 12px;border-radius:999px;cursor:pointer}
+.kk-ansicht-knopf[aria-pressed="true"]{background:var(--accent,#00d4ff);color:#001018}
+.kk-block{border:1px solid rgba(var(--neon-rgb,0,212,255),.16);border-radius:12px;padding:14px;background:rgba(var(--neon-rgb,0,212,255),.02);box-shadow:0 0 18px rgba(var(--neon-rgb,0,212,255),.04);min-width:0}
+.kk-block[hidden]{display:none}
+.kk-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.kk-titel{font:700 17px/1.2 'Space Grotesk',sans-serif;margin:0}
+.kk-zaehler{font:600 11px/1 ui-monospace,monospace;letter-spacing:.06em;color:var(--muted,#8b98a5);white-space:nowrap}
+.kk-reiter{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.kk-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--hairline,#2f3336);background:transparent;color:inherit;border-radius:999px;padding:6px 8px 6px 12px;font:600 12px/1 'Work Sans',sans-serif;cursor:pointer}
+.kk-tab b{font:700 10px/1 ui-monospace,monospace;min-width:22px;padding:4px 6px;border-radius:999px;background:rgba(var(--neon-rgb,0,212,255),.12);color:var(--accent,#00d4ff)}
+.kk-tab[aria-selected="true"]{border-color:var(--accent,#00d4ff);box-shadow:0 0 12px rgba(var(--neon-rgb,0,212,255),.22)}
+.kk-tab:focus-visible,.kk-ansicht-knopf:focus-visible,.kk-mehr:focus-visible{outline:2px solid var(--accent,#00d4ff);outline-offset:2px}
+.kk-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:860px){.kk-top{grid-template-columns:minmax(0,1fr)}}
+.kk-karte{display:grid;gap:6px;align-content:start;padding:12px 12px 12px 14px;border:1px solid var(--hairline,#2f3336);border-left:3px solid var(--kk-farbe,var(--accent,#00d4ff));border-radius:12px;color:inherit;text-decoration:none;min-width:0}
+.kk-karte:hover,.kk-zeile a:hover{border-color:rgba(var(--neon-rgb,0,212,255),.6)}
+.kk-karte-titel{font:600 15px/1.3 'Space Grotesk',sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kk-karte-text{font-size:13px;line-height:1.45;color:var(--muted,#8b98a5);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kk-meta{font:600 10px/1.3 ui-monospace,monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--muted,#8b98a5)}
+@media(max-width:640px){.kk-karte-text{display:none}.kk-karte{padding:10px 12px}}
+.kk-liste{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.kk-zeile a{display:grid;grid-template-columns:44px minmax(0,110px) minmax(0,1fr);gap:10px;align-items:baseline;padding:8px 10px;border:1px solid transparent;border-radius:10px;color:inherit;text-decoration:none}
+.kk-zeile a:focus-visible{outline:2px solid var(--accent,#00d4ff)}
+.kk-zeile-zeit{font:600 11px/1 ui-monospace,monospace;color:var(--muted,#8b98a5)}
+.kk-zeile-quelle{font:700 10px/1.2 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kk-zeile-titel{font-size:14px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:560px){.kk-zeile a{grid-template-columns:40px minmax(0,1fr);row-gap:2px}.kk-zeile-quelle{grid-column:2}.kk-zeile-titel{grid-column:1/-1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
+.kk-mehr{margin-top:8px;width:100%;border:1px dashed rgba(var(--neon-rgb,0,212,255),.3);background:transparent;color:var(--accent,#00d4ff);border-radius:12px;padding:10px;font:600 12px/1 'Work Sans',sans-serif;cursor:pointer}
+.kk-mehr[hidden]{display:none}
+.kk-extra{margin-top:8px}
+.kk-rail{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.kk-linie{flex:0 0 min(260px,78%);scroll-snap-align:start;display:grid;gap:6px;padding:10px 12px;border:1px solid var(--hairline,#2f3336);border-radius:12px;color:inherit;text-decoration:none}
+.kk-linie:hover{border-color:rgba(var(--neon-rgb,0,212,255),.6)}
+.kk-linie-titel{font:600 14px/1.3 'Space Grotesk',sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html.light .kk-block{background:rgba(255,255,255,.7)}
+html.light .kk-ansicht-knopf[aria-pressed="true"]{color:#fff;background:#0891b2}
+/* Neueste Analysen: auf dem Handy als waagrechter Streifen statt drei gestapelter Karten */
+@media(max-width:640px){
+  section[aria-labelledby="neueste-analysen"] > .grid{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x proximity;padding-bottom:6px}
+  section[aria-labelledby="neueste-analysen"] > .grid > a{flex:0 0 78%;scroll-snap-align:start}
+  section[aria-labelledby="neueste-analysen"]{margin-top:24px}
+}
+</style>
 </head>
 <body class="font-body-lg">
 <script src="assets/ki-layout.js"></script>
@@ -2251,6 +2299,29 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         <a href="https://news.google.com/rss/articles/CBMiqgFBVV95cUxORlQtenNaMmxRamtwOWktWUNHZVFtckphUmw4YlBLNkRURE51WHB4QVh4dmRjSkFsUktWdjk4ekpFbGFOeVJ5ZEh2a0lzMVNSa2pUMUdseHBwejhzSlZFeFdlUEdHV19LMUZaUXlCV0RhUS1mSzNtVDh1b1QzUE9lNDlWTTVYNWtQZFFYSGlGalhYZEpId0tMRk04eW51aGV4YWtBOGdrb2VSdw?oc=5" target="_blank" rel="noopener noreferrer" class="ki-card ki-border border p-4 flex flex-col h-full transition-all"><svg class="card-bg"><use href="assets/ki-maps.svg#map-welt" width="100%" height="100%"/></svg><div class="card-scrim"></div><div class="card-content flex flex-col h-full"><div class="ki-card-thumb" style="margin:-16px -16px 14px;position:relative;padding-top:52%;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)"><img src="assets/ph/ph-17.jpg" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.style.display=&#x27;none&#x27;" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div><div class="flex items-center justify-between mb-4"><span class="text-white px-2 py-0.5 font-source-tag text-source-tag rounded-sm uppercase" style="background:#555">Reuters AI</span></div><h4 class="font-headline-md ki-main mb-2 leading-snug" style="font-family:'Space Grotesk',sans-serif;margin-top:auto">China treibt den Wettlauf an, KI-Video zur Industrie zu machen.</h4><p class="text-on-surface-variant font-body-sm text-body-sm mb-6">China fördert massiv die Kommerzialisierung von KI-Videotechnologien durch staatliche Investitionen und politische Anreize. Zahlreiche Startups und Tech-Giganten entwickeln konkurrierende Modelle für Text-zu-Video und Videobearbeitung. Der Staat sieht KI-Video als strategischen Wachstumsmarkt und Exportschlager der digitalen Wirtschaft.</p><div class="pt-4 ki-border border-t flex items-center justify-between"><span class="text-[11px] font-mono uppercase" style="color:#555">Reuters AI</span><div style="display:flex;align-items:center;gap:6px"><span class="text-[11px] font-mono ki-faint">· 28.09.2026</span><span class="text-[10px] font-mono ki-faint" title="Score">18</span></div></div></div></a>
       </div>
       <!-- SSR:NEWS:END -->
+      <!-- Kompakte Startseite (28.09.26, Auftrag 8): Themen-Reiter + dichte Liste statt
+           aller Meldungen als volle Karten. Das vorgerenderte Raster oben bleibt im HTML
+           (Crawler, ohne JS); mit JS blendet kkRender() es aus und fuellt diesen Block. -->
+      <div id="ki-kompakt" class="kk" hidden>
+        <div class="kk-ansicht" role="group" aria-label="Ansicht">
+          <button type="button" class="kk-ansicht-knopf" data-ansicht="kompakt" aria-pressed="true">Kompakt</button>
+          <button type="button" class="kk-ansicht-knopf" data-ansicht="karten" aria-pressed="false">Karten</button>
+        </div>
+        <section class="kk-block" aria-labelledby="kk-themen-titel">
+          <div class="kk-kopf"><h4 id="kk-themen-titel" class="kk-titel">Themenlage</h4><span class="kk-zaehler" id="kk-themen-zahl"></span></div>
+          <div class="kk-reiter" id="kk-reiter" role="tablist" aria-label="Themen"></div>
+          <div class="kk-panel" id="kk-panel" role="tabpanel"></div>
+        </section>
+        <section class="kk-block" aria-labelledby="kk-rest-titel">
+          <div class="kk-kopf"><h4 id="kk-rest-titel" class="kk-titel">Weitere Meldungen</h4><span class="kk-zaehler" id="kk-rest-zahl"></span></div>
+          <ol class="kk-liste" id="kk-rest"></ol>
+          <button type="button" class="kk-mehr" id="kk-rest-mehr" hidden></button>
+        </section>
+        <section class="kk-block" id="kk-linien-block" aria-labelledby="kk-linien-titel" hidden>
+          <div class="kk-kopf"><h4 id="kk-linien-titel" class="kk-titel">Laufende Entwicklungen</h4><span class="kk-zaehler" id="kk-linien-zahl"></span></div>
+          <div class="kk-rail" id="kk-linien"></div>
+        </section>
+      </div>
     </div>
 
     <!-- SSR:ARTIKEL:START -->
@@ -2867,6 +2938,168 @@ function initHero(stories) {
   heroRender(false); heroStartAuto();
 }
 
+// ── Kompakte Startseite (28.09.26, Auftrag 8) ─────────────────────────────
+// Themen per Schluesselwort (aus dem Entwurf start_kompakt uebernommen, Firmen-
+// namen zaehlen nur halb, sonst landet jede OpenAI-Sicherheitsmeldung bei
+// "KI-Modelle"). Jede Meldung kommt in genau ein Thema; keine geht verloren.
+var KK_THEMEN = [
+  { id: 'sicherheit', label: 'Sicherheit', farbe: '#ef4444', m: [/\b(sicherheit\w*|security|cyber\w*|hack\w*|angriff\w*|attacke|malware|datenverlust|data breach|deepfake|prompt injection|jailbreak|schwachstelle\w*|exploit|sicherheitsl(ü|ue)cke|phishing|ransomware|unbefugt\w*|missbrauch\w*)\b/gi] },
+  { id: 'politik', label: 'Politik & Recht', farbe: '#8b5cf6', m: [/\b(eu[- ]?kommission|ai act|gesetz\w*|parlament|kongress|senat\w*|wahl\w*|gericht\w*|urteil|beh(ö|oe)rde\w*|regulier\w*|exportkontroll\w*|sanktion\w*|geopoliti\w*|trump|wei(ß|ss)e[sn]? haus|white house|regierung\w*|pentagon|minister\w*|politik\w*|un[- ]sicherheitsrat|vereinte nationen)\b/gi] },
+  { id: 'wirtschaft', label: 'Wirtschaft', farbe: '#10b981', m: [/\b(investi\w*|finanzierung\w*|funding|kapital|b(ö|oe)rse\w*|aktie\w*|bewertung|umsatz|revenue|quartal\w*|gewinn\w*|verlust\w*|milliard\w*|(ü|ue)bernahme\w*|fusion|deal\w*|wirtschaft\w*|markt\w*|kosten|entlassung\w*|jobs?|arbeitspl(ä|ae)tz\w*|ipo)\b/gi] },
+  { id: 'forschung', label: 'Forschung', farbe: '#f59e0b', m: [/\b(forsch\w*|wissenschaft\w*|studie\w*|paper|arxiv|benchmark\w*|neurips|icml|universit(ä|ae)t\w*|experiment\w*|entdeck\w*|mathemati\w*|medizin\w*|biolog\w*)\b/gi] },
+  { id: 'produkte', label: 'Produkte & Tools', farbe: '#3b82f6', m: [/\b(app|apps|browser|software|plattform|tool\w*|agent\w*|assistent\w*|chatbot\w*|roboter\w*|robotik|humanoid\w*|feature\w*|funktion\w*|update\w*|produkt\w*|api|plugin\w*|ger(ä|ae)t\w*|brille|smartphone|laptop\w*|chip\w*|gpu\w*)\b/gi] },
+  { id: 'modelle', label: 'KI-Modelle', farbe: '#00d4ff', m: [/\b(gpt[\w.-]*|chatgpt|claude|gemini|gemma|llama|mistral|deepseek|qwen|grok|opus|sonnet|kimi|glm|modell\w*|model|open[- ]?weight|release)\b/gi], halb: [/\b(openai|anthropic|google|deepmind|xai|meta|nvidia)\b/gi] }
+];
+var KK_SONST = { id: 'sonst', label: 'Weitere Themen', farbe: '#94a3b8' };
+function kkThema(item) {
+  var t = ((item.title || '') + ' ' + (item.summary || '')).toLowerCase(), best = KK_SONST, bestN = 0;
+  KK_THEMEN.forEach(function (th) {
+    var n = 0;
+    th.m.forEach(function (re) { n += (t.match(re) || []).length; });
+    (th.halb || []).forEach(function (re) { n += 0.5 * (t.match(re) || []).length; });
+    if (n > bestN) { bestN = n; best = th; }
+  });
+  return best;
+}
+function kkDatum(item) {
+  var d = item.first_seen || item.date || '';
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+  return m ? m[3] + '.' + m[2] + '.' : '';
+}
+function kkLink(item, cls) {
+  var a = document.createElement('a');
+  a.className = cls;
+  a.href = item.link || '#';
+  if (item.link) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+  // wie renderCard(): normaler Klick -> Overlay, Strg/Mittelklick -> Quelle
+  a.onclick = function (e) {
+    if (typeof window.klPlainClick === 'function' && !window.klPlainClick(e)) return;
+    if (typeof window.klOpenArticle !== 'function') return;
+    e.preventDefault();
+    window.klOpenArticle(item);
+  };
+  return a;
+}
+function kkEl(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function kkKarte(item, farbe) {
+  var a = kkLink(item, 'kk-karte');
+  a.style.setProperty('--kk-farbe', item.color || farbe);
+  a.appendChild(kkEl('span', 'kk-karte-titel', item.title || ''));
+  if (item.summary) a.appendChild(kkEl('span', 'kk-karte-text', item.summary));
+  a.appendChild(kkEl('span', 'kk-meta', (item.source || '') + (kkDatum(item) ? ' · ' + kkDatum(item) : '')));
+  return a;
+}
+function kkZeile(item) {
+  var li = kkEl('li', 'kk-zeile'), a = kkLink(item, '');
+  a.appendChild(kkEl('span', 'kk-zeile-zeit', kkDatum(item)));
+  var q = kkEl('span', 'kk-zeile-quelle', item.source || '');
+  q.style.color = item.color || '';
+  a.appendChild(q);
+  a.appendChild(kkEl('span', 'kk-zeile-titel', item.title || ''));
+  li.appendChild(a);
+  return li;
+}
+function kkNeueste(a, b) {
+  var da = a.first_seen || a.date || '', db = b.first_seen || b.date || '';
+  return da < db ? 1 : da > db ? -1 : (b.score || 0) - (a.score || 0);
+}
+function kkRender(liste, data) {
+  var box = document.getElementById('ki-kompakt'), grid = document.getElementById('news-grid');
+  if (!box || !grid || !liste.length) return false;
+  var gruppen = {}, reihenfolge = KK_THEMEN.concat([KK_SONST]);
+  liste.forEach(function (n) { var th = kkThema(n); (gruppen[th.id] = gruppen[th.id] || []).push(n); });
+  var themen = reihenfolge.filter(function (th) { return (gruppen[th.id] || []).length; });
+  themen.sort(function (a, b) { return a.id === 'sonst' ? 1 : b.id === 'sonst' ? -1 : gruppen[b.id].length - gruppen[a.id].length; });
+  themen.forEach(function (th) { gruppen[th.id].sort(function (a, b) { return (b.score || 0) - (a.score || 0); }); });
+  var gezeigt = new Set();
+  themen.forEach(function (th) { gruppen[th.id].slice(0, 3).forEach(function (n) { gezeigt.add(n); }); });
+
+  var reiter = document.getElementById('kk-reiter'), panel = document.getElementById('kk-panel');
+  document.getElementById('kk-themen-zahl').textContent = themen.length + ' Themen';
+  function zeigeThema(id) {
+    var th = themen.filter(function (t) { return t.id === id; })[0] || themen[0], alle = gruppen[th.id];
+    reiter.querySelectorAll('.kk-tab').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.id === th.id ? 'true' : 'false'); b.tabIndex = b.dataset.id === th.id ? 0 : -1; });
+    panel.replaceChildren();
+    panel.setAttribute('aria-label', th.label);
+    var top = kkEl('div', 'kk-top');
+    alle.slice(0, 3).forEach(function (n) { top.appendChild(kkKarte(n, th.farbe)); });
+    panel.appendChild(top);
+    if (alle.length > 3) {
+      var extra = kkEl('ol', 'kk-liste kk-extra'), mehr = kkEl('button', 'kk-mehr', (alle.length - 3) + ' weitere Meldungen zu ' + th.label + ' öffnen');
+      extra.hidden = true; mehr.type = 'button'; mehr.setAttribute('aria-expanded', 'false');
+      mehr.onclick = function () {
+        var auf = extra.hidden;
+        if (auf && !extra.childElementCount) alle.slice(3).forEach(function (n) { extra.appendChild(kkZeile(n)); });
+        extra.hidden = !auf;
+        mehr.setAttribute('aria-expanded', auf ? 'true' : 'false');
+        mehr.textContent = auf ? 'Liste zuklappen' : (alle.length - 3) + ' weitere Meldungen zu ' + th.label + ' öffnen';
+      };
+      panel.appendChild(mehr); panel.appendChild(extra);
+    }
+  }
+  reiter.replaceChildren();
+  themen.forEach(function (th) {
+    var b = kkEl('button', 'kk-tab'); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.id = th.id;
+    b.appendChild(document.createTextNode(th.label)); b.appendChild(kkEl('b', '', String(gruppen[th.id].length)));
+    b.onclick = function () { zeigeThema(th.id); };
+    reiter.appendChild(b);
+  });
+  reiter.onkeydown = function (e) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    var tabs = Array.prototype.slice.call(reiter.querySelectorAll('.kk-tab')), i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var j = (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[j].focus(); tabs[j].click(); e.preventDefault();
+  };
+  zeigeThema(themen[0].id);
+
+  // Restliste: alles, was nicht als Top-3 eines Themas steht, neueste zuerst
+  var rest = liste.filter(function (n) { return !gezeigt.has(n); }).sort(kkNeueste);
+  var ol = document.getElementById('kk-rest'), mehrRest = document.getElementById('kk-rest-mehr'), n = 0;
+  document.getElementById('kk-rest-zahl').textContent = rest.length + ' Meldungen';
+  function mehr(k) {
+    rest.slice(n, n + k).forEach(function (it) { ol.appendChild(kkZeile(it)); });
+    n = Math.min(rest.length, n + k);
+    mehrRest.hidden = n >= rest.length;
+    mehrRest.textContent = 'Mehr zeigen (' + (rest.length - n) + ' weitere)';
+  }
+  ol.replaceChildren(); mehrRest.onclick = function () { mehr(20); };
+  mehr(window.matchMedia && window.matchMedia('(max-width: 640px)').matches ? 5 : 10);
+
+  // Laufende Entwicklungen (Linien) als schmaler Streifen
+  var linien = data && data.linien ? Object.keys(data.linien).map(function (id) { return [id, data.linien[id]]; }) : [];
+  linien = linien.filter(function (x) { return (x[1].e || []).length >= 2; })
+    .sort(function (a, b) { return (b[1].e || []).length - (a[1].e || []).length; }).slice(0, 12);
+  if (linien.length) {
+    var rail = document.getElementById('kk-linien'); rail.replaceChildren();
+    linien.forEach(function (x) {
+      var l = x[1], ee = l.e || [], titel = (l.dossier && l.dossier.titel) || (ee[0] && ee[0].t) || '';
+      var a = kkEl('a', 'kk-linie'); a.href = 'linie.html#l=' + encodeURIComponent(x[0]);
+      a.appendChild(kkEl('span', 'kk-meta', ee.length + ' Entwicklungen · seit ' + (window.klLinieDatum ? window.klLinieDatum(l.seit) : (l.seit || ''))));
+      a.appendChild(kkEl('span', 'kk-linie-titel', titel));
+      rail.appendChild(a);
+    });
+    document.getElementById('kk-linien-zahl').textContent = linien.length + ' Linien';
+    document.getElementById('kk-linien-block').hidden = false;
+  }
+
+  // Umschalter Kompakt / Karten (Karten = bisherige Ansicht, erst bei Bedarf gebaut)
+  var gebaut = false;
+  function ansicht(v) {
+    var karten = v === 'karten';
+    if (karten && !gebaut) { grid.innerHTML = ''; liste.forEach(function (it) { grid.appendChild(renderCard(it)); }); gebaut = true; }
+    grid.style.display = karten ? '' : 'none'; // .grid (display:grid) ueberstimmt [hidden]
+    box.querySelectorAll('.kk-block').forEach(function (b) { if (b.id !== 'kk-linien-block') b.hidden = karten; });
+    box.querySelectorAll('.kk-ansicht-knopf').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.ansicht === v ? 'true' : 'false'); });
+    try { localStorage.setItem('ki_start_ansicht', v); } catch (e) {}
+  }
+  box.querySelectorAll('.kk-ansicht-knopf').forEach(function (b) { b.onclick = function () { ansicht(b.dataset.ansicht); }; });
+  box.hidden = false;
+  var gemerkt = 'kompakt'; try { gemerkt = localStorage.getItem('ki_start_ansicht') || 'kompakt'; } catch (e) {}
+  ansicht(gemerkt === 'karten' ? 'karten' : 'kompakt');
+  return true;
+}
+
 // ── Data fetch ────────────────────────────────────────────────────────────
 var topLinks = [], currentNewsContext = '';
 Promise.all([
@@ -2962,8 +3195,11 @@ Promise.all([
   filtered.sort(function(a,b){ return (b.score||0)-(a.score||0); });
   window.__ttsList = filtered;
   window.__ttsEditorial = (data.editorial || '');
-  grid.innerHTML = '';
-  filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
+  window.__kkAlle = filtered;
+  if (!kkRender(filtered, data)) {
+    grid.innerHTML = '';
+    filtered.forEach(function(item){ grid.appendChild(renderCard(item)); });
+  }
   if (label && data.stand) label.textContent = 'Stand: ' + data.stand;
   // Fund 08.07.26: Bot-Kontext bestand nur aus Kurz-Summaries (alle News,
   // ungewichtet) - bei Rueckfragen zu Top-Storys (z.B. Saechsische-Zeitung-
