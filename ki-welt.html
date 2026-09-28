@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<meta charset="utf-8"/>
+<link rel="icon" type="image/png" href="s-logo.png"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KI-Welt · KI News</title>
+<meta name="description" content="Die KI-Nachrichten als Voxel-Stadt: jeder Hersteller ein Viertel, Gebäudehöhe gleich Meldungen pro Tag."/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="canonical" href="https://ki-news.live/ki-welt.html"/>
+<link rel="stylesheet" href="assets/ki-tw.css"/>
+<link rel="stylesheet" href="assets/ki-fonts.css"/>
+<script src="assets/ki-icons.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<style>
+/* KI-Welt (28.09.26, Auftrag 7.2): eigene Voxel-Stadt, nicht der Entwurf. Jeder grosse
+   Hersteller ein Viertel, sieben Haeuser = sieben Tage, Hoehe = Meldungen des Tages
+   (news.json + archive.json, Zuordnung ueber entities.json wie graph.html). */
+:root { --kw-card: rgba(8, 14, 22, .86); --kw-ink: #eaf4f8; --kw-muted: #93a6b1; --kw-line: rgba(var(--neon-rgb, 0, 212, 255), .2); }
+html.light { --kw-card: rgba(255, 255, 255, .92); --kw-ink: #0f172a; --kw-muted: #516474; --kw-line: rgba(0, 140, 180, .24); }
+body { background: #02050a; color: var(--kw-ink); overflow-x: hidden; }
+html.light body { background: #dfeaf0; }
+.kw { position: relative; height: 100vh; height: 100dvh; min-height: 520px; }
+#kw-3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#kw-3d.zieht { cursor: grabbing; }
+.kw-kopf { position: absolute; left: 16px; top: 72px; max-width: min(520px, calc(100% - 32px)); pointer-events: none; }
+.kw-mono { font: 600 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .09em; text-transform: uppercase; color: var(--kw-muted); }
+.kw-h1 { font: 700 clamp(34px, 5.4vw, 66px)/.95 'Space Grotesk', sans-serif; letter-spacing: -.04em; margin: 6px 0 8px; text-shadow: 0 2px 24px rgba(0, 0, 0, .35); }
+.kw-h1 span { color: var(--accent, #00d4ff); }
+.kw-lead { font: 400 14px/1.55 'Work Sans', sans-serif; color: var(--kw-muted); margin: 0; max-width: 46ch; }
+.kw-karte { background: var(--kw-card); border: 1px solid var(--kw-line); border-radius: 12px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 10px 34px rgba(0, 0, 0, .3); }
+.kw-leiste { position: absolute; right: 16px; top: 72px; display: grid; gap: 8px; width: 250px; padding: 12px; }
+.kw-leiste .kw-zeile { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.kw-leiste b { font: 700 13px/1 'Space Grotesk', sans-serif; }
+.kw-legende { display: grid; gap: 4px; max-height: 220px; overflow-y: auto; }
+.kw-legende button { all: unset; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 6px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+.kw-legende button:hover, .kw-legende button:focus-visible { background: rgba(var(--neon-rgb, 0, 212, 255), .08); outline: none; }
+.kw-legende i { width: 10px; height: 10px; border-radius: 3px; }
+.kw-legende span:last-child { font: 600 11px/1 ui-monospace, monospace; color: var(--kw-muted); }
+.kw-unten { position: absolute; left: 16px; bottom: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; pointer-events: none; }
+.kw-unten > * { pointer-events: auto; }
+.kw-hilfe { padding: 8px 12px; font: 500 11px/1.4 ui-monospace, monospace; color: var(--kw-muted); }
+.kw-knopf { border: 1px solid var(--kw-line); background: var(--kw-card); color: inherit; border-radius: 999px; padding: 8px 14px; font: 600 12px/1 'Work Sans', sans-serif; cursor: pointer; }
+.kw-knopf:hover, .kw-knopf:focus-visible { border-color: var(--accent, #00d4ff); outline: none; }
+#kw-tip { position: absolute; z-index: 5; pointer-events: none; display: none; max-width: 260px; padding: 8px 10px; font-size: 12px; line-height: 1.4; }
+#kw-tip b { font: 700 13px/1.2 'Space Grotesk', sans-serif; display: block; }
+#kw-panel { position: fixed; z-index: 70; right: 16px; top: 64px; bottom: 16px; width: min(380px, calc(100% - 32px)); display: flex; flex-direction: column;
+  transform: translateX(calc(100% + 24px)); transition: transform .25s ease; }
+#kw-panel.offen { transform: none; }
+.kw-panel-kopf { padding: 16px; border-bottom: 1px solid var(--kw-line); position: relative; }
+.kw-panel-kopf h2 { font: 700 22px/1.15 'Space Grotesk', sans-serif; margin: 4px 36px 4px 0; }
+#kw-zu { position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; padding: 0; border-radius: 50%; }
+.kw-liste { overflow-y: auto; padding: 10px 12px 16px; display: grid; gap: 6px; align-content: start; }
+.kw-liste a { display: grid; gap: 3px; padding: 9px 11px; border: 1px solid var(--kw-line); border-radius: 10px; color: inherit; text-decoration: none; }
+.kw-liste a:hover, .kw-liste a:focus-visible { border-color: var(--accent, #00d4ff); outline: none; }
+.kw-liste strong { font: 600 13.5px/1.35 'Space Grotesk', sans-serif; }
+.kw-liste span { font: 600 10px/1.3 ui-monospace, monospace; letter-spacing: .05em; text-transform: uppercase; color: var(--kw-muted); }
+#kw-fehler { position: absolute; inset: 0; display: none; place-items: center; text-align: center; padding: 24px; color: var(--kw-muted); }
+@media (max-width: 760px) {
+  .kw-leiste { display: none; }
+  .kw-kopf { top: 66px; }
+  .kw-lead { font-size: 13px; }
+  .kw-hilfe { display: none; }
+  #kw-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 58vh; transform: translateY(calc(100% + 24px)); }
+  #kw-panel.offen { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { #kw-panel { transition: none; } }
+</style>
+</head>
+<body class="font-body-lg">
+<script src="assets/ki-layout.js"></script>
+<main class="kw" id="main-content">
+  <canvas id="kw-3d" aria-label="Voxel-Stadt der KI-Nachrichten. Hersteller als Viertel, Gebäude als Tage. Details über die Legende rechts."></canvas>
+  <div class="kw-kopf">
+    <p class="kw-mono" style="color:var(--accent,#00d4ff)">KI News / Voxel-Stadt</p>
+    <h1 class="kw-h1">Die <span>KI-Welt</span></h1>
+    <p class="kw-lead" id="kw-lead">Jeder Hersteller ein Viertel. Sieben Häuser sind die letzten sieben Tage, die Höhe ist die Zahl der Meldungen. Der leuchtende Turm trägt die Top-Story.</p>
+  </div>
+  <aside class="kw-karte kw-leiste" aria-label="Viertel">
+    <div class="kw-zeile"><span class="kw-mono">Stand</span><b id="kw-stand">lädt</b></div>
+    <div class="kw-zeile"><span class="kw-mono">Meldungen 7 Tage</span><b id="kw-summe">-</b></div>
+    <div class="kw-zeile"><span class="kw-mono">Tageszeit</span><b id="kw-zeit">-</b></div>
+    <div class="kw-mono" style="margin-top:4px">Viertel (Klick fliegt hin)</div>
+    <div class="kw-legende" id="kw-legende"></div>
+  </aside>
+  <div class="kw-unten">
+    <span class="kw-karte kw-hilfe">Ziehen dreht · Rad oder zwei Finger zoomen · Klick auf ein Haus zeigt die Meldungen</span>
+    <button class="kw-knopf" id="kw-rund" type="button">Rundflug</button>
+  </div>
+  <div class="kw-karte" id="kw-tip"></div>
+  <div id="kw-fehler"></div>
+</main>
+<aside class="kw-karte" id="kw-panel" aria-live="polite" aria-label="Meldungen">
+  <div class="kw-panel-kopf">
+    <button class="kw-knopf" id="kw-zu" type="button" aria-label="Schließen">×</button>
+    <span class="kw-mono" id="kw-p-ober"></span>
+    <h2 id="kw-p-titel"></h2>
+    <span class="kw-mono" id="kw-p-meta"></span>
+  </div>
+  <div class="kw-liste" id="kw-p-liste"></div>
+</aside>
+<script>
+(function () {
+  "use strict";
+  var fehlerBox = document.getElementById("kw-fehler");
+  function fehler(t) { fehlerBox.textContent = t; fehlerBox.style.display = "grid"; }
+  if (!window.THREE) { fehler("Die 3D-Bibliothek konnte nicht geladen werden."); return; }
+  var T = window.THREE, klein = window.matchMedia("(max-width: 760px)").matches, still = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var canvas = document.getElementById("kw-3d"), renderer;
+  try { renderer = new T.WebGLRenderer({ canvas: canvas, antialias: !klein, powerPreference: "high-performance" }); }
+  catch (e) { fehler("WebGL ist in diesem Browser nicht verfügbar."); return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, klein ? 1.25 : 2));
+  renderer.shadowMap.enabled = !klein; renderer.shadowMap.type = T.PCFSoftShadowMap;
+
+  // ── Farbwelten je Hersteller (eigene Paletten, keine Logos) ──
+  var FARBEN = { OpenAI: 0x3ee6c1, Anthropic: 0xff9b54, Google: 0x4f8dff, Meta: 0x6c7bff, Nvidia: 0x86d800, Microsoft: 0x3fb4ff, Apple: 0xd8dde6,
+    xAI: 0xb0b8c4, Mistral: 0xff7a1a, DeepSeek: 0x4a6cff, Alibaba: 0xff6a3d, Amazon: 0xffb13d, Moonshot: 0x9d7bff, Samsung: 0x3d7bff, Tesla: 0xff4a55, Intel: 0x3fa9f5 };
+  function farbeFuer(id, i) { return FARBEN[id] != null ? FARBEN[id] : new T.Color().setHSL((i * 0.137) % 1, 0.62, 0.58).getHex(); }
+
+  // ── Szene ──
+  var szene = new T.Scene(), kamera = new T.PerspectiveCamera(42, 1, 1, 2000);
+  var hemi = new T.HemisphereLight(0xcfe8ff, 0x1a2230, 0.9), sonne = new T.DirectionalLight(0xffffff, 1.2);
+  sonne.position.set(120, 180, 60); sonne.castShadow = !klein; sonne.shadow.mapSize.set(2048, 2048);
+  var sc = sonne.shadow.camera; sc.left = -170; sc.right = 170; sc.top = 170; sc.bottom = -170; sc.far = 600;
+  szene.add(hemi, sonne);
+  var boden = new T.Mesh(new T.PlaneGeometry(900, 900), new T.MeshStandardMaterial({ color: 0x0b141c, roughness: 1 }));
+  boden.rotation.x = -Math.PI / 2; boden.receiveShadow = true; szene.add(boden);
+  var raster = new T.GridHelper(900, 150, 0x1d3a4a, 0x10222c); raster.position.y = 0.02; szene.add(raster);
+
+  // Sterne fuer die Nacht
+  var sternGeo = new T.BufferGeometry(), sp = [];
+  for (var s = 0; s < (klein ? 250 : 600); s++) { var th = Math.random() * 6.283, ph = Math.random() * 1.2, r = 700; sp.push(Math.cos(th) * Math.cos(ph) * r, 80 + Math.sin(ph) * r, Math.sin(th) * Math.cos(ph) * r); }
+  sternGeo.setAttribute("position", new T.Float32BufferAttribute(sp, 3));
+  var sterne = new T.Points(sternGeo, new T.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false, transparent: true, opacity: 0 }));
+  szene.add(sterne);
+
+  // ── Tag / Nacht nach Uhrzeit ──
+  var nacht = 0;
+  function tageszeit() {
+    var d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+    var tag = Math.max(0, Math.sin((h - 6) / 12 * Math.PI)); // 0 nachts, 1 mittags
+    nacht = 1 - Math.min(1, tag * 1.6);
+    var himmel = new T.Color().lerpColors(new T.Color(0x040914), new T.Color(0x9fd3ea), Math.min(1, tag * 1.3));
+    if (h > 17 && h < 20.5) himmel.lerp(new T.Color(0xff8a5c), 0.25 * Math.sin((h - 17) / 3.5 * Math.PI));
+    szene.background = himmel; szene.fog = new T.Fog(himmel, 420, 1100);
+    hemi.intensity = 0.35 + tag * 0.75; sonne.intensity = 0.15 + tag * 1.15;
+    var winkel = (h - 6) / 12 * Math.PI; sonne.position.set(Math.cos(winkel) * 200, 40 + Math.max(0, Math.sin(winkel)) * 200, 70);
+    sterne.material.opacity = nacht * 0.9;
+    boden.material.color.set(nacht > 0.5 ? 0x070d13 : 0x0f1b24);
+    document.getElementById("kw-zeit").textContent = nacht > 0.6 ? "Nacht" : (nacht > 0.2 ? "Dämmerung" : "Tag");
+    fensterMat.emissiveIntensity = 0.15 + nacht * 1.35;
+  }
+
+  // ── Voxel-Bausteine (InstancedMesh je Material) ──
+  var WUERFEL = new T.BoxGeometry(1, 1, 1);
+  var fensterMat = new T.MeshStandardMaterial({ color: 0x1b2a36, emissive: 0xffd27a, emissiveIntensity: 0.4, roughness: 0.6 });
+  var baum = [], blaetter = [], fenster = [], klickbar = [], haeuserInfo = [];
+  function instanzen(liste, mat, schatten) {
+    if (!liste.length) return null;
+    var m = new T.InstancedMesh(WUERFEL, mat, liste.length), o = new T.Object3D(), c = new T.Color();
+    liste.forEach(function (b, i) { o.position.set(b.x, b.y, b.z); o.scale.set(b.sx || 1, b.sy || 1, b.sz || 1); o.updateMatrix(); m.setMatrixAt(i, o.matrix); if (b.c != null) m.setColorAt(i, c.set(b.c)); });
+    m.castShadow = schatten; m.receiveShadow = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    szene.add(m); return m;
+  }
+  // deterministischer Zufall: gleiche Daten = gleiche Stadt
+  function zufall(seed) { var x = Math.sin(seed * 9301 + 49297) * 233280; return x - Math.floor(x); }
+
+  // ── Daten ──
+  var HEUTE = new Date(); HEUTE.setHours(12, 0, 0, 0);
+  function tagIndex(d) { if (!d) return -1; var t = Math.round((HEUTE - new Date(d.slice(0, 10) + "T12:00:00")) / 86400000); return t >= 0 && t < 7 ? 6 - t : -1; }
+  function kurzDatum(off) { var d = new Date(HEUTE); d.setDate(d.getDate() - (6 - off)); return ("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "."; }
+  Promise.all([
+    fetch("news.json?t=" + Date.now()).then(function (r) { return r.json(); }),
+    fetch("archive.json?t=" + Date.now()).then(function (r) { return r.json(); }).catch(function () { return []; }),
+    fetch("entities.json").then(function (r) { return r.json(); }).catch(function () { return { entities: [] }; })
+  ]).then(baue).catch(function () { fehler("Die Nachrichtendaten konnten nicht geladen werden."); });
+
+  var viertel = [], turm = null, drohnen = [];
+  function baue(res) {
+    var news = res[0] || {}, archiv = Array.isArray(res[1]) ? res[1] : [], ent = res[2] || {};
+    var muster = (ent.entities || []).filter(function (e) { return e.typ === "anbieter"; }).map(function (e) {
+      try { return { id: e.id, re: new RegExp((e.aliasse || []).join("|"), "i") }; } catch (x) { return null; }
+    }).filter(Boolean);
+    var alle = {}, liste = [];
+    (news.news || []).concat(archiv).forEach(function (n) { if (n && n.link && !alle[n.link] && !n.dub_von) { alle[n.link] = n; liste.push(n); } });
+    var proAnbieter = {};
+    liste.forEach(function (n) {
+      var tg = tagIndex(n.first_seen || n.date); if (tg < 0) return;
+      var text = (n.title || "") + " " + (n.summary || "");
+      muster.forEach(function (m) { if (m.re.test(text)) { var a = proAnbieter[m.id] = proAnbieter[m.id] || { id: m.id, tage: [[], [], [], [], [], [], []], summe: 0 }; a.tage[tg].push(n); a.summe++; } });
+    });
+    viertel = Object.keys(proAnbieter).map(function (k) { return proAnbieter[k]; }).sort(function (a, b) { return b.summe - a.summe; }).slice(0, klein ? 6 : 9);
+    if (!viertel.length) { fehler("In den letzten sieben Tagen wurden keine Hersteller-Meldungen gefunden."); return; }
+    document.getElementById("kw-stand").textContent = (news.stand || "").slice(0, 16) || "-";
+    document.getElementById("kw-summe").textContent = liste.filter(function (n) { return tagIndex(n.first_seen || n.date) >= 0; }).length;
+
+    // Top-Story: hoechster Score der aktuellen news.json, einem Viertel zugeordnet
+    var top = (news.news || []).filter(function (n) { return !n.dub_von; }).sort(function (a, b) { return (b.score || 0) - (a.score || 0); })[0];
+
+    var max = Math.max.apply(null, viertel.map(function (v) { return Math.max.apply(null, v.tage.map(function (t) { return t.length; })); }).concat([1]));
+    var spalten = 3, abstand = 58, bloecke = [], dach = [];
+    viertel.forEach(function (v, i) {
+      var col = i % spalten, row = Math.floor(i / spalten), cx = (col - 1) * abstand, cz = (row - (Math.ceil(viertel.length / spalten) - 1) / 2) * abstand;
+      v.cx = cx; v.cz = cz; v.farbe = farbeFuer(v.id, i);
+      var basis = new T.Color(v.farbe).multiplyScalar(0.25).getHex();
+      // Grundplatte des Viertels (Voxel-Pflaster)
+      for (var x = -3; x <= 3; x++) for (var z = -3; z <= 3; z++) {
+        bloecke.push({ x: cx + x * 6, y: 0.5, z: cz + z * 6, sx: 5.8, sy: 1, sz: 5.8, c: ((x + z) & 1) ? basis : new T.Color(basis).offsetHSL(0, 0, 0.03).getHex() });
+      }
+      // sieben Haeuser = sieben Tage, entlang einer Strasse
+      v.tage.forEach(function (tagListe, t) {
+        var hx = cx - 18 + t * 6, hz = cz + (t % 2 ? -4 : 4), stock = Math.max(1, Math.round(tagListe.length / max * 14));
+        if (!tagListe.length) stock = 0;
+        for (var y = 0; y < stock; y++) {
+          bloecke.push({ x: hx, y: 1.5 + y * 2, z: hz, sx: 4, sy: 2, sz: 4, c: new T.Color(v.farbe).offsetHSL(0, -0.1, (y % 2 ? -0.05 : 0.02)).getHex() });
+          fenster.push({ x: hx, y: 1.5 + y * 2, z: hz, sx: 4.08, sy: 0.55, sz: 3.2 });
+          fenster.push({ x: hx, y: 1.5 + y * 2, z: hz, sx: 3.2, sy: 0.55, sz: 4.08 });
+        }
+        if (stock) dach.push({ x: hx, y: 1.5 + stock * 2 - 0.4, z: hz, sx: 4.4, sy: 0.4, sz: 4.4, c: 0x0d1a22 });
+        // unsichtbare Klick-Huelle je Haus
+        var hoehe = Math.max(1, stock * 2), huelle = new T.Mesh(new T.BoxGeometry(4.6, hoehe + 1, 4.6), new T.MeshBasicMaterial({ visible: false }));
+        huelle.position.set(hx, hoehe / 2 + 0.5, hz); huelle.userData = { viertel: v, tag: t, liste: tagListe }; szene.add(huelle); klickbar.push(huelle);
+      });
+      // Baeume (deterministisch)
+      for (var b = 0; b < (klein ? 3 : 7); b++) {
+        var bx = cx + (zufall(i * 31 + b) - 0.5) * 36, bz = cz + (zufall(i * 17 + b * 3) - 0.5) * 36;
+        if (Math.abs(bz - cz) < 8) bz += bz > cz ? 8 : -8;
+        baum.push({ x: bx, y: 2, z: bz, sx: 0.8, sy: 3, sz: 0.8, c: 0x5b3a22 });
+        blaetter.push({ x: bx, y: 4.5, z: bz, sx: 2.6, sy: 2.2, sz: 2.6, c: new T.Color(0x2e8b57).offsetHSL(zufall(i + b) * 0.08, 0, 0).getHex() });
+      }
+      v.tafel = schild(v.id, v.summe, v.farbe); v.tafel.position.set(cx, 3 + 14 * 2 + 6, cz - 20); szene.add(v.tafel);
+    });
+    var matBau = new T.MeshStandardMaterial({ roughness: 0.75, metalness: 0.05 });
+    instanzen(bloecke, matBau, true); instanzen(dach, new T.MeshStandardMaterial({ roughness: 0.9 }), true);
+    instanzen(fenster, fensterMat, false); instanzen(baum, new T.MeshStandardMaterial({ roughness: 1 }), true); instanzen(blaetter, new T.MeshStandardMaterial({ roughness: 0.9 }), true);
+
+    // Newsdesk-Turm in der Mitte + Top-Story
+    var mitte = new T.Group(), turmMat = new T.MeshStandardMaterial({ color: 0x0b1f2a, emissive: 0x00d4ff, emissiveIntensity: 0.8, roughness: 0.4 });
+    for (var y = 0; y < 16; y++) { var w = new T.Mesh(WUERFEL, turmMat); w.scale.set(5 - y * 0.18, 2, 5 - y * 0.18); w.position.y = 1 + y * 2; mitte.add(w); }
+    var huelleT = new T.Mesh(new T.BoxGeometry(6, 34, 6), new T.MeshBasicMaterial({ visible: false })); huelleT.position.y = 17; mitte.add(huelleT);
+    var licht = new T.PointLight(0x00d4ff, 2.2, 120); licht.position.y = 36; mitte.add(licht);
+    // Turm steht noerdlich vor den Vierteln, damit er kein Viertel verdeckt
+    var mx = 0, mz = Math.min.apply(null, viertel.map(function (v) { return v.cz; })) - 48;
+    mitte.position.set(mx, 0, mz); szene.add(mitte);
+    if (top) {
+      huelleT.userData = { top: top }; klickbar.push(huelleT);
+      var titel = schild("Top-Story", 0, 0x00d4ff, top.title); titel.position.set(mx, 44, mz); szene.add(titel);
+      turm = { gruppe: mitte, titel: titel, mat: turmMat };
+    }
+    // Nachrichten-Drohnen: fuer jede Meldung von heute fliegt ein Wuerfel vom Viertel zum Turm
+    var drohnenMat = new T.MeshBasicMaterial({ color: 0xfff4c2 });
+    viertel.forEach(function (v) {
+      v.tage[6].slice(0, klein ? 2 : 4).forEach(function (n, k) {
+        var d = new T.Mesh(new T.BoxGeometry(0.9, 0.9, 0.9), drohnenMat); d.userData = { v: v, phase: zufall(k + v.summe) }; szene.add(d); drohnen.push(d);
+      });
+    });
+
+    // Legende
+    var leg = document.getElementById("kw-legende"); leg.replaceChildren();
+    viertel.forEach(function (v) {
+      var b = document.createElement("button"); b.type = "button";
+      b.innerHTML = '<i style="background:#' + new T.Color(v.farbe).getHexString() + '"></i><span></span><span>' + v.summe + "</span>";
+      b.children[1].textContent = v.id; b.onclick = function () { fliegeZu(v); };
+      leg.appendChild(b);
+    });
+    tageszeit(); setInterval(tageszeit, 60000);
+    zielRadius = klein ? 210 : 190;
+    groesse(); schleife();
+  }
+
+  // Schild mit Text (Canvas-Textur als Sprite)
+  function schild(ueber, zahl, farbe, zeile) {
+    var c = document.createElement("canvas"), x = c.getContext("2d"), w = 512, h = zeile ? 180 : 110; c.width = w; c.height = h;
+    x.fillStyle = "rgba(4,10,16,.82)"; x.fillRect(0, 0, w, h);
+    x.fillStyle = "#" + new T.Color(farbe).getHexString(); x.fillRect(0, 0, 10, h);
+    x.font = "700 44px 'Space Grotesk', sans-serif"; x.fillStyle = "#ffffff"; x.fillText(ueber, 30, 56);
+    if (zahl) { x.font = "600 26px ui-monospace, monospace"; x.fillStyle = "#9fb3bf"; x.fillText(zahl + " Meldungen / 7 Tage", 30, 94); }
+    if (zeile) {
+      x.font = "600 26px 'Work Sans', sans-serif"; x.fillStyle = "#dff6ff";
+      var worte = zeile.split(" "), l = "", y = 96, n = 0;
+      worte.forEach(function (wt) { if (x.measureText(l + wt).width > w - 60 && n < 2) { x.fillText(l, 30, y); y += 34; l = ""; n++; } if (n < 3) l += wt + " "; });
+      if (n < 3) x.fillText(l.length > 40 && n === 2 ? l.slice(0, 38) + " ..." : l, 30, y);
+    }
+    var tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
+    var sprite = new T.Sprite(new T.SpriteMaterial({ map: tex, depthWrite: false, transparent: true }));
+    sprite.scale.set(28, 28 * h / w, 1); return sprite;
+  }
+
+  // ── Kamera: eigene Orbit-Steuerung ──
+  var theta = 0.8, phi = 0.95, radius = 240, zielRadius = 190, zielPunkt = new T.Vector3(0, 0, 0), punkt = new T.Vector3(0, 0, 0);
+  var rundflug = true, zieht = false, bewegt = false, lx = 0, ly = 0, zeiger = {}, pinch = null;
+  function groesse() {
+    var w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); kamera.aspect = w / h; kamera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", groesse);
+  function fliegeZu(v) { zielPunkt.set(v.cx, 0, v.cz); zielRadius = 110; rundflug = false; document.getElementById("kw-rund").textContent = "Rundflug"; }
+  document.getElementById("kw-rund").onclick = function () { rundflug = !rundflug; zielPunkt.set(0, 0, 0); zielRadius = klein ? 210 : 190; this.textContent = rundflug ? "Rundflug aus" : "Rundflug"; };
+  canvas.addEventListener("pointerdown", function (e) {
+    zeiger[e.pointerId] = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId);
+    var ids = Object.keys(zeiger); if (ids.length === 2) { var a = zeiger[ids[0]], b = zeiger[ids[1]]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), r: zielRadius }; return; }
+    zieht = true; bewegt = false; lx = e.clientX; ly = e.clientY; canvas.classList.add("zieht");
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    if (zeiger[e.pointerId]) zeiger[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(zeiger);
+    if (pinch && ids.length === 2) { var a = zeiger[ids[0]], b = zeiger[ids[1]]; zielRadius = Math.max(60, Math.min(420, pinch.r * pinch.d / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)))); return; }
+    if (zieht) { var dx = e.clientX - lx, dy = e.clientY - ly; if (Math.abs(dx) + Math.abs(dy) > 3) { bewegt = true; rundflug = false; }
+      theta -= dx * 0.006; phi = Math.max(0.25, Math.min(1.45, phi - dy * 0.006)); lx = e.clientX; ly = e.clientY; return; }
+    var t = treffer(e), tip = document.getElementById("kw-tip");
+    if (t) {
+      var u = t.userData; tip.style.display = "block";
+      tip.innerHTML = u.top ? "<b>Top-Story</b>" + esc(u.top.title) : "<b>" + esc(u.viertel.id) + " · " + kurzDatum(u.tag) + "</b>" + u.liste.length + " Meldung" + (u.liste.length === 1 ? "" : "en");
+      tip.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px"; tip.style.top = Math.min(e.clientY + 14, innerHeight - 90) + "px"; canvas.style.cursor = "pointer";
+    } else { tip.style.display = "none"; canvas.style.cursor = ""; }
+  });
+  function los(e) {
+    delete zeiger[e.pointerId]; if (Object.keys(zeiger).length < 2) pinch = null;
+    if (!zieht) return; zieht = false; canvas.classList.remove("zieht");
+    if (!bewegt) { var t = treffer(e); if (t) zeige(t.userData); }
+  }
+  canvas.addEventListener("pointerup", los); canvas.addEventListener("pointercancel", los);
+  canvas.addEventListener("wheel", function (e) { e.preventDefault(); zielRadius = Math.max(60, Math.min(420, zielRadius * (e.deltaY > 0 ? 1.1 : 0.9))); }, { passive: false });
+  var ray = new T.Raycaster(), maus = new T.Vector2();
+  function treffer(e) {
+    var r = canvas.getBoundingClientRect(); maus.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+    ray.setFromCamera(maus, kamera); var h = ray.intersectObjects(klickbar, false)[0]; return h ? h.object : null;
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  // ── Panel ──
+  var panel = document.getElementById("kw-panel");
+  document.getElementById("kw-zu").onclick = function () { panel.classList.remove("offen"); };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") panel.classList.remove("offen"); });
+  function oeffneMeldung(n, e) {
+    if (typeof window.klOpenArticle !== "function") return;
+    if (typeof window.klPlainClick === "function" && !window.klPlainClick(e)) return;
+    e.preventDefault(); window.klOpenArticle(n);
+  }
+  function zeige(u) {
+    var liste = u.top ? [u.top] : u.liste.slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+    document.getElementById("kw-p-ober").textContent = u.top ? "Newsdesk-Turm" : u.viertel.id;
+    document.getElementById("kw-p-titel").textContent = u.top ? "Top-Story" : "Meldungen am " + kurzDatum(u.tag);
+    document.getElementById("kw-p-meta").textContent = liste.length + " Meldung" + (liste.length === 1 ? "" : "en");
+    var box = document.getElementById("kw-p-liste"); box.replaceChildren();
+    if (!liste.length) { var p = document.createElement("p"); p.className = "kw-mono"; p.textContent = "An diesem Tag keine Meldung zu " + u.viertel.id + "."; box.appendChild(p); }
+    liste.forEach(function (n) {
+      var a = document.createElement("a"); a.href = n.link || "#"; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.onclick = function (e) { oeffneMeldung(n, e); };
+      var st = document.createElement("strong"); st.textContent = n.title || ""; var sp = document.createElement("span"); sp.textContent = (n.source || "") + " · " + (n.first_seen || n.date || "").slice(0, 10);
+      a.appendChild(st); a.appendChild(sp); box.appendChild(a);
+    });
+    panel.classList.add("offen");
+  }
+
+  // ── Schleife ──
+  var uhr = new T.Clock();
+  function schleife() {
+    requestAnimationFrame(schleife);
+    var dt = Math.min(0.05, uhr.getDelta()), t = uhr.elapsedTime;
+    if (rundflug && !still.matches) theta += dt * 0.08;
+    radius += (zielRadius - radius) * 0.06; punkt.lerp(zielPunkt, 0.06);
+    kamera.position.set(punkt.x + radius * Math.sin(phi) * Math.cos(theta), punkt.y + radius * Math.cos(phi), punkt.z + radius * Math.sin(phi) * Math.sin(theta));
+    kamera.lookAt(punkt.x, 8, punkt.z);
+    if (turm && !still.matches) { turm.mat.emissiveIntensity = 0.6 + Math.sin(t * 2) * 0.25; turm.titel.position.y = 44 + Math.sin(t * 1.2) * 1.2; }
+    if (!still.matches) drohnen.forEach(function (d) {
+      var v = d.userData.v, u = (t * 0.12 + d.userData.phase) % 1, ziel = turm ? turm.gruppe.position : new T.Vector3();
+      var bogen = Math.sin(u * Math.PI) * 30;
+      d.position.set(v.cx + (ziel.x - v.cx) * u, 10 + bogen, v.cz + (ziel.z - v.cz) * u); d.rotation.y = t;
+    });
+    renderer.render(szene, kamera);
+  }
+})();
+</script>
+</body>
+</html>
