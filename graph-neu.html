@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+<!-- VORSCHAU (28.09.26): Kopie von graph.html vom Arbeits-Branch, nicht verlinkt, noindex. Daniel gibt einzeln frei; bis dahin bleibt graph.html live. -->
+<meta name="robots" content="noindex, nofollow"/>
+<meta charset="utf-8"/>
+<link rel="icon" type="image/png" href="s-logo.png"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Graph – KI News</title>
+<meta name="description" content="Wer hängt mit wem zusammen: der Entitäten-Graph aus allen KI-News als dreidimensionaler Atlas."/>
+<meta name="author" content="Daniel S."/>
+<!-- TESTBETRIEB 23.08.2026: Seite ist erreichbar, aber bewusst NICHT verlinkt
+     (weder index.html noch Archiv.html noch sitemap.xml) und noindex.
+     Vor der echten Live-Schaltung: robots auf "index, follow" setzen,
+     Nav-Link ergaenzen und sitemap.xml erweitern. -->
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Graph – KI News"/>
+<meta property="og:description" content="Wer hängt mit wem zusammen: der Entitäten-Graph aus allen KI-News."/>
+<meta property="og:url" content="https://ki-news.live/graph.html"/>
+<meta property="og:image" content="https://ki-news.live/s-logo.png"/>
+<meta property="og:locale" content="de_DE"/>
+<meta property="og:site_name" content="KI News"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:site" content="@ScampyKI"/>
+<link rel="stylesheet" href="assets/ki-tw.css"/>
+<link rel="stylesheet" href="assets/ki-fonts.css"/>
+<script src="assets/ki-icons.js" defer></script>
+<style>
+/* graph.html neu (28.09.26, Auftrag 7.7): Datenbasis und Filter der bisherigen
+   graph.html (graph.json / graph_historie.json, entities.json, news.json),
+   Aussehen und Interaktion nach dem Neural Atlas: dreidimensionales Netz zum
+   Drehen, Leuchten, Fokus auf die Auswahl. Eigener Canvas-Renderer, keine Bibliothek.
+   LOKAL TESTEN: fetch() braucht HTTP -> python -m http.server 8000 */
+:root { --ga-bg: #03060a; --ga-card: rgba(9, 16, 24, .88); --ga-ink: #e8f3f7; --ga-muted: #8ea2ad;
+  --ga-line: rgba(var(--neon-rgb, 0, 212, 255), .16);
+  --anbieter: #00d4ff; --modell: #a78bfa; --thema: #fb923c; --produkt: #f472b6; --sonst: #34d399; }
+html.light { --ga-bg: #eef4f7; --ga-card: rgba(255, 255, 255, .94); --ga-ink: #0f172a; --ga-muted: #56697a;
+  --ga-line: rgba(0, 140, 180, .2); --anbieter: #0891b2; --modell: #7c3aed; --thema: #ea580c; --produkt: #db2777; --sonst: #059669; }
+body { background: var(--ga-bg); color: var(--ga-ink); }
+.ga { max-width: 1440px; margin: 0 auto; padding: 72px 16px 40px; }
+.ga-kopf { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 16px 32px; align-items: end; margin-bottom: 16px; }
+.ga-mono { font: 600 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ga-muted); }
+.ga-h1 { font: 700 clamp(40px, 6.5vw, 88px)/.95 'Space Grotesk', sans-serif; letter-spacing: -.045em; margin: 8px 0 0; }
+.ga-h1 span { color: var(--accent, #00d4ff); text-shadow: 0 0 28px rgba(var(--neon-rgb, 0, 212, 255), .45); }
+.ga-lead { font: 400 16px/1.6 'Work Sans', sans-serif; color: var(--ga-muted); margin: 0 0 10px; }
+.ga-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ga-chip { border: 1px solid var(--ga-line); border-radius: 999px; padding: 5px 10px; font: 600 10px/1.2 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--ga-muted); }
+.ga-chip b { color: var(--ga-ink); }
+.ga-raster { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; }
+.ga-buehne { position: relative; height: min(76vh, 780px); min-height: 460px; border: 1px solid var(--ga-line); border-radius: 12px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, rgba(var(--neon-rgb, 0, 212, 255), .07), transparent 62%), var(--ga-bg);
+  box-shadow: 0 0 0 1px rgba(var(--neon-rgb, 0, 212, 255), .04), 0 20px 60px rgba(0, 0, 0, .25); }
+.ga-buehne::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: linear-gradient(rgba(var(--neon-rgb, 0, 212, 255), .05) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--neon-rgb, 0, 212, 255), .05) 1px, transparent 1px);
+  background-size: 36px 36px; -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%); mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%); }
+#ga-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+#ga-canvas.zieht { cursor: grabbing; }
+.ga-oben { position: absolute; left: 12px; right: 12px; top: 12px; display: flex; justify-content: space-between; gap: 8px; pointer-events: none; }
+.ga-oben > * { pointer-events: auto; }
+.ga-suche { display: flex; gap: 6px; }
+.ga-suche input { width: min(260px, 52vw); background: var(--ga-card); border: 1px solid var(--ga-line); border-radius: 999px; color: inherit; padding: 8px 14px; font: 400 13px/1.2 'Work Sans', sans-serif; }
+.ga-knopf { border: 1px solid var(--ga-line); background: var(--ga-card); color: inherit; border-radius: 999px; padding: 7px 12px; font: 600 12px/1.2 'Work Sans', sans-serif; cursor: pointer; }
+.ga-knopf:hover, .ga-knopf:focus-visible, .ga-suche input:focus-visible { border-color: var(--accent, #00d4ff); outline: none; }
+.ga-knopf[aria-pressed="true"] { background: var(--accent, #00d4ff); border-color: var(--accent, #00d4ff); color: #001018; }
+.ga-zahlen { background: var(--ga-card); border: 1px solid var(--ga-line); border-radius: 999px; padding: 7px 12px; }
+.ga-unten { position: absolute; left: 12px; bottom: 10px; right: 12px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; pointer-events: none; }
+.ga-hilfe { font: 500 11px/1.4 ui-monospace, monospace; color: var(--ga-muted); background: var(--ga-card); border: 1px solid var(--ga-line); border-radius: 10px; padding: 6px 10px; }
+.ga-legende { display: flex; gap: 10px; flex-wrap: wrap; background: var(--ga-card); border: 1px solid var(--ga-line); border-radius: 10px; padding: 6px 10px; font: 600 11px/1.3 ui-monospace, monospace; }
+.ga-legende i { font-style: normal; display: inline-flex; align-items: center; gap: 5px; }
+.ga-legende b { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+#ga-tip { position: absolute; z-index: 5; pointer-events: none; max-width: 260px; background: var(--ga-card); border: 1px solid var(--ga-line); border-radius: 10px; padding: 8px 10px; font-size: 12px; line-height: 1.4; display: none; box-shadow: 0 8px 26px rgba(0, 0, 0, .35); }
+#ga-tip b { font: 700 13px/1.2 'Space Grotesk', sans-serif; display: block; }
+.ga-steuer { border: 1px solid var(--ga-line); border-radius: 12px; background: var(--ga-card); padding: 14px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.ga-gruppe { display: grid; gap: 8px; }
+.ga-gruppe + .ga-gruppe { padding-top: 12px; border-top: 1px solid var(--ga-line); }
+.ga-segment { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.ga-segment .ga-knopf { padding: 7px 4px; text-align: center; }
+.ga-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.ga-check input { accent-color: var(--accent, #00d4ff); width: 16px; height: 16px; }
+.ga-check .ga-anz { margin-left: auto; font: 600 11px/1 ui-monospace, monospace; color: var(--ga-muted); }
+.ga-check .ga-punkt { width: 9px; height: 9px; border-radius: 50%; }
+.ga-regler { display: grid; grid-template-columns: minmax(0, 1fr) 36px; gap: 8px; align-items: center; }
+.ga-regler input { width: 100%; accent-color: var(--accent, #00d4ff); }
+.ga-regler output { font: 700 12px/1 ui-monospace, monospace; text-align: right; }
+.ga-hinweis { font-size: 12px; line-height: 1.5; color: var(--ga-muted); margin: 0; }
+#ga-fehler { display: none; position: absolute; inset: 0; z-index: 6; place-items: center; text-align: center; padding: 24px; font-size: 14px; line-height: 1.6; color: var(--ga-muted); }
+#ga-fehler code { color: var(--accent, #00d4ff); }
+/* Detailfenster */
+#ga-panel { position: fixed; z-index: 70; top: 64px; right: 16px; bottom: 16px; width: min(380px, calc(100% - 32px)); background: var(--ga-card); border: 1px solid var(--ga-line); border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transform: translateX(calc(100% + 24px)); transition: transform .25s ease; display: flex; flex-direction: column; }
+#ga-panel.offen { transform: none; }
+.ga-panel-kopf { padding: 16px 16px 12px; border-bottom: 1px solid var(--ga-line); display: grid; gap: 8px; }
+.ga-panel-kopf h2 { font: 700 26px/1.1 'Space Grotesk', sans-serif; margin: 0; padding-right: 36px; overflow-wrap: anywhere; }
+#ga-zu { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; }
+.ga-tag { display: inline-flex; border: 1px solid currentColor; border-radius: 999px; padding: 2px 9px; font: 700 10px/1.4 ui-monospace, monospace; text-transform: uppercase; letter-spacing: .06em; }
+.ga-meta { font-size: 13px; line-height: 1.6; color: var(--ga-muted); }
+.ga-meta b { color: var(--ga-ink); }
+.ga-panel-liste { overflow-y: auto; padding: 10px 12px 16px; display: grid; gap: 6px; align-content: start; }
+.ga-nb { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--ga-line); border-radius: 10px; cursor: pointer; background: transparent; color: inherit; text-align: left; font: inherit; }
+.ga-nb:hover, .ga-nb:focus-visible { border-color: var(--accent, #00d4ff); outline: none; }
+.ga-nb.alt { opacity: .55; }
+.ga-nb .ga-punkt { width: 10px; height: 10px; border-radius: 50%; }
+.ga-nb .nm { font: 600 13px/1.3 'Space Grotesk', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ga-nb .al, .ga-nb .ct { font: 600 11px/1 ui-monospace, monospace; color: var(--ga-muted); }
+.ga-mld { display: grid; gap: 4px; padding: 0 4px 6px 28px; }
+.ga-mld a { font-size: 12px; line-height: 1.4; color: var(--accent, #00d4ff); text-decoration: none; }
+.ga-mld a:hover { text-decoration: underline; }
+.ga-mld span { font-size: 11px; color: var(--ga-muted); }
+@media (max-width: 980px) {
+  .ga-kopf, .ga-raster { grid-template-columns: minmax(0, 1fr); }
+  .ga-buehne { height: 64vh; min-height: 380px; }
+}
+@media (max-width: 560px) {
+  .ga-oben { flex-direction: column; }
+  .ga-hilfe { display: none; }
+  #ga-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 62vh; transform: translateY(calc(100% + 24px)); }
+  #ga-panel.offen { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { #ga-panel { transition: none; } }
+</style>
+</head>
+<body class="font-body-lg">
+<script src="assets/ki-layout.js"></script>
+<main class="ga" id="main-content">
+  <header class="ga-kopf">
+    <div>
+      <p class="ga-mono" style="color:var(--accent,#00d4ff)">KI News / Entitäten-Atlas</p>
+      <h1 class="ga-h1">Neural <span>Atlas</span></h1>
+    </div>
+    <div>
+      <p class="ga-lead">Wer mit wem in den KI-News auftaucht. Größe zeigt die Erwähnungen, Farbe den Typ, Linien gemeinsame Meldungen.</p>
+      <div class="ga-chips"><span class="ga-chip" id="ga-stand">lädt</span><span class="ga-chip" id="ga-zaehlung"></span></div>
+    </div>
+  </header>
+
+  <div class="ga-raster">
+    <section class="ga-buehne" aria-label="Entitäten-Netz">
+      <canvas id="ga-canvas" role="img" aria-label="Dreidimensionales Netz der Entitäten. Details über die Suche und das Detailfenster."></canvas>
+      <div class="ga-oben">
+        <div class="ga-suche">
+          <input id="ga-suche" type="search" placeholder="Entität suchen …" autocomplete="off" aria-label="Entität suchen">
+          <button class="ga-knopf" id="ga-reset" type="button" title="Ansicht zurücksetzen" aria-label="Ansicht zurücksetzen">↺</button>
+        </div>
+        <span class="ga-zahlen ga-mono" id="ga-counts"></span>
+      </div>
+      <div class="ga-unten">
+        <span class="ga-hilfe">Ziehen dreht · Rad/zwei Finger zoomen · Klick öffnet Details</span>
+        <span class="ga-legende" id="ga-legende"></span>
+      </div>
+      <div id="ga-tip"></div>
+      <div id="ga-fehler"></div>
+    </section>
+
+    <aside class="ga-steuer" aria-label="Ansicht steuern">
+      <div class="ga-gruppe">
+        <span class="ga-mono">Datenbasis</span>
+        <div class="ga-segment" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+          <button class="ga-knopf" type="button" id="ga-q-live" aria-pressed="true">Live-Zählung</button>
+          <button class="ga-knopf" type="button" id="ga-q-hist" aria-pressed="false">Historie</button>
+        </div>
+        <p class="ga-hinweis" id="ga-q-text"></p>
+      </div>
+      <div class="ga-gruppe">
+        <span class="ga-mono">Verbindung zuletzt gesehen</span>
+        <div class="ga-segment" role="group" aria-label="Zeitfenster">
+          <button class="ga-knopf" type="button" data-tage="1" aria-pressed="false">1 Tag</button>
+          <button class="ga-knopf" type="button" data-tage="7" aria-pressed="false">7 Tage</button>
+          <button class="ga-knopf" type="button" data-tage="30" aria-pressed="false">30 Tage</button>
+          <button class="ga-knopf" type="button" data-tage="9999" aria-pressed="true">Alle</button>
+        </div>
+      </div>
+      <div class="ga-gruppe">
+        <label class="ga-mono" for="ga-wmin">Mindestens gemeinsam in</label>
+        <div class="ga-regler"><input type="range" id="ga-wmin" min="1" max="30" value="1"><output id="ga-wout">1</output></div>
+      </div>
+      <div class="ga-gruppe" id="ga-typen"><span class="ga-mono">Typ</span></div>
+      <div class="ga-gruppe">
+        <label class="ga-check"><input type="checkbox" id="ga-triv"> Selbstverständliche Kanten ausblenden (Modell gehört zu Anbieter)</label>
+        <label class="ga-check"><input type="checkbox" id="ga-stale" checked> Alte Verbindungen (über 21 Tage) verblassen</label>
+        <label class="ga-check"><input type="checkbox" id="ga-fokus" checked> Bei Auswahl nur die Nachbarschaft hervorheben</label>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<aside id="ga-panel" aria-live="polite" aria-label="Details zur Entität">
+  <div class="ga-panel-kopf">
+    <button class="ga-knopf" id="ga-zu" type="button" aria-label="Schließen">×</button>
+    <h2 id="ga-p-name"></h2>
+    <div class="ga-meta" id="ga-p-meta"></div>
+    <span class="ga-mono">Verbindungen im aktuellen Filter</span>
+  </div>
+  <div class="ga-panel-liste" id="ga-p-nb"></div>
+</aside>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement, canvas = document.getElementById("ga-canvas"), ctx = canvas.getContext("2d");
+  var still = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var C = {};
+  function farben() { var s = getComputedStyle(root); ["anbieter", "modell", "thema", "produkt", "sonst", "--ga-ink", "--ga-muted", "--ga-bg"].forEach(function (k) { C[k.replace(/^--/, "")] = s.getPropertyValue(k.indexOf("--") === 0 ? k : "--" + k).trim(); }); }
+  farben();
+  new MutationObserver(function () { farben(); zeichne(); }).observe(root, { attributes: true, attributeFilter: ["class"] });
+  function farbe(t) { return C[t] || C.sonst; }
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+  // ── Daten (Logik der bisherigen graph.html) ──
+  var HEUTE = new Date();
+  function tage(d) { if (!d) return 9999; var t = (HEUTE - new Date(d + "T12:00:00")) / 86400000; return t < 0 ? 0 : Math.round(t); }
+  var QUELLEN = {
+    live: { datei: "graph.json", text: "Wie die Pipeline zählt: pro Story seit 11.08., alte Links fallen nach 30 Tagen aus dem Abgleich. Beginnt am 16.07.2026." },
+    hist: { datei: "graph_historie.json", text: "Einmalig zurückgerechnet aus der Repo-Historie ab 01.05.2026, gezählt pro Artikel. Zeigt mehr, aber nicht dieselbe Zählweise, im Überschneidungszeitraum rund 13 % höher." }
+  };
+  var quelle = "live", N = [], E = [], byId = {}, ARTIKEL = [];
+  function indexiereArtikel(ent, news) {
+    var muster = [];
+    (ent.entities || []).forEach(function (e) { try { muster.push({ id: e.id, re: new RegExp((e.aliasse || []).join("|"), "i") }); } catch (err) {} });
+    ARTIKEL = (news || []).map(function (n) {
+      var text = (n.title || "") + " " + (n.summary || ""), ids = {};
+      muster.forEach(function (m) { if (m.re.test(text)) ids[m.id] = 1; });
+      return { titel: n.title || "", link: n.link || "", datum: n.first_seen || n.date || "", ids: ids };
+    });
+  }
+  function meldungenFuer(a, b) { return ARTIKEL.filter(function (x) { return x.ids[a] && x.ids[b]; }).sort(function (p, q) { return (q.datum || "").localeCompare(p.datum || ""); }); }
+
+  function lade(q) {
+    quelle = q; aktiv = null; zu();
+    document.getElementById("ga-q-live").setAttribute("aria-pressed", q === "live" ? "true" : "false");
+    document.getElementById("ga-q-hist").setAttribute("aria-pressed", q === "hist" ? "true" : "false");
+    document.getElementById("ga-q-text").textContent = QUELLEN[q].text;
+    document.getElementById("ga-fehler").style.display = "none";
+    Promise.all([
+      fetch(QUELLEN[q].datei).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
+      fetch("entities.json").then(function (r) { return r.json(); }).catch(function () { return { entities: [] }; }),
+      fetch("news.json").then(function (r) { return r.json(); }).catch(function () { return { news: [] }; })
+    ]).then(aufbauen).catch(function (err) {
+      var f = document.getElementById("ga-fehler");
+      f.innerHTML = "Konnte <code>" + esc(QUELLEN[q].datei) + "</code> nicht laden.<br>Lokal braucht die Seite einen Server: <code>python -m http.server 8000</code><br><span style='opacity:.6'>" + esc(err.message) + "</span>";
+      f.style.display = "grid"; document.getElementById("ga-stand").textContent = "keine Daten";
+    });
+  }
+  document.getElementById("ga-q-live").onclick = function () { if (quelle !== "live") lade("live"); };
+  document.getElementById("ga-q-hist").onclick = function () { if (quelle !== "hist") lade("hist"); };
+
+  var typAn = {};
+  function aufbauen(res) {
+    var g = res[0], ent = res[1], eltern = {};
+    indexiereArtikel(ent, (res[2] || {}).news);
+    (ent.entities || []).forEach(function (e) { eltern[e.id] = e.gehoert_zu || null; });
+    N = (g.nodes || []).map(function (n, i) {
+      // Startpositionen auf einer Fibonacci-Kugel, groesste innen
+      return { id: n.id, count: n.count || 0, typ: n.typ || "sonst", eltern: n.gehoert_zu || eltern[n.id] || null, first: n.first_seen, last: n.last_seen, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };
+    });
+    byId = {}; N.forEach(function (n) { byId[n.id] = n; });
+    E = (g.edges || []).filter(function (e) { return byId[e.source] && byId[e.target]; }).map(function (e) {
+      var a = byId[e.source], b = byId[e.target];
+      return { a: a, b: b, count: e.count || 0, first: e.first_seen, last: e.last_seen, triv: a.eltern === b.id || b.eltern === a.id, phase: Math.random() };
+    });
+    var sort = N.slice().sort(function (a, b) { return b.count - a.count; }), gold = Math.PI * (3 - Math.sqrt(5));
+    sort.forEach(function (n, i) { var y = 1 - (i / Math.max(1, sort.length - 1)) * 2, r = Math.sqrt(1 - y * y), th = gold * i, R = 90 + Math.sqrt(i) * 34;
+      n.x = Math.cos(th) * r * R; n.y = y * R; n.z = Math.sin(th) * r * R; });
+    var typen = {}; N.forEach(function (n) { typen[n.typ] = (typen[n.typ] || 0) + 1; });
+    document.getElementById("ga-stand").innerHTML = "Stand <b>" + esc((g.stand || "?").slice(0, 16)) + "</b>";
+    document.getElementById("ga-zaehlung").innerHTML = "<b>" + N.length + "</b> Entitäten · <b>" + E.length + "</b> Verbindungen";
+    var box = document.getElementById("ga-typen"); box.querySelectorAll("label").forEach(function (l) { l.remove(); });
+    var leg = document.getElementById("ga-legende"); leg.replaceChildren();
+    Object.keys(typen).sort(function (a, b) { return typen[b] - typen[a]; }).forEach(function (t) {
+      if (typAn[t] == null) typAn[t] = true;
+      var l = document.createElement("label"); l.className = "ga-check";
+      l.innerHTML = '<input type="checkbox"' + (typAn[t] ? " checked" : "") + '><span class="ga-punkt" style="background:' + farbe(t) + '"></span>' + esc(t) + '<span class="ga-anz">' + typen[t] + "</span>";
+      l.querySelector("input").onchange = function (ev) { typAn[t] = ev.target.checked; filter(); };
+      box.appendChild(l);
+      var i = document.createElement("i"); i.innerHTML = '<b style="background:' + farbe(t) + ';color:' + farbe(t) + '"></b>' + esc(t); leg.appendChild(i);
+    });
+    var maxW = Math.max.apply(null, E.map(function (e) { return e.count; }).concat([1]));
+    var w = document.getElementById("ga-wmin"); w.max = Math.min(maxW, 30); if (+w.value > +w.max) w.value = w.max;
+    filter(); starte();
+  }
+
+  // ── Filter ──
+  var Ef = [], Nf = [], tageMax = 9999, suche = "";
+  function filter() {
+    var wMin = +document.getElementById("ga-wmin").value, triv = document.getElementById("ga-triv").checked;
+    document.getElementById("ga-wout").textContent = wMin;
+    Ef = E.filter(function (e) { return e.count >= wMin && !(triv && e.triv) && tage(e.last) <= tageMax && typAn[e.a.typ] !== false && typAn[e.b.typ] !== false; });
+    var drin = {}; N.forEach(function (n) { n.grad = 0; });
+    Ef.forEach(function (e) { drin[e.a.id] = drin[e.b.id] = 1; e.a.grad++; e.b.grad++; });
+    var alle = wMin === 1 && tageMax === 9999 && !triv;
+    Nf = N.filter(function (n) { return typAn[n.typ] !== false && (drin[n.id] || alle); });
+    document.getElementById("ga-counts").textContent = Nf.length + " / " + N.length + " Knoten · " + Ef.length + " Kanten";
+    temp = 1; if (aktiv && Nf.indexOf(aktiv) < 0) { aktiv = null; zu(); } else if (aktiv) oeffne(aktiv);
+    zeichne();
+  }
+  document.getElementById("ga-wmin").oninput = filter;
+  ["ga-triv", "ga-stale", "ga-fokus"].forEach(function (id) { document.getElementById(id).onchange = filter; });
+  document.querySelectorAll("[data-tage]").forEach(function (b) {
+    b.onclick = function () { tageMax = +b.dataset.tage; document.querySelectorAll("[data-tage]").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); }); filter(); };
+  });
+  document.getElementById("ga-suche").oninput = function () {
+    suche = this.value.trim().toLowerCase();
+    var t = suche && Nf.filter(function (n) { return n.id.toLowerCase().indexOf(suche) >= 0; }).sort(function (a, b) { return b.count - a.count; })[0];
+    if (t) fokusDrehung(t);
+    zeichne();
+  };
+  document.getElementById("ga-suche").onkeydown = function (e) {
+    if (e.key !== "Enter") return;
+    var t = Nf.filter(function (n) { return n.id.toLowerCase().indexOf(suche) >= 0; }).sort(function (a, b) { return b.count - a.count; })[0];
+    if (t) oeffne(t);
+  };
+
+  // ── 3D-Kraefte ──
+  var temp = 1;
+  function radius(n) { return 4 + Math.sqrt(n.count) * 1.25; }
+  function schritt() {
+    var i, j, a, b, dx, dy, dz, d2, d, f;
+    for (i = 0; i < Nf.length; i++) {
+      a = Nf[i];
+      for (j = i + 1; j < Nf.length; j++) {
+        b = Nf[j]; dx = a.x - b.x; dy = a.y - b.y; dz = a.z - b.z; d2 = dx * dx + dy * dy + dz * dz + 0.01;
+        f = (2600 + 140 * (radius(a) + radius(b))) / d2; d = Math.sqrt(d2);
+        a.vx += dx / d * f; a.vy += dy / d * f; a.vz += dz / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f; b.vz -= dz / d * f;
+      }
+    }
+    Ef.forEach(function (e) {
+      a = e.a; b = e.b; dx = b.x - a.x; dy = b.y - a.y; dz = b.z - a.z; d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
+      f = (d - (90 - Math.min(40, Math.log(1 + e.count) * 10))) * 0.004 * Math.min(3, 1 + Math.log(1 + e.count) * 0.4);
+      a.vx += dx / d * f; a.vy += dy / d * f; a.vz += dz / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f; b.vz -= dz / d * f;
+    });
+    Nf.forEach(function (n) {
+      n.vx -= n.x * 0.0035; n.vy -= n.y * 0.0035; n.vz -= n.z * 0.0035;
+      n.x += Math.max(-8, Math.min(8, n.vx)) * temp; n.y += Math.max(-8, Math.min(8, n.vy)) * temp; n.z += Math.max(-8, Math.min(8, n.vz)) * temp;
+      n.vx *= 0.55; n.vy *= 0.55; n.vz *= 0.55;
+    });
+    temp = Math.max(0.02, temp * 0.985);
+  }
+
+  // ── Kamera ──
+  var rotY = 0.6, rotX = -0.25, zoom = 1, W = 0, H = 0, dpr = 1, zielY = null, zielX = null;
+  function groesse() {
+    var r = canvas.getBoundingClientRect(); dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); zeichne();
+  }
+  window.addEventListener("resize", groesse);
+  function projiziere(n) {
+    var cy = Math.cos(rotY), sy = Math.sin(rotY), cx = Math.cos(rotX), sx = Math.sin(rotX);
+    var x = n.x * cy - n.z * sy, z = n.x * sy + n.z * cy, y = n.y * cx - z * sx; z = n.y * sx + z * cx;
+    var skala = Math.min(W, H) / 520 * zoom, p = 700 / (700 + z);
+    n.sx = W / 2 + x * p * skala; n.sy = H / 2 + y * p * skala; n.sz = z; n.sp = p * skala;
+  }
+  function fokusDrehung(n) { zielY = Math.atan2(n.x, n.z) * -1; zielX = Math.max(-1, Math.min(1, -Math.atan2(n.y, Math.hypot(n.x, n.z)))); }
+
+  // ── Zeichnen ──
+  var aktiv = null, hover = null, t0 = performance.now();
+  function nachbarn(n) { var s = {}; if (!n) return s; s[n.id] = 1; Ef.forEach(function (e) { if (e.a === n) s[e.b.id] = 1; else if (e.b === n) s[e.a.id] = 1; }); return s; }
+  function rgba(hex, a) {
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || "");
+    return m ? "rgba(" + parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16) + "," + a + ")" : hex;
+  }
+  function zeichne() {
+    if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    Nf.forEach(projiziere);
+    var licht = root.classList.contains("light"), stale = document.getElementById("ga-stale").checked;
+    var fokusAn = document.getElementById("ga-fokus").checked, nb = aktiv && fokusAn ? nachbarn(aktiv) : null;
+    var treffer = suche ? function (n) { return n.id.toLowerCase().indexOf(suche) >= 0; } : null;
+    var zeit = (performance.now() - t0) / 1000;
+    // Kanten
+    ctx.lineCap = "round";
+    Ef.forEach(function (e) {
+      var a = e.a, b = e.b, alt = stale && tage(e.last) > 21, an = nb ? (nb[a.id] && nb[b.id] && (a === aktiv || b === aktiv)) : true;
+      var tiefe = Math.max(0.25, Math.min(1, (a.sp + b.sp) / 2 / (Math.min(W, H) / 520)));
+      var alpha = (an ? 0.12 + Math.min(0.45, Math.log(1 + e.count) * 0.07) : 0.03) * (alt ? 0.35 : 1) * tiefe;
+      if (treffer && !(treffer(a) || treffer(b))) alpha *= 0.3;
+      ctx.strokeStyle = rgba(farbe(a.typ), alpha * (licht ? 1.4 : 1));
+      ctx.lineWidth = Math.min(3.2, 0.5 + Math.log(1 + e.count) * 0.45) * tiefe;
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+      // Signal-Partikel auf starken, aktuellen Kanten
+      if (!still.matches && an && !alt && e.count >= 6 && tage(e.last) <= 7) {
+        var u = (zeit * 0.18 + e.phase) % 1, px = a.sx + (b.sx - a.sx) * u, py = a.sy + (b.sy - a.sy) * u;
+        ctx.fillStyle = rgba(farbe(a.typ), 0.85 * tiefe); ctx.beginPath(); ctx.arc(px, py, 1.6 * tiefe + 0.4, 0, 6.283); ctx.fill();
+      }
+    });
+    // Knoten, hinten zuerst
+    var reihe = Nf.slice().sort(function (a, b) { return b.sz - a.sz; });
+    reihe.forEach(function (n) {
+      var r = radius(n) * n.sp / (Math.min(W, H) / 520) * Math.min(1.6, zoom), f = farbe(n.typ);
+      var gedimmt = (nb && !nb[n.id]) || (treffer && !treffer(n)), alt = stale && tage(n.last) > 21;
+      var a = gedimmt ? 0.16 : (alt ? 0.5 : 1);
+      var glow = ctx.createRadialGradient(n.sx, n.sy, 0, n.sx, n.sy, r * 3.2);
+      glow.addColorStop(0, rgba(f, 0.42 * a)); glow.addColorStop(1, rgba(f, 0));
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(n.sx, n.sy, r * 3.2, 0, 6.283); ctx.fill();
+      ctx.fillStyle = rgba(f, 0.95 * a); ctx.beginPath(); ctx.arc(n.sx, n.sy, r, 0, 6.283); ctx.fill();
+      ctx.fillStyle = rgba("#ffffff", 0.55 * a); ctx.beginPath(); ctx.arc(n.sx - r * 0.3, n.sy - r * 0.3, r * 0.35, 0, 6.283); ctx.fill();
+      if (n === aktiv || n === hover || (treffer && treffer(n))) {
+        ctx.strokeStyle = rgba(f, 0.9); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(n.sx, n.sy, r + 5, 0, 6.283); ctx.stroke();
+      }
+    });
+    // Beschriftung: groesste, Auswahl, Nachbarn, Treffer
+    var gross = Nf.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, W < 560 ? 8 : 18);
+    var zeigen = {}; gross.forEach(function (n) { zeigen[n.id] = 1; });
+    if (nb) Object.keys(nb).forEach(function (k) { zeigen[k] = 1; });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    // Beschriftungen ohne Ueberlappung: wichtigste zuerst platzieren, Rest weglassen
+    var belegt = [], wichtig = reihe.slice().sort(function (a, b) {
+      var pa = (a === aktiv ? 3 : 0) + (a === hover ? 2 : 0), pb = (b === aktiv ? 3 : 0) + (b === hover ? 2 : 0);
+      return pb - pa || b.count - a.count;
+    });
+    wichtig.forEach(function (n) {
+      if (!(zeigen[n.id] || n === hover || (treffer && treffer(n)))) return;
+      if (nb && !nb[n.id]) return;
+      var r = radius(n) * n.sp / (Math.min(W, H) / 520) * Math.min(1.6, zoom);
+      ctx.font = (n === aktiv ? "700 13px" : "600 11px") + " 'Space Grotesk', sans-serif";
+      var y = n.sy + r + 5, tw = ctx.measureText(n.id).width;
+      var box = { x: n.sx - tw / 2 - 4, y: y - 1, w: tw + 8, h: 16 };
+      if (n !== aktiv && n !== hover && belegt.some(function (q) { return box.x < q.x + q.w && q.x < box.x + box.w && box.y < q.y + q.h && q.y < box.y + box.h; })) return;
+      belegt.push(box);
+      ctx.fillStyle = licht ? "rgba(255,255,255,.8)" : "rgba(3,6,10,.62)"; ctx.fillRect(n.sx - tw / 2 - 4, y - 1, tw + 8, 16);
+      ctx.fillStyle = C["ga-ink"] || "#e8f3f7"; ctx.fillText(n.id, n.sx, y);
+    });
+  }
+
+  // ── Animation ──
+  var laeuft = false, idle = 0;
+  function starte() { if (!laeuft) { laeuft = true; requestAnimationFrame(tick); } }
+  function tick() {
+    if (temp > 0.021) { for (var k = 0; k < 2; k++) schritt(); }
+    if (zielY != null) { var dy = ((zielY - rotY + Math.PI * 3) % (Math.PI * 2)) - Math.PI; rotY += dy * 0.08; rotX += (zielX - rotX) * 0.08; if (Math.abs(dy) < 0.002) zielY = null; }
+    else if (!still.matches && !zieht && !aktiv) rotY += 0.0009;
+    zeichne(); requestAnimationFrame(tick);
+  }
+
+  // ── Interaktion ──
+  var zieht = false, bewegt = false, lx = 0, ly = 0, pinch = null, zeiger = {};
+  function pos(ev) { var r = canvas.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  function trifft(p) {
+    var best = null, bd = 1e9;
+    Nf.forEach(function (n) { var r = radius(n) * n.sp / (Math.min(W, H) / 520) * Math.min(1.6, zoom) + 6, d = Math.hypot(n.sx - p.x, n.sy - p.y); if (d < r && n.sz < bd + 60 && d < r) { if (!best || n.sz < best.sz) best = n; bd = n.sz; } });
+    return best;
+  }
+  canvas.addEventListener("pointerdown", function (ev) {
+    zeiger[ev.pointerId] = pos(ev); canvas.setPointerCapture(ev.pointerId);
+    var ids = Object.keys(zeiger);
+    if (ids.length === 2) { var a = zeiger[ids[0]], b = zeiger[ids[1]]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom }; return; }
+    zieht = true; bewegt = false; lx = ev.clientX; ly = ev.clientY; zielY = null; canvas.classList.add("zieht");
+  });
+  canvas.addEventListener("pointermove", function (ev) {
+    if (zeiger[ev.pointerId]) zeiger[ev.pointerId] = pos(ev);
+    var ids = Object.keys(zeiger);
+    if (pinch && ids.length === 2) { var a = zeiger[ids[0]], b = zeiger[ids[1]]; zoom = Math.max(0.45, Math.min(3.5, pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d)); return; }
+    if (zieht) {
+      var dx = ev.clientX - lx, dy = ev.clientY - ly; if (Math.abs(dx) + Math.abs(dy) > 3) bewegt = true;
+      rotY += dx * 0.008; rotX = Math.max(-1.3, Math.min(1.3, rotX + dy * 0.008)); lx = ev.clientX; ly = ev.clientY; return;
+    }
+    var p = pos(ev), n = trifft(p), tip = document.getElementById("ga-tip");
+    hover = n; canvas.style.cursor = n ? "pointer" : "grab";
+    if (n) {
+      tip.innerHTML = "<b>" + esc(n.id) + "</b>" + esc(n.typ) + " · " + n.count + " Meldungen<br>zuletzt " + esc(n.last || "?") + " · " + (n.grad || 0) + " Verbindungen";
+      tip.style.display = "block"; tip.style.left = Math.min(p.x + 14, W - 270) + "px"; tip.style.top = Math.min(p.y + 14, H - 80) + "px";
+    } else tip.style.display = "none";
+  });
+  function loslassen(ev) {
+    delete zeiger[ev.pointerId];
+    if (Object.keys(zeiger).length < 2) pinch = null;
+    if (!zieht) return;
+    zieht = false; canvas.classList.remove("zieht");
+    if (!bewegt) { var n = trifft(pos(ev)); if (n) oeffne(n); else if (aktiv) { aktiv = null; zu(); } }
+  }
+  canvas.addEventListener("pointerup", loslassen);
+  canvas.addEventListener("pointercancel", loslassen);
+  canvas.addEventListener("pointerleave", function () { hover = null; document.getElementById("ga-tip").style.display = "none"; });
+  canvas.addEventListener("wheel", function (ev) { ev.preventDefault(); zoom = Math.max(0.45, Math.min(3.5, zoom * (ev.deltaY < 0 ? 1.1 : 0.91))); }, { passive: false });
+  canvas.addEventListener("dblclick", function () { zoom = Math.min(3.5, zoom * 1.4); });
+  document.getElementById("ga-reset").onclick = function () { rotY = 0.6; rotX = -0.25; zoom = 1; zielY = null; aktiv = null; zu(); temp = 0.6; };
+
+  // ── Detailfenster ──
+  function zu() { document.getElementById("ga-panel").classList.remove("offen"); }
+  document.getElementById("ga-zu").onclick = function () { aktiv = null; zu(); };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && aktiv) { aktiv = null; zu(); } });
+  function oeffne(n) {
+    aktiv = n; fokusDrehung(n);
+    document.getElementById("ga-tip").style.display = "none";
+    document.getElementById("ga-panel").classList.add("offen");
+    document.getElementById("ga-p-name").textContent = n.id;
+    var f = farbe(n.typ), meta = '<span class="ga-tag" style="color:' + f + '">' + esc(n.typ) + "</span>";
+    if (n.eltern) meta += ' <span class="ga-tag" style="color:var(--ga-muted)">gehört zu ' + esc(n.eltern) + "</span>";
+    var t = tage(n.last);
+    meta += "<br><b>" + n.count + "</b> Meldungen · erstmals <b>" + esc(n.first || "?") + "</b> · zuletzt <b>" + esc(n.last || "?") + "</b> (" + (t === 0 ? "heute" : t + " Tage her") + ")";
+    document.getElementById("ga-p-meta").innerHTML = meta;
+    var nb = [];
+    Ef.forEach(function (e) { if (e.a === n) nb.push({ n: e.b, e: e }); else if (e.b === n) nb.push({ n: e.a, e: e }); });
+    nb.sort(function (a, b) { return b.e.count - a.e.count; });
+    var box = document.getElementById("ga-p-nb"); box.replaceChildren();
+    if (!nb.length) { var leer = document.createElement("p"); leer.className = "ga-hinweis"; leer.textContent = "Keine Verbindung im aktuellen Filter."; box.appendChild(leer); }
+    nb.forEach(function (o) {
+      var alt = tage(o.e.last), b = document.createElement("button");
+      b.type = "button"; b.className = "ga-nb" + (alt > 21 ? " alt" : "");
+      b.title = "gemeinsam in " + o.e.count + " Meldungen · erstmals " + o.e.first + " · zuletzt " + o.e.last;
+      b.innerHTML = '<span class="ga-punkt" style="background:' + farbe(o.n.typ) + '"></span><span class="nm">' + esc(o.n.id) + '</span><span class="al">' + (alt === 0 ? "heute" : alt + " T") + '</span><span class="ct">' + o.e.count + "×</span>";
+      b.onclick = function () { oeffne(o.n); };
+      box.appendChild(b);
+      // hoechstens zwei aktuelle Schlagzeilen je Verbindung (wie bisher)
+      var mld = meldungenFuer(n.id, o.n.id);
+      if (mld.length) {
+        var w = document.createElement("div"); w.className = "ga-mld";
+        mld.slice(0, 2).forEach(function (m) { var a = document.createElement("a"); a.href = m.link; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = m.titel; a.title = m.datum; w.appendChild(a); });
+        if (mld.length > 2) { var r = document.createElement("span"); r.textContent = "+" + (mld.length - 2) + " weitere aktuelle"; w.appendChild(r); }
+        box.appendChild(w);
+      }
+    });
+  }
+
+  groesse();
+  lade("live");
+})();
+</script>
+</body>
+</html>
