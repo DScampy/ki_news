@@ -1,0 +1,2981 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Interaktive, statische KI-Newsroom-Steuerzentrale für die lokale Datenbasis von ki-news.live.">
+  <title>Redaktionsmaschine | KI News</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://ki-news.live/redaktionsmaschine.html">
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <style>
+    :root {
+      --px-cream: #f2eedf;
+      --px-paper: #fffdf5;
+      --px-cobalt: #193bd6;
+      --px-violet: #713bd6;
+      --px-turquoise: #00d4ff;
+      --px-red: #ef3e2f;
+      --px-yellow: #ffd447;
+      --px-graphite: #202124;
+      --px-ink: #151515;
+      --px-muted: #676861;
+      --px-line: rgba(21, 21, 21, .2);
+      --px-shadow: 7px 7px 0 rgba(25, 59, 214, .15);
+      --px-head: "Space Grotesk", system-ui, sans-serif;
+      --px-body: "Work Sans", system-ui, sans-serif;
+      --px-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--px-cream); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 0;
+      overflow-x: hidden;
+      color: var(--px-ink);
+      background:
+        linear-gradient(rgba(21, 21, 21, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21, 21, 21, .045) 1px, transparent 1px),
+        var(--px-cream);
+      background-size: 22px 22px;
+      font-family: var(--px-body);
+    }
+    body[data-px-dark="true"] {
+      --px-cream: #171719;
+      --px-paper: #252527;
+      --px-graphite: #101011;
+      --px-ink: #f8f5e9;
+      --px-muted: #bbb8ae;
+      --px-line: rgba(255, 255, 255, .18);
+      --px-shadow: 7px 7px 0 rgba(0, 212, 255, .08);
+      color-scheme: dark;
+      background:
+        linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px),
+        var(--px-cream);
+    }
+    button, input, select, textarea { font: inherit; }
+    button, a, input, select, textarea { min-width: 0; }
+    a { color: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; }
+    [hidden] { display: none !important; }
+
+    :focus-visible {
+      outline: 3px solid var(--px-turquoise);
+      outline-offset: 3px;
+    }
+
+    .px-skip {
+      position: fixed;
+      z-index: 1000;
+      top: 10px;
+      left: 10px;
+      transform: translateY(-180%);
+      padding: 10px 14px;
+      color: #fff;
+      background: var(--px-cobalt);
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 800;
+    }
+    .px-skip:focus { transform: translateY(0); }
+
+    .px-page {
+      width: min(1580px, calc(100% - 28px));
+      margin: 0 auto 54px;
+    }
+
+    .px-hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      margin-top: 18px;
+      padding: clamp(22px, 3.2vw, 42px);
+      color: #fff;
+      background:
+        radial-gradient(circle at 78% 17%, var(--px-turquoise) 0 6.7%, transparent 7.1%),
+        radial-gradient(circle at 92% 74%, var(--px-violet) 0 11%, transparent 11.4%),
+        linear-gradient(132deg, #0d1012 0 54%, var(--px-cobalt) 54% 100%);
+      border: 3px solid #050505;
+      border-radius: 25px;
+      box-shadow: 10px 10px 0 rgba(239, 62, 47, .8);
+    }
+    .px-hero::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      opacity: .27;
+      background-image: radial-gradient(var(--px-turquoise) 1.1px, transparent 1.1px);
+      background-size: 9px 9px;
+      mask-image: linear-gradient(90deg, #000, transparent 80%);
+    }
+    .px-hero::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 300px;
+      height: 300px;
+      right: -90px;
+      bottom: -220px;
+      border: 48px solid var(--px-red);
+      border-radius: 50%;
+      transform: rotate(12deg);
+    }
+    .px-hero-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .px-hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .px-kicker, .px-stamp, .px-tag, .px-meta, .px-status,
+    .px-button, .px-index, .px-mini, .px-countdown, .px-health-code {
+      font-family: var(--px-mono);
+    }
+    .px-kicker {
+      margin: 0;
+      color: var(--px-turquoise);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .px-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, .42);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, .28);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transform: rotate(1deg);
+    }
+    .px-stamp::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--px-red);
+      animation: px-pulse 1.8s infinite;
+    }
+    .px-backlink {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 39px;
+      padding: 9px 14px;
+      color: #001116;
+      background: var(--px-yellow);
+      border: 2px solid #050505;
+      border-radius: 999px;
+      box-shadow: 4px 4px 0 #050505;
+      text-decoration: none;
+      font-family: var(--px-head);
+      font-size: 13px;
+      font-weight: 850;
+      transform: rotate(-1deg);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .px-backlink:hover {
+      transform: translate(-2px, -2px) rotate(-1deg);
+      box-shadow: 6px 6px 0 #050505;
+    }
+    .px-hero h1 {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 22px 0 13px;
+      font-family: var(--px-head);
+      font-size: clamp(40px, 5vw, 70px);
+      font-weight: 850;
+      line-height: .94;
+      letter-spacing: -.065em;
+      text-wrap: balance;
+      overflow-wrap: anywhere;
+    }
+    .px-hero h1 span {
+      display: block;
+      color: var(--px-yellow);
+    }
+    .px-lead {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0;
+      color: rgba(255, 255, 255, .84);
+      font-size: clamp(14px, 1.5vw, 18px);
+      line-height: 1.48;
+    }
+    .px-source-rail {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 20px;
+    }
+    .px-source-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      max-width: 100%;
+      padding: 7px 10px;
+      color: #fff;
+      background: rgba(0, 0, 0, .24);
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: 999px;
+      font-family: var(--px-mono);
+      font-size: 9px;
+      overflow-wrap: anywhere;
+    }
+    .px-source-pill::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #999;
+    }
+    .px-source-pill[data-state="local"]::before { background: var(--px-turquoise); }
+    .px-source-pill[data-state="missing"]::before { background: var(--px-red); }
+    .px-source-pill[data-state="unverified"]::before { background: var(--px-yellow); }
+
+    .px-cockpit {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .px-metric {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      min-height: 104px;
+      padding: 15px;
+      color: var(--px-ink);
+      background: var(--px-paper);
+      border: 2px solid #050505;
+      border-radius: 13px;
+      box-shadow: 5px 5px 0 rgba(0, 0, 0, .25);
+    }
+    .px-metric:nth-child(2) { background: var(--px-turquoise); }
+    .px-metric:nth-child(3) { background: var(--px-yellow); }
+    .px-metric:nth-child(4) { color: #fff; background: var(--px-red); }
+    .px-metric:nth-child(5) { background: var(--px-violet); color: #fff; }
+    .px-metric::after {
+      content: "";
+      position: absolute;
+      width: 66px;
+      height: 66px;
+      right: -22px;
+      bottom: -27px;
+      border: 11px solid currentColor;
+      border-radius: 50%;
+      opacity: .09;
+    }
+    .px-metric-label {
+      display: block;
+      margin-bottom: 7px;
+      font-family: var(--px-mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .px-metric-value {
+      display: block;
+      max-width: 100%;
+      font-family: var(--px-head);
+      font-size: clamp(20px, 2.3vw, 36px);
+      font-weight: 850;
+      line-height: 1.04;
+      letter-spacing: -.05em;
+      overflow-wrap: anywhere;
+    }
+    .px-metric:first-child .px-metric-value { font-size: clamp(16px, 1.7vw, 25px); }
+    .px-alert {
+      position: relative;
+      z-index: 2;
+      margin-top: 12px;
+      padding: 11px 14px;
+      color: #fff;
+      background: rgba(0, 0, 0, .35);
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 9px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .px-alert[data-tone="error"] { background: var(--px-red); }
+    .px-alert[data-tone="warning"] { background: #6b4b00; }
+
+    .px-workspace {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr) 370px;
+      gap: 18px;
+      align-items: start;
+      margin-top: 28px;
+    }
+    .px-column {
+      display: grid;
+      min-width: 0;
+      gap: 18px;
+    }
+    .px-panel {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      padding: 20px;
+      background: var(--px-paper);
+      border: 1px solid var(--px-line);
+      border-radius: 20px;
+      box-shadow: var(--px-shadow);
+    }
+    .px-panel::after {
+      content: "";
+      position: absolute;
+      width: 108px;
+      height: 108px;
+      right: -50px;
+      top: -50px;
+      border: 17px solid rgba(0, 212, 255, .18);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .px-panel-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    .px-eyebrow {
+      margin: 0 0 5px;
+      color: var(--px-cobalt);
+      font-family: var(--px-mono);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    body[data-px-dark="true"] .px-eyebrow { color: var(--px-turquoise); }
+    .px-panel h2, .px-panel h3 {
+      margin: 0;
+      font-family: var(--px-head);
+      letter-spacing: -.035em;
+    }
+    .px-panel h2 { font-size: 26px; }
+    .px-panel h3 { font-size: 19px; }
+    .px-index {
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.35;
+      text-align: right;
+    }
+    .px-summary {
+      color: var(--px-muted);
+      line-height: 1.5;
+    }
+    .px-panel > .px-summary { margin-top: -4px; }
+
+    .px-toolbar { display: grid; gap: 8px; margin-bottom: 12px; }
+    .px-toolbar label {
+      font-family: var(--px-mono);
+      font-size: 10px;
+      font-weight: 850;
+    }
+    .px-input, .px-select, .px-textarea {
+      width: 100%;
+      color: var(--px-ink);
+      background: var(--px-cream);
+      border: 1px solid var(--px-line);
+      border-radius: 9px;
+    }
+    .px-input, .px-select { height: 42px; padding: 0 11px; }
+    .px-textarea { min-height: 92px; padding: 10px 11px; resize: vertical; }
+    .px-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 38px;
+      padding: 8px 11px;
+      color: var(--px-ink);
+      background: var(--px-cream);
+      border: 1px solid var(--px-line);
+      border-radius: 9px;
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1.25;
+      text-align: center;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+    .px-button:hover:not(:disabled) {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 var(--px-cobalt);
+    }
+    .px-button-primary { color: #fff; background: var(--px-cobalt); border-color: var(--px-cobalt); }
+    .px-button-red { color: #fff; background: var(--px-red); border-color: #9f1d16; }
+    .px-button-turquoise { color: #001116; background: var(--px-turquoise); border-color: #009cb9; }
+    .px-button-small { min-height: 31px; padding: 6px 8px; font-size: 9px; }
+    .px-button:disabled { opacity: .45; transform: none; box-shadow: none; }
+
+    .px-skills {
+      display: grid;
+      gap: 10px;
+      max-height: 690px;
+      overflow-y: auto;
+      padding: 3px;
+      scrollbar-width: thin;
+    }
+    .px-skill {
+      position: relative;
+      min-width: 0;
+      padding: 13px;
+      background: var(--px-cream);
+      border: 1px solid var(--px-line);
+      border-left: 4px solid var(--px-violet);
+      border-radius: 11px;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .px-skill:hover {
+      transform: translate(-3px, -2px) rotate(-.35deg);
+      box-shadow: 6px 6px 0 rgba(25, 59, 214, .22);
+    }
+    .px-skill-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .px-skill h3 { margin: 8px 0 6px; font-size: 16px; }
+    .px-skill p {
+      margin: 0 0 10px;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+    .px-tag-row, .px-chip-row, .px-action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .px-tag, .px-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-height: 24px;
+      padding: 4px 8px;
+      color: var(--px-ink);
+      background: var(--px-paper);
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      font-family: var(--px-mono);
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1.3;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+    a.px-chip:hover { color: #fff; background: var(--px-cobalt); }
+    button.px-chip:hover:not(:disabled) { color: #fff; background: var(--px-violet); }
+    .px-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex: 0 0 auto;
+      color: var(--px-muted);
+      font-size: 8px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .px-status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #999;
+    }
+    .px-status-local::before { background: #12a66b; }
+    .px-status-missing::before { background: var(--px-red); }
+    .px-status-unverified::before { background: #d29b00; }
+    .px-skill-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .px-story-shell {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(0, 212, 255, .09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, .09) 1px, transparent 1px),
+        #11151a;
+      background-size: 18px 18px;
+      border-radius: 15px;
+    }
+    .px-story-canvas {
+      display: block;
+      width: 100%;
+      height: clamp(420px, 47vw, 520px);
+      color: #fff;
+    }
+    .px-edge {
+      stroke: rgba(0, 212, 255, .3);
+      stroke-width: 1.1;
+      vector-effect: non-scaling-stroke;
+    }
+    .px-edge[data-kind="dub"] { stroke: var(--px-red); stroke-dasharray: 7 5; }
+    .px-edge[data-kind="source"] { stroke: var(--px-yellow); }
+    .px-edge[data-kind="label"] { stroke: var(--px-violet); stroke-dasharray: 3 4; }
+    .px-edge[data-kind="cluster"] { stroke: rgba(0, 212, 255, .7); }
+    .px-node { cursor: pointer; outline: none; }
+    .px-node circle {
+      fill: var(--px-violet);
+      stroke: #fff;
+      stroke-width: 1.4;
+      vector-effect: non-scaling-stroke;
+      transform-box: fill-box;
+      transform-origin: center;
+      transition: transform .18s ease, fill .18s ease;
+    }
+    .px-node[data-label-kind="episch"] circle { fill: var(--px-red); }
+    .px-node[data-label-kind="breaking"] circle { fill: var(--px-turquoise); }
+    .px-node[data-selected="true"] circle {
+      fill: var(--px-yellow);
+      stroke-width: 4;
+      transform: scale(1.5);
+    }
+    .px-node:hover circle, .px-node:focus circle { transform: scale(1.35); }
+    .px-node text {
+      pointer-events: none;
+      fill: #fff;
+      font-family: var(--px-mono);
+      font-size: 9px;
+      paint-order: stroke;
+      stroke: #11151a;
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+    .px-graph-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      padding: 10px 12px;
+      color: #b9c2cb;
+      border-top: 1px solid rgba(255, 255, 255, .12);
+      font-family: var(--px-mono);
+      font-size: 9px;
+    }
+    .px-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .px-legend-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--px-violet); }
+    .px-legend-source { background: var(--px-yellow); }
+    .px-legend-dub { background: var(--px-red); }
+
+    .px-empty {
+      padding: 20px 15px;
+      color: var(--px-muted);
+      border: 1px dashed var(--px-line);
+      border-radius: 11px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .px-probe {
+      position: relative;
+      margin-top: 14px;
+      padding: 17px;
+      background: color-mix(in srgb, var(--px-cobalt) 8%, var(--px-paper));
+      border: 1px solid color-mix(in srgb, var(--px-cobalt) 35%, transparent);
+      border-radius: 13px;
+    }
+    .px-probe h3 {
+      max-width: 900px;
+      margin: 8px 0;
+      font-family: var(--px-head);
+      font-size: clamp(20px, 2.5vw, 31px);
+      line-height: 1.04;
+      letter-spacing: -.04em;
+    }
+    .px-probe p { margin: 8px 0; color: var(--px-muted); line-height: 1.5; }
+    .px-probe .px-action-row { margin-top: 13px; }
+
+    .px-reel {
+      display: grid;
+      grid-auto-columns: 270px;
+      grid-auto-flow: column;
+      gap: 12px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      padding: 5px 3px 15px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: thin;
+    }
+    .px-film-card {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      padding: 14px;
+      color: #fff;
+      background: var(--px-graphite);
+      border: 2px solid #000;
+      border-radius: 13px;
+      box-shadow: 6px 6px 0 rgba(0, 212, 255, .24);
+      scroll-snap-align: start;
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .px-film-card:hover, .px-film-card[data-active="true"] {
+      transform: translateY(-4px) rotate(-.5deg);
+    }
+    .px-film-perf { display: flex; gap: 7px; margin-bottom: 13px; }
+    .px-film-hole {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--px-cream);
+      box-shadow: 0 15px 0 var(--px-cream), 0 30px 0 var(--px-cream), 0 45px 0 var(--px-cream);
+    }
+    .px-film-card h3 {
+      min-height: 54px;
+      margin: 0 0 10px;
+      font-family: var(--px-head);
+      font-size: 18px;
+      line-height: 1.05;
+    }
+    .px-film-meta {
+      display: grid;
+      gap: 5px;
+      color: #bdc5cc;
+      font-family: var(--px-mono);
+      font-size: 9px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    .px-duration {
+      position: absolute;
+      top: 17px;
+      right: 13px;
+      color: var(--px-yellow);
+      font-family: var(--px-head);
+      font-size: 21px;
+      font-weight: 900;
+    }
+    .px-player {
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      margin-top: 12px;
+      padding: 14px;
+      color: #fff;
+      background: radial-gradient(circle at 15% 20%, rgba(0, 212, 255, .25), transparent 26%), #101010;
+      border-radius: 13px;
+    }
+    .px-countdown {
+      display: grid;
+      place-items: center;
+      width: 104px;
+      aspect-ratio: 1;
+      color: var(--px-yellow);
+      background: repeating-radial-gradient(circle, transparent 0 7px, rgba(0, 212, 255, .16) 8px 9px), #171717;
+      border: 2px solid var(--px-turquoise);
+      border-radius: 50%;
+      font-size: 26px;
+      font-weight: 900;
+      text-align: center;
+    }
+    .px-player h3 { margin: 5px 0 7px; }
+    .px-player p { margin: 5px 0; color: #b9c1c8; font-size: 11px; line-height: 1.4; }
+    .px-card-video {
+      grid-column: 1 / -1;
+      width: 100%;
+      max-height: 390px;
+      margin-top: 4px;
+      background: #000;
+      border-radius: 10px;
+    }
+
+    .px-switch-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .px-switch {
+      min-width: 0;
+      padding: 11px 8px;
+      color: var(--px-ink);
+      background: var(--px-cream);
+      border: 1px solid var(--px-line);
+      border-radius: 11px;
+      transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+    .px-switch:hover { transform: translateY(-3px) rotate(-1deg); }
+    .px-switch[aria-pressed="true"] {
+      background: var(--px-yellow);
+      border-color: #000;
+      box-shadow: 4px 4px 0 var(--px-cobalt);
+    }
+    .px-switch-icon { display: block; margin-bottom: 7px; font-size: 22px; }
+    .px-switch strong { display: block; font-family: var(--px-head); font-size: 12px; line-height: 1.05; }
+    .px-switch small { display: block; margin-top: 4px; color: var(--px-muted); font-family: var(--px-mono); font-size: 8px; }
+
+    .px-dossier-column {
+      position: sticky;
+      top: 82px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .px-dossier {
+      padding-top: 51px;
+      background:
+        linear-gradient(90deg, transparent 27px, rgba(239, 62, 47, .12) 28px 30px, transparent 31px),
+        repeating-linear-gradient(0deg, transparent 0 25px, rgba(25, 59, 214, .06) 25px 26px),
+        var(--px-paper);
+    }
+    .px-dossier::before {
+      content: "Dossierakte";
+      position: absolute;
+      top: 17px;
+      left: 17px;
+      padding: 7px 11px;
+      color: #fff;
+      background: var(--px-red);
+      border: 1px solid #8f1d17;
+      border-radius: 4px;
+      font-family: var(--px-mono);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transform: rotate(-2deg);
+    }
+    .px-dossier h2 { margin: 8px 0 14px; font-size: 25px; line-height: 1.04; }
+    .px-facts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+    .px-fact {
+      min-width: 0;
+      padding: 10px;
+      background: var(--px-cream);
+      border: 1px solid var(--px-line);
+      border-radius: 8px;
+    }
+    .px-fact span {
+      display: block;
+      color: var(--px-muted);
+      font-family: var(--px-mono);
+      font-size: 8px;
+      text-transform: uppercase;
+    }
+    .px-fact strong {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--px-head);
+      font-size: 16px;
+      overflow-wrap: anywhere;
+    }
+    .px-subhead {
+      margin: 19px 0 8px;
+      font-family: var(--px-mono);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .px-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+    .px-list li {
+      position: relative;
+      padding-left: 17px;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .px-list li::before {
+      content: "?";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--px-red);
+      font-family: var(--px-mono);
+      font-weight: 900;
+    }
+    .px-ribbon {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      margin: 5px 0;
+      padding: 7px 10px 7px 15px;
+      overflow-wrap: anywhere;
+      color: #fff;
+      background: var(--px-cobalt);
+      border-left: 5px solid var(--px-yellow);
+      text-decoration: none;
+      font-size: 11px;
+      transform: rotate(-.4deg);
+    }
+    .px-ribbon:nth-child(even) { background: var(--px-violet); transform: rotate(.5deg); }
+    .px-mini-graph {
+      width: 100%;
+      min-height: 190px;
+      background: #11151a;
+      border-radius: 11px;
+    }
+    .px-mini-edge { stroke: rgba(0, 212, 255, .6); stroke-width: 1.5; }
+    .px-mini-node { fill: var(--px-red); stroke: #fff; stroke-width: 1.5; }
+    .px-mini-text {
+      fill: #fff;
+      font-family: var(--px-mono);
+      font-size: 9px;
+      paint-order: stroke;
+      stroke: #11151a;
+      stroke-width: 3px;
+    }
+    .px-note-form { display: grid; gap: 8px; }
+    .px-note-thread {
+      position: relative;
+      margin: 10px 0;
+      padding: 12px 12px 12px 22px;
+      color: #6b1611;
+      background: #ffd6d1;
+      border: 2px solid var(--px-red);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      transform: rotate(-.4deg);
+    }
+    .px-note-thread::before {
+      content: "";
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      width: 20px;
+      height: 20px;
+      border: 3px solid var(--px-red);
+      background: var(--px-paper);
+      border-radius: 50%;
+    }
+
+    .px-wide { margin-top: 18px; }
+    .px-media-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .px-media-shelf {
+      min-width: 0;
+      overflow: hidden;
+      color: #fff;
+      background: #151515;
+      border: 2px solid #000;
+      border-radius: 13px;
+      box-shadow: 6px 6px 0 rgba(239, 62, 47, .28);
+    }
+    .px-film-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      padding: 10px;
+      background: #0c0c0c;
+      border-bottom: 1px solid #444;
+    }
+    .px-film-strip span { height: 12px; background: #eee; border-radius: 2px; opacity: .8; }
+    .px-media-image {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      background: linear-gradient(135deg, var(--px-cobalt), var(--px-violet));
+    }
+    .px-media-image img { width: 100%; height: 100%; object-fit: cover; }
+    .px-media-fallback {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: var(--px-head);
+      font-size: 38px;
+      font-weight: 900;
+      text-align: center;
+    }
+    .px-media-body { padding: 14px; }
+    .px-media-body h3 {
+      min-height: 48px;
+      margin: 8px 0;
+      font-family: var(--px-head);
+      font-size: 17px;
+      line-height: 1.08;
+    }
+    .px-media-body p {
+      display: -webkit-box;
+      margin: 0 0 12px;
+      overflow: hidden;
+      color: #aeb7bf;
+      font-size: 11px;
+      line-height: 1.4;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+    .px-health-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .px-health-card {
+      min-width: 0;
+      padding: 13px;
+      background: var(--px-cream);
+      border: 1px solid var(--px-line);
+      border-radius: 11px;
+    }
+    .px-health-card h3 { margin: 5px 0; font-size: 18px; }
+    .px-health-card p {
+      margin: 4px 0;
+      color: var(--px-muted);
+      font-size: 11px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    .px-health-code {
+      color: var(--px-cobalt);
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    body[data-px-dark="true"] .px-health-code { color: var(--px-turquoise); }
+    .px-footer {
+      margin-top: 20px;
+      padding: 18px;
+      color: #fff;
+      background: var(--px-graphite);
+      border-radius: 13px;
+      text-align: center;
+      font-family: var(--px-mono);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .px-dialog {
+      width: min(720px, calc(100% - 24px));
+      max-height: calc(100vh - 24px);
+      padding: 0;
+      color: var(--px-ink);
+      background: var(--px-paper);
+      border: 3px solid #000;
+      border-radius: 17px;
+      box-shadow: 11px 11px 0 var(--px-turquoise);
+    }
+    .px-dialog::backdrop { background: rgba(0, 0, 0, .76); backdrop-filter: blur(4px); }
+    .px-dialog-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 17px;
+      color: #fff;
+      background: var(--px-cobalt);
+    }
+    .px-dialog-head h2 { margin: 0; font-family: var(--px-head); font-size: 20px; }
+    .px-dialog-body { padding: 18px; }
+    .px-dialog-body p { line-height: 1.5; }
+    .px-og-image {
+      display: block;
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+      background: #111;
+      border-radius: 11px;
+    }
+    .px-dialog-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      margin: 15px 0;
+    }
+
+    .px-toast {
+      position: fixed;
+      z-index: 300;
+      right: 18px;
+      bottom: 18px;
+      width: min(390px, calc(100% - 36px));
+      padding: 13px 15px;
+      color: #fff;
+      background: var(--px-graphite);
+      border: 2px solid var(--px-turquoise);
+      border-radius: 11px;
+      box-shadow: 7px 7px 0 rgba(0, 0, 0, .25);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .px-production {
+      position: fixed;
+      z-index: 250;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: rgba(0, 0, 0, .78);
+      backdrop-filter: blur(4px);
+    }
+    .px-production-box {
+      position: relative;
+      width: min(680px, 100%);
+      padding: 22px;
+      color: #fff;
+      background: var(--px-graphite);
+      border: 3px solid var(--px-turquoise);
+      border-radius: 17px;
+      box-shadow: 11px 11px 0 var(--px-red);
+    }
+    .px-production-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .px-production-box h2 {
+      margin: 5px 0 8px;
+      font-family: var(--px-head);
+      font-size: clamp(25px, 5vw, 40px);
+      line-height: 1;
+    }
+    .px-production-story { color: #c7cbd0; line-height: 1.45; }
+    .px-production-steps { display: grid; gap: 8px; margin-top: 16px; }
+    .px-production-step {
+      padding: 10px 12px;
+      color: #aeb7bf;
+      background: #111;
+      border: 1px solid #444;
+      border-radius: 8px;
+      font-family: var(--px-mono);
+      font-size: 11px;
+      transition: transform .25s ease;
+    }
+    .px-production-step[data-state="active"] {
+      color: #001116;
+      background: var(--px-turquoise);
+      border-color: #fff;
+      transform: translateX(12px) rotate(-1deg);
+    }
+    .px-production-step[data-state="done"] { color: #fff; background: var(--px-cobalt); }
+    .px-package {
+      position: absolute;
+      z-index: -1;
+      width: 84px;
+      height: 64px;
+      right: 12%;
+      top: 38%;
+      background: #c9904c;
+      border: 4px solid #5e351b;
+      box-shadow: inset -17px -12px 0 rgba(0, 0, 0, .12);
+      animation: px-package 1.4s ease-in-out infinite alternate;
+    }
+
+    body.px-headline-sharp .px-panel h2,
+    body.px-headline-sharp .px-panel h3 { font-weight: 950; letter-spacing: -.052em; }
+    body.px-headline-sharp .px-probe h3 { color: var(--px-cobalt); text-transform: uppercase; }
+    body[data-px-dark="true"].px-headline-sharp .px-probe h3 { color: var(--px-turquoise); }
+    body.px-drill .px-skill:nth-child(3n+1) { animation: px-drill 3.8s ease-in-out infinite; }
+    body.px-drill .px-skill:nth-child(3n+2) { animation: px-drill 4.4s ease-in-out -1s infinite reverse; }
+    body.px-card-stack .px-film-card { transform-origin: 92% 50%; }
+    body.px-card-stack .px-film-card:nth-child(2n) { transform: translateX(-22px) rotate(1deg); }
+    body.px-card-stack .px-film-card:nth-child(3n) { transform: translateX(18px) rotate(-1deg); }
+    body.px-card-stack .px-film-card:hover { transform: translateY(-8px) rotate(0) scale(1.04); }
+    body.px-source-weather .px-ribbon {
+      background-image: repeating-linear-gradient(135deg, transparent 0 12px, rgba(255, 255, 255, .12) 12px 18px);
+      animation: px-weather 7s linear infinite;
+    }
+    body.px-evidence-lamp .px-dossier { animation: px-lamp 1.5s ease-in-out infinite; }
+
+    @keyframes px-pulse {
+      70% { box-shadow: 0 0 0 12px rgba(239, 62, 47, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 62, 47, 0); }
+    }
+    @keyframes px-drill {
+      0%, 100% { transform: translateX(0) rotate(0); }
+      30% { transform: translateX(6px) rotate(.5deg); }
+      65% { transform: translateX(-3px) rotate(-.4deg); }
+    }
+    @keyframes px-weather { to { background-position: 40px 0; } }
+    @keyframes px-lamp {
+      50% { box-shadow: 0 0 0 5px rgba(0, 212, 255, .28), 7px 7px 0 rgba(0, 212, 255, .08); }
+    }
+    @keyframes px-package {
+      from { transform: translate(80px, 120px) rotate(20deg); }
+      to { transform: translate(-260px, -100px) rotate(-15deg); }
+    }
+
+    @media (max-width: 1280px) {
+      .px-workspace { grid-template-columns: 280px minmax(0, 1fr); }
+      .px-dossier-column {
+        position: static;
+        grid-column: 1 / -1;
+        max-height: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .px-dossier-column .px-panel:first-child { grid-row: span 2; }
+    }
+    @media (max-width: 960px) {
+      .px-cockpit { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .px-workspace { grid-template-columns: 1fr; }
+      .px-skills { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 540px; }
+      .px-dossier-column { grid-template-columns: 1fr; }
+      .px-media-grid, .px-health-grid { grid-template-columns: 1fr; }
+      .px-media-shelf { display: grid; grid-template-columns: 190px minmax(0, 1fr); }
+      .px-media-image { height: 100%; aspect-ratio: auto; }
+      .px-media-body h3 { min-height: 0; }
+    }
+    @media (max-width: 620px) {
+      .px-page { width: min(100% - 20px, 1580px); margin-bottom: 30px; }
+      .px-hero {
+        margin-top: 14px;
+        padding: 18px 15px;
+        border-radius: 18px;
+        box-shadow: 7px 7px 0 rgba(239, 62, 47, .8);
+      }
+      .px-hero-top { align-items: flex-start; }
+      .px-hero-actions { justify-content: flex-start; }
+      .px-kicker { max-width: 170px; font-size: 9px; line-height: 1.35; }
+      .px-stamp { display: none; }
+      .px-backlink { min-height: 36px; padding: 8px 11px; font-size: 11px; }
+      .px-hero h1 {
+        margin-top: 20px;
+        font-size: clamp(32px, 9vw, 40px);
+        line-height: .95;
+        letter-spacing: -.068em;
+      }
+      .px-lead { font-size: 14px; }
+      .px-source-rail { gap: 5px; margin-top: 16px; }
+      .px-source-pill { font-size: 8px; padding: 6px 8px; }
+      .px-cockpit { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .px-metric { min-height: 90px; padding: 12px; border-radius: 10px; }
+      .px-metric:last-child { grid-column: 1 / -1; }
+      .px-metric-value { font-size: 27px; }
+      .px-metric:first-child .px-metric-value { font-size: 21px; }
+      .px-panel { padding: 15px; border-radius: 15px; box-shadow: 5px 5px 0 rgba(25, 59, 214, .12); }
+      .px-panel h2 { font-size: 23px; }
+      .px-skills { grid-template-columns: 1fr; }
+      .px-story-canvas { height: 410px; }
+      .px-player { grid-template-columns: 86px minmax(0, 1fr); gap: 10px; }
+      .px-countdown { width: 82px; font-size: 20px; }
+      .px-switch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .px-switch:last-child { grid-column: 1 / -1; }
+      .px-media-shelf { display: block; }
+      .px-media-image { aspect-ratio: 16 / 10; }
+      .px-skill-actions { grid-template-columns: 1fr; }
+      .px-action-row .px-button { width: 100%; }
+      .px-dialog-stats { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 390px) {
+      .px-hero h1 { font-size: 32px; }
+      .px-facts { grid-template-columns: 1fr 1fr; }
+      .px-fact { padding: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="px-skip" href="#px-main">Zum Redaktionskern springen</a>
+
+  <main class="px-page" id="px-main">
+    <header class="px-hero">
+      <div class="px-hero-top">
+        <p class="px-kicker">KI Newsroom Control / Redaktionsstation 07</p>
+        <div class="px-hero-actions">
+          <span class="px-stamp">Live aus den Redaktionsdaten</span>
+          <a class="px-backlink" href="redaktion.html">← Zurück in die Redaktion</a>
+        </div>
+      </div>
+      <h1>Die <span>Redaktionsmaschine.</span> Belegbar. Kinetisch.</h1>
+      <p class="px-lead">Eine Steuerzentrale für Geschichten, Quellen, Karten, Medien und Archive. Alle sichtbaren Werte stammen aus lokalen JSON-Dateien. Fehlende oder leere Quellen werden markiert und nicht ergänzt.</p>
+      <div class="px-source-rail" id="px-source-rail" aria-label="Status der Datenquellen"></div>
+      <div class="px-cockpit" id="px-cockpit" aria-label="Live-Zahlen aus den geladenen Daten"></div>
+      <div class="px-alert" id="px-load-alert" role="status" aria-live="polite">Datenkanäle werden geprüft.</div>
+    </header>
+
+    <div class="px-workspace">
+      <aside class="px-column" aria-label="Skill-Katalog">
+        <section class="px-panel">
+          <div class="px-panel-head">
+            <div>
+              <p class="px-eyebrow">Installierbarer Katalog</p>
+              <h2>Newsroom-Skills</h2>
+            </div>
+            <span class="px-index" id="px-skill-count">00 sichtbar</span>
+          </div>
+          <div class="px-toolbar">
+            <label for="px-skill-search">Skill suchen</label>
+            <input class="px-input" id="px-skill-search" type="search" placeholder="Karte, Dossier oder Recherche" autocomplete="off">
+            <label for="px-skill-filter">Kategorie</label>
+            <select class="px-select" id="px-skill-filter">
+              <option value="all">Alle Kategorien</option>
+              <option value="Analyse">Analyse</option>
+              <option value="Video">Video</option>
+              <option value="Design">Design</option>
+              <option value="Recherche">Recherche</option>
+              <option value="Archiv">Archiv</option>
+              <option value="System">System</option>
+            </select>
+          </div>
+          <div class="px-skills" id="px-skills" aria-live="polite"></div>
+        </section>
+      </aside>
+
+      <div class="px-column">
+        <section class="px-panel" id="px-story-section" aria-labelledby="px-story-title">
+          <div class="px-panel-head">
+            <div>
+              <p class="px-eyebrow">Story-Oszillatoren</p>
+              <h2 id="px-story-title">Story-Lieferkette</h2>
+            </div>
+            <span class="px-index" id="px-story-index">Wird aufgebaut</span>
+          </div>
+          <p class="px-summary">Briefing, News und Posts werden über story_id, Score, Quellen, Labels und Dub-Hinweise zu prüfbaren Signaturen verbunden.</p>
+          <div class="px-story-shell">
+            <svg class="px-story-canvas" id="px-story-canvas" viewBox="0 0 900 520" role="group" aria-label="Interaktiver Graph der aktuellen Geschichten"></svg>
+            <div class="px-graph-legend" aria-hidden="true">
+              <span class="px-legend-item"><i class="px-legend-dot"></i>Story-Signatur</span>
+              <span class="px-legend-item"><i class="px-legend-dot px-legend-source"></i>gemeinsame Quelle</span>
+              <span class="px-legend-item"><i class="px-legend-dot px-legend-dub"></i>Dub-Bezug</span>
+              <span class="px-legend-item">Größe zeigt Score</span>
+            </div>
+          </div>
+          <div class="px-probe" id="px-probe" aria-live="polite">
+            <p class="px-empty">Story-Auswahl wird vorbereitet.</p>
+          </div>
+        </section>
+
+        <section class="px-panel" id="px-card-section" aria-labelledby="px-card-title">
+          <div class="px-panel-head">
+            <div>
+              <p class="px-eyebrow">Karten-Filmstrecke</p>
+              <h2 id="px-card-title">Kurzfilme aus cards.json</h2>
+            </div>
+            <span class="px-index" id="px-card-index">00 Karten</span>
+          </div>
+          <div class="px-reel" id="px-card-reel" aria-label="Kartenfilmstrecke"></div>
+          <div class="px-player" id="px-card-player" aria-live="polite"></div>
+        </section>
+
+        <section class="px-panel" aria-labelledby="px-chaos-title">
+          <div class="px-panel-head">
+            <div>
+              <p class="px-eyebrow">Cartoon-Kinematografie</p>
+              <h2 id="px-chaos-title">Chaos-Schalttafel</h2>
+            </div>
+            <button class="px-button px-button-small" id="px-chaos-reset" type="button">Geradeziehen</button>
+          </div>
+          <p class="px-summary">Die Schalter verändern nur Layout, Bewegung und Datendarstellung. Storys, Karten, Quellen und Notizen bleiben erhalten.</p>
+          <div class="px-switch-grid">
+            <button class="px-switch" type="button" data-switch="headline" aria-pressed="false">
+              <span class="px-switch-icon">A+</span><strong>Überschrift-Schärfe</strong><small>mehr Druck im Titel</small>
+            </button>
+            <button class="px-switch" type="button" data-switch="drill" aria-pressed="false">
+              <span class="px-switch-icon">↯</span><strong>Drill-Animation</strong><small>die Karten tänzeln</small>
+            </button>
+            <button class="px-switch" type="button" data-switch="stack" aria-pressed="false">
+              <span class="px-switch-icon">▤</span><strong>Kartenstapel</strong><small>überdimensional sortiert</small>
+            </button>
+            <button class="px-switch" type="button" data-switch="sources" aria-pressed="false">
+              <span class="px-switch-icon">☂</span><strong>Quellenwetter</strong><small>Bänder ziehen durch</small>
+            </button>
+            <button class="px-switch" type="button" data-switch="evidence" aria-pressed="false">
+              <span class="px-switch-icon">●</span><strong>Beweislampe</strong><small>offene Belege pulsieren</small>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="px-column px-dossier-column" aria-label="Ausgewähltes Dossier">
+        <section class="px-panel px-dossier" id="px-dossier" aria-live="polite">
+          <p class="px-eyebrow">Akte im Umlauf</p>
+          <h2>Noch keine Story ausgewählt</h2>
+          <p class="px-summary">Ein Knoten im Story-Oszillator öffnet hier Fakten, Fragen, Quellen und Notizen.</p>
+        </section>
+      </aside>
+    </div>
+
+    <section class="px-panel px-wide" id="px-media-section" aria-labelledby="px-media-title">
+      <div class="px-panel-head">
+        <div>
+          <p class="px-eyebrow">Medienbühne</p>
+          <h2 id="px-media-title">Analoges Schaufenster</h2>
+        </div>
+        <span class="px-index" id="px-media-index">00 Requisiten</span>
+      </div>
+      <p class="px-summary">Podcasts, YouTube-Videos und X-Beiträge erscheinen als analoge Filmstreifen. Nichts startet automatisch.</p>
+      <div class="px-media-grid" id="px-media-grid"></div>
+    </section>
+
+    <section class="px-panel px-wide" aria-labelledby="px-ledger-title">
+      <div class="px-panel-head">
+        <div>
+          <p class="px-eyebrow">Datenjournal</p>
+          <h2 id="px-ledger-title">Archiv, Graph und Konfiguration</h2>
+        </div>
+        <span class="px-index" id="px-config-state">Wird geprüft</span>
+      </div>
+      <div class="px-health-grid" id="px-health-grid"></div>
+    </section>
+
+    <footer class="px-footer">Statische Seite, direkt aus den Redaktionsdaten. Kein Login, kein Backend, keine Änderung an JSON-Dateien. Notizen bleiben nur im LocalStorage dieses Browsers.</footer>
+  </main>
+
+  <dialog class="px-dialog" id="px-dialog" aria-labelledby="px-dialog-title">
+    <div class="px-dialog-head">
+      <h2 id="px-dialog-title">Detailansicht</h2>
+      <button class="px-button px-button-small" type="button" data-close-dialog>Schließen</button>
+    </div>
+    <div class="px-dialog-body" id="px-dialog-body"></div>
+  </dialog>
+
+  <div class="px-toast" id="px-toast" role="status" aria-live="polite" hidden></div>
+
+  <div class="px-production" id="px-production" role="dialog" aria-modal="true" aria-labelledby="px-production-title" hidden>
+    <div class="px-production-box">
+      <div class="px-package" aria-hidden="true"></div>
+      <div class="px-production-head">
+        <p class="px-eyebrow">Produktionskette</p>
+        <button class="px-button px-button-small" type="button" id="px-production-cancel">Abbrechen</button>
+      </div>
+      <h2 id="px-production-title">Story wird verpackt</h2>
+      <p class="px-production-story" id="px-production-story"></p>
+      <div class="px-production-steps" id="px-production-steps"></div>
+    </div>
+  </div>
+
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const FILES = [
+        "news.json",
+        "archive.json",
+        "cards.json",
+        "media.json",
+        "graph.json",
+        "entities.json",
+        "dashboard_config.json"
+      ];
+
+      const state = {
+        raw: Object.create(null),
+        status: Object.create(null),
+        stories: [],
+        storyMap: new Map(),
+        cards: [],
+        media: [],
+        selectedStory: null,
+        selectedCard: null,
+        cardInterval: null,
+        cardVideo: null,
+        productionTimers: [],
+        productionBusy: false,
+        productionStory: null,
+        installed: Object.create(null),
+        chaos: Object.create(null)
+      };
+
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+      function element(tag, className = "", text = null) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== null) node.textContent = String(text);
+        return node;
+      }
+
+      function clean(value, fallback = "") {
+        if (typeof value === "string" && value.trim()) {
+          return value.replace(/\u2014/g, "-").replace(/\s+/g, " ").trim();
+        }
+        if (typeof value === "number" && Number.isFinite(value)) return String(value);
+        return fallback;
+      }
+
+      function clear(node) {
+        if (node) node.replaceChildren();
+        return node;
+      }
+
+      function array(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function object(value) {
+        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      }
+
+      function number(value, fallback = 0) {
+        const result = Number(value);
+        return Number.isFinite(result) ? result : fallback;
+      }
+
+      function unique(values) {
+        return Array.from(new Set(array(values).map(value => clean(value)).filter(Boolean)));
+      }
+
+      function dateValue(value) {
+        if (typeof value !== "string") return 0;
+        const result = Date.parse(value);
+        return Number.isFinite(result) ? result : 0;
+      }
+
+      function safeURL(value) {
+        if (typeof value !== "string" || !value.trim()) return "";
+        try {
+          const result = new URL(value, document.baseURI);
+          return result.protocol === "http:" || result.protocol === "https:" ? result.href : "";
+        } catch (error) {
+          return "";
+        }
+      }
+
+      function readStorage(key, fallback) {
+        try {
+          const result = localStorage.getItem(key);
+          return result ? JSON.parse(result) : fallback;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function writeStorage(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function toast(message) {
+        const target = $("#px-toast");
+        target.textContent = clean(message);
+        target.hidden = false;
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => { target.hidden = true; }, 3600);
+      }
+
+      function words(value) {
+        return clean(value).toLocaleLowerCase("de")
+          .replace(/[^a-z0-9äöüß\s-]/g, " ")
+          .split(/\s+/)
+          .filter(word => word.length > 4)
+          .slice(0, 20);
+      }
+
+      function overlap(left, right) {
+        const a = new Set(words(left));
+        const b = new Set(words(right));
+        let count = 0;
+        a.forEach(word => { if (b.has(word)) count += 1; });
+        return count;
+      }
+
+      function fetchJSON(path) {
+        return fetch(path, { cache: "no-store" }).then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        });
+      }
+
+      function hasData(path, value) {
+        if (path === "news.json") {
+          const news = object(value);
+          return array(news.news).length + array(news.posts).length + array(object(news.briefing).stories).length > 0;
+        }
+        if (path === "archive.json" || path === "cards.json") return array(value).length > 0;
+        if (path === "media.json") {
+          const media = object(value);
+          return array(media.podcasts).length + array(media.videos).length + array(media.xposts).length > 0;
+        }
+        if (path === "graph.json") {
+          const graph = object(value);
+          return array(graph.nodes).length + array(graph.edges).length > 0;
+        }
+        if (path === "entities.json") return array(object(value).entities).length > 0;
+        if (path === "dashboard_config.json") {
+          const config = object(value);
+          return Object.keys(config).length > 0;
+        }
+        return Boolean(value);
+      }
+
+      function latestDate() {
+        const news = object(state.raw.news);
+        const dates = [];
+        array(news.news).forEach(row => dates.push(row && row.date));
+        array(object(news.briefing).stories).forEach(row => dates.push(row && row.date));
+        state.cards.forEach(card => dates.push(card && card.date));
+        return dates.filter(value => dateValue(value) > 0)
+          .sort((a, b) => dateValue(b) - dateValue(a))[0] || "";
+      }
+
+      function blockedLinks() {
+        return new Set(array(object(state.raw.dashboard_config).blocked_links)
+          .map(value => clean(value)).filter(Boolean));
+      }
+
+      function allowedStoryLinks(story) {
+        const blocked = blockedLinks();
+        return array(story && story.links).filter(link => safeURL(link) && !blocked.has(link));
+      }
+
+      function orderCards() {
+        const cards = array(state.raw.cards).filter(row => row && typeof row === "object");
+        const forced = new Set(array(object(state.raw.dashboard_config).force_cards)
+          .map(value => clean(value)).filter(Boolean));
+        state.cards = cards.slice().sort((a, b) => {
+          const left = forced.has(clean(a.id)) ? 1 : 0;
+          const right = forced.has(clean(b.id)) ? 1 : 0;
+          return right - left || dateValue(b.date) - dateValue(a.date);
+        });
+      }
+
+      function buildMedia() {
+        const media = object(state.raw.media);
+        const rows = [];
+        array(media.podcasts).forEach(row => {
+          if (row && typeof row === "object") {
+            rows.push({ ...row, pxType: "Podcast", pxUrl: row.soundcloud_url });
+          }
+        });
+        array(media.videos).forEach(row => {
+          if (row && typeof row === "object") {
+            rows.push({ ...row, pxType: "Video", pxUrl: row.src });
+          }
+        });
+        array(media.xposts).forEach(row => {
+          if (row && typeof row === "object") {
+            rows.push({ ...row, pxType: "X-Post", pxUrl: row.url });
+          }
+        });
+        state.media = rows;
+      }
+
+      function buildStories() {
+        const news = object(state.raw.news);
+        const newsRows = array(news.news).filter(row => row && typeof row === "object");
+        const briefingRows = array(object(news.briefing).stories).filter(row => row && typeof row === "object");
+        const postRows = array(news.posts).filter(row => row && typeof row === "object");
+        const map = new Map();
+
+        function ensure(id) {
+          const storyId = clean(id, `offen-${map.size + 1}`);
+          if (!map.has(storyId)) {
+            map.set(storyId, {
+              id: storyId,
+              title: "Unbenannte Story",
+              summary: "Für diese Signatur liegen keine zusammenfassenden Felder vor.",
+              score: 0,
+              sources: [],
+              labels: [],
+              links: [],
+              images: [],
+              dates: [],
+              dubVon: [],
+              dubSources: [],
+              cards: [],
+              origins: [],
+              paywalled: false,
+              postTexts: []
+            });
+          }
+          return map.get(storyId);
+        }
+
+        briefingRows.forEach(row => {
+          const story = ensure(row.story_id);
+          story.title = clean(row.title, story.title);
+          story.score = Math.max(story.score, number(row.score));
+          story.sources.push(row.source);
+          story.labels.push(row.label);
+          story.links.push(row.link);
+          story.dates.push(row.date || object(news.briefing).datum);
+          story.origins.push("briefing");
+        });
+
+        newsRows.forEach(row => {
+          const story = ensure(row.story_id);
+          story.title = clean(row.title, story.title);
+          story.summary = clean(row.summary, story.summary);
+          story.score = Math.max(story.score, number(row.score, number(row.story_cluster_score)));
+          story.sources.push(row.source);
+          story.labels.push(row.label);
+          story.links.push(row.link);
+          story.images.push(row.image);
+          story.dates.push(row.date || row.first_seen);
+          story.dubVon.push(row.dub_von);
+          array(row.dub_quellen).forEach(source => story.dubSources.push(source));
+          story.paywalled = story.paywalled || row.paywalled === true;
+          story.origins.push("news");
+        });
+
+        postRows.forEach(row => {
+          const story = ensure(row.story_id);
+          const teaser = clean(row.teaser);
+          if (story.title === "Unbenannte Story" && teaser) story.title = clean(teaser.slice(0, 130));
+          story.summary = clean(row.erklaerung, clean(teaser, story.summary));
+          story.links.push(row.link);
+          story.postTexts.push(teaser, ...array(row.thread));
+          story.origins.push("posts");
+
+          const related = newsRows.find(item => item.link === row.link);
+          if (related) {
+            story.sources.push(related.source);
+            story.labels.push(related.label);
+            story.score = Math.max(story.score, number(related.score));
+            story.images.push(related.image);
+            story.dates.push(related.date || related.first_seen);
+          }
+        });
+
+        const stories = Array.from(map.values());
+        stories.forEach(story => {
+          story.sources = unique(story.sources);
+          story.labels = unique(story.labels);
+          story.links = unique(story.links);
+          story.images = unique(story.images);
+          story.dubVon = unique(story.dubVon);
+          story.dubSources = unique(story.dubSources);
+          story.origins = unique(story.origins);
+          story.postTexts = unique(story.postTexts);
+          story.dates = unique(story.dates).sort((a, b) => dateValue(b) - dateValue(a));
+          story.search = `${story.id} ${story.title} ${story.summary} ${story.sources.join(" ")} ${story.labels.join(" ")}`.toLocaleLowerCase("de");
+        });
+
+        state.cards.forEach(card => {
+          let best = null;
+          let bestScore = 0;
+          stories.forEach(story => {
+            const sourceMatch = story.sources.some(source => clean(source).toLocaleLowerCase("de") === clean(card.source).toLocaleLowerCase("de")) ? 2 : 0;
+            const dateMatch = story.dates.includes(card.date) ? 1 : 0;
+            const score = overlap(card.headline, story.title) + sourceMatch + dateMatch;
+            if (score > bestScore) {
+              bestScore = score;
+              best = story;
+            }
+          });
+          if (best && bestScore >= 2) best.cards.push(card);
+        });
+
+        stories.sort((a, b) => b.score - a.score || dateValue(b.dates[0]) - dateValue(a.dates[0]));
+        state.stories = stories;
+        state.storyMap = new Map(stories.map(story => [story.id, story]));
+      }
+
+      function renderSources() {
+        const target = clear($("#px-source-rail"));
+        FILES.forEach(path => {
+          const status = state.status[path] || "unverified";
+          const item = element("span", "px-source-pill", path);
+          item.dataset.state = status;
+          target.append(item);
+        });
+      }
+
+      function renderCockpit() {
+        const target = clear($("#px-cockpit"));
+        const news = object(state.raw.news);
+        const graph = object(state.raw.graph);
+        const activeIds = new Set([
+          ...array(object(news.briefing).stories).map(row => row && row.story_id),
+          ...array(news.news).map(row => row && row.story_id),
+          ...array(news.posts).map(row => row && row.story_id)
+        ].filter(Boolean));
+
+        const current = latestDate();
+        const forced = new Set(array(object(state.raw.dashboard_config).force_cards).map(clean));
+        const newCards = state.cards.filter(card => (current && card.date === current) || forced.has(clean(card.id)));
+        const stand = clean(news.stand, clean(object(news.briefing).stand, clean(graph.stand, "Kein Stand")));
+        const evidence = number(object(news.belegarchiv).offen);
+
+        [
+          ["Redaktionsstand", stand],
+          ["Aktive Geschichten", activeIds.size],
+          ["Neue Karten", newCards.length],
+          ["Offene Belege", evidence],
+          ["Graph-Knoten", array(graph.nodes).length]
+        ].forEach(([label, value]) => {
+          const card = element("article", "px-metric");
+          card.append(
+            element("span", "px-metric-label", label),
+            element("strong", "px-metric-value", value)
+          );
+          target.append(card);
+        });
+
+        $("#px-story-index").textContent = `${state.stories.length} Signaturen`;
+        $("#px-card-index").textContent = `${state.cards.length} Karten`;
+        $("#px-media-index").textContent = `${state.media.length} Requisiten`;
+      }
+
+      function skills() {
+        return [
+          {
+            id: "story-clustering", name: "Story-Clustering", category: "Analyse",
+            files: ["news.json"], access: "briefing + news + posts", cost: "1 Punkt",
+            description: "Führt Briefing, News und Posts über story_id zu prüfbaren Signaturen zusammen.",
+            valid: () => state.stories.length > 0
+          },
+          {
+            id: "breaking-rhythmus", name: "Breaking-Rhythmus", category: "Analyse",
+            files: ["news.json"], access: "Stand + Auflösung", cost: "frei",
+            description: "Zeigt Takt, neue Meldungen und Belegarchiv als redaktionellen Tagespuls.",
+            valid: () => Object.keys(object(state.raw.news)).length > 0
+          },
+          {
+            id: "linkpruefung", name: "Hersteller-Linkprüfung", category: "Recherche",
+            files: ["news.json", "dashboard_config.json"], access: "Links + Blockliste", cost: "2 Punkte",
+            description: "Öffnet eine vorhandene Primärquelle und blendete blockierte oder ungültige Links aus.",
+            valid: () => state.stories.length > 0
+          },
+          {
+            id: "card-abgleich", name: "Video-Karten-Abgleich", category: "Video",
+            files: ["cards.json", "news.json"], access: "Karten + Story-Titel", cost: "1 Punkt",
+            description: "Ordnet Karten über Datum, Titelwörter und Quellenlabel einer Story zu.",
+            valid: () => state.cards.length > 0
+          },
+          {
+            id: "og-preview", name: "OG-Bild-Vorschau", category: "Design",
+            files: ["news.json"], access: "Bild + Titel", cost: "frei",
+            description: "Öffnet das in der Story hinterlegte Bild als sichere Vorschau mit Fallback.",
+            valid: () => state.stories.some(story => safeURL(story.images[0]))
+          },
+          {
+            id: "dossier", name: "Dossier-Übersicht", category: "Recherche",
+            files: ["news.json", "graph.json", "entities.json"], access: "Story + Graph + Entitäten", cost: "2 Punkte",
+            description: "Stellt Fakten, offene Fragen, Dub-Quellen und einen Graph-Ausschnitt zusammen.",
+            valid: () => state.stories.length > 0 && array(object(state.raw.graph).nodes).length > 0
+          },
+          {
+            id: "source-reconstruction", name: "Quellen-Rekonstruktion", category: "Recherche",
+            files: ["news.json"], access: "source + dub_quellen", cost: "1 Punkt",
+            description: "Rekonstruiert den Quellenweg und trennt Original- von Dub-Hinweisen.",
+            valid: () => state.stories.some(story => story.sources.length || story.dubSources.length)
+          },
+          {
+            id: "weekly-review", name: "Wochenrückblick", category: "Archiv",
+            files: ["news.json", "cards.json", "archive.json"], access: "7 Tage + Karten + Archiv", cost: "3 Punkte",
+            description: "Zählt Meldungen, Karten und Archivbestände des jüngsten verfügbaren Zeitraums.",
+            valid: () => latestDate() !== ""
+          },
+          {
+            id: "media-shelf", name: "Medien-Schrägband", category: "System",
+            files: ["media.json"], access: "Podcast + Video + X", cost: "frei",
+            description: "Bringt vorhandene Medien als analoge Filmstreifen in das analoge Schaufenster.",
+            valid: () => state.media.length > 0
+          },
+          {
+            id: "entity-map", name: "Entity-Übersicht", category: "Analyse",
+            files: ["entities.json", "graph.json"], access: "Registry + Knoten", cost: "1 Punkt",
+            description: "Listet kuratierte Entitäten und vergleicht sie mit dem aktuellen Entity-Graph.",
+            valid: () => array(object(state.raw.entities).entities).length > 0
+          }
+        ];
+      }
+
+      function skillStatus(skill) {
+        if (skill.files.some(file => state.status[file] === "missing")) return "missing";
+        if (skill.files.some(file => state.status[file] !== "local") || !skill.valid()) return "unverified";
+        return "local";
+      }
+
+      function statusLabel(status) {
+        if (status === "local") return "Daten lokal";
+        if (status === "missing") return "Daten fehlen";
+        return "Nicht verifiziert";
+      }
+
+      function renderSkills() {
+        const target = clear($("#px-skills"));
+        const query = clean($("#px-skill-search").value).toLocaleLowerCase("de");
+        const category = $("#px-skill-filter").value;
+        const visible = skills().filter(skill => {
+          const haystack = `${skill.name} ${skill.category} ${skill.description} ${skill.access}`.toLocaleLowerCase("de");
+          return (!query || haystack.includes(query)) && (category === "all" || category === skill.category);
+        });
+
+        $("#px-skill-count").textContent = `${String(visible.length).padStart(2, "0")} sichtbar`;
+        if (!visible.length) {
+          target.append(element("div", "px-empty", "Für diese Suche wurde keine Fähigkeit gefunden."));
+          return;
+        }
+
+        visible.forEach(skill => {
+          const status = skillStatus(skill);
+          const card = element("article", "px-skill");
+          const top = element("div", "px-skill-top");
+          const tags = element("div", "px-tag-row");
+          tags.append(element("span", "px-tag", skill.category), element("span", "px-tag", skill.cost));
+          top.append(tags, element("span", `px-status px-status-${status}`, statusLabel(status)));
+          card.append(top, element("h3", "", skill.name), element("p", "", skill.description));
+
+          const access = element("div", "px-tag-row");
+          access.append(element("span", "px-tag", skill.access));
+          card.append(access);
+
+          const actions = element("div", "px-skill-actions");
+          const execute = element("button", "px-button px-button-primary", "Ausführen");
+          execute.type = "button";
+          execute.disabled = status === "missing";
+          execute.addEventListener("click", () => executeSkill(skill));
+
+          const install = element("button", "px-button px-button-small", state.installed[skill.id] ? "Eingebaut" : "Einbauen");
+          install.type = "button";
+          install.addEventListener("click", () => {
+            state.installed[skill.id] = !state.installed[skill.id];
+            writeStorage("ki-newsroom-installed", state.installed);
+            install.textContent = state.installed[skill.id] ? "Eingebaut" : "Einbauen";
+            toast(`${skill.name} wurde ${state.installed[skill.id] ? "in deine Redaktionsmaschine eingebaut" : "wieder entfernt"}.`);
+          });
+
+          actions.append(execute, install);
+          card.append(actions);
+          target.append(card);
+        });
+      }
+
+      function selectedStory() {
+        return state.storyMap.get(state.selectedStory) || state.stories[0] || null;
+      }
+
+      function openDialog(title, body) {
+        const dialog = $("#px-dialog");
+        $("#px-dialog-title").textContent = clean(title, "Detailansicht");
+        clear($("#px-dialog-body")).append(body);
+        if (!dialog.open && typeof dialog.showModal === "function") dialog.showModal();
+        else dialog.setAttribute("open", "");
+      }
+
+      function makeStats(items) {
+        const target = element("div", "px-dialog-stats");
+        items.forEach(([label, value]) => {
+          const card = element("div", "px-fact");
+          card.append(element("span", "", label), element("strong", "", value));
+          target.append(card);
+        });
+        return target;
+      }
+
+      function executeSkill(skill) {
+        const story = selectedStory();
+
+        if (skill.id === "story-clustering") {
+          $("#px-story-section").scrollIntoView({ block: "start" });
+          toast(`${state.stories.length} Story-Signaturen wurden zusammengeführt.`);
+        } else if (skill.id === "breaking-rhythmus") {
+          const news = object(state.raw.news);
+          const wrap = element("div");
+          wrap.append(
+            element("p", "px-summary", "Der Rhythmus wird ausschließlich aus dem Redaktionsstand und den Zählern in news.json gelesen."),
+            makeStats([
+              ["Neu", number(object(news.gn_aufloesung).neu)],
+              ["Archiviert", number(object(news.gn_aufloesung).archiv)],
+              ["Fehler", number(object(news.gn_aufloesung).fehler)],
+              ["Offene Belege", number(object(news.belegarchiv).offen)]
+            ])
+          );
+          openDialog("Breaking-Rhythmus", wrap);
+        } else if (skill.id === "linkpruefung") {
+          const url = safeURL(allowedStoryLinks(story)[0]);
+          if (url) window.open(url, "_blank", "noopener,noreferrer");
+          toast(url ? "Die erste erlaubte Story-Quelle wurde geöffnet." : "Für diese Auswahl ist keine erlaubte Primärquelle vorhanden.");
+        } else if (skill.id === "card-abgleich") {
+          if (state.cards[0]) selectCard(clean(state.cards[0].id));
+          $("#px-card-section").scrollIntoView({ block: "start" });
+        } else if (skill.id === "og-preview") {
+          openOGPreview(story);
+        } else if (skill.id === "dossier") {
+          $("#px-dossier").scrollIntoView({ block: "start" });
+          toast("Dossier, Quellenbänder und Graph-Ausschnitt sind vorbereitet.");
+        } else if (skill.id === "source-reconstruction") {
+          toast(story ? `${story.sources.length} Quellenlabels, ${story.dubSources.length} Dub-Hinweise und ${allowedStoryLinks(story).length} erlaubte Links erkannt.` : "Bitte zuerst eine Story wählen.");
+        } else if (skill.id === "weekly-review") {
+          openWeekly();
+        } else if (skill.id === "media-shelf") {
+          $("#px-media-section").scrollIntoView({ block: "start" });
+          toast(`${state.media.length} Medien wurden in das analoge Schaufenster einsortiert.`);
+        } else if (skill.id === "entity-map") {
+          openEntities();
+        }
+      }
+
+      function renderStoryGraph() {
+        const svg = clear($("#px-story-canvas"));
+        const edgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const nodeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        svg.append(edgeLayer, nodeLayer);
+
+        if (!state.stories.length) {
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", "450");
+          text.setAttribute("y", "260");
+          text.setAttribute("text-anchor", "middle");
+          text.setAttribute("fill", "#fff");
+          text.textContent = "Keine Story-Daten geladen";
+          svg.append(text);
+          return;
+        }
+
+        const positions = new Map();
+        state.stories.forEach((story, index) => {
+          const angle = index * 2.399963;
+          const radius = 23 + Math.sqrt(index + 1) * 19;
+          const hash = Array.from(clean(story.id)).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+          positions.set(story.id, {
+            x: 450 + Math.cos(angle) * radius + ((hash % 17) - 8) * .5,
+            y: 260 + Math.sin(angle) * radius * .73 + ((hash % 13) - 6) * .45
+          });
+        });
+
+        const sourceMap = new Map();
+        const labelMap = new Map();
+        const linkMap = new Map();
+        const dubSourceMap = new Map();
+
+        function pushMap(map, key, value) {
+          if (!key) return;
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(value);
+        }
+
+        state.stories.forEach(story => {
+          story.sources.forEach(source => pushMap(sourceMap, source, story));
+          story.labels.forEach(label => pushMap(labelMap, label, story));
+          story.links.forEach(link => pushMap(linkMap, link, story));
+          story.dubSources.forEach(source => pushMap(dubSourceMap, source, story));
+        });
+
+        const edgeKeys = new Set();
+
+        function addEdge(left, right, kind) {
+          if (!left || !right || left.id === right.id) return;
+          const key = [left.id, right.id].sort().join("::") + kind;
+          if (edgeKeys.has(key)) return;
+          edgeKeys.add(key);
+          const a = positions.get(left.id);
+          const b = positions.get(right.id);
+          if (!a || !b) return;
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", a.x);
+          line.setAttribute("y1", a.y);
+          line.setAttribute("x2", b.x);
+          line.setAttribute("y2", b.y);
+          line.setAttribute("class", "px-edge");
+          line.dataset.kind = kind;
+          edgeLayer.append(line);
+        }
+
+        [sourceMap, labelMap, dubSourceMap].forEach((map, index) => {
+          const kind = index === 0 ? "source" : index === 1 ? "label" : "dub";
+          map.forEach(stories => {
+            stories.slice(0, 14).forEach((story, storyIndex) => {
+              if (stories[storyIndex + 1]) addEdge(story, stories[storyIndex + 1], kind);
+            });
+          });
+        });
+
+        state.stories.forEach((story, index) => {
+          story.dubVon.forEach(link => array(linkMap.get(link)).forEach(target => addEdge(story, target, "dub")));
+          if (state.stories[index + 1]) addEdge(story, state.stories[index + 1], "cluster");
+          if (state.stories[index + 7]) addEdge(story, state.stories[index + 7], "cluster");
+        });
+
+        state.stories.forEach((story, index) => {
+          const position = positions.get(story.id);
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          group.setAttribute("class", "px-node");
+          group.setAttribute("tabindex", "0");
+          group.setAttribute("role", "button");
+          group.setAttribute("aria-label", `${clean(story.title)}. Story ${clean(story.id)}. Score ${story.score}. Quellen ${clean(story.sources.join(", "), "keine")}.`);
+          group.dataset.storyId = story.id;
+          group.dataset.selected = "false";
+          group.dataset.labelKind = story.labels.some(label => /episch/i.test(label))
+            ? "episch"
+            : story.labels.some(label => /breaking/i.test(label))
+              ? "breaking"
+              : "normal";
+
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("cx", position.x);
+          circle.setAttribute("cy", position.y);
+          circle.setAttribute("r", 4 + Math.min(8, Math.sqrt(Math.max(0, story.score)) * .58));
+
+          if (index < 34) {
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const radius = Number(circle.getAttribute("r"));
+            label.setAttribute("x", position.x + radius + 3);
+            label.setAttribute("y", position.y - radius - 2);
+            label.textContent = clean(story.id, "Story").slice(0, 13);
+            group.append(label);
+          }
+
+          const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+          title.textContent = clean(story.title);
+          group.append(circle, title);
+
+          group.addEventListener("click", () => selectStory(story.id));
+          group.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectStory(story.id);
+            }
+          });
+          nodeLayer.append(group);
+        });
+      }
+
+      function relatedCards(story) {
+        if (!story) return [];
+        if (story.cards.length) return story.cards;
+        return state.cards.map(card => ({ card, score: overlap(card.headline, story.title) }))
+          .filter(item => item.score >= 1)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5)
+          .map(item => item.card);
+      }
+
+      function renderProbe(story) {
+        const target = clear($("#px-probe"));
+        if (!story) {
+          renderEmptyProbe();
+          return;
+        }
+
+        target.append(
+          element("p", "px-eyebrow", `Bühnenprobe / ${clean(story.id)}`),
+          element("h3", "", story.title)
+        );
+
+        const badges = element("div", "px-chip-row");
+        badges.append(
+          element("span", "px-chip", `Score ${story.score}`),
+          element("span", "px-chip", story.dates[0] || "ohne Datum"),
+          element("span", "px-chip", story.origins.join(" + ") || "Herkunft offen")
+        );
+        target.append(badges, element("p", "", story.summary));
+
+        const sources = element("div", "px-chip-row");
+        (story.sources.length ? story.sources : ["Quellenlabel fehlt"]).forEach(source => {
+          sources.append(element("span", "px-chip", source));
+        });
+        target.append(sources);
+
+        const links = element("div", "px-chip-row");
+        const available = allowedStoryLinks(story);
+        if (available.length) {
+          available.slice(0, 3).forEach((link, index) => {
+            const anchor = element("a", "px-chip", index === 0 ? "Artikel öffnen" : `Weiterer Link ${index + 1}`);
+            anchor.href = safeURL(link);
+            anchor.target = "_blank";
+            anchor.rel = "noopener noreferrer";
+            links.append(anchor);
+          });
+        } else {
+          links.append(element("span", "px-chip", "Kein erlaubter Artikellink"));
+        }
+        target.append(links);
+
+        const cards = relatedCards(story);
+        if (cards.length) {
+          target.append(element("p", "px-eyebrow", "Verwandte Karten"));
+          const row = element("div", "px-chip-row");
+          cards.slice(0, 5).forEach(card => {
+            const button = element("button", "px-chip", card.headline);
+            button.type = "button";
+            button.addEventListener("click", () => {
+              selectCard(clean(card.id));
+              $("#px-card-section").scrollIntoView({ block: "start" });
+            });
+            row.append(button);
+          });
+          target.append(row);
+        }
+
+        const actions = element("div", "px-action-row");
+        const packageButton = element("button", "px-button px-button-red", "Story als Paket durchschleudern");
+        const dossierButton = element("button", "px-button", "Dossierakte öffnen");
+        const graphButton = element("button", "px-button px-button-turquoise", "Liefergraph verfolgen");
+        packageButton.type = dossierButton.type = graphButton.type = "button";
+        packageButton.addEventListener("click", () => runPackage(story.id));
+        dossierButton.addEventListener("click", () => $("#px-dossier").scrollIntoView({ block: "start" }));
+        graphButton.addEventListener("click", () => $("#px-story-section").scrollIntoView({ block: "start" }));
+        actions.append(packageButton, dossierButton, graphButton);
+        target.append(actions);
+      }
+
+      function renderEmptyProbe() {
+        const target = clear($("#px-probe"));
+        target.append(element(
+          "div",
+          "px-empty",
+          "Keine Story-Signatur verfügbar. news.json wird für diesen Bereich benötigt."
+        ));
+      }
+
+      function selectStory(id, options = {}) {
+        const story = state.storyMap.get(id);
+        if (!story) return;
+        state.selectedStory = id;
+        $$(".px-node", $("#px-story-canvas")).forEach(node => {
+          node.dataset.selected = node.dataset.storyId === id ? "true" : "false";
+        });
+        renderProbe(story);
+        renderDossier();
+        if (options.scroll) $("#px-probe").scrollIntoView({ block: "nearest" });
+      }
+
+      function detectedEntities(story) {
+        const haystack = story
+          ? `${story.title} ${story.summary} ${story.sources.join(" ")}`.toLocaleLowerCase("de")
+          : "";
+        return array(object(state.raw.entities).entities).filter(entity => {
+          const id = clean(entity && entity.id);
+          return id.length > 2 && haystack.includes(id.toLocaleLowerCase("de"));
+        });
+      }
+
+      function renderDossier() {
+        const target = clear($("#px-dossier"));
+        const story = state.storyMap.get(state.selectedStory);
+        if (!story) {
+          target.append(
+            element("p", "px-eyebrow", "Akte im Umlauf"),
+            element("h2", "", "Noch keine Story ausgewählt"),
+            element("p", "px-summary", "Ein Knoten im Story-Oszillator öffnet hier Fakten, Fragen, Quellen und Notizen.")
+          );
+          return;
+        }
+
+        target.append(
+          element("p", "px-eyebrow", `Story-ID ${clean(story.id)}`),
+          element("h2", "", story.title)
+        );
+
+        const badges = element("div", "px-chip-row");
+        badges.append(
+          element("span", "px-chip", story.labels[0] || "Label offen"),
+          element("span", "px-chip", `Score ${story.score}`),
+          element("span", "px-chip", story.paywalled ? "Paywall markiert" : "Paywall nicht markiert")
+        );
+        target.append(badges, element("p", "px-summary", story.summary));
+
+        const evidence = number(object(object(state.raw.news).belegarchiv).offen);
+        const questionsCount = story.links.length ? (story.sources.length ? 2 : 4) : 5;
+        const facts = element("div", "px-facts");
+        [
+          ["Quellenlabels", story.sources.length],
+          ["Erlaubte Links", allowedStoryLinks(story).length],
+          ["Karten", relatedCards(story).length],
+          ["Offene Fragen", questionsCount],
+          ["Erstes Datum", story.dates[0] || "offen"],
+          ["Offene Belege", evidence]
+        ].forEach(([label, value]) => {
+          const fact = element("div", "px-fact");
+          fact.append(element("span", "", label), element("strong", "", value));
+          facts.append(fact);
+        });
+        target.append(element("p", "px-subhead", "Faktenraster"), facts);
+
+        target.append(element("p", "px-subhead", "Offene Fragen"));
+        const detected = detectedEntities(story);
+        const questions = element("ul", "px-list");
+        [
+          story.sources.length ? "Welche Angabe stammt direkt vom Quellenlabel?" : "Welches Quellenlabel gehört zu dieser Meldung?",
+          story.dubSources.length ? "Welche Dub-Quelle ergänzt oder ersetzt die Primärquelle?" : "Gibt es Dub-Quellen, die im Ursprungstext fehlen?",
+          story.paywalled ? "Welche Stellen lassen sich trotz Paywall belastbar prüfen?" : "Fehlt ein Volltext oder ist der Artikel nur auszugsweise verfügbar?",
+          story.cards.length ? "Welche Karte bildet welche Kernaussage ab?" : "Existiert bereits eine passende Videokarte?",
+          detected.length
+            ? `Sind die erkannten Entitäten ${clean(detected.map(entity => entity.id).join(", "))} vollständig?`
+            : "Welche Entitäten fehlen im Entity-Graph?"
+        ].forEach(question => questions.append(element("li", "", question)));
+        target.append(questions);
+
+        target.append(element("p", "px-subhead", "Quellenbänder"));
+        const links = allowedStoryLinks(story);
+        if (links.length) {
+          links.forEach((link, index) => {
+            const anchor = element("a", "px-ribbon", clean(story.sources[index] || story.sources[0], "Quellenartikel"));
+            anchor.href = safeURL(link);
+            anchor.target = "_blank";
+            anchor.rel = "noopener noreferrer";
+            target.append(anchor);
+          });
+        } else {
+          target.append(element("p", "px-empty", "Kein erlaubter Quellenlink vorhanden."));
+        }
+
+        if (story.dubSources.length) {
+          target.append(element("p", "px-subhead", "Dub-Quellen"));
+          const dub = element("div", "px-chip-row");
+          story.dubSources.forEach(source => dub.append(element("span", "px-chip", source)));
+          target.append(dub);
+        }
+
+        target.append(element("p", "px-subhead", "Graph-Ausschnitt"), renderMiniGraph(story, detected));
+
+        const cards = relatedCards(story);
+        if (cards.length) {
+          target.append(element("p", "px-subhead", "Kartenreferenzen"));
+          const row = element("div", "px-chip-row");
+          cards.slice(0, 4).forEach(card => {
+            const button = element("button", "px-chip", card.headline);
+            button.type = "button";
+            button.addEventListener("click", () => {
+              selectCard(clean(card.id));
+              $("#px-card-section").scrollIntoView({ block: "start" });
+            });
+            row.append(button);
+          });
+          target.append(row);
+        }
+
+        target.append(element("p", "px-subhead", "Redaktionsnotiz"));
+        const key = `ki-newsroom-note:${story.id}`;
+        const note = clean(readStorage(key, ""), "");
+        if (note) target.append(element("div", "px-note-thread", note));
+
+        const form = element("form", "px-note-form");
+        const textarea = element("textarea", "px-textarea");
+        textarea.placeholder = "Frage, Unsicherheit oder Übergabe eintragen";
+        textarea.value = note;
+        textarea.setAttribute("aria-label", "Notiz zur ausgewählten Story");
+        const save = element("button", "px-button px-button-red", "Notiz als Hinweisfaden ablegen");
+        save.type = "submit";
+        form.append(textarea, save);
+        form.addEventListener("submit", event => {
+          event.preventDefault();
+          const value = textarea.value.trim();
+          if (!value) {
+            writeStorage(key, "");
+            toast("Die gespeicherte Notiz wurde entfernt.");
+          } else {
+            toast(writeStorage(key, value)
+              ? "Die Notiz bleibt als roter Hinweisfaden erhalten."
+              : "Der Browser erlaubt das Speichern dieser Notiz nicht.");
+          }
+          renderDossier();
+        });
+        target.append(form);
+
+        const actions = element("div", "px-action-row");
+        const packageButton = element("button", "px-button px-button-primary", "Paketlauf starten");
+        const ogButton = element("button", "px-button", "OG-Bild öffnen");
+        packageButton.type = ogButton.type = "button";
+        packageButton.addEventListener("click", () => runPackage(story.id));
+        ogButton.addEventListener("click", () => openOGPreview(story));
+        actions.append(packageButton, ogButton);
+        target.append(actions);
+      }
+
+      function renderMiniGraph(story, detected) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("class", "px-mini-graph");
+        svg.setAttribute("viewBox", "0 0 360 210");
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", "Graph-Ausschnitt zur ausgewählten Story");
+
+        const graph = object(state.raw.graph);
+        let nodes = array(graph.nodes).filter(row => row && typeof row === "object");
+        const storyText = `${story.title} ${story.summary} ${story.sources.join(" ")}`.toLocaleLowerCase("de");
+        const detectedIds = new Set(detected.map(entity => clean(entity.id).toLocaleLowerCase("de")));
+        const relevant = nodes.filter(node => {
+          const id = clean(node.id).toLocaleLowerCase("de");
+          return id && (detectedIds.has(id) || storyText.includes(id));
+        });
+
+        nodes = relevant.length >= 2
+          ? relevant
+          : nodes.slice().sort((a, b) => number(b.count) - number(a.count)).slice(0, 7);
+
+        if (!nodes.length) {
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", "180");
+          text.setAttribute("y", "105");
+          text.setAttribute("text-anchor", "middle");
+          text.setAttribute("fill", "#fff");
+          text.textContent = "Keine Graphdaten";
+          svg.append(text);
+          return svg;
+        }
+
+        const ids = new Set(nodes.map(node => clean(node.id)));
+        const edges = array(graph.edges)
+          .filter(row => row && ids.has(clean(row.source)) && ids.has(clean(row.target)))
+          .slice(0, 18);
+        const points = new Map();
+
+        nodes.slice(0, 9).forEach((node, index) => {
+          const angle = index * 2.2;
+          const radius = index === 0 ? 0 : 70 + (index % 3) * 14;
+          points.set(clean(node.id), {
+            x: 180 + Math.cos(angle) * radius,
+            y: 105 + Math.sin(angle) * radius * .68
+          });
+        });
+
+        edges.forEach(edge => {
+          const a = points.get(clean(edge.source));
+          const b = points.get(clean(edge.target));
+          if (!a || !b) return;
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("class", "px-mini-edge");
+          line.setAttribute("x1", a.x);
+          line.setAttribute("y1", a.y);
+          line.setAttribute("x2", b.x);
+          line.setAttribute("y2", b.y);
+          svg.append(line);
+        });
+
+        nodes.slice(0, 9).forEach((node, index) => {
+          const id = clean(node.id);
+          const point = points.get(id);
+          if (!point) return;
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("class", "px-mini-node");
+          circle.setAttribute("cx", point.x);
+          circle.setAttribute("cy", point.y);
+          circle.setAttribute("r", index === 0 ? "10" : "7");
+          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("class", "px-mini-text");
+          label.setAttribute("x", point.x + 9);
+          label.setAttribute("y", point.y - 8);
+          label.textContent = id.slice(0, 18);
+          svg.append(circle, label);
+        });
+        return svg;
+      }
+
+      function renderCards() {
+        const target = clear($("#px-card-reel"));
+        if (!state.cards.length) {
+          target.append(element("div", "px-empty", "Keine Karten geladen. cards.json wird für die Filmstrecke benötigt."));
+          renderCardPlayer(null);
+          return;
+        }
+
+        state.cards.forEach(card => {
+          const id = clean(card.id);
+          const article = element("article", "px-film-card");
+          article.tabIndex = 0;
+          article.setAttribute("role", "button");
+          article.dataset.cardId = id;
+          article.dataset.active = "false";
+          article.setAttribute("aria-label", `Karte öffnen: ${clean(card.headline, "Ohne Titel")}`);
+
+          const perf = element("div", "px-film-perf");
+          perf.append(element("span", "px-film-hole"));
+          article.append(
+            perf,
+            element("span", "px-duration", `${number(card.duration)}s`),
+            element("h3", "", clean(card.headline, "Karte ohne Titel"))
+          );
+
+          const meta = element("div", "px-film-meta");
+          [
+            clean(card.source, "Quelle offen"),
+            clean(card.date, "ohne Datum"),
+            `Stimme: ${clean(card.voice_used, "offen")}`,
+            `LLM: ${clean(card.llm_used, "offen")}`
+          ].forEach(value => meta.append(element("span", "", value)));
+          article.append(meta);
+
+          const activate = () => selectCard(id);
+          article.addEventListener("click", activate);
+          article.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              activate();
+            }
+          });
+          target.append(article);
+        });
+      }
+
+      function cardSourceLink(card) {
+        const best = state.stories
+          .map(story => ({ story, score: overlap(card.headline, story.title) }))
+          .filter(item => item.score >= 1)
+          .sort((a, b) => b.score - a.score)[0];
+        return safeURL(allowedStoryLinks(best && best.story)[0]);
+      }
+
+      function selectCard(id) {
+        const card = state.cards.find(row => clean(row.id) === id);
+        if (!card) return;
+        state.selectedCard = id;
+        $$(".px-film-card").forEach(node => {
+          node.dataset.active = node.dataset.cardId === id ? "true" : "false";
+        });
+        renderCardPlayer(card);
+        const cardNode = $$(".px-film-card").find(node => node.dataset.cardId === id);
+        if (cardNode && cardNode.scrollIntoView) {
+          cardNode.scrollIntoView({ block: "nearest", inline: "center" });
+        }
+      }
+
+      function renderCardPlayer(card) {
+        clearInterval(state.cardInterval);
+        if (state.cardVideo) {
+          state.cardVideo.pause();
+          state.cardVideo = null;
+        }
+
+        const target = clear($("#px-card-player"));
+        if (!card) {
+          target.append(element("div", "px-empty", "Wähle eine Karte, sobald cards.json Inhalte liefert."));
+          return;
+        }
+
+        const countdown = element("div", "px-countdown", "READY");
+        const info = element("div");
+        info.append(
+          element("p", "px-eyebrow", `Karte / ${clean(card.id, "ohne ID")}`),
+          element("h3", "", clean(card.headline, "Karte ohne Titel")),
+          element("p", "", `Tonspur: ${clean(card.voice_used, "offen")} / ${clean(card.llm_used, "offen")}`),
+          element("p", "", `Quellenlabel: ${clean(card.source, "offen")} / Datum: ${clean(card.date, "offen")}`)
+        );
+
+        const actions = element("div", "px-chip-row");
+        const play = element("button", "px-button px-button-turquoise", "Film abspielen");
+        play.type = "button";
+
+        const source = cardSourceLink(card);
+        if (source) {
+          const link = element("a", "px-button", "Quellenlink öffnen");
+          link.href = source;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          actions.append(link);
+        } else {
+          actions.append(element("span", "px-chip", "Kein erlaubter Quellenlink"));
+        }
+
+        const file = safeURL(card.mp4_url);
+        if (file) {
+          const link = element("a", "px-button", "Filmdatei öffnen");
+          link.href = file;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          actions.append(link);
+        }
+
+        play.addEventListener("click", () => {
+          clearInterval(state.cardInterval);
+          if (!file) {
+            countdown.textContent = "NO FILE";
+            toast("Für diese Karte ist keine verwendbare MP4-Datei hinterlegt.");
+            return;
+          }
+
+          let remaining = Math.max(3, number(card.duration, 8));
+          countdown.textContent = String(remaining);
+
+          const video = document.createElement("video");
+          video.className = "px-card-video";
+          video.controls = true;
+          video.preload = "metadata";
+          video.src = file;
+          video.hidden = true;
+          video.addEventListener("error", () => {
+            countdown.textContent = "NO CLIP";
+            play.textContent = "Erneut versuchen";
+            toast("Die Filmdatei ist lokal nicht erreichbar. Die Metadaten bleiben sichtbar.");
+          }, { once: true });
+          target.append(video);
+          state.cardVideo = video;
+
+          const finish = () => {
+            clearInterval(state.cardInterval);
+            countdown.textContent = "ENDE";
+            play.textContent = "Erneut abspielen";
+          };
+
+          const tick = () => {
+            remaining -= 1;
+            countdown.textContent = String(Math.max(0, remaining));
+            if (remaining <= 0) finish();
+          };
+
+          state.cardInterval = setInterval(tick, 1000);
+          video.hidden = false;
+          const promise = video.play();
+          if (promise && typeof promise.catch === "function") {
+            promise.catch(() => {
+              countdown.textContent = "START";
+              toast("Der Browser verlangt einen Klick. Nutze den Play-Knopf des Videofensters.");
+            });
+          }
+          video.addEventListener("ended", finish, { once: true });
+        });
+
+        actions.prepend(play);
+        info.append(actions);
+        target.append(countdown, info);
+      }
+
+      function renderMedia() {
+        const target = clear($("#px-media-grid"));
+        if (!state.media.length) {
+          target.append(element("div", "px-empty", "Keine Medien geladen. media.json wird für das Schaufenster benötigt."));
+          return;
+        }
+
+        state.media.forEach(item => {
+          const shelf = element("article", "px-media-shelf");
+          const strip = element("div", "px-film-strip");
+          for (let index = 0; index < 6; index += 1) strip.append(element("span"));
+          shelf.append(strip);
+
+          const imageWrap = element("div", "px-media-image");
+          const fallback = element("div", "px-media-fallback", item.pxType === "Podcast" ? "POD" : item.pxType === "Video" ? "VID" : "X");
+          const imageURL = safeURL(item.image);
+          if (imageURL) {
+            const image = document.createElement("img");
+            image.src = imageURL;
+            image.alt = "Medienbild";
+            image.loading = "lazy";
+            image.decoding = "async";
+            image.addEventListener("error", () => { image.hidden = true; }, { once: true });
+            imageWrap.append(image);
+          }
+          imageWrap.append(fallback);
+          shelf.append(imageWrap);
+
+          const body = element("div", "px-media-body");
+          body.append(
+            element("span", "px-tag", `${item.pxType} / ${clean(item.date, "ohne Datum")}`),
+            element("h3", "", clean(item.title, clean(item.note, "Medienrequisite ohne Titel"))),
+            element("p", "", clean(item.description, clean(item.note, "Keine Beschreibung vorhanden.")))
+          );
+
+          const url = safeURL(item.pxUrl);
+          if (url) {
+            const link = element("a", "px-button px-button-turquoise", "Öffnen");
+            link.href = url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            body.append(link);
+          } else {
+            body.append(element("span", "px-chip", "Kein gültiger Link"));
+          }
+          shelf.append(body);
+          target.append(shelf);
+        });
+      }
+
+      function weeklyStats() {
+        const news = object(state.raw.news);
+        const latest = dateValue(latestDate());
+        const start = latest ? latest - 7 * 86400000 : 0;
+        return {
+          news: array(news.news).filter(row => dateValue(row && row.date) >= start).length,
+          cards: state.cards.filter(row => dateValue(row && row.date) >= start).length,
+          archive: array(state.raw.archive).length,
+          entities: array(object(state.raw.entities).entities).length,
+          graphNodes: array(object(state.raw.graph).nodes).length,
+          graphEdges: array(object(state.raw.graph).edges).length
+        };
+      }
+
+      function openWeekly() {
+        const stats = weeklyStats();
+        const wrap = element("div");
+        wrap.append(
+          element("p", "px-summary", `Jüngster verfügbarer Datenpunkt: ${clean(latestDate(), "kein Datum")}. Der Rückblick verwendet sieben Tage ab diesem Datum.`),
+          makeStats([
+            ["News", stats.news],
+            ["Karten", stats.cards],
+            ["Archiv gesamt", stats.archive],
+            ["Entitäten", stats.entities],
+            ["Graph-Knoten", stats.graphNodes],
+            ["Graph-Kanten", stats.graphEdges]
+          ])
+        );
+        openDialog("Wochenrückblick", wrap);
+      }
+
+      function renderHealth() {
+        const target = clear($("#px-health-grid"));
+        const archive = array(state.raw.archive);
+        const graph = object(state.raw.graph);
+        const entities = array(object(state.raw.entities).entities);
+        const config = object(state.raw.dashboard_config);
+        const news = object(state.raw.news);
+        const media = object(state.raw.media);
+        const weekly = weeklyStats();
+        const localCount = FILES.filter(file => state.status[file] === "local").length;
+
+        const cards = [
+          {
+            code: "archive.json",
+            title: `${archive.length} Archivbeiträge`,
+            text: `${array(news.roundups).length} Roundups im aktuellen Datensatz. Archivzugriff bleibt rein lesend.`
+          },
+          {
+            code: "graph.json + entities.json",
+            title: `${array(graph.nodes).length} Knoten / ${array(graph.edges).length} Kanten`,
+            text: `${entities.length} kuratierte Entitäten. Der Dossier-Ausschnitt nutzt nur vorhandene IDs.`
+          },
+          {
+            code: "news + cards",
+            title: `${weekly.news} News / ${weekly.cards} Karten`,
+            text: `Jüngster Datenpunkt: ${clean(latestDate(), "kein Datum")}. Karten ohne Zuordnung bleiben sichtbar.`
+          },
+          {
+            code: "dashboard_config.json",
+            title: `${array(config.featured_links).length} vorgemerkt / ${array(config.blocked_links).length} blockiert`,
+            text: `Konfiguration zuletzt: ${clean(config.last_updated, "unbekannt")}.`
+          },
+          {
+            code: "media.json",
+            title: `${state.media.length} Medienrequisiten`,
+            text: `${array(media.podcasts).length} Podcasts, ${array(media.videos).length} Videos, ${array(media.xposts).length} X-Beiträge.`
+          },
+          {
+            code: "data status",
+            title: `${localCount} / ${FILES.length} Kanäle mit Daten`,
+            text: FILES.map(file => `${file}: ${state.status[file] || "unverified"}`).join(" / ")
+          }
+        ];
+
+        cards.forEach(item => {
+          const card = element("article", "px-health-card");
+          card.append(
+            element("span", "px-health-code", item.code),
+            element("h3", "", item.title),
+            element("p", "", item.text)
+          );
+          target.append(card);
+        });
+
+        $("#px-config-state").textContent = state.status["dashboard_config.json"] === "missing"
+          ? "Konfiguration fehlt"
+          : state.status["dashboard_config.json"] === "local"
+            ? "gelesen"
+            : "leer";
+      }
+
+      function openOGPreview(story) {
+        const wrap = element("div");
+        const title = story ? clean(story.title, "Unbenannte Story") : "Keine Bildquelle verfügbar";
+        const imageURL = story ? safeURL(story.images[0]) : "";
+
+        if (imageURL) {
+          const image = document.createElement("img");
+          image.className = "px-og-image";
+          image.src = imageURL;
+          image.alt = "Vorschaubild zur ausgewählten Story";
+          image.loading = "lazy";
+          image.addEventListener("error", () => {
+            image.hidden = true;
+            wrap.append(element("div", "px-empty", "Das Bild konnte nicht geladen werden."));
+          }, { once: true });
+          wrap.append(image);
+        } else {
+          wrap.append(element("div", "px-empty", "Für diese Story ist kein verwendbares OG-Bild geladen."));
+        }
+
+        if (story) {
+          wrap.append(
+            element("p", "px-eyebrow", clean(story.sources[0], "Quelle offen")),
+            element("p", "", story.summary)
+          );
+        }
+        openDialog(title, wrap);
+      }
+
+      function openEntities() {
+        const wrap = element("div");
+        const entities = array(object(state.raw.entities).entities);
+        wrap.append(element(
+          "p",
+          "px-summary",
+          `Registry-Version ${clean(object(state.raw.entities).version, "unbekannt")}. Es werden keine externen Ergänzungen erzeugt.`
+        ));
+
+        if (!entities.length) {
+          wrap.append(element("div", "px-empty", "Keine Entity-Registry geladen."));
+        } else {
+          const list = element("div", "px-chip-row");
+          entities.forEach(entity => {
+            list.append(element("span", "px-chip", `${clean(entity.id, "Ohne ID")} / ${clean(entity.typ, "Typ offen")}`));
+          });
+          wrap.append(list);
+        }
+        openDialog("Entity-Übersicht", wrap);
+      }
+
+      function clearProductionTimers() {
+        state.productionTimers.forEach(clearTimeout);
+        state.productionTimers = [];
+      }
+
+      function cancelProduction() {
+        if (!state.productionBusy) return;
+        clearProductionTimers();
+        state.productionBusy = false;
+        state.productionStory = null;
+        $("#px-production").hidden = true;
+      }
+
+      function runPackage(id) {
+        const story = state.storyMap.get(id);
+        if (!story || state.productionBusy) {
+          if (!story) toast("Diese Story ist nicht mehr verfügbar.");
+          return;
+        }
+
+        state.productionBusy = true;
+        state.productionStory = story.id;
+        clearInterval(state.cardInterval);
+        clearProductionTimers();
+
+        const overlay = $("#px-production");
+        const stepsTarget = clear($("#px-production-steps"));
+        const title = $("#px-production-title");
+        const storyLabel = $("#px-production-story");
+        const labels = [
+          "Story wird durch die Redaktion geschleudert",
+          "Überdimensionale Karte schnappt ein",
+          "Liefergraph verfolgt die Signatur",
+          "Dossierakte wird geprüft abgelegt"
+        ];
+
+        title.textContent = "Story wird verpackt";
+        storyLabel.textContent = clean(story.title);
+        const stepNodes = labels.map(label => element("div", "px-production-step", label));
+        stepNodes.forEach(step => stepsTarget.append(step));
+        overlay.hidden = false;
+
+        let index = 0;
+
+        function advance() {
+          if (index > 0) stepNodes[index - 1].dataset.state = "done";
+
+          if (index >= stepNodes.length) {
+            const incomplete = allowedStoryLinks(story).length === 0 || story.sources.length === 0;
+            title.textContent = incomplete
+              ? "Unvollständige Dossierakte abgelegt"
+              : "Fertige Dossierakte abgelegt";
+            storyLabel.textContent = incomplete
+              ? "Die Akte ist sichtbar, aber Quellen oder Artikellink fehlen."
+              : "Story, Karte, Quellen und Graph wurden als lesbarer Lieferlauf zusammengeführt.";
+
+            state.productionTimers.push(setTimeout(() => {
+              overlay.hidden = true;
+              state.productionBusy = false;
+              state.productionStory = null;
+              state.productionTimers = [];
+              renderDossier();
+              $("#px-dossier").scrollIntoView({ block: "start" });
+            }, 1100));
+            return;
+          }
+
+          stepNodes[index].dataset.state = "active";
+          index += 1;
+          state.productionTimers.push(setTimeout(advance, 520));
+        }
+
+        advance();
+      }
+
+      const classMap = {
+        headline: "px-headline-sharp",
+        drill: "px-drill",
+        stack: "px-card-stack",
+        sources: "px-source-weather",
+        evidence: "px-evidence-lamp"
+      };
+
+      function applyStoredSwitches() {
+        Object.keys(classMap).forEach(key => {
+          document.body.classList.toggle(classMap[key], Boolean(state.chaos[key]));
+          const button = $(`.px-switch[data-switch="${key}"]`);
+          if (button) button.setAttribute("aria-pressed", String(Boolean(state.chaos[key])));
+        });
+      }
+
+      function setupSwitches() {
+        $$(".px-switch").forEach(button => {
+          button.addEventListener("click", () => {
+            const key = button.dataset.switch;
+            state.chaos[key] = !state.chaos[key];
+            document.body.classList.toggle(classMap[key], state.chaos[key]);
+            button.setAttribute("aria-pressed", String(state.chaos[key]));
+            writeStorage("ki-newsroom-chaos", state.chaos);
+            toast(`${clean($("strong", button).textContent)}: ${state.chaos[key] ? "aktiv" : "aus"}.`);
+          });
+        });
+
+        $("#px-chaos-reset").addEventListener("click", () => {
+          state.chaos = Object.create(null);
+          Object.values(classMap).forEach(className => document.body.classList.remove(className));
+          $$(".px-switch").forEach(button => button.setAttribute("aria-pressed", "false"));
+          writeStorage("ki-newsroom-chaos", state.chaos);
+          toast("Die Chaos-Schalttafel ist wieder auf sachlich gestellt.");
+        });
+      }
+
+      function setupThemeWatcher() {
+        function update() {
+          const html = document.documentElement;
+          const dark = html.classList.contains("dark")
+            || document.body.classList.contains("dark")
+            || html.getAttribute("data-theme") === "dark"
+            || document.body.getAttribute("data-theme") === "dark";
+          document.body.dataset.pxDark = String(dark);
+        }
+
+        const observer = new MutationObserver(update);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
+        observer.observe(document.body, { attributes: true, attributeFilter: ["class", "data-theme"] });
+        update();
+      }
+
+      function setupDialog() {
+        const dialog = $("#px-dialog");
+        $$("[data-close-dialog]").forEach(button => {
+          button.addEventListener("click", () => {
+            if (typeof dialog.close === "function") dialog.close();
+            else dialog.removeAttribute("open");
+          });
+        });
+        dialog.addEventListener("click", event => {
+          if (event.target !== dialog) return;
+          if (typeof dialog.close === "function") dialog.close();
+          else dialog.removeAttribute("open");
+        });
+      }
+
+      async function loadData() {
+        const results = await Promise.allSettled(
+          FILES.map(async path => ({ path, data: await fetchJSON(path) }))
+        );
+
+        results.forEach((result, index) => {
+          const path = FILES[index];
+          if (result.status === "fulfilled" && result.value.path === path) {
+            state.raw[path] = result.value.data;
+            state.raw[path.replace(/\.json$/, "")] = result.value.data; // Einbau 28.09.26: Module lesen state.raw.news usw., gespeichert war nur state.raw["news.json"]
+            state.status[path] = hasData(path, result.value.data) ? "local" : "unverified";
+          } else {
+            state.raw[path] = null;
+            state.status[path] = "missing";
+          }
+        });
+
+        orderCards();
+        buildMedia();
+        buildStories();
+        renderSources();
+        renderCockpit();
+        renderSkills();
+        renderStoryGraph();
+        renderCards();
+        renderHealth();
+        renderMedia();
+
+        if (state.stories.length) selectStory(state.stories[0].id);
+        else renderEmptyProbe();
+
+        const reached = FILES.filter(file => state.status[file] !== "missing").length;
+        const local = FILES.filter(file => state.status[file] === "local").length;
+        const missing = FILES.length - reached;
+        const unverified = reached - local;
+        const alert = $("#px-load-alert");
+
+        if (missing) {
+          alert.dataset.tone = "error";
+          alert.textContent = `${reached} von ${FILES.length} Datenquellen sind erreichbar. ${missing} fehlende Datei oder Datei(en) bleiben im Datenjournal markiert. Die übrigen Module bleiben nutzbar.`;
+        } else if (unverified) {
+          alert.dataset.tone = "warning";
+          alert.textContent = `${reached} Dateien sind erreichbar, aber ${unverified} enthalten keine verwertbaren Datensätze. Leere Module zeigen deshalb freundliche Platzhalter statt erfundener Werte.`;
+        } else {
+          alert.dataset.tone = "ok";
+          alert.textContent = `Alle ${FILES.length} lokalen Datenquellen sind erreichbar und enthalten mindestens einen Datensatz. Karten, Medien und Belege werden ausschließlich aus den JSON-Dateien dargestellt.`;
+        }
+      }
+
+      async function init() {
+        state.installed = readStorage("ki-newsroom-installed", Object.create(null));
+        state.chaos = readStorage("ki-newsroom-chaos", Object.create(null));
+        if (!state.installed || typeof state.installed !== "object" || Array.isArray(state.installed)) state.installed = Object.create(null);
+        if (!state.chaos || typeof state.chaos !== "object" || Array.isArray(state.chaos)) state.chaos = Object.create(null);
+
+        applyStoredSwitches();
+        setupSwitches();
+        setupDialog();
+        setupThemeWatcher();
+
+        $("#px-skill-search").addEventListener("input", renderSkills);
+        $("#px-skill-filter").addEventListener("change", renderSkills);
+        $("#px-production-cancel").addEventListener("click", cancelProduction);
+        $("#px-production").addEventListener("click", event => {
+          if (event.target === $("#px-production")) cancelProduction();
+        });
+        document.addEventListener("keydown", event => {
+          if (event.key === "Escape" && state.productionBusy) cancelProduction();
+        });
+
+        window.addEventListener("beforeunload", () => {
+          clearInterval(state.cardInterval);
+          clearProductionTimers();
+        });
+
+        try {
+          await loadData();
+        } catch (error) {
+          const alert = $("#px-load-alert");
+          alert.dataset.tone = "error";
+          alert.textContent = "Die Datenbasis konnte nicht vollständig verarbeitet werden. Die Seite bleibt mit leeren, fehlertoleranten Modulen geöffnet.";
+          console.error("Redaktionsmaschine: Datenfehler", error);
+        }
+      }
+
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
+      else init();
+    })();
+  </script>
+</body>
+</html>
