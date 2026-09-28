@@ -34,3 +34,13 @@ Arbeits-Branch: `daniel/youthful-wozniak-tyzceg`. Die Session wurde nach PR 1 we
   - Den Ton nach dem Klick konnte ich im Test nicht mit echtem Ton belegen, weil das Test-Chromium kein H.264 abspielen kann. Bitte im echten Browser prüfen.
   - Punkt 5, Daten fehlen: Kein Release hat `video_url` oder `x_url`. Das Video des Hersteller-Posts liefert HuggingNews unter `image.videoUrl` mit `credit.tweetUrl`. Das Füllen gehört in `x_quellen.py` (Branch `daniel/pr5-x-links`).
 - **PR #8 Sprach-Guard** (Punkt 6): Eine Meldung ohne deutschen Teaser und ohne deutsches Signal wird verworfen. py3langid hielt den ACEMAGIC-Titel für Deutsch (p = 0,61). Einen Filter für reine Produktwerbung gibt es weiterhin nicht, darüber muss Daniel entscheiden.
+
+## Auftrag 10 (28.09.26 abends)
+- **PR #11 Startseite Tempo** (Punkte 1, 2, 6): Genesis-Code exakt wie vor c54637c, einzige Ergänzung ist die Pause bei `document.hidden`. Der Hero ist wieder undurchsichtig, die Aurora läuft ohne Live-Blur, der Ton-Knopf hat 52 px Trefferfläche.
+  - Gemessen: verdeckter Tab 105 % → 0 % CPU. Bei sichtbarem Tab zeigt Headless ohne GPU keinen Unterschied (etwa 102 %). **Daniel misst im echten Chrome (Shift+Esc).**
+- **PR #12 Bilder-Spiegel**: WebP 640 und 1600 ins Medien-Repo, `image_local`. Pages erlaubt 1 GB, deshalb werden die 1600er nach 60 Tagen gelöscht. Artikel-, Archiv- und Dossier-Seiten nutzen `image_local` noch nicht.
+- Offen aus Auftrag 10:
+  - 3a: Hero und Kacheln eager, Rest lazy (`fetchpriority=high`)
+  - 4: `archive.json` auf der Startseite erst bei Leerlauf laden
+  - 5: Füllmotiv statt leerer Gitterfläche
+  - 7: `video_url` und `x_url` aus HuggingNews (`x_quellen.py`, Branch `daniel/pr5-x-links`)
