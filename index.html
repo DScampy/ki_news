@@ -485,6 +485,13 @@ html.light .card-scrim{background:linear-gradient(180deg,rgba(255,255,255,0.35) 
 .ki-card:not(:has(img)){--map-opacity:0.5;--flag-opacity:0.4;}
 html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 </style>
+<style id="px-hero-genesis">
+  /* 28.09.26 (Daniel): Genesis wieder sichtbar auf der Startseite. Nur wenn der Genesis-Canvas
+     laeuft (Desktop, ohne reduced-motion), ist der Hero-Grund durchsichtig; die Karten bleiben
+     deckend. Seit Auftrag 10 ohne Live-Blur, daher kein Neuzeichnen samt Unschaerfe pro Frame. */
+  body:has(#genesis-wrap canvas) #px-hero { background: transparent !important; }
+  body:has(#genesis-wrap canvas) #px-hero .px-hero-canvas { display: none; }
+</style>
 <style id="px-hero-css">
   #px-hero,
   #px-hero *,
@@ -2522,7 +2529,7 @@ function cardThumb(item) {
     ? 'this.onerror=function(){' + zuPh.replace(/'/g, '&#39;') + '};this.src=\'' + escapeHtml(item.image) + '\''
     : (item.image ? zuPh : 'this.parentNode.style.display=\'none\'');
   return '<div class="ki-card-thumb" style="margin:-16px -16px 14px;position:relative;padding-top:52%;overflow:hidden;border-bottom:1px solid var(--hairline,#2f3336)">' +
-      '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
+      '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" ' +
       'onerror="' + onerr + '" ' +
       'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">' +
     '</div>';
@@ -3810,13 +3817,31 @@ window.addEventListener('resize',()=>{
         safeImage(card.thumbnail);
     };
 
+    // 28.09.26: Meldungen ohne eigenes Bild (Google-News-Eintraege) nehmen das Bild eines
+    // Artikels derselben Story (story_id bzw. dub_von), sonst ein Fuellmotiv (assets/ph).
+    const bildJeStory = new Map();
+    const merkeStoryBilder = items => {
+      bildJeStory.clear();
+      (Array.isArray(items) ? items : []).forEach(item => {
+        const bild = item && (safeImage(item.image_local) || safeImage(item.image));
+        if (!bild) return;
+        [item.story_id && "id:" + item.story_id, item.dub_von && "l:" + item.dub_von, item.link && "l:" + item.link]
+          .filter(Boolean).forEach(k => { if (!bildJeStory.has(k)) bildJeStory.set(k, bild); });
+      });
+    };
+    const fuellmotiv = story =>
+      typeof window.phFor === "function" ? window.phFor(story) : "";
+
     const storyImageOf = story => {
       if (!story || typeof story !== "object") return "";
 
       return safeImage(story.image_local) ||
         safeImage(story.image) ||
+        (story.story_id && bildJeStory.get("id:" + story.story_id)) ||
+        (story.link && bildJeStory.get("l:" + story.link)) ||
         safeImage(story.image_url) ||
-        safeImage(story.thumbnail);
+        safeImage(story.thumbnail) ||
+        fuellmotiv(story);
     };
 
     const dossierData = story => {
@@ -3994,9 +4019,15 @@ window.addEventListener('resize',()=>{
 
       if (eager) image.fetchPriority = "high";
 
+      // 28.09.26: laedt das Bild nicht, erst das Fuellmotiv der Meldung (data-px-fuell), dann ausblenden
       image.addEventListener("error", () => {
+        const fuell = parent.dataset && parent.dataset.pxFuell;
+        if (fuell && image.getAttribute("src") !== fuell) {
+          image.src = fuell;
+          return;
+        }
         image.hidden = true;
-      }, { once: true });
+      });
 
       image.src = url;
       parent.append(image);
@@ -4287,6 +4318,7 @@ window.addEventListener('resize',()=>{
         card ? "CARD POSTER" : "NEWS STILL"
       );
 
+      media.dataset.pxFuell = fuellmotiv(story);
       addImage(media, poster, currentStory === 0);
 
       const mediaCode = make("div", "px-hero-media-code");
@@ -4457,7 +4489,11 @@ window.addEventListener('resize',()=>{
         card ? "CARD / SIGNAL" : "NEWS STILL"
       );
 
+      media.dataset.pxFuell = fuellmotiv(story);
       addImage(media, poster, false);
+      // Auftrag 10 Punkt 3: Seitenkacheln sofort laden (ohne hohe Prioritaet, die hat nur das Hero-Bild)
+      const seitenBild = media.querySelector("img");
+      if (seitenBild) seitenBild.loading = "eager";
 
       const body = make("div", "px-hero-side-body");
       const head = make("div", "px-hero-side-head");
@@ -5041,10 +5077,12 @@ window.addEventListener('resize',()=>{
         setReleaseVisibility(false);
       }
 
+      // Auftrag 10 Punkt 4: archive.json (400+ KB) laedt die Startseite nicht mehr mit;
+      // die Top-Storys kommen aus news.json. Platz 2 bleibt als null-Ergebnis.
       const requestPaths = [
         "news.json",
         "cards.json",
-        "archive.json"
+        null
       ];
 
       if (!demoMode) {
@@ -5052,7 +5090,7 @@ window.addEventListener('resize',()=>{
       }
 
       const results = await Promise.allSettled(
-        requestPaths.map(path => fetchJSON(path))
+        requestPaths.map(path => path ? fetchJSON(path) : Promise.resolve(null))
       );
 
       if (typeof window.klLoadCards === "function") {
@@ -5070,6 +5108,7 @@ window.addEventListener('resize',()=>{
           : null;
 
       const newsData = resultAt(0);
+      merkeStoryBilder(listFromPayload(newsData, "news"));
       const cardsPayload = resultAt(1);
       const archiveData = resultAt(2);
       const releasePayload = demoMode ? null : resultAt(3);
