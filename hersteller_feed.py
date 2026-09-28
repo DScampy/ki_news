@@ -64,6 +64,10 @@ QUELLEN = [
     ("Mistral", "rss", "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_mistral.xml"),
     ("Alibaba Qwen", "rss", "https://qwenlm.github.io/blog/index.xml"),
     ("DeepSeek", "deepseek", "https://api-docs.deepseek.com/news/news260910"),
+    # 28.09.26: ElevenLabs hat keinen RSS-Feed; die Blog-Uebersicht ist serverseitig
+    # gerendert (<article><h2><a href="/blog/..."> + <time datetime>). Eleven v4 (28.09.)
+    # fehlte sonst in Kachel und Registry.
+    ("ElevenLabs", "elevenlabs", "https://elevenlabs.io/blog"),
 ]
 
 # Modellfamilien; danach muss eine Versionsnummer folgen (Muse Spark 1.1, GPT-6).
@@ -71,7 +75,8 @@ _FAMILIEN = (
     r"GPT|o\d|Claude(?:\s+(?:Opus|Sonnet|Haiku|Fable))?|Opus|Sonnet|Haiku|Fable|"
     r"Gemini|Gemma|Veo|Imagen|Lyria|WeatherNext|Llama|Muse(?:\s+(?:Spark|Image|Video))?|"
     r"Grok(?:\s+Imagine)?|Mistral(?:\s+(?:Large|Medium|Small))?|Magistral|Codestral|Devstral|"
-    r"Voxtral|Pixtral|Ministral|Qwen|DeepSeek|Kimi|GLM|ChatGPT\s+Images"
+    r"Voxtral|Pixtral|Ministral|Qwen|DeepSeek|Kimi|GLM|ChatGPT\s+Images|"
+    r"Eleven(?:\s+(?:Music|Multilingual|Flash|Turbo))?|Scribe"
 )
 _ZUSATZ = (
     r"Pro|Flash|Lite|Live|Sol|Luna|Astra|Mini|Nano|Ultra|Max|Plus|Turbo|Thinking|"
@@ -179,6 +184,21 @@ def lies_anthropic(seite):
         p = re.search(r"<p[^>]*>(.*?)</p>", inner, re.S)
         out.append({"titel": _text(h.group(1), 200), "url": "https://www.anthropic.com" + m.group(1),
                     "datum": _datum(_text(t.group(1), 40)), "text": p.group(1) if p else "",
+                    "poster": "", "video_url": ""})
+    return out
+
+
+def lies_elevenlabs(seite):
+    """elevenlabs.io/blog: <article> mit <h2><a href="/blog/slug">Titel</a></h2> und <time datetime>."""
+    out = []
+    for art in re.findall(r"<article[^>]*>(.*?)</article>", seite, re.S):
+        a = re.search(r'<h[1-4][^>]*>\s*<a[^>]*href="(/blog/[a-z0-9-]+)"[^>]*>(.*?)</a>', art, re.S)
+        t = re.search(r'<time[^>]*datetime="([^"]+)"', art)
+        if not a or not t:
+            continue
+        p = re.search(r"<p[^>]*>(.*?)</p>", art, re.S)
+        out.append({"titel": _text(a.group(2), 200), "url": "https://elevenlabs.io" + a.group(1),
+                    "datum": _datum(t.group(1)), "text": p.group(1) if p else "",
                     "poster": "", "video_url": ""})
     return out
 
@@ -297,7 +317,8 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
     for hersteller, art, url in QUELLEN:
         try:
             roh = _get(url)
-            items = {"rss": lies_rss, "anthropic": lies_anthropic, "deepseek": lies_deepseek}[art](roh)
+            items = {"rss": lies_rss, "anthropic": lies_anthropic, "deepseek": lies_deepseek,
+                     "elevenlabs": lies_elevenlabs}[art](roh)
             ok_hersteller.add(hersteller)
         except Exception as e:
             fehl.append(f"{hersteller} ({url}): {type(e).__name__}: {e}")
@@ -398,7 +419,45 @@ def main():
         print(txt)
         return 0
     OUT.write_text(txt, encoding="utf-8")
+    try:
+        meldungen_fortschreiben(releases)
+    except Exception as e:  # darf hersteller.json nie kippen
+        print(f"  WARNUNG Registry-Meldungen nicht fortgeschrieben: {e}")
     return 0
+
+
+# Registry-Zweitquelle (28.09.26): hersteller.json haelt nur RELEASE_TAGE Tage. Die
+# Registry (registry_bau/generiere_modelle_json.py) kennt sonst nur OpenRouter, wo
+# z.B. Gemini 3.8 TTS und ElevenLabs fehlen. Diese Datei sammelt jeden erkannten
+# Release dauerhaft; geloescht wird nichts, der erste Fund (Ankuendigung) gewinnt.
+MELDUNGEN = BASE / "registry_bau" / "modelle_meldungen.json"
+
+
+def meldungen_fortschreiben(releases, pfad=MELDUNGEN):
+    try:
+        alt = json.loads(pfad.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        alt = {"modelle": []}
+    liste = alt.get("modelle") or []
+    schon = {(m.get("hersteller"), _norm(m.get("modell"))) for m in liste}
+    neu = 0
+    for r in releases:
+        key = (r["hersteller"], _norm(r["modell"]))
+        if key in schon or not r.get("modell") or not r.get("datum"):
+            continue
+        schon.add(key)
+        liste.append({"hersteller": r["hersteller"], "modell": r["modell"], "datum": r["datum"],
+                      "url": r.get("url", ""), "titel": r.get("titel", "")})
+        neu += 1
+    if not neu and pfad.exists():
+        return 0
+    liste.sort(key=lambda m: (m["datum"], m["hersteller"], m["modell"]))
+    daten = {"_hinweis": "GENERAT von hersteller_feed.py (dauerhaft, nichts wird geloescht). "
+                         "Zweitquelle der Modell-Registry fuer Modelle, die OpenRouter nicht fuehrt.",
+             "stand": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "modelle": liste}
+    pfad.write_text(json.dumps(daten, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"hersteller_feed: {neu} neue Modelle in {pfad.name} ({len(liste)} gesamt)")
+    return neu
 
 
 if __name__ == "__main__":

@@ -52,6 +52,16 @@ OUT = os.path.join(HIER, "out")
 CACHE = os.path.join(HIER, "openrouter_cache.json")
 KORREKTUREN = os.path.join(HIER, "modelle_korrekturen.json")
 ALIASE = os.path.join(HIER, "anbieter_aliase.json")
+# Zweitquelle (28.09.26): von hersteller_feed.py fortgeschriebene Releases der
+# Hersteller-Blogs. Nur was OpenRouter NICHT fuehrt, kommt hinzu (release_quelle
+# "meldung"). Grund: Gemini 3.8 TTS und Eleven v4 fehlten, weil OpenRouter nur
+# 4 Audio-Modelle kennt.
+MELDUNGEN = os.path.join(HIER, "modelle_meldungen.json")
+MELDUNG_ANBIETER = {
+    "OpenAI": "openai", "Anthropic": "anthropic", "Google": "google", "Meta": "meta",
+    "xAI": "x-ai", "Mistral": "mistralai", "Alibaba Qwen": "qwen", "DeepSeek": "deepseek",
+    "ElevenLabs": "elevenlabs",
+}
 
 # Mindestzahl, ab der die Antwort als vollstaendig gilt.
 # Hintergrund: web_fetch schneidet bei ~93 KB ab (statt 680 KB) und liefert
@@ -373,6 +383,64 @@ def anbieter_index(modelle):
     return out
 
 
+def _vergleich(s):
+    return " ".join(re.sub(r"[^a-z0-9.]+", " ", (s or "").lower()).split())
+
+
+def _meldung_kategorie(name):
+    n = (name or "").lower()
+    if re.search(r"tts|text-to-speech|speech|voice|eleven|scribe|lyria|music|audio", n):
+        return "audio"
+    if re.search(r"\bveo\b|video", n):
+        return "video"
+    if re.search(r"imagen|image", n):
+        return "bild"
+    return "text"
+
+
+def zusatz_meldungen(modelle, pfad=MELDUNGEN):
+    """Haengt Modelle aus modelle_meldungen.json an, die OpenRouter nicht fuehrt.
+
+    Abgleich je Anbieter ueber den normalisierten Namen: gleich, oder ein
+    OpenRouter-Name beginnt mit dem Meldungsnamen (Meldung "GPT-6" deckt
+    "GPT-6 Sol" ab). Gibt die Zahl der angehaengten Modelle zurueck."""
+    if not os.path.exists(pfad):
+        return 0
+    with open(pfad, encoding="utf-8") as f:
+        eintraege = json.load(f).get("modelle") or []
+    namen = defaultdict(set)
+    for m in modelle:
+        namen[m["anbieter"]].add(_vergleich(m.get("name")))
+    slugs = {m["slug"] for m in modelle}
+    n = 0
+    for e in eintraege:
+        anb = MELDUNG_ANBIETER.get(e.get("hersteller")) or _vergleich(e.get("hersteller")).replace(" ", "-")
+        name = (e.get("modell") or "").strip()
+        v = _vergleich(name)
+        if not anb or not v:
+            continue
+        if any(x == v or x.startswith(v + " ") for x in namen[anb]):
+            continue
+        slug = "%s/%s" % (anb, v.replace(" ", "-"))
+        if slug in slugs:
+            continue
+        familie, variante, stufe, modus = zerlege_namen(name)
+        modelle.append({
+            "slug": slug, "id": slug, "anbieter": anb, "kategorie": _meldung_kategorie(name),
+            "anbieter_name": e.get("hersteller"), "name": name, "familie": familie,
+            "variante": variante, "ausbaustufe": stufe, "modus": modus,
+            "release": e.get("datum"), "release_quelle": "meldung", "quelle_url": e.get("url"),
+            "knowledge_cutoff": None, "expiration_date": None, "context_length": None,
+            "modalitaeten": {"input": None, "output": None}, "reasoning": False, "preis": None,
+            "hugging_face_id": None, "abrechnung": [], "ids": [slug], "artikel_anzahl": 0,
+        })
+        slugs.add(slug)
+        namen[anb].add(v)
+        n += 1
+    modelle.sort(key=lambda m: (m["anbieter"], _neg(m["release"])))
+    return n
+
+
 def overlay(modelle):
     """modelle_korrekturen.json ueberschreibt einzelne Felder nach slug."""
     if not os.path.exists(KORREKTUREN):
@@ -444,6 +512,11 @@ def main(argv=None):
 
     modelle, aliase = baue(roh)
     n_korr = overlay(modelle)
+    try:
+        n_meld = zusatz_meldungen(modelle)
+    except Exception as e:      # Zweitquelle darf den Generator nie kippen
+        log("  WARNUNG Meldungen nicht eingelesen: %s" % e)
+        n_meld = 0
     anbieter = anbieter_index(modelle)
     pfad, groesse = schreibe(modelle, anbieter, aliase)
 
@@ -453,6 +526,7 @@ def main(argv=None):
     log("  Modelle nach Dedup   : %d" % len(modelle))
     log("  Anbieter             : %d" % len(anbieter))
     log("  Korrekturen angewandt: %d" % n_korr)
+    log("  aus Meldungen        : %d (nicht bei OpenRouter)" % n_meld)
     log("  Release aus Slug     : %d" % sum(1 for m in modelle if m["release_quelle"] == "slug"))
     log("  Release aus created  : %d" % sum(1 for m in modelle if m["release_quelle"] == "created"))
     log("  mit Ausbaustufe      : %d" % sum(1 for m in modelle if m["ausbaustufe"]))
