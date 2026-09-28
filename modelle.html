@@ -1,0 +1,2670 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Modell-Registry | KI News</title>
+  <meta name="description" content="Die KI-Modell-Registry von KI News mit Herstellern, Familien, Veröffentlichungsdaten, Kontext und Modellart.">
+  <meta name="author" content="Daniel S.">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" type="image/png" href="s-logo.png">
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-neon-rgb: var(--neon-rgb, 0, 212, 255);
+      --px-cyan: #00d4ff;
+      --px-violet: #a78bfa;
+      --px-green: #21e6a1;
+      --px-orange: #fb923c;
+      --px-panel: var(--card, rgba(17, 24, 32, 0.94));
+      --px-panel-strong: var(--card, rgba(21, 29, 39, 0.98));
+      --px-field: var(--field, rgba(255, 255, 255, 0.045));
+      --px-text: var(--text, #dfe3ea);
+      --px-muted: var(--muted, #a5afbb);
+      --px-faint: var(--muted, #748292);
+      --px-border: rgba(var(--px-neon-rgb), 0.16);
+      --px-border-strong: rgba(var(--px-neon-rgb), 0.36);
+      --px-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.16),
+        0 0 26px rgba(var(--px-neon-rgb), 0.045);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 0;
+      background: var(--bg, #000);
+      scroll-behavior: smooth;
+    }
+
+    body.px-body {
+      position: relative;
+      isolation: isolate;
+      min-width: 0;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--px-text);
+      background:
+        radial-gradient(circle at 91% 4%, rgba(var(--px-neon-rgb), 0.08), transparent 32rem),
+        radial-gradient(circle at 3% 45%, rgba(167, 139, 250, 0.05), transparent 28rem),
+        var(--bg, #000);
+      font-family: "Work Sans", sans-serif;
+      transition: color 0.25s ease, background-color 0.25s ease;
+    }
+
+    body.px-body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.22;
+      background-image:
+        linear-gradient(rgba(var(--px-neon-rgb), 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--px-neon-rgb), 0.045) 1px, transparent 1px);
+      background-size: 42px 42px;
+      -webkit-mask-image: linear-gradient(to bottom, black, transparent 94%);
+      mask-image: linear-gradient(to bottom, black, transparent 94%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    a {
+      color: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    a,
+    h1,
+    h2,
+    h3,
+    p {
+      overflow-wrap: anywhere;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent, var(--px-cyan));
+      outline-offset: 3px;
+    }
+
+    ::selection {
+      color: #001015;
+      background: var(--accent, var(--px-cyan));
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .px-skip {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 100;
+      padding: 10px 14px;
+      color: #001015;
+      background: var(--px-cyan);
+      border-radius: 999px;
+      font: 700 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      transform: translateY(-160%);
+      transition: transform 0.2s ease;
+    }
+
+    .px-skip:focus {
+      transform: translateY(0);
+    }
+
+    .px-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .px-main {
+      width: 100%;
+      min-height: 100vh;
+      padding: 78px 24px 36px;
+    }
+
+    .px-shell {
+      width: min(100%, 1460px);
+      margin: 0 auto;
+    }
+
+    .px-kicker,
+    .px-stand-label,
+    .px-stand-state,
+    .px-stand-time,
+    .px-stat-label,
+    .px-latest,
+    .px-control-label,
+    .px-result-count,
+    .px-index-label,
+    .px-index-value,
+    .px-maker-count,
+    .px-model-date,
+    .px-model-meta,
+    .px-model-index,
+    .px-model-slug,
+    .px-empty-code,
+    .px-catalog-code,
+    .px-index-note,
+    .px-footer,
+    .px-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-kicker {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 16px;
+      color: var(--accent, var(--px-cyan));
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .px-kicker::before {
+      content: "";
+      width: 30px;
+      height: 1px;
+      flex: 0 0 30px;
+      background: currentColor;
+      box-shadow: 0 0 9px currentColor;
+    }
+
+    .px-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(390px, 0.85fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .px-intro,
+    .px-stand-card,
+    .px-control-panel,
+    .px-catalog-head,
+    .px-provider-index,
+    .px-maker,
+    .px-empty,
+    .px-footer {
+      border: 1px solid var(--px-border);
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-intro {
+      position: relative;
+      min-width: 0;
+      min-height: 320px;
+      overflow: hidden;
+      padding: 29px 30px 0;
+      border-radius: 16px;
+    }
+
+    .px-intro::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 4%, var(--px-cyan), var(--px-violet));
+      box-shadow: 0 0 22px rgba(var(--px-neon-rgb), 0.4);
+    }
+
+    .px-intro::after {
+      content: "";
+      position: absolute;
+      right: -116px;
+      bottom: -166px;
+      width: 350px;
+      height: 350px;
+      border: 1px solid rgba(var(--px-neon-rgb), 0.1);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 45px rgba(var(--px-neon-rgb), 0.025),
+        0 0 0 90px rgba(var(--px-neon-rgb), 0.015);
+      pointer-events: none;
+    }
+
+    .px-title {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 0;
+      color: var(--px-text);
+      font: 700 clamp(44px, 5.2vw, 72px)/0.96 "Space Grotesk", sans-serif;
+      letter-spacing: -0.062em;
+    }
+
+    .px-title span {
+      color: var(--accent, var(--px-cyan));
+    }
+
+    .px-lead {
+      position: relative;
+      z-index: 1;
+      max-width: 700px;
+      margin: 17px 0 0;
+      color: var(--px-muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .px-hero-stats {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      border-top: 1px solid var(--px-border);
+      background: var(--px-border);
+    }
+
+    .px-stat {
+      min-width: 0;
+      padding: 13px 16px 15px;
+      background: var(--px-panel-strong);
+    }
+
+    .px-stat strong {
+      display: block;
+      overflow: hidden;
+      color: var(--px-text);
+      font: 700 clamp(20px, 2.2vw, 29px)/1 "Space Grotesk", sans-serif;
+      letter-spacing: -0.025em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-stat-label {
+      display: block;
+      margin-top: 6px;
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .px-stand-card {
+      position: relative;
+      min-width: 0;
+      min-height: 320px;
+      overflow: hidden;
+      padding: 23px 24px 19px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 84% 24%, rgba(var(--px-neon-rgb), 0.12), transparent 11rem),
+        var(--px-panel-strong);
+    }
+
+    .px-stand-card::before,
+    .px-stand-card::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .px-stand-card::before {
+      inset: 0;
+      opacity: 0.38;
+      background-image:
+        linear-gradient(rgba(var(--px-neon-rgb), 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--px-neon-rgb), 0.055) 1px, transparent 1px);
+      background-size: 28px 28px;
+      -webkit-mask-image: linear-gradient(135deg, black, transparent 74%);
+      mask-image: linear-gradient(135deg, black, transparent 74%);
+    }
+
+    .px-stand-card::after {
+      top: 52px;
+      right: -65px;
+      width: 205px;
+      height: 205px;
+      border: 1px solid rgba(var(--px-neon-rgb), 0.14);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 30px rgba(var(--px-neon-rgb), 0.025),
+        0 0 0 61px rgba(var(--px-neon-rgb), 0.014);
+    }
+
+    .px-stand-top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .px-stand-label {
+      color: var(--accent, var(--px-cyan));
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .px-stand-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--px-muted);
+      font-size: 9px;
+      letter-spacing: 0.035em;
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    .px-stand-state::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      flex: 0 0 7px;
+      border-radius: 50%;
+      background: var(--accent, var(--px-cyan));
+      box-shadow: 0 0 10px var(--accent, var(--px-cyan));
+      animation: px-pulse 2.4s ease-in-out infinite;
+    }
+
+    .px-stand-state.px-state-stale {
+      color: var(--px-orange);
+    }
+
+    .px-stand-state.px-state-stale::before {
+      background: var(--px-orange);
+      box-shadow: 0 0 10px var(--px-orange);
+    }
+
+    .px-stand-value {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-top: 22px;
+    }
+
+    .px-stand-date {
+      display: block;
+      max-width: 100%;
+      color: var(--px-text);
+      font: 700 clamp(32px, 3.2vw, 46px)/1.02 "Space Grotesk", sans-serif;
+      letter-spacing: -0.05em;
+    }
+
+    .px-stand-time {
+      display: block;
+      margin-top: 7px;
+      color: var(--accent, var(--px-cyan));
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .px-stand-note {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 13px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.52;
+    }
+
+    .px-stand-warning {
+      position: relative;
+      z-index: 1;
+      margin: 13px 0 0;
+      padding: 9px 11px;
+      border: 1px solid rgba(251, 146, 60, 0.34);
+      border-radius: 9px;
+      color: #fdba74;
+      background: rgba(251, 146, 60, 0.08);
+      font: 700 10px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-latest {
+      position: absolute;
+      right: 24px;
+      bottom: 19px;
+      left: 24px;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 5px 7px;
+      margin: 0;
+      padding-top: 12px;
+      border-top: 1px solid var(--px-border);
+      color: var(--px-faint);
+      font-size: 9px;
+      line-height: 1.45;
+    }
+
+    .px-latest strong {
+      color: var(--px-muted);
+      font-weight: 700;
+    }
+
+    .px-control-panel {
+      position: sticky;
+      top: 64px;
+      z-index: 30;
+      margin-bottom: 26px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--px-panel-strong);
+    }
+
+    .px-control-grid {
+      display: grid;
+      grid-template-columns:
+        minmax(260px, 1.55fr)
+        minmax(150px, 0.72fr)
+        minmax(140px, 0.66fr)
+        minmax(115px, 0.5fr)
+        auto;
+      gap: 8px;
+    }
+
+    .px-control {
+      min-width: 0;
+    }
+
+    .px-control-label {
+      display: block;
+      margin: 0 0 5px 2px;
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .px-input-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .px-input-wrap::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 13px;
+      width: 11px;
+      height: 11px;
+      border: 1px solid var(--px-faint);
+      border-radius: 50%;
+      box-shadow: 7px 7px 0 -6px var(--px-faint);
+      pointer-events: none;
+      transform: translateY(-60%);
+    }
+
+    .px-input,
+    .px-select,
+    .px-button {
+      width: 100%;
+      min-width: 0;
+      min-height: 42px;
+      border: 1px solid var(--px-border);
+      border-radius: 9px;
+    }
+
+    .px-input,
+    .px-select {
+      color: var(--px-text);
+      background: var(--px-field);
+      font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-input {
+      height: 42px;
+      padding: 0 13px 0 39px;
+      outline: 0;
+    }
+
+    .px-input::placeholder {
+      color: var(--px-faint);
+    }
+
+    .px-input:focus,
+    .px-select:focus {
+      border-color: var(--px-border-strong);
+      box-shadow: 0 0 0 3px rgba(var(--px-neon-rgb), 0.06);
+    }
+
+    .px-select {
+      padding: 0 30px 0 11px;
+      outline: 0;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .px-select-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .px-select-wrap::after {
+      content: "⌄";
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      color: var(--px-faint);
+      font: 13px ui-monospace, monospace;
+      pointer-events: none;
+      transform: translateY(-62%);
+    }
+
+    .px-select option {
+      color: #dfe3ea;
+      background: #111923;
+    }
+
+    .px-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 15px;
+      color: var(--px-muted);
+      background: var(--px-field);
+      font: 700 9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition:
+        color 0.18s ease,
+        border-color 0.18s ease,
+        background 0.18s ease,
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    .px-button:hover,
+    .px-button:focus-visible {
+      color: var(--accent, var(--px-cyan));
+      border-color: var(--px-border-strong);
+      background: rgba(var(--px-neon-rgb), 0.075);
+      transform: translateY(-1px);
+    }
+
+    .px-button-primary {
+      color: #001015;
+      border-color: var(--accent, var(--px-cyan));
+      background: var(--accent, var(--px-cyan));
+    }
+
+    .px-button-primary:hover,
+    .px-button-primary:focus-visible {
+      color: #001015;
+      border-color: var(--accent, var(--px-cyan));
+      background: var(--accent, var(--px-cyan));
+      box-shadow: 0 0 18px rgba(var(--px-neon-rgb), 0.2);
+    }
+
+    .px-control-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 9px;
+      padding: 0 2px;
+    }
+
+    .px-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      padding: 4px 9px;
+      border: 1px solid rgba(var(--px-neon-rgb), 0.25);
+      border-radius: 999px;
+      color: var(--accent, var(--px-cyan));
+      background: rgba(var(--px-neon-rgb), 0.065);
+      font-size: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .px-result-count {
+      color: var(--px-faint);
+      font-size: 9px;
+      text-align: right;
+    }
+
+    .px-catalog-head {
+      margin-bottom: 12px;
+      padding: 20px 22px;
+      border-radius: 12px;
+    }
+
+    .px-catalog-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .px-catalog-label {
+      margin: 0 0 5px;
+      color: var(--accent, var(--px-cyan));
+      font: 700 9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .px-catalog-title {
+      margin: 0;
+      color: var(--px-text);
+      font: 700 clamp(24px, 3vw, 34px)/1.1 "Space Grotesk", sans-serif;
+      letter-spacing: -0.04em;
+    }
+
+    .px-catalog-note {
+      max-width: 590px;
+      margin: 7px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .px-catalog-meta {
+      display: flex;
+      flex: 0 0 auto;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+      text-align: right;
+    }
+
+    .px-catalog-code,
+    .px-index-note {
+      color: var(--px-faint);
+      font-size: 8px;
+      line-height: 1.45;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .px-index-note {
+      color: var(--accent, var(--px-cyan));
+    }
+
+    .px-provider-index {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 17px;
+      overflow: hidden;
+      padding: 1px;
+      border-radius: 10px;
+      background: var(--px-border);
+    }
+
+    .px-index-card {
+      position: relative;
+      min-width: 0;
+      min-height: 72px;
+      padding: 11px 12px;
+      text-align: left;
+      background: var(--px-panel-strong);
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+
+    .px-index-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 12px;
+      left: 12px;
+      height: 1px;
+      background: var(--accent, var(--px-cyan));
+      box-shadow: 0 0 8px rgba(var(--px-neon-rgb), 0.42);
+    }
+
+    .px-index-card:hover,
+    .px-index-card:focus-visible,
+    .px-index-card.px-index-active {
+      background: rgba(var(--px-neon-rgb), 0.075);
+    }
+
+    .px-index-label {
+      display: block;
+      overflow: hidden;
+      color: var(--px-text);
+      font-size: 9px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-index-value {
+      display: block;
+      overflow: hidden;
+      margin-top: 7px;
+      color: var(--accent, var(--px-cyan));
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-registry,
+    .px-makers {
+      min-width: 0;
+    }
+
+    .px-makers {
+      display: grid;
+      gap: 14px;
+    }
+
+    .px-maker {
+      min-width: 0;
+      overflow: hidden;
+      padding: 18px;
+      border-radius: 12px;
+      content-visibility: auto;
+      contain-intrinsic-size: 560px;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .px-maker:hover {
+      border-color: var(--px-border-strong);
+      box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.16),
+        0 0 26px rgba(var(--px-neon-rgb), 0.055);
+      transform: translateY(-2px);
+    }
+
+    .px-maker-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--px-border);
+    }
+
+    .px-maker-orb {
+      position: relative;
+      display: grid;
+      width: 39px;
+      height: 39px;
+      flex: 0 0 39px;
+      place-items: center;
+      border: 1px solid rgba(var(--px-neon-rgb), 0.24);
+      border-radius: 12px;
+      color: var(--accent, var(--px-cyan));
+      background: rgba(var(--px-neon-rgb), 0.07);
+      box-shadow: inset 0 0 18px rgba(var(--px-neon-rgb), 0.035);
+      font: 700 12px "Space Grotesk", sans-serif;
+    }
+
+    .px-maker-orb::after {
+      content: "";
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--px-green);
+      box-shadow: 0 0 7px var(--px-green);
+    }
+
+    .px-maker-title-wrap {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .px-maker h2 {
+      margin: 0;
+      color: var(--px-text);
+      font: 700 clamp(20px, 2.3vw, 29px)/1.08 "Space Grotesk", sans-serif;
+      letter-spacing: -0.035em;
+    }
+
+    .px-maker-count {
+      display: block;
+      margin-top: 4px;
+      color: var(--px-faint);
+      font-size: 8px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .px-maker-latest {
+      max-width: 180px;
+      color: var(--px-faint);
+      font: 8px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      text-align: right;
+      text-transform: uppercase;
+      white-space: pre-line;
+    }
+
+    .px-model-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .px-model {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      min-height: 218px;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 15px;
+      border: 1px solid rgba(var(--px-neon-rgb), 0.11);
+      border-radius: 10px;
+      background: var(--px-field);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: px-card-in 0.42s ease forwards;
+      animation-delay: var(--px-delay, 0ms);
+      transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.18s ease;
+    }
+
+    .px-model::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--px-cyan), var(--px-violet));
+      opacity: 0.72;
+    }
+
+    .px-model:hover {
+      border-color: var(--px-border-strong);
+      background: rgba(var(--px-neon-rgb), 0.065);
+      box-shadow: 0 0 20px rgba(var(--px-neon-rgb), 0.05);
+      transform: translateY(-2px);
+    }
+
+    .px-model-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .px-model-date {
+      color: var(--accent, var(--px-cyan));
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .px-model-index {
+      margin-left: auto;
+      color: var(--px-faint);
+      font-size: 8px;
+    }
+
+    .px-model h3 {
+      margin: 12px 0 0;
+      color: var(--px-text);
+      font: 700 clamp(16px, 1.55vw, 20px)/1.2 "Space Grotesk", sans-serif;
+      letter-spacing: -0.026em;
+    }
+
+    .px-model-badges {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .px-model-meta {
+      max-width: 100%;
+      overflow: hidden;
+      padding: 4px 8px;
+      border: 1px solid var(--px-border);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: rgba(var(--px-neon-rgb), 0.035);
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-model-family {
+      border-color: rgba(167, 139, 250, 0.24);
+      color: #c4b5fd;
+      background: rgba(167, 139, 250, 0.065);
+    }
+
+    .px-model-kind {
+      border-color: rgba(var(--px-neon-rgb), 0.22);
+      color: var(--px-cyan);
+    }
+
+    .px-model-context {
+      display: -webkit-box;
+      overflow: hidden;
+      margin: 12px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.52;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+    }
+
+    .px-model-foot {
+      display: flex;
+      min-width: 0;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 12px;
+    }
+
+    .px-model-slug {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-faint);
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-skeletons {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .px-skeleton {
+      position: relative;
+      min-width: 0;
+      min-height: 218px;
+      overflow: hidden;
+      border: 1px solid var(--px-border);
+      border-radius: 10px;
+      background: var(--px-panel);
+    }
+
+    .px-skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        105deg,
+        transparent 25%,
+        rgba(var(--px-neon-rgb), 0.07) 45%,
+        transparent 65%
+      );
+      transform: translateX(-100%);
+      animation: px-shimmer 1.8s ease-in-out infinite;
+    }
+
+    .px-empty {
+      min-height: 250px;
+      padding: 42px 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .px-empty-code {
+      margin: 0 0 13px;
+      color: var(--accent, var(--px-cyan));
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .px-empty h2 {
+      margin: 0;
+      color: var(--px-text);
+      font: 700 24px "Space Grotesk", sans-serif;
+      letter-spacing: -0.03em;
+    }
+
+    .px-empty p {
+      max-width: 620px;
+      margin: 10px auto 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .px-empty .px-button {
+      width: auto;
+      margin-top: 18px;
+    }
+
+    .px-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 38px;
+      padding: 24px 0 5px;
+      border-top: 1px solid var(--px-border);
+      color: var(--px-faint);
+      font-size: 9px;
+      line-height: 1.6;
+    }
+
+    .px-footer strong {
+      color: var(--px-text);
+      font: 700 16px "Space Grotesk", sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    .px-footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px;
+    }
+
+    .px-footer a {
+      text-decoration: none;
+    }
+
+    .px-footer a:hover {
+      color: var(--accent, var(--px-cyan));
+    }
+
+    html.light,
+    html[data-theme="light"] {
+      --px-panel: rgba(255, 255, 255, 0.95);
+      --px-panel-strong: #fff;
+      --px-field: #eef3fa;
+      --px-text: #0f172a;
+      --px-muted: #526b80;
+      --px-faint: #8295a5;
+      --px-border: rgba(var(--px-neon-rgb), 0.18);
+      --px-border-strong: rgba(var(--px-neon-rgb), 0.38);
+      --px-shadow:
+        0 14px 36px rgba(36, 73, 99, 0.075),
+        0 0 22px rgba(var(--px-neon-rgb), 0.055);
+    }
+
+    html.light body.px-body,
+    html[data-theme="light"] body.px-body {
+      background: var(--bg, #f0f4f8);
+    }
+
+    html.light .px-select option,
+    html[data-theme="light"] .px-select option {
+      color: #0f172a;
+      background: #fff;
+    }
+
+    html.light .px-button-primary,
+    html[data-theme="light"] .px-button-primary {
+      color: #06121a;
+    }
+
+    html.light .px-model-family,
+    html[data-theme="light"] .px-model-family {
+      color: #6d5bc2;
+    }
+
+    @keyframes px-pulse {
+      50% {
+        opacity: 0.38;
+        transform: scale(0.72);
+      }
+    }
+
+    @keyframes px-card-in {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes px-shimmer {
+      to {
+        transform: translateX(100%);
+      }
+    }
+
+    @media (max-width: 1120px) {
+      .px-control-grid {
+        grid-template-columns: minmax(260px, 1.5fr) repeat(2, minmax(145px, 1fr));
+      }
+
+      .px-search-control,
+      .px-control-grid > .px-button {
+        grid-column: span 1;
+      }
+
+      .px-model-grid,
+      .px-skeletons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-provider-index {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 980px) {
+      .px-hero {
+        grid-template-columns: 1fr;
+      }
+
+      .px-intro,
+      .px-stand-card {
+        min-height: 320px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .px-control-panel {
+        position: static;
+      }
+
+      .px-control-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-search-control,
+      .px-control-grid > .px-button {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .px-main {
+        padding: 70px 14px 28px;
+      }
+
+      .px-intro {
+        min-height: 342px;
+        padding: 23px 18px 0;
+      }
+
+      .px-title {
+        font-size: clamp(39px, 11.7vw, 54px);
+      }
+
+      .px-lead {
+        margin-top: 14px;
+        font-size: 13px;
+      }
+
+      .px-hero-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .px-stat {
+        padding: 11px 6px 13px;
+      }
+
+      .px-stat strong {
+        font-size: 18px;
+      }
+
+      .px-stat-label {
+        font-size: 7px;
+      }
+
+      .px-stand-card {
+        min-height: 330px;
+        padding: 19px 18px 17px;
+      }
+
+      .px-stand-value {
+        margin-top: 19px;
+      }
+
+      .px-stand-date {
+        font-size: clamp(32px, 9.8vw, 43px);
+      }
+
+      .px-latest {
+        right: 18px;
+        bottom: 17px;
+        left: 18px;
+      }
+
+      .px-control-panel {
+        padding: 10px;
+      }
+
+      .px-control-foot {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .px-result-count {
+        text-align: left;
+      }
+
+      .px-catalog-head {
+        padding: 17px 15px;
+      }
+
+      .px-catalog-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+      }
+
+      .px-catalog-meta {
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      .px-provider-index {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-maker {
+        padding: 14px;
+      }
+
+      .px-maker-latest {
+        display: none;
+      }
+
+      .px-model-grid,
+      .px-skeletons {
+        grid-template-columns: 1fr;
+      }
+
+      .px-model,
+      .px-skeleton {
+        min-height: 205px;
+      }
+
+      .px-footer {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .px-main {
+        padding-right: 12px;
+        padding-left: 12px;
+      }
+
+      .px-intro {
+        min-height: 330px;
+      }
+
+      .px-title {
+        font-size: clamp(38px, 11.5vw, 50px);
+      }
+
+      .px-stat {
+        padding-right: 5px;
+        padding-left: 5px;
+      }
+
+      .px-index-value {
+        font-size: 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+  <style>
+    /* 28.09.26: eingeklappte Hersteller als Kachelraster, aufgeklappte ueber die volle Breite */
+    #px-makers { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); align-items: start; }
+    #px-makers > .px-maker:not(.px-zu) { grid-column: 1 / -1; }
+    #px-makers > .px-maker.px-zu { content-visibility: visible; }
+  </style>
+</head>
+
+<body class="px-body">
+  <a class="px-skip" href="#px-registry">Zur Modell-Registry</a>
+
+  
+<main class="px-main" id="main-content">
+    <div class="px-shell">
+      <header class="px-hero" aria-labelledby="px-page-title">
+        <section class="px-intro">
+          <p class="px-kicker">Kartei 02 / Modellatlas</p>
+          <h1 class="px-title" id="px-page-title">Modell <span>Registry</span></h1>
+          <p class="px-lead">
+            Eine übersichtliche Kartei der im Katalog erfassten KI-Modelle.
+            Anbieter, Familien, Veröffentlichungsdaten, Kontext und Modellart bleiben direkt vergleichbar.
+          </p>
+
+          <div class="px-hero-stats" aria-label="Registry-Kennzahlen">
+            <div class="px-stat">
+              <strong id="px-model-count">Lädt</strong>
+              <span class="px-stat-label">Modelle</span>
+            </div>
+            <div class="px-stat">
+              <strong id="px-provider-count">Lädt</strong>
+              <span class="px-stat-label">Hersteller</span>
+            </div>
+            <div class="px-stat">
+              <strong id="px-family-count">Lädt</strong>
+              <span class="px-stat-label">Familien</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="px-stand-card" aria-labelledby="px-stand-heading">
+          <div class="px-stand-top">
+            <span class="px-stand-label" id="px-stand-heading">Stand / Pipeline</span>
+            <span class="px-stand-state" id="px-stand-state" role="status">Wird geprüft</span>
+          </div>
+
+          <div class="px-stand-value" aria-live="polite">
+            <span class="px-stand-date" id="px-stand-date">Registry wird geladen</span>
+            <time class="px-stand-time" id="px-stand-time" hidden></time>
+          </div>
+
+          <p class="px-stand-note">
+            Zeitpunkt des letzten Pipeline-Laufs aus registry.json.
+            Das Alter des neuesten Katalogmodells wird separat und ohne Warnung angezeigt.
+          </p>
+
+          <p class="px-stand-warning" id="px-stand-warning" role="status" hidden>
+            Der Pipeline-Stand ist älter als zwei Tage. Der Katalog kann dadurch unvollständig sein.
+          </p>
+
+          <p class="px-latest">
+            <span>neuestes Modell im Katalog:</span>
+            <strong id="px-latest-value">Datum wird ermittelt</strong>
+          </p>
+        </aside>
+      </header>
+
+      <section class="px-karte" aria-labelledby="px-karte-titel" style="margin:18px 0 22px">
+        <h2 id="px-karte-titel" style="margin:0 0 6px;font:700 20px/1.2 'Space Grotesk',sans-serif">KI-Landkarte</h2>
+        <p style="margin:0 0 10px;opacity:.75;font-size:14px">Hersteller oder Modell anklicken: die Registry darunter filtert sich darauf.</p>
+        <iframe id="px-karte-frame" src="landkarte.html?embed=1" title="KI-Landkarte" loading="lazy"
+          style="width:100%;height:760px;border:0;border-radius:12px;display:block;background:transparent"></iframe>
+        <p id="px-karte-hinweis" role="status" style="margin:8px 0 0;font-size:13px;opacity:.8"></p>
+      </section>
+      <section class="px-control-panel" aria-label="Registry durchsuchen und filtern">
+        <div class="px-control-grid">
+          <div class="px-control px-search-control">
+            <label class="px-control-label" for="px-search">Modell suchen</label>
+            <div class="px-input-wrap">
+              <input
+                class="px-input"
+                id="px-search"
+                type="search"
+                autocomplete="off"
+                placeholder="Modell, Anbieter, Familie oder Kontext"
+              >
+            </div>
+          </div>
+
+          <div class="px-control">
+            <label class="px-control-label" for="px-provider-filter">Hersteller</label>
+            <div class="px-select-wrap">
+              <select class="px-select" id="px-provider-filter">
+                <option value="">Alle Hersteller</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="px-control">
+            <label class="px-control-label" for="px-kind-filter">Modellart</label>
+            <div class="px-select-wrap">
+              <select class="px-select" id="px-kind-filter">
+                <option value="">Alle Arten</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="px-control">
+            <label class="px-control-label" for="px-year-filter">Jahr</label>
+            <div class="px-select-wrap">
+              <select class="px-select" id="px-year-filter">
+                <option value="">Alle Jahre</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="px-control">
+            <span class="px-control-label">Aktion</span>
+            <button class="px-button px-button-primary" id="px-reset" type="button">
+              Filter leeren
+            </button>
+          </div>
+        </div>
+
+        <div class="px-control-foot">
+          <span class="px-chip">Neueste Veröffentlichung zuerst</span>
+          <span class="px-result-count" id="px-result-count" aria-live="polite">
+            Registry wird geladen
+          </span>
+        </div>
+      </section>
+
+      <section class="px-registry" id="px-registry" aria-label="Ergebnisse der Modell-Registry">
+        <div class="px-catalog-head" id="px-catalog-head" hidden>
+          <div class="px-catalog-heading">
+            <div>
+              <p class="px-catalog-label">Hersteller-Index</p>
+              <h2 class="px-catalog-title">Modellatlas</h2>
+              <p class="px-catalog-note">
+                Ein Klick filtert den Katalog. Innerhalb jedes Herstellers stehen die neuesten Veröffentlichungen zuerst.
+              </p>
+            </div>
+
+            <div class="px-catalog-meta">
+              <span class="px-index-note" id="px-index-note"></span>
+              <span class="px-catalog-code">Registry / Hersteller → Familie → Modell</span>
+            </div>
+          </div>
+
+          <div class="px-provider-index" id="px-provider-index" aria-label="Schnellfilter für Hersteller"></div>
+        </div>
+
+        <div class="px-skeletons" id="px-loading" aria-label="Registry wird geladen">
+          <div class="px-skeleton"></div>
+          <div class="px-skeleton"></div>
+          <div class="px-skeleton"></div>
+          <div class="px-skeleton"></div>
+          <div class="px-skeleton"></div>
+          <div class="px-skeleton"></div>
+        </div>
+
+        <div class="px-makers" id="px-makers"></div>
+
+        <section class="px-empty" id="px-empty" hidden>
+          <p class="px-empty-code" id="px-empty-code">Kein Ergebnis</p>
+          <h2 id="px-empty-title">Die Registry ist gerade nicht verfügbar</h2>
+          <p id="px-empty-text">
+            Bitte prüfe die Datei registry/registry.json auf dem Server und versuche den Ladevorgang erneut.
+          </p>
+          <button class="px-button px-button-primary" id="px-empty-action" type="button">
+            Erneut versuchen
+          </button>
+        </section>
+      </section>
+
+      <footer class="px-footer">
+        <div>
+          <strong>KI NEWS / MODELL-REGISTRY</strong><br>
+          Katalogdaten aus registry.json. Betreiber: Daniel, Scampy.
+        </div>
+        <div class="px-footer-links">
+          <a href="index.html">Aktuell</a>
+          <a href="Archiv.html">Archiv</a>
+          <a href="Impressum.html">Impressum</a>
+          <a href="Datenschutz.html">Datenschutz</a>
+        </div>
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    (function () {
+      const PX_REGISTRY_PATHS = [
+        "registry/registry.json",
+        "registry.json"
+      ];
+      const PX_TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
+      const PX_TIMEOUT = 12000;
+      const PX_INDEX_SIZE = 8;
+      const PX_NUMBER = new Intl.NumberFormat("de-DE");
+      const PX_DATE = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC"
+      });
+      const PX_TIME = new Intl.DateTimeFormat("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "UTC"
+      });
+
+      const state = {
+        models: [],
+        query: "",
+        provider: "",
+        kind: "",
+        year: "",
+        loaded: false,
+        error: false,
+        controller: null,
+        searchTimer: null
+      };
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function clean(value) {
+        return String(value == null ? "" : value)
+          .replace(/[\u2014\u2013]/g, "-")
+          .replace(/[\u0000-\u001f\u007f]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function field(value) {
+        if (typeof value === "string") return clean(value);
+        if (typeof value === "number" && Number.isFinite(value)) return String(value);
+        return "";
+      }
+
+      function create(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = clean(text);
+        return node;
+      }
+
+      function normalize(value) {
+        return clean(value)
+          .toLocaleLowerCase("de-DE")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/ß/g, "ss")
+          .replace(/[^a-z0-9\s-]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function pad(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function validDateParts(year, month, day) {
+        const date = new Date(Date.UTC(year, month - 1, day));
+        return date.getUTCFullYear() === year &&
+          date.getUTCMonth() === month - 1 &&
+          date.getUTCDate() === day;
+      }
+
+      function dateKey(year, month, day) {
+        return `${year}-${pad(month)}-${pad(day)}`;
+      }
+
+      function parseDateInfo(value) {
+        const raw = field(value);
+        if (!raw) return null;
+
+        const yearOnly = raw.match(/^(\d{4})$/);
+        if (yearOnly) {
+          const year = Number(yearOnly[1]);
+          if (!Number.isInteger(year) || year < 1900 || year > 2200) return null;
+
+          return {
+            raw,
+            key: dateKey(year, 1, 1),
+            year: String(year),
+            stamp: Date.UTC(year, 0, 1),
+            label: String(year),
+            timeLabel: "",
+            hasTime: false
+          };
+        }
+
+        let year = 0;
+        let month = 0;
+        let day = 0;
+        let hour = 0;
+        let minute = 0;
+        let second = 0;
+        let stamp = NaN;
+
+        const isoMatch = raw.match(
+          /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?/
+        );
+
+        const germanMatch = raw.match(
+          /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/
+        );
+
+        let hasTime = false;
+
+        if (isoMatch) {
+          year = Number(isoMatch[1]);
+          month = Number(isoMatch[2]);
+          day = Number(isoMatch[3]);
+          hour = Number(isoMatch[4] || 0);
+          minute = Number(isoMatch[5] || 0);
+          second = Number(isoMatch[6] || 0);
+          hasTime = Boolean(isoMatch[4]);
+
+          if (!validDateParts(year, month, day)) return null;
+          if (hour > 23 || minute > 59 || second > 59) return null;
+
+          const zoneMatch = raw.slice(10).match(/[zZ]|[+-]\d{2}:?\d{2}$/);
+          stamp = zoneMatch
+            ? Date.parse(raw)
+            : Date.UTC(year, month - 1, day, hour, minute, second);
+        } else if (germanMatch) {
+          day = Number(germanMatch[1]);
+          month = Number(germanMatch[2]);
+          year = Number(germanMatch[3]);
+          hour = Number(germanMatch[4] || 0);
+          minute = Number(germanMatch[5] || 0);
+          second = Number(germanMatch[6] || 0);
+          hasTime = Boolean(germanMatch[4]);
+
+          if (!validDateParts(year, month, day)) return null;
+          if (hour > 23 || minute > 59 || second > 59) return null;
+
+          stamp = Date.UTC(year, month - 1, day, hour, minute, second);
+        } else {
+          return null;
+        }
+
+        if (!Number.isFinite(stamp)) return null;
+
+        const key = dateKey(year, month, day);
+
+        return {
+          raw,
+          key,
+          year: String(year),
+          stamp,
+          label: PX_DATE.format(new Date(`${key}T00:00:00Z`)),
+          timeLabel: hasTime ? `${PX_TIME.format(new Date(stamp))} Uhr` : "",
+          hasTime
+        };
+      }
+
+      function formatDate(info) {
+        return info ? info.label : "Datum offen";
+      }
+
+      function knownModelArray(value, depth) {
+        const level = Number(depth || 0);
+
+        if (Array.isArray(value)) return value;
+        if (!value || typeof value !== "object" || level > 4) return [];
+
+        const keys = [
+          "modelle",
+          "models",
+          "modell",
+          "items",
+          "entries",
+          "data",
+          "registry"
+        ];
+
+        for (const key of keys) {
+          if (Array.isArray(value[key])) return value[key];
+
+          if (value[key] && typeof value[key] === "object") {
+            const nested = knownModelArray(value[key], level + 1);
+            if (nested.length) return nested;
+          }
+        }
+
+        return [];
+      }
+
+      function copyWithProvider(item, provider) {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+
+        const copy = { ...item };
+        if (!field(copy.a) && provider) copy.a = provider;
+        return copy;
+      }
+
+      function collectNestedModels(node, inheritedProvider, depth, output, seen) {
+        if (!node || depth > 5 || seen.has(node)) return;
+        if (typeof node !== "object") return;
+
+        seen.add(node);
+
+        if (Array.isArray(node)) {
+          node.forEach(item => {
+            if (item && typeof item === "object" && !Array.isArray(item)) {
+              output.push(copyWithProvider(item, inheritedProvider));
+            }
+          });
+          return;
+        }
+
+        if (field(node.n)) {
+          output.push(copyWithProvider(node, inheritedProvider));
+          return;
+        }
+
+        const entries = Object.entries(node);
+
+        entries.forEach((entry, index) => {
+          const child = entry[1];
+          if (!child || typeof child !== "object") return;
+
+          const provider = inheritedProvider ||
+            (depth === 0 && index < 30 ? entry[0] : "");
+
+          collectNestedModels(child, provider, depth + 1, output, seen);
+        });
+      }
+
+      function extractModels(data) {
+        if (Array.isArray(data)) return data;
+        if (!data || typeof data !== "object") return [];
+
+        const nestedCandidates = [
+          data.modelle,
+          data.models,
+          data.modell,
+          data.registry,
+          data.eintraege,
+          data.items
+        ];
+
+        for (const candidate of nestedCandidates) {
+          if (Array.isArray(candidate) && candidate.length) return candidate;
+
+          if (candidate && typeof candidate === "object") {
+            const output = [];
+            collectNestedModels(candidate, "", 0, output, new Set());
+            if (output.length) return output;
+          }
+        }
+
+        const direct = knownModelArray(data, 0);
+        if (direct.length) return direct;
+
+        const result = [];
+        const providerKeys = [
+          "hersteller",
+          "anbieter",
+          "providers",
+          "manufacturers"
+        ];
+
+        for (const containerKey of providerKeys) {
+          const container = data[containerKey];
+
+          if (
+            !container ||
+            typeof container !== "object" ||
+            Array.isArray(container)
+          ) {
+            continue;
+          }
+
+          for (const [provider, group] of Object.entries(container)) {
+            if (Array.isArray(group)) {
+              group.forEach(item => {
+                result.push(copyWithProvider(item, provider));
+              });
+            } else if (group && typeof group === "object") {
+              const nested = [];
+              collectNestedModels(group, provider, 0, nested, new Set());
+              result.push(...nested);
+            }
+          }
+
+          if (result.length) return result;
+        }
+
+        for (const value of Object.values(data)) {
+          if (!Array.isArray(value)) continue;
+
+          const validEntries = value.filter(item => (
+            item &&
+            typeof item === "object" &&
+            !Array.isArray(item) &&
+            (field(item.n) || field(item.a))
+          ));
+
+          if (validEntries.length) return validEntries;
+        }
+
+        return [];
+      }
+
+      function kindLabel(value) {
+        const raw = field(value);
+        const key = normalize(raw);
+
+        const labels = {
+          text: "Sprachmodell",
+          llm: "Sprachmodell",
+          language: "Sprachmodell",
+          textmodell: "Sprachmodell",
+          vision: "Sprachmodell mit Vision",
+          multimodal: "Multimodal",
+          image: "Bildmodell",
+          bild: "Bildmodell",
+          video: "Videomodell",
+          audio: "Audiomodell",
+          speech: "Sprachmodell",
+          code: "Code-Modell",
+          embedding: "Embedding",
+          robotics: "Robotik"
+        };
+
+        return labels[key] || raw || "Art offen";
+      }
+
+      function normalizeModel(item) {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+
+        const name = field(item.n);
+        const provider = field(item.a);
+
+        if (!name || !provider) return null;
+
+        const release = field(item.r);
+
+        return {
+          slug: field(item.s),
+          name,
+          provider,
+          family: field(item.f),
+          release,
+          dateInfo: parseDateInfo(release),
+          context: field(item.c),
+          kind: field(item.k),
+          kindKey: normalize(item.k)
+        };
+      }
+
+      function normalizeModels(items) {
+        const valid = [];
+        const seen = new Set();
+
+        items.forEach(item => {
+          const model = normalizeModel(item);
+          if (!model) return;
+
+          const key = model.slug
+            ? `slug:${normalize(model.slug)}`
+            : [
+              normalize(model.provider),
+              normalize(model.name),
+              normalize(model.release)
+            ].join("|");
+
+          if (seen.has(key)) return;
+
+          seen.add(key);
+          valid.push(model);
+        });
+
+        return valid;
+      }
+
+      function compareModelsNewest(a, b) {
+        const stampA = a.dateInfo
+          ? a.dateInfo.stamp
+          : Number.NEGATIVE_INFINITY;
+
+        const stampB = b.dateInfo
+          ? b.dateInfo.stamp
+          : Number.NEGATIVE_INFINITY;
+
+        return stampB - stampA ||
+          b.release.localeCompare(a.release, "de") ||
+          a.name.localeCompare(b.name, "de");
+      }
+
+      function newestDate(models) {
+        return models.reduce((newest, model) => {
+          if (!model.dateInfo) return newest;
+          if (!newest || model.dateInfo.stamp > newest.stamp) {
+            return model.dateInfo;
+          }
+          return newest;
+        }, null);
+      }
+
+      function providerInitials(provider) {
+        const parts = clean(provider).split(/\s+/).filter(Boolean);
+
+        if (!parts.length) return "?";
+
+        if (parts.length === 1) {
+          return parts[0].slice(0, 2).toLocaleUpperCase("de-DE");
+        }
+
+        return parts.slice(0, 2)
+          .map(part => part.charAt(0))
+          .join("")
+          .toLocaleUpperCase("de-DE");
+      }
+
+      function addOption(select, value, label) {
+        const option = create("option", "", label);
+        option.value = value;
+        select.appendChild(option);
+        return option;
+      }
+
+      function renderStand(data, models) {
+        const dateNode = byId("px-stand-date");
+        const timeNode = byId("px-stand-time");
+        const stateNode = byId("px-stand-state");
+        const warningNode = byId("px-stand-warning");
+
+        const stand = data && typeof data === "object"
+          ? field(data.stand)
+          : "";
+
+        const standInfo = parseDateInfo(stand);
+
+        stateNode.classList.remove("px-state-stale");
+        warningNode.hidden = true;
+
+        if (standInfo) {
+          dateNode.textContent = standInfo.label;
+
+          timeNode.textContent = standInfo.hasTime
+            ? `${standInfo.timeLabel} UTC`
+            : "";
+
+          timeNode.hidden = !standInfo.hasTime;
+          timeNode.dateTime = standInfo.hasTime ? stand : "";
+          timeNode.title = stand;
+
+          const age = Date.now() - standInfo.stamp;
+          const stale = age > PX_TWO_DAYS;
+
+          stateNode.classList.toggle("px-state-stale", stale);
+          stateNode.textContent = stale ? "Pipeline veraltet" : "Aktuell";
+          warningNode.hidden = !stale;
+        } else {
+          dateNode.textContent = stand || "Nicht angegeben";
+          timeNode.hidden = true;
+          timeNode.removeAttribute("datetime");
+          timeNode.removeAttribute("title");
+          stateNode.textContent = stand ? "Format offen" : "Kein Stand";
+        }
+
+        const latest = newestDate(models);
+
+        byId("px-latest-value").textContent = latest
+          ? formatDate(latest)
+          : "kein Veröffentlichungsdatum vorhanden";
+
+        const providers = new Set(
+          models
+            .map(model => model.provider)
+            .filter(Boolean)
+        );
+
+        const families = new Set(
+          models
+            .map(model => normalize(model.family))
+            .filter(Boolean)
+        );
+
+        byId("px-model-count").textContent = PX_NUMBER.format(models.length);
+        byId("px-provider-count").textContent = PX_NUMBER.format(providers.size);
+        byId("px-family-count").textContent = PX_NUMBER.format(families.size);
+      }
+
+      function renderFilters() {
+        const providerSelect = byId("px-provider-filter");
+        const kindSelect = byId("px-kind-filter");
+        const yearSelect = byId("px-year-filter");
+
+        const oldProvider = state.provider;
+        const oldKind = state.kind;
+        const oldYear = state.year;
+
+        providerSelect.replaceChildren();
+        kindSelect.replaceChildren();
+        yearSelect.replaceChildren();
+
+        addOption(providerSelect, "", "Alle Hersteller");
+        addOption(kindSelect, "", "Alle Arten");
+        addOption(yearSelect, "", "Alle Jahre");
+
+        const providers = [...new Set(
+          state.models.map(model => model.provider).filter(Boolean)
+        )].sort((a, b) => a.localeCompare(b, "de"));
+
+        const kinds = [...new Set(
+          state.models.map(model => model.kind).filter(Boolean)
+        )].sort((a, b) => a.localeCompare(b, "de"));
+
+        const years = [...new Set(
+          state.models
+            .map(model => model.dateInfo ? model.dateInfo.year : "")
+            .filter(Boolean)
+        )].sort().reverse();
+
+        providers.forEach(provider => {
+          addOption(providerSelect, provider, provider);
+        });
+
+        kinds.forEach(kind => {
+          addOption(kindSelect, kind, kindLabel(kind));
+        });
+
+        years.forEach(year => {
+          addOption(yearSelect, year, year);
+        });
+
+        state.provider = providers.includes(oldProvider) ? oldProvider : "";
+        state.kind = kinds.includes(oldKind) ? oldKind : "";
+        state.year = years.includes(oldYear) ? oldYear : "";
+
+        providerSelect.value = state.provider;
+        kindSelect.value = state.kind;
+        yearSelect.value = state.year;
+      }
+
+      function groupByProvider(models) {
+        const grouped = new Map();
+
+        models.forEach(model => {
+          if (!grouped.has(model.provider)) {
+            grouped.set(model.provider, []);
+          }
+          grouped.get(model.provider).push(model);
+        });
+
+        return grouped;
+      }
+
+      function sortedProviders(grouped) {
+        return [...grouped.keys()].sort((a, b) => {
+          const newestA = newestDate(grouped.get(a));
+          const newestB = newestDate(grouped.get(b));
+
+          return (
+            (newestB ? newestB.stamp : 0) -
+            (newestA ? newestA.stamp : 0)
+          ) || a.localeCompare(b, "de");
+        });
+      }
+
+      function renderProviderIndex() {
+        const container = byId("px-provider-index");
+        const grouped = groupByProvider(state.models);
+        const providers = sortedProviders(grouped);
+
+        let visibleProviders = providers.slice(0, PX_INDEX_SIZE);
+
+        if (state.provider && !visibleProviders.includes(state.provider)) {
+          visibleProviders = [
+            state.provider,
+            ...visibleProviders.slice(0, PX_INDEX_SIZE - 1)
+          ];
+        }
+
+        container.replaceChildren();
+
+        visibleProviders.forEach(provider => {
+          const models = grouped.get(provider) || [];
+          const latest = newestDate(models);
+          const button = create("button", "px-index-card");
+
+          button.type = "button";
+          button.classList.toggle(
+            "px-index-active",
+            state.provider === provider
+          );
+          button.setAttribute(
+            "aria-pressed",
+            state.provider === provider ? "true" : "false"
+          );
+          button.setAttribute(
+            "aria-label",
+            `${provider}, ${models.length} Modelle` +
+            (latest
+              ? `, neuestes Modell ${formatDate(latest)}`
+              : "")
+          );
+
+          button.append(
+            create("span", "px-index-label", provider),
+            create(
+              "span",
+              "px-index-value",
+              `${PX_NUMBER.format(models.length)} ` +
+              `${models.length === 1 ? "Modell" : "Modelle"}` +
+              ` · ${latest ? formatDate(latest) : "ohne Datum"}`
+            )
+          );
+
+          button.addEventListener("click", () => {
+            state.provider = state.provider === provider ? "" : provider;
+            byId("px-provider-filter").value = state.provider;
+            renderRegistry();
+          });
+
+          container.appendChild(button);
+        });
+
+        byId("px-index-note").textContent =
+          providers.length > PX_INDEX_SIZE
+            ? `${PX_INDEX_SIZE} von ${PX_NUMBER.format(providers.length)} Herstellern im Fokus`
+            : `${PX_NUMBER.format(providers.length)} Hersteller im Katalog`;
+
+        byId("px-catalog-head").hidden = providers.length === 0;
+      }
+
+      function filteredModels() {
+        const terms = normalize(state.query).split(/\s+/).filter(Boolean);
+
+        return state.models.filter(model => {
+          if (state.provider && model.provider !== state.provider) return false;
+          if (state.kind && model.kind !== state.kind) return false;
+
+          if (
+            state.year &&
+            (!model.dateInfo || model.dateInfo.year !== state.year)
+          ) {
+            return false;
+          }
+
+          if (terms.length) {
+            const haystack = normalize([
+              model.slug,
+              model.name,
+              model.provider,
+              model.family,
+              model.release,
+              model.context,
+              model.kind,
+              kindLabel(model.kind)
+            ].filter(Boolean).join(" "));
+
+            if (!terms.every(term => haystack.includes(term))) {
+              return false;
+            }
+          }
+
+          return true;
+        }).sort(compareModelsNewest);
+      }
+
+      function createModelCard(model, index) {
+        const card = create("article", "px-model");
+        card.style.setProperty(
+          "--px-delay",
+          `${Math.min(index, 12) * 22}ms`
+        );
+
+        const top = create("div", "px-model-top");
+        const dateNode = create(
+          "time",
+          "px-model-date",
+          formatDate(model.dateInfo)
+        );
+
+        if (model.dateInfo) {
+          dateNode.dateTime = model.dateInfo.key;
+          dateNode.title = model.release;
+        } else if (model.release) {
+          dateNode.title = model.release;
+        }
+
+        top.append(
+          dateNode,
+          create("span", "px-model-index", String(index + 1).padStart(2, "0"))
+        );
+
+        const title = create("h3", "", model.name);
+        const badges = create("div", "px-model-badges");
+
+        if (model.family) {
+          const family = create(
+            "span",
+            "px-model-meta px-model-family",
+            model.family
+          );
+          family.title = model.family;
+          badges.appendChild(family);
+        }
+
+        if (model.kind) {
+          const kind = create(
+            "span",
+            "px-model-meta px-model-kind",
+            kindLabel(model.kind)
+          );
+          kind.title = model.kind;
+          badges.appendChild(kind);
+        }
+
+        const context = create(
+          "p",
+          "px-model-context",
+          model.context || "Für dieses Modell ist kein Kontext hinterlegt."
+        );
+
+        const foot = create("div", "px-model-foot");
+        const slug = create(
+          "span",
+          "px-model-slug",
+          model.slug ? `slug: ${model.slug}` : "slug: nicht angegeben"
+        );
+
+        if (model.slug) slug.title = model.slug;
+        foot.appendChild(slug);
+
+        card.append(top, title);
+
+        if (badges.childElementCount) {
+          card.appendChild(badges);
+        }
+
+        card.append(context, foot);
+        return card;
+      }
+
+      function createMakerSection(provider, models, startIndex, sectionIndex) {
+        const section = create("section", "px-maker");
+        const headingId = `px-maker-heading-${sectionIndex}`;
+        const header = create("header", "px-maker-head");
+        const orb = create("span", "px-maker-orb", providerInitials(provider));
+        const titleWrap = create("div", "px-maker-title-wrap");
+        const latest = newestDate(models);
+        const title = create("h2", "", provider);
+
+        title.id = headingId;
+        section.setAttribute("aria-labelledby", headingId);
+
+        titleWrap.append(
+          title,
+          create(
+            "span",
+            "px-maker-count",
+            `${PX_NUMBER.format(models.length)} ` +
+            `${models.length === 1 ? "Modell" : "Modelle"}`
+          )
+        );
+
+        header.append(
+          orb,
+          titleWrap,
+          create(
+            "span",
+            "px-maker-latest",
+            latest
+              ? `Neuester Stand\n${formatDate(latest)}`
+              : "Neuester Stand\nDatum offen"
+          )
+        );
+
+        section.appendChild(header);
+
+        const grid = create("div", "px-model-grid");
+
+        const sortiert = models.slice().sort(compareModelsNewest);
+        // 28.09.26 (Daniel: alle offen ist zu unuebersichtlich): ohne Filter/Suche nur der Herstellerkopf
+        const zu = !state.provider && !state.query && sortiert.length > 0;
+        sortiert.forEach((model, index) => {
+          const card = createModelCard(model, startIndex + index);
+          if (zu) card.hidden = true;
+          grid.appendChild(card);
+        });
+
+        section.appendChild(grid);
+        if (zu) {
+          grid.hidden = true;
+          grid.style.display = "none";
+          section.style.containIntrinsicSize = "auto 170px";
+          section.classList.add("px-zu");
+          const mehr = create("button", "px-button", `${PX_NUMBER.format(sortiert.length)} ${sortiert.length === 1 ? "Modell" : "Modelle"} zeigen`);
+          mehr.type = "button";
+          mehr.style.marginTop = "12px";
+          mehr.setAttribute("aria-expanded", "false");
+          mehr.addEventListener("click", () => {
+            const offen = mehr.getAttribute("aria-expanded") === "true";
+            [...grid.children].forEach(c => { c.hidden = offen; });
+            grid.hidden = offen;
+            grid.style.display = offen ? "none" : "";
+            section.classList.toggle("px-zu", offen);
+            mehr.setAttribute("aria-expanded", offen ? "false" : "true");
+            mehr.textContent = offen
+              ? `${PX_NUMBER.format(sortiert.length)} ${sortiert.length === 1 ? "Modell" : "Modelle"} zeigen`
+              : "Weniger zeigen";
+          });
+          section.appendChild(mehr);
+        }
+        return section;
+      }
+
+      function renderEmpty(code, title, text, action) {
+        byId("px-empty-code").textContent = code;
+        byId("px-empty-title").textContent = title;
+        byId("px-empty-text").textContent = text;
+        byId("px-empty-action").textContent = action;
+        byId("px-empty").hidden = false;
+      }
+
+      function renderRegistry() {
+        const container = byId("px-makers");
+        const filtered = filteredModels();
+        const fragment = document.createDocumentFragment();
+
+        container.replaceChildren();
+        renderProviderIndex();
+
+        if (!filtered.length) {
+          byId("px-result-count").textContent = state.models.length
+            ? `0 von ${PX_NUMBER.format(state.models.length)} Modellen`
+            : "0 Modelle";
+
+          if (state.error) {
+            renderEmpty(
+              "Ladefehler",
+              "Die Registry ist gerade nicht verfügbar",
+              "Die Registry-Datei konnte nicht gelesen werden. Die Seite bleibt bedienbar und kann den Abruf erneut versuchen.",
+              "Erneut versuchen"
+            );
+          } else if (state.models.length) {
+            renderEmpty(
+              "Filter ohne Treffer",
+              "Keine passenden Modelle",
+              "Entferne einen Filter oder verwende einen allgemeineren Suchbegriff.",
+              "Filter leeren"
+            );
+          } else {
+            renderEmpty(
+              "Leere Registry",
+              "Noch keine lesbaren Modelle",
+              "In diesem Datenstand sind keine vollständigen Modelleinträge mit Name und Anbieter vorhanden.",
+              "Erneut versuchen"
+            );
+          }
+
+          return;
+        }
+
+        const grouped = groupByProvider(filtered);
+        const providers = sortedProviders(grouped);
+        let modelIndex = 0;
+
+        providers.forEach((provider, sectionIndex) => {
+          const models = grouped.get(provider);
+
+          fragment.appendChild(
+            createMakerSection(provider, models, modelIndex, sectionIndex)
+          );
+
+          modelIndex += models.length;
+        });
+
+        container.appendChild(fragment);
+        byId("px-empty").hidden = true;
+
+        const active = [
+          state.query,
+          state.provider,
+          state.kind,
+          state.year
+        ].filter(Boolean).length;
+
+        byId("px-result-count").textContent =
+          `${PX_NUMBER.format(filtered.length)} von ` +
+          `${PX_NUMBER.format(state.models.length)} Modellen` +
+          (active
+            ? ` bei ${active} aktiven Kriterien`
+            : " im gesamten Katalog");
+      }
+
+      function setLoading() {
+        state.loaded = false;
+        state.error = false;
+
+        byId("px-loading").hidden = false;
+        byId("px-makers").replaceChildren();
+        byId("px-empty").hidden = true;
+        byId("px-catalog-head").hidden = true;
+        byId("px-result-count").textContent = "Registry wird geladen";
+      }
+
+      function setUnavailable() {
+        state.loaded = false;
+        state.error = true;
+        state.models = [];
+
+        byId("px-loading").hidden = true;
+        byId("px-stand-date").textContent = "Nicht geladen";
+        byId("px-stand-time").hidden = true;
+        byId("px-stand-time").removeAttribute("datetime");
+        byId("px-stand-state").textContent = "Offline";
+        byId("px-stand-state").classList.remove("px-state-stale");
+        byId("px-stand-warning").hidden = true;
+        byId("px-model-count").textContent = "0";
+        byId("px-provider-count").textContent = "0";
+        byId("px-family-count").textContent = "0";
+        byId("px-latest-value").textContent = "keine Daten verfügbar";
+        byId("px-result-count").textContent = "Registry nicht verfügbar";
+
+        renderRegistry();
+      }
+
+      async function fetchRegistry(controller) {
+        let lastError = null;
+
+        for (const path of PX_REGISTRY_PATHS) {
+          try {
+            const response = await fetch(path, {
+              cache: "no-store",
+              signal: controller.signal,
+              headers: {
+                Accept: "application/json"
+              }
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (error) {
+            lastError = error;
+
+            if (error && error.name === "AbortError") {
+              throw error;
+            }
+          }
+        }
+
+        throw lastError || new Error("Registry nicht gefunden");
+      }
+
+      async function loadRegistry() {
+        if (state.controller) {
+          state.controller.abort();
+        }
+
+        const controller = new AbortController();
+        state.controller = controller;
+        setLoading();
+
+        const timer = setTimeout(() => {
+          controller.abort();
+        }, PX_TIMEOUT);
+
+        try {
+          const data = await fetchRegistry(controller);
+          const rawModels = extractModels(data);
+
+          state.models = normalizeModels(rawModels);
+          state.loaded = true;
+          state.error = false;
+          state.query = "";
+          state.provider = "";
+          state.kind = "";
+          state.year = "";
+
+          byId("px-search").value = "";
+          byId("px-loading").hidden = true;
+
+          renderStand(data, state.models);
+          renderFilters();
+          renderRegistry();
+        } catch (error) {
+          if (!error || error.name !== "AbortError") {
+            setUnavailable();
+          }
+        } finally {
+          clearTimeout(timer);
+
+          if (state.controller === controller) {
+            state.controller = null;
+          }
+        }
+      }
+
+      function resetFilters() {
+        state.query = "";
+        state.provider = "";
+        state.kind = "";
+        state.year = "";
+
+        byId("px-search").value = "";
+        byId("px-provider-filter").value = "";
+        byId("px-kind-filter").value = "";
+        byId("px-year-filter").value = "";
+
+        renderRegistry();
+      }
+
+      function bindControls() {
+        byId("px-search").addEventListener("input", event => {
+          const value = clean(event.target.value);
+          clearTimeout(state.searchTimer);
+
+          state.searchTimer = setTimeout(() => {
+            state.query = value;
+            renderRegistry();
+          }, 120);
+        });
+
+        byId("px-search").addEventListener("keydown", event => {
+          if (event.key === "Escape") {
+            clearTimeout(state.searchTimer);
+            event.target.value = "";
+            state.query = "";
+            renderRegistry();
+          }
+        });
+
+        byId("px-provider-filter").addEventListener("change", event => {
+          state.provider = event.target.value;
+          renderRegistry();
+        });
+
+        byId("px-kind-filter").addEventListener("change", event => {
+          state.kind = event.target.value;
+          renderRegistry();
+        });
+
+        byId("px-year-filter").addEventListener("change", event => {
+          state.year = event.target.value;
+          renderRegistry();
+        });
+
+        byId("px-reset").addEventListener("click", resetFilters);
+
+        byId("px-empty-action").addEventListener("click", () => {
+          if (state.error) {
+            void loadRegistry();
+          } else {
+            resetFilters();
+          }
+        });
+      }
+
+      bindControls();
+      void loadRegistry();
+    })();
+  </script>
+  <script>
+    // Landkarte -> Registry (28.09.26)
+    (function () {
+      const frame = document.getElementById("px-karte-frame");
+      const hinweis = document.getElementById("px-karte-hinweis");
+      const norm = v => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      function hoehe() {
+        try {
+          const d = frame.contentDocument && frame.contentDocument.documentElement;
+          if (d && d.scrollHeight > 200) frame.style.height = Math.min(d.scrollHeight + 4, 2400) + "px";
+        } catch (e) {}
+      }
+      frame.addEventListener("load", () => {
+        hoehe();
+        try { new ResizeObserver(hoehe).observe(frame.contentDocument.body); } catch (e) {}
+      });
+      window.addEventListener("message", ev => {
+        if (ev.origin !== location.origin || !ev.data || !ev.data.kiLandkarte) return;
+        const d = ev.data.kiLandkarte;
+        const sel = document.getElementById("px-provider-filter");
+        const such = document.getElementById("px-search");
+        let wert = "";
+        if (d.hersteller && sel) {
+          const ziel = norm(d.hersteller);
+          const opt = [...sel.options].find(o => o.value && (norm(o.value) === ziel || norm(o.textContent).startsWith(ziel) || ziel.startsWith(norm(o.value))));
+          wert = opt ? opt.value : "";
+          sel.value = wert;
+          sel.dispatchEvent(new Event("change"));
+        }
+        if (such) {
+          such.value = d.modell || "";
+          such.dispatchEvent(new Event("input"));
+        }
+        const teile = [wert && ("Hersteller " + wert), d.modell && ("Suche \u201e" + d.modell + "\u201c")].filter(Boolean);
+        hinweis.textContent = teile.length ? "Registry gefiltert: " + teile.join(", ") : (d.hersteller ? d.hersteller + " fuehrt keine Modelle in der Registry." : "");
+      });
+    })();
+  </script>
+</body>
+</html>

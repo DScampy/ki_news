@@ -1,0 +1,3152 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090a0b">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Vertikaler Belegstrang für KI-Nachrichten bei KI NEWS">
+  <title>Belegstrang | KI NEWS</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --neon-rgb: 0, 212, 255;
+      --px-bg: #090a0b;
+      --px-raised: #0e1214;
+      --px-panel: #141719;
+      --px-panel-2: #191e20;
+      --px-text: #f4f0e7;
+      --px-muted: #aab2b0;
+      --px-dim: #798481;
+      --px-cyan: #00d4ff;
+      --px-violet: #aa86ff;
+      --px-yellow: #e1b75d;
+      --px-red: #ff6374;
+      --px-green: #50d58b;
+      --px-line: rgba(var(--neon-rgb), .12);
+      --px-line-strong: rgba(var(--neon-rgb), .22);
+      --px-radius: 12px;
+      --px-head: "Space Grotesk", sans-serif;
+      --px-body: "Work Sans", sans-serif;
+      --px-mono: "IBM Plex Mono", SFMono-Regular, Consolas, monospace;
+    }
+
+    html[data-theme="light"],
+    html.light {
+      color-scheme: light;
+      --neon-rgb: 0, 143, 181;
+      --px-bg: #e7ebe8;
+      --px-raised: #eef1ed;
+      --px-panel: #f7f5ee;
+      --px-panel-2: #e9ece7;
+      --px-text: #121a1d;
+      --px-muted: #526064;
+      --px-dim: #667477;
+      --px-cyan: #008eb4;
+      --px-violet: #7650cf;
+      --px-yellow: #8a6009;
+      --px-red: #b52d45;
+      --px-green: #087c4a;
+      --px-line: rgba(0, 100, 126, .16);
+      --px-line-strong: rgba(0, 100, 126, .3);
+      --px-shadow: 0 20px 65px rgba(35, 51, 59, .13);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      max-width: 100%;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      background: var(--px-bg);
+    }
+
+    body {
+      max-width: 100%;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--px-text);
+      background:
+        linear-gradient(rgba(var(--neon-rgb), .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--neon-rgb), .025) 1px, transparent 1px),
+        var(--px-bg);
+      background-size: 32px 32px;
+      font: 400 15px/1.55 var(--px-body);
+    }
+
+    body::before {
+      position: fixed;
+      z-index: 100;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      opacity: .035;
+      background-image: radial-gradient(circle, var(--px-text) 0 1px, transparent 1px);
+      background-size: 9px 9px;
+      mask-image: linear-gradient(to bottom, #000, transparent 80%);
+    }
+
+    button,
+    input {
+      max-width: 100%;
+      font: inherit;
+    }
+
+    button,
+    summary,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    summary {
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-underline-offset: .2em;
+    }
+
+    img,
+    video,
+    svg {
+      display: block;
+      max-width: 100%;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid var(--px-cyan);
+      outline-offset: 3px;
+    }
+
+    .px-header-host {
+      min-height: 66px;
+    }
+
+    .px-fallback-header {
+      position: relative;
+      z-index: 40;
+      display: flex;
+      min-height: 66px;
+      align-items: center;
+      gap: 24px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--px-line);
+      background: color-mix(in srgb, var(--px-bg) 94%, transparent);
+      backdrop-filter: blur(16px);
+    }
+
+    .px-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--px-text);
+      text-decoration: none;
+      white-space: nowrap;
+      font: 800 15px var(--px-head);
+      letter-spacing: -.035em;
+    }
+
+    .px-brand-mark {
+      display: grid;
+      width: 29px;
+      height: 29px;
+      place-items: center;
+      border-radius: 8px;
+      color: #061014;
+      background: var(--px-cyan);
+      font: 800 17px var(--px-head);
+    }
+
+    .px-brand small {
+      color: var(--px-dim);
+      font: 9px var(--px-mono);
+    }
+
+    .px-fallback-nav {
+      display: flex;
+      align-items: center;
+      gap: 19px;
+      color: var(--px-muted);
+      font-size: 13px;
+    }
+
+    .px-fallback-nav a {
+      text-decoration: none;
+    }
+
+    .px-fallback-nav a[aria-current="page"] {
+      color: var(--px-cyan);
+    }
+
+    .px-header-spacer {
+      flex: 1;
+    }
+
+    .px-theme-button {
+      min-height: 32px;
+      padding: 5px 11px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: transparent;
+      font: 9px var(--px-mono);
+      text-transform: uppercase;
+    }
+
+    .px-shell {
+      width: min(1500px, calc(100% - 44px));
+      margin-inline: auto;
+      padding: 22px 0 60px;
+    }
+
+    .px-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(270px, 370px);
+      gap: 40px;
+      align-items: end;
+      padding: 4px 0 25px;
+      border-bottom: 1px solid var(--px-line-strong);
+    }
+
+    .px-eyebrow,
+    .px-meta,
+    .px-chip,
+    .px-button,
+    .px-section-kicker,
+    .px-index-id,
+    .px-index-score,
+    .px-index-foot,
+    .px-node-role,
+    .px-node-date,
+    .px-card-meta,
+    .px-note,
+    .px-warning,
+    .px-empty,
+    .px-footer {
+      font-family: var(--px-mono);
+    }
+
+    .px-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 10px;
+      color: var(--px-cyan);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .px-eyebrow::before {
+      width: 24px;
+      height: 1px;
+      content: "";
+      background: currentColor;
+    }
+
+    .px-hero h1 {
+      max-width: 900px;
+      margin: 0 0 9px;
+      font: 700 clamp(38px, 4.35vw, 59px)/.96 var(--px-head);
+      letter-spacing: -.055em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-hero h1 span {
+      color: var(--px-cyan);
+    }
+
+    .px-hero-copy {
+      max-width: 830px;
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .px-trace-signature {
+      min-width: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: var(--px-radius);
+      background:
+        linear-gradient(135deg, rgba(var(--neon-rgb), .08), transparent 52%),
+        var(--px-panel);
+      box-shadow: 0 0 30px rgba(var(--neon-rgb), .05);
+    }
+
+    .px-trace-signature-label {
+      color: var(--px-cyan);
+      font: 8px var(--px-mono);
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .px-trace-signature p {
+      margin: 7px 0 0;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.45;
+    }
+
+    .px-trace-signature svg {
+      width: 100%;
+      height: 45px;
+      margin-top: 5px;
+    }
+
+    .px-trace-line {
+      fill: none;
+      stroke: var(--px-cyan);
+      stroke-width: 1.2;
+      stroke-dasharray: 4 5;
+      animation: px-flow 12s linear infinite;
+    }
+
+    .px-trace-dot {
+      fill: var(--px-bg);
+      stroke: var(--px-cyan);
+      stroke-width: 2;
+    }
+
+    .px-status-bar {
+      display: flex;
+      min-width: 0;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 12px 0;
+      padding: 9px 12px;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      color: var(--px-muted);
+      background: var(--px-panel);
+      font-size: 9px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .px-status-bar.is-warning {
+      border-color: rgba(225, 183, 93, .34);
+    }
+
+    .px-status-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      margin-top: 3px;
+      border-radius: 50%;
+      background: var(--px-green);
+      box-shadow: 0 0 12px rgba(80, 213, 139, .32);
+    }
+
+    .px-status-bar.is-warning .px-status-dot {
+      background: var(--px-yellow);
+      box-shadow: 0 0 12px rgba(225, 183, 93, .25);
+    }
+
+    .px-workspace {
+      display: grid;
+      grid-template-columns: 276px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .px-sidebar,
+    .px-panel,
+    .px-story-head,
+    .px-video-card,
+    .px-candidate,
+    .px-gap-card {
+      min-width: 0;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius);
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow);
+    }
+
+    .px-sidebar {
+      position: sticky;
+      top: 76px;
+      overflow: hidden;
+    }
+
+    .px-sidebar-head {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-sidebar-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      color: var(--px-cyan);
+      font: 8px var(--px-mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .px-search {
+      width: 100%;
+      min-width: 0;
+      min-height: 39px;
+      padding: 7px 9px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 7px;
+      color: var(--px-text);
+      background: var(--px-raised);
+      font-size: 11px;
+    }
+
+    .px-search::placeholder {
+      color: var(--px-dim);
+    }
+
+    .px-story-list {
+      display: grid;
+      max-height: min(72vh, 760px);
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-color: var(--px-line-strong) var(--px-panel);
+    }
+
+    .px-story-button {
+      display: grid;
+      width: 100%;
+      min-width: 0;
+      gap: 6px;
+      padding: 11px 12px;
+      border: 0;
+      border-bottom: 1px solid var(--px-line);
+      color: inherit;
+      background: transparent;
+      text-align: left;
+      transition: background .18s ease, box-shadow .18s ease;
+    }
+
+    .px-story-button:hover,
+    .px-story-button[aria-current="true"] {
+      background: linear-gradient(90deg, rgba(var(--neon-rgb), .1), transparent 92%);
+    }
+
+    .px-story-button[aria-current="true"] {
+      box-shadow: inset 3px 0 var(--px-cyan);
+    }
+
+    .px-index-top,
+    .px-index-foot {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .px-index-id {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-cyan);
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-index-score {
+      flex: 0 0 auto;
+      color: var(--px-yellow);
+      font-size: 8px;
+    }
+
+    .px-index-title {
+      display: -webkit-box;
+      overflow: hidden;
+      font: 600 13px/1.22 var(--px-head);
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-index-foot {
+      color: var(--px-dim);
+      font-size: 7px;
+    }
+
+    .px-sidebar-foot {
+      padding: 9px 12px;
+      border-top: 1px solid var(--px-line);
+      color: var(--px-dim);
+      font: 8px/1.5 var(--px-mono);
+    }
+
+    .px-main {
+      display: grid;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    .px-story-head {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(18px, 2.5vw, 31px);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(var(--neon-rgb), .11), transparent 35%),
+        var(--px-panel);
+    }
+
+    .px-story-head::after {
+      position: absolute;
+      right: -65px;
+      bottom: -145px;
+      width: 285px;
+      height: 285px;
+      border: 1px solid rgba(var(--neon-rgb), .12);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 26px rgba(var(--neon-rgb), .026),
+        0 0 0 52px rgba(var(--neon-rgb), .016);
+      content: "";
+      pointer-events: none;
+    }
+
+    .px-head-top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .px-head-id {
+      min-width: 0;
+      color: var(--px-cyan);
+      font: 8px/1.5 var(--px-mono);
+      letter-spacing: .06em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-story-head h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 1080px;
+      margin: 14px 0 10px;
+      font: 700 clamp(28px, 3.45vw, 48px)/1 var(--px-head);
+      letter-spacing: -.05em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-story-summary {
+      position: relative;
+      z-index: 1;
+      max-width: 980px;
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .px-story-chips {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 15px;
+    }
+
+    .px-chip {
+      display: inline-flex;
+      min-height: 23px;
+      align-items: center;
+      padding: 3px 8px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: transparent;
+      font-size: 8px;
+      line-height: 1.2;
+      text-transform: uppercase;
+      letter-spacing: .045em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-chip.cyan {
+      border-color: rgba(var(--neon-rgb), .25);
+      color: var(--px-cyan);
+      background: rgba(var(--neon-rgb), .08);
+    }
+
+    .px-chip.violet {
+      border-color: rgba(170, 134, 255, .35);
+      color: var(--px-violet);
+      background: rgba(170, 134, 255, .07);
+    }
+
+    .px-chip.yellow {
+      border-color: rgba(225, 183, 93, .35);
+      color: var(--px-yellow);
+      background: rgba(225, 183, 93, .07);
+    }
+
+    .px-chip.red {
+      border-color: rgba(255, 99, 116, .4);
+      color: var(--px-red);
+      background: rgba(255, 99, 116, .07);
+    }
+
+    .px-panel-head {
+      display: flex;
+      min-width: 0;
+      min-height: 48px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-panel-head h2 {
+      margin: 0;
+      font: 700 15px var(--px-head);
+      letter-spacing: -.025em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-panel-head span {
+      flex: 0 0 auto;
+      max-width: 48%;
+      color: var(--px-dim);
+      font: 8px/1.4 var(--px-mono);
+      text-align: right;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-panel-body {
+      padding: 15px;
+    }
+
+    .px-thread {
+      position: relative;
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .px-thread::before {
+      position: absolute;
+      top: 20px;
+      bottom: 20px;
+      left: 76px;
+      width: 1px;
+      content: "";
+      background: linear-gradient(var(--px-cyan), rgba(170, 134, 255, .65) 55%, transparent);
+    }
+
+    .px-thread-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 60px minmax(0, 1fr);
+      gap: 27px;
+      min-width: 0;
+    }
+
+    .px-thread-time {
+      position: relative;
+      z-index: 1;
+      padding-top: 12px;
+      color: var(--px-dim);
+      text-align: right;
+      font: 8px/1.5 var(--px-mono);
+    }
+
+    .px-thread-time strong {
+      display: block;
+      color: var(--px-text);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .px-thread-card {
+      position: relative;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--px-line);
+      border-left: 3px solid var(--px-cyan);
+      border-radius: var(--px-radius);
+      background: var(--px-raised);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .px-thread-card::before {
+      position: absolute;
+      top: 16px;
+      left: -33px;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--px-cyan);
+      border-radius: 50%;
+      content: "";
+      background: var(--px-panel);
+      box-shadow: 0 0 12px rgba(var(--neon-rgb), .25);
+    }
+
+    .px-thread-card:hover {
+      transform: translateX(3px);
+      border-color: rgba(var(--neon-rgb), .35);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, .12);
+    }
+
+    .px-thread-card[data-role="duplicate"] {
+      border-left-color: var(--px-violet);
+    }
+
+    .px-thread-card[data-role="duplicate"]::before {
+      border-color: var(--px-violet);
+      box-shadow: 0 0 12px rgba(170, 134, 255, .24);
+    }
+
+    .px-thread-card[data-role="further"] {
+      border-left-color: var(--px-yellow);
+    }
+
+    .px-thread-card[data-role="further"]::before {
+      border-color: var(--px-yellow);
+      box-shadow: 0 0 12px rgba(225, 183, 93, .2);
+    }
+
+    .px-thread-card.is-source-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(210px, .8fr);
+      gap: 15px;
+    }
+
+    .px-thread-top {
+      display: flex;
+      grid-column: 1 / -1;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .px-node-role {
+      color: var(--px-cyan);
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .px-thread-card[data-role="duplicate"] .px-node-role {
+      color: var(--px-violet);
+    }
+
+    .px-thread-card[data-role="further"] .px-node-role {
+      color: var(--px-yellow);
+    }
+
+    .px-node-date {
+      color: var(--px-dim);
+      font-size: 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .px-thread-card h3 {
+      margin: 0 0 7px;
+      font: 600 16px/1.22 var(--px-head);
+      letter-spacing: -.025em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-thread-card p {
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 11px;
+      line-height: 1.58;
+      overflow-wrap: anywhere;
+    }
+
+    .px-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 12px;
+      margin-top: 9px;
+      color: var(--px-dim);
+      font-size: 8px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .px-source-image {
+      width: 100%;
+      max-height: 285px;
+      border: 1px solid var(--px-line);
+      border-radius: 9px;
+      background: var(--px-panel-2);
+      object-fit: cover;
+    }
+
+    .px-image-fallback {
+      display: grid;
+      min-height: 100px;
+      place-items: center;
+      padding: 12px;
+      border: 1px dashed var(--px-line-strong);
+      border-radius: 9px;
+      color: var(--px-dim);
+      font: 8px/1.5 var(--px-mono);
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .px-thread-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 11px;
+      align-items: center;
+      margin-top: 11px;
+    }
+
+    .px-button {
+      display: inline-flex;
+      min-height: 31px;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 10px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 999px;
+      color: var(--px-text);
+      background: transparent;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      text-decoration: none;
+      transition: border-color .18s ease, color .18s ease, background .18s ease;
+    }
+
+    .px-button:hover:not(:disabled),
+    .px-button[aria-disabled="false"]:hover {
+      border-color: var(--px-cyan);
+      color: var(--px-cyan);
+      background: rgba(var(--neon-rgb), .08);
+    }
+
+    .px-button.cyan {
+      border-color: rgba(var(--neon-rgb), .38);
+      color: var(--px-cyan);
+    }
+
+    .px-button:disabled,
+    .px-button[aria-disabled="true"] {
+      cursor: default;
+      opacity: .45;
+      pointer-events: none;
+    }
+
+    .px-fulltext {
+      max-width: 100%;
+      max-height: 340px;
+      margin: 11px 0 0;
+      padding: 10px;
+      overflow: auto;
+      border-left: 2px solid rgba(var(--neon-rgb), .4);
+      border-radius: 0 7px 7px 0;
+      color: var(--px-muted);
+      background: rgba(var(--neon-rgb), .035);
+      font: 9px/1.58 var(--px-mono);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .px-text-details summary {
+      color: var(--px-cyan);
+      font: 8px/1.5 var(--px-mono);
+      text-transform: uppercase;
+    }
+
+    .px-note {
+      margin: 10px 0 0;
+      color: var(--px-dim);
+      font-size: 8px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .px-compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: hidden;
+    }
+
+    .px-compare-side {
+      min-width: 0;
+      padding: 18px;
+    }
+
+    .px-compare-side + .px-compare-side {
+      border-left: 1px solid var(--px-line);
+    }
+
+    .px-compare-side.is-ours {
+      background:
+        linear-gradient(135deg, rgba(170, 134, 255), transparent),
+        var(--px-panel-2);
+    }
+
+    .px-compare-label {
+      display: inline-flex;
+      min-height: 23px;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 3px 8px;
+      border: 1px solid rgba(var(--neon-rgb), .22);
+      border-radius: 999px;
+      color: var(--px-cyan);
+      font: 8px var(--px-mono);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .px-compare-side.is-ours .px-compare-label {
+      border-color: rgba(170, 134, 255, .35);
+      color: var(--px-violet);
+    }
+
+    .px-compare-title {
+      margin: 0 0 9px;
+      font: 600 17px/1.23 var(--px-head);
+      overflow-wrap: anywhere;
+    }
+
+    .px-compare-text {
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 11px;
+      line-height: 1.68;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .px-claim-mark {
+      padding: 0 2px;
+      border-bottom: 1px dotted var(--px-yellow);
+      color: var(--px-yellow);
+      background: rgba(225, 183, 93, .1);
+      font-weight: 700;
+    }
+
+    .px-detected-terms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .px-warning {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      margin: 12px 14px 0;
+      padding: 10px 12px;
+      border: 1px solid rgba(225, 183, 93, .4);
+      border-radius: var(--px-radius);
+      color: var(--px-yellow);
+      background: rgba(225, 183, 93, .07);
+      font-size: 8px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .px-warning.red {
+      border-color: rgba(255, 99, 116, .38);
+      color: var(--px-red);
+      background: rgba(255, 99, 116, .065);
+    }
+
+    .px-warning strong {
+      color: currentColor;
+    }
+
+    .px-media-list,
+    .px-candidate-list,
+    .px-gap-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .px-video-card,
+    .px-candidate,
+    .px-gap-card {
+      padding: 13px;
+      background: var(--px-raised);
+      box-shadow: none;
+    }
+
+    .px-video-top,
+    .px-candidate-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .px-video-card h3,
+    .px-candidate h3,
+    .px-gap-card h3 {
+      margin: 9px 0 5px;
+      font: 600 14px/1.25 var(--px-head);
+      overflow-wrap: anywhere;
+    }
+
+    .px-video-card p,
+    .px-candidate p,
+    .px-gap-card p {
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.55;
+    }
+
+    .px-video-player {
+      width: min(270px, 100%);
+      margin-top: 12px;
+      overflow: hidden;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 10px;
+      background: #050606;
+    }
+
+    .px-video-player video {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      object-fit: contain;
+    }
+
+    .px-video-error {
+      margin: 8px;
+      color: var(--px-yellow);
+      font: 8px/1.5 var(--px-mono);
+    }
+
+    .px-fuzzy-section {
+      border-color: rgba(225, 183, 93, .3);
+    }
+
+    .px-fuzzy-section .px-panel-head {
+      border-color: rgba(225, 183, 93, .22);
+    }
+
+    .px-candidate-index {
+      color: var(--px-yellow);
+      font: 8px var(--px-mono);
+    }
+
+    .px-gap-card {
+      border-left: 3px solid var(--px-yellow);
+    }
+
+    .px-gap-card.is-red {
+      border-left: 3px solid var(--px-red);
+    }
+
+    .px-empty {
+      min-height: 145px;
+      display: grid;
+      place-items: center;
+      padding: 25px 17px;
+      border: 1px dashed var(--px-line-strong);
+      border-radius: var(--px-radius);
+      color: var(--px-muted);
+      background: var(--px-panel);
+      text-align: center;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .px-footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 9px 20px;
+      margin-top: 22px;
+      padding-top: 13px;
+      border-top: 1px solid var(--px-line);
+      color: var(--px-dim);
+      font-size: 8px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    @keyframes px-flow {
+      to {
+        stroke-dashoffset: -90;
+      }
+    }
+
+    @media (max-width: 1000px) {
+      .px-hero {
+        grid-template-columns: minmax(0, 1fr) 290px;
+        gap: 25px;
+      }
+
+      .px-workspace {
+        grid-template-columns: 232px minmax(0, 1fr);
+        gap: 13px;
+      }
+
+      .px-thread::before {
+        left: 66px;
+      }
+
+      .px-thread-item {
+        grid-template-columns: 50px minmax(0, 1fr);
+        gap: 24px;
+      }
+
+      .px-thread-card.is-source-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .px-fallback-header {
+        padding-inline: 12px;
+      }
+
+      .px-fallback-nav {
+        gap: 13px;
+      }
+
+      .px-shell {
+        width: calc(100% - 24px);
+        padding-top: 17px;
+      }
+
+      .px-hero {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .px-hero h1 {
+        font-size: clamp(35px, 9.2vw, 46px);
+      }
+
+      .px-trace-signature {
+        display: grid;
+        grid-template-columns: minmax(125px, .8fr) minmax(0, 1.2fr);
+        column-gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+      }
+
+      .px-trace-signature svg {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        height: 38px;
+        margin: 0;
+      }
+
+      .px-trace-signature p {
+        grid-column: 2;
+        margin: 3px 0 0;
+      }
+
+      .px-workspace {
+        grid-template-columns: 1fr;
+        gap: 11px;
+      }
+
+      .px-sidebar {
+        position: static;
+      }
+
+      .px-sidebar-head {
+        padding: 9px 10px;
+      }
+
+      .px-story-list {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(220px, 72vw);
+        max-height: none;
+        overflow-x: auto;
+        padding: 6px;
+        scroll-snap-type: x proximity;
+      }
+
+      .px-story-button {
+        min-height: 104px;
+        border: 1px solid var(--px-line);
+        border-radius: 9px;
+        scroll-snap-align: start;
+      }
+
+      .px-story-button[aria-current="true"] {
+        border-color: rgba(var(--neon-rgb), .4);
+      }
+
+      .px-sidebar-foot {
+        display: none;
+      }
+
+      .px-compare {
+        grid-template-columns: 1fr;
+      }
+
+      .px-compare-side + .px-compare-side {
+        border-top: 1px solid var(--px-line);
+        border-left: 0;
+      }
+
+      .px-thread::before {
+        left: 14px;
+      }
+
+      .px-thread-item {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding-left: 28px;
+      }
+
+      .px-thread-time {
+        padding-top: 0;
+        text-align: left;
+      }
+
+      .px-thread-time strong {
+        display: inline;
+        margin-right: 7px;
+      }
+
+      .px-thread-card::before {
+        top: 8px;
+        left: -20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        font-size: 14px;
+      }
+
+      .px-fallback-nav a:nth-child(n+3),
+      .px-brand small {
+        display: none;
+      }
+
+      .px-theme-button {
+        padding-inline: 8px;
+      }
+
+      .px-shell {
+        width: calc(100% - 18px);
+        padding-bottom: 38px;
+      }
+
+      .px-hero {
+        padding-top: 3px;
+        padding-bottom: 16px;
+      }
+
+      .px-hero h1 {
+        max-width: 370px;
+        margin-bottom: 8px;
+        font-size: clamp(32px, 9.1vw, 39px);
+        line-height: .96;
+      }
+
+      .px-hero-copy {
+        font-size: 11px;
+        line-height: 1.48;
+      }
+
+      .px-trace-signature {
+        display: block;
+        padding: 8px 10px;
+      }
+
+      .px-trace-signature svg {
+        display: none;
+      }
+
+      .px-trace-signature p {
+        margin-top: 4px;
+        font-size: 8px;
+      }
+
+      .px-status-bar {
+        margin: 9px 0;
+        padding: 8px 10px;
+        font-size: 8px;
+      }
+
+      .px-story-button {
+        grid-auto-columns: minmax(220px, 82vw);
+      }
+
+      .px-story-head {
+        padding: 16px 12px;
+      }
+
+      .px-story-head h2 {
+        margin-top: 12px;
+        font-size: 27px;
+        line-height: 1.02;
+      }
+
+      .px-story-summary {
+        font-size: 11px;
+      }
+
+      .px-panel-head,
+      .px-panel-body,
+      .px-thread {
+        padding-inline: 10px;
+      }
+
+      .px-panel-head {
+        min-height: 46px;
+      }
+
+      .px-panel-head h2 {
+        font-size: 14px;
+      }
+
+      .px-thread-card {
+        padding: 11px;
+      }
+
+      .px-thread-card h3 {
+        font-size: 14px;
+      }
+
+      .px-compare-side {
+        padding: 14px;
+      }
+
+      .px-warning {
+        margin-inline: 10px;
+      }
+
+      .px-footer {
+        display: block;
+      }
+
+      .px-footer span {
+        display: block;
+        margin-top: 5px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+  <link rel="icon" type="image/png" href="s-logo.png"/>
+</head>
+
+<body>
+  <header
+    id="ki-header"
+    class="px-header-host"
+    data-ki-header
+    data-section="labor"
+    aria-label="Seitennavigation"
+  ></header>
+
+  <main class="px-shell">
+    <section class="px-hero" aria-labelledby="px-page-title">
+      <div>
+        <p class="px-eyebrow">KI NEWS / Redaktionelle Datenprüfung</p>
+        <h1 id="px-page-title">Belegstrang statt <span>Schlagzeile.</span></h1>
+        <p class="px-hero-copy">
+          Originalquelle, fest verknüpfte weitere Quellen, Dubletten und Medien.
+          Titelähnlichkeit wird getrennt gezeigt und nicht als Beleg verwendet.
+        </p>
+      </div>
+
+      <aside class="px-trace-signature" aria-label="Legende des Belegstrangs">
+        <span class="px-trace-signature-label">Connection map / lokal geprüft</span>
+        <svg viewBox="0 0 300 64" role="img" aria-label="Linie mit Original-, Quellen- und Medienknoten">
+          <path class="px-trace-line" d="M8 34 C72 5, 105 63, 158 31 S230 8, 292 36"></path>
+          <circle class="px-trace-dot" cx="8" cy="34" r="5"></circle>
+          <circle class="px-trace-dot" cx="88" cy="34" r="4"></circle>
+          <circle class="px-trace-dot" cx="158" cy="31" r="5"></circle>
+          <circle class="px-trace-dot" cx="224" cy="25" r="4"></circle>
+          <circle class="px-trace-dot" cx="292" cy="36" r="5"></circle>
+        </svg>
+        <p>Story-ID, dokumentierte Dubletten und exakte Quellenlinks tragen feste Kanten. Ähnliche Titel bleiben ungeprüft.</p>
+      </aside>
+    </section>
+
+    <div id="px-status-bar" class="px-status-bar" role="status" aria-live="polite">
+      <span class="px-status-dot" aria-hidden="true"></span>
+      <span id="px-status-copy">Lokale Datensätze werden geladen.</span>
+    </div>
+
+    <div class="px-workspace">
+      <aside class="px-sidebar" aria-label="Story-Auswahl">
+        <div class="px-sidebar-head">
+          <div class="px-sidebar-label">
+            <span>Story-Index</span>
+            <span id="px-story-count">0 Fälle</span>
+          </div>
+          <label for="px-search" hidden>Story suchen</label>
+          <input
+            id="px-search"
+            class="px-search"
+            type="search"
+            placeholder="Story, Quelle oder ID suchen"
+            autocomplete="off"
+          >
+        </div>
+        <div id="px-story-list" class="px-story-list"></div>
+        <div class="px-sidebar-foot">
+          Sortiert nach story_cluster_score. Ohne belastbare Zuordnung bleibt der lokale Einzelfall getrennt.
+        </div>
+      </aside>
+
+      <section id="px-story-content" class="px-main" aria-live="polite">
+        <div class="px-empty">Story wird vorbereitet.</div>
+      </section>
+    </div>
+
+    <footer class="px-footer">
+      <span>KI NEWS / BELEGSTRANG / BETREIBER DANIEL "SCAMPY"</span>
+      <span id="px-footer-data">Nur relative JSON-Pfade, keine Datenübermittlung an Dritte.</span>
+    </footer>
+  </main>
+
+  <noscript>
+    <p class="px-shell px-empty">
+      Für den Belegstrang muss JavaScript aktiviert sein. Die JSON-Dateien werden im Browser verarbeitet.
+    </p>
+  </noscript>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const FILES = ["news.json", "archive.json", "cards.json"];
+      const THEME_KEY = "ki-news-belegstrang-theme";
+      const INITIAL_THREAD_LIMIT = 10;
+
+      const OWN_SUMMARY_FIELDS = [
+        "our_summary",
+        "redaktionelle_zusammenfassung",
+        "redaktionsfassung",
+        "editorial_summary",
+        "ki_summary",
+        "zusammenfassung",
+        "einordnung",
+        "erklaerung"
+      ];
+
+      const CLAIM_RULES = [
+        {
+          label: "Personenrolle",
+          pattern: /präsident(?:in)?|ehemalig\w*|designiert\w*|geschäftsführer(?:in)?|minister(?:in)?|ceo|chef\w*/iu,
+          stems: ["präsident", "ehemalig", "designiert", "geschäftsführ", "minister", "ceo", "chef"]
+        },
+        {
+          label: "Potenzial",
+          pattern: /potenzial\w*|potenziell\w*|möglich\w*|könnte\w*|können\w*/iu,
+          stems: ["potenzial", "potenziell", "möglich", "könnte", "können"]
+        },
+        {
+          label: "starke Wertung",
+          pattern: /bahnbrechend\w*|revolutionär\w*|durchbruch\w*|einzigartig\w*|wegweisend\w*|entscheidend\w*/iu,
+          stems: ["bahnbrechend", "revolutionär", "durchbruch", "einzigartig", "wegweisend", "entscheidend"]
+        },
+        {
+          label: "Sicherheitswertung",
+          pattern: /sicher\w*|erfolgreich\w*|leistungsfähig\w*|kritisch\w*|problematisch\w*|erheblich\w*/iu,
+          stems: ["sicher", "erfolgreich", "leistungsfähig", "kritisch", "problematisch", "erheblich"]
+        },
+        {
+          label: "Superlativ",
+          pattern: /erstmals?|größt\w*|einzige?\w*|beste\w*|stärkste\w*|weltweit\w*/iu,
+          stems: ["erstmal", "größt", "einzig", "beste", "stärkste", "weltweit"]
+        }
+      ];
+
+      const CLAIM_SCAN_PATTERN =
+        /\b(?:präsident\w*|ehemalig\w*|designiert\w*|geschäftsführer(?:in)?|minister(?:in)?|ceo|chef\w*|potenzial\w*|potenziell\w*|möglich\w*|könnte\w*|können\w*|bahnbrechend\w*|revolutionär\w*|durchbruch\w*|einzigartig\w*|wegweisend\w*|entscheidend\w*|sicher\w*|erfolgreich\w*|leistungsfähig\w*|kritisch\w*|problematisch\w*|erheblich\w*|erstmals?|größt\w*|einzige?\w*|beste\w*|stärkste\w*|weltweit\w*)\b/giu;
+
+      const STOP_WORDS = new Set([
+        "aber", "als", "auch", "auf", "aus", "bei", "das", "dass", "dem", "den", "der", "des", "die",
+        "ein", "eine", "einen", "einer", "für", "gegen", "im", "in", "ist", "mit", "nach", "oder",
+        "sich", "sie", "über", "und", "von", "vor", "wird", "zu", "zum", "zur", "mehr", "neue", "neuen",
+        "soll", "sollen", "the", "and", "for", "with", "from", "into", "this", "that"
+      ]);
+
+      const state = {
+        records: [],
+        stories: [],
+        cards: [],
+        dossierContexts: { byStory: new Map(), byLink: new Map() },
+        lookup: new Map(),
+        selected: null,
+        query: "",
+        loaded: [],
+        failed: [],
+        activeVideos: []
+      };
+
+      const $ = selector => document.querySelector(selector);
+
+      function clean(value) {
+        if (value === null || value === undefined) return "";
+        return String(value)
+          .replace(/\u2014/g, "-")
+          .replace(/\u2013/g, "-")
+          .replace(/\u00a0/g, " ")
+          .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function readable(value, depth = 0) {
+        if (value === null || value === undefined || depth > 5) return "";
+
+        if (Array.isArray(value)) {
+          return value.map(item => readable(item, depth + 1)).filter(Boolean).join("\n");
+        }
+
+        if (typeof value === "object") {
+          return [
+            value.title,
+            value.headline,
+            value.full_text,
+            value.fullText,
+            value.summary,
+            value.description,
+            value.text,
+            value.body,
+            value.content,
+            value.teaser,
+            value.einordnung,
+            value.erklaerung
+          ].map(item => readable(item, depth + 1)).filter(Boolean).join("\n");
+        }
+
+        return clean(value);
+      }
+
+      function normalized(value) {
+        return clean(value)
+          .toLocaleLowerCase("de-DE")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/ß/g, "ss")
+          .replace(/[^a-z0-9\s-]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function unique(values) {
+        return [...new Set(values.map(clean).filter(Boolean))];
+      }
+
+      function finiteNumber(value, fallback = 0) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      }
+
+      function dateStamp(value) {
+        const raw = clean(value);
+        if (!raw) return 0;
+        const iso = raw.match(/^\d{4}-\d{2}-\d{2}/);
+        const parsed = Date.parse(iso ? iso[0] : raw);
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+
+      function formatDate(value) {
+        const stamp = dateStamp(value);
+        if (!stamp) return "Datum unbekannt";
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric"
+        }).format(new Date(stamp));
+      }
+
+      function excerpt(value, maximum = 1500) {
+        const source = clean(value);
+        if (source.length <= maximum) return source;
+        return `${source.slice(0, maximum).trim()} [...]`;
+      }
+
+      function stableHash(value) {
+        let hash = 2166136261;
+        const source = clean(value);
+        for (let index = 0; index < source.length; index += 1) {
+          hash ^= source.charCodeAt(index);
+          hash = Math.imul(hash, 16777619);
+        }
+        return (hash >>> 0).toString(36);
+      }
+
+      function node(tag, className = "", value) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (value !== undefined) element.textContent = clean(value);
+        return element;
+      }
+
+      function clear(element) {
+        while (element?.firstChild) element.removeChild(element.firstChild);
+      }
+
+      function chip(value, variant = "") {
+        return node("span", `px-chip ${variant}`.trim(), value);
+      }
+
+      function safeUrl(value) {
+        const raw = clean(value);
+        if (!raw) return "";
+
+        try {
+          const parsed = new URL(raw, window.location.href);
+          return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
+        } catch (_) {
+          return "";
+        }
+      }
+
+      function canonicalUrl(value) {
+        const url = safeUrl(value);
+        if (!url) return "";
+        try {
+          const parsed = new URL(url);
+          return `${parsed.origin}${parsed.pathname}`.replace(/\/$/, "");
+        } catch (_) {
+          return "";
+        }
+      }
+
+      function listFrom(payload, keys = []) {
+        if (Array.isArray(payload)) return payload;
+        for (const key of keys) {
+          if (Array.isArray(payload?.[key])) return payload[key];
+          if (Array.isArray(payload?.[key]?.items)) return payload[key].items;
+        }
+        return [];
+      }
+
+      function firstText(raw, fields) {
+        for (const field of fields) {
+          const value = readable(raw?.[field]);
+          if (value) return { field, value };
+        }
+        return { field: "", value: "" };
+      }
+
+      function firstDate(raw) {
+        return clean(raw?.first_seen || raw?.date || raw?.published_at || raw?.created_at || "");
+      }
+
+      function scoreFor(raw) {
+        return Math.max(
+          finiteNumber(raw?.story_cluster_score),
+          finiteNumber(raw?.cluster_score),
+          finiteNumber(raw?.score),
+          finiteNumber(raw?.base_score)
+        );
+      }
+
+      function findCoveragePaths(value, path = "", depth = 0, found = []) {
+        if (depth > 6 || value === null || value === undefined) return found;
+
+        if (Array.isArray(value)) {
+          value.forEach((item, index) => findCoveragePaths(item, `${path}[${index}]`, depth + 1, found));
+          return found;
+        }
+
+        if (typeof value !== "object") return found;
+
+        Object.entries(value).forEach(([key, child]) => {
+          const nextPath = path ? `${path}.${key}` : key;
+          if (key === "deckung" || key === "deckungspruefung") {
+            found.push(nextPath);
+          } else if (child && typeof child === "object") {
+            findCoveragePaths(child, nextPath, depth + 1, found);
+          }
+        });
+
+        return found;
+      }
+
+      function normalizeArticle(raw, file, index) {
+        if (!raw || typeof raw !== "object") return null;
+
+        const title = clean(raw.title || raw.headline || raw.name);
+        if (!title) return null;
+
+        const ownSummary = firstText(raw, OWN_SUMMARY_FIELDS);
+        const shortSummary = clean(readable(raw.summary));
+        const sourceText = firstText(raw, [
+          "full_text",
+          "fullText",
+          "description"
+        ]);
+
+        const dubVon = clean(raw.dub_von || raw.dup_von || raw.duplicate_of || raw.ursprung || raw.original_link);
+        const dubQuellen = unique([
+          ...(Array.isArray(raw.dub_quellen) ? raw.dub_quellen : []),
+          ...(Array.isArray(raw.duplicate_sources) ? raw.duplicate_sources : [])
+        ]);
+
+        return {
+          uid: `article:${stableHash(`${file}:${index}:${canonicalUrl(raw.link || raw.url)}:${title}`)}`,
+          title,
+          shortSummary,
+          ownSummary: ownSummary.value,
+          ownSummaryField: ownSummary.field,
+          sourceText: sourceText.value,
+          sourceTextField: sourceText.field,
+          link: clean(raw.link || raw.url),
+          source: clean(raw.source || raw.quelle || raw.publisher || "Unbekannte Quelle"),
+          date: firstDate(raw),
+          firstSeen: clean(raw.first_seen || raw.date),
+          image: clean(raw.image || raw.image_url || raw.thumbnail),
+          storyId: clean(raw.story_id || raw.storyId),
+          score: scoreFor(raw),
+          articleCount: Math.max(1, finiteNumber(raw.story_article_count, 1)),
+          dubVon,
+          dubQuellen,
+          duplicate: Boolean(
+            raw.duplicate ||
+            raw.duplette ||
+            raw.duplikat ||
+            raw.is_duplicate ||
+            dubVon
+          ),
+          paywalled: raw.paywalled,
+          region: clean(raw.region),
+          coveragePaths: unique(findCoveragePaths(raw)),
+          file,
+          raw
+        };
+      }
+
+      function normalizeCard(raw, index) {
+        if (!raw || typeof raw !== "object") return null;
+
+        const title = clean(raw.headline || raw.title || raw.name);
+        if (!title) return null;
+
+        const links = unique([
+          ...(Array.isArray(raw.links) ? raw.links : []),
+          raw.link,
+          raw.url
+        ]);
+
+        return {
+          uid: `card:${stableHash(`${clean(raw.id)}:${title}:${index}`)}`,
+          id: clean(raw.id),
+          title,
+          summary: clean(readable(raw.description || raw.summary || raw.einordnung)),
+          storyId: clean(raw.story_id || raw.storyId),
+          duplicateOf: clean(raw.dub_von || raw.dup_von || raw.duplicate_of || raw.original_link),
+          links,
+          mediaUrl: clean(raw.mp4_url || raw.video_url),
+          poster: clean(raw.poster_url || raw.poster || raw.image || raw.thumbnail),
+          source: clean(raw.source || raw.quelle || "KI NEWS Card"),
+          date: clean(raw.date || raw.first_seen || raw.published_at),
+          duration: clean(raw.duration),
+          llm: clean(raw.llm_used),
+          voice: clean(raw.voice_used),
+          raw
+        };
+      }
+
+      function buildDossierContexts(newsPayload) {
+        const byStory = new Map();
+        const byLink = new Map();
+
+        function addContext(context) {
+          if (!context.summary && !context.title) return;
+          if (context.storyId && !byStory.has(context.storyId)) {
+            byStory.set(context.storyId, context);
+          }
+          context.links.forEach(link => {
+            if (!byLink.has(link)) byLink.set(link, context);
+          });
+        }
+
+        const lines = newsPayload && typeof newsPayload.linien === "object"
+          ? newsPayload.linien
+          : {};
+
+        Object.entries(lines).forEach(([lineId, line]) => {
+          if (!line || typeof line !== "object") return;
+
+          const dossier = line.dossier && typeof line.dossier === "object"
+            ? line.dossier
+            : {};
+
+          const entries = [
+            ...(Array.isArray(line.e) ? line.e : []),
+            ...(Array.isArray(line.entries) ? line.entries : [])
+          ];
+
+          const links = unique(entries
+            .filter(entry => entry && typeof entry === "object")
+            .map(entry => canonicalUrl(entry.l || entry.link || entry.url))
+            .filter(Boolean));
+
+          addContext({
+            lineId,
+            storyId: clean(line.story_id || line.storyId),
+            title: clean(dossier.titel || dossier.title),
+            summary: clean(readable(dossier.worum || dossier.zusammenfassung || dossier.summary)),
+            links
+          });
+        });
+
+        listFrom(newsPayload, ["dossiers", "stories"]).forEach(dossier => {
+          if (!dossier || typeof dossier !== "object") return;
+          addContext({
+            lineId: clean(dossier.id),
+            storyId: clean(dossier.story_id || dossier.storyId),
+            title: clean(dossier.titel || dossier.title),
+            summary: clean(readable(dossier.worum || dossier.zusammenfassung || dossier.summary)),
+            links: unique([canonicalUrl(dossier.link || dossier.url)].filter(Boolean))
+          });
+        });
+
+        return { byStory, byLink };
+      }
+
+      function contextForRecords(records) {
+        const contexts = [];
+
+        records.forEach(record => {
+          if (record.storyId && state.dossierContexts.byStory.has(record.storyId)) {
+            contexts.push(state.dossierContexts.byStory.get(record.storyId));
+          }
+
+          [
+            canonicalUrl(record.link),
+            canonicalUrl(record.dubVon)
+          ].filter(Boolean).forEach(link => {
+            if (state.dossierContexts.byLink.has(link)) {
+              contexts.push(state.dossierContexts.byLink.get(link));
+            }
+          });
+        });
+
+        return unique(contexts.map(context => context.summary)).sort((a, b) => b.length - a.length)[0] || "";
+      }
+
+      function mergeArticles(entries) {
+        const map = new Map();
+
+        entries.forEach(entry => {
+          const canonical = canonicalUrl(entry.link);
+          const key = canonical
+            ? `link:${canonical}`
+            : `title:${normalized(entry.title)}|${normalized(entry.source)}|${entry.date}`;
+
+          const previous = map.get(key);
+
+          if (!previous) {
+            map.set(key, entry);
+            return;
+          }
+
+          previous.shortSummary = entry.shortSummary || previous.shortSummary;
+          previous.ownSummary = entry.ownSummary || previous.ownSummary;
+          previous.ownSummaryField = entry.ownSummaryField || previous.ownSummaryField;
+          previous.sourceText = entry.sourceText.length > previous.sourceText.length
+            ? entry.sourceText
+            : previous.sourceText;
+          previous.sourceTextField = entry.sourceTextField || previous.sourceTextField;
+          previous.image = previous.image || entry.image;
+          previous.storyId = entry.storyId || previous.storyId;
+          previous.firstSeen = earliest(previous.firstSeen, entry.firstSeen);
+          previous.date = earliest(previous.date, entry.date);
+          previous.dubVon = entry.dubVon || previous.dubVon;
+          previous.dubQuellen = unique([...previous.dubQuellen, ...entry.dubQuellen]);
+          previous.duplicate = previous.duplicate || entry.duplicate;
+          previous.score = Math.max(previous.score, entry.score);
+          previous.articleCount = Math.max(previous.articleCount, entry.articleCount);
+          previous.region = previous.region || entry.region;
+          previous.coveragePaths = unique([...previous.coveragePaths, ...entry.coveragePaths]);
+          previous.file = unique([...previous.file.split(", "), ...entry.file.split(", ")]).join(", ");
+        });
+
+        return [...map.values()];
+      }
+
+      function earliest(left, right) {
+        const leftStamp = dateStamp(left);
+        const rightStamp = dateStamp(right);
+        if (!leftStamp) return right;
+        if (!rightStamp) return left;
+        return leftStamp <= rightStamp ? left : right;
+      }
+
+      function unionFind(records) {
+        const parents = records.map((_, index) => index);
+
+        function find(index) {
+          let root = index;
+          while (parents[root] !== root) root = parents[root];
+          let cursor = index;
+          while (parents[cursor] !== cursor) {
+            const next = parents[cursor];
+            parents[cursor] = root;
+            cursor = next;
+          }
+          return root;
+        }
+
+        function union(left, right) {
+          const leftRoot = find(left);
+          const rightRoot = find(right);
+          if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot;
+        }
+
+        const firstByStory = new Map();
+
+        records.forEach((record, index) => {
+          if (!record.storyId) return;
+          if (firstByStory.has(record.storyId)) union(firstByStory.get(record.storyId), index);
+          else firstByStory.set(record.storyId, index);
+        });
+
+        const recordsByLink = new Map();
+
+        records.forEach((record, index) => {
+          const link = canonicalUrl(record.link);
+          if (link && !recordsByLink.has(link)) recordsByLink.set(link, index);
+        });
+
+        records.forEach((record, index) => {
+          if (!record.dubVon) return;
+          const target = recordsByLink.get(canonicalUrl(record.dubVon));
+          if (Number.isInteger(target) && target !== index) union(index, target);
+        });
+
+        return { find };
+      }
+
+      function virtualOriginal(record) {
+        return {
+          uid: "original:virtual",
+          title: "Ursprungsquelle über Dublettenverweis",
+          shortSummary: "",
+          ownSummary: "",
+          ownSummaryField: "",
+          sourceText: "",
+          sourceTextField: "",
+          link: record.dubVon,
+          source: "Quelle im Ausgangsdatensatz nicht benannt",
+          date: record.date || record.firstSeen,
+          firstSeen: record.firstSeen,
+          image: "",
+          storyId: record.storyId,
+          score: 0,
+          articleCount: 1,
+          dubVon: "",
+          dubQuellen: [],
+          duplicate: false,
+          paywalled: null,
+          region: record.region,
+          coveragePaths: [],
+          virtual: true
+        };
+      }
+
+      function chooseOriginal(records, lead) {
+        const direct = [...records]
+          .filter(record => !record.duplicate)
+          .sort((left, right) => {
+            if (left.uid === lead.uid) return -1;
+            if (right.uid === lead.uid) return 1;
+            return right.score - left.score
+              || dateStamp(left.date) - dateStamp(right.date);
+          })[0];
+
+        if (direct) return direct;
+
+        const duplicate = [...records]
+          .filter(record => record.dubVon)
+          .sort((left, right) => dateStamp(left.date) - dateStamp(right.date))[0];
+
+        return duplicate ? virtualOriginal(duplicate) : lead;
+      }
+
+      function buildStories(records) {
+        const uf = unionFind(records);
+        const components = new Map();
+
+        records.forEach((record, index) => {
+          const root = uf.find(index);
+          if (!components.has(root)) components.set(root, []);
+          components.get(root).push(record);
+        });
+
+        const stories = [];
+        const lookup = new Map();
+
+        components.forEach(groupRecords => {
+          const lead = [...groupRecords].sort((left, right) => {
+            return right.score - left.score
+              || dateStamp(left.date) - dateStamp(right.date)
+              || left.title.localeCompare(right.title, "de");
+          })[0];
+
+          const storyIds = unique(groupRecords.map(record => record.storyId));
+          const fallback = `article-${stableHash(lead.link || lead.title)}`;
+          const id = lead.storyId
+            || storyIds
+              .sort((left, right) => {
+                const leftScore = Math.max(...groupRecords.filter(item => item.storyId === left).map(item => item.score));
+                const rightScore = Math.max(...groupRecords.filter(item => item.storyId === right).map(item => item.score));
+                return rightScore - leftScore;
+              })[0]
+            || fallback;
+
+          const original = chooseOriginal(groupRecords, lead);
+          const thread = [{
+            ...original,
+            threadRole: "original",
+            relation: original.virtual
+              ? "Die Ursprungsquelle ist nur über einen dokumentierten Dublettenlink bekannt."
+              : "Höchstpriorisierter nicht als Dublette markierter Datensatz des festen Falls."
+          }];
+
+          groupRecords
+            .filter(record => record.uid !== original.uid)
+            .sort((left, right) => {
+              return dateStamp(left.date || left.firstSeen) - dateStamp(right.date || right.firstSeen)
+                || right.score - left.score;
+            })
+            .forEach(record => {
+              const sameId = Boolean(record.storyId && storyIds.includes(record.storyId));
+
+              thread.push({
+                ...record,
+                threadRole: record.duplicate || record.dubVon ? "duplicate" : "further",
+                relation: record.duplicate || record.dubVon
+                  ? "Feste Verbindung über einen dokumentierten Dublettenverweis."
+                  : sameId
+                    ? "Feste Verbindung über dieselbe story_id."
+                    : "Feste Verbindung über eine bereits verbundene Dublettenkette."
+              });
+            });
+
+          const realThread = thread.filter(item => !item.virtual);
+          const dates = realThread
+            .map(item => dateStamp(item.firstSeen || item.date))
+            .filter(Boolean);
+
+          const firstDate = dates.length
+            ? new Date(Math.min(...dates)).toISOString().slice(0, 10)
+            : "";
+
+          const lastDate = dates.length
+            ? new Date(Math.max(...dates)).toISOString().slice(0, 10)
+            : "";
+
+          const sources = unique(
+            realThread.map(item => item.source).filter(source => source !== "Unbekannte Quelle")
+          );
+
+          const dossierSummary = contextForRecords(groupRecords);
+          const editorialSummary = dossierSummary
+            || lead.ownSummary
+            || lead.shortSummary;
+
+          const editorialField = dossierSummary
+            ? "dossier.worum"
+            : lead.ownSummaryField
+              ? lead.ownSummaryField
+              : lead.shortSummary
+                ? "summary"
+                : "";
+
+          const aliases = unique([id, fallback, ...storyIds]);
+          const search = normalized([
+            id,
+            ...aliases,
+            lead.title,
+            editorialSummary,
+            ...sources
+          ].join(" "));
+
+          const story = {
+            id,
+            aliases,
+            title: lead.title,
+            editorialSummary,
+            editorialField,
+            score: Math.max(lead.score, ...groupRecords.map(record => record.score), 0),
+            articleCount: Math.max(...groupRecords.map(record => record.articleCount), groupRecords.length),
+            sourceCount: sources.length,
+            records: groupRecords,
+            original,
+            thread,
+            sources,
+            firstDate,
+            lastDate,
+            region: clean(groupRecords.find(record => record.region)?.region),
+            search
+          };
+
+          stories.push(story);
+          aliases.forEach(alias => lookup.set(alias, story));
+        });
+
+        stories.sort((left, right) => {
+          return right.score - left.score
+            || right.articleCount - left.articleCount
+            || (right.lastDate || "").localeCompare(left.lastDate || "")
+            || left.title.localeCompare(right.title, "de");
+        });
+
+        state.stories = stories;
+        state.lookup = lookup;
+      }
+
+      function tokens(value) {
+        return unique(normalized(value).split(/[\s-]+/))
+          .filter(token => token.length >= 3 && !STOP_WORDS.has(token));
+      }
+
+      function similarity(left, right) {
+        const a = new Set(tokens(left));
+        const b = new Set(tokens(right));
+        if (!a.size || !b.size) return 0;
+
+        let shared = 0;
+        a.forEach(token => {
+          if (b.has(token)) shared += 1;
+        });
+
+        return shared / Math.min(a.size, b.size);
+      }
+
+      function cardRelations(story) {
+        const storyIds = new Set(story.aliases);
+        const articleLinks = new Set();
+        const duplicateLinks = new Set();
+
+        story.records.forEach(record => {
+          const articleLink = canonicalUrl(record.link);
+          const duplicateLink = canonicalUrl(record.dubVon);
+
+          if (articleLink) articleLinks.add(articleLink);
+          if (duplicateLink) duplicateLinks.add(duplicateLink);
+        });
+
+        const fixed = [];
+        const unverified = [];
+
+        state.cards.forEach(card => {
+          const reasons = [];
+          const cardLinks = card.links.map(canonicalUrl).filter(Boolean);
+          const cardDuplicate = canonicalUrl(card.duplicateOf);
+
+          if (card.storyId && storyIds.has(card.storyId)) {
+            reasons.push("gleiche story_id");
+          }
+
+          if (cardDuplicate && duplicateLinks.has(cardDuplicate)) {
+            reasons.push("gleicher Dublettenverweis");
+          }
+
+          const exactArticleLink = cardLinks.find(link => articleLinks.has(link));
+          if (exactArticleLink) {
+            reasons.push("Originalquelle in card.links");
+          }
+
+          if (reasons.length) {
+            fixed.push({ card, reasons: unique(reasons) });
+            return;
+          }
+
+          const score = similarity(
+            card.title + " " + card.summary,
+            story.original.title + " " + story.title + " " + story.editorialSummary
+          );
+
+          if (score >= .48) {
+            unverified.push({
+              card,
+              score,
+              reason: "Nur Titel- und Textähnlichkeit. Es fehlt eine feste story_id, ein Dublettenverweis oder ein exakter Quellenlink."
+            });
+          }
+        });
+
+        return {
+          fixed,
+          unverified: unverified.sort((left, right) => right.score - left.score).slice(0, 6)
+        };
+      }
+
+      function likelyStories(story) {
+        return state.stories
+          .filter(candidate => candidate.id !== story.id)
+          .map(candidate => ({
+            story: candidate,
+            score: similarity(story.title + " " + story.editorialSummary, candidate.title + " " + candidate.editorialSummary)
+          }))
+          .filter(item => item.score >= .38)
+          .sort((left, right) => right.score - left.score)
+          .slice(0, 5);
+      }
+
+      function coverageSummary(story) {
+        const paths = unique(story.records.flatMap(record => record.coveragePaths || []));
+        if (!paths.length) return "";
+
+        return `Im Ausgangsdatensatz ist mindestens ein Deckungs- oder Deckungsprüfungsfeld vorhanden. Gefundene Feldpfade: ${paths.join(" / ")}. Die Abdeckung muss redaktionell geprüft werden.`;
+      }
+
+      function sourceHasRule(sourceText, rule) {
+        const haystack = normalized(sourceText);
+        return rule.stems.some(stem => haystack.includes(normalized(stem)));
+      }
+
+      function ruleForTerm(term) {
+        return CLAIM_RULES.find(rule => rule.pattern.test(term)) || null;
+      }
+
+      function renderClaimText(value, sourceText) {
+        const container = node("div");
+        const valueText = clean(value);
+        const source = clean(sourceText);
+        const labels = [];
+        const scanner = new RegExp(CLAIM_SCAN_PATTERN.source, CLAIM_SCAN_PATTERN.flags);
+        let cursor = 0;
+        let match;
+
+        while ((match = scanner.exec(valueText)) !== null) {
+          if (match.index > cursor) {
+            container.append(document.createTextNode(valueText.slice(cursor, match.index)));
+          }
+
+          const term = clean(match[0]);
+          const rule = ruleForTerm(term);
+          const absent = Boolean(source) && rule && !sourceHasRule(source, rule);
+
+          if (absent) {
+            const mark = node("mark", "px-claim-mark", term);
+            mark.title = `${rule.label} im einfachen Wortabgleich nicht in der verfügbaren Quelle gefunden`;
+            container.append(mark);
+            if (!labels.includes(rule.label)) labels.push(rule.label);
+          } else {
+            container.append(document.createTextNode(term));
+          }
+
+          cursor = scanner.lastIndex;
+        }
+
+        if (cursor < valueText.length) {
+          container.append(document.createTextNode(valueText.slice(cursor)));
+        }
+
+        return { container, labels };
+      }
+
+      function externalLink(label, value) {
+        const link = node("a", "px-button", label);
+        const href = safeUrl(value);
+
+        if (!href) {
+          link.setAttribute("aria-disabled", "true");
+        } else {
+          link.href = href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
+
+        return link;
+      }
+
+      function panelHead(title, meta) {
+        const head = node("div", "px-panel-head");
+        head.append(node("h2", "", title), node("span", "", meta));
+        return head;
+      }
+
+      function addWarning(parent, text, red = false) {
+        const warning = node("div", `px-warning ${red ? "red" : ""}`.trim());
+        warning.append(
+          node("strong", "", red ? "Warnung" : "Prüfhinweis"),
+          node("span", "", text)
+        );
+        parent.append(warning);
+        return warning;
+      }
+
+      function renderSourceMedia(item) {
+        const media = node("div");
+        const url = safeUrl(item.image);
+
+        if (!url) {
+          media.append(node(
+            "div",
+            "px-image-fallback",
+            "Für diese Originalquelle ist lokal kein Quellbild hinterlegt."
+          ));
+          return media;
+        }
+
+        const image = document.createElement("img");
+        image.className = "px-source-image";
+        image.alt = `Quellbild zu ${clean(item.title)}`;
+        image.loading = "lazy";
+        image.decoding = "async";
+        image.referrerPolicy = "no-referrer";
+
+        image.addEventListener("error", () => {
+          image.replaceWith(node(
+            "div",
+            "px-image-fallback",
+            "Quellbild nicht verfügbar. Der Original-Link bleibt offen."
+          ));
+        }, { once: true });
+
+        image.src = url;
+        media.append(image);
+        return media;
+      }
+
+      function renderThread(story) {
+        const panel = node("section", "px-panel");
+        panel.append(panelHead("Vertikaler Belegstrang", `${story.thread.length} feste Stationen`));
+        const thread = node("div", "px-thread");
+        const initialLimit = Math.min(INITIAL_THREAD_LIMIT, story.thread.length);
+        let visibleLimit = initialLimit;
+
+        function draw() {
+          clear(thread);
+
+          story.thread.slice(0, visibleLimit).forEach(item => {
+            const row = node("article", "px-thread-item");
+            const time = node("time", "px-thread-time");
+            time.dateTime = clean(item.date);
+            time.append(node("strong", "", formatDate(item.date)));
+
+            const card = node("div", "px-thread-card");
+            card.dataset.role = item.threadRole;
+            if (item.threadRole === "original") card.classList.add("is-source-card");
+
+            const top = node("div", "px-thread-top");
+            const role = item.threadRole === "original"
+              ? "Originalquelle"
+              : item.threadRole === "duplicate"
+                ? "Dublette"
+                : "Weitere Quelle";
+
+            top.append(
+              node("span", "px-node-role", role),
+              node(
+                "span",
+                "px-node-date",
+                item.storyId ? `story_id: ${item.storyId}` : "Über Dublettenverweis verbunden"
+              )
+            );
+
+            const copy = node("div");
+            const title = node("h3", "", item.title);
+            const itemText = item.ownSummary || item.shortSummary;
+
+            const summary = node(
+              "p",
+              "",
+              excerpt(itemText, 1100) || "Keine verwertbare Zusammenfassung im Datensatz."
+            );
+
+            const meta = node("div", "px-card-meta");
+            meta.append(
+              node("span", "", `Quelle: ${item.source || "unbekannt"}`),
+              node("span", "", `Datum: ${formatDate(item.date)}`),
+              node("span", "", item.relation)
+            );
+
+            if (item.dubQuellen.length) {
+              meta.append(node("span", "", `Dublettenquellen: ${item.dubQuellen.join(" / ")}`));
+            }
+            if (item.paywalled === true) meta.append(node("span", "", "Paywall markiert"));
+
+            const actions = node("div", "px-thread-actions");
+            actions.append(
+              externalLink(
+                item.virtual ? "Ursprungsquelle öffnen" : "Originalartikel öffnen",
+                item.link
+              )
+            );
+
+            if (item.dubVon && !item.virtual) {
+              actions.append(externalLink("Dubletten-Vorgang öffnen", item.dubVon));
+            }
+
+            copy.append(title, summary, meta, actions);
+
+            if (item.sourceText) {
+              const details = node("details", "px-text-details");
+              details.append(
+                node("summary", "", "Verfügbaren Quelltext anzeigen"),
+                node("pre", "px-fulltext", excerpt(item.sourceText, 7000))
+              );
+              copy.append(details);
+            } else if (item.threadRole === "original") {
+              copy.append(node(
+                "div",
+                "px-image-fallback",
+                "Für die Originalquelle fehlen lokal full_text und description."
+              ));
+            }
+
+            card.append(top, copy);
+
+            if (item.threadRole === "original") {
+              card.append(renderSourceMedia(item));
+            }
+
+            row.append(time, card);
+            thread.append(row);
+          });
+
+          if (visibleLimit < story.thread.length) {
+            const remaining = story.thread.length - visibleLimit;
+            const more = node("button", "px-button cyan", `Weitere ${Math.min(INITIAL_THREAD_LIMIT, remaining)} Stationen laden`);
+            more.type = "button";
+            more.addEventListener("click", () => {
+              visibleLimit = Math.min(story.thread.length, visibleLimit + INITIAL_THREAD_LIMIT);
+              draw();
+            });
+
+            const actions = node("div", "px-thread-actions");
+            actions.append(more, node("span", "px-note", `${remaining} feste Stationen bleiben zunächst ausgeblendet.`));
+            thread.append(actions);
+          }
+        }
+
+        draw();
+        panel.append(thread);
+        return panel;
+      }
+
+      function renderComparison(story) {
+        const panel = node("section", "px-panel");
+        panel.append(panelHead(
+          "Quelle sagt / wir sagen",
+          "Automatischer Wortabgleich, keine Bedeutungsprüfung"
+        ));
+
+        const compare = node("div", "px-compare");
+        const sourceText = story.original.sourceText || "";
+        const sourceField = story.original.sourceTextField || "kein Quelltextfeld";
+
+        const sourceSide = node("div", "px-compare-side");
+        sourceSide.append(
+          node("span", "px-compare-label", "Originalquelle sagt"),
+          node("h3", "px-compare-title", story.original.title || "Ohne Titel"),
+          node(
+            "p",
+            "px-compare-text",
+            excerpt(sourceText, 2200)
+              || "Im lokalen Datensatz sind weder full_text noch description vorhanden."
+          ),
+          node(
+            "p",
+            "px-claim-note",
+            `${story.original.source || "Quelle unbekannt"} / ${formatDate(story.original.date)} / Datenfeld: ${sourceField}`
+          ),
+          externalLink("Originalquelle öffnen", story.original.link)
+        );
+
+        const ourSide = node("div", "px-compare-side is-ours");
+        ourSide.append(node("span", "px-compare-label", "Unsere redaktionelle Fassung"));
+
+        const ourText = story.editorialSummary
+          || "Für diesen Fall ist keine verwertbare redaktionelle Zusammenfassung hinterlegt.";
+
+        const claimResult = renderClaimText(ourText, sourceText);
+        const ourCopy = node("p", "px-compare-text");
+        ourCopy.append(claimResult.container);
+        ourSide.append(ourCopy);
+
+        if (claimResult.labels.length) {
+          const terms = node("div", "px-detected-terms");
+          claimResult.labels.forEach(label => terms.append(chip(`Hinweis: ${label}`, "yellow")));
+          ourSide.append(terms);
+        }
+
+        let comparisonNote;
+
+        if (!sourceText) {
+          comparisonNote = "Der Wortabgleich war nicht möglich, weil full_text und description lokal fehlen. Rollen und Wertungen wurden deshalb nicht als unbelegt markiert.";
+        } else if (claimResult.labels.length) {
+          comparisonNote = "Markiert wurde nur, wenn der jeweilige Rollen- oder Wertungsbegriff im einfachen Wortabgleich nicht im verfügbaren Quelltext vorkommt. Verneinung, Zeitbezug und mehrere Bedeutungen werden nicht ausgewertet.";
+        } else {
+          comparisonNote = "Im einfachen Wortabgleich wurden keine zusätzlichen Rollen- oder Wertungsbegriffe gefunden. Der Vergleich ersetzt keine inhaltliche Prüfung.";
+        }
+
+        ourSide.append(node(
+          "p",
+          "px-claim-note",
+          `${comparisonNote}${story.editorialField ? ` Verwendetes Datenfeld: ${story.editorialField}.` : ""}`
+        ));
+
+        compare.append(sourceSide, ourSide);
+        panel.append(compare);
+        return panel;
+      }
+
+      function stopVideos() {
+        state.activeVideos.forEach(video => {
+          try {
+            video.pause();
+            video.removeAttribute("src");
+            video.load();
+          } catch (_) {
+            // Ein defekter Medienkontext darf die Datenansicht nicht blockieren.
+          }
+        });
+        state.activeVideos = [];
+      }
+
+      function loadVideo(button, card) {
+        const mediaUrl = safeUrl(card.mediaUrl);
+
+        if (!mediaUrl || button.dataset.loading === "true") return;
+
+        button.dataset.loading = "true";
+        button.disabled = true;
+        button.textContent = "Videodatei wird geladen";
+
+        const wrapper = node("div", "px-video-player");
+        const video = document.createElement("video");
+        video.controls = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        video.setAttribute("aria-label", `Videokarte: ${card.title}`);
+
+        const poster = safeUrl(card.poster);
+        if (poster) video.poster = poster;
+
+        video.addEventListener("error", () => {
+          wrapper.append(node(
+            "p",
+            "px-video-error",
+            "Videodatei nicht verfügbar. Metadaten und Zuordnungsgrund bleiben sichtbar."
+          ));
+        }, { once: true });
+
+        button.replaceWith(wrapper);
+        wrapper.append(video);
+        state.activeVideos.push(video);
+        video.src = mediaUrl;
+        video.load();
+      }
+
+      function renderMedia(story) {
+        const relations = cardRelations(story);
+        const panel = node("section", "px-panel");
+        panel.append(panelHead("Zugehörige Videokarte", `${relations.fixed.length} feste Zuordnungen`));
+
+        if (state.failed.includes("cards.json")) {
+          panel.append(node(
+            "div",
+            "px-panel-body",
+            node("div", "px-empty", "cards.json ist nicht verfügbar. Es wird keine Videokarte behauptet.")
+          ));
+          return panel;
+        }
+
+        if (!relations.fixed.length) {
+          panel.append(node(
+            "div",
+            "px-panel-body",
+            node(
+              "div",
+              "px-empty",
+              "Keine Videokarte ist über story_id, Dublettenverweis oder einen exakten Quellenlink fest zugeordnet."
+            )
+          ));
+          return panel;
+        }
+
+        const list = node("div", "px-panel-body px-media-list");
+
+        relations.fixed.forEach((relation, index) => {
+          const item = node("article", "px-video-card");
+          const top = node("div", "px-video-top");
+
+          top.append(
+            chip(`Feste Zuordnung ${index + 1}`, "cyan"),
+            node(
+              "span",
+              "px-card-meta",
+              `${relation.card.source} / ${formatDate(relation.card.date)}`
+            )
+          );
+
+          const title = node("h3", "", relation.card.title);
+          const summary = node(
+            "p",
+            "",
+            excerpt(relation.card.summary, 650)
+              || "Für diese Videokarte ist keine weitere Beschreibung hinterlegt."
+          );
+
+          const meta = node("div", "px-card-meta");
+          meta.append(
+            node("span", "", `Datensatzfester Zuordnungsgrund: ${relation.reasons.join(" + ")}`),
+            node("span", "", `Dauer: ${relation.card.duration || "unbekannt"}`),
+            node("span", "", `llm_used: ${relation.card.llm || "offen"}`),
+            node("span", "", `voice_used: ${relation.card.voice || "offen"}`)
+          );
+
+          const actions = node("div", "px-thread-actions");
+          const button = node(
+            "button",
+            "px-button cyan",
+            relation.card.mediaUrl ? "Videokarte laden" : "Keine Videodatei hinterlegt"
+          );
+          button.type = "button";
+          button.disabled = !relation.card.mediaUrl;
+          button.addEventListener("click", () => loadVideo(button, relation.card));
+
+          actions.append(
+            button,
+            node("span", "px-note", "MP4 und Vorschaubild werden erst nach diesem Klick geladen.")
+          );
+
+          item.append(top, title, summary, meta, actions);
+          list.append(item);
+        });
+
+        panel.append(list);
+        panel.append(node(
+          "p",
+          "px-claim-note",
+          "Eine feste Videokarten-Zuordnung bestätigt keine zusätzliche Quelle. Mediendaten bleiben von der Quellenlage getrennt."
+        ));
+        return panel;
+      }
+
+      function renderFuzzy(story) {
+        const relations = cardRelations(story);
+        const relatedStories = likelyStories(story);
+        const panel = node("section", "px-panel px-fuzzy-section");
+        panel.append(panelHead("Vermutlich verwandt, nicht geprüft", "außerhalb des Belegstrangs"));
+
+        const body = node("div", "px-panel-body");
+
+        if (!relatedStories.length && !relations.unverified.length) {
+          body.append(node(
+            "div",
+            "px-empty",
+            "Keine ausreichende Titel- oder Textähnlichkeit gefunden. Es wird nichts als verwandt behauptet."
+          ));
+          panel.append(body);
+          return panel;
+        }
+
+        addWarning(
+          body,
+          "Die folgenden Treffer stammen nur aus Titel- oder Textähnlichkeit. Sie haben keine feste story_id, keinen Dublettenverweis und keinen exakten Quellenlink."
+        );
+
+        const candidateList = node("div", "px-candidate-list");
+        candidateList.style.marginTop = "12px";
+
+        relatedStories.forEach(item => {
+          const candidate = node("article", "px-candidate");
+          const top = node("div", "px-candidate-top");
+          top.append(
+            chip("Story-Textähnlichkeit", "yellow"),
+            node("span", "px-candidate-index", `${Math.round(item.score * 100)} Prozent`)
+          );
+          candidate.append(
+            top,
+            node("h3", "", item.story.title),
+            node("p", "", `Story-ID: ${item.story.id}. Diese Verbindung wurde nicht geprüft.`)
+          );
+          candidateList.append(candidate);
+        });
+
+        relations.unverified.forEach(item => {
+          const candidate = node("article", "px-candidate");
+          const top = node("div", "px-candidate-top");
+          top.append(
+            chip("Videokarte, nicht fest zugeordnet", "yellow"),
+            node("span", "px-candidate-index", `${Math.round(item.score * 100)} Prozent`)
+          );
+          candidate.append(
+            top,
+            node("h3", "", item.card.title),
+            node("p", "", `${item.reason} Die Videokarte wird hier nicht geladen.`)
+          );
+          candidateList.append(candidate);
+        });
+
+        body.append(candidateList);
+        panel.append(body);
+        return panel;
+      }
+
+      function renderGaps(story) {
+        const panel = node("section", "px-panel");
+        panel.append(panelHead("Lücken und Lesart", "offene Prüfpunkte"));
+        const list = node("div", "px-panel-body px-gap-list");
+
+        const add = (title, description, red = false) => {
+          const card = node("article", `px-gap-card ${red ? "is-red" : ""}`.trim());
+          card.append(node("h3", "", title), node("p", "", description));
+          list.append(card);
+        };
+
+        const fullTextMissing = story.records.filter(record => !record.sourceText).length;
+        const duplicateCount = story.thread.filter(item => item.threadRole === "duplicate").length;
+
+        if (story.sourceCount < 2) {
+          add(
+            "Eindimensionale Quellenlage",
+            "Im sichtbaren Cluster liegt nur ein klar benannter Quellenname vor. Eine unabhängige Bestätigung ist damit nicht belegt.",
+            true
+          );
+        }
+
+        if (fullTextMissing) {
+          add(
+            `${fullTextMissing} Quelltextlücke${fullTextMissing === 1 ? "" : "n"}`,
+            "Für diese Datensätze fehlt full_text oder description. Titel und Kurzbeschreibung ersetzen keinen vollständigen Quelltext."
+          );
+        }
+
+        if (duplicateCount) {
+          add(
+            `${duplicateCount} Dublettenstation${duplicateCount === 1 ? "" : "en"}`,
+            "Dubletten zeigen eine feste Beziehung, zählen aber nicht automatisch als unabhängige zweite Quelle."
+          );
+        }
+
+        if (story.original.virtual) {
+          add(
+            "Ursprungsquelle nur als Link vorhanden",
+            "Ein Dublettenverweis zeigt auf die Ursprungsquelle, aber Quelle, Datum und Quellbild dieses Zieldatensatzes fehlen lokal.",
+            true
+          );
+        }
+
+        add(
+          "Wortabgleich ist bewusst einfach",
+          "Rollen und Wertungen wurden nur bei direkter Begriffsabwesenheit markiert. Verneinung, Zeitbezug und mehrere Bedeutungen werden nicht ausgewertet."
+        );
+
+        panel.append(list);
+        return panel;
+      }
+
+      function renderStory() {
+        stopVideos();
+
+        const target = $("#px-story-content");
+        clear(target);
+        const story = state.selected;
+
+        if (!story) {
+          target.append(node(
+            "div",
+            "px-empty",
+            "Keine verwertbare Story gefunden. Suchbegriff ändern oder news.json und archive.json prüfen."
+          ));
+          return;
+        }
+
+        const head = node("section", "px-story-head");
+        const headTop = node("div", "px-head-top");
+
+        headTop.append(
+          node("span", "px-head-id", `${story.id} / Deep-Link #story=${encodeURIComponent(story.id)}`),
+          node("span", "px-card-meta", `story_cluster_score: ${story.score}`)
+        );
+
+        const chips = node("div", "px-story-chips");
+        chips.append(
+          chip(`${story.records.length} lokale Datensätze`, "cyan"),
+          chip(`${story.sourceCount} Quellennamen`, "violet"),
+          chip(`Score ${story.score}`, "yellow"),
+          chip(`${story.thread.length} feste Stationen`)
+        );
+
+        if (story.articleCount > story.records.length) {
+          chips.append(chip(`${story.articleCount} Artikel laut Datensatz`));
+        }
+        if (story.region) chips.append(chip(story.region));
+
+        head.append(
+          headTop,
+          node("h2", "", story.title),
+          node(
+            "p",
+            "px-story-summary",
+            story.editorialSummary || "Für diese Story liegt keine verwertbare redaktionelle Zusammenfassung vor."
+          ),
+          chips
+        );
+
+        target.append(head);
+
+        const coverage = coverageSummary(story);
+        if (coverage) addWarning(head, coverage, true);
+
+        target.append(renderThread(story));
+        target.append(renderComparison(story));
+        target.append(renderMedia(story));
+        target.append(renderFuzzy(story));
+        target.append(renderGaps(story));
+      }
+
+      function visibleStories() {
+        const query = normalized(state.query);
+        if (!query) return state.stories;
+
+        return state.stories.filter(story => {
+          return story.search.includes(query)
+            || story.aliases.some(alias => normalized(alias).includes(query));
+        });
+      }
+
+      function renderStoryList() {
+        const list = $("#px-story-list");
+        const stories = visibleStories();
+        clear(list);
+        $("#px-story-count").textContent = `${stories.length} Fälle`;
+
+        if (!stories.length) {
+          list.append(node("div", "px-empty", "Keine Story entspricht diesem Suchbegriff."));
+          return;
+        }
+
+        stories.forEach(story => {
+          const button = node("button", "px-story-button");
+          button.type = "button";
+          button.setAttribute("aria-current", state.selected?.id === story.id ? "true" : "false");
+
+          const top = node("div", "px-index-top");
+          top.append(
+            node("span", "px-index-id", story.id),
+            node("span", "px-index-score", `Score ${story.score}`)
+          );
+
+          const foot = node("div", "px-index-foot");
+          foot.append(
+            node("span", "", `${story.sourceCount} Quellen`),
+            node("span", "", formatDate(story.lastDate || story.firstDate))
+          );
+
+          button.append(
+            top,
+            node("span", "px-index-title", story.title),
+            foot
+          );
+
+          button.addEventListener("click", () => selectStory(story));
+          list.append(button);
+        });
+      }
+
+      function setHash(storyId) {
+        const hash = `#story=${encodeURIComponent(storyId)}`;
+
+        try {
+          history.replaceState(null, "", hash);
+        } catch (_) {
+          window.location.hash = hash;
+        }
+      }
+
+      function selectStory(story, updateHash = true) {
+        if (!story || !state.lookup.has(story.id)) return;
+
+        state.selected = story;
+        if (updateHash) setHash(story.id);
+
+        renderStoryList();
+        renderStory();
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+
+      function requestedStoryId() {
+        const hash = window.location.hash.replace(/^#/, "");
+        if (!hash.startsWith("story=")) return "";
+
+        try {
+          return decodeURIComponent(hash.slice(6));
+        } catch (_) {
+          return hash.slice(6);
+        }
+      }
+
+      function routeHash(initial = false) {
+        const requested = requestedStoryId();
+
+        if (requested) {
+          const story = state.lookup.get(requested);
+
+          if (story) {
+            selectStory(story, false);
+            if (!initial) setHash(story.id);
+            return;
+          }
+
+          if (!initial) {
+            setStatus(
+              `Story-ID ${requested} wurde nicht gefunden. Die höchste priorisierte Story ist geöffnet.`,
+              true
+            );
+          }
+        }
+
+        if (state.stories[0]) {
+          selectStory(state.stories[0], true);
+        } else {
+          renderStory();
+        }
+      }
+
+      function setStatus(message, warning = false) {
+        $("#px-status-bar").classList.toggle("is-warning", warning);
+        $("#px-status-copy").textContent = clean(message);
+      }
+
+      async function fetchJSON(path) {
+        const response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      }
+
+      function mergePayloads(results) {
+        const byName = new Map();
+
+        (Array.isArray(results) ? results : []).forEach(result => {
+          if (result && result.file) byName.set(result.file, result.value);
+        });
+
+        const newsPayload = byName.get("news.json");
+        const archivePayload = byName.get("archive.json");
+        const cardsPayload = byName.get("cards.json");
+
+        const news = listFrom(newsPayload, ["news", "articles", "items"]);
+        const archive = listFrom(archivePayload, ["archive", "articles", "items"]);
+        const cards = listFrom(cardsPayload, ["cards", "items"]);
+
+        const articles = [
+          ...archive.map((raw, index) => normalizeArticle(raw, "archive.json", index)),
+          ...news.map((raw, index) => normalizeArticle(raw, "news.json", index))
+        ].filter(Boolean);
+
+        return {
+          records: mergeArticles(articles),
+          cards: cards.map((raw, index) => normalizeCard(raw, index)).filter(Boolean),
+          stand: clean(
+            newsPayload?.stand
+            || newsPayload?.briefing?.stand
+            || archivePayload?.stand
+            || ""
+          )
+        };
+      }
+
+      function renderFallbackHeader() {
+        const host = $("#ki-header");
+        if (!host || host.childElementCount) return;
+
+        const header = node("header", "px-fallback-header");
+        const brand = node("a", "px-brand");
+        brand.href = "./";
+        brand.setAttribute("aria-label", "KI NEWS Startseite");
+        brand.append(
+          node("span", "px-brand-mark", "S"),
+          node("span", "", "KI NEWS"),
+          node("small", "", "DE")
+        );
+
+        const nav = node("nav", "px-fallback-nav");
+        [
+          ["Aktuell", "./"],
+          ["Archiv", "archive.html"],
+          ["Belege", "#story="]
+        ].forEach(([label, href], index) => {
+          const link = node("a", "", label);
+          link.href = href;
+          if (index === 2) link.setAttribute("aria-current", "page");
+          nav.append(link);
+        });
+
+        let theme = "dark";
+
+        try {
+          const stored = localStorage.getItem(THEME_KEY);
+          if (["dark", "light"].includes(stored)) theme = stored;
+        } catch (_) {
+          theme = "dark";
+        }
+
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.pxTheme = theme;
+
+        const spacer = node("div", "px-header-spacer");
+        const themeButton = node(
+          "button",
+          "px-theme-button",
+          theme === "light" ? "Dunkel" : "Hell"
+        );
+        themeButton.type = "button";
+
+        themeButton.addEventListener("click", () => {
+          const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+          document.documentElement.dataset.theme = next;
+          document.documentElement.dataset.pxTheme = next;
+          themeButton.textContent = next === "light" ? "Dunkel" : "Hell";
+
+          document.querySelector('meta[name="theme-color"]')?.setAttribute(
+            "content",
+            next === "light" ? "#e7ebe8" : "#090a0b"
+          );
+
+          try {
+            localStorage.setItem(THEME_KEY, next);
+          } catch (_) {
+            // Die Ansicht bleibt auch ohne lokalen Speicher bedienbar.
+          }
+        });
+
+        header.append(brand, nav, spacer, themeButton);
+        host.append(header);
+      }
+
+      function updateDataFooter(prepared) {
+        $("#px-footer-data").textContent = [
+          `${state.loaded.length} von ${FILES.length} Dateien geladen`,
+          prepared.stand ? `news: ${prepared.stand}` : "",
+          `${state.records.length} Artikeldatensätze`,
+          `${state.cards.length} Videokarten`
+        ].filter(Boolean).join(" / ");
+      }
+
+      async function boot() {
+        renderFallbackHeader();
+        window.setTimeout(renderFallbackHeader, 900);
+
+        $("#px-search").addEventListener("input", event => {
+          state.query = clean(event.target.value).slice(0, 120);
+          renderStoryList();
+        });
+
+        window.addEventListener("hashchange", () => {
+          if (state.stories.length) routeHash(false);
+        });
+
+        setStatus("news.json, archive.json und cards.json werden relativ geladen.");
+
+        const results = await Promise.allSettled(FILES.map(async file => ({
+          file,
+          value: await fetchJSON(file)
+        })));
+
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") state.loaded.push(FILES[index]);
+          else state.failed.push(FILES[index]);
+        });
+
+        const fulfilledResults = results
+          .filter(result => result.status === "fulfilled")
+          .map(result => result.value);
+
+        const newsPayload = fulfilledResults.find(result => result.file === "news.json")?.value;
+        state.dossierContexts = buildDossierContexts(newsPayload);
+
+        const prepared = mergePayloads(fulfilledResults);
+        state.records = prepared.records;
+        state.cards = prepared.cards;
+
+        try {
+          buildStories(state.records);
+        } catch (_) {
+          state.stories = [];
+          state.lookup = new Map();
+          state.selected = null;
+        }
+
+        updateDataFooter(prepared);
+
+        if (!state.stories.length) {
+          setStatus(
+            "Keine verwertbaren Story-Datensätze gefunden. Suchfilter, Dateipfade und JSON-Felder prüfen.",
+            true
+          );
+          renderStoryList();
+          renderStory();
+          return;
+        }
+
+        if (state.failed.length) {
+          setStatus(
+            `${state.stories.length} Stories geladen. Nicht verfügbar: ${state.failed.join(", ")}.`,
+            true
+          );
+        } else {
+          setStatus(
+            `${state.stories.length} Stories aus news.json und archive.json, ${state.cards.length} Videokarten aus cards.json.`
+          );
+        }
+
+        routeHash(true);
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        boot().catch(error => {
+          const message = error instanceof Error ? error.message : "Unbekannter Ladefehler";
+          setStatus(`Datenverarbeitung abgefangen: ${message}`, true);
+          renderStoryList();
+          renderStory();
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
