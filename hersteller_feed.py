@@ -214,6 +214,9 @@ def og_tags(url):
     return tags
 
 
+MAX_UEBERSETZUNG = 1200
+
+
 def _zahlen(s):
     return set(re.findall(r"\d+(?:[.,]\d+)?", (s or "").replace(",", ".")))
 
@@ -223,6 +226,10 @@ def uebersetze(text, modelle=None, key=None):
     key = key if key is not None else os.environ.get("OPENROUTER_KEY", "").strip()
     if not key or not (text or "").strip():
         return None
+    # 28.09.26: laengere Texte nicht anschneiden (vorher text[:600] -> gekuerzte Uebersetzung
+    # stand als vollstaendiges Zitat im Release-Entwurf). Zu lang: Original bleibt stehen.
+    if len(text) > MAX_UEBERSETZUNG:
+        return None
     if modelle is None:
         try:
             from add_reactions import TRANSLATE_MODELLE as modelle
@@ -230,13 +237,15 @@ def uebersetze(text, modelle=None, key=None):
             return None
     prompt = (
         "Uebersetze den folgenden Text aus der Ankuendigung eines KI-Herstellers woertlich "
-        "ins Deutsche. Nichts hinzufuegen, nichts weglassen, keine Wertung. Modell- und "
-        "Produktnamen unveraendert lassen. Keinen Gedankenstrich verwenden. Nur die "
-        f"Uebersetzung ausgeben.\n\nText: {text[:600]}"
+        "ins Deutsche. Nichts hinzufuegen, nichts weglassen, keine Wertung. Jeden Satz "
+        "uebersetzen. Modell- und Produktnamen unveraendert lassen. Bindestriche in "
+        "zusammengesetzten Woertern behalten (Code-Migration, KI-Werkzeuge). Keinen "
+        "Gedankenstrich als Satzzeichen verwenden. Umlaute verwenden. Anrede in der "
+        f"Sie-Form. Nur die Uebersetzung ausgeben.\n\nText: {text}"
     )
     for modell in modelle:
         try:
-            data = json.dumps({"model": modell, "max_tokens": 300,
+            data = json.dumps({"model": modell, "max_tokens": 900,
                                "messages": [{"role": "user", "content": prompt}]}).encode()
             req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=data, headers={
                 "Authorization": f"Bearer {key}", "Content-Type": "application/json",
@@ -246,8 +255,12 @@ def uebersetze(text, modelle=None, key=None):
         except Exception as e:
             print(f"  Uebersetzung fehlgeschlagen mit {modell}: {type(e).__name__}")
             continue
-        antwort = _text((antwort or "").strip().strip('"'), 400)
+        antwort = _text((antwort or "").strip().strip('"'), 2 * MAX_UEBERSETZUNG)
         if not antwort or len(antwort) > 2 * len(text) + 40:
+            continue
+        # Deutsch ist fast nie kuerzer als das Englische; deutlich kuerzer = Saetze fehlen
+        if len(antwort) < 0.8 * len(text):
+            print(f"  Uebersetzung verworfen (gekuerzt {len(antwort)}/{len(text)} Zeichen): {antwort[:60]!r}")
             continue
         if not _zahlen(antwort) <= _zahlen(text):
             print(f"  Uebersetzung verworfen (neue Zahl): {antwort[:80]!r}")
