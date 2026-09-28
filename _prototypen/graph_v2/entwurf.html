@@ -1,0 +1,3604 @@
+<!DOCTYPE html>
+<html class="dark" lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="author" content="Daniel S. / Scampy">
+  <title>Entitäten-Graph | KI News</title>
+  <meta name="description" content="Interaktiver Entitäten-Graph der KI-News mit Zeitfenstern, Suche, Tagesansicht und verbundenen Meldungen.">
+  <link rel="icon" type="image/png" href="s-logo.png">
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --px-header: 56px;
+      --px-bg: #070a0e;
+      --px-bg-deep: #020407;
+      --px-panel: rgba(14, 20, 27, .95);
+      --px-panel-solid: #0e141b;
+      --px-field: #141d27;
+      --px-hairline: #293744;
+      --px-text: #f4f8fb;
+      --px-muted: #8a9baa;
+      --px-cyan: #00d4ff;
+      --px-violet: #a78bfa;
+      --px-orange: #fb923c;
+      --px-green: #34d399;
+      --px-pink: #f472b6;
+      --px-yellow: #facc15;
+      --px-red: #fb7185;
+      --px-shadow: 0 28px 90px rgba(0, 0, 0, .5);
+    }
+
+    html.light,
+    html[data-theme="light"] {
+      color-scheme: light;
+      --px-bg: #edf3f7;
+      --px-bg-deep: #e2ebf3;
+      --px-panel: rgba(255, 255, 255, .95);
+      --px-panel-solid: #ffffff;
+      --px-field: #e9f0f5;
+      --px-hairline: #cfdae4;
+      --px-text: #101b26;
+      --px-muted: #5f7182;
+      --px-shadow: 0 28px 90px rgba(33, 56, 76, .18);
+    }
+
+    .px-page,
+    .px-page * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-width: 0;
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body.px-page {
+      padding-top: var(--px-header);
+      padding-bottom: env(safe-area-inset-bottom);
+      overflow: hidden;
+      background: var(--px-bg);
+      color: var(--px-text);
+      font-family: "Work Sans", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    button,
+    input,
+    summary {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    summary:focus-visible,
+    .px-canvas:focus-visible {
+      outline: 2px solid var(--px-cyan);
+      outline-offset: 2px;
+    }
+
+    .px-shell {
+      display: grid;
+      grid-template-columns: 344px minmax(0, 1fr);
+      width: 100%;
+      height: calc(100dvh - var(--px-header));
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--px-bg);
+    }
+
+    .px-sidebar {
+      position: relative;
+      z-index: 5;
+      min-width: 0;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 23px 21px 20px;
+      border-right: 1px solid var(--px-hairline);
+      background:
+        linear-gradient(180deg, rgba(0, 212, 255, .045), transparent 34%),
+        var(--px-panel-solid);
+      scrollbar-width: thin;
+      scrollbar-color: var(--px-hairline) transparent;
+      overscroll-behavior: contain;
+    }
+
+    .px-sidebar::before {
+      position: absolute;
+      top: 0;
+      right: -1px;
+      width: 1px;
+      height: 210px;
+      content: "";
+      background: linear-gradient(var(--px-cyan), transparent);
+      box-shadow: 0 0 20px rgba(0, 212, 255, .38);
+      opacity: .8;
+      pointer-events: none;
+    }
+
+    .px-eyebrow,
+    .px-status,
+    .px-notice,
+    .px-label-row,
+    .px-window-marks,
+    .px-view button,
+    .px-source button,
+    .px-result-count,
+    .px-stat-label,
+    .px-legend,
+    .px-gesture,
+    .px-stage-label,
+    .px-stage-badge,
+    .px-map-note,
+    .px-zoom,
+    .px-drawer-kicker,
+    .px-close,
+    .px-detail-meta,
+    .px-section-title,
+    .px-neighbor-meta,
+    .px-article-meta,
+    .px-empty-note,
+    .px-source-note,
+    .px-today-overview,
+    .px-focus-node {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--px-cyan);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .px-eyebrow::before {
+      width: 24px;
+      height: 1px;
+      content: "";
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .px-sidebar h1 {
+      margin: 9px 0 8px;
+      font: 700 33px/1.01 "Space Grotesk", system-ui, sans-serif;
+      letter-spacing: -.047em;
+    }
+
+    .px-intro {
+      max-width: 288px;
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .px-status {
+      min-height: 16px;
+      margin-top: 12px;
+      color: var(--px-text);
+      font-size: 9px;
+      line-height: 1.55;
+    }
+
+    .px-notice {
+      margin-top: 3px;
+      color: var(--px-yellow);
+      font-size: 9px;
+      line-height: 1.5;
+    }
+
+    .px-primary {
+      margin-top: 19px;
+    }
+
+    .px-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+      gap: 12px;
+      margin-bottom: 7px;
+      color: var(--px-muted);
+      font-size: 9px;
+      letter-spacing: .075em;
+      text-transform: uppercase;
+    }
+
+    .px-label-row output,
+    .px-window-marks button[aria-pressed="true"] {
+      color: var(--px-cyan);
+    }
+
+    .px-window-range,
+    .px-range {
+      width: 100%;
+      height: 18px;
+      margin: 0;
+      outline: 0;
+      accent-color: var(--px-cyan);
+      cursor: pointer;
+    }
+
+    .px-window-range::-webkit-slider-runnable-track,
+    .px-range::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--px-cyan), var(--px-hairline));
+    }
+
+    .px-window-range::-moz-range-track,
+    .px-range::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--px-hairline);
+    }
+
+    .px-window-range::-moz-range-progress,
+    .px-range::-moz-range-progress {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--px-cyan);
+    }
+
+    .px-window-range::-webkit-slider-thumb,
+    .px-range::-webkit-slider-thumb {
+      width: 16px;
+      height: 16px;
+      margin-top: -6px;
+      border: 2px solid var(--px-panel-solid);
+      border-radius: 50%;
+      background: var(--px-cyan);
+      box-shadow: 0 0 0 1px var(--px-cyan), 0 0 15px rgba(0, 212, 255, .38);
+      -webkit-appearance: none;
+    }
+
+    .px-window-range::-moz-range-thumb,
+    .px-range::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border: 2px solid var(--px-panel-solid);
+      border-radius: 50%;
+      background: var(--px-cyan);
+      box-shadow: 0 0 0 1px var(--px-cyan);
+    }
+
+    .px-window-marks {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      margin-top: 1px;
+    }
+
+    .px-window-marks button {
+      min-width: 0;
+      height: 30px;
+      padding: 0 5px;
+      overflow: hidden;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--px-muted);
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .px-window-marks button:hover,
+    .px-window-marks button[aria-pressed="true"] {
+      border-color: rgba(0, 212, 255, .58);
+      background: rgba(0, 212, 255, .075);
+    }
+
+    .px-toolbar {
+      display: grid;
+      grid-template-columns: 162px minmax(0, 1fr);
+      gap: 9px;
+      margin-top: 13px;
+    }
+
+    .px-toolbar-search,
+    .px-search-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .px-segment {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+      min-width: 0;
+      gap: 3px;
+      padding: 3px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 11px;
+      background: var(--px-field);
+    }
+
+    .px-view button,
+    .px-source button {
+      min-width: 0;
+      min-height: 38px;
+      padding: 6px 5px;
+      overflow: hidden;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--px-muted);
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .px-view button:hover,
+    .px-source button:hover,
+    .px-view button[aria-pressed="true"],
+    .px-source button[aria-pressed="true"] {
+      color: var(--px-text);
+    }
+
+    .px-view button[aria-pressed="true"],
+    .px-source button[aria-pressed="true"] {
+      background: var(--px-panel-solid);
+      box-shadow: 0 0 0 1px rgba(0, 212, 255, .4);
+    }
+
+    .px-view button[aria-pressed="true"] {
+      color: var(--px-cyan);
+    }
+
+    .px-view button:disabled,
+    .px-source button:disabled {
+      cursor: wait;
+      opacity: .45;
+    }
+
+    .px-search {
+      width: 100%;
+      height: 44px;
+      min-width: 0;
+      padding: 0 40px 0 12px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 11px;
+      outline: 0;
+      background: var(--px-field);
+      color: var(--px-text);
+      font: 12px "Work Sans", system-ui, sans-serif;
+    }
+
+    .px-search::placeholder {
+      color: var(--px-muted);
+    }
+
+    .px-search:focus {
+      border-color: var(--px-cyan);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, .12);
+    }
+
+    .px-search-icon {
+      position: absolute;
+      top: 50%;
+      right: 13px;
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid var(--px-muted);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translateY(-58%);
+    }
+
+    .px-search-icon::after {
+      position: absolute;
+      right: -5px;
+      bottom: -4px;
+      width: 6px;
+      height: 1.5px;
+      content: "";
+      background: var(--px-muted);
+      transform: rotate(45deg);
+    }
+
+    .px-results {
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 6px);
+      left: 0;
+      display: grid;
+      width: 100%;
+      max-height: 255px;
+      gap: 4px;
+      overflow-y: auto;
+      padding: 5px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 11px;
+      background: var(--px-panel-solid);
+      box-shadow: var(--px-shadow);
+    }
+
+    .px-results:empty {
+      display: none;
+    }
+
+    .px-result {
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr) auto;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+      gap: 8px;
+      padding: 10px 8px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--px-text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .px-result:hover,
+    .px-result:focus-visible {
+      outline: 0;
+      background: var(--px-field);
+    }
+
+    .px-result-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--px-cyan);
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .px-result-name {
+      min-width: 0;
+      overflow: hidden;
+      font-size: 11px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-result-count {
+      color: var(--px-muted);
+      font-size: 9px;
+    }
+
+    .px-result-empty {
+      padding: 10px;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .px-advanced {
+      margin-top: 16px;
+      border-top: 1px solid var(--px-hairline);
+      border-bottom: 1px solid var(--px-hairline);
+    }
+
+    .px-advanced summary {
+      display: flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--px-muted);
+      font-size: 9px;
+      letter-spacing: .08em;
+      list-style: none;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .px-advanced summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .px-advanced summary::after {
+      color: var(--px-cyan);
+      content: "+";
+      font-size: 17px;
+    }
+
+    .px-advanced[open] summary::after {
+      content: "−";
+    }
+
+    .px-advanced-body {
+      padding: 4px 0 14px;
+    }
+
+    .px-range-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      color: var(--px-muted);
+      font-size: 9px;
+    }
+
+    .px-switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 13px;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+
+    .px-switch-row input {
+      width: 35px;
+      height: 19px;
+      flex: 0 0 auto;
+      margin: 0;
+      accent-color: var(--px-cyan);
+      cursor: pointer;
+    }
+
+    .px-source {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+      gap: 3px;
+      margin-top: 6px;
+      padding: 3px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 11px;
+      background: var(--px-field);
+    }
+
+    .px-source-note {
+      margin: 8px 1px 0;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.5;
+    }
+
+    .px-divider {
+      height: 1px;
+      margin: 16px 0;
+      background: linear-gradient(90deg, var(--px-cyan), transparent 68%);
+      opacity: .55;
+    }
+
+    .px-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .px-stat {
+      min-width: 0;
+      padding: 10px 8px 9px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 10px;
+      background: var(--px-field);
+    }
+
+    .px-stat strong {
+      display: block;
+      overflow: hidden;
+      font: 700 16px "Space Grotesk", system-ui, sans-serif;
+      text-overflow: ellipsis;
+    }
+
+    .px-stat-label {
+      display: block;
+      margin-top: 4px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 8px;
+      letter-spacing: .06em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 10px;
+      margin-top: 13px;
+      color: var(--px-muted);
+      font-size: 9px;
+    }
+
+    .px-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .px-legend-swatch {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--legend-color, var(--px-cyan));
+      box-shadow: 0 0 8px var(--legend-color, var(--px-cyan));
+    }
+
+    .px-gesture {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 16px;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.55;
+    }
+
+    .px-gesture-mark {
+      color: var(--px-cyan);
+      font-size: 11px;
+    }
+
+    .px-stage {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      isolation: isolate;
+      background: var(--px-bg);
+    }
+
+    .px-stage::before {
+      position: absolute;
+      z-index: 0;
+      top: 46%;
+      left: 52%;
+      width: min(850px, 85vw);
+      height: min(850px, 85vw);
+      border-radius: 50%;
+      content: "";
+      background: radial-gradient(circle, rgba(0, 212, 255, .065), transparent 68%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    .px-canvas {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      outline: 0;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .px-canvas.px-dragging {
+      cursor: grabbing;
+    }
+
+    .px-stage-head {
+      position: absolute;
+      z-index: 4;
+      top: 16px;
+      left: 17px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      width: calc(100% - 34px);
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .px-stage-label,
+    .px-stage-badge,
+    .px-map-note {
+      border: 1px solid var(--px-hairline);
+      border-radius: 9px;
+      background: var(--px-panel);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .13);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-stage-label {
+      max-width: min(340px, 68vw);
+      padding: 8px 10px;
+      color: var(--px-muted);
+      font-size: 9px;
+      letter-spacing: .075em;
+      text-transform: uppercase;
+    }
+
+    .px-stage-label strong {
+      display: block;
+      overflow: hidden;
+      color: var(--px-text);
+      font: 700 13px/1.15 "Space Grotesk", system-ui, sans-serif;
+      letter-spacing: -.015em;
+      text-overflow: ellipsis;
+      text-transform: none;
+      white-space: nowrap;
+    }
+
+    .px-stage-label span {
+      display: block;
+      margin-top: 4px;
+      font-size: 8px;
+    }
+
+    .px-stage-badge {
+      margin-left: auto;
+      padding: 9px 10px;
+      color: var(--px-muted);
+      font-size: 9px;
+      white-space: nowrap;
+    }
+
+    .px-stage-badge strong {
+      color: var(--px-cyan);
+    }
+
+    .px-map-note {
+      position: absolute;
+      z-index: 4;
+      bottom: 15px;
+      left: 16px;
+      padding: 8px 10px;
+      color: var(--px-muted);
+      font-size: 8px;
+      letter-spacing: .06em;
+      pointer-events: none;
+      text-transform: uppercase;
+    }
+
+    .px-zoom {
+      position: absolute;
+      z-index: 5;
+      right: 15px;
+      bottom: 15px;
+      display: flex;
+      gap: 3px;
+      padding: 4px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 11px;
+      background: var(--px-panel);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, .18);
+      backdrop-filter: blur(12px);
+    }
+
+    .px-zoom button {
+      width: 35px;
+      height: 32px;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--px-muted);
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .px-zoom button:hover,
+    .px-zoom button:focus-visible {
+      outline: 0;
+      background: var(--px-field);
+      color: var(--px-text);
+    }
+
+    .px-zoom .px-fit {
+      width: auto;
+      padding: 0 10px;
+      font-size: 9px;
+    }
+
+    .px-tooltip {
+      position: absolute;
+      z-index: 9;
+      max-width: min(260px, calc(100% - 24px));
+      padding: 8px 10px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 10px;
+      background: var(--px-panel-solid);
+      color: var(--px-text);
+      box-shadow: var(--px-shadow);
+      font-size: 12px;
+      line-height: 1.4;
+      pointer-events: none;
+      backdrop-filter: blur(14px);
+    }
+
+    .px-tooltip[hidden],
+    .px-empty[hidden],
+    .px-loading[hidden],
+    .px-drawer[hidden] {
+      display: none;
+    }
+
+    .px-tooltip-meta {
+      display: block;
+      margin-top: 4px;
+      color: var(--px-muted);
+      font: 9px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .px-empty,
+    .px-loading {
+      position: absolute;
+      z-index: 6;
+      top: 50%;
+      left: 50%;
+      width: min(440px, calc(100% - 32px));
+      padding: 25px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 16px;
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow);
+      text-align: center;
+      transform: translate(-50%, -50%);
+      backdrop-filter: blur(18px);
+    }
+
+    .px-empty-mark,
+    .px-loading-ring {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 14px;
+      place-items: center;
+      border: 1px solid var(--px-cyan);
+      border-radius: 50%;
+      color: var(--px-cyan);
+      font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+      box-shadow: 0 0 24px rgba(0, 212, 255, .17);
+    }
+
+    .px-loading-ring {
+      border-top-color: transparent;
+      animation: px-spin .9s linear infinite;
+    }
+
+    .px-empty h2,
+    .px-loading h2 {
+      margin: 0;
+      font: 700 20px "Space Grotesk", system-ui, sans-serif;
+      letter-spacing: -.025em;
+    }
+
+    .px-empty p,
+    .px-loading p {
+      margin: 10px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .px-drawer {
+      position: absolute;
+      z-index: 8;
+      top: 13px;
+      right: 13px;
+      bottom: 13px;
+      display: flex;
+      width: min(440px, calc(100% - 26px));
+      min-width: 0;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--px-hairline);
+      border-radius: 18px;
+      background: var(--px-panel-solid);
+      box-shadow: var(--px-shadow);
+      backdrop-filter: blur(20px);
+    }
+
+    .px-drawer.px-drawer-wide {
+      width: min(540px, calc(100% - 26px));
+    }
+
+    .px-drawer-head {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      min-height: 57px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px 12px 18px;
+      border-bottom: 1px solid var(--px-hairline);
+      background: var(--px-panel-solid);
+    }
+
+    .px-drawer-kicker {
+      color: var(--px-cyan);
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .px-close {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 8px;
+      background: var(--px-field);
+      color: var(--px-muted);
+      font-size: 9px;
+      cursor: pointer;
+    }
+
+    .px-close:hover {
+      border-color: var(--px-cyan);
+      color: var(--px-text);
+    }
+
+    .px-drawer-scroll {
+      height: calc(100% - 57px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 21px;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--px-hairline) transparent;
+    }
+
+    .px-detail-title {
+      max-width: 100%;
+      margin: 0;
+      overflow-wrap: anywhere;
+      font: 700 clamp(28px, 3vw, 38px)/1.02 "Space Grotesk", system-ui, sans-serif;
+      letter-spacing: -.047em;
+    }
+
+    .px-detail-deck {
+      margin: 12px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.58;
+    }
+
+    .px-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 13px;
+    }
+
+    .px-tag {
+      display: inline-flex;
+      min-height: 25px;
+      max-width: 100%;
+      align-items: center;
+      padding: 3px 8px;
+      overflow: hidden;
+      border: 1px solid var(--tag-color, var(--px-hairline));
+      border-radius: 999px;
+      color: var(--tag-color, var(--px-muted));
+      font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-detail-meta {
+      margin: 14px 0 0;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    .px-section {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--px-hairline);
+    }
+
+    .px-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 10px;
+      color: var(--px-muted);
+      font-size: 9px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .px-section-title span {
+      color: var(--px-cyan);
+    }
+
+    .px-neighbor-list,
+    .px-article-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .px-neighbor {
+      display: grid;
+      grid-template-columns: 9px minmax(0, 1fr) auto;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+      gap: 9px;
+      padding: 11px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 11px;
+      background: var(--px-field);
+      color: var(--px-text);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .18s ease, transform .18s ease;
+    }
+
+    .px-neighbor:hover,
+    .px-neighbor:focus-visible {
+      outline: 0;
+      border-color: var(--px-cyan);
+      transform: translateX(2px);
+    }
+
+    .px-neighbor-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--node-color, var(--px-cyan));
+      box-shadow: 0 0 10px var(--node-color, var(--px-cyan));
+    }
+
+    .px-neighbor-copy {
+      min-width: 0;
+    }
+
+    .px-neighbor-name {
+      display: block;
+      overflow: hidden;
+      font-size: 12px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-neighbor-meta {
+      display: block;
+      margin-top: 3px;
+      color: var(--px-muted);
+      font-size: 9px;
+    }
+
+    .px-neighbor-count {
+      color: var(--px-muted);
+      font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .px-article {
+      position: relative;
+      display: block;
+      min-width: 0;
+      padding: 13px 13px 13px 16px;
+      overflow: hidden;
+      border: 1px solid var(--px-hairline);
+      border-radius: 12px;
+      background: var(--px-field);
+      color: var(--px-text);
+      text-decoration: none;
+    }
+
+    .px-article::before {
+      position: absolute;
+      top: 12px;
+      bottom: 12px;
+      left: 0;
+      width: 2px;
+      content: "";
+      background: var(--article-color, var(--px-cyan));
+    }
+
+    a.px-article:hover,
+    a.px-article:focus-visible {
+      outline: 0;
+      border-color: var(--px-cyan);
+    }
+
+    .px-article-title {
+      display: block;
+      overflow-wrap: anywhere;
+      font: 600 14px/1.42 "Space Grotesk", system-ui, sans-serif;
+    }
+
+    .px-article-meta {
+      display: block;
+      margin-top: 8px;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.5;
+    }
+
+    .px-article-summary {
+      display: -webkit-box;
+      margin: 9px 0 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 11px;
+      line-height: 1.52;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-empty-note {
+      padding: 14px;
+      border: 1px dashed var(--px-hairline);
+      border-radius: 11px;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.65;
+      text-align: center;
+    }
+
+    .px-today-overview {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 14px;
+      margin-top: 17px;
+      padding: 15px;
+      border: 1px solid var(--px-hairline);
+      border-radius: 13px;
+      background: var(--px-field);
+    }
+
+    .px-today-mark {
+      display: grid;
+      width: 50px;
+      height: 50px;
+      place-items: center;
+      border: 1px solid var(--px-green);
+      border-radius: 50%;
+      color: var(--px-green) !important;
+      box-shadow: 0 0 24px rgba(52, 211, 153, .15);
+      font-size: 8px !important;
+    }
+
+    .px-today-overview strong {
+      display: block;
+      font: 700 19px "Space Grotesk", system-ui, sans-serif;
+    }
+
+    .px-today-overview span {
+      display: block;
+      margin-top: 4px;
+      color: var(--px-muted);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    @keyframes px-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1040px) {
+      .px-shell {
+        grid-template-columns: 314px minmax(0, 1fr);
+      }
+
+      .px-sidebar {
+        padding: 21px 17px 18px;
+      }
+
+      .px-sidebar h1 {
+        font-size: 29px;
+      }
+
+      .px-toolbar {
+        grid-template-columns: 145px minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      :root {
+        --px-header: 52px;
+      }
+
+      .px-shell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 238px minmax(0, 1fr);
+      }
+
+      .px-sidebar {
+        padding: 11px 11px 9px;
+        border-right: 0;
+        border-bottom: 1px solid var(--px-hairline);
+      }
+
+      .px-eyebrow {
+        font-size: 8px;
+      }
+
+      .px-sidebar h1 {
+        margin: 5px 0 3px;
+        font-size: 27px;
+        line-height: 1;
+      }
+
+      .px-intro,
+      .px-gesture,
+      .px-divider,
+      .px-stats,
+      .px-legend,
+      .px-toolbar-search .px-label-row,
+      .px-stage-badge,
+      .px-map-note {
+        display: none;
+      }
+
+      .px-status {
+        min-height: 12px;
+        margin-top: 5px;
+        overflow: hidden;
+        font-size: 8px;
+        line-height: 1.4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .px-notice {
+        position: absolute;
+        top: 11px;
+        right: 11px;
+        max-width: 42%;
+        overflow: hidden;
+        font-size: 8px;
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .px-primary {
+        margin-top: 9px;
+      }
+
+      .px-label-row {
+        margin-bottom: 3px;
+        font-size: 8px;
+      }
+
+      .px-window-range {
+        height: 14px;
+      }
+
+      .px-window-marks {
+        margin-top: 0;
+      }
+
+      .px-window-marks button {
+        height: 25px;
+        font-size: 9px;
+      }
+
+      .px-toolbar {
+        grid-template-columns: 132px minmax(0, 1fr);
+        gap: 7px;
+        margin-top: 7px;
+      }
+
+      .px-view button,
+      .px-search {
+        height: 40px;
+        min-height: 40px;
+      }
+
+      .px-view button {
+        font-size: 9px;
+      }
+
+      .px-results {
+        max-height: 200px;
+      }
+
+      .px-advanced {
+        margin-top: 8px;
+      }
+
+      .px-advanced summary {
+        min-height: 33px;
+        font-size: 8px;
+      }
+
+      .px-advanced-body {
+        padding-bottom: 9px;
+      }
+
+      .px-stage-head {
+        top: 10px;
+        left: 10px;
+        width: calc(100% - 20px);
+      }
+
+      .px-stage-label {
+        max-width: 235px;
+        padding: 7px 8px;
+        font-size: 8px;
+      }
+
+      .px-stage-label strong {
+        font-size: 12px;
+      }
+
+      .px-zoom {
+        right: 9px;
+        bottom: max(9px, env(safe-area-inset-bottom));
+      }
+
+      .px-zoom button {
+        width: 33px;
+        height: 31px;
+      }
+
+      .px-drawer,
+      .px-drawer.px-drawer-wide {
+        top: 6px;
+        right: 6px;
+        bottom: 6px;
+        width: calc(100% - 12px);
+        border-radius: 15px;
+      }
+
+      .px-drawer-scroll {
+        padding: 18px 15px calc(24px + env(safe-area-inset-bottom));
+      }
+
+      .px-detail-title {
+        font-size: 29px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .px-sidebar {
+        padding-right: 9px;
+        padding-left: 9px;
+      }
+
+      .px-toolbar {
+        grid-template-columns: 128px minmax(0, 1fr);
+      }
+
+      .px-search {
+        padding-left: 10px;
+        font-size: 11px;
+      }
+
+      .px-window-marks button {
+        font-size: 8px;
+      }
+
+      .px-stage-label {
+        max-width: 225px;
+      }
+
+      .px-article-title {
+        font-size: 13px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .px-loading-ring {
+        animation: none;
+      }
+
+      .px-neighbor {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+
+<body class="px-page">
+  <main class="px-shell">
+    <aside class="px-sidebar" aria-label="Graph-Steuerung">
+      <div class="px-eyebrow">Knowledge Map</div>
+      <h1>Entitäten-Graph</h1>
+      <p class="px-intro">Welche Akteure, Modelle und Themen gemeinsam auftauchen. Die Knotengröße zeigt Erwähnungen im gewählten Zeitfenster.</p>
+      <div id="pxStatus" class="px-status" role="status">Daten werden geladen</div>
+      <div id="pxNotice" class="px-notice" role="status"></div>
+
+      <div class="px-primary">
+        <section aria-labelledby="pxWindowLabel">
+          <div id="pxWindowLabel" class="px-label-row">
+            <span>Zeitfenster</span>
+            <output id="pxWindowOutput" for="pxDaysRange">7 Tage</output>
+          </div>
+          <input
+            id="pxDaysRange"
+            class="px-window-range"
+            type="range"
+            min="1"
+            max="30"
+            step="1"
+            value="7"
+            aria-label="Zeitfenster in Tagen"
+          >
+          <div class="px-window-marks" aria-label="Schnellauswahl">
+            <button type="button" data-days="1" aria-pressed="false">1 Tag</button>
+            <button type="button" data-days="7" aria-pressed="true">7 Tage</button>
+            <button type="button" data-days="30" aria-pressed="false">30 Tage</button>
+          </div>
+        </section>
+
+        <div class="px-toolbar">
+          <section class="px-segment px-view" role="group" aria-label="Darstellung wählen">
+            <button type="button" data-view="graph" aria-pressed="true">Netzwerk</button>
+            <button type="button" data-view="today" aria-pressed="false">Heute neu</button>
+          </section>
+
+          <section class="px-toolbar-search" aria-label="Entität suchen">
+            <div class="px-label-row">
+              <span>Suche</span>
+              <span id="pxSearchCount" aria-live="polite"></span>
+            </div>
+            <div class="px-search-wrap">
+              <input
+                id="pxSearch"
+                class="px-search"
+                type="search"
+                placeholder="Nvidia, OpenAI, Chips"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Entität suchen"
+              >
+              <span class="px-search-icon" aria-hidden="true"></span>
+              <div id="pxResults" class="px-results"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <details class="px-advanced">
+        <summary>Filter und Datenbasis</summary>
+        <div class="px-advanced-body">
+          <section aria-label="Verbindungsfilter">
+            <div class="px-label-row">
+              <span>Verbindungen ab</span>
+              <output id="pxMinOutput" for="pxMin">1 Meldung</output>
+            </div>
+            <input id="pxMin" class="px-range" type="range" min="1" max="30" value="1">
+            <div class="px-range-scale">
+              <span>1</span>
+              <span id="pxMinMax">30</span>
+            </div>
+          </section>
+
+          <label class="px-switch-row" for="pxFade">
+            <span>Ältere Verbindungen zurücknehmen</span>
+            <input id="pxFade" type="checkbox" checked>
+          </label>
+
+          <section aria-label="Datenbasis wählen">
+            <div class="px-label-row">
+              <span>Datenbasis</span>
+              <span id="pxSourceHint">Live</span>
+            </div>
+            <div class="px-segment px-source" role="group" aria-label="Graphquelle wählen">
+              <button type="button" data-source="live" aria-pressed="true">Live</button>
+              <button type="button" data-source="history" aria-pressed="false">Historie</button>
+            </div>
+            <p class="px-source-note">Meldungen werden gegen die Entitäten-Registry abgeglichen. Fehlt eine Datei, bleibt der Graph mit den übrigen Daten nutzbar.</p>
+          </section>
+        </div>
+      </details>
+
+      <div class="px-divider"></div>
+
+      <section aria-label="Graph-Statistik">
+        <div class="px-stats">
+          <div class="px-stat">
+            <strong id="pxNodeCount">0</strong>
+            <span class="px-stat-label">Knoten</span>
+          </div>
+          <div class="px-stat">
+            <strong id="pxEdgeCount">0</strong>
+            <span class="px-stat-label">Kanten</span>
+          </div>
+          <div class="px-stat">
+            <strong id="pxArticleCount">0</strong>
+            <span class="px-stat-label">Meldungen</span>
+          </div>
+        </div>
+        <div id="pxLegend" class="px-legend"></div>
+      </section>
+
+      <div class="px-gesture">
+        <span class="px-gesture-mark">↔</span>
+        <span>Ziehen verschiebt. Zwei Finger zoomen. Ein Klick öffnet Erwähnungen und verbundene Entitäten.</span>
+      </div>
+    </aside>
+
+    <section id="pxStage" class="px-stage" aria-label="Interaktiver Entitäten-Graph">
+      <canvas
+        id="pxCanvas"
+        class="px-canvas"
+        tabindex="0"
+        aria-label="Entitäten-Graph. Entitäten können per Maus, Touch, Suche oder Tastatur ausgewählt werden."
+      >Dein Browser unterstützt Canvas nicht.</canvas>
+
+      <div class="px-stage-head">
+        <div class="px-stage-label">
+          <strong id="pxStageTitle">Netzwerk</strong>
+          <span id="pxStageSub">7 Tage</span>
+        </div>
+        <div class="px-stage-badge">
+          <strong id="pxStageNodes">0</strong> Knoten · <strong id="pxStageEdges">0</strong> Kanten
+        </div>
+      </div>
+
+      <div class="px-map-note">Größe = Erwähnungen · Farbe = Typ</div>
+      <div id="pxTooltip" class="px-tooltip" hidden></div>
+
+      <div class="px-zoom" aria-label="Zoomsteuerung">
+        <button type="button" id="pxZoomOut" aria-label="Verkleinern">−</button>
+        <button type="button" id="pxZoomIn" aria-label="Vergrößern">+</button>
+        <button type="button" id="pxFit" class="px-fit">Einpassen</button>
+      </div>
+
+      <div id="pxEmpty" class="px-empty" hidden>
+        <div class="px-empty-mark">∅</div>
+        <h2 id="pxEmptyTitle">Keine passenden Entitäten</h2>
+        <p id="pxEmptyText">Für dieses Zeitfenster wurden keine passenden Meldungen gefunden.</p>
+      </div>
+
+      <div id="pxLoading" class="px-loading" role="status">
+        <div class="px-loading-ring" aria-hidden="true"></div>
+        <h2>Graph wird aufgebaut</h2>
+        <p>News, Archiv und Entitäten-Registry werden abgeglichen.</p>
+      </div>
+
+      <aside id="pxDrawer" class="px-drawer" aria-hidden="true" aria-label="Detailansicht">
+        <div class="px-drawer-head">
+          <span id="pxDrawerKicker" class="px-drawer-kicker">Entität</span>
+          <button id="pxClose" class="px-close" type="button">Schließen</button>
+        </div>
+        <div id="pxDrawerScroll" class="px-drawer-scroll"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var $ = function (id) { return document.getElementById(id); };
+      var canvas = $("pxCanvas");
+      var stage = $("pxStage");
+      var ctx = canvas.getContext("2d");
+      var DAY = 86400000;
+      var dateFormatter = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC"
+      });
+
+      var TYPE_COLORS = {
+        anbieter: "cyan",
+        modell: "violet",
+        thema: "orange",
+        forschung: "green",
+        chips: "pink",
+        "chips/gpus": "pink",
+        hardware: "pink",
+        person: "yellow",
+        projekt: "cyan",
+        produkt: "pink",
+        produkte: "pink",
+        organisation: "violet",
+        unternehmen: "violet",
+        personlichkeit: "yellow",
+        institut: "green",
+        sonst: "green"
+      };
+
+      var state = {
+        source: "live",
+        days: 7,
+        minEdge: 1,
+        query: "",
+        searchOpen: false,
+        fadeOld: true,
+        view: "graph",
+        graph: {},
+        registry: null,
+        articles: [],
+        activeArticles: [],
+        todayArticles: [],
+        nodes: [],
+        edges: [],
+        visibleNodes: [],
+        visibleEdges: [],
+        byId: {},
+        referenceDate: null,
+        active: null,
+        hover: null,
+        notices: [],
+        fallback: false,
+        loadToken: 0
+      };
+
+      var colors = {};
+      var view = { x: 0, y: 0, k: 1 };
+      var hasFit = false;
+      var temperature = 0;
+      var running = false;
+      var loadingSource = false;
+      var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var pointers = new Map();
+      var pointerState = {
+        dragNode: null,
+        panning: false,
+        moved: false,
+        pinch: false,
+        last: null,
+        startDistance: 1,
+        startK: 1,
+        world: null
+      };
+
+      if (!ctx) {
+        $("pxLoading").hidden = true;
+        $("pxEmpty").hidden = false;
+        $("pxEmptyTitle").textContent = "Canvas ist nicht verfügbar";
+        $("pxEmptyText").textContent = "Der Graph benötigt einen Browser mit Canvas-Unterstützung.";
+        return;
+      }
+
+      function createElement(tag, className, text) {
+        var element = document.createElement(tag);
+        if (className) element.className = className;
+        if (text !== undefined && text !== null) element.textContent = cleanText(text);
+        return element;
+      }
+
+      function cleanText(value) {
+        return String(value === undefined || value === null ? "" : value)
+          .replace(/[\u2014\u2013]/g, "-")
+          .replace(/\u00a0/g, " ");
+      }
+
+      function asArray(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function readColors() {
+        var styles = getComputedStyle(document.documentElement);
+        [
+          "bg", "bg-deep", "panel", "panel-solid", "field", "hairline",
+          "text", "muted", "cyan", "violet", "orange", "green",
+          "pink", "yellow", "red"
+        ].forEach(function (name) {
+          colors[name] = styles.getPropertyValue("--px-" + name).trim();
+        });
+      }
+
+      function typeColor(typ) {
+        var key = TYPE_COLORS[String(typ || "").toLowerCase()];
+        if (key && colors[key]) return colors[key];
+
+        var palette = [colors.cyan, colors.violet, colors.orange, colors.green, colors.pink, colors.yellow];
+        var text = String(typ || "sonst");
+        var hash = 0;
+
+        for (var i = 0; i < text.length; i++) {
+          hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+        }
+
+        return palette[hash % palette.length] || colors.green;
+      }
+
+      function withAlpha(color, alpha) {
+        var value = String(color || "").trim();
+        if (value.startsWith("rgb")) return value;
+        if (value[0] !== "#") return value;
+
+        var hex = value.slice(1);
+        if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        if (hex.length !== 6) return value;
+
+        var number = parseInt(hex, 16);
+        if (!Number.isFinite(number)) return value;
+
+        return "rgba(" +
+          ((number >> 16) & 255) + "," +
+          ((number >> 8) & 255) + "," +
+          (number & 255) + "," + alpha.toFixed(3) + ")";
+      }
+
+      function normalizeText(value) {
+        return cleanText(value)
+          .toLocaleLowerCase("de-DE")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+      }
+
+      function parseDate(value) {
+        if (!value && value !== 0) return null;
+
+        var text = String(value).trim();
+        var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        var german = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+        var year;
+        var month;
+        var day;
+
+        if (iso) {
+          year = Number(iso[1]);
+          month = Number(iso[2]);
+          day = Number(iso[3]);
+        } else if (german) {
+          year = Number(german[3]);
+          month = Number(german[2]);
+          day = Number(german[1]);
+        } else {
+          var parsed = new Date(text);
+          if (Number.isNaN(parsed.getTime())) return null;
+          return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+        }
+
+        var result = new Date(Date.UTC(year, month - 1, day));
+        if (Number.isNaN(result.getTime())) return null;
+
+        if (
+          result.getUTCFullYear() !== year ||
+          result.getUTCMonth() !== month - 1 ||
+          result.getUTCDate() !== day
+        ) return null;
+
+        return result;
+      }
+
+      function formatDate(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "Datum unbekannt";
+        return dateFormatter.format(date);
+      }
+
+      function ageInDays(date) {
+        if (!state.referenceDate || !(date instanceof Date)) return 9999;
+        return Math.max(0, Math.floor((state.referenceDate.getTime() - date.getTime()) / DAY));
+      }
+
+      function safeURL(value) {
+        if (!value) return "";
+
+        try {
+          var url = new URL(String(value), window.location.href);
+          return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+        } catch (error) {
+          return "";
+        }
+      }
+
+      async function getJSON(path) {
+        var response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) throw new Error(path + " HTTP " + response.status);
+        return response.json();
+      }
+
+      function setSourceButtons(source) {
+        document.querySelectorAll(".px-source button").forEach(function (button) {
+          button.setAttribute("aria-pressed", button.dataset.source === source ? "true" : "false");
+        });
+      }
+
+      function setViewButtons(viewName) {
+        document.querySelectorAll(".px-view button").forEach(function (button) {
+          button.setAttribute("aria-pressed", button.dataset.view === viewName ? "true" : "false");
+        });
+      }
+
+      function setLoading(loading) {
+        $("pxLoading").hidden = !loading;
+        if (loading) $("pxEmpty").hidden = true;
+      }
+
+      function showEmpty(title, text) {
+        $("pxEmptyTitle").textContent = cleanText(title);
+        $("pxEmptyText").textContent = cleanText(text);
+        $("pxEmpty").hidden = false;
+      }
+
+      function setStatus() {
+        var dateText = state.referenceDate ? formatDate(state.referenceDate) : "Stand unbekannt";
+        var sourceText = state.source === "history" ? "Historie" : "Live";
+        var suffix = state.fallback ? " · Registeransicht" : "";
+        $("pxStatus").textContent =
+          dateText + " · " + sourceText + " · " +
+          state.days + (state.days === 1 ? "-Tag" : "-Tage") + "fenster" + suffix;
+        $("pxNotice").textContent = state.notices.join(" ");
+      }
+
+      function extractArticleArray(value) {
+        if (Array.isArray(value)) return value;
+        if (!value || typeof value !== "object") return [];
+        return asArray(value.news || value.items || value.archive);
+      }
+
+      function normalizeArticles(news, archive) {
+        var raw = extractArticleArray(news).concat(extractArticleArray(archive));
+        var unique = new Map();
+        var latestDate = null;
+
+        raw.forEach(function (item) {
+          if (!item || typeof item !== "object") return;
+
+          var title = typeof item.title === "string" ? item.title.trim() : "";
+          if (!title) return;
+
+          var date = parseDate(item.date);
+          var firstSeen = parseDate(item.first_seen) || date;
+          var link = typeof item.link === "string" ? item.link.trim() : "";
+          var summary = typeof item.summary === "string" ? item.summary.trim() : "";
+          var source = typeof item.source === "string" && item.source.trim()
+            ? item.source.trim()
+            : "Unbekannte Quelle";
+          var key = link || (date ? date.toISOString().slice(0, 10) + "|" : "") + normalizeText(title);
+          var existing = unique.get(key);
+
+          if (!existing) {
+            unique.set(key, {
+              title: title,
+              summary: summary,
+              source: source,
+              link: link,
+              date: date,
+              firstSeen: firstSeen,
+              storyId: typeof item.story_id === "string" ? item.story_id : "",
+              entityIds: [],
+              day: 9999
+            });
+          } else {
+            if (!existing.summary && summary) existing.summary = summary;
+            if (existing.source === "Unbekannte Quelle" && source !== "Unbekannte Quelle") existing.source = source;
+
+            if (date && (!existing.date || date > existing.date)) existing.date = date;
+
+            if (firstSeen && (!existing.firstSeen || firstSeen < existing.firstSeen)) {
+              existing.firstSeen = firstSeen;
+            }
+
+            if (!existing.storyId && typeof item.story_id === "string") {
+              existing.storyId = item.story_id;
+            }
+          }
+        });
+
+        var articles = Array.from(unique.values());
+
+        articles.forEach(function (article) {
+          if (article.date && (!latestDate || article.date > latestDate)) latestDate = article.date;
+        });
+
+        var graphDate = parseDate(state.graph && state.graph.stand);
+        state.referenceDate = graphDate || latestDate || new Date();
+
+        return articles;
+      }
+
+      function escapeRegex(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function buildMatchers() {
+        var entities = new Map();
+        var graphNodes = asArray(state.graph && state.graph.nodes);
+
+        asArray(state.registry && state.registry.entities).forEach(function (entity) {
+          if (entity && typeof entity === "object" && entity.id) {
+            entities.set(String(entity.id).trim(), entity);
+          }
+        });
+
+        graphNodes.forEach(function (node) {
+          if (node && node.id && !entities.has(String(node.id))) {
+            entities.set(String(node.id), node);
+          }
+        });
+
+        var matchers = [];
+
+        entities.forEach(function (entity, id) {
+          if (!id) return;
+
+          var patterns = [];
+          var aliases = [id].concat(asArray(entity.aliasse));
+
+          aliases.forEach(function (alias) {
+            if (typeof alias !== "string" || !alias.trim()) return;
+
+            var source = alias === id ? escapeRegex(alias) : alias;
+
+            try {
+              patterns.push(new RegExp(source, "i"));
+            } catch (error) {
+              try {
+                patterns.push(new RegExp(escapeRegex(alias), "i"));
+              } catch (fallbackError) {
+                return;
+              }
+            }
+          });
+
+          if (patterns.length) matchers.push({ id: id, patterns: patterns });
+        });
+
+        return matchers;
+      }
+
+      function indexArticleEntities() {
+        var matchers = buildMatchers();
+
+        state.articles.forEach(function (article) {
+          var text = String(article.title || "") + " " + String(article.summary || "");
+          var ids = [];
+          var index = Object.create(null);
+
+          matchers.forEach(function (matcher) {
+            var found = false;
+
+            matcher.patterns.forEach(function (pattern) {
+              pattern.lastIndex = 0;
+              if (pattern.test(text)) found = true;
+            });
+
+            if (found && index[matcher.id] !== 1) {
+              index[matcher.id] = 1;
+              ids.push(matcher.id);
+            }
+          });
+
+          article.entityIds = ids;
+          article.day = ageInDays(article.firstSeen || article.date);
+        });
+      }
+
+      function sortNewest(a, b) {
+        return (b.firstSeen ? b.firstSeen.getTime() : 0) - (a.firstSeen ? a.firstSeen.getTime() : 0);
+      }
+
+      function makeNode(id, graphNode, registryNode) {
+        graphNode = graphNode && typeof graphNode === "object" ? graphNode : {};
+        registryNode = registryNode && typeof registryNode === "object" ? registryNode : {};
+
+        return {
+          id: id,
+          count: 0,
+          today: 0,
+          first: null,
+          last: null,
+          typ: graphNode.typ || registryNode.typ || "sonst",
+          parent: graphNode.gehoert_zu || registryNode.gehoert_zu || null,
+          degree: 0,
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0
+        };
+      }
+
+      function initializePositions(previous) {
+        var sorted = state.nodes.slice().sort(function (a, b) { return b.count - a.count; });
+
+        sorted.forEach(function (node, index) {
+          if (previous[node.id] && Math.hypot(previous[node.id].x, previous[node.id].y) > 1) {
+            node.x = previous[node.id].x;
+            node.y = previous[node.id].y;
+            return;
+          }
+
+          var angle = index * 2.3999632297;
+          var distance = 88 + Math.sqrt(index + 1) * 45;
+          node.x = Math.cos(angle) * distance;
+          node.y = Math.sin(angle) * distance;
+          node.vx = 0;
+          node.vy = 0;
+        });
+      }
+
+      function useGraphFallback(nodeMap) {
+        var graphNodes = asArray(state.graph && state.graph.nodes);
+        var registryMap = {};
+        var graphMap = {};
+
+        asArray(state.registry && state.registry.entities).forEach(function (entity) {
+          if (entity && entity.id) registryMap[String(entity.id)] = entity;
+        });
+
+        graphNodes.forEach(function (node) {
+          if (node && node.id) graphMap[String(node.id)] = node;
+        });
+
+        if (!nodeMap.size) {
+          graphNodes.forEach(function (raw) {
+            if (!raw || !raw.id) return;
+            var id = String(raw.id);
+            var node = makeNode(id, raw, registryMap[id]);
+            node.count = Math.max(1, Number(raw.count) || 1);
+            node.first = parseDate(raw.first_seen);
+            node.last = parseDate(raw.last_seen);
+            nodeMap[id] = node;
+          });
+        }
+
+        if (!nodeMap.size) return;
+
+        asArray(state.graph && state.graph.edges).forEach(function (raw) {
+          if (!raw || !raw.source || !raw.target) return;
+          var source = String(raw.source);
+          var target = String(raw.target);
+          if (!nodeMap[source] || !nodeMap[target]) return;
+          nodeMap[source].degree += 1;
+          nodeMap[target].degree += 1;
+        });
+
+        state.edges = asArray(state.graph && state.graph.edges).map(function (raw) {
+          if (!raw || !raw.source || !raw.target) return null;
+          var source = String(raw.source);
+          var target = String(raw.target);
+          if (!nodeMap[source] || !nodeMap[target]) return null;
+
+          return {
+            a: nodeMap[source],
+            b: nodeMap[target],
+            source: source,
+            target: target,
+            count: Math.max(1, Number(raw.count) || 1),
+            first: parseDate(raw.first_seen),
+            last: parseDate(raw.last_seen)
+          };
+        }).filter(Boolean);
+      }
+
+      function rebuildWindow() {
+        var previous = {};
+
+        state.nodes.forEach(function (node) {
+          if (Number.isFinite(node.x) && Number.isFinite(node.y) && Math.hypot(node.x, node.y) > 1) {
+            previous[node.id] = { x: node.x, y: node.y };
+          }
+        });
+
+        state.todayArticles = state.articles.filter(function (article) {
+          return article.day === 0;
+        }).sort(sortNewest);
+
+        state.activeArticles = state.articles.filter(function (article) {
+          return article.day < state.days && article.entityIds.length > 0;
+        });
+
+        var graphMap = {};
+        var registryMap = {};
+
+        asArray(state.graph && state.graph.nodes).forEach(function (node) {
+          if (node && node.id) graphMap[String(node.id)] = node;
+        });
+
+        asArray(state.registry && state.registry.entities).forEach(function (entity) {
+          if (entity && entity.id) registryMap[String(entity.id)] = entity;
+        });
+
+        var nodeMap = new Map();
+
+        state.activeArticles.forEach(function (article) {
+          article.entityIds.forEach(function (id) {
+            if (!nodeMap.has(id)) nodeMap.set(id, makeNode(id, graphMap[id], registryMap[id]));
+
+            var node = nodeMap.get(id);
+            node.count += 1;
+            if (article.day === 0) node.today += 1;
+
+            var eventDate = article.firstSeen || article.date;
+            if (eventDate && (!node.first || eventDate < node.first)) node.first = eventDate;
+            if (eventDate && (!node.last || eventDate > node.last)) node.last = eventDate;
+          });
+        });
+
+        var edgeMap = new Map();
+
+        state.activeArticles.forEach(function (article) {
+          var ids = article.entityIds.slice().sort();
+
+          for (var i = 0; i < ids.length; i++) {
+            for (var j = i + 1; j < ids.length; j++) {
+              var key = ids[i] + "\u0000" + ids[j];
+
+              if (!edgeMap.has(key)) {
+                edgeMap.set(key, {
+                  a: nodeMap.get(ids[i]),
+                  b: nodeMap.get(ids[j]),
+                  source: ids[i],
+                  target: ids[j],
+                  count: 0,
+                  first: null,
+                  last: null
+                });
+              }
+
+              var edge = edgeMap.get(key);
+              edge.count += 1;
+
+              var eventDate = article.firstSeen || article.date;
+              if (eventDate && (!edge.first || eventDate < edge.first)) edge.first = eventDate;
+              if (eventDate && (!edge.last || eventDate > edge.last)) edge.last = eventDate;
+            }
+          }
+        });
+
+        state.fallback = !nodeMap.size;
+        state.nodes = Array.from(nodeMap.values());
+        state.edges = Array.from(edgeMap.values()).filter(function (edge) {
+          return edge.a && edge.b;
+        });
+
+        state.edges.forEach(function (edge) {
+          edge.a.degree += 1;
+          edge.b.degree += 1;
+        });
+
+        if (state.fallback) useGraphFallback(nodeMap);
+
+        state.byId = {};
+        state.nodes.forEach(function (node) { state.byId[node.id] = node; });
+
+        initializePositions(previous);
+        updateMinControl();
+        renderLegend();
+        applyFilter(true);
+        setStatus();
+
+        if (state.view === "today") renderToday();
+
+        if (!state.visibleNodes.length) {
+          showEmpty(
+            "Keine passenden Entitäten",
+            state.articles.length
+              ? "Für dieses Zeitfenster wurden keine verknüpfbaren Meldungen gefunden."
+              : "Es wurden keine lesbaren News- oder Archivdaten gefunden."
+          );
+        } else {
+          $("pxEmpty").hidden = true;
+        }
+
+        setLoading(false);
+      }
+
+      function updateMinControl() {
+        var maximum = state.edges.reduce(function (highest, edge) {
+          return Math.max(highest, edge.count);
+        }, 1);
+
+        maximum = Math.max(1, Math.min(30, maximum));
+        $("pxMin").max = String(maximum);
+        $("pxMinMax").textContent = String(maximum);
+
+        if (state.minEdge > maximum) {
+          state.minEdge = maximum;
+          $("pxMin").value = String(maximum);
+        }
+
+        $("pxMinOutput").textContent = state.minEdge + (state.minEdge === 1 ? " Meldung" : " Meldungen");
+      }
+
+      function applyFilter(restartLayout) {
+        state.minEdge = Math.max(1, Number($("pxMin").value) || 1);
+        state.fadeOld = $("pxFade").checked;
+
+        state.visibleEdges = state.edges.filter(function (edge) {
+          return edge.count >= state.minEdge;
+        });
+
+        var used = new Set();
+
+        state.visibleEdges.forEach(function (edge) {
+          used.add(edge.a.id);
+          used.add(edge.b.id);
+        });
+
+        state.visibleNodes = state.nodes.filter(function (node) {
+          return used.has(node.id) || state.minEdge === 1;
+        });
+
+        if (state.active && state.visibleNodes.indexOf(state.active) === -1) closeDrawer();
+
+        $("pxMinOutput").textContent = state.minEdge + (state.minEdge === 1 ? " Meldung" : " Meldungen");
+        $("pxStageSub").textContent = state.days + (state.days === 1 ? " Tag" : " Tage");
+        $("pxStageNodes").textContent = String(state.visibleNodes.length);
+        $("pxStageEdges").textContent = String(state.visibleEdges.length);
+        updateStats();
+        renderSearchResults();
+
+        if (restartLayout) {
+          settleLayout(state.visibleNodes.length > 140 ? 18 : 70);
+          fitGraph();
+        }
+
+        draw();
+      }
+
+      function updateStats() {
+        $("pxNodeCount").textContent = String(state.visibleNodes.length);
+        $("pxEdgeCount").textContent = String(state.visibleEdges.length);
+        $("pxArticleCount").textContent = String(state.activeArticles.length);
+        $("pxStageNodes").textContent = String(state.visibleNodes.length);
+        $("pxStageEdges").textContent = String(state.visibleEdges.length);
+      }
+
+      function renderLegend() {
+        var counts = {};
+        var fragment = document.createDocumentFragment();
+
+        state.nodes.forEach(function (node) {
+          counts[node.typ] = (counts[node.typ] || 0) + 1;
+        });
+
+        Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).forEach(function (typ) {
+          var item = createElement("span", "px-legend-item");
+          var swatch = createElement("span", "px-legend-swatch");
+          swatch.style.setProperty("--legend-color", typeColor(typ));
+          item.appendChild(swatch);
+          item.appendChild(document.createTextNode(typ + " " + counts[typ]));
+          fragment.appendChild(item);
+        });
+
+        $("pxLegend").replaceChildren(fragment);
+      }
+
+      function renderSearchResults() {
+        var query = normalizeText(state.query);
+        var box = $("pxResults");
+        var matches = [];
+
+        if (query) {
+          matches = state.visibleNodes.filter(function (node) {
+            return normalizeText(node.id).includes(query);
+          }).sort(function (a, b) {
+            return b.count - a.count;
+          });
+        }
+
+        $("pxSearchCount").textContent = query ? matches.length + " Treffer" : "";
+        box.replaceChildren();
+
+        if (!query || !state.searchOpen) {
+          draw();
+          return;
+        }
+
+        if (!matches.length) {
+          box.appendChild(createElement("div", "px-result-empty", "Keine Entität im aktuellen Zeitfenster gefunden."));
+          draw();
+          return;
+        }
+
+        matches.slice(0, 8).forEach(function (node) {
+          var button = createElement("button", "px-result");
+          button.type = "button";
+          var dot = createElement("span", "px-result-dot");
+          dot.style.background = typeColor(node.typ);
+          button.appendChild(dot);
+          button.appendChild(createElement("span", "px-result-name", node.id));
+          button.appendChild(createElement("span", "px-result-count", node.count + "×"));
+          button.addEventListener("click", function () {
+            state.searchOpen = false;
+            openNode(node, true);
+          });
+          box.appendChild(button);
+        });
+
+        draw();
+      }
+
+      function radiusFor(node) {
+        return Math.max(7.5, Math.min(31, 7.5 + Math.sqrt(Math.max(1, node.count)) * 1.45));
+      }
+
+      function settleLayout(iterations) {
+        if (!state.visibleNodes.length) return;
+
+        var nodes = state.visibleNodes;
+        var edges = state.visibleEdges;
+        var count = Math.max(8, Math.min(75, Number(iterations) || 50));
+        var i;
+        var j;
+
+        nodes.forEach(function (node) {
+          node.vx = 0;
+          node.vy = 0;
+        });
+
+        for (var iteration = 0; iteration < count; iteration++) {
+          for (i = 0; i < nodes.length; i++) {
+            var a = nodes[i];
+
+            for (j = i + 1; j < nodes.length; j++) {
+              var b = nodes[j];
+              var dx = b.x - a.x;
+              var dy = b.y - a.y;
+              var distance = Math.hypot(dx, dy) || .1;
+              var minimum = radiusFor(a) + radiusFor(b) + 29;
+              var repulsion = Math.min(2.7, 7600 / (distance * distance + 24));
+              var ux = dx / distance;
+              var uy = dy / distance;
+
+              a.vx -= ux * repulsion;
+              a.vy -= uy * repulsion;
+              b.vx += ux * repulsion;
+              b.vy += uy * repulsion;
+
+              if (distance < minimum) {
+                var push = (minimum - distance) * .5;
+                a.x -= ux * push;
+                a.y -= uy * push;
+                b.x += ux * push;
+                b.y += uy * push;
+              }
+            }
+          }
+
+          for (i = 0; i < edges.length; i++) {
+            var edge = edges[i];
+            var first = edge.a;
+            var second = edge.b;
+            var ex = second.x - first.x;
+            var ey = second.y - first.y;
+            var edgeDistance = Math.hypot(ex, ey) || .1;
+            var target = 72 + Math.min(145, 760 / (edge.count + 1)) + radiusFor(first) + radiusFor(second);
+            var attraction = Math.max(-.9, Math.min(.56, (edgeDistance - target) * .0027));
+            var exu = ex / edgeDistance;
+            var eyu = ey / edgeDistance;
+
+            first.vx += exu * attraction;
+            first.vy += eyu * attraction;
+            second.vx -= exu * attraction;
+            second.vy -= eyu * attraction;
+          }
+
+          nodes.forEach(function (node) {
+            var pull = node.degree ? .00062 : .003;
+            node.vx -= node.x * pull;
+            node.vy -= node.y * pull;
+            node.vx *= .79;
+            node.vy *= .79;
+            node.x += node.vx;
+            node.y += node.vy;
+            node.x = Math.max(-2200, Math.min(2200, node.x));
+            node.y = Math.max(-2200, Math.min(2200, node.y));
+          });
+        }
+
+        hasFit = false;
+      }
+
+      function requestTick() {
+        if (running) return;
+        running = true;
+        requestAnimationFrame(tick);
+      }
+
+      function simulationStep() {
+        var nodes = state.visibleNodes;
+        var edges = state.visibleEdges;
+        var i;
+        var j;
+
+        for (i = 0; i < nodes.length; i++) {
+          var a = nodes[i];
+
+          for (j = i + 1; j < nodes.length; j++) {
+            var b = nodes[j];
+            var dx = b.x - a.x;
+            var dy = b.y - a.y;
+            var distance = Math.hypot(dx, dy) || .1;
+            var minimum = radiusFor(a) + radiusFor(b) + 27;
+            var force = Math.min(2.9, 7900 / (distance * distance + 24));
+            var ux = dx / distance;
+            var uy = dy / distance;
+
+            a.vx -= ux * force;
+            a.vy -= uy * force;
+            b.vx += ux * force;
+            b.vy += uy * force;
+
+            if (distance < minimum) {
+              var push = (minimum - distance) * .44;
+              a.x -= ux * push;
+              a.y -= uy * push;
+              b.x += ux * push;
+              b.y += uy * push;
+            }
+          }
+        }
+
+        for (i = 0; i < edges.length; i++) {
+          var edge = edges[i];
+          var first = edge.a;
+          var second = edge.b;
+          var ex = second.x - first.x;
+          var ey = second.y - first.y;
+          var distance = Math.hypot(ex, ey) || .1;
+          var target = 72 + Math.min(145, 760 / (edge.count + 1)) + radiusFor(first) + radiusFor(second);
+          var force = Math.max(-.9, Math.min(.6, (distance - target) * .0028));
+          var ux = ex / distance;
+          var uy = ey / distance;
+
+          first.vx += ux * force;
+          first.vy += uy * force;
+          second.vx -= ux * force;
+          second.vy -= uy * force;
+        }
+
+        nodes.forEach(function (node) {
+          var pull = node.degree ? .00062 : .003;
+          node.vx -= node.x * pull;
+          node.vy -= node.y * pull;
+          node.vx *= .8;
+          node.vy *= .8;
+
+          if (node !== pointerState.dragNode) {
+            node.x += node.vx * temperature;
+            node.y += node.vy * temperature;
+          }
+
+          node.x = Math.max(-2200, Math.min(2200, node.x));
+          node.y = Math.max(-2200, Math.min(2200, node.y));
+        });
+
+        temperature *= .972;
+      }
+
+      function tick() {
+        if (temperature > .055) {
+          simulationStep();
+          draw();
+          requestAnimationFrame(tick);
+        } else {
+          temperature = 0;
+          running = false;
+          if (!hasFit) fitGraph();
+          draw();
+        }
+      }
+
+      function screenPoint(node) {
+        return {
+          x: node.x * view.k + view.x,
+          y: node.y * view.k + view.y
+        };
+      }
+
+      function worldPoint(x, y) {
+        return {
+          x: (x - view.x) / view.k,
+          y: (y - view.y) / view.k
+        };
+      }
+
+      function drawGrid(width, height) {
+        ctx.fillStyle = colors.bg;
+        ctx.fillRect(0, 0, width, height);
+
+        var glow = ctx.createRadialGradient(
+          width * .52,
+          height * .44,
+          0,
+          width * .52,
+          height * .44,
+          Math.max(width, height) * .76
+        );
+        glow.addColorStop(0, withAlpha(colors.cyan, .045));
+        glow.addColorStop(.46, withAlpha(colors.violet, .014));
+        glow.addColorStop(1, withAlpha(colors.bg, 0));
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        var size = 44;
+        var offsetX = ((view.x % size) + size) % size;
+        var offsetY = ((view.y % size) + size) % size;
+
+        ctx.lineWidth = 1;
+        for (var x = offsetX; x <= width; x += size) {
+          var verticalMajor = Math.round((x - offsetX) / size) % 4 === 0;
+          ctx.strokeStyle = withAlpha(colors.hairline, verticalMajor ? .31 : .11);
+          ctx.beginPath();
+          ctx.moveTo(Math.round(x) + .5, 0);
+          ctx.lineTo(Math.round(x) + .5, height);
+          ctx.stroke();
+        }
+
+        for (var y = offsetY; y <= height; y += size) {
+          var horizontalMajor = Math.round((y - offsetY) / size) % 4 === 0;
+          ctx.strokeStyle = withAlpha(colors.hairline, horizontalMajor ? .31 : .11);
+          ctx.beginPath();
+          ctx.moveTo(0, Math.round(y) + .5);
+          ctx.lineTo(width, Math.round(y) + .5);
+          ctx.stroke();
+        }
+
+        ctx.save();
+        ctx.translate(view.x, view.y);
+        ctx.scale(view.k, view.k);
+        ctx.strokeStyle = withAlpha(colors.cyan, .055);
+        ctx.lineWidth = 1 / view.k;
+
+        [280, 560, 1120, 2240].forEach(function (ring) {
+          ctx.beginPath();
+          ctx.arc(0, 0, ring, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        ctx.restore();
+      }
+
+      function draw() {
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        if (!width || !height) return;
+
+        ctx.clearRect(0, 0, width, height);
+        drawGrid(width, height);
+
+        var neighbors = new Set();
+
+        if (state.active) {
+          state.visibleEdges.forEach(function (edge) {
+            if (edge.a === state.active) neighbors.add(edge.b.id);
+            if (edge.b === state.active) neighbors.add(edge.a.id);
+          });
+        }
+
+        var query = normalizeText(state.query);
+        var dimmedView = state.view === "today";
+        var orderedEdges = state.visibleEdges.slice().sort(function (a, b) { return a.count - b.count; });
+
+        orderedEdges.forEach(function (edge) {
+          var a = screenPoint(edge.a);
+          var b = screenPoint(edge.b);
+          var related = state.active && (edge.a === state.active || edge.b === state.active);
+          var age = ageInDays(edge.last);
+          var opacity = .09 + Math.min(.5, Math.sqrt(edge.count) * .075);
+
+          if (state.fadeOld) {
+            var start = Math.max(1, state.days * .6);
+            if (age > start) opacity *= Math.max(.24, 1 - (age - start) / Math.max(2, state.days - start));
+          }
+
+          if (state.active) opacity = related ? .94 : .045;
+          if (dimmedView) opacity *= .16;
+
+          ctx.strokeStyle = withAlpha(typeColor(edge.a.typ), opacity);
+          ctx.lineWidth = Math.max(.7, Math.min(4.5, .75 + Math.sqrt(edge.count) * .46));
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        });
+
+        var orderedNodes = state.visibleNodes.slice().sort(function (a, b) { return a.count - b.count; });
+
+        orderedNodes.forEach(function (node) {
+          var point = screenPoint(node);
+          var screenRadius = Math.max(4, radiusFor(node) * view.k);
+          var match = query && normalizeText(node.id).includes(query);
+          var dim = (state.active && node !== state.active && !neighbors.has(node.id)) ||
+            (query && !match) || dimmedView;
+          var color = typeColor(node.typ);
+
+          ctx.globalAlpha = dim ? .13 : 1;
+
+          if (node === state.active || node === state.hover || match) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = node === state.hover ? 15 : 21;
+          }
+
+          ctx.fillStyle = withAlpha(color, .18);
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, screenRadius + 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, screenRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(255,255,255,.26)";
+          ctx.beginPath();
+          ctx.arc(
+            point.x - screenRadius * .24,
+            point.y - screenRadius * .25,
+            Math.max(.8, screenRadius * .18),
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+
+          if (node.today > 0) {
+            ctx.strokeStyle = withAlpha(colors.green, dim ? .22 : .85);
+            ctx.lineWidth = 1.15;
+            ctx.setLineDash([2, 3]);
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, screenRadius + 6, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+
+          if (node === state.active || node === state.hover || match) {
+            ctx.strokeStyle = match ? colors.cyan : colors.text;
+            ctx.lineWidth = node === state.active ? 2.5 : 1.8;
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, screenRadius + 3.5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        });
+
+        ctx.globalAlpha = 1;
+        drawLabels(query, neighbors);
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
+
+      function drawLabels(query, neighbors) {
+        if (!state.visibleNodes.length || state.view === "today") return;
+
+        var selected = new Set();
+        var baseline = state.visibleNodes.slice().sort(function (a, b) {
+          return b.count - a.count;
+        }).slice(0, canvas.clientWidth < 620 ? 18 : 28);
+
+        baseline.forEach(function (node) { selected.add(node.id); });
+
+        state.visibleNodes.forEach(function (node) {
+          var match = query && normalizeText(node.id).includes(query);
+          if (match || node === state.active || node === state.hover || neighbors.has(node.id)) {
+            selected.add(node.id);
+          }
+        });
+
+        var candidates = state.visibleNodes.filter(function (node) { return selected.has(node.id); });
+
+        candidates.sort(function (a, b) {
+          function priority(node) {
+            if (node === state.active) return 12;
+            if (node === state.hover) return 10;
+            if (query && normalizeText(node.id).includes(query)) return 9;
+            if (neighbors.has(node.id)) return 6;
+            return Math.min(5, node.count / 20);
+          }
+          return priority(b) - priority(a);
+        });
+
+        var occupied = [];
+        var width = canvas.clientWidth;
+
+        candidates.forEach(function (node) {
+          var match = query && normalizeText(node.id).includes(query);
+          var important = node === state.active || node === state.hover || match;
+          var point = screenPoint(node);
+          var screenRadius = Math.max(4, radiusFor(node) * view.k);
+          var fontSize = node === state.active ? 13 : match ? 12 : width < 620 ? 10.5 : 11;
+
+          ctx.font = (node === state.active ? "700 " : "600 ") +
+            fontSize + 'px "Space Grotesk", system-ui, sans-serif';
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+
+          var label = shortLabel(cleanText(node.id), query, fontSize, width);
+          var textWidth = ctx.measureText(label).width;
+          var startX = Math.max(5, Math.min(width - textWidth - 5, point.x - textWidth / 2));
+          var baseY = point.y + screenRadius + 5;
+          var chosenY = baseY;
+          var foundPlace = false;
+
+          for (var attempt = 0; attempt < 7; attempt++) {
+            var testY = baseY + attempt * (fontSize + 2);
+            var overlap = occupied.some(function (rect) {
+              return !(
+                startX - 4 > rect.x + rect.w ||
+                startX + textWidth + 8 < rect.x ||
+                testY > rect.y + rect.h ||
+                testY + fontSize + 5 < rect.y
+              );
+            });
+
+            if (!overlap) {
+              chosenY = testY;
+              foundPlace = true;
+              break;
+            }
+
+            if (!important) return;
+          }
+
+          if (!foundPlace && important) chosenY = point.y - screenRadius - fontSize - 6;
+          if (chosenY < 4 || chosenY + fontSize + 5 > canvas.clientHeight - 4) return;
+
+          occupied.push({
+            x: startX - 4,
+            y: chosenY,
+            w: textWidth + 8,
+            h: fontSize + 5
+          });
+
+          ctx.fillStyle = withAlpha(colors.bg, .88);
+          ctx.fillRect(startX - 4, chosenY - 1, textWidth + 8, fontSize + 5);
+
+          if (match) {
+            drawHighlightedLabel(label, query, startX, chosenY, fontSize);
+          } else {
+            ctx.fillStyle = node === state.active ? colors.cyan : colors.text;
+            ctx.fillText(label, startX, chosenY);
+          }
+        });
+      }
+
+      function shortLabel(text, query, fontSize, width) {
+        ctx.font = "600 " + fontSize + 'px "Space Grotesk", system-ui, sans-serif';
+        var maximum = Math.max(105, Math.min(190, width - 28));
+        if (ctx.measureText(text).width <= maximum) return text;
+
+        var lower = normalizeText(text);
+        var index = query ? lower.indexOf(query) : -1;
+        var start = index >= 0 ? Math.max(0, index - 32) : 0;
+        var end = Math.min(text.length, start + 58);
+        var shortened = (start > 0 ? "…" : "") + text.slice(start, end);
+        if (end < text.length) shortened += "…";
+        return shortened;
+      }
+
+      function drawHighlightedLabel(text, query, startX, y, fontSize) {
+        var lower = normalizeText(text);
+        var index = lower.indexOf(query);
+
+        if (index < 0) {
+          ctx.fillStyle = colors.text;
+          ctx.fillText(text, startX, y);
+          return;
+        }
+
+        var before = text.slice(0, index);
+        var found = text.slice(index, index + query.length);
+        var after = text.slice(index + query.length);
+        var beforeWidth = ctx.measureText(before).width;
+        var foundWidth = ctx.measureText(found).width;
+
+        ctx.fillStyle = withAlpha(colors.cyan, .2);
+        ctx.fillRect(startX + beforeWidth - 2, y - 1, foundWidth + 4, fontSize + 4);
+        ctx.fillStyle = colors.text;
+        ctx.fillText(before, startX, y);
+        ctx.fillStyle = colors.cyan;
+        ctx.fillText(found, startX + beforeWidth, y);
+        ctx.fillStyle = colors.text;
+        ctx.fillText(after, startX + beforeWidth + foundWidth, y);
+      }
+
+      function resizeCanvas() {
+        var rect = canvas.getBoundingClientRect();
+        var dpr = Math.min(2.5, window.devicePixelRatio || 1);
+
+        canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (!hasFit) {
+          view.x = rect.width / 2;
+          view.y = rect.height / 2;
+        }
+
+        draw();
+      }
+
+      function drawerOffset() {
+        var width = canvas.clientWidth;
+        if (width <= 760 || !$("pxDrawer").hidden) return 0;
+        return Math.min(470, width * .38);
+      }
+
+      function fitGraph() {
+        if (!state.visibleNodes.length) {
+          hasFit = true;
+          draw();
+          return;
+        }
+
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        var right = drawerOffset();
+        var leftEdge = width <= 700 ? 14 : 26;
+        var rightEdge = Math.max(leftEdge + 180, width - right - (width <= 700 ? 14 : 26));
+        var top = width <= 700 ? 43 : 54;
+        var bottom = width <= 700 ? 48 : 62;
+        var usableWidth = rightEdge - leftEdge;
+        var usableHeight = Math.max(160, height - top - bottom);
+        var minX = Infinity;
+        var minY = Infinity;
+        var maxX = -Infinity;
+        var maxY = -Infinity;
+
+        state.visibleNodes.forEach(function (node) {
+          var padding = radiusFor(node) + 36;
+          minX = Math.min(minX, node.x - padding);
+          minY = Math.min(minY, node.y - padding);
+          maxX = Math.max(maxX, node.x + padding);
+          maxY = Math.max(maxY, node.y + padding);
+        });
+
+        var graphWidth = Math.max(1, maxX - minX);
+        var graphHeight = Math.max(1, maxY - minY);
+        var nextScale = Math.min(usableWidth / graphWidth, usableHeight / graphHeight);
+        view.k = Math.max(.12, Math.min(1.8, nextScale));
+        view.x = leftEdge + usableWidth / 2 - ((minX + maxX) / 2) * view.k;
+        view.y = top + usableHeight / 2 - ((minY + maxY) / 2) * view.k;
+        hasFit = true;
+        draw();
+      }
+
+      function centerNode(node) {
+        var width = canvas.clientWidth;
+        var right = drawerOffset();
+        var leftEdge = width <= 700 ? 14 : 26;
+        var rightEdge = Math.max(leftEdge + 180, width - right - (width <= 700 ? 14 : 26));
+        var centerX = (leftEdge + rightEdge) / 2;
+        var centerY = canvas.clientHeight / 2;
+
+        view.k = Math.max(view.k, width <= 700 ? 1.08 : .94);
+        view.x = centerX - node.x * view.k;
+        view.y = centerY - node.y * view.k;
+        hasFit = true;
+        draw();
+      }
+
+      function zoomAt(x, y, factor) {
+        var next = Math.max(.12, Math.min(4.2, view.k * factor));
+        var actual = next / view.k;
+        view.x = x - (x - view.x) * actual;
+        view.y = y - (y - view.y) * actual;
+        view.k = next;
+        hasFit = true;
+        draw();
+      }
+
+      function localPoint(event) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        };
+      }
+
+      function hitNode(point) {
+        var found = null;
+        var best = Infinity;
+
+        state.visibleNodes.forEach(function (node) {
+          var pointOnScreen = screenPoint(node);
+          var radius = Math.max(12, radiusFor(node) * view.k + 7);
+          var dx = point.x - pointOnScreen.x;
+          var dy = point.y - pointOnScreen.y;
+          var distance = Math.hypot(dx, dy);
+
+          if (distance <= radius) {
+            var ratio = distance / Math.max(1, radius);
+            if (ratio < best) {
+              best = ratio;
+              found = node;
+            }
+          }
+        });
+
+        return found;
+      }
+
+      function distanceBetween(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+
+      function resetPointerGesture() {
+        pointerState.dragNode = null;
+        pointerState.panning = false;
+        pointerState.moved = false;
+        pointerState.pinch = false;
+        pointerState.last = null;
+        canvas.classList.remove("px-dragging");
+      }
+
+      function beginPinch() {
+        var values = Array.from(pointers.values());
+        if (values.length < 2) return;
+
+        var first = values[0];
+        var second = values[1];
+        var center = {
+          x: (first.x + second.x) / 2,
+          y: (first.y + second.y) / 2
+        };
+
+        pointerState.pinch = true;
+        pointerState.dragNode = null;
+        pointerState.panning = false;
+        pointerState.moved = true;
+        pointerState.startDistance = Math.max(1, distanceBetween(first, second));
+        pointerState.startK = view.k;
+        pointerState.world = worldPoint(center.x, center.y);
+        canvas.classList.remove("px-dragging");
+      }
+
+      canvas.addEventListener("pointerdown", function (event) {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+
+        try { canvas.focus({ preventScroll: true }); } catch (error) {}
+
+        var point = localPoint(event);
+        pointers.set(event.pointerId, point);
+
+        try { canvas.setPointerCapture(event.pointerId); } catch (error) {}
+
+        if (pointers.size >= 2) {
+          beginPinch();
+          return;
+        }
+
+        var node = hitNode(point);
+        pointerState.last = point;
+        pointerState.moved = false;
+        pointerState.dragNode = node;
+        pointerState.panning = !node;
+        if (!node) canvas.classList.add("px-dragging");
+      });
+
+      canvas.addEventListener("pointermove", function (event) {
+        var point = localPoint(event);
+
+        if (!pointers.has(event.pointerId)) {
+          if (event.pointerType === "mouse") {
+            var hover = hitNode(point);
+            if (hover !== state.hover) {
+              state.hover = hover;
+              draw();
+            }
+            updateTooltip(hover, point);
+          }
+          return;
+        }
+
+        pointers.set(event.pointerId, point);
+
+        if (pointers.size >= 2) {
+          var values = Array.from(pointers.values());
+          var first = values[0];
+          var second = values[1];
+          var distance = Math.max(1, distanceBetween(first, second));
+          var center = {
+            x: (first.x + second.x) / 2,
+            y: (first.y + second.y) / 2
+          };
+
+          if (!pointerState.pinch) beginPinch();
+
+          var nextScale = Math.max(.12, Math.min(4.2, pointerState.startK * distance / pointerState.startDistance));
+          view.k = nextScale;
+          view.x = center.x - pointerState.world.x * nextScale;
+          view.y = center.y - pointerState.world.y * nextScale;
+          hasFit = true;
+          $("pxTooltip").hidden = true;
+          draw();
+          return;
+        }
+
+        var last = pointerState.last || point;
+        var dx = point.x - last.x;
+        var dy = point.y - last.y;
+
+        if (Math.abs(dx) + Math.abs(dy) > 1) pointerState.moved = true;
+
+        if (pointerState.dragNode) {
+          pointerState.dragNode.x += dx / view.k;
+          pointerState.dragNode.y += dy / view.k;
+          pointerState.dragNode.vx = 0;
+          pointerState.dragNode.vy = 0;
+          temperature = Math.max(temperature, .42);
+          requestTick();
+        } else if (pointerState.panning) {
+          view.x += dx;
+          view.y += dy;
+          hasFit = true;
+          draw();
+        }
+
+        pointerState.last = point;
+      });
+
+      function endPointer(event) {
+        var wasClick = pointers.size === 1 && !pointerState.moved && !pointerState.pinch;
+        var point = localPoint(event);
+        pointers.delete(event.pointerId);
+
+        try { canvas.releasePointerCapture(event.pointerId); } catch (error) {}
+
+        if (wasClick) {
+          var node = hitNode(point);
+          if (node) openNode(node, false);
+          else closeDrawer();
+        }
+
+        if (pointers.size >= 2) {
+          beginPinch();
+        } else if (pointers.size === 0) {
+          resetPointerGesture();
+        } else {
+          var remaining = Array.from(pointers.values())[0];
+          pointerState.last = remaining;
+          pointerState.moved = true;
+          pointerState.dragNode = null;
+          pointerState.panning = false;
+        }
+      }
+
+      canvas.addEventListener("pointerup", endPointer);
+      canvas.addEventListener("pointercancel", function (event) {
+        pointers.delete(event.pointerId);
+        resetPointerGesture();
+      });
+
+      canvas.addEventListener("pointerleave", function () {
+        if (pointers.size) return;
+        state.hover = null;
+        $("pxTooltip").hidden = true;
+        draw();
+      });
+
+      canvas.addEventListener("wheel", function (event) {
+        event.preventDefault();
+        var point = localPoint(event);
+        zoomAt(point.x, point.y, event.deltaY < 0 ? 1.12 : .89);
+      }, { passive: false });
+
+      canvas.addEventListener("keydown", function (event) {
+        if (event.key === "+" || event.key === "=") {
+          event.preventDefault();
+          zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, 1.15);
+        } else if (event.key === "-" || event.key === "_") {
+          event.preventDefault();
+          zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, .87);
+        } else if (event.key === "0") {
+          event.preventDefault();
+          fitGraph();
+        } else if (event.key === "Escape") {
+          closeDrawer();
+        }
+      });
+
+      function updateTooltip(node, point) {
+        var tooltip = $("pxTooltip");
+
+        if (!node) {
+          tooltip.hidden = true;
+          return;
+        }
+
+        tooltip.replaceChildren();
+        tooltip.appendChild(document.createTextNode(cleanText(node.id)));
+        tooltip.appendChild(createElement(
+          "span",
+          "px-tooltip-meta",
+          node.count + " Erwähnungen · " + cleanText(node.typ)
+        ));
+
+        var x = Math.min(canvas.clientWidth - tooltip.offsetWidth - 12, point.x + 14);
+        var y = Math.min(canvas.clientHeight - tooltip.offsetHeight - 12, point.y + 16);
+        tooltip.style.left = Math.max(12, x) + "px";
+        tooltip.style.top = Math.max(12, y) + "px";
+        tooltip.hidden = false;
+      }
+
+      function openDrawer(kicker, wide) {
+        $("pxDrawerKicker").textContent = cleanText(kicker);
+        $("pxDrawer").classList.toggle("px-drawer-wide", Boolean(wide));
+        $("pxDrawer").hidden = false;
+        $("pxDrawer").setAttribute("aria-hidden", "false");
+      }
+
+      function closeDrawer() {
+        state.active = null;
+        state.hover = null;
+        $("pxDrawer").hidden = true;
+        $("pxDrawer").classList.remove("px-drawer-wide");
+        $("pxDrawer").setAttribute("aria-hidden", "true");
+        $("pxDrawerScroll").replaceChildren();
+        $("pxTooltip").hidden = true;
+
+        if (state.view === "today") {
+          state.view = "graph";
+          setViewButtons("graph");
+          $("pxStageTitle").textContent = "Netzwerk";
+          $("pxStageSub").textContent = state.days + (state.days === 1 ? " Tag" : " Tage");
+        }
+
+        draw();
+      }
+
+      function openNode(node, move) {
+        state.view = "graph";
+        setViewButtons("graph");
+        state.active = node;
+        state.hover = null;
+        $("pxStageTitle").textContent = cleanText(node.id);
+        $("pxStageSub").textContent = state.days + (state.days === 1 ? " Tag" : " Tage");
+        $("pxTooltip").hidden = true;
+        openDrawer("Entität", false);
+        renderNodeDetail(node);
+
+        if (move) centerNode(node);
+        else draw();
+      }
+
+      function renderNodeDetail(node) {
+        var box = $("pxDrawerScroll");
+        box.replaceChildren();
+        box.appendChild(createElement("h2", "px-detail-title", node.id));
+        box.appendChild(createElement(
+          "p",
+          "px-detail-deck",
+          "Alle Verbindungen und Meldungen beziehen sich auf das aktuell gewählte Zeitfenster."
+        ));
+
+        var tags = createElement("div", "px-tags");
+        var typeTag = createElement("span", "px-tag", node.typ);
+        typeTag.style.setProperty("--tag-color", typeColor(node.typ));
+        tags.appendChild(typeTag);
+
+        if (node.parent) tags.appendChild(createElement("span", "px-tag", "gehört zu " + node.parent));
+
+        if (node.today) {
+          var todayTag = createElement("span", "px-tag", node.today + " heute");
+          todayTag.style.setProperty("--tag-color", colors.green);
+          tags.appendChild(todayTag);
+        }
+
+        box.appendChild(tags);
+
+        var meta = node.count + " Erwähnungen im gewählten Zeitfenster\n";
+        meta += "erstmals " + (node.first ? formatDate(node.first) : "unbekannt") + "\n";
+        meta += "zuletzt " + (node.last ? formatDate(node.last) : "unbekannt");
+        box.appendChild(createElement("p", "px-detail-meta", meta));
+
+        var neighbors = [];
+
+        state.visibleEdges.forEach(function (edge) {
+          if (edge.a === node) neighbors.push({ node: edge.b, edge: edge });
+          if (edge.b === node) neighbors.push({ node: edge.a, edge: edge });
+        });
+
+        neighbors.sort(function (a, b) { return b.edge.count - a.edge.count; });
+
+        var neighborSection = createElement("section", "px-section");
+        var neighborTitle = createElement("h3", "px-section-title");
+        neighborTitle.appendChild(document.createTextNode("Verbunden mit"));
+        neighborTitle.appendChild(createElement("span", null, String(neighbors.length)));
+        neighborSection.appendChild(neighborTitle);
+
+        if (!neighbors.length) {
+          neighborSection.appendChild(createElement(
+            "div",
+            "px-empty-note",
+            "Keine Verbindung erfüllt den aktuellen Mindestwert."
+          ));
+        } else {
+          var neighborList = createElement("div", "px-neighbor-list");
+
+          neighbors.forEach(function (item) {
+            var button = createElement("button", "px-neighbor");
+            button.type = "button";
+            var dot = createElement("span", "px-neighbor-dot");
+            dot.style.setProperty("--node-color", typeColor(item.node.typ));
+            button.appendChild(dot);
+
+            var copy = createElement("span", "px-neighbor-copy");
+            copy.appendChild(createElement("span", "px-neighbor-name", item.node.id));
+            copy.appendChild(createElement("span", "px-neighbor-meta", item.node.typ));
+            button.appendChild(copy);
+            button.appendChild(createElement("span", "px-neighbor-count", item.edge.count + "×"));
+            button.addEventListener("click", function () {
+              openNode(item.node, true);
+            });
+
+            neighborList.appendChild(button);
+          });
+
+          neighborSection.appendChild(neighborList);
+        }
+
+        box.appendChild(neighborSection);
+
+        var related = state.activeArticles.filter(function (article) {
+          return article.entityIds.indexOf(node.id) !== -1;
+        }).sort(sortNewest);
+
+        var articleSection = createElement("section", "px-section");
+        var articleTitle = createElement("h3", "px-section-title");
+        articleTitle.appendChild(document.createTextNode("Zugehörige Meldungen"));
+        articleTitle.appendChild(createElement("span", null, String(related.length)));
+        articleSection.appendChild(articleTitle);
+
+        if (!related.length) {
+          articleSection.appendChild(createElement(
+            "div",
+            "px-empty-note",
+            "Für diese Entität liegen im aktuellen Zeitfenster keine Meldungen vor."
+          ));
+        } else {
+          var articleList = createElement("div", "px-article-list");
+
+          related.slice(0, 30).forEach(function (article) {
+            articleList.appendChild(createArticle(article, typeColor(node.typ)));
+          });
+
+          articleSection.appendChild(articleList);
+
+          if (related.length > 30) {
+            articleSection.appendChild(createElement(
+              "div",
+              "px-empty-note",
+              "30 von " + related.length + " Meldungen werden angezeigt."
+            ));
+          }
+        }
+
+        box.appendChild(articleSection);
+        box.scrollTop = 0;
+      }
+
+      function createArticle(article, accent) {
+        var url = safeURL(article.link);
+        var card = createElement(url ? "a" : "div", "px-article");
+
+        if (url) {
+          card.href = url;
+          card.target = "_blank";
+          card.rel = "noopener noreferrer";
+        }
+
+        if (accent) card.style.setProperty("--article-color", accent);
+        card.appendChild(createElement("span", "px-article-title", article.title));
+        card.appendChild(createElement(
+          "span",
+          "px-article-meta",
+          cleanText(article.source) + " · " + (article.firstSeen || article.date ? formatDate(article.firstSeen || article.date) : "ohne Datum")
+        ));
+
+        if (article.summary) {
+          card.appendChild(createElement("span", "px-article-summary", article.summary));
+        }
+
+        return card;
+      }
+
+      function renderToday() {
+        var box = $("pxDrawerScroll");
+        box.replaceChildren();
+        box.appendChild(createElement("h2", "px-detail-title", "Heute neu"));
+        box.appendChild(createElement(
+          "p",
+          "px-detail-deck",
+          "Neue Meldungen im Datenstand vom " +
+          (state.referenceDate ? formatDate(state.referenceDate) : "unbekannt") +
+          ". Die Ansicht richtet sich nach dem Datenstand, nicht nach der Uhrzeit des Browsers."
+        ));
+
+        var sourceCount = new Set();
+        state.todayArticles.forEach(function (article) { sourceCount.add(article.source); });
+
+        var overview = createElement("div", "px-today-overview");
+        overview.appendChild(createElement("span", "px-today-mark", "TODAY"));
+        var overviewText = createElement("div");
+        overviewText.appendChild(createElement("strong", null, state.todayArticles.length + " Meldungen"));
+        overviewText.appendChild(createElement(
+          "span",
+          null,
+          sourceCount.size + " Quellen · " + state.todayArticles.length + " neue Einträge"
+        ));
+        overview.appendChild(overviewText);
+        box.appendChild(overview);
+
+        if (!state.todayArticles.length) {
+          box.appendChild(createElement(
+            "div",
+            "px-empty-note",
+            "Im aktuellen Datenstand sind für heute keine datierten Meldungen vorhanden."
+          ));
+          return;
+        }
+
+        var section = createElement("section", "px-section");
+        var title = createElement("h3", "px-section-title");
+        title.appendChild(document.createTextNode("Neue Meldungen"));
+        title.appendChild(createElement("span", null, String(state.todayArticles.length)));
+        section.appendChild(title);
+
+        var list = createElement("div", "px-article-list");
+        state.todayArticles.slice(0, 60).forEach(function (article) {
+          list.appendChild(createArticle(article, typeColor("anbieter")));
+        });
+        section.appendChild(list);
+        box.appendChild(section);
+
+        if (state.todayArticles.length > 60) {
+          box.appendChild(createElement(
+            "div",
+            "px-empty-note",
+            "60 von " + state.todayArticles.length + " Meldungen werden angezeigt."
+          ));
+        }
+
+        box.scrollTop = 0;
+      }
+
+      function setView(viewName) {
+        state.view = viewName;
+        setViewButtons(viewName);
+
+        if (viewName === "today") {
+          state.active = null;
+          $("pxStageTitle").textContent = "Heute neu";
+          $("pxStageSub").textContent = state.todayArticles.length + " Meldungen";
+          openDrawer("Tagesstand", true);
+          renderToday();
+        } else {
+          closeDrawer();
+        }
+
+        draw();
+      }
+
+      function updateWindowOutput() {
+        $("pxWindowOutput").textContent = state.days + (state.days === 1 ? " Tag" : " Tage");
+        $("pxDaysRange").value = String(state.days);
+        $("pxDaysRange").setAttribute("aria-valuetext", state.days + (state.days === 1 ? " Tag" : " Tage"));
+
+        document.querySelectorAll(".px-window-marks button").forEach(function (button) {
+          button.setAttribute(
+            "aria-pressed",
+            Number(button.dataset.days) === state.days ? "true" : "false"
+          );
+        });
+      }
+
+      function setDays(days) {
+        state.days = Math.max(1, Math.min(30, Number(days) || 7));
+        updateWindowOutput();
+        $("pxStageSub").textContent = state.days + (state.days === 1 ? " Tag" : " Tage");
+        setStatus();
+        rebuildWindow();
+      }
+
+      document.querySelectorAll(".px-window-marks button").forEach(function (button) {
+        button.addEventListener("click", function () {
+          setDays(Number(button.dataset.days));
+        });
+      });
+
+      var pendingWindow = 0;
+      $("pxDaysRange").addEventListener("input", function (event) {
+        state.days = Math.max(1, Math.min(30, Number(event.target.value) || 7));
+        updateWindowOutput();
+        $("pxStageSub").textContent = state.days + (state.days === 1 ? " Tag" : " Tage");
+        setStatus();
+
+        if (pendingWindow) cancelAnimationFrame(pendingWindow);
+        pendingWindow = requestAnimationFrame(function () {
+          pendingWindow = 0;
+          rebuildWindow();
+        });
+      });
+
+      document.querySelectorAll(".px-view button").forEach(function (button) {
+        button.addEventListener("click", function () {
+          setView(button.dataset.view);
+        });
+      });
+
+      document.querySelectorAll(".px-source button").forEach(function (button) {
+        button.addEventListener("click", function () {
+          if (loadingSource || button.dataset.source === state.source) return;
+          loadingSource = true;
+          document.querySelectorAll(".px-source button").forEach(function (item) { item.disabled = true; });
+          loadSource(button.dataset.source).finally(function () {
+            loadingSource = false;
+            document.querySelectorAll(".px-source button").forEach(function (item) { item.disabled = false; });
+          });
+        });
+      });
+
+      $("pxSearch").addEventListener("input", function (event) {
+        state.query = event.target.value;
+        state.searchOpen = true;
+        renderSearchResults();
+      });
+
+      $("pxSearch").addEventListener("focus", function () {
+        if (state.query) {
+          state.searchOpen = true;
+          renderSearchResults();
+        }
+      });
+
+      $("pxSearch").addEventListener("blur", function () {
+        window.setTimeout(function () {
+          state.searchOpen = false;
+          renderSearchResults();
+        }, 120);
+      });
+
+      $("pxSearch").addEventListener("cancel", function (event) {
+        state.query = "";
+        event.target.value = "";
+        state.searchOpen = false;
+        renderSearchResults();
+      });
+
+      $("pxSearch").addEventListener("keydown", function (event) {
+        if (event.key !== "Enter") return;
+        var query = normalizeText(state.query);
+        if (!query) return;
+
+        var match = state.visibleNodes.find(function (node) {
+          return normalizeText(node.id).includes(query);
+        });
+
+        if (match) {
+          state.searchOpen = false;
+          openNode(match, true);
+        }
+      });
+
+      $("pxMin").addEventListener("input", function () { applyFilter(false); });
+      $("pxFade").addEventListener("change", function () { applyFilter(false); });
+      $("pxClose").addEventListener("click", closeDrawer);
+      $("pxZoomIn").addEventListener("click", function () {
+        zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, 1.2);
+      });
+      $("pxZoomOut").addEventListener("click", function () {
+        zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, .83);
+      });
+      $("pxFit").addEventListener("click", fitGraph);
+
+      async function loadSource(requested) {
+        var token = ++state.loadToken;
+        var graphFile = requested === "history" ? "graph_historie.json" : "graph.json";
+        setLoading(true);
+        closeDrawer();
+        state.active = null;
+        state.hover = null;
+        state.fallback = false;
+        $("pxTooltip").hidden = true;
+
+        try {
+          var results = await Promise.allSettled([
+            getJSON(graphFile),
+            getJSON("entities.json"),
+            getJSON("news.json"),
+            getJSON("archive.json")
+          ]);
+
+          if (token !== state.loadToken) return;
+
+          var graph = results[0].status === "fulfilled" &&
+            results[0].value && typeof results[0].value === "object"
+            ? results[0].value
+            : {};
+          var registry = results[1].status === "fulfilled" ? results[1].value : null;
+          var news = results[2].status === "fulfilled" ? results[2].value : null;
+          var archive = results[3].status === "fulfilled" ? results[3].value : null;
+          var notices = [];
+
+          if (results[0].status === "rejected") notices.push("Graphregister nicht verfügbar.");
+          if (results[1].status === "rejected") notices.push("Entitäten-Registry nicht verfügbar.");
+          if (results[2].status === "rejected") notices.push("Aktuelle News nicht verfügbar.");
+          if (results[3].status === "rejected") notices.push("Archiv nicht verfügbar.");
+
+          state.source = requested;
+          state.graph = graph;
+          state.registry = registry;
+          state.notices = notices;
+          state.articles = normalizeArticles(news, archive);
+
+          if (!state.articles.length) {
+            notices.push("Keine Meldungen lesbar. Es wird das vorhandene Graphregister angezeigt.");
+
+            if (!asArray(graph.nodes).length) {
+              setSourceButtons(state.source);
+              setLoading(false);
+              $("pxStatus").textContent = "Keine Daten";
+              showEmpty(
+                "Graphdaten nicht verfügbar",
+                "Die benötigten JSON-Dateien wurden nicht gefunden oder nicht gelesen. Lokal hilft ein Server im Projektordner: python -m http.server 8000"
+              );
+              return;
+            }
+          }
+
+          indexArticleEntities();
+          setSourceButtons(state.source);
+          $("pxSourceHint").textContent = requested === "history" ? "Historie" : "Live";
+          setStatus();
+          rebuildWindow();
+        } catch (error) {
+          if (token !== state.loadToken) return;
+          setLoading(false);
+          $("pxStatus").textContent = "Fehler beim Laden";
+          showEmpty(
+            "Graph konnte nicht geladen werden",
+            "Die Daten wurden nicht vollständig gelesen. Bitte die Browserkonsole und die relative Servereinrichtung prüfen."
+          );
+        } finally {
+          if (token === state.loadToken) setLoading(false);
+        }
+      }
+
+      var resizeTimer = 0;
+      function handleResize() {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(function () {
+          resizeCanvas();
+
+          if (state.nodes.length) {
+            if (state.active) centerNode(state.active);
+            else fitGraph();
+          }
+        }, 80);
+      }
+
+      if ("ResizeObserver" in window) {
+        var resizeObserver = new ResizeObserver(handleResize);
+        resizeObserver.observe(stage);
+      } else {
+        window.addEventListener("resize", handleResize);
+      }
+
+      var themeObserver = new MutationObserver(function () {
+        readColors();
+        draw();
+      });
+
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "data-theme"]
+      });
+
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () {
+          readColors();
+          draw();
+        });
+      }
+
+      readColors();
+      updateWindowOutput();
+      setViewButtons("graph");
+      resizeCanvas();
+      loadSource("live");
+    })();
+  </script>
+</body>
+</html>

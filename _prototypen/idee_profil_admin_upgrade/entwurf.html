@@ -1,0 +1,1879 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Profil- und Admin-Workspace für die Redaktion von ki-news.live">
+  <title>Profil &amp; Admin | KI NEWS</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-bg: #070b12;
+      --px-panel: rgba(14, 22, 34, .92);
+      --px-solid: #101925;
+      --px-raised: #151f2d;
+      --px-line: rgba(160, 191, 220, .15);
+      --px-line-bright: rgba(0, 212, 255, .38);
+      --px-text: #f1f7fb;
+      --px-muted: #98aabd;
+      --px-dim: #6e8297;
+      --px-cyan: #00d4ff;
+      --px-green: #25e6a0;
+      --px-violet: #9a72ff;
+      --px-orange: #ff9d45;
+      --px-red: #ff657f;
+      --px-head: "Space Grotesk", system-ui, sans-serif;
+      --px-body: "Work Sans", system-ui, sans-serif;
+      --px-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      --px-radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html {
+      min-width: 320px;
+      background: var(--px-bg);
+      scroll-behavior: smooth;
+    }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--px-text);
+      background:
+        radial-gradient(circle at 82% 0%, rgba(154, 114, 255, .15), transparent 32rem),
+        radial-gradient(circle at 4% 30%, rgba(0, 212, 255, .09), transparent 30rem),
+        var(--px-bg);
+      font-family: var(--px-body);
+      line-height: 1.5;
+    }
+    html[data-theme="light"] body {
+      --px-bg: #eaf1f6;
+      --px-panel: rgba(255, 255, 255, .93);
+      --px-solid: #fff;
+      --px-raised: #f3f7fa;
+      --px-line: rgba(31, 67, 96, .15);
+      --px-line-bright: rgba(0, 150, 187, .35);
+      --px-text: #102335;
+      --px-muted: #526a7d;
+      --px-dim: #758a9c;
+      background:
+        linear-gradient(rgba(0, 212, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, .035) 1px, transparent 1px),
+        radial-gradient(circle at 82% 0%, rgba(154, 114, 255, .15), transparent 32rem),
+        #eaf1f6;
+      background-size: 28px 28px, 28px 28px, auto, auto;
+    }
+    button, input, textarea, select { font: inherit; }
+    button, select { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    a { color: inherit; text-decoration: none; }
+    img, video, canvas, svg { display: block; max-width: 100%; }
+    :focus-visible { outline: 2px solid var(--px-cyan); outline-offset: 3px; }
+    ::selection { color: #051016; background: var(--px-cyan); }
+
+    [data-ki-header] { display: block; position: relative; z-index: 50; }
+    .px-fallback-header {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 28px;
+      min-height: 70px;
+      padding: 10px clamp(14px, 3vw, 48px);
+      color: #183246;
+      background: rgba(246, 249, 251, .95);
+      border-bottom: 1px solid rgba(18, 47, 67, .12);
+      backdrop-filter: blur(18px);
+    }
+    .px-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-family: var(--px-head);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    .px-brand-mark {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      color: #07141c;
+      background: linear-gradient(145deg, #00d4ff, #72f6d5);
+      border-radius: 11px;
+      font-size: 21px;
+      font-weight: 900;
+    }
+    .px-brand-country {
+      padding: 3px 5px;
+      color: #607587;
+      border: 1px solid #c5d2dc;
+      border-radius: 4px;
+      font-family: var(--px-mono);
+      font-size: 9px;
+      letter-spacing: .08em;
+    }
+    .px-nav {
+      display: flex;
+      align-items: center;
+      gap: clamp(12px, 2vw, 28px);
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .px-nav::-webkit-scrollbar { display: none; }
+    .px-nav-link {
+      position: relative;
+      padding: 9px 0;
+      color: #5c7388;
+      font-size: 13px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .px-nav-link[aria-current="page"] { color: #00b7d8; }
+    .px-nav-link[aria-current="page"]::after {
+      position: absolute;
+      right: 0;
+      bottom: 1px;
+      left: 0;
+      height: 2px;
+      content: "";
+      background: var(--px-green);
+    }
+    .px-theme-button {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      color: #1d3448;
+      background: #dbe5ec;
+      border: 0;
+      border-radius: 50%;
+      font-size: 15px;
+    }
+
+    .px-app {
+      min-height: calc(100vh - 70px);
+      padding: clamp(26px, 4vw, 52px) clamp(12px, 3.2vw, 50px) 68px;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .024) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .024) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    html[data-theme="light"] .px-app {
+      background-image:
+        linear-gradient(rgba(0, 212, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, .035) 1px, transparent 1px);
+    }
+    .px-shell { width: min(1580px, 100%); margin: 0 auto; }
+    .px-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 24px;
+    }
+    .px-eyebrow, .px-meta, .px-panel-label, .px-chip, .px-sync, .px-admin-index {
+      font-family: var(--px-mono);
+      letter-spacing: .075em;
+      text-transform: uppercase;
+    }
+    .px-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 10px;
+      color: var(--px-cyan);
+      font-size: 10px;
+    }
+    .px-eyebrow::before {
+      width: 25px;
+      height: 1px;
+      content: "";
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+    .px-title {
+      max-width: 900px;
+      margin: 0;
+      font-family: var(--px-head);
+      font-size: clamp(34px, 4.7vw, 64px);
+      line-height: .98;
+      letter-spacing: -.055em;
+    }
+    .px-title-accent { color: var(--px-cyan); }
+    .px-intro {
+      max-width: 760px;
+      margin: 17px 0 0;
+      color: var(--px-muted);
+      font-size: clamp(15px, 1.35vw, 18px);
+    }
+    .px-sync-box { display: grid; justify-items: end; gap: 7px; min-width: 180px; }
+    .px-live-state, .px-socket-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--px-green);
+      font-family: var(--px-mono);
+      font-size: 11px;
+    }
+    .px-live-state::before, .px-socket-state::before {
+      width: 7px;
+      height: 7px;
+      content: "";
+      flex: 0 0 auto;
+      background: currentColor;
+      border-radius: 50%;
+      box-shadow: 0 0 11px currentColor;
+    }
+    .px-sync { color: var(--px-dim); font-size: 9px; }
+    .px-mobile-jump { display: none; }
+
+    .px-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 11px;
+      margin-bottom: 18px;
+    }
+    .px-metric, .px-panel {
+      position: relative;
+      min-width: 0;
+      background: var(--px-panel);
+      border: 1px solid var(--px-line);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .28);
+      backdrop-filter: blur(16px);
+    }
+    .px-metric {
+      min-height: 91px;
+      padding: 16px 17px;
+      overflow: hidden;
+      border-radius: 14px;
+    }
+    .px-metric::after {
+      position: absolute;
+      right: -20px;
+      bottom: -28px;
+      width: 90px;
+      height: 90px;
+      content: "";
+      background: var(--px-metric-color, var(--px-cyan));
+      border-radius: 50%;
+      filter: blur(42px);
+      opacity: .18;
+    }
+    .px-metric-value {
+      display: block;
+      font-family: var(--px-head);
+      font-size: clamp(24px, 2.6vw, 35px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -.04em;
+    }
+    .px-metric-label { display: block; margin-top: 8px; color: var(--px-muted); font-size: 11px; }
+
+    .px-workspace {
+      display: grid;
+      grid-template-columns: minmax(290px, 350px) minmax(0, 1fr);
+      align-items: start;
+      gap: 16px;
+    }
+    .px-profile { position: sticky; top: 16px; display: grid; gap: 13px; }
+    .px-panel { padding: 18px; border-radius: var(--px-radius); animation: px-enter 400ms both; }
+    .px-panel::before {
+      position: absolute;
+      top: 0;
+      right: 24px;
+      left: 24px;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, .46), transparent);
+    }
+    .px-panel-head, .px-section-head, .px-toolbar, .px-dossier-head, .px-modal-head, .px-rank-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .px-panel-title, .px-section-title, .px-dossier-title, .px-modal-title {
+      margin: 0;
+      font-family: var(--px-head);
+      font-weight: 700;
+      letter-spacing: -.025em;
+    }
+    .px-panel-title { font-size: 17px; }
+    .px-section-title { font-size: clamp(20px, 2vw, 27px); }
+    .px-panel-label { color: var(--px-dim); font-size: 9px; }
+    .px-profile-card { overflow: hidden; }
+    .px-profile-card::after {
+      position: absolute;
+      top: -100px;
+      right: -90px;
+      width: 210px;
+      height: 210px;
+      content: "";
+      background: conic-gradient(from 20deg, var(--px-cyan), var(--px-violet), var(--px-green), var(--px-cyan));
+      border-radius: 50%;
+      filter: blur(84px);
+      opacity: .2;
+      pointer-events: none;
+    }
+    .px-profile-top {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr);
+      align-items: center;
+      gap: 13px;
+    }
+    .px-avatar {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 70px;
+      height: 70px;
+      color: #061018;
+      background: linear-gradient(135deg, rgba(255, 255, 255, .55), transparent), linear-gradient(135deg, var(--px-cyan), var(--px-violet));
+      border: 2px solid rgba(255, 255, 255, .22);
+      border-radius: 21px;
+      box-shadow: 0 12px 34px rgba(0, 212, 255, .2);
+      font-family: var(--px-head);
+      font-size: 28px;
+      font-weight: 800;
+    }
+    .px-avatar::after {
+      position: absolute;
+      right: -3px;
+      bottom: -3px;
+      width: 14px;
+      height: 14px;
+      content: "";
+      background: var(--px-green);
+      border: 3px solid var(--px-solid);
+      border-radius: 50%;
+    }
+    .px-profile-name { margin: 0; font-family: var(--px-head); font-size: 22px; line-height: 1.1; letter-spacing: -.035em; }
+    .px-profile-role {
+      margin: 5px 0 0;
+      color: var(--px-violet);
+      font-family: var(--px-mono);
+      font-size: 9px;
+      line-height: 1.45;
+      text-transform: uppercase;
+      letter-spacing: .055em;
+      overflow-wrap: anywhere;
+    }
+    .px-bio { position: relative; z-index: 1; margin: 15px 0; color: var(--px-muted); font-size: 12px; }
+    .px-profile-actions, .px-form-actions, .px-toolbar-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+    .px-button, .px-toolbar-button, .px-icon-button, .px-tab, .px-card-action {
+      border: 0;
+      transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+    .px-button, .px-toolbar-button, .px-icon-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 8px 11px;
+      color: var(--px-text);
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .px-button:hover, .px-toolbar-button:hover, .px-icon-button:hover {
+      background: rgba(0, 212, 255, .08);
+      border-color: var(--px-line-bright);
+      transform: translateY(-1px);
+    }
+    .px-button-primary { color: #051218; background: var(--px-cyan); border-color: transparent; }
+    .px-button-primary:hover { background: #54e6ff; }
+    .px-icon-button { width: 34px; padding: 0; }
+    .px-form {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--px-line);
+    }
+    .px-form[hidden] { display: none; }
+    .px-form-grid { display: grid; grid-template-columns: 1fr 84px; gap: 8px; }
+    .px-field { display: grid; gap: 6px; min-width: 0; }
+    .px-field-label { color: var(--px-muted); font-size: 10px; font-weight: 650; }
+    .px-input, .px-textarea, .px-select, .px-search {
+      width: 100%;
+      min-width: 0;
+      color: var(--px-text);
+      background: rgba(4, 9, 15, .58);
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      outline: none;
+    }
+    html[data-theme="light"] .px-input, html[data-theme="light"] .px-textarea,
+    html[data-theme="light"] .px-select, html[data-theme="light"] .px-search { background: #f4f8fb; }
+    .px-input, .px-select, .px-search { min-height: 38px; padding: 8px 10px; }
+    .px-textarea { min-height: 86px; padding: 10px; resize: vertical; }
+    .px-input:focus, .px-textarea:focus, .px-select:focus, .px-search:focus { border-color: var(--px-cyan); box-shadow: 0 0 0 3px rgba(0, 212, 255, .1); }
+    .px-stat-strip { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 14px; }
+    .px-stat-box { min-width: 0; padding: 10px; background: rgba(255, 255, 255, .035); border: 1px solid var(--px-line); border-radius: 11px; }
+    .px-stat-box strong { display: block; color: var(--px-cyan); font-family: var(--px-head); font-size: 20px; }
+    .px-stat-box span { display: block; margin-top: 2px; color: var(--px-dim); font-size: 9px; }
+
+    .px-topic-layout { display: grid; grid-template-columns: 118px minmax(0, 1fr); align-items: center; gap: 11px; margin-top: 12px; }
+    .px-donut-wrap { position: relative; width: 118px; height: 118px; }
+    .px-donut { width: 118px; height: 118px; }
+    .px-donut-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+    .px-donut-center strong { font-family: var(--px-head); font-size: 21px; line-height: 1; }
+    .px-donut-center span { margin-top: 4px; color: var(--px-dim); font-family: var(--px-mono); font-size: 8px; text-transform: uppercase; }
+    .px-topic-list { display: grid; gap: 7px; min-width: 0; }
+    .px-topic-row { display: grid; grid-template-columns: 7px minmax(0, 1fr) auto; align-items: center; gap: 6px; min-width: 0; }
+    .px-topic-dot { width: 7px; height: 7px; background: var(--px-topic-color, var(--px-cyan)); border-radius: 50%; box-shadow: 0 0 8px var(--px-topic-color, var(--px-cyan)); }
+    .px-topic-name { min-width: 0; overflow: hidden; color: var(--px-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .px-topic-value { color: var(--px-dim); font-family: var(--px-mono); font-size: 8px; }
+    .px-activity-list, .px-pool, .px-dossier-grid, .px-ranking, .px-modal-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .px-activity {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 9px;
+      width: 100%;
+      min-width: 0;
+      padding: 9px;
+      color: var(--px-text);
+      text-align: left;
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid transparent;
+      border-radius: 11px;
+    }
+    .px-activity:hover { background: rgba(0, 212, 255, .055); border-color: var(--px-line-bright); transform: translateY(-1px); }
+    .px-activity-index { display: grid; place-items: center; color: var(--px-cyan); background: rgba(0, 212, 255, .08); border-radius: 9px; font-family: var(--px-mono); font-size: 9px; }
+    .px-activity-title, .px-drag-title, .px-dossier-title, .px-preview-title, .px-card-title { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; }
+    .px-activity-title { font-size: 10px; font-weight: 650; line-height: 1.3; -webkit-line-clamp: 2; }
+    .px-activity-meta, .px-card-meta, .px-modal-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .px-chip { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; padding: 4px 7px; color: var(--px-cyan); background: rgba(0, 212, 255, .08); border: 1px solid rgba(0, 212, 255, .17); border-radius: 999px; font-size: 8px; line-height: 1.1; overflow-wrap: anywhere; }
+    .px-chip-green { color: var(--px-green); background: rgba(37, 230, 160, .08); border-color: rgba(37, 230, 160, .18); }
+    .px-chip-violet { color: #bea9ff; background: rgba(154, 114, 255, .09); border-color: rgba(154, 114, 255, .2); }
+    .px-chip-orange { color: var(--px-orange); background: rgba(255, 157, 69, .08); border-color: rgba(255, 157, 69, .2); }
+    .px-chip-red { color: var(--px-red); background: rgba(255, 101, 127, .08); border-color: rgba(255, 101, 127, .2); }
+    .px-empty { display: grid; place-items: center; min-height: 126px; padding: 20px; color: var(--px-muted); text-align: center; background: rgba(255, 255, 255, .02); border: 1px dashed var(--px-line); border-radius: 12px; font-size: 11px; }
+    .px-empty-symbol { display: block; margin-bottom: 8px; color: var(--px-dim); font-family: var(--px-mono); font-size: 22px; }
+    .px-drag-item { display: grid; grid-template-columns: 18px minmax(0, 1fr) 108px; align-items: center; gap: 7px; min-width: 0; padding: 8px; background: rgba(255, 255, 255, .03); border: 1px solid var(--px-line); border-radius: 10px; cursor: grab; transition: transform 160ms ease, border-color 160ms ease, background 160ms ease; }
+    .px-drag-item:hover, .px-drag-item:focus-visible { background: rgba(0, 212, 255, .045); border-color: var(--px-line-bright); transform: translateX(2px); }
+    .px-drag-item:active { cursor: grabbing; }
+    .px-drag-handle { color: var(--px-dim); font-family: var(--px-mono); font-size: 15px; text-align: center; }
+    .px-drag-copy { min-width: 0; }
+    .px-drag-title { color: var(--px-text); font-size: 9px; line-height: 1.25; -webkit-line-clamp: 2; }
+    .px-drag-select { width: 108px; min-width: 0; height: 31px; padding: 4px 6px; color: var(--px-muted); background: var(--px-raised); border: 1px solid var(--px-line); border-radius: 8px; font-size: 8px; }
+
+    .px-admin { overflow: hidden; padding: 0; scroll-margin-top: 14px; }
+    .px-admin::before { background: linear-gradient(90deg, transparent, rgba(154, 114, 255, .5), transparent); }
+    .px-admin-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 15px; padding: 19px 21px 14px; }
+    .px-admin-title { margin: 2px 0 0; font-family: var(--px-head); font-size: clamp(20px, 2.4vw, 30px); letter-spacing: -.04em; }
+    .px-admin-subtitle { max-width: 620px; margin: 5px 0 0; color: var(--px-muted); font-size: 11px; }
+    .px-admin-index { color: var(--px-dim); font-size: 9px; text-align: right; }
+    .px-tabs { display: flex; gap: 5px; padding: 0 15px 13px; overflow-x: auto; border-bottom: 1px solid var(--px-line); scrollbar-width: thin; }
+    .px-tab { position: relative; flex: 0 0 auto; min-height: 38px; padding: 8px 12px; color: var(--px-muted); background: transparent; border: 1px solid transparent; border-radius: 10px; font-size: 11px; font-weight: 650; }
+    .px-tab:hover { color: var(--px-text); background: rgba(255, 255, 255, .035); }
+    .px-tab[aria-selected="true"] { color: var(--px-cyan); background: rgba(0, 212, 255, .08); border-color: rgba(0, 212, 255, .18); }
+    .px-tab[aria-selected="true"]::after { position: absolute; right: 10px; bottom: -14px; left: 10px; height: 2px; content: ""; background: var(--px-cyan); box-shadow: 0 0 12px var(--px-cyan); }
+    .px-tab-count { margin-left: 4px; color: var(--px-dim); font-family: var(--px-mono); font-size: 8px; }
+    .px-tab-panel { min-width: 0; padding: 17px; animation: px-fade 220ms ease both; }
+    .px-tab-panel[hidden] { display: none; }
+    .px-section-head { align-items: flex-end; margin-bottom: 13px; }
+    .px-section-copy { max-width: 700px; margin: 4px 0 0; color: var(--px-muted); font-size: 10px; }
+
+    .px-cards-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; max-height: 710px; padding: 2px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: rgba(0, 212, 255, .35) transparent; scrollbar-width: thin; }
+    .px-video-card { min-width: 0; overflow: hidden; background: rgba(5, 10, 17, .55); border: 1px solid var(--px-line); border-radius: 15px; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; animation: px-enter 300ms both; }
+    html[data-theme="light"] .px-video-card { background: #f6f9fb; }
+    .px-video-card:hover { border-color: var(--px-card-color, rgba(0, 212, 255, .45)); box-shadow: 0 14px 36px rgba(0, 0, 0, .2); transform: translateY(-3px); }
+    .px-video-stage { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 8.5; overflow: hidden; background: radial-gradient(circle at 30% 35%, color-mix(in srgb, var(--px-card-color, #00d4ff) 24%, transparent), transparent 34%), linear-gradient(135deg, #0a1020, #171126); }
+    .px-video-stage::before, .px-video-stage::after { position: absolute; content: ""; border: 1px solid color-mix(in srgb, var(--px-card-color, #00d4ff) 35%, transparent); transform: rotate(45deg); }
+    .px-video-stage::before { width: 70px; height: 70px; }
+    .px-video-stage::after { width: 118px; height: 118px; opacity: .45; }
+    .px-play-symbol { position: relative; z-index: 1; display: grid; place-items: center; width: 44px; height: 44px; padding-left: 3px; color: #071116; background: var(--px-card-color, var(--px-cyan)); border: 5px solid rgba(255, 255, 255, .15); border-radius: 50%; box-shadow: 0 0 28px color-mix(in srgb, var(--px-card-color, #00d4ff) 35%, transparent); font-size: 16px; }
+    .px-video-duration, .px-video-id { position: absolute; z-index: 2; padding: 4px 6px; color: #fff; background: rgba(2, 6, 10, .78); border: 1px solid rgba(255, 255, 255, .15); border-radius: 6px; font-family: var(--px-mono); font-size: 8px; }
+    .px-video-duration { right: 8px; bottom: 8px; }
+    .px-video-id { top: 8px; left: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .px-card-body { padding: 12px; }
+    .px-card-title { margin: 0; font-family: var(--px-head); font-size: 14px; line-height: 1.23; -webkit-line-clamp: 3; }
+    .px-card-meta { min-height: 25px; margin-bottom: 10px; }
+    .px-card-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+    .px-card-action { min-width: 0; padding: 7px 4px; color: var(--px-muted); background: rgba(255, 255, 255, .035); border: 1px solid var(--px-line); border-radius: 8px; font-size: 9px; font-weight: 700; }
+    .px-card-action:hover { color: var(--px-text); background: rgba(255, 255, 255, .07); }
+    .px-card-action-approved:hover, .px-card-action-approved[aria-pressed="true"] { color: var(--px-green); border-color: rgba(37, 230, 160, .3); background: rgba(37, 230, 160, .08); }
+    .px-card-action-rejected:hover, .px-card-action-rejected[aria-pressed="true"] { color: var(--px-red); border-color: rgba(255, 101, 127, .3); background: rgba(255, 101, 127, .08); }
+    .px-card-action-queue:hover, .px-card-action-queue[aria-pressed="true"] { color: var(--px-orange); border-color: rgba(255, 157, 69, .3); background: rgba(255, 157, 69, .08); }
+
+    .px-toolbar { flex-wrap: wrap; margin-bottom: 13px; }
+    .px-search { width: min(290px, 100%); min-height: 37px; font-size: 11px; }
+    .px-dossier-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 0; }
+    .px-dossier-tile { position: relative; min-width: 0; min-height: 150px; padding: 13px; overflow: hidden; color: var(--px-text); text-align: left; background: linear-gradient(145deg, rgba(255, 255, 255, .045), transparent), var(--px-raised); border: 1px solid var(--px-line); border-radius: 14px; transition: transform 170ms ease, border-color 170ms ease, box-shadow 170ms ease; animation: px-enter 300ms both; }
+    html[data-theme="light"] .px-dossier-tile { background: linear-gradient(145deg, rgba(0, 212, 255, .05), transparent), var(--px-raised); }
+    .px-dossier-tile:hover, .px-dossier-tile:focus-visible, .px-dossier-tile:focus-within { z-index: 2; border-color: var(--px-dossier-color, var(--px-cyan)); box-shadow: 0 18px 50px rgba(0, 0, 0, .3); transform: translateY(-3px); }
+    .px-dossier-tile.px-is-over, .px-drop-zone.px-is-over { border-color: var(--px-cyan); box-shadow: inset 0 0 0 2px rgba(0, 212, 255, .12), 0 0 32px rgba(0, 212, 255, .12); }
+    .px-dossier-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 11px; }
+    .px-dossier-mark { width: 9px; height: 9px; background: var(--px-dossier-color, var(--px-cyan)); border-radius: 3px; box-shadow: 0 0 14px var(--px-dossier-color, var(--px-cyan)); }
+    .px-dossier-score { color: var(--px-dossier-color, var(--px-cyan)); font-family: var(--px-mono); font-size: 9px; }
+    .px-dossier-title { margin: 0; font-family: var(--px-head); font-size: 13px; line-height: 1.28; -webkit-line-clamp: 3; }
+    .px-dossier-foot { position: absolute; right: 13px; bottom: 11px; left: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--px-dim); font-family: var(--px-mono); font-size: 8px; }
+    .px-dossier-preview { position: absolute; inset: 0; z-index: 4; display: grid; grid-template-rows: 112px minmax(0, 1fr); padding: 0; background: rgba(7, 12, 20, .97); border: 1px solid var(--px-dossier-color, var(--px-cyan)); border-radius: 14px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity 160ms ease, transform 160ms ease; }
+    .px-dossier-tile:hover .px-dossier-preview, .px-dossier-tile:focus-within .px-dossier-preview { opacity: 1; transform: translateY(0); }
+    .px-preview-image { width: 100%; height: 112px; object-fit: cover; background: linear-gradient(135deg, rgba(0, 212, 255, .12), rgba(154, 114, 255, .12)), linear-gradient(135deg, #111a2b, #231735); }
+    .px-preview-copy { display: grid; align-content: center; gap: 6px; padding: 10px; }
+    .px-preview-title { margin: 0; font-family: var(--px-head); font-size: 10px; line-height: 1.25; -webkit-line-clamp: 2; }
+    .px-drop-zone { position: relative; display: grid; place-items: center; min-height: 104px; margin-top: 12px; padding: 17px; color: var(--px-muted); text-align: center; background: rgba(0, 212, 255, .025); border: 1px dashed rgba(0, 212, 255, .3); border-radius: 14px; transition: 170ms ease; }
+    .px-drop-zone:hover, .px-drop-zone:focus-within, .px-drop-zone.px-is-over { background: rgba(0, 212, 255, .065); transform: translateY(-1px); }
+    .px-drop-icon { color: var(--px-cyan); font-family: var(--px-mono); font-size: 21px; }
+    .px-drop-title { margin-top: 5px; color: var(--px-text); font-size: 11px; font-weight: 700; }
+    .px-drop-copy { margin-top: 3px; color: var(--px-muted); font-size: 9px; }
+    .px-new-form { display: flex; width: min(570px, 100%); gap: 7px; margin-top: 10px; }
+    .px-new-form .px-input { flex: 1 1 auto; }
+    .px-new-form .px-button { flex: 0 0 auto; }
+
+    .px-stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+    .px-stat-panel { min-width: 0; padding: 13px; background: rgba(255, 255, 255, .03); border: 1px solid var(--px-line); border-radius: 13px; }
+    .px-stat-panel-wide { grid-column: 1 / -1; }
+    .px-stat-number { display: block; margin-top: 7px; color: var(--px-cyan); font-family: var(--px-head); font-size: clamp(22px, 2.8vw, 35px); line-height: 1; letter-spacing: -.04em; }
+    .px-sparkline { width: 100%; height: 88px; margin-top: 10px; }
+    .px-sparkline-main { height: 165px; }
+    .px-ranking { margin-top: 6px; }
+    .px-rank-row { display: grid; grid-template-columns: 23px minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 7px 0; border-bottom: 1px solid var(--px-line); }
+    .px-rank-row:last-child { border-bottom: 0; }
+    .px-rank-index { color: var(--px-dim); font-family: var(--px-mono); font-size: 8px; }
+    .px-rank-name { min-width: 0; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .px-rank-value { color: var(--px-green); font-family: var(--px-mono); font-size: 8px; }
+    .px-heat-wrap { margin-top: 12px; }
+    .px-heat-grid { display: grid; grid-template-columns: repeat(7, minmax(12px, 1fr)); gap: 5px; margin-top: 9px; }
+    .px-heat-cell { aspect-ratio: 1; min-width: 12px; background: rgba(255, 255, 255, .035); border: 1px solid rgba(255, 255, 255, .035); border-radius: 5px; }
+    .px-heat-level-1 { background: rgba(0, 212, 255, .14) !important; }
+    .px-heat-level-2 { background: rgba(0, 212, 255, .28) !important; }
+    .px-heat-level-3 { background: rgba(0, 212, 255, .46) !important; }
+    .px-heat-level-4 { background: rgba(0, 212, 255, .7) !important; box-shadow: 0 0 9px rgba(0, 212, 255, .2); }
+    .px-heat-legend { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; color: var(--px-dim); font-family: var(--px-mono); font-size: 8px; }
+    .px-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; width: min(1580px, 100%); margin: 25px auto 0; padding-top: 16px; color: var(--px-dim); border-top: 1px solid var(--px-line); font-family: var(--px-mono); font-size: 8px; }
+
+    .px-modal { width: min(920px, calc(100% - 24px)); max-height: min(88vh, 900px); padding: 0; overflow: hidden; color: var(--px-text); background: var(--px-solid); border: 1px solid var(--px-line-bright); border-radius: 20px; box-shadow: 0 34px 120px rgba(0, 0, 0, .58); }
+    .px-modal::backdrop { background: rgba(2, 5, 9, .78); backdrop-filter: blur(8px); }
+    .px-modal-shell { display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: min(88vh, 900px); }
+    .px-modal-head { align-items: flex-start; padding: 17px 19px 13px; border-bottom: 1px solid var(--px-line); }
+    .px-modal-heading { min-width: 0; }
+    .px-modal-title { margin-top: 5px; font-size: clamp(20px, 3vw, 29px); line-height: 1.08; }
+    .px-modal-content { min-height: 0; padding: 17px 19px 23px; overflow-y: auto; overscroll-behavior: contain; }
+    .px-modal-hero { display: grid; grid-template-columns: minmax(210px, .8fr) minmax(0, 1.2fr); gap: 17px; margin-bottom: 14px; }
+    .px-modal-image { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: linear-gradient(135deg, rgba(0, 212, 255, .12), rgba(154, 114, 255, .12)), linear-gradient(135deg, #111a2b, #241738); border-radius: 13px; }
+    .px-modal-summary { margin: 0; color: var(--px-muted); font-size: 12px; }
+    .px-modal-item { min-width: 0; padding: 13px; background: rgba(255, 255, 255, .03); border: 1px solid var(--px-line); border-left: 3px solid var(--px-item-color, var(--px-cyan)); border-radius: 12px; }
+    .px-modal-item-title { margin: 0; font-family: var(--px-head); font-size: 14px; line-height: 1.25; }
+    .px-modal-item-copy { margin: 7px 0 0; color: var(--px-muted); font-size: 11px; overflow-wrap: anywhere; }
+    .px-source-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 9px; color: var(--px-cyan); font-size: 10px; font-weight: 700; }
+    .px-modal-drop { min-height: 82px; margin-top: 12px; }
+    .px-tooltip { position: fixed; z-index: 100; width: min(250px, calc(100vw - 24px)); padding: 9px 11px; color: #eaf6fb; background: #192536; border: 1px solid rgba(0, 212, 255, .35); border-radius: 9px; box-shadow: 0 14px 40px rgba(0, 0, 0, .38); font-size: 10px; line-height: 1.35; pointer-events: none; animation: px-tooltip-in 120ms ease both; }
+    .px-toast { position: fixed; right: 17px; bottom: 17px; z-index: 110; max-width: min(360px, calc(100vw - 34px)); padding: 12px 15px; color: #061116; background: var(--px-cyan); border: 1px solid rgba(255, 255, 255, .3); border-radius: 11px; box-shadow: 0 18px 50px rgba(0, 0, 0, .3); font-size: 11px; font-weight: 700; opacity: 0; pointer-events: none; transform: translateY(10px); transition: 180ms ease; }
+    .px-toast.px-is-visible { opacity: 1; transform: translateY(0); }
+
+    @keyframes px-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes px-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes px-tooltip-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 1180px) {
+      .px-workspace { grid-template-columns: minmax(270px, 315px) minmax(0, 1fr); }
+      .px-dossier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .px-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .px-workspace { grid-template-columns: 1fr; }
+      .px-profile { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .px-profile-card, .px-profile-wide { grid-column: 1 / -1; }
+      .px-mobile-jump { display: inline-flex; justify-content: center; }
+    }
+    @media (max-width: 650px) {
+      .px-fallback-header { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; min-height: auto; padding: 9px 11px 7px; }
+      .px-brand { font-size: 14px; }
+      .px-brand-mark { width: 32px; height: 32px; border-radius: 10px; font-size: 18px; }
+      .px-brand-country { display: none; }
+      .px-nav { grid-column: 1 / -1; grid-row: 2; gap: 17px; }
+      .px-nav-link { font-size: 12px; }
+      .px-app { padding: 25px 10px 50px; }
+      .px-hero { grid-template-columns: 1fr; gap: 14px; }
+      .px-title { font-size: clamp(34px, 11vw, 50px); }
+      .px-intro { margin-top: 14px; font-size: 14px; }
+      .px-sync-box { display: none; }
+      .px-metrics { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .px-metric { min-height: 82px; padding: 13px; }
+      .px-metric-value { font-size: 24px; }
+      .px-metric-label { font-size: 9px; }
+      .px-profile { grid-template-columns: 1fr; }
+      .px-profile-card, .px-profile-wide { grid-column: auto; }
+      .px-panel { padding: 14px; border-radius: 15px; }
+      .px-admin-head { padding: 16px 14px 11px; }
+      .px-admin-index { display: none; }
+      .px-tabs { padding-right: 9px; padding-left: 9px; }
+      .px-tab { padding-right: 9px; padding-left: 9px; }
+      .px-tab-panel { padding: 12px; }
+      .px-section-head { align-items: flex-start; flex-direction: column; }
+      .px-cards-grid, .px-dossier-grid, .px-stats-grid { grid-template-columns: 1fr; }
+      .px-stat-panel-wide { grid-column: auto; }
+      .px-drag-item { grid-template-columns: 18px minmax(0, 1fr); }
+      .px-drag-select { grid-column: 2; width: 100%; }
+      .px-modal-hero { grid-template-columns: 1fr; }
+      .px-modal-head, .px-modal-content { padding-right: 13px; padding-left: 13px; }
+      .px-footer { align-items: flex-start; flex-direction: column; }
+      .px-toast { right: 10px; bottom: 10px; left: 10px; max-width: none; }
+    }
+    @media (max-width: 390px) {
+      .px-app { padding-right: 9px; padding-left: 9px; }
+      .px-title { font-size: 34px; }
+      .px-profile-top { grid-template-columns: 62px minmax(0, 1fr); }
+      .px-avatar { width: 62px; height: 62px; border-radius: 18px; font-size: 24px; }
+      .px-profile-name { font-size: 20px; }
+      .px-topic-layout { grid-template-columns: 88px minmax(0, 1fr); gap: 8px; }
+      .px-donut-wrap, .px-donut { width: 88px; height: 88px; }
+      .px-card-actions { gap: 4px; }
+      .px-card-action { font-size: 8px; }
+      .px-new-form { flex-direction: column; }
+      .px-new-form .px-button { width: 100%; }
+    }
+    @media (hover: none) { .px-dossier-preview { display: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <header data-ki-header aria-label="Seitenkopf"></header>
+
+  <main class="px-app">
+    <div class="px-shell">
+      <section class="px-hero" aria-labelledby="px-page-title">
+        <div>
+          <div class="px-eyebrow">Redaktions-Cockpit / Scampy</div>
+          <h1 class="px-title" id="px-page-title">Profil &amp; Admin<br><span class="px-title-accent">in einem Flow.</span></h1>
+          <p class="px-intro">Persönlicher Nachrichtenüberblick, Dossier-Arbeitsfläche und kurze Freigabewege. Änderungen werden im Prototyp direkt lokal gespeichert.</p>
+          <a class="px-button px-button-primary px-mobile-jump" href="#px-admin">Direkt zur Redaktion</a>
+        </div>
+        <div class="px-sync-box">
+          <span class="px-live-state">Redaktion online</span>
+          <span class="px-sync" id="px-last-sync">Daten werden geladen</span>
+        </div>
+      </section>
+
+      <section class="px-metrics" aria-label="Redaktions-Kennzahlen">
+        <article class="px-metric" style="--px-metric-color:#00d4ff">
+          <strong class="px-metric-value" id="px-metric-articles">...</strong>
+          <span class="px-metric-label" id="px-article-metric-label">Artikel im Archiv</span>
+        </article>
+        <article class="px-metric" style="--px-metric-color:#9a72ff">
+          <strong class="px-metric-value" id="px-metric-dossiers">...</strong>
+          <span class="px-metric-label">Dossiers im Workspace</span>
+        </article>
+        <article class="px-metric" style="--px-metric-color:#ff9d45">
+          <strong class="px-metric-value" id="px-metric-activity">0</strong>
+          <span class="px-metric-label">Lese- und Kommentaraktivität</span>
+        </article>
+        <article class="px-metric" style="--px-metric-color:#25e6a0">
+          <strong class="px-metric-value" id="px-metric-pending">0</strong>
+          <span class="px-metric-label">Karten in der Warteschleife</span>
+        </article>
+      </section>
+
+      <div class="px-workspace">
+        <aside class="px-profile" aria-label="Persönlicher Profilbereich">
+          <section class="px-panel px-profile-card">
+            <div class="px-profile-top">
+              <div class="px-avatar" id="px-avatar" aria-hidden="true">S</div>
+              <div>
+                <h2 class="px-profile-name" id="px-profile-name">Daniel</h2>
+                <p class="px-profile-role" id="px-profile-role">Scampy / Redaktion &amp; Betrieb</p>
+              </div>
+            </div>
+            <p class="px-bio" id="px-profile-bio">Beobachtet KI, Robotik und die Infrastruktur dahinter. Pflegt Feed, Dossiers und Video-Karten für ki-news.live.</p>
+            <div class="px-profile-actions">
+              <button class="px-button" id="px-profile-edit" type="button" aria-expanded="false" aria-controls="px-profile-form">Profil bearbeiten</button>
+              <a class="px-button" href="index.html">Feed öffnen</a>
+            </div>
+            <form class="px-form" id="px-profile-form" hidden>
+              <div class="px-form-grid">
+                <label class="px-field">
+                  <span class="px-field-label">Name</span>
+                  <input class="px-input" id="px-name-input" name="name" maxlength="60" autocomplete="name">
+                </label>
+                <label class="px-field">
+                  <span class="px-field-label">Avatar</span>
+                  <input class="px-input" id="px-avatar-input" name="avatar" maxlength="4" aria-label="Avatar-Zeichen">
+                </label>
+              </div>
+              <label class="px-field">
+                <span class="px-field-label">Kurzbiografie</span>
+                <textarea class="px-textarea" id="px-bio-input" name="bio" maxlength="280"></textarea>
+              </label>
+              <label class="px-field">
+                <span class="px-field-label">Schwerpunkte, durch Komma getrennt</span>
+                <input class="px-input" id="px-topics-input" name="topics" maxlength="160">
+              </label>
+              <div class="px-form-actions">
+                <button class="px-button" id="px-profile-cancel" type="button">Abbrechen</button>
+                <button class="px-button px-button-primary" type="submit">Speichern</button>
+              </div>
+            </form>
+            <div class="px-stat-strip">
+              <div class="px-stat-box"><strong id="px-profile-article-count">...</strong><span>Artikel</span></div>
+              <div class="px-stat-box"><strong id="px-profile-activity-count">0</strong><span>Aktivitäten</span></div>
+            </div>
+          </section>
+
+          <section class="px-panel">
+            <div class="px-panel-head"><h2 class="px-panel-title">Themenverteilung</h2><span class="px-panel-label">graph.json</span></div>
+            <div class="px-topic-layout">
+              <div class="px-donut-wrap">
+                <canvas class="px-donut" id="px-topic-donut" width="240" height="240" role="img" aria-label="Diagramm der Themenverteilung"></canvas>
+                <div class="px-donut-center"><strong id="px-topic-total">0</strong><span>Themen</span></div>
+              </div>
+              <div class="px-topic-list" id="px-topic-list"></div>
+            </div>
+          </section>
+
+          <section class="px-panel px-profile-wide">
+            <div class="px-panel-head"><h2 class="px-panel-title">Zuletzt gelesen</h2><span class="px-panel-label">Lokal erfasst</span></div>
+            <div class="px-activity-list" id="px-activity-list" aria-live="polite"></div>
+          </section>
+
+          <section class="px-panel px-profile-wide">
+            <div class="px-panel-head"><h2 class="px-panel-title">Artikel-Schnellablage</h2><span class="px-panel-label">Drag &amp; Drop</span></div>
+            <p class="px-section-copy" style="margin-top:8px">Einen Artikel auf ein Dossier ziehen oder direkt eine Zuordnung wählen.</p>
+            <div class="px-pool" id="px-article-pool"></div>
+          </section>
+        </aside>
+
+        <section class="px-panel px-admin" id="px-admin" aria-label="Admin-Panel">
+          <div class="px-admin-head">
+            <div>
+              <span class="px-panel-label">Administration / Daniel</span>
+              <h2 class="px-admin-title">Redaktionswerkzeuge</h2>
+              <p class="px-admin-subtitle">Karten freigeben, Dossiers bündeln und Systemaktivität prüfen. Änderungen bleiben im LocalStorage dieses Prototyps.</p>
+            </div>
+            <div class="px-admin-index">Workspace<br>01.Admin</div>
+          </div>
+
+          <div class="px-tabs" role="tablist" aria-label="Admin-Bereiche">
+            <button class="px-tab" id="px-tab-cards" type="button" role="tab" aria-selected="true" aria-controls="px-panel-cards" tabindex="0" data-px-tab="cards">Karten-Moderation <span class="px-tab-count" id="px-card-count">0</span></button>
+            <button class="px-tab" id="px-tab-dossiers" type="button" role="tab" aria-selected="false" aria-controls="px-panel-dossiers" tabindex="-1" data-px-tab="dossiers">Dossier-Übersicht <span class="px-tab-count" id="px-dossier-count-tab">0</span></button>
+            <button class="px-tab" id="px-tab-stats" type="button" role="tab" aria-selected="false" aria-controls="px-panel-stats" tabindex="-1" data-px-tab="stats">System-Stats</button>
+          </div>
+
+          <section class="px-tab-panel" id="px-panel-cards" role="tabpanel" aria-labelledby="px-tab-cards">
+            <div class="px-section-head">
+              <div><h3 class="px-section-title">Neueste Video-Karten</h3><p class="px-section-copy">Die neuesten Karten werden als schnelle Moderationsvorschau angezeigt. Freigabe, Ablehnung und Warteschleife bleiben im Prototyp gespeichert.</p></div>
+              <span class="px-chip px-chip-violet">Moderationsqueue</span>
+            </div>
+            <div class="px-cards-grid" id="px-cards-grid" aria-live="polite"></div>
+          </section>
+
+          <section class="px-tab-panel" id="px-panel-dossiers" role="tabpanel" aria-labelledby="px-tab-dossiers" hidden>
+            <div class="px-section-head">
+              <div><h3 class="px-section-title">Dossiers als Karten</h3><p class="px-section-copy">Auf Vorschau zeigen, für Details öffnen oder einen Artikel direkt in das Dossier ziehen.</p></div>
+              <span class="px-chip">archive.json + graph.json</span>
+            </div>
+            <div class="px-toolbar">
+              <label class="px-sr-only" for="px-dossier-search">Dossiers durchsuchen</label>
+              <input class="px-search" id="px-dossier-search" type="search" placeholder="Dossiers durchsuchen">
+              <div class="px-toolbar-actions">
+                <button class="px-toolbar-button" id="px-export-archive" type="button" data-px-tip="Erzeugt einen lokalen JSON-Snapshot der Änderungen. Die echte Datei wird nicht überschrieben.">JSON-Snapshot</button>
+                <button class="px-toolbar-button" id="px-reset-storage" type="button" data-px-tip="Setzt nur die lokalen Prototypänderungen zurück.">Änderungen zurücksetzen</button>
+              </div>
+            </div>
+            <div class="px-dossier-grid" id="px-dossier-grid" aria-live="polite"></div>
+            <div class="px-drop-zone" id="px-new-dossier-drop" tabindex="0" data-px-tip="Artikel hier ablegen, einen Titel vergeben und ein neues Dossier anlegen.">
+              <div>
+                <span class="px-drop-icon" aria-hidden="true">+</span>
+                <div class="px-drop-title">Neues Dossier anlegen</div>
+                <div class="px-drop-copy">Artikel hierher ziehen oder unten einen Titel vergeben.</div>
+                <form class="px-new-form" id="px-new-dossier-form">
+                  <label class="px-sr-only" for="px-new-dossier-title">Titel des neuen Dossiers</label>
+                  <input class="px-input" id="px-new-dossier-title" type="text" maxlength="140" placeholder="Titel des Dossiers">
+                  <button class="px-button px-button-primary" type="submit">Dossier erstellen</button>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <section class="px-tab-panel" id="px-panel-stats" role="tabpanel" aria-labelledby="px-tab-stats" hidden>
+            <div class="px-section-head">
+              <div><h3 class="px-section-title">System-Stats</h3><p class="px-section-copy">Graph-Snapshot mit 30-Sekunden-Fallback. Ein WebSocket-Push wird aktiviert, wenn graph.json einen Endpunkt ausweist.</p></div>
+              <span class="px-socket-state" id="px-socket-state">30-Sekunden-Abruf</span>
+            </div>
+            <div class="px-stats-grid">
+              <article class="px-stat-panel"><span class="px-panel-label">Knoten</span><strong class="px-stat-number" id="px-stat-nodes">0</strong><span class="px-metric-label">Entity-Registry</span></article>
+              <article class="px-stat-panel"><span class="px-panel-label">Verbindungen</span><strong class="px-stat-number" id="px-stat-edges">0</strong><span class="px-metric-label">Graph-Kanten</span></article>
+              <article class="px-stat-panel"><span class="px-panel-label">Stand</span><strong class="px-stat-number" id="px-stat-clock">--:--</strong><span class="px-metric-label">Letzter Snapshot</span></article>
+              <article class="px-stat-panel"><span class="px-panel-label">Top-Entitäten</span><div class="px-ranking" id="px-entity-ranking"></div></article>
+              <article class="px-stat-panel"><span class="px-panel-label">Trending-Beziehungen</span><canvas class="px-sparkline" id="px-trend-sparkline" width="500" height="176" role="img" aria-label="Sparkline der stärksten Beziehungen"></canvas><div class="px-ranking" id="px-trend-ranking"></div></article>
+              <article class="px-stat-panel"><span class="px-panel-label">Aktivitätsprofil</span><canvas class="px-sparkline" id="px-activity-sparkline" width="500" height="176" role="img" aria-label="Sparkline der täglichen Aktivität"></canvas><div class="px-heat-wrap"><div class="px-panel-label">Aktivitäts-Heatmap / 42 Tage</div><div class="px-heat-grid" id="px-heatmap" aria-label="Aktivitäts-Heatmap der letzten 42 Tage"></div><div class="px-heat-legend"><span id="px-heat-start">--.--.</span><span>wenig bis viel</span><span id="px-heat-end">--.--.</span></div></div></article>
+              <article class="px-stat-panel px-stat-panel-wide"><div class="px-rank-head"><span class="px-panel-label">Gesamtaktivität</span><span class="px-sync" id="px-graph-stand">graph.json</span></div><canvas class="px-sparkline px-sparkline-main" id="px-main-sparkline" width="1100" height="330" role="img" aria-label="Sparkline der gesamten Graph-Aktivität"></canvas></article>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <footer class="px-footer"><span>ki-news.live / Profil &amp; Admin Upgrade / Prototype</span><span>Lokale Daten: LocalStorage, keine Serveränderung</span></footer>
+    </div>
+  </main>
+
+  <dialog class="px-modal" id="px-dossier-modal" aria-labelledby="px-modal-title">
+    <div class="px-modal-shell">
+      <div class="px-modal-head">
+        <div class="px-modal-heading"><span class="px-panel-label" id="px-modal-kicker">Dossier</span><h2 class="px-modal-title" id="px-modal-title">Dossier</h2></div>
+        <button class="px-icon-button" id="px-modal-close" type="button" aria-label="Dossier schließen">x</button>
+      </div>
+      <div class="px-modal-content" id="px-modal-content"></div>
+    </div>
+  </dialog>
+
+  <div class="px-tooltip" id="px-tooltip" role="tooltip" hidden></div>
+  <div class="px-toast" id="px-toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE = {
+        profile: "ki-news-admin-profile-v3",
+        reads: "ki-news-admin-reads-v3",
+        cards: "ki-news-admin-card-status-v3",
+        assignments: "ki-news-admin-dossier-assignments-v3",
+        customDossiers: "ki-news-admin-custom-dossiers-v3",
+        theme: "ki-news-admin-theme-v3"
+      };
+      const COLORS = ["#00d4ff", "#9a72ff", "#25e6a0", "#ff9d45", "#f5d45b", "#ff657f"];
+      const MAX_CARDS = 10;
+      const MAX_DOSSIERS = 36;
+      const MAX_POOL = 7;
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+      const state = {
+        loading: true,
+        news: [],
+        posts: [],
+        cards: [],
+        archive: [],
+        graph: { nodes: [], edges: [], stand: "", websocket: "" },
+        profile: normalizeProfile(readStorage(STORAGE.profile, {})),
+        reads: readStorage(STORAGE.reads, {}),
+        cardStatus: readStorage(STORAGE.cards, {}),
+        assignments: readStorage(STORAGE.assignments, {}),
+        customDossiers: readStorage(STORAGE.customDossiers, []),
+        activeTab: "cards",
+        modalDossier: "",
+        pendingDrop: null,
+        socket: null,
+        toastTimer: null
+      };
+
+      function cleanText(value) {
+        return String(value ?? "").replace(/\u2014/g, "-");
+      }
+      function readStorage(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch {
+          return fallback;
+        }
+      }
+      function writeStorage(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+          return true;
+        } catch {
+          showToast("Lokaler Speicher ist nicht verfügbar. Änderungen gelten nur für diese Sitzung.");
+          return false;
+        }
+      }
+      function make(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = cleanText(text);
+        return node;
+      }
+      function clear(node) { node.replaceChildren(); }
+      function setText(selector, value) {
+        const node = $(selector);
+        if (node) node.textContent = cleanText(value);
+      }
+      function number(value, fallback = 0) {
+        const result = Number(value);
+        return Number.isFinite(result) ? result : fallback;
+      }
+      function formatNumber(value) {
+        return new Intl.NumberFormat("de-DE").format(number(value));
+      }
+      function normalizeProfile(value) {
+        const source = value && typeof value === "object" ? value : {};
+        return {
+          name: typeof source.name === "string" && source.name.trim() ? cleanText(source.name) : "Daniel",
+          avatar: typeof source.avatar === "string" && source.avatar.trim() ? cleanText(source.avatar) : "S",
+          bio: typeof source.bio === "string" && source.bio.trim() ? cleanText(source.bio) : "Beobachtet KI, Robotik und die Infrastruktur dahinter. Pflegt Feed, Dossiers und Video-Karten für ki-news.live.",
+          topics: typeof source.topics === "string" && source.topics.trim() ? cleanText(source.topics) : "KI-Sicherheit, Robotik, OpenAI, Nvidia, Graph"
+        };
+      }
+      function safeColor(value, fallback = "#00d4ff") {
+        if (typeof value !== "string") return fallback;
+        const color = value.trim();
+        return /^(#[0-9a-f]{3,8}|rgb\([\d\s,.%]+\)|hsl\([\d\s,.%]+\))$/i.test(color) ? color : fallback;
+      }
+      function safeUrl(value) {
+        if (typeof value !== "string" || !value.trim()) return "";
+        try {
+          const url = new URL(value, document.baseURI);
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch { return ""; }
+      }
+      function safeSocket(value) {
+        if (typeof value !== "string" || !value.trim()) return "";
+        try {
+          const url = new URL(value, window.location.href);
+          if (!["ws:", "wss:"].includes(url.protocol)) return "";
+          if (window.location.protocol.startsWith("http") && url.origin !== window.location.origin) return "";
+          return url.href;
+        } catch { return ""; }
+      }
+      function itemTitle(item, fallback = "Ohne Titel") {
+        if (!item || typeof item !== "object") return fallback;
+        if (typeof item.title === "string" && item.title.trim()) return item.title;
+        if (typeof item.headline === "string" && item.headline.trim()) return item.headline;
+        return fallback;
+      }
+      function itemKey(item) {
+        if (!item || typeof item !== "object") return "";
+        return String(item.story_id || item.link || item.title || "");
+      }
+      function allNewsItems() {
+        const seen = new Set();
+        const result = [];
+        for (const item of [...state.archive, ...state.news]) {
+          if (!item || typeof item !== "object") continue;
+          const key = String(item.link || item.story_id || item.title || "");
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          result.push(item);
+        }
+        return result;
+      }
+      function articleInfo() {
+        const fields = ["author", "autor", "created_by", "owner", "redakteur"];
+        const hasOwner = state.archive.some(item => fields.some(field => typeof item[field] === "string" && item[field].trim()));
+        const own = state.archive.filter(item => {
+          if (!item || typeof item !== "object") return false;
+          const value = fields.map(field => typeof item[field] === "string" ? item[field] : "").join(" ").toLocaleLowerCase("de-DE");
+          return value.includes(state.profile.name.toLocaleLowerCase("de-DE")) || value.includes("scampy") || value.includes("ki-news.live");
+        });
+        return { count: hasOwner ? own.length : state.archive.length, own: hasOwner };
+      }
+      function readActivities() {
+        const lookup = new Map();
+        for (const item of allNewsItems()) {
+          if (item.story_id) lookup.set(String(item.story_id), item);
+          if (item.link) lookup.set(String(item.link), item);
+        }
+        const result = new Map();
+        if (state.reads && typeof state.reads === "object") {
+          for (const [key, value] of Object.entries(state.reads)) {
+            const item = lookup.get(key);
+            if (item) result.set(key, { item, label: "Gelesen", at: value?.at || "" });
+          }
+        }
+        for (const post of state.posts) {
+          if (!post || typeof post !== "object") continue;
+          const key = String(post.story_id || post.link || "");
+          const item = lookup.get(key);
+          if (item) result.set(`comment-${key}`, { item, label: "Kommentiert", at: post.date || "" });
+        }
+        return Array.from(result.values()).slice(0, 5);
+      }
+      function showEmpty(container, title, detail) {
+        clear(container);
+        const box = make("div", "px-empty");
+        box.append(make("span", "px-empty-symbol", "◇"));
+        box.append(make("strong", "px-drop-title", title));
+        if (detail) box.append(make("span", "px-drop-copy", detail));
+        container.append(box);
+      }
+
+      function renderProfile() {
+        setText("#px-avatar", state.profile.avatar.slice(0, 4));
+        setText("#px-profile-name", state.profile.name);
+        setText("#px-profile-role", state.profile.topics);
+        setText("#px-profile-bio", state.profile.bio);
+        const info = articleInfo();
+        setText("#px-metric-articles", formatNumber(info.count));
+        setText("#px-profile-article-count", formatNumber(info.count));
+        setText("#px-article-metric-label", info.own ? "Eigene Artikel" : "Artikel im Archiv");
+        const activities = readActivities();
+        setText("#px-metric-activity", formatNumber(activities.length));
+        setText("#px-profile-activity-count", formatNumber(activities.length));
+        renderActivities(activities);
+        renderTopics();
+        renderPool();
+      }
+      function renderActivities(activities = readActivities()) {
+        const container = $("#px-activity-list");
+        if (!activities.length) {
+          showEmpty(container, state.loading ? "Aktivität wird geladen" : "Noch keine Aktivität", "Beim Öffnen eines Artikels im Feed erscheint er hier.");
+          return;
+        }
+        clear(container);
+        activities.forEach((entry, index) => {
+          const item = entry.item;
+          const url = safeUrl(item.link);
+          const row = make(url ? "a" : "div", "px-activity");
+          if (url) {
+            row.href = url;
+            row.target = "_blank";
+            row.rel = "noopener noreferrer";
+            row.addEventListener("click", () => markRead(item));
+          }
+          row.append(make("span", "px-activity-index", String(index + 1).padStart(2, "0")));
+          const copy = make("div", "px-drag-copy");
+          copy.append(make("div", "px-activity-title", itemTitle(item)));
+          const meta = make("div", "px-activity-meta");
+          meta.append(make("span", "px-chip", entry.label));
+          if (item.source) meta.append(make("span", "px-chip px-chip-green", item.source));
+          copy.append(meta);
+          row.append(copy);
+          container.append(row);
+        });
+      }
+      function markRead(item) {
+        const key = itemKey(item);
+        if (!key) return;
+        state.reads[key] = { at: new Date().toISOString() };
+        writeStorage(STORAGE.reads, state.reads);
+        renderProfile();
+      }
+      function topicGroups() {
+        const groups = new Map();
+        for (const node of state.graph.nodes) {
+          if (!node || typeof node !== "object") continue;
+          const topic = typeof node.typ === "string" && node.typ.trim() ? node.typ : "Sonstige";
+          groups.set(topic, (groups.get(topic) || 0) + number(node.count));
+        }
+        return Array.from(groups, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+      }
+      function renderTopics() {
+        const groups = topicGroups();
+        const list = $("#px-topic-list");
+        setText("#px-topic-total", formatNumber(groups.length));
+        clear(list);
+        if (!groups.length) {
+          list.append(make("span", "px-metric-label", state.loading ? "Graph wird geladen" : "Keine Themen verfügbar"));
+          return;
+        }
+        groups.slice(0, 6).forEach((group, index) => {
+          const row = make("div", "px-topic-row");
+          const dot = make("span", "px-topic-dot");
+          dot.style.setProperty("--px-topic-color", COLORS[index % COLORS.length]);
+          row.append(dot, make("span", "px-topic-name", group.name), make("span", "px-topic-value", formatNumber(group.value)));
+          list.append(row);
+        });
+        requestAnimationFrame(drawDonut);
+      }
+      function drawDonut() {
+        const canvas = $("#px-topic-donut");
+        const context = canvas?.getContext("2d");
+        if (!context) return;
+        const groups = topicGroups().slice(0, 6);
+        const total = groups.reduce((sum, group) => sum + group.value, 0);
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const size = 120;
+        canvas.width = size * ratio;
+        canvas.height = size * ratio;
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context.clearRect(0, 0, size, size);
+        context.beginPath();
+        context.strokeStyle = "rgba(142, 162, 184, .14)";
+        context.lineWidth = 13;
+        context.arc(60, 60, 40, 0, Math.PI * 2);
+        context.stroke();
+        if (!total) return;
+        let start = -Math.PI / 2;
+        groups.forEach((group, index) => {
+          const angle = group.value / total * Math.PI * 2;
+          context.beginPath();
+          context.strokeStyle = COLORS[index % COLORS.length];
+          context.lineWidth = 13;
+          context.arc(60, 60, 40, start, Math.max(start + angle - .025, start + .01));
+          context.stroke();
+          start += angle;
+        });
+      }
+      function dragPayload(event, item) {
+        const value = JSON.stringify({ link: item.link || "", story_id: item.story_id || "" });
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("application/x-ki-news", value);
+        event.dataTransfer.setData("text/plain", value);
+      }
+      function readPayload(event) {
+        const raw = event.dataTransfer.getData("application/x-ki-news") || event.dataTransfer.getData("text/plain");
+        if (!raw) return null;
+        try {
+          const value = JSON.parse(raw);
+          return value && typeof value === "object" ? value : null;
+        } catch { return null; }
+      }
+      function resolveItem(payload) {
+        if (!payload) return null;
+        return allNewsItems().find(item => (payload.link && item.link === payload.link) || (payload.story_id && item.story_id === payload.story_id)) || null;
+      }
+      function bindDrop(node, callback) {
+        node.addEventListener("dragover", event => {
+          const types = Array.from(event.dataTransfer?.types || []);
+          if (!types.includes("application/x-ki-news") && !types.includes("text/plain")) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+          node.classList.add("px-is-over");
+        });
+        node.addEventListener("dragleave", event => {
+          if (!node.contains(event.relatedTarget)) node.classList.remove("px-is-over");
+        });
+        node.addEventListener("drop", event => {
+          event.preventDefault();
+          node.classList.remove("px-is-over");
+          const item = resolveItem(readPayload(event));
+          if (item) callback(item);
+        });
+      }
+      function renderPool() {
+        const pool = $("#px-article-pool");
+        const items = state.news.filter(item => item && typeof item === "object").slice(0, MAX_POOL);
+        clear(pool);
+        if (!items.length) {
+          showEmpty(pool, state.loading ? "Artikel werden geladen" : "Keine News-Einträge", "Die Schnellablage erscheint nach einem erfolgreichen Abruf.");
+          return;
+        }
+        const dossiers = buildDossiers();
+        items.forEach(item => {
+          const row = make("article", "px-drag-item");
+          row.draggable = true;
+          row.tabIndex = 0;
+          row.addEventListener("dragstart", event => dragPayload(event, item));
+          row.addEventListener("dragend", () => row.classList.remove("px-is-over"));
+          row.append(make("span", "px-drag-handle", "⠿"));
+          const copy = make("div", "px-drag-copy");
+          copy.append(make("div", "px-drag-title", itemTitle(item)));
+          if (item.source) copy.append(make("span", "px-panel-label", item.source));
+          row.append(copy);
+          const select = make("select", "px-drag-select");
+          select.setAttribute("aria-label", "Dossier für Artikel wählen");
+          const blank = make("option", "", "Dossier wählen");
+          blank.value = "";
+          select.append(blank);
+          dossiers.slice(0, 160).forEach(dossier => {
+            const option = make("option", "", dossier.title);
+            option.value = dossier.key;
+            select.append(option);
+          });
+          const fresh = make("option", "", "Neues Dossier...");
+          fresh.value = "__new__";
+          select.append(fresh);
+          select.addEventListener("change", () => {
+            if (select.value === "__new__") {
+              switchTab("dossiers");
+              $("#px-new-dossier-title").focus();
+              showToast("Titel vergeben oder einen Artikel hierher ziehen.");
+            } else if (select.value) addToDossier(select.value, item);
+            select.value = "";
+          });
+          row.append(select);
+          pool.append(row);
+        });
+      }
+
+      function renderCards() {
+        const grid = $("#px-cards-grid");
+        const cards = state.cards.filter(item => item && typeof item === "object");
+        const visible = cards.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, MAX_CARDS);
+        const queueCount = Object.values(state.cardStatus).filter(value => value === "queue").length;
+        setText("#px-card-count", formatNumber(cards.length));
+        setText("#px-metric-pending", formatNumber(queueCount));
+        if (!visible.length) {
+          showEmpty(grid, state.loading ? "Karten werden geladen" : "Keine Video-Karten", "cards.json enthält aktuell keine verwendbaren Einträge.");
+          return;
+        }
+        clear(grid);
+        visible.forEach((card, index) => {
+          const id = typeof card.id === "string" ? card.id : String(index);
+          const status = state.cardStatus[id] || "open";
+          const article = make("article", "px-video-card");
+          article.style.setProperty("--px-card-color", safeColor(card.color, COLORS[index % COLORS.length]));
+          article.style.animationDelay = `${Math.min(index * 32, 250)}ms`;
+          const stage = make("div", "px-video-stage");
+          stage.append(make("span", "px-play-symbol", "▶"));
+          if (card.id) stage.append(make("span", "px-video-id", String(card.id).slice(0, 32)));
+          if (number(card.duration)) stage.append(make("span", "px-video-duration", formatDuration(card.duration)));
+          article.append(stage);
+          const body = make("div", "px-card-body");
+          body.append(make("h4", "px-card-title", itemTitle(card)));
+          const meta = make("div", "px-card-meta");
+          if (card.source) meta.append(make("span", "px-chip", card.source));
+          if (card.date) meta.append(make("span", "px-chip px-chip-green", card.date));
+          if (status === "approved") meta.append(make("span", "px-chip px-chip-green", "Genehmigt"));
+          if (status === "rejected") meta.append(make("span", "px-chip px-chip-red", "Abgelehnt"));
+          if (status === "queue") meta.append(make("span", "px-chip px-chip-orange", "Warteschleife"));
+          body.append(meta);
+          const actions = make("div", "px-card-actions");
+          [
+            ["approved", "Genehmigen", "px-card-action-approved", "✓"],
+            ["rejected", "Ablehnen", "px-card-action-rejected", "x"],
+            ["queue", "Warteschleife", "px-card-action-queue", "→"]
+          ].forEach(([value, label, className, symbol]) => {
+            const button = make("button", `px-card-action ${className}`, `${symbol} ${label}`);
+            button.type = "button";
+            button.dataset.pxCardAction = value;
+            button.dataset.pxCardId = id;
+            button.setAttribute("aria-pressed", String(status === value));
+            actions.append(button);
+          });
+          body.append(actions);
+          article.append(body);
+          grid.append(article);
+        });
+        if (cards.length > visible.length) grid.append(make("div", "px-chip px-chip-violet", `+ ${formatNumber(cards.length - visible.length)} weitere Karten in der JSON-Datei`));
+      }
+      function formatDuration(value) {
+        const seconds = Math.max(0, Math.round(number(value)));
+        return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+      }
+      function setCardStatus(id, status) {
+        if (!id || !["approved", "rejected", "queue"].includes(status)) return;
+        state.cardStatus[id] = status;
+        writeStorage(STORAGE.cards, state.cardStatus);
+        renderCards();
+        showToast(status === "queue" ? "Karte in die Warteschleife verschoben." : "Moderationsstatus lokal gespeichert.");
+      }
+      function buildDossiers() {
+        const map = new Map();
+        for (const item of state.archive) {
+          if (!item || typeof item !== "object") continue;
+          const storyId = typeof item.story_id === "string" ? item.story_id : "";
+          const key = storyId ? `story:${storyId}` : `article:${String(item.link || item.title).slice(0, 100)}`;
+          if (!map.has(key)) map.set(key, { key, storyId, title: itemTitle(item), color: safeColor(item.color), image: safeUrl(item.image), score: 0, items: [], custom: false });
+          const dossier = map.get(key);
+          dossier.items.push(item);
+          dossier.score = Math.max(dossier.score, number(item.score), number(item.story_cluster_score));
+        }
+        const itemMap = new Map(allNewsItems().map(item => [itemKey(item), item]));
+        for (const [dossierKey, keys] of Object.entries(state.assignments)) {
+          if (!Array.isArray(keys) || !dossierKey) continue;
+          if (!map.has(dossierKey)) map.set(dossierKey, { key: dossierKey, storyId: "", title: dossierKey, color: safeColor("#9a72ff"), image: "", score: 0, items: [], custom: true });
+          const dossier = map.get(dossierKey);
+          keys.forEach(key => {
+            const item = itemMap.get(key);
+            if (item && !dossier.items.some(existing => itemKey(existing) === key)) dossier.items.push(item);
+          });
+        }
+        for (const custom of state.customDossiers) {
+          if (!custom || typeof custom !== "object" || !custom.key) continue;
+          if (!map.has(custom.key)) map.set(custom.key, { key: custom.key, storyId: "", title: custom.title || "Neues Dossier", color: safeColor(custom.color, "#9a72ff"), image: "", score: 0, items: [], custom: true });
+        }
+        return Array.from(map.values()).sort((a, b) => (a.custom === b.custom ? 0 : a.custom ? 1 : -1) || b.score - a.score || b.items.length - a.items.length);
+      }
+      function renderDossiers() {
+        const grid = $("#px-dossier-grid");
+        const dossiers = buildDossiers();
+        const query = $("#px-dossier-search").value.trim().toLocaleLowerCase("de-DE");
+        const filtered = dossiers.filter(item => !query || item.title.toLocaleLowerCase("de-DE").includes(query));
+        const visible = filtered.slice(0, MAX_DOSSIERS);
+        setText("#px-metric-dossiers", formatNumber(dossiers.length));
+        setText("#px-dossier-count-tab", formatNumber(dossiers.length));
+        if (!visible.length) {
+          showEmpty(grid, query ? "Keine passenden Dossiers" : state.loading ? "Dossiers werden geladen" : "Keine Dossiers verfügbar", query ? "Suchbegriff ändern oder einen Artikel in ein neues Dossier legen." : "archive.json enthält aktuell keine verwertbaren Einträge.");
+          return;
+        }
+        clear(grid);
+        visible.forEach((dossier, index) => {
+          const tile = make("button", "px-dossier-tile");
+          tile.type = "button";
+          tile.style.setProperty("--px-dossier-color", safeColor(dossier.color, COLORS[index % COLORS.length]));
+          tile.style.animationDelay = `${Math.min(index * 25, 220)}ms`;
+          const top = make("div", "px-dossier-top");
+          top.append(make("span", "px-dossier-mark"), make("span", "px-dossier-score", `Score ${formatNumber(dossier.score)}`));
+          tile.append(top, make("h4", "px-dossier-title", dossier.title));
+          const foot = make("div", "px-dossier-foot");
+          foot.append(make("span", "", `${formatNumber(dossier.items.length)} Beiträge`), make("span", "", dossier.custom ? "LOKAL" : "ÖFFNEN →"));
+          tile.append(foot);
+          const preview = make("div", "px-dossier-preview");
+          preview.append(make("div", "px-preview-image"));
+          const previewCopy = make("div", "px-preview-copy");
+          previewCopy.append(make("strong", "px-preview-title", dossier.title), make("span", "px-chip", `Story-Score ${formatNumber(dossier.score)}`), make("span", "px-drop-copy", "Klicken für alle Beiträge"));
+          preview.append(previewCopy);
+          tile.append(preview);
+          const loadPreview = () => {
+            const imageUrl = safeUrl(dossier.image);
+            if (!imageUrl || preview.dataset.loaded) return;
+            preview.dataset.loaded = "true";
+            const image = make("img", "px-preview-image");
+            image.alt = "Vorschaubild des Dossiers";
+            image.loading = "lazy";
+            image.src = imageUrl;
+            image.addEventListener("error", () => image.remove(), { once: true });
+            preview.firstElementChild?.replaceWith(image);
+          };
+          tile.addEventListener("pointerenter", loadPreview, { once: true });
+          tile.addEventListener("focus", loadPreview, { once: true });
+          tile.addEventListener("click", () => openDossier(dossier.key));
+          bindDrop(tile, item => addToDossier(dossier.key, item));
+          grid.append(tile);
+        });
+        if (filtered.length > visible.length) grid.append(make("p", "px-section-copy", `${formatNumber(filtered.length - visible.length)} weitere Dossiers werden nach einer Suche oder im Snapshot berücksichtigt.`));
+      }
+      function openDossier(key) {
+        const dossier = buildDossiers().find(item => item.key === key);
+        const modal = $("#px-dossier-modal");
+        const content = $("#px-modal-content");
+        if (!dossier) return;
+        state.modalDossier = key;
+        setText("#px-modal-kicker", dossier.custom ? "Lokales Dossier" : "Archiv-Dossier");
+        setText("#px-modal-title", dossier.title);
+        clear(content);
+        if (dossier.items.length) {
+          const hero = make("section", "px-modal-hero");
+          const imageSlot = make("div", "px-modal-image");
+          hero.append(imageSlot);
+          const first = dossier.items[0];
+          const copy = make("div", "px-drag-copy");
+          copy.append(make("p", "px-modal-summary", first.summary || first.full_text || "Zu diesem Beitrag liegt keine Kurzfassung vor."));
+          const meta = make("div", "px-modal-meta");
+          meta.append(make("span", "px-chip", `${formatNumber(dossier.items.length)} Beiträge`), make("span", "px-chip px-chip-green", `Story-Score ${formatNumber(dossier.score)}`));
+          if (first.source) meta.append(make("span", "px-chip px-chip-violet", first.source));
+          copy.append(meta);
+          hero.append(copy);
+          content.append(hero);
+          const imageUrl = safeUrl(dossier.image);
+          if (imageUrl) {
+            const image = make("img", "px-modal-image");
+            image.alt = "Vorschaubild des Dossiers";
+            image.src = imageUrl;
+            image.addEventListener("error", () => image.remove(), { once: true });
+            imageSlot.replaceWith(image);
+          }
+        }
+        const list = make("div", "px-modal-list");
+        dossier.items.forEach(item => {
+          const article = make("article", "px-modal-item");
+          article.style.setProperty("--px-item-color", safeColor(item.color, dossier.color));
+          article.append(make("h3", "px-modal-item-title", itemTitle(item)));
+          article.append(make("p", "px-modal-item-copy", item.full_text || item.summary || "Zu diesem Beitrag liegt keine Kurzfassung vor."));
+          const meta = make("div", "px-modal-meta");
+          if (item.source) meta.append(make("span", "px-chip", item.source));
+          if (item.date) meta.append(make("span", "px-chip px-chip-green", item.date));
+          if (item.story_id) meta.append(make("span", "px-chip px-chip-violet", item.story_id));
+          article.append(meta);
+          const url = safeUrl(item.link);
+          if (url) {
+            const link = make("a", "px-source-link", "Originalbeitrag öffnen ↗");
+            link.href = url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            article.append(link);
+          }
+          list.append(article);
+        });
+        if (!dossier.items.length) showEmpty(list, "Dossier ist leer", "Ziehe einen News-Artikel hierher oder ordne ihn über die Schnellablage zu.");
+        content.append(list);
+        const drop = make("div", "px-drop-zone px-modal-drop");
+        drop.tabIndex = 0;
+        drop.append(make("span", "px-drop-icon", "+"), make("strong", "px-drop-title", "Weiteren Artikel hinzufügen"), make("span", "px-drop-copy", "News-Element hierher ziehen"));
+        bindDrop(drop, item => addToDossier(dossier.key, item));
+        content.append(drop);
+        if (typeof modal.showModal === "function") modal.showModal();
+        else modal.setAttribute("open", "");
+        $("#px-modal-close").focus();
+      }
+      function closeDossier() {
+        const modal = $("#px-dossier-modal");
+        state.modalDossier = "";
+        if (typeof modal.close === "function" && modal.open) modal.close();
+        else modal.removeAttribute("open");
+      }
+      function addToDossier(key, item) {
+        const itemId = itemKey(item);
+        if (!key || !itemId) return;
+        if (!Array.isArray(state.assignments[key])) state.assignments[key] = [];
+        if (!state.assignments[key].includes(itemId)) {
+          state.assignments[key].push(itemId);
+          writeStorage(STORAGE.assignments, state.assignments);
+        }
+        renderDossiers();
+        renderPool();
+        if (state.modalDossier === key) openDossier(key);
+        showToast("Artikel wurde dem Dossier hinzugefügt.");
+      }
+      function createDossier(title, pendingItem) {
+        const cleanTitle = cleanText(title).trim();
+        if (!cleanTitle) {
+          $("#px-new-dossier-title").focus();
+          showToast("Bitte zuerst einen Dossier-Titel vergeben.");
+          return;
+        }
+        const slug = cleanTitle.toLocaleLowerCase("de-DE").replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "dossier";
+        const key = `custom-${slug}-${Date.now().toString(36)}`;
+        state.customDossiers.push({ key, title: cleanTitle, color: COLORS[state.customDossiers.length % COLORS.length] });
+        writeStorage(STORAGE.customDossiers, state.customDossiers);
+        if (pendingItem) addToDossier(key, pendingItem);
+        state.pendingDrop = null;
+        $("#px-new-dossier-title").value = "";
+        renderDossiers();
+        renderPool();
+        showToast("Neues lokales Dossier wurde angelegt.");
+      }
+      function archiveSnapshot() {
+        const snapshot = state.archive.filter(item => item && typeof item === "object").map(item => ({ ...item, dossier_ids: [] }));
+        const known = new Map(snapshot.map(item => [itemKey(item), item]));
+        const titles = new Map(state.customDossiers.map(item => [item.key, item.title]));
+        for (const [dossierKey, keys] of Object.entries(state.assignments)) {
+          if (!Array.isArray(keys)) continue;
+          keys.forEach(key => {
+            let target = known.get(key);
+            if (!target) {
+              const source = allNewsItems().find(item => itemKey(item) === key);
+              if (!source) return;
+              target = { ...source, dossier_ids: [] };
+              snapshot.push(target);
+              known.set(key, target);
+            }
+            target.dossier_ids.push(dossierKey);
+            target.dossier_title = titles.get(dossierKey) || target.dossier_title || "";
+          });
+        }
+        return snapshot;
+      }
+      function exportSnapshot() {
+        const blob = new Blob([JSON.stringify(archiveSnapshot(), null, 2)], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = make("a");
+        link.href = url;
+        link.download = "archive.json";
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast("Lokaler archive.json-Snapshot wurde erzeugt.");
+      }
+
+      function parseDate(value) {
+        if (typeof value !== "string" || !value.trim()) return null;
+        const normalized = value.length === 10 ? `${value}T00:00:00Z` : `${value.replace(" ", "T")}Z`;
+        const date = new Date(normalized);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+      function dateKey(date) { return date.toISOString().slice(0, 10); }
+      function activityDates() {
+        const values = [];
+        for (const item of [...state.graph.nodes, ...state.graph.edges]) {
+          const date = parseDate(item?.last_seen);
+          if (date) values.push(dateKey(date));
+        }
+        return values;
+      }
+      function activitySeries(days) {
+        const values = activityDates();
+        const now = new Date();
+        return Array.from({ length: days }, (_, index) => {
+          const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days + index + 1));
+          return values.filter(value => value === dateKey(date)).length;
+        });
+      }
+      function renderRanking(container, entries, limit) {
+        clear(container);
+        if (!entries.length) {
+          container.append(make("span", "px-metric-label", state.loading ? "Werte werden geladen" : "Keine Graphwerte verfügbar"));
+          return;
+        }
+        entries.slice(0, limit).forEach((entry, index) => {
+          const row = make("div", "px-rank-row");
+          row.append(make("span", "px-rank-index", String(index + 1).padStart(2, "0")), make("span", "px-rank-name", entry.name), make("span", "px-rank-value", formatNumber(entry.value)));
+          container.append(row);
+        });
+      }
+      function drawSparkline(canvas, values, color, area = false) {
+        const context = canvas?.getContext("2d");
+        if (!context) return;
+        const width = Math.max(240, Math.floor(canvas.getBoundingClientRect().width || 500));
+        const height = Math.max(78, Math.floor(canvas.getBoundingClientRect().height || 100));
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context.clearRect(0, 0, width, height);
+        const data = values.length ? values.map(number) : [0, 0];
+        const min = Math.min(...data, 0);
+        const max = Math.max(...data, 1);
+        const range = Math.max(max - min, 1);
+        const padding = 12;
+        const points = data.map((value, index) => ({ x: padding + index * ((width - padding * 2) / Math.max(data.length - 1, 1)), y: height - padding - ((value - min) / range) * (height - padding * 2) }));
+        context.strokeStyle = "rgba(142, 162, 184, .12)";
+        context.lineWidth = 1;
+        for (let line = 1; line < 4; line += 1) {
+          const y = padding + (height - padding * 2) * line / 4;
+          context.beginPath();
+          context.moveTo(padding, y);
+          context.lineTo(width - padding, y);
+          context.stroke();
+        }
+        if (area) {
+          const gradient = context.createLinearGradient(0, 0, 0, height);
+          gradient.addColorStop(0, `${color}45`);
+          gradient.addColorStop(1, `${color}00`);
+          context.beginPath();
+          context.moveTo(points[0].x, height - padding);
+          points.forEach(point => context.lineTo(point.x, point.y));
+          context.lineTo(points[points.length - 1].x, height - padding);
+          context.closePath();
+          context.fillStyle = gradient;
+          context.fill();
+        }
+        context.beginPath();
+        points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+        context.strokeStyle = color;
+        context.lineWidth = 2.2;
+        context.lineJoin = "round";
+        context.lineCap = "round";
+        context.shadowColor = color;
+        context.shadowBlur = 8;
+        context.stroke();
+        context.shadowBlur = 0;
+        context.beginPath();
+        context.arc(points[points.length - 1].x, points[points.length - 1].y, 3.5, 0, Math.PI * 2);
+        context.fillStyle = color;
+        context.fill();
+      }
+      function shortDate(date) {
+        return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "UTC" }).format(date);
+      }
+      function renderHeatmap() {
+        const grid = $("#px-heatmap");
+        clear(grid);
+        const counts = new Map();
+        activityDates().forEach(key => counts.set(key, (counts.get(key) || 0) + 1));
+        const now = new Date();
+        const dates = Array.from({ length: 42 }, (_, index) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 41 + index)));
+        const max = Math.max(...dates.map(date => counts.get(dateKey(date)) || 0), 1);
+        dates.forEach(date => {
+          const value = counts.get(dateKey(date)) || 0;
+          const level = value ? Math.min(4, Math.ceil(value / max * 4)) : 0;
+          const cell = make("span", `px-heat-cell px-heat-level-${level}`);
+          cell.setAttribute("aria-label", `Aktivitätszelle für ${shortDate(date)}`);
+          grid.append(cell);
+        });
+        setText("#px-heat-start", shortDate(dates[0]));
+        setText("#px-heat-end", shortDate(dates[dates.length - 1]));
+      }
+      function renderStats() {
+        const nodes = state.graph.nodes.filter(item => item && typeof item === "object");
+        const edges = state.graph.edges.filter(item => item && typeof item === "object");
+        const entities = nodes.map(item => ({ name: item.id || "Ohle Name", value: number(item.count) })).sort((a, b) => b.value - a.value);
+        const relationships = edges.map(item => ({ name: `${item.source || "Unbekannt"} / ${item.target || "Unbekannt"}`, value: number(item.count) })).sort((a, b) => b.value - a.value);
+        setText("#px-stat-nodes", formatNumber(nodes.length));
+        setText("#px-stat-edges", formatNumber(edges.length));
+        setText("#px-graph-stand", state.graph.stand ? `Stand ${state.graph.stand}` : "graph.json");
+        const match = String(state.graph.stand || "").match(/\d{2}:\d{2}/);
+        setText("#px-stat-clock", match ? match[0] : "--:--");
+        renderRanking($("#px-entity-ranking"), entities, 5);
+        renderRanking($("#px-trend-ranking"), relationships, 4);
+        renderHeatmap();
+        requestAnimationFrame(() => {
+          drawSparkline($("#px-main-sparkline"), entities.slice(0, 10).map(item => item.value), "#00d4ff", true);
+          drawSparkline($("#px-trend-sparkline"), relationships.slice(0, 9).map(item => item.value), "#9a72ff");
+          drawSparkline($("#px-activity-sparkline"), activitySeries(12), "#25e6a0");
+        });
+      }
+      function switchTab(tab) {
+        if (!["cards", "dossiers", "stats"].includes(tab)) return;
+        state.activeTab = tab;
+        $$("[data-px-tab]").forEach(button => {
+          const selected = button.dataset.pxTab === tab;
+          button.setAttribute("aria-selected", String(selected));
+          button.tabIndex = selected ? 0 : -1;
+        });
+        $$(".px-tab-panel").forEach(panel => { panel.hidden = panel.id !== `px-panel-${tab}`; });
+        if (tab === "dossiers") renderDossiers();
+        if (tab === "stats") requestAnimationFrame(renderStats);
+      }
+
+      async function fetchJson(path) {
+        const response = await fetch(path, { cache: "no-store", headers: { Accept: "application/json" } });
+        if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+        return response.json();
+      }
+      function normalizeGraph(value) {
+        if (!value || typeof value !== "object") return { nodes: [], edges: [], stand: "", websocket: "" };
+        return {
+          nodes: Array.isArray(value.nodes) ? value.nodes : [],
+          edges: Array.isArray(value.edges) ? value.edges : [],
+          stand: typeof value.stand === "string" ? value.stand : "",
+          websocket: typeof value.websocket === "string" ? value.websocket : typeof value.admin_stats_websocket === "string" ? value.admin_stats_websocket : ""
+        };
+      }
+      async function loadData() {
+        const requests = [["news", fetchJson("news.json")], ["cards", fetchJson("cards.json")], ["archive", fetchJson("archive.json")], ["graph", fetchJson("graph.json")]];
+        const results = await Promise.allSettled(requests.map(item => item[1]));
+        const errors = [];
+        results.forEach((result, index) => {
+          const key = requests[index][0];
+          if (result.status === "rejected") { errors.push(key); return; }
+          const value = result.value;
+          if (key === "news") { state.news = Array.isArray(value) ? value : Array.isArray(value?.news) ? value.news : []; state.posts = Array.isArray(value?.posts) ? value.posts : []; }
+          if (key === "cards") state.cards = Array.isArray(value) ? value : Array.isArray(value?.cards) ? value.cards : [];
+          if (key === "archive") state.archive = Array.isArray(value) ? value : Array.isArray(value?.archive) ? value.archive : [];
+          if (key === "graph") state.graph = normalizeGraph(value);
+        });
+        state.loading = false;
+        setText("#px-last-sync", errors.length ? `Teilweise verfügbar: ${errors.join(", ")}` : `Snapshot ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`);
+        renderAll();
+        connectSocket();
+      }
+      function renderAll() {
+        renderProfile();
+        renderCards();
+        renderDossiers();
+        renderStats();
+      }
+      async function refreshGraph() {
+        try {
+          state.graph = normalizeGraph(await fetchJson("graph.json"));
+          renderTopics();
+          if (state.activeTab === "stats") renderStats();
+          if (!state.graph.errors) setText("#px-last-sync", `Snapshot ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`);
+        } catch { setSocket("Fallback aktiv", "var(--px-orange)"); }
+      }
+      function setSocket(text, color = "var(--px-green)") {
+        const node = $("#px-socket-state");
+        if (!node) return;
+        node.textContent = cleanText(text);
+        node.style.color = color;
+      }
+      function connectSocket() {
+        const endpoint = safeSocket(state.graph.websocket);
+        if (!endpoint || !("WebSocket" in window)) { setSocket("30-Sekunden-Abruf", "var(--px-violet)"); return; }
+        if (state.socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(state.socket.readyState)) return;
+        try {
+          const socket = new WebSocket(endpoint);
+          state.socket = socket;
+          socket.addEventListener("open", () => { setSocket("WebSocket verbunden"); socket.send(JSON.stringify({ type: "subscribe", channel: "admin_stats", interval: 30000 })); });
+          socket.addEventListener("message", event => {
+            try {
+              const payload = JSON.parse(event.data);
+              const graph = payload?.graph && typeof payload.graph === "object" ? payload.graph : payload;
+              if (!graph || (!Array.isArray(graph.nodes) && !Array.isArray(graph.edges))) return;
+              state.graph = normalizeGraph(graph);
+              renderTopics();
+              if (state.activeTab === "stats") renderStats();
+            } catch { setSocket("30-Sekunden-Abruf", "var(--px-orange)"); }
+          });
+          socket.addEventListener("error", () => setSocket("30-Sekunden-Abruf", "var(--px-orange)"));
+          socket.addEventListener("close", () => { state.socket = null; setSocket("30-Sekunden-Abruf", "var(--px-violet)"); });
+        } catch { state.socket = null; setSocket("30-Sekunden-Abruf", "var(--px-violet)"); }
+      }
+
+      function showToast(message) {
+        const toast = $("#px-toast");
+        toast.textContent = cleanText(message);
+        toast.classList.add("px-is-visible");
+        clearTimeout(state.toastTimer);
+        state.toastTimer = setTimeout(() => toast.classList.remove("px-is-visible"), 2800);
+      }
+      function initTooltips() {
+        const tooltip = $("#px-tooltip");
+        let active = null;
+        let touchLock = false;
+        const hide = () => { tooltip.hidden = true; tooltip.textContent = ""; active?.removeAttribute("aria-describedby"); active = null; };
+        const show = target => {
+          const text = target.getAttribute("data-px-tip");
+          if (!text) return;
+          active?.removeAttribute("aria-describedby");
+          active = target;
+          tooltip.textContent = cleanText(text);
+          tooltip.id = "px-tooltip";
+          tooltip.hidden = false;
+          target.setAttribute("aria-describedby", tooltip.id);
+          const rect = target.getBoundingClientRect();
+          const tip = tooltip.getBoundingClientRect();
+          let left = rect.left + rect.width / 2 - tip.width / 2;
+          let top = rect.top - tip.height - 9;
+          left = Math.max(12, Math.min(left, innerWidth - tip.width - 12));
+          if (top < 10) top = rect.bottom + 9;
+          tooltip.style.left = `${Math.round(left)}px`;
+          tooltip.style.top = `${Math.round(top)}px`;
+        };
+        document.addEventListener("pointerover", event => {
+          if (touchLock) return;
+          const target = event.target instanceof Element ? event.target.closest("[data-px-tip]") : null;
+          target ? show(target) : active && hide();
+        });
+        document.addEventListener("pointerout", event => {
+          if (touchLock) return;
+          const target = event.target instanceof Element ? event.target.closest("[data-px-tip]") : null;
+          const next = event.relatedTarget instanceof Element ? event.relatedTarget.closest("[data-px-tip]") : null;
+          if (target && target !== next) hide();
+        });
+        document.addEventListener("click", event => {
+          const target = event.target instanceof Element ? event.target.closest("[data-px-tip]") : null;
+          if (!target || !matchMedia("(pointer: coarse)").matches) return;
+          event.preventDefault();
+          active === target && !tooltip.hidden ? hide() : show(target);
+          touchLock = true;
+          setTimeout(() => { touchLock = false; }, 450);
+        });
+        addEventListener("scroll", hide, { passive: true });
+        addEventListener("resize", hide);
+      }
+      function initProfile() {
+        const form = $("#px-profile-form");
+        const toggle = $("#px-profile-edit");
+        const fill = () => {
+          $("#px-name-input").value = state.profile.name;
+          $("#px-avatar-input").value = state.profile.avatar;
+          $("#px-bio-input").value = state.profile.bio;
+          $("#px-topics-input").value = state.profile.topics;
+        };
+        toggle.addEventListener("click", () => {
+          const open = form.hidden;
+          form.hidden = !open;
+          toggle.setAttribute("aria-expanded", String(open));
+          if (open) { fill(); $("#px-name-input").focus(); }
+        });
+        $("#px-profile-cancel").addEventListener("click", () => { form.hidden = true; toggle.setAttribute("aria-expanded", "false"); });
+        form.addEventListener("submit", event => {
+          event.preventDefault();
+          state.profile = normalizeProfile({ name: $("#px-name-input").value, avatar: $("#px-avatar-input").value, bio: $("#px-bio-input").value, topics: $("#px-topics-input").value });
+          writeStorage(STORAGE.profile, state.profile);
+          form.hidden = true;
+          toggle.setAttribute("aria-expanded", "false");
+          renderProfile();
+          showToast("Profil wurde lokal gespeichert.");
+        });
+      }
+      function initTheme() {
+        const stored = readStorage(STORAGE.theme, document.documentElement.dataset.theme || "dark");
+        document.documentElement.dataset.theme = stored === "light" ? "light" : "dark";
+        const button = $("#px-theme-button");
+        if (!button) return;
+        const update = () => {
+          const light = document.documentElement.dataset.theme === "light";
+          button.textContent = light ? "●" : "◐";
+          button.setAttribute("aria-label", light ? "Konzentrationsmodus aktivieren" : "Hellen Workspace aktivieren");
+        };
+        button.addEventListener("click", () => {
+          const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+          document.documentElement.dataset.theme = next;
+          writeStorage(STORAGE.theme, next);
+          update();
+          requestAnimationFrame(drawDonut);
+          if (state.activeTab === "stats") requestAnimationFrame(renderStats);
+        });
+        update();
+      }
+      function ensureHeaderFallback() {
+        const host = $("[data-ki-header]");
+        if (!host || host.textContent.trim() || host.querySelector("a, nav, button")) return;
+        const header = make("div", "px-fallback-header");
+        const brand = make("a", "px-brand");
+        brand.href = "index.html";
+        brand.setAttribute("aria-label", "KI NEWS Startseite");
+        brand.append(make("span", "px-brand-mark", "S"), make("span", "", "KI NEWS"), make("span", "px-brand-country", "DE"));
+        header.append(brand);
+        const nav = make("nav", "px-nav");
+        nav.setAttribute("aria-label", "Hauptnavigation");
+        [["Aktuell", "index.html"], ["Archiv", "archiv.html"], ["Artikel", "artikel.html"], ["Podcast", "podcast.html"], ["Statistik", "statistik.html"], ["Profil", "_idee_profil_admin_upgrade.html"]].forEach(([label, href], index) => {
+          const link = make("a", "px-nav-link", label);
+          link.href = href;
+          if (index === 5) link.setAttribute("aria-current", "page");
+          nav.append(link);
+        });
+        header.append(nav);
+        const button = make("button", "px-theme-button");
+        button.id = "px-theme-button";
+        button.type = "button";
+        header.append(button);
+        host.append(header);
+      }
+      function initEvents() {
+        $$("[data-px-tab]").forEach(button => {
+          button.addEventListener("click", () => switchTab(button.dataset.pxTab));
+          button.addEventListener("keydown", event => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const tabs = $$("[data-px-tab]");
+            const index = tabs.indexOf(button);
+            const next = event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index - 1 + tabs.length) % tabs.length : event.key === "Home" ? 0 : tabs.length - 1;
+            switchTab(tabs[next].dataset.pxTab);
+            tabs[next].focus();
+          });
+        });
+        $("#px-cards-grid").addEventListener("click", event => {
+          const button = event.target instanceof Element ? event.target.closest("[data-px-card-action]") : null;
+          if (button) setCardStatus(button.dataset.pxCardId, button.dataset.pxCardAction);
+        });
+        $("#px-dossier-search").addEventListener("input", renderDossiers);
+        $("#px-modal-close").addEventListener("click", closeDossier);
+        $("#px-dossier-modal").addEventListener("click", event => { if (event.target === $("#px-dossier-modal")) closeDossier(); });
+        $("#px-dossier-modal").addEventListener("cancel", () => { state.modalDossier = ""; });
+        bindDrop($("#px-new-dossier-drop"), item => {
+          state.pendingDrop = item;
+          $("#px-new-dossier-title").value = itemTitle(item).slice(0, 140);
+          $("#px-new-dossier-title").focus();
+          showToast("Titel prüfen und Dossier erstellen.");
+        });
+        $("#px-new-dossier-form").addEventListener("submit", event => {
+          event.preventDefault();
+          createDossier($("#px-new-dossier-title").value, state.pendingDrop);
+        });
+        $("#px-export-archive").addEventListener("click", exportSnapshot);
+        $("#px-reset-storage").addEventListener("click", () => {
+          state.cardStatus = {};
+          state.assignments = {};
+          state.customDossiers = [];
+          state.reads = {};
+          state.pendingDrop = null;
+          [STORAGE.cards, STORAGE.assignments, STORAGE.customDossiers, STORAGE.reads].forEach(key => writeStorage(key, key === STORAGE.cards ? state.cardStatus : key === STORAGE.assignments ? state.assignments : key === STORAGE.customDossiers ? state.customDossiers : state.reads));
+          renderAll();
+          showToast("Lokale Prototypänderungen wurden zurückgesetzt.");
+        });
+        addEventListener("resize", () => { requestAnimationFrame(drawDonut); if (state.activeTab === "stats") requestAnimationFrame(renderStats); });
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshGraph(); });
+        addEventListener("beforeunload", () => { try { state.socket?.close(); } catch {} });
+      }
+      function init() {
+        initTheme();
+        initTooltips();
+        initProfile();
+        initEvents();
+        ensureHeaderFallback();
+        initTheme();
+        renderAll();
+        loadData().catch(() => {
+          state.loading = false;
+          setText("#px-last-sync", "Daten konnten nicht geladen werden");
+          renderAll();
+        });
+        setInterval(refreshGraph, 30000);
+        setTimeout(ensureHeaderFallback, 350);
+      }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
+      else init();
+    })();
+  </script>
+</body>
+</html>
