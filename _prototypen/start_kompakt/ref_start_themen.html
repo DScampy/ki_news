@@ -1,0 +1,2756 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="KI-Nachrichten von ki-news.live übersichtlich nach Themen gruppiert">
+  <meta name="color-scheme" content="light dark">
+  <title>Themen | KI NEWS</title>
+
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      --px-bg: #edf4f7;
+      --px-bg-deep: #dce9ef;
+      --px-panel: rgba(255, 255, 255, 0.91);
+      --px-solid: #ffffff;
+      --px-soft: #f3f7f9;
+      --px-text: #10182d;
+      --px-muted: #637089;
+      --px-faint: #8995a8;
+      --px-line: #d5e0e6;
+      --px-line-strong: #b9c8d1;
+      --px-cyan: #00d4ff;
+      --px-green: #00d991;
+      --px-violet: #8b5cf6;
+      --px-pink: #ff5c8a;
+      --px-orange: #f59e0b;
+      --px-shadow: 0 18px 52px rgba(30, 53, 70, 0.1);
+      --px-shadow-small: 0 8px 26px rgba(30, 53, 70, 0.065);
+      --px-radius-xl: 25px;
+      --px-radius-lg: 17px;
+      --px-radius-md: 12px;
+      --px-max: 1440px;
+      --px-header-height: 56px;
+    }
+
+    html[data-theme="dark"],
+    body[data-theme="dark"],
+    body.dark,
+    body.theme-dark {
+      color-scheme: dark;
+      --px-bg: #0a1017;
+      --px-bg-deep: #050a10;
+      --px-panel: rgba(16, 24, 33, 0.93);
+      --px-solid: #101820;
+      --px-soft: #17222d;
+      --px-text: #eef5f8;
+      --px-muted: #9aabb9;
+      --px-faint: #708292;
+      --px-line: #26343f;
+      --px-line-strong: #354753;
+      --px-shadow: 0 22px 64px rgba(0, 0, 0, 0.3);
+      --px-shadow-small: 0 10px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html:not([data-theme="light"]) {
+        color-scheme: dark;
+        --px-bg: #0a1017;
+        --px-bg-deep: #050a10;
+        --px-panel: rgba(16, 24, 33, 0.93);
+        --px-solid: #101820;
+        --px-soft: #17222d;
+        --px-text: #eef5f8;
+        --px-muted: #9aabb9;
+        --px-faint: #708292;
+        --px-line: #26343f;
+        --px-line-strong: #354753;
+        --px-shadow: 0 22px 64px rgba(0, 0, 0, 0.3);
+        --px-shadow-small: 0 10px 30px rgba(0, 0, 0, 0.22);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      max-width: 100%;
+      overflow-x: hidden;
+      background: var(--px-bg);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      max-width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--px-text);
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.032) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.032) 1px, transparent 1px),
+        radial-gradient(circle at 8% 7%, rgba(0, 212, 255, 0.14), transparent 28rem),
+        radial-gradient(circle at 93% 23%, rgba(139, 92, 246, 0.12), transparent 31rem),
+        linear-gradient(180deg, var(--px-bg), var(--px-bg-deep));
+      background-size: 32px 32px, 32px 32px, auto, auto, auto;
+      font-family: "Work Sans", system-ui, sans-serif;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button,
+    a,
+    input {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(0, 212, 255, 0.62);
+      outline-offset: 3px;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    ::selection {
+      color: #061018;
+      background: var(--px-cyan);
+    }
+
+    .px-skip {
+      position: fixed;
+      z-index: 999;
+      top: 12px;
+      left: 12px;
+      padding: 10px 14px;
+      transform: translateY(-180%);
+      border-radius: 10px;
+      color: #061018;
+      background: var(--px-cyan);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .px-skip:focus {
+      transform: translateY(0);
+    }
+
+    .px-shell {
+      width: calc(100% - 32px);
+      max-width: var(--px-max);
+      min-width: 0;
+      margin: 0 auto;
+      padding: 18px 0 68px;
+    }
+
+    .px-shell,
+    .px-shell * {
+      min-width: 0;
+    }
+
+    .px-hero {
+      position: relative;
+      isolation: isolate;
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.78fr);
+      gap: 34px;
+      min-height: 246px;
+      align-items: center;
+      padding: clamp(25px, 3.4vw, 43px);
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius-xl);
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .px-hero::before {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(108deg, rgba(0, 212, 255, 0.11), transparent 39%),
+        linear-gradient(292deg, rgba(139, 92, 246, 0.11), transparent 43%);
+    }
+
+    .px-hero::after {
+      position: absolute;
+      z-index: 2;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      content: "";
+      background: linear-gradient(90deg, var(--px-cyan), var(--px-green), var(--px-violet));
+    }
+
+    .px-eyebrow,
+    .px-stand,
+    .px-map-label,
+    .px-map-count,
+    .px-metric-label,
+    .px-filter-label,
+    .px-chip,
+    .px-section-kicker,
+    .px-section-index,
+    .px-section-count,
+    .px-tag,
+    .px-card-rank,
+    .px-card-footer,
+    .px-more-button,
+    .px-retry,
+    .px-page-note,
+    .px-state-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .px-eyebrow {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 0 0 13px;
+      color: var(--px-green);
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .px-eyebrow::before {
+      width: 29px;
+      height: 2px;
+      content: "";
+      background: currentColor;
+      box-shadow: 8px 0 16px currentColor;
+    }
+
+    .px-hero-title {
+      max-width: 760px;
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2.65rem, 4.8vw, 4.85rem);
+      font-weight: 760;
+      line-height: 0.94;
+      letter-spacing: -0.06em;
+      text-wrap: balance;
+    }
+
+    .px-hero-copy {
+      max-width: 720px;
+      margin: 16px 0 0;
+      color: var(--px-muted);
+      font-size: clamp(0.91rem, 1.15vw, 1.03rem);
+      line-height: 1.5;
+    }
+
+    .px-stand {
+      margin: 10px 0 0;
+      color: var(--px-faint);
+      font-size: 0.61rem;
+      line-height: 1.45;
+      letter-spacing: 0.025em;
+    }
+
+    .px-map {
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--px-line);
+      border-radius: 18px;
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.065) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.065) 1px, transparent 1px),
+        var(--px-soft);
+      background-size: 21px 21px;
+    }
+
+    .px-map-head {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .px-map-label,
+    .px-map-count {
+      color: var(--px-faint);
+      font-size: 0.56rem;
+      font-weight: 850;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .px-map-count {
+      color: var(--px-green);
+    }
+
+    .px-map-svg {
+      display: block;
+      width: 100%;
+      height: 91px;
+      overflow: visible;
+    }
+
+    .px-map-grid {
+      fill: none;
+      stroke: var(--px-line-strong);
+      stroke-width: 0.7;
+      opacity: 0.48;
+    }
+
+    .px-map-line {
+      fill: none;
+      stroke: var(--px-cyan);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.5));
+      stroke-dasharray: 600;
+      animation: px-map-draw 3.8s ease-in-out infinite alternate;
+    }
+
+    .px-map-dot {
+      stroke: var(--px-solid);
+      stroke-width: 2.5;
+      animation: px-dot-pulse 2.2s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .px-map-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 5px;
+    }
+
+    .px-metric {
+      min-width: 0;
+      padding: 8px 9px;
+      border: 1px solid var(--px-line);
+      border-radius: 9px;
+      background: rgba(127, 127, 127, 0.035);
+    }
+
+    .px-metric-value {
+      display: block;
+      overflow: hidden;
+      color: var(--px-text);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(0.86rem, 1.3vw, 1.17rem);
+      font-weight: 760;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-metric-label {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--px-faint);
+      font-size: 0.49rem;
+      letter-spacing: 0.065em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-topicbar {
+      position: sticky;
+      z-index: 40;
+      top: calc(var(--px-header-height) + 8px);
+      margin: 14px 0 9px;
+      padding: 9px;
+      border: 1px solid var(--px-line);
+      border-radius: 17px;
+      background: rgba(245, 249, 251, 0.95);
+      box-shadow: 0 9px 30px rgba(20, 38, 57, 0.12);
+      backdrop-filter: blur(18px) saturate(145%);
+    }
+
+    html[data-theme="dark"] .px-topicbar,
+    body[data-theme="dark"] .px-topicbar,
+    body.dark .px-topicbar,
+    body.theme-dark .px-topicbar {
+      background: rgba(13, 20, 28, 0.95);
+    }
+
+    .px-toolbar {
+      display: grid;
+      grid-template-columns: auto minmax(180px, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .px-filter-label {
+      color: var(--px-muted);
+      font-size: 0.58rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-search-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .px-search-icon {
+      position: absolute;
+      top: 50%;
+      left: 13px;
+      color: var(--px-faint);
+      font-size: 1rem;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .px-search,
+    .px-clear {
+      height: 38px;
+      border: 1px solid var(--px-line);
+      color: var(--px-text);
+      background: var(--px-solid);
+    }
+
+    .px-search {
+      width: 100%;
+      min-width: 0;
+      padding: 0 42px;
+      border-radius: 10px;
+      outline: none;
+    }
+
+    .px-search::placeholder {
+      color: var(--px-faint);
+    }
+
+    .px-clear {
+      position: absolute;
+      top: 50%;
+      right: 4px;
+      width: 30px;
+      padding: 0;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 8px;
+      color: var(--px-muted);
+      background: transparent;
+      font-size: 1.1rem;
+    }
+
+    .px-clear:hover {
+      color: var(--px-text);
+      background: var(--px-soft);
+    }
+
+    .px-view {
+      display: inline-flex;
+      gap: 3px;
+      padding: 3px;
+      border: 1px solid var(--px-line);
+      border-radius: 11px;
+      background: var(--px-soft);
+    }
+
+    .px-view-button {
+      min-height: 30px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 8px;
+      color: var(--px-muted);
+      background: transparent;
+      font-size: 0.67rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .px-view-button:hover {
+      color: var(--px-text);
+    }
+
+    .px-view-button[aria-pressed="true"] {
+      color: #07131a;
+      background: var(--px-cyan);
+      box-shadow: 0 3px 12px rgba(0, 212, 255, 0.22);
+    }
+
+    .px-chip-nav {
+      display: flex;
+      gap: 7px;
+      margin-top: 7px;
+      padding: 1px 1px 3px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--px-line-strong) transparent;
+    }
+
+    .px-chip-nav::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .px-chip-nav::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+      background: var(--px-line-strong);
+    }
+
+    .px-chip {
+      display: inline-flex;
+      flex: 0 0 auto;
+      min-height: 31px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 8px 0 10px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: var(--px-solid);
+      font-size: 0.61rem;
+      font-weight: 800;
+      white-space: nowrap;
+      transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    .px-chip:hover {
+      color: var(--px-text);
+      border-color: var(--px-cyan);
+    }
+
+    .px-chip[aria-current="true"] {
+      color: var(--px-text);
+      border-color: rgba(0, 212, 255, 0.75);
+      background: rgba(0, 212, 255, 0.12);
+    }
+
+    .px-chip-count {
+      display: inline-grid;
+      min-width: 21px;
+      height: 21px;
+      padding: 0 5px;
+      place-items: center;
+      border-radius: 999px;
+      color: #061018;
+      background: var(--px-green);
+      font-size: 0.56rem;
+      font-weight: 950;
+    }
+
+    .px-status {
+      min-height: 18px;
+      margin: 0 2px 9px;
+      color: var(--px-faint);
+      font-size: 0.59rem;
+      line-height: 1.45;
+      letter-spacing: 0.015em;
+    }
+
+    .px-results {
+      display: grid;
+      gap: 16px;
+    }
+
+    .px-topic {
+      min-width: 0;
+      scroll-margin-top: 174px;
+      padding: clamp(17px, 2.2vw, 27px);
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius-xl);
+      background: var(--px-panel);
+      box-shadow: var(--px-shadow-small);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-section-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 15px;
+      align-items: start;
+      margin-bottom: 15px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-section-index {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--px-topic-accent, var(--px-cyan));
+      border-radius: 13px;
+      place-items: center;
+      color: var(--px-topic-accent, var(--px-cyan));
+      background: rgba(127, 127, 127, 0.04);
+      font-size: 0.67rem;
+      font-weight: 950;
+      box-shadow: inset 0 0 18px rgba(127, 127, 127, 0.04);
+    }
+
+    .px-section-heading {
+      min-width: 0;
+    }
+
+    .px-section-kicker {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--px-topic-accent, var(--px-cyan));
+      font-size: 0.54rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .px-section-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.35rem, 2.5vw, 2rem);
+      font-weight: 750;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-section-description {
+      max-width: 760px;
+      margin: 6px 0 0;
+      color: var(--px-muted);
+      font-size: 0.8rem;
+      line-height: 1.44;
+    }
+
+    .px-section-count {
+      min-width: 68px;
+      padding: 7px 9px;
+      border: 1px solid var(--px-line);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: var(--px-soft);
+      font-size: 0.57rem;
+      font-weight: 900;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .px-topic-grid,
+    .px-skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 11px;
+    }
+
+    .px-card {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      min-height: 226px;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 16px;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius-lg);
+      background: var(--px-solid);
+      box-shadow: 0 5px 18px rgba(20, 38, 57, 0.05);
+      animation: px-card-in 420ms ease both;
+      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .px-card::before {
+      position: absolute;
+      top: 16px;
+      bottom: 16px;
+      left: 0;
+      width: 3px;
+      border-radius: 0 8px 8px 0;
+      content: "";
+      background: var(--px-topic-accent, var(--px-cyan));
+      opacity: 0.9;
+    }
+
+    .px-card::after {
+      position: absolute;
+      top: -46px;
+      right: -42px;
+      width: 116px;
+      height: 116px;
+      border: 1px solid var(--px-topic-accent, var(--px-cyan));
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+      opacity: 0.11;
+      box-shadow:
+        0 0 0 18px var(--px-topic-accent, var(--px-cyan)),
+        0 0 0 38px var(--px-topic-accent, var(--px-cyan));
+      transition: transform 250ms ease;
+    }
+
+    .px-card:hover {
+      z-index: 1;
+      border-color: var(--px-topic-accent, var(--px-cyan));
+      box-shadow: 0 15px 36px rgba(20, 38, 57, 0.12);
+      transform: translateY(-3px);
+    }
+
+    .px-card:hover::after {
+      transform: translate(-9px, 9px);
+    }
+
+    .px-card-body {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      flex-direction: column;
+      padding-right: 30px;
+    }
+
+    .px-card-rank {
+      position: absolute;
+      z-index: 2;
+      top: 14px;
+      right: 13px;
+      color: var(--px-topic-accent, var(--px-cyan));
+      font-size: 0.58rem;
+      font-weight: 950;
+      letter-spacing: 0.05em;
+    }
+
+    .px-card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .px-tag {
+      display: inline-flex;
+      min-height: 22px;
+      max-width: 100%;
+      align-items: center;
+      padding: 0 7px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 7px;
+      color: var(--px-muted);
+      background: var(--px-soft);
+      font-size: 0.51rem;
+      font-weight: 850;
+      letter-spacing: 0.035em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .px-tag-source {
+      color: var(--px-topic-accent, var(--px-cyan));
+      border-color: var(--px-topic-accent, var(--px-cyan));
+    }
+
+    .px-card-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1rem, 1.27vw, 1.14rem);
+      font-weight: 730;
+      line-height: 1.26;
+      letter-spacing: -0.025em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-card-title-link {
+      color: var(--px-text);
+      text-decoration: none;
+    }
+
+    .px-card-title-link:hover {
+      color: var(--px-topic-accent, var(--px-cyan));
+    }
+
+    .px-card-summary {
+      display: -webkit-box;
+      margin: 9px 0 13px;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 0.78rem;
+      line-height: 1.44;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .px-card-footer {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 9px;
+      border-top: 1px solid var(--px-line);
+      color: var(--px-faint);
+      font-size: 0.54rem;
+    }
+
+    .px-card-date {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .px-card-action {
+      flex: 0 0 auto;
+      color: var(--px-topic-accent, var(--px-cyan));
+      font-weight: 900;
+    }
+
+    .px-more-button {
+      display: inline-flex;
+      min-height: 37px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 0 14px;
+      border: 1px dashed var(--px-line-strong);
+      border-radius: 11px;
+      color: var(--px-muted);
+      background: var(--px-soft);
+      font-size: 0.68rem;
+      font-weight: 900;
+    }
+
+    .px-more-button:hover {
+      color: #061018;
+      border-color: var(--px-cyan);
+      background: var(--px-cyan);
+    }
+
+    .px-more-icon {
+      display: inline-block;
+      font-size: 0.9rem;
+      transition: transform 160ms ease;
+    }
+
+    .px-topic.px-open .px-more-icon {
+      transform: rotate(180deg);
+    }
+
+    .px-topic:not(.px-open) .px-card.px-extra,
+    .px-card.px-is-filtered {
+      display: none;
+    }
+
+    .px-shell[data-px-view="compact"] .px-topic-grid,
+    .px-shell[data-px-view="compact"] .px-skeleton-grid {
+      grid-template-columns: 1fr;
+      gap: 7px;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card {
+      display: grid;
+      grid-template-columns: 128px minmax(0, 1fr);
+      min-height: 0;
+      padding: 11px;
+      border-radius: 14px;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card::before {
+      top: 10px;
+      bottom: 10px;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card::after {
+      top: 8px;
+      right: 8px;
+      width: 80px;
+      height: 80px;
+      box-shadow: 0 0 0 14px var(--px-topic-accent, var(--px-cyan));
+    }
+
+    .px-shell[data-px-view="compact"] .px-card-rank {
+      top: 11px;
+      right: 10px;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card-body {
+      padding: 2px 32px 2px 11px;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card-tags {
+      margin-bottom: 6px;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card-title {
+      font-size: 0.97rem;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card-summary {
+      margin: 5px 0 8px;
+      -webkit-line-clamp: 1;
+    }
+
+    .px-shell[data-px-view="compact"] .px-card-footer {
+      padding-top: 7px;
+    }
+
+    .px-skeleton {
+      min-height: 226px;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius-lg);
+      background: var(--px-panel);
+    }
+
+    .px-skeleton-body {
+      padding: 19px;
+    }
+
+    .px-skeleton-line {
+      height: 10px;
+      margin-bottom: 11px;
+      border-radius: 20px;
+      background: linear-gradient(90deg, var(--px-soft), var(--px-line), var(--px-soft));
+      background-size: 220% 100%;
+      animation: px-skeleton-flow 1.4s linear infinite;
+    }
+
+    .px-skeleton-line.px-short {
+      width: 38%;
+    }
+
+    .px-skeleton-line.px-medium {
+      width: 72%;
+    }
+
+    .px-state {
+      display: grid;
+      min-height: 300px;
+      padding: 38px 20px;
+      place-items: center;
+      border: 1px solid var(--px-line);
+      border-radius: var(--px-radius-xl);
+      background: var(--px-panel);
+      text-align: center;
+    }
+
+    .px-state-inner {
+      max-width: 580px;
+    }
+
+    .px-state-code {
+      display: inline-grid;
+      width: 60px;
+      height: 60px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(0, 212, 255, 0.45);
+      border-radius: 18px;
+      place-items: center;
+      color: var(--px-cyan);
+      background: rgba(0, 212, 255, 0.08);
+      font-size: 0.9rem;
+      font-weight: 950;
+    }
+
+    .px-state-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      line-height: 1.12;
+    }
+
+    .px-state-copy {
+      max-width: 520px;
+      margin: 10px auto 18px;
+      color: var(--px-muted);
+      line-height: 1.56;
+    }
+
+    .px-retry {
+      min-height: 40px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 10px;
+      color: #061018;
+      background: var(--px-cyan);
+      font-weight: 900;
+    }
+
+    .px-page-note {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 20px;
+      justify-content: space-between;
+      margin: 20px 2px 0;
+      color: var(--px-faint);
+      font-size: 0.56rem;
+      line-height: 1.5;
+    }
+
+    .px-noscript {
+      width: calc(100% - 32px);
+      max-width: var(--px-max);
+      margin: 20px auto;
+      padding: 17px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: var(--px-radius-md);
+      color: var(--px-text);
+      background: var(--px-solid);
+    }
+
+    @keyframes px-map-draw {
+      from {
+        stroke-dashoffset: 75;
+        opacity: 0.65;
+      }
+      to {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+    }
+
+    @keyframes px-dot-pulse {
+      0%, 100% {
+        opacity: 0.7;
+        transform: scale(0.82);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.13);
+      }
+    }
+
+    @keyframes px-skeleton-flow {
+      from {
+        background-position: 100% 0;
+      }
+      to {
+        background-position: -100% 0;
+      }
+    }
+
+    @keyframes px-card-in {
+      from {
+        opacity: 0;
+        transform: translateY(9px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1060px) {
+      .px-topic-grid,
+      .px-skeleton-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .px-shell[data-px-view="compact"] .px-topic-grid,
+      .px-shell[data-px-view="compact"] .px-skeleton-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      :root {
+        --px-header-height: 56px;
+      }
+
+      .px-shell {
+        width: calc(100% - 16px);
+        padding-top: 7px;
+      }
+
+      .px-hero {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        min-height: 0;
+        padding: 19px 13px 13px;
+        border-radius: 20px;
+      }
+
+      .px-eyebrow {
+        margin-bottom: 10px;
+        font-size: 0.6rem;
+      }
+
+      .px-hero-title {
+        font-size: clamp(2.05rem, 9.7vw, 2.9rem);
+        line-height: 0.95;
+      }
+
+      .px-hero-copy {
+        margin-top: 11px;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .px-stand {
+        margin-top: 7px;
+        font-size: 0.54rem;
+      }
+
+      .px-map {
+        padding: 8px;
+        border-radius: 13px;
+      }
+
+      .px-map-head {
+        margin-bottom: 1px;
+      }
+
+      .px-map-label,
+      .px-map-count {
+        font-size: 0.49rem;
+      }
+
+      .px-map-svg {
+        height: 51px;
+      }
+
+      .px-map-metrics {
+        gap: 5px;
+        margin-top: 3px;
+      }
+
+      .px-metric {
+        padding: 6px 5px;
+        border-radius: 7px;
+      }
+
+      .px-metric-value {
+        font-size: 0.78rem;
+      }
+
+      .px-metric-label {
+        font-size: 0.43rem;
+        letter-spacing: 0.035em;
+      }
+
+      .px-topicbar {
+        top: calc(var(--px-header-height) + 5px);
+        margin-top: 9px;
+        padding: 7px;
+        border-radius: 14px;
+      }
+
+      .px-toolbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px;
+      }
+
+      .px-filter-label {
+        grid-column: 1 / -1;
+        font-size: 0.51rem;
+      }
+
+      .px-search,
+      .px-clear {
+        height: 35px;
+      }
+
+      .px-view-button {
+        min-height: 27px;
+        padding: 0 7px;
+        font-size: 0.59rem;
+      }
+
+      .px-chip-nav {
+        margin-top: 6px;
+      }
+
+      .px-chip {
+        min-height: 29px;
+        font-size: 0.56rem;
+      }
+
+      .px-chip-count {
+        min-width: 18px;
+        height: 18px;
+        font-size: 0.5rem;
+      }
+
+      .px-status {
+        min-height: 17px;
+        margin-bottom: 7px;
+        font-size: 0.51rem;
+      }
+
+      .px-results {
+        gap: 10px;
+      }
+
+      .px-topic {
+        padding: 14px 9px 10px;
+        border-radius: 20px;
+        scroll-margin-top: 170px;
+      }
+
+      .px-section-head {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        margin-bottom: 12px;
+        padding-bottom: 11px;
+      }
+
+      .px-section-index {
+        width: 37px;
+        height: 37px;
+        border-radius: 11px;
+        font-size: 0.58rem;
+      }
+
+      .px-section-title {
+        font-size: 1.31rem;
+      }
+
+      .px-section-description {
+        margin-top: 4px;
+        font-size: 0.7rem;
+      }
+
+      .px-section-kicker {
+        font-size: 0.48rem;
+      }
+
+      .px-section-count {
+        grid-column: 2;
+        justify-self: start;
+        min-width: 0;
+        padding: 4px 7px;
+        font-size: 0.5rem;
+      }
+
+      .px-topic-grid,
+      .px-skeleton-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-card {
+        min-height: 198px;
+        padding: 14px;
+      }
+
+      .px-card-body {
+        padding-right: 27px;
+      }
+
+      .px-card-title {
+        font-size: 1rem;
+      }
+
+      .px-card-summary {
+        font-size: 0.75rem;
+        -webkit-line-clamp: 3;
+      }
+
+      .px-shell[data-px-view="compact"] .px-card {
+        grid-template-columns: 86px minmax(0, 1fr);
+        min-height: 124px;
+        padding: 9px;
+      }
+
+      .px-shell[data-px-view="compact"] .px-card-body {
+        padding: 1px 23px 1px 8px;
+      }
+
+      .px-shell[data-px-view="compact"] .px-card-tags .px-tag-score,
+      .px-shell[data-px-view="compact"] .px-card-summary {
+        display: none;
+      }
+
+      .px-shell[data-px-view="compact"] .px-card-tags {
+        margin-bottom: 5px;
+      }
+
+      .px-shell[data-px-view="compact"] .px-card-title {
+        font-size: 0.88rem;
+      }
+
+      .px-shell[data-px-view="compact"] .px-card-footer {
+        padding-top: 6px;
+        font-size: 0.48rem;
+      }
+
+      .px-card-action {
+        font-size: 0;
+      }
+
+      .px-card-action::after {
+        content: "↗";
+        font-size: 0.9rem;
+      }
+
+      .px-more-button {
+        width: 100%;
+        min-height: 36px;
+        margin-top: 8px;
+        font-size: 0.63rem;
+      }
+
+      .px-page-note {
+        display: block;
+      }
+
+      .px-page-note span {
+        display: block;
+        margin-top: 4px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .px-hero {
+        padding-right: 11px;
+        padding-left: 11px;
+      }
+
+      .px-hero-title {
+        font-size: clamp(1.95rem, 9.7vw, 2.45rem);
+      }
+
+      .px-search {
+        padding-right: 36px;
+        padding-left: 33px;
+      }
+
+      .px-search-icon {
+        left: 11px;
+      }
+
+      .px-view {
+        gap: 1px;
+      }
+
+      .px-view-button {
+        padding: 0 6px;
+        font-size: 0.56rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="px-skip" href="#px-main">Zum Inhalt springen</a>
+
+  <main class="px-shell" id="px-main" data-px-view="cards" aria-busy="true">
+    <section class="px-hero" aria-labelledby="px-page-title">
+      <div>
+        <p class="px-eyebrow">Themenstream</p>
+        <h1 class="px-hero-title" id="px-page-title">Kurz was sich bewegt.</h1>
+        <p class="px-hero-copy">
+          Die Meldungslage nach Themen sortiert. Die drei wichtigsten Beiträge
+          stehen oben, alles Weitere bleibt zunächst eingeklappt.
+        </p>
+        <p class="px-stand" id="px-stand">Daten werden geladen</p>
+      </div>
+
+      <div class="px-map" aria-hidden="true">
+        <div class="px-map-head">
+          <span class="px-map-label">Themenlage</span>
+          <span class="px-map-count" id="px-map-count">0 Signale</span>
+        </div>
+
+        <svg class="px-map-svg" viewBox="0 0 440 100" preserveAspectRatio="none">
+          <g class="px-map-grid">
+            <path d="M12 20H428M12 44H428M12 68H428M12 92H428"></path>
+            <path d="M60 10V94M120 10V94M180 10V94M240 10V94M300 10V94M360 10V94M420 10V94"></path>
+          </g>
+          <path class="px-map-line" id="px-map-line" d="M18 86L428 86"></path>
+          <g id="px-map-dots"></g>
+        </svg>
+
+        <div class="px-map-metrics">
+          <div class="px-metric">
+            <span class="px-metric-value" id="px-total">0</span>
+            <span class="px-metric-label">Meldungen</span>
+          </div>
+          <div class="px-metric">
+            <span class="px-metric-value" id="px-theme-total">0</span>
+            <span class="px-metric-label">Themen</span>
+          </div>
+          <div class="px-metric">
+            <span class="px-metric-value" id="px-top-theme">Lädt</span>
+            <span class="px-metric-label">Größtes Thema</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="px-topicbar" aria-label="Themennavigation, Filter und Ansicht">
+      <div class="px-toolbar">
+        <label class="px-filter-label" for="px-search">Meldungen filtern</label>
+
+        <div class="px-search-wrap">
+          <span class="px-search-icon" aria-hidden="true">⌕</span>
+          <input
+            class="px-search"
+            id="px-search"
+            type="search"
+            inputmode="search"
+            autocomplete="off"
+            placeholder="Titel, Quelle, Stichwort"
+          >
+          <button class="px-clear" id="px-clear" type="button" aria-label="Filter leeren" hidden>×</button>
+        </div>
+
+        <div class="px-view" aria-label="Darstellung wählen">
+          <button class="px-view-button" type="button" data-px-view-button="cards" aria-pressed="true">
+            Karten
+          </button>
+          <button class="px-view-button" type="button" data-px-view-button="compact" aria-pressed="false">
+            Kompakt
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="px-chip-nav"
+        id="px-chip-nav"
+        aria-label="Thema auswählen, filtern und zum Abschnitt springen"
+      ></div>
+    </nav>
+
+    <p class="px-status" id="px-status" role="status" aria-live="polite">
+      Nachrichten werden geladen.
+    </p>
+
+    <div class="px-results" id="px-results" aria-live="polite">
+      <div class="px-skeleton-grid" aria-hidden="true">
+        <div class="px-skeleton">
+          <div class="px-skeleton-body">
+            <div class="px-skeleton-line px-short"></div>
+            <div class="px-skeleton-line"></div>
+            <div class="px-skeleton-line px-medium"></div>
+            <div class="px-skeleton-line px-short"></div>
+          </div>
+        </div>
+        <div class="px-skeleton">
+          <div class="px-skeleton-body">
+            <div class="px-skeleton-line px-medium"></div>
+            <div class="px-skeleton-line"></div>
+            <div class="px-skeleton-line"></div>
+            <div class="px-skeleton-line px-short"></div>
+          </div>
+        </div>
+        <div class="px-skeleton">
+          <div class="px-skeleton-body">
+            <div class="px-skeleton-line px-short"></div>
+            <div class="px-skeleton-line"></div>
+            <div class="px-skeleton-line px-medium"></div>
+            <div class="px-skeleton-line px-short"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-state" id="px-empty" hidden>
+      <div class="px-state-inner">
+        <div class="px-state-code" aria-hidden="true">0</div>
+        <h2 class="px-state-title" id="px-empty-title">Noch keine Meldungen</h2>
+        <p class="px-state-copy" id="px-empty-copy">
+          Für diesen Datenstand ist noch kein verwertbarer Eintrag vorhanden.
+        </p>
+      </div>
+    </div>
+
+    <footer class="px-page-note">
+      <span>Quelle: relative Live-Datei news.json</span>
+      <span>Externe Artikel öffnen in einem neuen Tab</span>
+    </footer>
+  </main>
+
+  <noscript>
+    <p class="px-noscript">
+      Für die Themenübersicht wird JavaScript benötigt. Die Quelldatei bleibt unter news.json erreichbar.
+    </p>
+  </noscript>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const shell = document.getElementById("px-main");
+      if (!shell) return;
+
+      const numberFormat = new Intl.NumberFormat("de-DE");
+      const dateFormat = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      });
+
+      const refs = {
+        viewButtons: Array.from(document.querySelectorAll("[data-px-view-button]")),
+        search: document.getElementById("px-search"),
+        clear: document.getElementById("px-clear"),
+        chipNav: document.getElementById("px-chip-nav"),
+        results: document.getElementById("px-results"),
+        status: document.getElementById("px-status"),
+        empty: document.getElementById("px-empty"),
+        emptyTitle: document.getElementById("px-empty-title"),
+        emptyCopy: document.getElementById("px-empty-copy"),
+        stand: document.getElementById("px-stand"),
+        total: document.getElementById("px-total"),
+        themeTotal: document.getElementById("px-theme-total"),
+        topTheme: document.getElementById("px-top-theme"),
+        mapCount: document.getElementById("px-map-count"),
+        mapLine: document.getElementById("px-map-line"),
+        mapDots: document.getElementById("px-map-dots")
+      };
+
+      const fixedThemes = [
+        {
+          id: "modelle",
+          label: "Modelle & Releases",
+          color: "#00d4ff",
+          aliases: [
+            "modelle",
+            "modelle und releases",
+            "model release",
+            "model releases",
+            "model",
+            "modelle und versionen",
+            "releases",
+            "veroeffentlichungen",
+            "foundation models"
+          ],
+          description: "Neue Systeme, Versionen und Veröffentlichungen der KI-Anbieter."
+        },
+        {
+          id: "politik",
+          label: "Politik & Recht",
+          color: "#8b5cf6",
+          aliases: [
+            "politik",
+            "politik und recht",
+            "recht",
+            "regulierung",
+            "regulatorik",
+            "policy",
+            "legal",
+            "gesetze",
+            "governance",
+            "ai act",
+            "ki gesetz"
+          ],
+          description: "Regeln, Gerichte, Behörden und gesellschaftliche Rahmenbedingungen."
+        },
+        {
+          id: "wirtschaft",
+          label: "Wirtschaft & Investitionen",
+          color: "#00d991",
+          aliases: [
+            "wirtschaft",
+            "wirtschaft und investitionen",
+            "investitionen",
+            "finanzen",
+            "business",
+            "economics",
+            "maerkte",
+            "unternehmen",
+            "venture capital"
+          ],
+          description: "Märkte, Finanzierungen, Geschäftszahlen und relevante Deals."
+        },
+        {
+          id: "forschung",
+          label: "Forschung",
+          color: "#f59e0b",
+          aliases: [
+            "forschung",
+            "research",
+            "wissenschaft",
+            "labor",
+            "wissenschaft und forschung",
+            "paper",
+            "publikation"
+          ],
+          description: "Ergebnisse aus Wissenschaft, Laboren und Fachveröffentlichungen."
+        },
+        {
+          id: "sicherheit",
+          label: "Sicherheit",
+          color: "#ff5c8a",
+          aliases: [
+            "sicherheit",
+            "ki sicherheit",
+            "security",
+            "cybersecurity",
+            "cyber security",
+            "it sicherheit",
+            "datenschutz",
+            "safety"
+          ],
+          description: "Angriffe, Datenrisiken, Schutzmechanismen und Sicherheitsforschung."
+        },
+        {
+          id: "tools",
+          label: "Tools & Produkte",
+          color: "#23b5ff",
+          aliases: [
+            "tools",
+            "tools und produkte",
+            "produkte",
+            "software",
+            "anwendungen",
+            "robotik",
+            "produkt und tools",
+            "apps",
+            "dienste"
+          ],
+          description: "Software, Agenten, Roboter und neue Anwendungsumgebungen."
+        },
+        {
+          id: "sonstiges",
+          label: "Sonstiges",
+          color: "#94a3b8",
+          aliases: [
+            "sonstiges",
+            "andere",
+            "allgemein",
+            "misc",
+            "general"
+          ],
+          description: "Meldungen, die sich nicht eindeutig einem anderen Thema zuordnen lassen."
+        }
+      ];
+
+      const keywordMatchers = {
+        modelle: [
+          /\b(gpt|gpt-[0-9]|chatgpt|claude|gemini|llama|mistral|deepseek|qwen|grok|command r)\b/i,
+          /\b(openai|anthropic|google deepmind|mistral ai|xai|deepmind)\b/i,
+          /\b(ki[- ]?modell|sprachmodell|foundation model|neues modell|modellstart|model release|modellversion)\b/i,
+          /\b(veroeffentlicht|veröffentlicht|modelldurchbruch|neue version|neue modellgeneration)\b/i
+        ],
+        politik: [
+          /\b(eu[- ]?kommission|eu[- ]?rat|ai act|ki[- ]?gesetz|gesetzgebung|parlament|bundesverfassungsgericht|gericht|urteil|justiz)\b/i,
+          /\b(behoerde|behörde|regulier|regulator|pentagon|white house|kongress|senat|wahlen|exportkontrollen|sanktionen)\b/i,
+          /\b(politik|recht|legal|gesetz|gesetze|governance|geopolitik|staatsvertrag)\b/i
+        ],
+        wirtschaft: [
+          /\b(investition|investitionen|investiert|finanzierung|funding|kapital|börse|boersen|aktie|aktien|valuation)\b/i,
+          /\b(umsatz|revenue|quartalszahlen|gewinne|gewinn|verlust|billionär|billionaer|uebernahme|uebernahme|fusion|deal)\b/i,
+          /\b(wirtschaft|finanzen|business|economics|venture capital|startup funding|marktanteil|kosten)\b/i
+        ],
+        forschung: [
+          /\b(forschung|wissenschaft|wissenschaftler|forscher|studie|paper|arxiv|universität|universitaet|labor|benchmark)\b/i,
+          /\b(neurips|icml|iclr|acl|papers with code|konferenz|publikation|entdeckung|experiment)\b/i
+        ],
+        sicherheit: [
+          /\b(sicherheit|security|cyber|cyberangriff|cyberangriffe|cyber attack|hacker|angriff|attacke|malware|datenverlust|data breach)\b/i,
+          /\b(deepfake|prompt injection|jailbreak|schwachstelle|schwachstellen|exploit|sicherheitslücke|modellrisiko|ki risiko|schadsoftware)\b/i,
+          /\b(sicherheitsforscher|threat intelligence|phishing|ransomware|leak|zugangsdaten)\b/i
+        ],
+        tools: [
+          /\b(app|browser|software|plattform|tool|werkzeug|ki agent|agenten|assistent|assistenten|chatbot|coding tool)\b/i,
+          /\b(roboter|robotik|humanoider|humanoide|maschine|arbeitsplatz|startup|feature|funktion|update|produkt)\b/i,
+          /\b(api|plugin|arbeitsablauf|automatisierung|anwendung|entwicklerwerkzeug)\b/i
+        ]
+      };
+
+      const fixedThemeById = new Map();
+      const fixedThemeOrder = new Map();
+      const customThemes = new Map();
+      const customThemeByLabel = new Map();
+      const usedThemeIds = new Set();
+      const sectionRegistry = new Map();
+      const cardSearchText = new WeakMap();
+
+      fixedThemes.forEach((theme, index) => {
+        fixedThemeById.set(theme.id, theme);
+        fixedThemeOrder.set(theme.id, index);
+        usedThemeIds.add(theme.id);
+        theme.normalizedAliases = [theme.label]
+          .concat(theme.aliases)
+          .map((alias) => normalizeText(alias));
+      });
+
+      let selectedThemeId = "";
+      let activeThemeId = "";
+      let view = "cards";
+      let requestId = 0;
+      let filterFrame = 0;
+      let activeController = null;
+      let sectionObserver = null;
+
+      try {
+        const storedView = localStorage.getItem("ki-news-start-view-v1");
+        if (storedView === "cards" || storedView === "compact") {
+          view = storedView;
+        }
+      } catch (error) {
+        view = "cards";
+      }
+
+      function createElement(tag, className, text) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (text !== undefined) element.textContent = text;
+        return element;
+      }
+
+      function cleanText(value, fallback) {
+        if (typeof value !== "string" && typeof value !== "number") {
+          return fallback === undefined ? "" : fallback;
+        }
+
+        return String(value)
+          .replace(/\u2014/g, "-")
+          .replace(/\u2013/g, "-")
+          .replace(/[\u0000-\u001F\u007F]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function normalizeText(value) {
+        return cleanText(value)
+          .toLocaleLowerCase("de-DE")
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9äöüß+]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function slugify(value) {
+        return normalizeText(value)
+          .replace(/\s+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 56) || "thema";
+      }
+
+      function safeUrl(value) {
+        const raw = cleanText(value);
+        if (!raw) return "";
+
+        try {
+          const url = new URL(raw, document.baseURI);
+          if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+          return url.href;
+        } catch (error) {
+          return "";
+        }
+      }
+
+      function safeCount(value) {
+        const number = Number(value);
+        return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+      }
+
+      function safeColor(value, fallback) {
+        const color = cleanText(value);
+        return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+      }
+
+      function readString(item, keys, fallback) {
+        for (let index = 0; index < keys.length; index += 1) {
+          if (!Object.prototype.hasOwnProperty.call(item, keys[index])) continue;
+          const value = cleanText(item[keys[index]]);
+          if (value) return value;
+        }
+        return fallback === undefined ? "" : fallback;
+      }
+
+      function readNumber(item, keys) {
+        for (let index = 0; index < keys.length; index += 1) {
+          if (!Object.prototype.hasOwnProperty.call(item, keys[index])) continue;
+          const raw = item[keys[index]];
+          if (raw === null || raw === undefined || raw === "") continue;
+          const number = Number(raw);
+          if (Number.isFinite(number)) return number;
+        }
+        return null;
+      }
+
+      function dateValue(item) {
+        const raw = readString(item, ["date", "first_seen", "published_at"]);
+        if (!raw) return 0;
+
+        const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+          ? raw + "T12:00:00"
+          : raw;
+        const timestamp = new Date(normalized).getTime();
+        return Number.isFinite(timestamp) ? timestamp : 0;
+      }
+
+      function formatDate(item) {
+        const raw = readString(item, ["date", "first_seen", "published_at"]);
+        if (!raw) return "Datum offen";
+
+        const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+          ? raw + "T12:00:00"
+          : raw;
+        const parsed = new Date(normalized);
+
+        if (Number.isNaN(parsed.getTime())) {
+          return raw.slice(0, 18);
+        }
+
+        return dateFormat.format(parsed);
+      }
+
+      function extractLabels(field) {
+        const labels = [];
+
+        function visit(value, depth) {
+          if (depth > 3 || value === null || value === undefined) return;
+
+          if (Array.isArray(value)) {
+            value.forEach((entry) => visit(entry, depth + 1));
+            return;
+          }
+
+          if (typeof value === "object") {
+            const keys = ["name", "label", "title", "topic", "kategorie", "category", "id"];
+            for (let index = 0; index < keys.length; index += 1) {
+              if (Object.prototype.hasOwnProperty.call(value, keys[index])) {
+                visit(value[keys[index]], depth + 1);
+                break;
+              }
+            }
+            return;
+          }
+
+          const text = cleanText(value);
+          if (!text) return;
+
+          text.split(/\s*(?:,|;|\|)\s*/).forEach((part) => {
+            const cleanPart = cleanText(part).slice(0, 64);
+            if (cleanPart) labels.push(cleanPart);
+          });
+        }
+
+        visit(field, 0);
+        return labels;
+      }
+
+      function findFixedTheme(label) {
+        const normalized = normalizeText(label);
+        if (!normalized) return null;
+
+        for (let index = 0; index < fixedThemes.length; index += 1) {
+          const theme = fixedThemes[index];
+          const aliases = theme.normalizedAliases;
+          const matches = aliases.some((alias) => {
+            if (normalized === alias) return true;
+            if (alias.length >= 7 && normalized.includes(alias)) return true;
+            return normalized.length >= 7 && alias.includes(normalized);
+          });
+
+          if (matches) return theme;
+        }
+
+        return null;
+      }
+
+      function getCustomTheme(label) {
+        const cleanLabel = cleanText(label).slice(0, 46);
+        const key = normalizeText(cleanLabel);
+        if (!key) return null;
+        if (customThemeByLabel.has(key)) return customThemeByLabel.get(key);
+
+        const baseId = "custom-" + slugify(cleanLabel);
+        let id = baseId;
+        let suffix = 2;
+
+        while (usedThemeIds.has(id)) {
+          id = baseId + "-" + suffix;
+          suffix += 1;
+        }
+
+        const palette = ["#a78bfa", "#f472b6", "#2dd4bf", "#f59e0b", "#60a5fa"];
+        const theme = {
+          id: id,
+          label: cleanLabel,
+          color: palette[customThemes.size % palette.length],
+          description: "Eigenes Thema aus einem Kategoriefeld der Quelldatei.",
+          custom: true
+        };
+
+        usedThemeIds.add(id);
+        customThemeByLabel.set(key, theme);
+        customThemes.set(id, theme);
+        return theme;
+      }
+
+      function explicitTheme(item) {
+        const fields = [
+          "topic",
+          "topics",
+          "thema",
+          "themen",
+          "category",
+          "categories",
+          "kategorie",
+          "kategorien",
+          "rubrik",
+          "rubriken",
+          "section",
+          "primary_category",
+          "news_category"
+        ];
+
+        const labels = [];
+
+        fields.forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(item, key)) {
+            const extracted = extractLabels(item[key]);
+            extracted.forEach((label) => labels.push(label));
+          }
+        });
+
+        for (let index = 0; index < labels.length; index += 1) {
+          const knownTheme = findFixedTheme(labels[index]);
+          if (knownTheme) return knownTheme;
+        }
+
+        for (let index = 0; index < labels.length; index += 1) {
+          const customTheme = getCustomTheme(labels[index]);
+          if (customTheme) return customTheme;
+        }
+
+        return null;
+      }
+
+      function keywordTheme(item) {
+        const title = readString(item, ["title", "headline"]);
+        const summary = cleanText(item.summary);
+        const scores = [];
+
+        Object.keys(keywordMatchers).forEach((themeId) => {
+          let score = 0;
+          const patterns = keywordMatchers[themeId];
+
+          patterns.forEach((pattern, index) => {
+            if (pattern.test(title)) score += index === 0 ? 9 : 7;
+            if (summary && pattern.test(summary)) score += index === 0 ? 4 : 3;
+          });
+
+          if (score > 0) scores.push({ themeId: themeId, score: score });
+        });
+
+        if (!scores.length) return fixedThemeById.get("sonstiges");
+
+        scores.sort((first, second) => {
+          if (second.score !== first.score) return second.score - first.score;
+          return (fixedThemeOrder.get(first.themeId) || 99)
+            - (fixedThemeOrder.get(second.themeId) || 99);
+        });
+
+        return fixedThemeById.get(scores[0].themeId)
+          || fixedThemeById.get("sonstiges");
+      }
+
+      function resolveTheme(item) {
+        return explicitTheme(item) || keywordTheme(item);
+      }
+
+      function extractItems(payload) {
+        if (Array.isArray(payload)) return payload;
+        if (!payload || typeof payload !== "object") return [];
+
+        if (Array.isArray(payload.news)) return payload.news;
+        if (payload.briefing && Array.isArray(payload.briefing.stories)) {
+          return payload.briefing.stories;
+        }
+        if (Array.isArray(payload.items)) return payload.items;
+        if (Array.isArray(payload.articles)) return payload.articles;
+        return [];
+      }
+
+      function prepareItems(rawItems) {
+        const seenStories = new Set();
+        const seenLinks = new Set();
+        const seenTitles = new Set();
+        const prepared = [];
+
+        rawItems.forEach((rawItem, sourceIndex) => {
+          if (!rawItem || typeof rawItem !== "object" || Array.isArray(rawItem)) return;
+
+          const summary = cleanText(rawItem.summary).slice(0, 360);
+          let title = readString(rawItem, ["title", "headline"]).slice(0, 240);
+
+          if (!title) title = summary.slice(0, 120);
+          if (!title) return;
+
+          const link = safeUrl(rawItem.link || rawItem.url);
+          const storyId = cleanText(rawItem.story_id);
+          const titleKey = normalizeText(title);
+
+          if (storyId && seenStories.has(storyId)) return;
+          if (link && seenLinks.has(link)) return;
+          if (titleKey && seenTitles.has(titleKey)) return;
+
+          if (storyId) seenStories.add(storyId);
+          if (link) seenLinks.add(link);
+          if (titleKey) seenTitles.add(titleKey);
+
+          const score = readNumber(rawItem, [
+            "story_cluster_score",
+            "score",
+            "base_score"
+          ]);
+          const articleCount = readNumber(rawItem, [
+            "story_article_count",
+            "article_count"
+          ]);
+
+          const item = {
+            title: title,
+            summary: summary,
+            link: link,
+            source: readString(rawItem, ["source", "publisher"], "Quelle offen").slice(0, 60),
+            score: score,
+            articleCount: articleCount,
+            timestamp: dateValue(rawItem),
+            formattedDate: formatDate(rawItem),
+            sourceIndex: sourceIndex,
+            color: safeColor(rawItem.color, "#24394b")
+          };
+
+          item.theme = resolveTheme(rawItem);
+          item.searchText = normalizeText([
+            item.title,
+            item.summary,
+            item.source,
+            item.theme.label
+          ].filter(Boolean).join(" "));
+
+          prepared.push(item);
+        });
+
+        prepared.sort((first, second) => {
+          const firstScore = first.score === null ? -Infinity : first.score;
+          const secondScore = second.score === null ? -Infinity : second.score;
+          if (firstScore !== secondScore) return secondScore - firstScore;
+
+          const firstArticles = first.articleCount === null ? -Infinity : first.articleCount;
+          const secondArticles = second.articleCount === null ? -Infinity : second.articleCount;
+          if (firstArticles !== secondArticles) return secondArticles - firstArticles;
+
+          if (first.timestamp !== second.timestamp) {
+            return second.timestamp - first.timestamp;
+          }
+
+          return first.sourceIndex - second.sourceIndex;
+        });
+
+        return prepared;
+      }
+
+      function makeCard(item, topicRank, animationIndex) {
+        const card = createElement("article", "px-card");
+        card.style.animationDelay = ((animationIndex % 6) * 45) + "ms";
+
+        const body = createElement("div", "px-card-body");
+        const tags = createElement("div", "px-card-tags");
+
+        tags.appendChild(createElement(
+          "span",
+          "px-tag px-tag-source",
+          item.source
+        ));
+
+        if (item.score !== null) {
+          tags.appendChild(createElement(
+            "span",
+            "px-tag px-tag-score",
+            "Score " + numberFormat.format(item.score)
+          ));
+        }
+
+        const heading = createElement("h3", "px-card-title");
+
+        if (item.link) {
+          const link = document.createElement("a");
+          link.className = "px-card-title-link";
+          link.href = item.link;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = item.title;
+          heading.appendChild(link);
+        } else {
+          heading.textContent = item.title;
+        }
+
+        body.appendChild(tags);
+        body.appendChild(heading);
+
+        if (item.summary) {
+          body.appendChild(createElement("p", "px-card-summary", item.summary));
+        }
+
+        const footer = createElement("div", "px-card-footer");
+        footer.append(
+          createElement("span", "px-card-date", item.formattedDate),
+          createElement("span", "px-card-action", item.link ? "Original öffnen" : "Ohne Link")
+        );
+
+        body.appendChild(footer);
+        card.append(
+          createElement("span", "px-card-rank", String(topicRank).padStart(2, "0")),
+          body
+        );
+
+        cardSearchText.set(card, item.searchText);
+        return card;
+      }
+
+      function setSectionExpanded(entry, expanded, extraCount) {
+        const shouldExpand = Boolean(expanded && extraCount > 0);
+        entry.expanded = shouldExpand;
+        entry.section.classList.toggle("px-open", shouldExpand);
+        entry.moreButton.setAttribute("aria-expanded", String(shouldExpand));
+        entry.moreButton.hidden = extraCount <= 0;
+        entry.moreLabel.textContent = shouldExpand
+          ? "Weniger anzeigen"
+          : "Mehr (" + numberFormat.format(extraCount) + ")";
+
+        entry.cards.forEach((card) => {
+          const isHiddenExtra = card.classList.contains("px-extra") && !shouldExpand;
+          card.setAttribute("aria-hidden", String(isHiddenExtra));
+        });
+      }
+
+      function makeSection(group, index) {
+        const theme = group.theme;
+        const section = createElement("section", "px-topic");
+        const sectionId = "px-topic-" + theme.id;
+        const headingId = sectionId + "-heading";
+        const listId = sectionId + "-cards";
+
+        section.id = sectionId;
+        section.style.setProperty("--px-topic-accent", theme.color);
+        section.setAttribute("aria-labelledby", headingId);
+
+        const header = createElement("header", "px-section-head");
+        const sectionIndex = createElement(
+          "span",
+          "px-section-index",
+          String(index + 1).padStart(2, "0")
+        );
+        sectionIndex.setAttribute("aria-hidden", "true");
+
+        const headingWrap = createElement("div", "px-section-heading");
+        headingWrap.appendChild(createElement(
+          "span",
+          "px-section-kicker",
+          "Themenblock"
+        ));
+
+        const heading = createElement("h2", "px-section-title", theme.label);
+        heading.id = headingId;
+        headingWrap.appendChild(heading);
+        headingWrap.appendChild(createElement(
+          "p",
+          "px-section-description",
+          theme.description
+        ));
+
+        const count = createElement(
+          "span",
+          "px-section-count",
+          numberFormat.format(group.items.length) + " Meldungen"
+        );
+
+        header.append(sectionIndex, headingWrap, count);
+
+        const grid = createElement("div", "px-topic-grid");
+        grid.id = listId;
+        grid.setAttribute("role", "list");
+
+        const cards = group.items.map((item, itemIndex) => {
+          const card = makeCard(item, itemIndex + 1, itemIndex);
+          card.setAttribute("role", "listitem");
+          card.classList.toggle("px-extra", itemIndex >= 3);
+          grid.appendChild(card);
+          return card;
+        });
+
+        const moreButton = createElement("button", "px-more-button");
+        moreButton.type = "button";
+        moreButton.setAttribute("aria-controls", listId);
+        moreButton.setAttribute("aria-expanded", "false");
+
+        const moreLabel = createElement("span", "px-more-label");
+        const moreIcon = createElement("span", "px-more-icon", "↓");
+        moreIcon.setAttribute("aria-hidden", "true");
+        moreButton.append(moreLabel, moreIcon);
+
+        section.append(header, grid, moreButton);
+
+        const entry = {
+          theme: theme,
+          section: section,
+          count: count,
+          cards: cards,
+          items: group.items,
+          moreButton: moreButton,
+          moreLabel: moreLabel,
+          visibleCount: group.items.length,
+          expanded: false
+        };
+
+        sectionRegistry.set(theme.id, entry);
+
+        moreButton.addEventListener("click", () => {
+          const extraCount = Math.max(0, entry.visibleCount - 3);
+          if (extraCount <= 0) return;
+          setSectionExpanded(entry, !entry.expanded, extraCount);
+        });
+
+        setSectionExpanded(
+          entry,
+          false,
+          Math.max(0, group.items.length - 3)
+        );
+
+        return section;
+      }
+
+      function makeChip(theme, count) {
+        const chip = createElement("button", "px-chip");
+        chip.type = "button";
+        chip.dataset.pxTheme = theme.id;
+        chip.append(
+          document.createTextNode(theme.label),
+          createElement("span", "px-chip-count", numberFormat.format(count))
+        );
+        chip.title = "Thema filtern und zum Abschnitt springen";
+
+        chip.addEventListener("click", () => {
+          if (theme.id === "") {
+            selectedThemeId = "";
+            applyFilters();
+            setCurrentChip("");
+            refs.results.scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+          }
+
+          selectedThemeId = selectedThemeId === theme.id ? "" : theme.id;
+          applyFilters();
+          setCurrentChip(theme.id);
+
+          const entry = sectionRegistry.get(theme.id);
+          if (entry && !entry.section.hidden) {
+            requestAnimationFrame(() => {
+              entry.section.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+          }
+        });
+
+        return chip;
+      }
+
+      function buildChipNav(groups) {
+        refs.chipNav.replaceChildren();
+
+        const total = groups.reduce((sum, group) => {
+          return sum + group.items.length;
+        }, 0);
+
+        refs.chipNav.appendChild(makeChip({
+          id: "",
+          label: "Übersicht"
+        }, total));
+
+        groups.forEach((group) => {
+          refs.chipNav.appendChild(makeChip(group.theme, group.items.length));
+        });
+      }
+
+      function setCurrentChip(themeId) {
+        activeThemeId = themeId || "";
+
+        refs.chipNav.querySelectorAll("[data-px-theme]").forEach((chip) => {
+          const chipThemeId = chip.dataset.pxTheme;
+          const shouldBeCurrent = selectedThemeId
+            ? chipThemeId === selectedThemeId
+            : chipThemeId === activeThemeId;
+
+          if (shouldBeCurrent) chip.setAttribute("aria-current", "true");
+          else chip.removeAttribute("aria-current");
+        });
+      }
+
+      function updateMap(groups) {
+        refs.mapDots.replaceChildren();
+
+        if (!groups.length) {
+          refs.mapLine.setAttribute("d", "M18 86L428 86");
+          return;
+        }
+
+        let maximum = 1;
+        groups.forEach((group) => {
+          maximum = Math.max(maximum, group.items.length);
+        });
+
+        let path = "";
+        groups.forEach((group, index) => {
+          const x = groups.length === 1
+            ? 223
+            : 18 + (410 * index / (groups.length - 1));
+          const ratio = group.items.length / maximum;
+          const y = 88 - (ratio * 58);
+          const command = index === 0 ? "M" : "L";
+
+          path += command + x.toFixed(1) + " " + y.toFixed(1) + " ";
+
+          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          dot.setAttribute("class", "px-map-dot");
+          dot.setAttribute("cx", x.toFixed(1));
+          dot.setAttribute("cy", y.toFixed(1));
+          dot.setAttribute("r", "3.2");
+          dot.setAttribute("fill", group.theme.color);
+          dot.style.animationDelay = (index * 110) + "ms";
+          refs.mapDots.appendChild(dot);
+        });
+
+        refs.mapLine.setAttribute("d", path.trim());
+      }
+
+      function updateStats(groups, totalItems) {
+        const validTotal = safeCount(totalItems);
+        const themeCount = safeCount(groups.length);
+        let largestGroup = null;
+
+        groups.forEach((group) => {
+          if (!largestGroup || group.items.length > largestGroup.items.length) {
+            largestGroup = group;
+          }
+        });
+
+        refs.total.textContent = numberFormat.format(validTotal);
+        refs.themeTotal.textContent = numberFormat.format(themeCount);
+        refs.mapCount.textContent = numberFormat.format(themeCount) + " Signale";
+
+        if (largestGroup) {
+          refs.topTheme.textContent = largestGroup.theme.label;
+          refs.topTheme.title = numberFormat.format(largestGroup.items.length)
+            + " Meldungen";
+        } else {
+          refs.topTheme.textContent = "Keine Daten";
+          refs.topTheme.title = "";
+        }
+      }
+
+      function updateEmptyState() {
+        const hasVisibleSections = Array.from(sectionRegistry.values()).some((entry) => {
+          return !entry.section.hidden;
+        });
+
+        if (hasVisibleSections) {
+          refs.empty.hidden = true;
+          return;
+        }
+
+        const query = cleanText(refs.search.value);
+        refs.emptyTitle.textContent = query
+          ? "Keine passende Meldung"
+          : "Keine Meldungen";
+        refs.emptyCopy.textContent = query
+          ? "Für \"" + query + "\" wurde in den geladenen Nachrichten kein Treffer gefunden."
+          : "Die Datei wurde geladen, enthält aber derzeit keinen verwertbaren News-Eintrag.";
+        refs.empty.hidden = false;
+      }
+
+      function applyFilters() {
+        const query = cleanText(refs.search.value);
+        const normalizedQuery = normalizeText(query);
+        const queryTerms = normalizedQuery
+          ? normalizedQuery.split(" ").filter(Boolean)
+          : [];
+        const themeMatches = new Map();
+        let visibleSections = 0;
+
+        sectionRegistry.forEach((entry) => {
+          let matchOrdinal = 0;
+          let matchCount = 0;
+
+          entry.cards.forEach((card) => {
+            const haystack = cardSearchText.get(card) || "";
+            const matchesTerms = queryTerms.every((term) => haystack.includes(term));
+            const isMatch = matchesTerms;
+
+            card.classList.toggle("px-is-filtered", !isMatch);
+
+            if (isMatch) {
+              matchOrdinal += 1;
+              matchCount += 1;
+            }
+
+            card.classList.toggle(
+              "px-extra",
+              isMatch && matchOrdinal > 3
+            );
+          });
+
+          const selected = !selectedThemeId || selectedThemeId === entry.theme.id;
+          const visible = selected && matchCount > 0;
+          const extraCount = Math.max(0, matchCount - 3);
+
+          entry.visibleCount = matchCount;
+          entry.section.hidden = !visible;
+          entry.count.textContent = query
+            ? numberFormat.format(matchCount) + " Treffer"
+            : numberFormat.format(matchCount) + " Meldungen";
+
+          if (extraCount <= 0) entry.expanded = false;
+          setSectionExpanded(entry, entry.expanded, extraCount);
+
+          themeMatches.set(entry.theme.id, matchCount);
+          if (visible) visibleSections += 1;
+        });
+
+        const totalMatches = Array.from(themeMatches.values()).reduce((sum, count) => {
+          return sum + safeCount(count);
+        }, 0);
+
+        refs.chipNav.querySelectorAll("[data-px-theme]").forEach((chip) => {
+          const themeId = chip.dataset.pxTheme;
+          const count = themeId ? (themeMatches.get(themeId) || 0) : totalMatches;
+          const countElement = chip.querySelector(".px-chip-count");
+
+          if (countElement) {
+            countElement.textContent = numberFormat.format(count);
+          }
+
+          chip.hidden = Boolean(themeId && count === 0);
+        });
+
+        refs.clear.hidden = !query;
+        updateEmptyState();
+
+        if (!query && !selectedThemeId) {
+          refs.status.textContent = numberFormat.format(totalMatches)
+            + " Meldungen in "
+            + numberFormat.format(visibleSections)
+            + " Themen. Die drei wichtigsten sind jeweils sichtbar.";
+        } else if (!query && selectedThemeId) {
+          const selectedEntry = sectionRegistry.get(selectedThemeId);
+          refs.status.textContent = selectedEntry
+            ? "Themenfilter: " + selectedEntry.theme.label
+              + ". Chip erneut wählen oder Übersicht öffnen."
+            : "Themenfilter aktiv.";
+        } else if (!totalMatches || !visibleSections) {
+          refs.status.textContent = "Keine Treffer für \"" + query + "\".";
+        } else {
+          refs.status.textContent = numberFormat.format(totalMatches)
+            + " Treffer in "
+            + numberFormat.format(visibleSections)
+            + " Themen.";
+        }
+
+        if (selectedThemeId) setCurrentChip(selectedThemeId);
+      }
+
+      function setupSectionObserver() {
+        if (!("IntersectionObserver" in window)) return;
+
+        const visibleEntries = [];
+
+        sectionObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              visibleEntries.push(entry);
+            } else {
+              const index = visibleEntries.indexOf(entry);
+              if (index >= 0) visibleEntries.splice(index, 1);
+            }
+          });
+
+          if (!visibleEntries.length || selectedThemeId) return;
+
+          visibleEntries.sort((first, second) => {
+            return Math.abs(first.boundingClientRect.top)
+              - Math.abs(second.boundingClientRect.top);
+          });
+
+          const section = visibleEntries[0].target;
+          const themeId = section.id.replace(/^px-topic-/, "");
+          setCurrentChip(themeId);
+        }, {
+          rootMargin: "-170px 0px -68% 0px",
+          threshold: [0, 0.04]
+        });
+
+        sectionRegistry.forEach((entry) => {
+          sectionObserver.observe(entry.section);
+        });
+      }
+
+      function render(payload) {
+        const rawItems = extractItems(payload);
+        const items = prepareItems(rawItems);
+        const groupsByTheme = new Map();
+
+        items.forEach((item) => {
+          const themeId = item.theme.id;
+
+          if (!groupsByTheme.has(themeId)) {
+            groupsByTheme.set(themeId, {
+              theme: item.theme,
+              items: []
+            });
+          }
+
+          groupsByTheme.get(themeId).items.push(item);
+        });
+
+        const groups = Array.from(groupsByTheme.values()).sort((first, second) => {
+          if (first.theme.custom && !second.theme.custom) return 1;
+          if (!first.theme.custom && second.theme.custom) return -1;
+
+          const firstIndex = fixedThemeOrder.has(first.theme.id)
+            ? fixedThemeOrder.get(first.theme.id)
+            : 999;
+          const secondIndex = fixedThemeOrder.has(second.theme.id)
+            ? fixedThemeOrder.get(second.theme.id)
+            : 999;
+
+          if (firstIndex !== secondIndex) return firstIndex - secondIndex;
+          return first.theme.label.localeCompare(second.theme.label, "de-DE");
+        });
+
+        if (sectionObserver) {
+          sectionObserver.disconnect();
+          sectionObserver = null;
+        }
+
+        sectionRegistry.clear();
+        refs.results.replaceChildren();
+        refs.chipNav.replaceChildren();
+        selectedThemeId = "";
+        activeThemeId = "";
+
+        let stand = "nicht verfügbar";
+        if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+          stand = cleanText(payload.stand, "nicht verfügbar");
+          if (!stand && payload.briefing && typeof payload.briefing === "object") {
+            stand = cleanText(payload.briefing.stand, "nicht verfügbar");
+          }
+        }
+
+        refs.stand.textContent = "Datenstand: " + stand;
+
+        if (!items.length) {
+          updateStats([], 0);
+          updateMap([]);
+          refs.status.textContent = "0 Meldungen geladen.";
+          updateEmptyState();
+          return;
+        }
+
+        groups.forEach((group, index) => {
+          refs.results.appendChild(makeSection(group, index));
+        });
+
+        buildChipNav(groups);
+        updateStats(groups, items.length);
+        updateMap(groups);
+        applyFilters();
+        setupSectionObserver();
+        setCurrentChip("");
+      }
+
+      function scheduleFilter() {
+        cancelAnimationFrame(filterFrame);
+        filterFrame = requestAnimationFrame(applyFilters);
+      }
+
+      function setView(nextView) {
+        if (nextView !== "cards" && nextView !== "compact") return;
+
+        view = nextView;
+        shell.dataset.pxView = view;
+
+        refs.viewButtons.forEach((button) => {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.dataset.pxViewButton === view)
+          );
+        });
+
+        try {
+          localStorage.setItem("ki-news-start-view-v1", view);
+        } catch (error) {
+          // Die Ansicht bleibt auch ohne localStorage nutzbar.
+        }
+      }
+
+      function makeSkeleton() {
+        const skeleton = createElement("div", "px-skeleton-grid");
+        skeleton.setAttribute("aria-hidden", "true");
+
+        for (let index = 0; index < 3; index += 1) {
+          const card = createElement("div", "px-skeleton");
+          const body = createElement("div", "px-skeleton-body");
+
+          body.append(
+            createElement("div", "px-skeleton-line px-short"),
+            createElement("div", "px-skeleton-line"),
+            createElement("div", "px-skeleton-line px-medium"),
+            createElement("div", "px-skeleton-line px-short")
+          );
+
+          card.appendChild(body);
+          skeleton.appendChild(card);
+        }
+
+        return skeleton;
+      }
+
+      function showError() {
+        if (sectionObserver) sectionObserver.disconnect();
+        sectionRegistry.clear();
+        refs.chipNav.replaceChildren();
+        refs.empty.hidden = true;
+
+        const state = createElement("div", "px-state");
+        const inner = createElement("div", "px-state-inner");
+        const code = createElement("div", "px-state-code", "ERR");
+        const title = createElement(
+          "h2",
+          "px-state-title",
+          "News konnten nicht geladen werden"
+        );
+        const copy = createElement(
+          "p",
+          "px-state-copy",
+          "Die relative Datei news.json ist gerade nicht erreichbar. Andere Bereiche der Seite bleiben nutzbar."
+        );
+        const retry = createElement("button", "px-retry", "Erneut versuchen");
+
+        code.setAttribute("aria-hidden", "true");
+        retry.type = "button";
+        retry.addEventListener("click", () => {
+          void loadNews();
+        });
+
+        inner.append(code, title, copy, retry);
+        state.appendChild(inner);
+
+        refs.results.replaceChildren(state);
+        refs.status.textContent = "Fehler beim Laden der Nachrichten.";
+        refs.stand.textContent = "Datenstand: nicht verfügbar";
+        updateStats([], 0);
+        updateMap([]);
+      }
+
+      async function fetchNews(timeoutMs) {
+        const controller = new AbortController();
+        activeController = controller;
+        const timeout = window.setTimeout(() => {
+          controller.abort();
+        }, timeoutMs);
+
+        try {
+          const response = await fetch("news.json", {
+            cache: "no-store",
+            signal: controller.signal
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              "Fetch failed: news.json (" + response.status + ")"
+            );
+          }
+
+          return await response.json();
+        } finally {
+          window.clearTimeout(timeout);
+          if (activeController === controller) activeController = null;
+        }
+      }
+
+      async function loadNews() {
+        const thisRequest = requestId + 1;
+        requestId = thisRequest;
+
+        if (activeController) activeController.abort();
+
+        shell.setAttribute("aria-busy", "true");
+        refs.status.textContent = "Nachrichten werden geladen.";
+        refs.empty.hidden = true;
+        refs.chipNav.replaceChildren();
+        refs.results.replaceChildren(makeSkeleton());
+
+        try {
+          const payload = await fetchNews(7000);
+          if (thisRequest !== requestId) return;
+          render(payload);
+        } catch (error) {
+          if (thisRequest !== requestId) return;
+          showError();
+        } finally {
+          if (thisRequest === requestId) {
+            shell.setAttribute("aria-busy", "false");
+          }
+        }
+      }
+
+      refs.viewButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setView(button.dataset.pxViewButton);
+        });
+      });
+
+      refs.search.addEventListener("input", scheduleFilter);
+      refs.search.addEventListener("search", scheduleFilter);
+
+      refs.clear.addEventListener("click", () => {
+        refs.search.value = "";
+        refs.search.focus();
+        applyFilters();
+      });
+
+      window.addEventListener("pagehide", () => {
+        if (activeController) activeController.abort();
+        if (sectionObserver) sectionObserver.disconnect();
+      });
+
+      setView(view);
+      void loadNews();
+    })();
+  </script>
+</body>
+</html>
