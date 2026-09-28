@@ -485,13 +485,6 @@ html.light .card-scrim{background:linear-gradient(180deg,rgba(255,255,255,0.35) 
 .ki-card:not(:has(img)){--map-opacity:0.5;--flag-opacity:0.4;}
 html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 </style>
-<style id="px-hero-genesis">
-  /* Auftrag 9 (28.09.26): Genesis ist wieder der Hintergrund der Startseite. Laeuft Genesis
-     (Desktop, ohne reduced-motion; Klasse ki-genesis-an), ist der Hero komplett durchsichtig
-     und sein eigenes Punktfeld aus; die Farbe kommt aus der Genesis-Wahl im Profil. */
-  html.ki-genesis-an #px-hero { background: transparent !important; }
-  html.ki-genesis-an #px-hero .px-hero-canvas { display: none; }
-</style>
 <style id="px-hero-css">
   #px-hero,
   #px-hero *,
@@ -579,12 +572,16 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     width: min(72vw, 960px);
     height: 340px;
     pointer-events: none;
+    /* Auftrag 10: weich auslaufender Verlauf statt filter: blur(36px) (Filter kostete
+       bei jedem Frame ~326k px Neuberechnung); Aussehen wie vorher. */
     background: radial-gradient(
-      ellipse,
-      rgba(0, 212, 255, 0.14),
-      transparent 68%
+      ellipse closest-side,
+      rgba(0, 212, 255, 0.13) 0%,
+      rgba(0, 212, 255, 0.10) 30%,
+      rgba(0, 212, 255, 0.055) 55%,
+      rgba(0, 212, 255, 0.02) 78%,
+      transparent 100%
     );
-    filter: blur(36px);
     transform: translateX(-50%);
   }
 
@@ -704,12 +701,14 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     height: 260px;
     pointer-events: none;
     content: "";
+    /* Auftrag 10: weicher Verlauf statt filter: blur(20px) */
     background: radial-gradient(
-      ellipse,
-      rgba(0, 212, 255, 0.13),
-      transparent 70%
+      ellipse closest-side,
+      rgba(0, 212, 255, 0.12) 0%,
+      rgba(0, 212, 255, 0.07) 45%,
+      rgba(0, 212, 255, 0.02) 80%,
+      transparent 100%
     );
-    filter: blur(20px);
   }
 
   body[data-theme="dark"] .px-hero-main-card,
@@ -1942,7 +1941,10 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   /* Kartenposter vollstaendig (28.09.26): cover schnitt links/rechts Text ab */
   #px-hero img.px-hero-img-card { object-fit: contain; }
   #px-hero img.px-hero-img-backdrop { position: absolute; z-index: 2; inset: -12px; width: calc(100% + 24px); height: calc(100% + 24px); object-fit: cover; filter: blur(14px) brightness(0.55); }
-  #px-hero .px-hero-card-video-mute { position: absolute; z-index: 1; right: 8px; bottom: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 13px; cursor: pointer; }
+  /* Auftrag 10: 44 px Trefferflaeche (vorher 28 px) - ein Tipp knapp daneben landete auf dem
+     Video und schaltete Pause um; sichtbar bleibt der kleine runde Knopf. */
+  #px-hero .px-hero-card-video-mute { position: absolute; z-index: 5; right: 0; bottom: 0; width: 52px; height: 52px; padding: 0; border: 0; background: transparent; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  #px-hero .px-hero-card-video-mute::before { content: ""; position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; background: rgba(0, 0, 0, 0.65); z-index: -1; }
   /* Linienband als eigene Zeile; der Mittelteil darf nicht unter seinen Inhalt schrumpfen */
   #px-hero .px-hero-slide { grid-template-rows: auto 1fr auto auto; }
   #px-hero .px-hero-linie { margin: 0 0 18px; min-width: 0; contain: inline-size; }
@@ -3123,7 +3125,11 @@ applyTheme();
 new MutationObserver(()=>{applyTheme();})
   .observe(document.documentElement,{attributes:true,attributeFilter:['class','data-theme']});
 let _lastFrame=0;
+// Auftrag 10 (einzige Ergaenzung): Tab im Hintergrund -> keine Frames; zurueck -> weiter
+let _pausiert=false;
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&_pausiert){_pausiert=false;requestAnimationFrame(animate);}});
 function animate(now){
+  if(document.hidden){_pausiert=true;return;}
   requestAnimationFrame(animate);
   // Perf-Fix (02.07.26): 30-FPS-Cap - halbiert CPU/GPU-Last der Animation,
   // fuer einen langsamen Ambient-Effekt visuell nicht wahrnehmbar.
@@ -3174,8 +3180,6 @@ window.addEventListener('resize',()=>{
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   var src = document.getElementById('ki-genesis-src');
   if (!src) return;
-  // Hero laesst den Genesis-Hintergrund durchscheinen (CSS html.ki-genesis-an)
-  document.documentElement.classList.add('ki-genesis-an');
   var s = document.createElement('script');
   s.type = 'module';
   s.textContent = src.textContent;
@@ -4188,7 +4192,10 @@ window.addEventListener('resize',()=>{
           });
           wrap.addEventListener("click", ev => {
             ev.stopPropagation();
-            if (ev.target === mute) return;
+            if (ev.target === mute || mute.contains(ev.target)) return;
+            // Tipp in der Knopf-Ecke (knapp daneben) nie als Pause werten
+            const r = wrap.getBoundingClientRect();
+            if (ev.clientX > r.right - 64 && ev.clientY > r.bottom - 64) return;
             if (video.paused) video.play().catch(() => {});
             else video.pause();
           });
