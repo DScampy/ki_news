@@ -1,0 +1,3303 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#edf7f8">
+  <meta name="description" content="Interaktive KI-Landkarte mit Herstellern, Modellen, Personen, Themen, Nachrichten und Release-Hinweisen.">
+  <title>KI-Landkarte | KI News</title>
+
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/ki-fonts.css">
+  <link rel="stylesheet" href="assets/ki-tw.css">
+  <script src="assets/ki-icons.js" defer></script>
+  <script src="assets/ki-layout.js" defer></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-width: 0;
+      margin: 0;
+      overflow-x: hidden;
+      background: #edf7f8;
+    }
+
+    body {
+      font-family: "Work Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    a {
+      font: inherit;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .px-landkarte {
+      --px-cyan: #00d4ff;
+      --px-violet: #9b7cff;
+      --px-pink: #ff4f9a;
+      --px-yellow: #f5ca4c;
+      --px-green: #42e6a8;
+      --px-orange: #ff795f;
+      --px-blue: #64a8ff;
+      --px-lime: #b8ef68;
+      --px-page: #edf7f8;
+      --px-page-deep: #dceff2;
+      --px-surface: rgba(255, 255, 255, 0.88);
+      --px-surface-solid: #f9fcfd;
+      --px-ink: #13243a;
+      --px-muted: #617487;
+      --px-line: rgba(28, 55, 78, 0.15);
+      --px-line-strong: rgba(28, 55, 78, 0.27);
+      --px-soft: rgba(0, 212, 255, 0.1);
+      --px-shadow: 0 22px 64px rgba(24, 57, 75, 0.1);
+      min-height: 100vh;
+      color: var(--px-ink);
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+        radial-gradient(circle at 48% 0, rgba(0, 212, 255, 0.2), transparent 44rem),
+        linear-gradient(180deg, var(--px-page), var(--px-page-deep));
+      background-size: 24px 24px, 24px 24px, auto, auto;
+      transition: color 220ms ease, background-color 220ms ease;
+    }
+
+    html[data-theme="dark"] .px-landkarte,
+    html[data-color-mode="dark"] .px-landkarte,
+    html.dark .px-landkarte,
+    body[data-theme="dark"] .px-landkarte,
+    body[data-color-mode="dark"] .px-landkarte,
+    body.dark .px-landkarte,
+    .px-landkarte.px-is-dark {
+      --px-page: #050b11;
+      --px-page-deep: #07131b;
+      --px-surface: rgba(8, 20, 29, 0.92);
+      --px-surface-solid: #08151e;
+      --px-ink: #edfaff;
+      --px-muted: #91a8b8;
+      --px-line: rgba(143, 209, 231, 0.16);
+      --px-line-strong: rgba(143, 209, 231, 0.3);
+      --px-soft: rgba(0, 212, 255, 0.12);
+      --px-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+
+    .px-header-host {
+      position: relative;
+      z-index: 30;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .px-fallback-header {
+      width: min(calc(100% - 24px), 1440px);
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--px-line);
+    }
+
+    .px-fallback-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--px-cyan);
+      text-decoration: none;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .px-fallback-mark {
+      width: 31px;
+      height: 31px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--px-cyan);
+      border-radius: 9px;
+      box-shadow: 0 0 18px rgba(0, 212, 255, 0.25);
+    }
+
+    .px-fallback-brand span:last-child {
+      color: var(--px-muted);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .px-fallback-spacer {
+      flex: 1;
+    }
+
+    .px-fallback-theme {
+      min-height: 36px;
+      padding: 7px 11px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 9px;
+      color: var(--px-ink);
+      background: var(--px-surface);
+      cursor: pointer;
+    }
+
+    .px-main {
+      width: min(calc(100% - 24px), 1440px);
+      min-width: 0;
+      margin: 0 auto;
+      padding: 46px 0 38px;
+    }
+
+    .px-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(230px, 285px);
+      align-items: end;
+      gap: 34px;
+      margin-bottom: 22px;
+    }
+
+    .px-eyebrow,
+    .px-meta,
+    .px-kicker,
+    .px-status,
+    .px-legend,
+    .px-tab,
+    .px-map-subtitle,
+    .px-map-caption,
+    .px-detail-meta,
+    .px-news-meta,
+    .px-block-label,
+    .px-chart-label,
+    .px-cluster-kind,
+    .px-release-link,
+    .px-reset-link,
+    .px-footnote,
+    .px-index-value,
+    .px-node-count {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .px-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 14px;
+      color: var(--px-cyan);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .px-eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .px-title {
+      max-width: 980px;
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(42px, 5.5vw, 72px);
+      font-weight: 700;
+      line-height: 0.98;
+      letter-spacing: -0.06em;
+      text-wrap: balance;
+    }
+
+    .px-title-accent {
+      color: var(--px-cyan);
+      text-shadow: 0 0 28px rgba(0, 212, 255, 0.2);
+    }
+
+    .px-intro {
+      max-width: 840px;
+      margin: 17px 0 0;
+      color: var(--px-muted);
+      font-size: clamp(15px, 1.4vw, 18px);
+      line-height: 1.55;
+    }
+
+    .px-data-column {
+      min-width: 0;
+      padding: 16px 18px;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-surface);
+      box-shadow: var(--px-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .px-status {
+      margin: 0 0 7px;
+      color: var(--px-cyan);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .px-stand {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .px-source-status {
+      margin: 7px 0 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .px-card {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--px-line);
+      border-radius: 12px;
+      background: var(--px-surface);
+      box-shadow: var(--px-shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .px-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 1px rgba(255, 255, 255, 0.4);
+      pointer-events: none;
+    }
+
+    .px-map-card {
+      border-color: rgba(0, 212, 255, 0.24);
+      background: #050b11;
+      box-shadow:
+        0 30px 90px rgba(0, 0, 0, 0.32),
+        0 0 0 1px rgba(0, 212, 255, 0.04);
+    }
+
+    .px-map-head {
+      position: relative;
+      z-index: 5;
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 14px 18px;
+      color: #e9fbff;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.12);
+      background: rgba(4, 12, 18, 0.94);
+    }
+
+    .px-map-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .px-map-subtitle {
+      margin: 4px 0 0;
+      color: #7b99aa;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .px-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px 14px;
+      color: #7795a5;
+      font-size: 9px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .px-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .px-legend span::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--px-legend-color, #00d4ff);
+      box-shadow: 0 0 9px var(--px-legend-color, #00d4ff);
+    }
+
+    .px-tab-strip {
+      position: relative;
+      z-index: 6;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+      background: rgba(3, 10, 16, 0.94);
+      touch-action: pan-x;
+    }
+
+    .px-tab-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .px-tab {
+      flex: 0 0 auto;
+      min-height: 31px;
+      padding: 7px 10px;
+      scroll-snap-align: center;
+      border: 1px solid rgba(157, 209, 228, 0.17);
+      border-radius: 7px;
+      color: #8ba6b5;
+      background: rgba(255, 255, 255, 0.025);
+      font-size: 9px;
+      letter-spacing: 0.035em;
+      cursor: pointer;
+      transition:
+        color 180ms ease,
+        border-color 180ms ease,
+        background 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+    }
+
+    .px-tab:hover,
+    .px-tab:focus-visible {
+      color: #dffaff;
+      border-color: var(--px-tab-color, #00d4ff);
+      outline: none;
+    }
+
+    .px-tab.is-active {
+      color: #061015;
+      border-color: var(--px-tab-color, #00d4ff);
+      background: var(--px-tab-color, #00d4ff);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .px-tab-divider {
+      flex: 0 0 auto;
+      width: 1px;
+      height: 18px;
+      margin: 0 3px;
+      background: rgba(143, 209, 231, 0.16);
+    }
+
+    .px-map-stage {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.08), transparent 31rem),
+        #050b11;
+    }
+
+    .px-map-svg {
+      display: block;
+      width: 100%;
+      height: clamp(540px, 49vw, 650px);
+      min-width: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .px-map-svg text {
+      font-family: "Work Sans", sans-serif;
+    }
+
+    .px-star {
+      opacity: 0.48;
+      animation: px-twinkle 3.8s ease-in-out infinite alternate;
+    }
+
+    .px-particle {
+      opacity: 0.48;
+      pointer-events: none;
+    }
+
+    .px-connection {
+      fill: none;
+      stroke: rgba(150, 215, 235, 0.15);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-orbit {
+      fill: none;
+      stroke: rgba(0, 212, 255, 0.13);
+      stroke-width: 1;
+      stroke-dasharray: 3 8;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-center-orbit {
+      fill: none;
+      stroke: #00d4ff;
+      stroke-width: 1;
+      stroke-dasharray: 2 5;
+      vector-effect: non-scaling-stroke;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: px-spin 26s linear infinite;
+    }
+
+    .px-center-pulse {
+      fill: none;
+      stroke: #00d4ff;
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: px-pulse 2.8s ease-out infinite;
+    }
+
+    .px-center-node,
+    .px-map-node {
+      cursor: pointer;
+      outline: none;
+    }
+
+    .px-node-shape {
+      transition:
+        r 260ms cubic-bezier(0.22, 1, 0.36, 1),
+        fill 200ms ease,
+        stroke-width 200ms ease,
+        filter 200ms ease,
+        opacity 200ms ease;
+    }
+
+    .px-center-core {
+      fill: #07131b;
+      stroke: #00d4ff;
+      stroke-width: 1.5;
+    }
+
+    .px-center-node:hover .px-center-core,
+    .px-center-node:focus-visible .px-center-core {
+      fill: #0a1d27;
+      filter: url("#px-map-glow");
+      stroke: #b4f6ff;
+      stroke-width: 2.6;
+    }
+
+    .px-center-title {
+      fill: #effdff;
+      font-family: "Space Grotesk", sans-serif !important;
+      font-size: 17px;
+      font-weight: 750;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .px-center-meta {
+      fill: #64b6ca;
+      font-family: ui-monospace, monospace !important;
+      font-size: 7px;
+      letter-spacing: 0.1em;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .px-map-cluster {
+      transition: opacity 240ms ease;
+    }
+
+    .px-map-cluster.is-dimmed {
+      opacity: 0.5;
+    }
+
+    .px-map-cluster.is-active {
+      opacity: 1;
+    }
+
+    .px-cluster-halo {
+      opacity: 0.1;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+
+    .px-map-cluster.is-active .px-cluster-halo {
+      opacity: 0.24;
+    }
+
+    .px-cluster-ring {
+      fill: rgba(5, 11, 17, 0.52);
+      stroke-dasharray: 3 5;
+      vector-effect: non-scaling-stroke;
+      pointer-events: none;
+    }
+
+    .px-cluster-label {
+      fill: #dbf9ff;
+      font-family: ui-monospace, monospace !important;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-anchor: middle;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: #050b11;
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    .px-cluster-kind {
+      fill: #658293;
+      font-size: 7px;
+      letter-spacing: 0.1em;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .px-node-link {
+      opacity: 0.32;
+      stroke-width: 0.9;
+      stroke-dasharray: 2 4;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-map-hub {
+      fill: #071017;
+      stroke-width: 1.5;
+    }
+
+    .px-map-sat {
+      fill: #080f15;
+      stroke-width: 1.3;
+    }
+
+    .px-map-node:hover .px-node-shape,
+    .px-map-node:focus-visible .px-node-shape {
+      filter: url("#px-map-glow");
+      stroke-width: 2.5;
+    }
+
+    .px-map-node:focus-visible .px-node-label {
+      fill: #ffffff;
+    }
+
+    .px-map-node.is-selected .px-node-shape {
+      filter: url("#px-map-glow");
+      stroke-width: 2.8;
+    }
+
+    .px-hub-label {
+      fill: #f2fdff;
+      font-family: "Space Grotesk", sans-serif !important;
+      font-size: 10px;
+      font-weight: 700;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .px-node-label {
+      fill: #b3c8d2;
+      font-size: 8.5px;
+      font-weight: 500;
+      text-anchor: middle;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: #050b11;
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    .px-map-node.is-selected .px-node-label {
+      fill: #ffffff;
+      font-weight: 700;
+    }
+
+    .px-route-halo,
+    .px-route {
+      pointer-events: none;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-route-halo {
+      opacity: 0;
+      filter: url("#px-map-glow");
+      transition: opacity 220ms ease;
+    }
+
+    .px-route {
+      opacity: 0;
+      stroke-dasharray: 6 7;
+      animation: px-route 7s linear infinite;
+      transition: opacity 220ms ease;
+    }
+
+    .px-map-caption {
+      position: absolute;
+      right: 14px;
+      bottom: 10px;
+      margin: 0;
+      color: #587483;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .px-detail-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .px-detail-panel,
+    .px-news-panel {
+      min-width: 0;
+      padding: clamp(22px, 3vw, 34px);
+    }
+
+    .px-kicker {
+      margin: 0 0 10px;
+      color: var(--px-cyan);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .px-detail-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 1.02;
+      letter-spacing: -0.045em;
+      overflow-wrap: anywhere;
+    }
+
+    .px-detail-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .px-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      max-width: 100%;
+      padding: 4px 8px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: var(--px-soft);
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .px-detail-copy {
+      max-width: 620px;
+      margin: 18px 0 0;
+      color: var(--px-muted);
+      font-size: 15px;
+      line-height: 1.62;
+    }
+
+    .px-detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .px-release-link,
+    .px-reset-link {
+      min-height: 39px;
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 12px;
+      border: 1px solid var(--px-line-strong);
+      border-radius: 9px;
+      text-decoration: none;
+      font-size: 10px;
+      line-height: 1.35;
+      transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease,
+        background 180ms ease;
+    }
+
+    .px-release-link {
+      color: var(--px-cyan);
+      background: var(--px-soft);
+    }
+
+    .px-reset-link {
+      color: var(--px-muted);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .px-release-link:hover,
+    .px-release-link:focus-visible,
+    .px-reset-link:hover,
+    .px-reset-link:focus-visible {
+      border-color: var(--px-cyan);
+      outline: none;
+      box-shadow: 0 0 18px var(--px-soft);
+      transform: translateY(-1px);
+    }
+
+    .px-release-status {
+      margin: 12px 0 0;
+      color: var(--px-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .px-news-panel {
+      background:
+        linear-gradient(135deg, var(--px-soft), transparent 46%),
+        var(--px-surface);
+    }
+
+    .px-news-heading,
+    .px-metrics-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 17px;
+    }
+
+    .px-news-title,
+    .px-metrics-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 20px;
+      letter-spacing: -0.025em;
+    }
+
+    .px-news-count {
+      flex: 0 0 auto;
+      color: var(--px-cyan);
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .px-news-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .px-news-item {
+      min-width: 0;
+      border: 1px solid var(--px-line);
+      border-radius: 10px;
+      background: var(--px-surface-solid);
+      transition:
+        border-color 180ms ease,
+        background 180ms ease,
+        transform 180ms ease;
+    }
+
+    .px-news-item:hover {
+      border-color: var(--px-cyan);
+      background: var(--px-soft);
+      transform: translateX(3px);
+    }
+
+    .px-news-link {
+      display: block;
+      padding: 13px 14px;
+      text-decoration: none;
+    }
+
+    .px-news-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-bottom: 7px;
+      color: var(--px-muted);
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .px-news-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.38;
+      overflow-wrap: anywhere;
+    }
+
+    .px-empty {
+      margin: 0;
+      padding: 18px;
+      border: 1px dashed var(--px-line-strong);
+      border-radius: 10px;
+      color: var(--px-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .px-metrics-card {
+      margin-top: 18px;
+    }
+
+    .px-metrics-shell {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr) minmax(220px, 0.5fr);
+      min-height: 250px;
+    }
+
+    .px-chart-block,
+    .px-ring-block,
+    .px-index-block {
+      min-width: 0;
+      padding: clamp(20px, 3vw, 32px);
+    }
+
+    .px-chart-block,
+    .px-ring-block {
+      border-right: 1px solid var(--px-line);
+    }
+
+    .px-block-label {
+      margin: 0 0 4px;
+      color: var(--px-muted);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .px-block-value {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 19px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .px-chart-wrap {
+      width: 100%;
+      min-width: 0;
+      margin-top: 20px;
+    }
+
+    .px-chart-svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .px-chart-grid {
+      stroke: var(--px-line);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-chart-area {
+      fill: var(--px-soft);
+    }
+
+    .px-chart-line {
+      fill: none;
+      stroke: var(--px-cyan);
+      stroke-width: 2.3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: px-draw 850ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .px-chart-dot {
+      fill: var(--px-surface-solid);
+      stroke: var(--px-cyan);
+      stroke-width: 1.6;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .px-chart-label {
+      fill: var(--px-muted);
+      font-size: 8px;
+    }
+
+    .px-ring-wrap {
+      position: relative;
+      width: 138px;
+      max-width: 100%;
+      aspect-ratio: 1;
+      margin: 22px auto 16px;
+    }
+
+    .px-ring-svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .px-ring-track {
+      fill: none;
+      stroke: var(--px-line);
+      stroke-width: 8;
+    }
+
+    .px-ring-progress {
+      fill: none;
+      stroke: var(--px-cyan);
+      stroke-width: 8;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 7px var(--px-cyan));
+      transition:
+        stroke-dashoffset 800ms cubic-bezier(0.22, 1, 0.36, 1),
+        stroke 250ms ease;
+    }
+
+    .px-ring-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      text-align: center;
+    }
+
+    .px-ring-number {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 26px;
+      font-weight: 750;
+      line-height: 1;
+    }
+
+    .px-ring-caption {
+      margin-top: 5px;
+      color: var(--px-muted);
+      font-family: ui-monospace, monospace;
+      font-size: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .px-share-note {
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .px-index-list {
+      display: grid;
+      gap: 10px;
+      margin: 20px 0 0;
+    }
+
+    .px-index-item {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .px-index-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--px-index-color);
+      box-shadow: 0 0 8px var(--px-index-color);
+    }
+
+    .px-index-name,
+    .px-index-value {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .px-index-value {
+      color: var(--px-muted);
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+    }
+
+    .px-footnote {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 16px 2px 0;
+      color: var(--px-muted);
+      font-size: 9px;
+      line-height: 1.5;
+    }
+
+    .px-footnote p {
+      margin: 0;
+    }
+
+    .px-footnote strong {
+      color: var(--px-cyan);
+      font-weight: 500;
+    }
+
+    @keyframes px-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes px-pulse {
+      0% { opacity: 0.5; transform: scale(0.92); }
+      75%, 100% { opacity: 0; transform: scale(1.35); }
+    }
+
+    @keyframes px-route {
+      to { stroke-dashoffset: -52; }
+    }
+
+    @keyframes px-draw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes px-twinkle {
+      from { opacity: 0.28; }
+      to { opacity: 0.7; }
+    }
+
+    @media (max-width: 1040px) {
+      .px-map-svg {
+        height: 590px;
+      }
+
+      .px-metrics-shell {
+        grid-template-columns: minmax(0, 1.3fr) minmax(230px, 0.7fr);
+      }
+
+      .px-index-block {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--px-line);
+      }
+
+      .px-index-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .px-main {
+        padding-top: 32px;
+      }
+
+      .px-hero,
+      .px-detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .px-data-column {
+        width: 100%;
+      }
+
+      .px-map-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .px-legend {
+        justify-content: flex-start;
+      }
+
+      .px-map-svg {
+        height: auto;
+        aspect-ratio: 500 / 500;
+      }
+
+      .px-map-caption {
+        display: none;
+      }
+
+      .px-node-label {
+        font-size: 10px;
+        stroke-width: 4px;
+      }
+
+      .px-hub-label {
+        font-size: 12px;
+      }
+
+      .px-cluster-label {
+        font-size: 12px;
+      }
+
+      .px-cluster-kind {
+        font-size: 8px;
+      }
+
+      .px-center-title {
+        font-size: 18px;
+      }
+
+      .px-center-meta {
+        font-size: 7px;
+      }
+
+      .px-metrics-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .px-chart-block,
+      .px-ring-block {
+        border-right: 0;
+        border-bottom: 1px solid var(--px-line);
+      }
+
+      .px-index-block {
+        grid-column: auto;
+        border-top: 0;
+      }
+
+      .px-footnote {
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .px-main,
+      .px-fallback-header {
+        width: calc(100% - 16px);
+      }
+
+      .px-main {
+        padding-top: 25px;
+      }
+
+      .px-title {
+        font-size: 38px;
+      }
+
+      .px-intro {
+        font-size: 14px;
+      }
+
+      .px-map-head,
+      .px-detail-panel,
+      .px-news-panel,
+      .px-chart-block,
+      .px-ring-block,
+      .px-index-block {
+        padding: 16px;
+      }
+
+      .px-map-subtitle {
+        font-size: 9px;
+      }
+
+      .px-tab-strip {
+        padding-inline: 8px;
+      }
+
+      .px-index-list {
+        grid-template-columns: 1fr;
+      }
+
+      .px-news-heading,
+      .px-metrics-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 7px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<nav aria-label="Modelle" style="display:flex;gap:8px;flex-wrap:wrap;max-width:1400px;margin:14px auto 0;padding:0 16px"><a href="modelle.html" style="padding:6px 14px;border-radius:999px;text-decoration:none;font:600 13px/1.2 'Space Grotesk',sans-serif;border:1px solid rgba(var(--neon-rgb,0,212,255),.18);color:inherit;background:transparent">Modell-Registry</a><a href="landkarte.html" aria-current="page" style="padding:6px 14px;border-radius:999px;text-decoration:none;font:600 13px/1.2 'Space Grotesk',sans-serif;border:1px solid rgba(var(--neon-rgb,0,212,255),.55);color:inherit;background:rgba(var(--neon-rgb,0,212,255),.14)">KI-Landkarte</a></nav>
+
+  <div class="px-landkarte" id="px-landkarte">
+    <header
+      class="px-header-host"
+      id="ki-header"
+      data-ki-header
+      data-ki-nav
+      data-ki-theme
+      aria-label="Seitenkopf"
+    ></header>
+
+    <main class="px-main">
+      <section class="px-hero" aria-labelledby="px-page-title">
+        <div>
+          <p class="px-eyebrow">Scampy Knowledge Interface 01</p>
+          <h1 class="px-title" id="px-page-title">
+            Die <span class="px-title-accent">KI-Landkarte</span>
+          </h1>
+          <p class="px-intro">
+            Hersteller, Modelle, Personen und Themen werden zu einer aktuellen Graphansicht.
+            Ein Knoten zeigt den Kontext, die drei neuesten Meldungen und einen verifizierten Release.
+          </p>
+        </div>
+
+        <aside class="px-data-column" aria-label="Datenstatus">
+          <p class="px-status">Datenstand</p>
+          <p class="px-stand" id="px-stand">Wird geladen</p>
+          <p class="px-source-status" id="px-source-status">Lokale JSON-Quellen werden vorbereitet.</p>
+        </aside>
+      </section>
+
+      <section class="px-card px-map-card" aria-labelledby="px-map-heading">
+        <div class="px-map-head">
+          <div>
+            <h2 class="px-map-title" id="px-map-heading">Entities im aktuellen KI-Nachrichtenraum</h2>
+            <p class="px-map-subtitle" id="px-map-subtitle">Knoten anklicken. Zusammenhang prüfen. Release öffnen.</p>
+          </div>
+          <div class="px-legend" aria-label="Legende">
+            <span style="--px-legend-color:#00d4ff">KI-Zentrum</span>
+            <span style="--px-legend-color:#9b7cff">Hersteller</span>
+            <span style="--px-legend-color:#f5ca4c">Thema</span>
+          </div>
+        </div>
+
+        <div
+          class="px-tab-strip"
+          id="px-tabs"
+          role="tablist"
+          aria-label="Cluster auswählen"
+        ></div>
+
+        <div class="px-map-stage">
+          <svg
+            class="px-map-svg"
+            id="px-map-svg"
+            viewBox="0 0 1200 680"
+            role="group"
+            aria-label="Interaktive Karte der KI-Entities"
+          >
+            <title>KI-Landkarte mit zentralem Aktualitätsknoten und farbigen Clustern</title>
+          </svg>
+          <p class="px-map-caption">Auswählen, verbinden, einordnen</p>
+        </div>
+      </section>
+
+      <section class="px-detail-grid" aria-label="Ausgewählter Knoten">
+        <article class="px-card px-detail-panel" aria-live="polite">
+          <p class="px-kicker" id="px-detail-kicker">Zentrum</p>
+          <h2 class="px-detail-title" id="px-detail-title">KI heute</h2>
+
+          <div class="px-detail-meta">
+            <span class="px-tag" id="px-detail-type">Überblick</span>
+            <span class="px-tag" id="px-detail-cluster">Gesamter Nachrichtenraum</span>
+          </div>
+
+          <p class="px-detail-copy" id="px-detail-copy">
+            Die Karte verbindet aktuelle Nachrichten mit Modellen, Produkten und Personen.
+          </p>
+
+          <div class="px-detail-actions">
+            <a
+              class="px-release-link"
+              id="px-release-link"
+              href=""
+              target="_blank"
+              rel="noopener noreferrer"
+              hidden
+            ></a>
+            <button class="px-reset-link" id="px-reset" type="button">
+              Zum Zentrum zurück
+            </button>
+          </div>
+
+          <p class="px-release-status" id="px-release-status" hidden></p>
+        </article>
+
+        <article class="px-card px-news-panel">
+          <div class="px-news-heading">
+            <div>
+              <p class="px-kicker">Kontext</p>
+              <h2 class="px-news-title">Die drei neuesten Meldungen</h2>
+            </div>
+            <span class="px-news-count" id="px-news-count">0 Treffer</span>
+          </div>
+
+          <div class="px-news-list" id="px-news-list"></div>
+        </article>
+      </section>
+
+      <section class="px-card px-metrics-card" aria-labelledby="px-metrics-heading">
+        <div class="px-metrics-heading">
+          <div>
+            <p class="px-kicker">14-Tage-Fenster</p>
+            <h2 class="px-metrics-title" id="px-metrics-heading">Aktivität und Nachrichtenanteil</h2>
+          </div>
+          <span class="px-news-count" id="px-metrics-scope">Gesamte Karte</span>
+        </div>
+
+        <div class="px-metrics-shell">
+          <div class="px-chart-block">
+            <p class="px-block-label">Kurve</p>
+            <p class="px-block-value" id="px-activity-title">Alle Meldungen</p>
+            <div class="px-chart-wrap">
+              <svg
+                class="px-chart-svg"
+                id="px-chart-svg"
+                viewBox="0 0 620 190"
+                role="img"
+                aria-label="Aktivität der letzten 14 Tage"
+              ></svg>
+            </div>
+          </div>
+
+          <div class="px-ring-block">
+            <p class="px-block-label">Ring</p>
+            <p class="px-block-value">Anteil am Aufkommen</p>
+
+            <div class="px-ring-wrap">
+              <svg
+                class="px-ring-svg"
+                viewBox="0 0 120 120"
+                role="img"
+                aria-label="Anteil der ausgewählten Meldungen"
+              >
+                <circle class="px-ring-track" cx="60" cy="60" r="49"></circle>
+                <circle
+                  class="px-ring-progress"
+                  id="px-ring-progress"
+                  cx="60"
+                  cy="60"
+                  r="49"
+                ></circle>
+              </svg>
+
+              <div class="px-ring-center">
+                <div class="px-ring-number" id="px-ring-number">0%</div>
+                <div class="px-ring-caption">ausgewählt</div>
+              </div>
+            </div>
+
+            <p class="px-share-note" id="px-share-note">
+              Noch keine belastbaren Meldungen.
+            </p>
+          </div>
+
+          <div class="px-index-block">
+            <p class="px-block-label">Index</p>
+            <p class="px-block-value">Stärkste Themen</p>
+            <div class="px-index-list" id="px-index-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="px-footnote">
+        <p><strong>KI-NEWS.LIVE</strong> | Interaktive KI-Landkarte</p>
+        <p id="px-foot-sources">Lokale Quellen werden geladen</p>
+      </footer>
+    </main>
+
+    <noscript>
+      <p class="px-empty">Für die interaktive KI-Landkarte muss JavaScript aktiviert sein.</p>
+    </noscript>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const DAY = 86400000;
+      const RING_RADIUS = 49;
+      const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+      const CLUSTERS = [
+        {
+          id: "m-openai",
+          kind: "Hersteller",
+          label: "OpenAI",
+          color: "#00d4ff",
+          description: "OpenAI verbindet Modelle, Produkte und Personen mit besonders vielen aktuellen Meldungen."
+        },
+        {
+          id: "m-anthropic",
+          kind: "Hersteller",
+          label: "Anthropic",
+          color: "#42e6a8",
+          description: "Anthropic bündelt Nachrichten zu Claude, Sicherheitsforschung, Unternehmensführung und KI-Einsatz."
+        },
+        {
+          id: "m-google",
+          kind: "Hersteller",
+          label: "Google",
+          color: "#f5ca4c",
+          description: "Google verbindet Gemini, DeepMind, Research und eigene KI-Hardware im aktuellen Nachrichtenraum."
+        },
+        {
+          id: "m-meta",
+          kind: "Hersteller",
+          label: "Meta",
+          color: "#9b7cff",
+          description: "Meta erscheint mit Llama, offenen Modellen, Agenten und Plattformentscheidungen in der Nachrichtenlage."
+        },
+        {
+          id: "m-xai",
+          kind: "Hersteller",
+          label: "xAI",
+          color: "#ff4f9a",
+          description: "xAI wird vor allem über Grok, Produktveränderungen und die Verbindung mit X sichtbar."
+        },
+        {
+          id: "m-mistral",
+          kind: "Hersteller",
+          label: "Mistral",
+          color: "#ff795f",
+          description: "Mistral verbindet europäische Modellfamilien, offene Gewichte und den Ausbau von KI-Infrastruktur."
+        },
+        {
+          id: "m-qwen",
+          kind: "Hersteller",
+          label: "Qwen",
+          color: "#64a8ff",
+          description: "Qwen ordnet Modellvarianten, Veröffentlichungen und die chinesische KI-Entwicklung im Graphen ein."
+        },
+        {
+          id: "m-deepseek",
+          kind: "Hersteller",
+          label: "DeepSeek",
+          color: "#b8ef68",
+          description: "DeepSeek verbindet Modellmeldungen mit Forschung, Training und internationalen Debatten."
+        },
+        {
+          id: "t-agenten",
+          kind: "Thema",
+          label: "Agenten",
+          color: "#00d4ff",
+          keywords: [
+            "agent", "agentisch", "agentic", "tool use", "computer use",
+            "coding assistant", "browser agent", "muse"
+          ],
+          description: "Agenten wandeln Sprachmodelle von Werkzeugen zu ausführenden Systemen. Meldungen zeigen Aufgaben, Grenzen und reale Fehler."
+        },
+        {
+          id: "t-sicherheit",
+          kind: "Thema",
+          label: "Sicherheit",
+          color: "#ff4f9a",
+          keywords: [
+            "safety", "security", "sicherheit", "alignment", "guardrail",
+            "red team", "prompt injection", "hack", "schwachstelle"
+          ],
+          description: "Der Sicherheitscluster bündelt Meldungen zu Schutzmechanismen, Angriffen, Prüfverfahren und offenen Risiken."
+        },
+        {
+          id: "t-politik",
+          kind: "Thema",
+          label: "Politik",
+          color: "#a97bff",
+          keywords: [
+            "politik", "policy", "regulierung", "regulation", "gesetz",
+            "government", "regierung", "copyright", "governance", "trump",
+            "amodei", "gericht", "gerichtshof"
+          ],
+          description: "Politik verbindet Regulierung, staatliche Nutzung, Urheberrecht und die gesellschaftliche Einordnung von KI-Systemen."
+        },
+        {
+          id: "t-forschung",
+          kind: "Thema",
+          label: "Forschung",
+          color: "#f5ca4c",
+          keywords: [
+            "research", "forschung", "modell", "model", "reasoning",
+            "benchmark", "training", "science", "paper", "enzym"
+          ],
+          description: "Forschung umfasst neue Modelle, Trainingsmethoden, Benchmarks und wissenschaftliche Anwendungen."
+        },
+        {
+          id: "t-hardware",
+          kind: "Thema",
+          label: "Hardware",
+          color: "#42e6a8",
+          keywords: [
+            "hardware", "gpu", "chip", "chips", "nvidia", "tpu", "tensor",
+            "prozessor", "robot", "server", "rechenzentrum", "orbit"
+          ],
+          description: "Hardware verbindet Chips, Rechenzentren, Robotik und die Infrastruktur hinter leistungsfähigen KI-Systemen."
+        }
+      ];
+
+      const elements = {
+        root: document.getElementById("px-landkarte"),
+        header: document.getElementById("ki-header"),
+        stand: document.getElementById("px-stand"),
+        sourceStatus: document.getElementById("px-source-status"),
+        tabs: document.getElementById("px-tabs"),
+        map: document.getElementById("px-map-svg"),
+        mapSubtitle: document.getElementById("px-map-subtitle"),
+        detailKicker: document.getElementById("px-detail-kicker"),
+        detailTitle: document.getElementById("px-detail-title"),
+        detailType: document.getElementById("px-detail-type"),
+        detailCluster: document.getElementById("px-detail-cluster"),
+        detailCopy: document.getElementById("px-detail-copy"),
+        release: document.getElementById("px-release-link"),
+        releaseStatus: document.getElementById("px-release-status"),
+        reset: document.getElementById("px-reset"),
+        newsCount: document.getElementById("px-news-count"),
+        newsList: document.getElementById("px-news-list"),
+        metricsScope: document.getElementById("px-metrics-scope"),
+        activityTitle: document.getElementById("px-activity-title"),
+        chart: document.getElementById("px-chart-svg"),
+        ring: document.getElementById("px-ring-progress"),
+        ringNumber: document.getElementById("px-ring-number"),
+        shareNote: document.getElementById("px-share-note"),
+        indexList: document.getElementById("px-index-list"),
+        footSources: document.getElementById("px-foot-sources")
+      };
+
+      const state = {
+        news: [],
+        entities: [],
+        graphNodes: [],
+        graphEdges: [],
+        releases: [],
+        clusters: [],
+        selection: null,
+        activeCluster: "t-agenten",
+        positions: new Map(),
+        center: { x: 600, y: 330 },
+        standText: "",
+        loadedSources: 0,
+        coreSources: 4,
+        releaseSource: null,
+        mobile: false,
+        route: null,
+        numberFrame: 0,
+        displayedShare: 0
+      };
+
+      function cleanText(value) {
+        if (typeof value !== "string") return "";
+        return value
+          .replace(/\u00a0/g, " ")
+          .replace(/[—–]/g, "-")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function normalise(value) {
+        return cleanText(value).toLocaleLowerCase("de-DE");
+      }
+
+      function unique(values) {
+        return [...new Set(values.filter(Boolean))];
+      }
+
+      function createElement(name, className, text) {
+        const element = document.createElement(name);
+        if (className) element.className = className;
+        if (text !== undefined) element.textContent = cleanText(text);
+        return element;
+      }
+
+      function svgElement(name, attributes = {}) {
+        const element = document.createElementNS(SVG_NS, name);
+        Object.entries(attributes).forEach(([key, value]) => {
+          element.setAttribute(key, String(value));
+        });
+        return element;
+      }
+
+      function setSvgText(element, value) {
+        element.textContent = cleanText(value);
+      }
+
+      function shortLabel(value, mobile = false) {
+        const label = cleanText(value);
+        const limit = mobile ? 17 : 21;
+        return label.length > limit ? `${label.slice(0, limit - 1)}…` : label;
+      }
+
+      function safeHref(value) {
+        const href = cleanText(value);
+        if (!href) return "";
+        if (/^(https?:\/\/|\/(?!\/)|\.{1,2}\/)/i.test(href)) return href;
+        return "";
+      }
+
+      function safeLocalJSONFile(value) {
+        const file = cleanText(value);
+        if (!file || file.length > 80) return "";
+        if (!/^[a-z0-9._-]+\.json$/i.test(file)) return "";
+        if (file.includes("..")) return "";
+        return file;
+      }
+
+      function parseDate(value) {
+        const text = cleanText(value);
+        if (!text) return null;
+
+        const german = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+        if (german) {
+          const parsed = new Date(Date.UTC(
+            Number(german[3]),
+            Number(german[2]) - 1,
+            Number(german[1]),
+            12
+          ));
+          return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        const parsed = new Date(text.length === 10 ? `${text}T12:00:00Z` : text);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      function formatDate(value, short = false) {
+        const date = parseDate(value);
+        if (!date) return "Datum unbekannt";
+
+        return new Intl.DateTimeFormat("de-DE", {
+          day: "2-digit",
+          month: short ? "2-digit" : "short",
+          year: "numeric",
+          timeZone: "UTC"
+        }).format(date);
+      }
+
+      function dateKey(date) {
+        return date.toISOString().slice(0, 10);
+      }
+
+      function hashString(value) {
+        let hash = 0;
+        for (let index = 0; index < value.length; index += 1) {
+          hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0;
+        }
+        return Math.abs(hash);
+      }
+
+      async function fetchJSON(path) {
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), 7000);
+
+        try {
+          const response = await fetch(path, {
+            cache: "no-store",
+            signal: controller.signal
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          return await response.json();
+        } finally {
+          window.clearTimeout(timer);
+        }
+      }
+
+      function getArray(payload, key) {
+        if (Array.isArray(payload)) return payload;
+        if (payload && Array.isArray(payload[key])) return payload[key];
+        return [];
+      }
+
+      function getObjectArray(payload, key) {
+        return getArray(payload, key).filter(
+          item => item && typeof item === "object" && !Array.isArray(item)
+        );
+      }
+
+      function findEntityById(id) {
+        const target = normalise(id);
+        return state.entities.find(
+          item => normalise(item.id) === target
+        ) || null;
+      }
+
+      function aliasTerms(entity) {
+        if (!entity || !Array.isArray(entity.aliasse)) return [];
+
+        return entity.aliasse
+          .filter(item => typeof item === "string")
+          .map(item => cleanText(item.replace(/\\s\?/g, " ")))
+          .filter(Boolean)
+          .slice(0, 12);
+      }
+
+      function createNode(cluster, id, kind, score, count, aliases = []) {
+        const label = cleanText(id);
+        if (!label) return null;
+
+        return {
+          key: `${cluster.id}::${normalise(label)}`,
+          id: label,
+          label,
+          kind: cleanText(kind) || "Entity",
+          cluster,
+          score: Number.isFinite(Number(score)) ? Number(score) : 0,
+          count: Number.isFinite(Number(count)) ? Number(count) : 0,
+          aliases: unique(aliases.map(normalise).filter(Boolean))
+        };
+      }
+
+      function typeLabel(value) {
+        const labels = {
+          person: "Person",
+          personen: "Person",
+          anbieter: "Anbieter",
+          provider: "Anbieter",
+          produkt: "Produkt",
+          product: "Produkt",
+          modell: "Modell",
+          model: "Modell",
+          organisation: "Organisation",
+          organization: "Organisation",
+          hardware: "Hardware",
+          forschung: "Forschung",
+          research: "Forschung"
+        };
+
+        const input = normalise(value);
+        return labels[input] || cleanText(value) || "Entity";
+      }
+
+      function buildClusters() {
+        const graphById = new Map(
+          state.graphNodes
+            .filter(item => cleanText(item.id))
+            .map(item => [normalise(item.id), item])
+        );
+
+        const newsText = state.news.map(item => normalise(
+          `${cleanText(item.title)} ${cleanText(item.summary)}`
+        ));
+
+        state.clusters = CLUSTERS.map(cluster => {
+          const nodes = new Map();
+
+          function add(id, kind, score, count, aliases = []) {
+            const node = createNode(cluster, id, kind, score, count, aliases);
+            if (!node) return;
+
+            const localKey = normalise(node.label);
+            const existing = nodes.get(localKey);
+
+            if (!existing || node.score > existing.score) {
+              nodes.set(localKey, node);
+            }
+          }
+
+          if (cluster.kind === "Hersteller") {
+            const clusterKey = normalise(cluster.label);
+            const graphNode = graphById.get(clusterKey);
+            const newsHits = newsText.filter(
+              text => text.includes(clusterKey)
+            ).length;
+
+            add(
+              cluster.label,
+              "Anbieter",
+              Number(graphNode?.count || 0) + newsHits * 4,
+              graphNode?.count || newsHits,
+              aliasTerms(findEntityById(cluster.label))
+            );
+
+            state.releases.forEach(release => {
+              if (normalise(release.hersteller) !== clusterKey) return;
+
+              add(
+                release.modell,
+                "Modell oder Produkt",
+                (parseDate(release.datum)?.getTime() || 0) / 100000 + 20,
+                1,
+                [release.hersteller]
+              );
+            });
+
+            state.graphEdges.forEach(edge => {
+              const source = normalise(edge.source);
+              const target = normalise(edge.target);
+
+              if (source !== clusterKey && target !== clusterKey) return;
+
+              const relatedId = cleanText(
+                source === clusterKey ? edge.target : edge.source
+              );
+
+              if (!relatedId || normalise(relatedId) === clusterKey) return;
+
+              const relatedGraphNode = graphById.get(normalise(relatedId));
+              const releaseBoost = state.releases.some(
+                release => normalise(release.modell) === normalise(relatedId)
+              ) ? 20 : 0;
+
+              add(
+                relatedId,
+                typeLabel(relatedGraphNode?.typ),
+                Number(relatedGraphNode?.count || edge.count || 1) + releaseBoost,
+                relatedGraphNode?.count || edge.count || 1,
+                aliasTerms(findEntityById(relatedId))
+              );
+            });
+
+            state.entities.forEach(entity => {
+              if (normalise(entity.gehoert_zu) !== clusterKey) return;
+
+              add(
+                entity.id,
+                typeLabel(entity.typ),
+                Number(graphById.get(normalise(entity.id))?.count || 1),
+                graphById.get(normalise(entity.id))?.count || 1,
+                aliasTerms(entity)
+              );
+            });
+          } else {
+            state.graphNodes.forEach(graphNode => {
+              const id = cleanText(graphNode.id);
+              if (!id) return;
+
+              const entity = findEntityById(id);
+              const terms = unique([id, ...aliasTerms(entity)]);
+
+              const newsHits = newsText.reduce(
+                (total, text) => total + (
+                  terms.some(term => {
+                    const normalised = normalise(term);
+                    return normalised.length > 2 && text.includes(normalised);
+                  }) ? 1 : 0
+                ),
+                0
+              );
+
+              if (!newsHits) return;
+
+              add(
+                id,
+                typeLabel(graphNode.typ || entity?.typ),
+                Number(graphNode.count || 1) + newsHits * 5,
+                graphNode.count,
+                aliasTerms(entity)
+              );
+            });
+
+            state.releases.forEach(release => {
+              const searchable = normalise(
+                `${release.hersteller} ${release.modell} ${release.titel}`
+              );
+
+              if (!cluster.keywords.some(
+                keyword => searchable.includes(normalise(keyword))
+              )) {
+                return;
+              }
+
+              add(
+                release.modell,
+                "Modell oder Produkt",
+                (parseDate(release.datum)?.getTime() || 0) / 100000 + 20,
+                1,
+                [release.hersteller]
+              );
+            });
+          }
+
+          const sorted = [...nodes.values()].sort(
+            (first, second) => second.score - first.score
+          );
+
+          const hub = sorted.find(
+            node => normalise(node.label) === normalise(cluster.label)
+          ) || createNode(cluster, cluster.label, cluster.kind, 1, 0);
+
+          const satellites = sorted
+            .filter(node => node.key !== hub?.key)
+            .slice(0, cluster.kind === "Hersteller" ? 3 : 4);
+
+          return {
+            ...cluster,
+            hub,
+            nodes: satellites
+          };
+        });
+
+        if (!state.clusters.some(
+          cluster => cluster.id === state.activeCluster
+        )) {
+          state.activeCluster = state.clusters[0]?.id || "t-agenten";
+        }
+      }
+
+      function renderTabs() {
+        const fragment = document.createDocumentFragment();
+
+        state.clusters.forEach((cluster, index) => {
+          if (index === 8) {
+            const divider = createElement("span", "px-tab-divider");
+            divider.setAttribute("aria-hidden", "true");
+            fragment.append(divider);
+          }
+
+          const button = createElement("button", "px-tab", cluster.label);
+          button.type = "button";
+          button.setAttribute("role", "tab");
+          button.dataset.cluster = cluster.id;
+          button.style.setProperty("--px-tab-color", cluster.color);
+          button.setAttribute(
+            "aria-label",
+            `${cluster.kind}: ${cluster.label}`
+          );
+          button.addEventListener("click", () => selectCluster(cluster));
+          fragment.append(button);
+        });
+
+        elements.tabs.replaceChildren(fragment);
+        updateTabs();
+      }
+
+      function updateTabs() {
+        elements.tabs.querySelectorAll(".px-tab").forEach(button => {
+          const active = button.dataset.cluster === state.activeCluster;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-selected", String(active));
+          button.tabIndex = active ? 0 : -1;
+        });
+      }
+
+      function setupTabKeyboard() {
+        elements.tabs.addEventListener("keydown", event => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+            return;
+          }
+
+          const buttons = [...elements.tabs.querySelectorAll(".px-tab")];
+          const current = buttons.indexOf(document.activeElement);
+          if (current < 0) return;
+
+          event.preventDefault();
+
+          let next = current;
+
+          if (event.key === "Home") next = 0;
+          else if (event.key === "End") next = buttons.length - 1;
+          else if (event.key === "ArrowRight") {
+            next = (current + 1) % buttons.length;
+          } else {
+            next = (current - 1 + buttons.length) % buttons.length;
+          }
+
+          buttons[next]?.focus();
+          buttons[next]?.click();
+          buttons[next]?.scrollIntoView({
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? "auto"
+              : "smooth",
+            inline: "center",
+            block: "nearest"
+          });
+        });
+      }
+
+      function desktopClusterPosition(index) {
+        if (index < 8) {
+          const angle = -Math.PI / 2 + index * Math.PI * 2 / 8;
+          return {
+            x: 600 + Math.cos(angle) * 486,
+            y: 334 + Math.sin(angle) * 248
+          };
+        }
+
+        const topicIndex = index - 8;
+        const angle = -Math.PI / 2 + topicIndex * Math.PI * 2 / 5;
+        return {
+          x: 600 + Math.cos(angle) * 292,
+          y: 334 + Math.sin(angle) * 145
+        };
+      }
+
+      function mobileClusterPosition() {
+        return { x: 250, y: 92 };
+      }
+
+      function desktopSatellitePosition(clusterPosition, index, total, clusterIndex) {
+        const phase = clusterIndex < 8 ? clusterIndex * 0.39 : 0.55;
+        const angle = -Math.PI / 2 + phase + index * Math.PI * 2 / Math.max(1, total);
+        const radiusX = clusterIndex < 8 ? 64 : 58;
+        const radiusY = clusterIndex < 8 ? 42 : 36;
+
+        return {
+          x: clusterPosition.x + Math.cos(angle) * radiusX,
+          y: clusterPosition.y + Math.sin(angle) * radiusY
+        };
+      }
+
+      function mobileSatellitePosition(index) {
+        const positions = [
+          { x: 92, y: 205 },
+          { x: 408, y: 205 },
+          { x: 86, y: 286 },
+          { x: 414, y: 286 }
+        ];
+
+        return positions[index % positions.length];
+      }
+
+      function addNodeInteraction(group, selection) {
+        group.setAttribute("role", "button");
+        group.setAttribute("tabindex", "0");
+        group.setAttribute(
+          "aria-label",
+          `${selection.kind}: ${selection.label}`
+        );
+
+        const activate = event => {
+          event.preventDefault();
+          event.stopPropagation();
+          selectSelection(selection);
+        };
+
+        group.addEventListener("click", activate);
+        group.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            activate(event);
+          }
+        });
+      }
+
+      function renderMap() {
+        elements.map.replaceChildren();
+        state.positions.clear();
+        state.route = null;
+
+        state.center = state.mobile
+          ? { x: 250, y: 375 }
+          : { x: 600, y: 334 };
+
+        const width = state.mobile ? 500 : 1200;
+        const height = state.mobile ? 500 : 680;
+
+        elements.map.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const defs = svgElement("defs");
+        const pattern = svgElement("pattern", {
+          id: "px-grid-pattern",
+          width: state.mobile ? 25 : 32,
+          height: state.mobile ? 25 : 32,
+          patternUnits: "userSpaceOnUse"
+        });
+
+        pattern.append(svgElement("path", {
+          d: "M 32 0 L 0 0 0 32",
+          fill: "none",
+          stroke: "#0c2633",
+          "stroke-width": 0.6
+        }));
+
+        const glow = svgElement("filter", {
+          id: "px-map-glow",
+          x: "-100%",
+          y: "-100%",
+          width: "300%",
+          height: "300%"
+        });
+
+        const merge = svgElement("feMerge");
+        merge.append(
+          svgElement("feMergeNode", { in: "blur" }),
+          svgElement("feMergeNode", { in: "SourceGraphic" })
+        );
+
+        glow.append(
+          svgElement("feGaussianBlur", {
+            stdDeviation: 3.5,
+            result: "blur"
+          }),
+          merge
+        );
+
+        defs.append(pattern, glow);
+        elements.map.append(defs);
+
+        elements.map.append(svgElement("rect", {
+          x: 0,
+          y: 0,
+          width,
+          height,
+          fill: "#050b11"
+        }));
+
+        elements.map.append(svgElement("rect", {
+          x: 0,
+          y: 0,
+          width,
+          height,
+          fill: "url(#px-grid-pattern)",
+          opacity: 0.5
+        }));
+
+        const starCount = state.mobile ? 110 : 220;
+
+        for (let index = 0; index < starCount; index += 1) {
+          const x = (hashString(`star-x-${index}`) * 37 % 997) / 997;
+          const y = (hashString(`star-y-${index}`) * 53 % 991) / 991;
+
+          elements.map.append(svgElement("circle", {
+            class: "px-star",
+            cx: x * width,
+            cy: y * height,
+            r: index % 11 === 0 ? 1.2 : 0.65,
+            fill: index % 4 === 0 ? "#9b7cff" : "#00d4ff",
+            style: `animation-delay:${(index % 9) * 0.21}s`
+          }));
+        }
+
+        const orbitRadii = state.mobile ? [78, 118] : [190, 250, 310];
+
+        orbitRadii.forEach(radius => {
+          elements.map.append(svgElement("circle", {
+            class: "px-orbit",
+            cx: state.center.x,
+            cy: state.center.y,
+            r: radius
+          }));
+        });
+
+        const routeHalo = svgElement("line", {
+          class: "px-route-halo",
+          x1: state.center.x,
+          y1: state.center.y,
+          x2: state.center.x,
+          y2: state.center.y,
+          stroke: "#00d4ff",
+          "stroke-width": 7,
+          "stroke-linecap": "round"
+        });
+
+        const route = svgElement("line", {
+          class: "px-route",
+          x1: state.center.x,
+          y1: state.center.y,
+          x2: state.center.x,
+          y2: state.center.y,
+          stroke: "#b5f7ff",
+          "stroke-width": 1.5,
+          "stroke-linecap": "round"
+        });
+
+        elements.map.append(routeHalo, route);
+        state.route = { halo: routeHalo, line: route };
+
+        const connectionLayer = svgElement("g", { "aria-hidden": "true" });
+        const clusterLayer = svgElement("g");
+        elements.map.append(connectionLayer, clusterLayer);
+
+        state.clusters.forEach((cluster, index) => {
+          const visible = !state.mobile || cluster.id === state.activeCluster;
+          if (!visible) return;
+
+          const position = state.mobile
+            ? mobileClusterPosition()
+            : desktopClusterPosition(index);
+
+          state.positions.set(cluster.id, position);
+
+          const controlX = (state.center.x + position.x) / 2;
+          const bend = state.mobile ? 18 : 24;
+          const direction = position.y <= state.center.y ? -1 : 1;
+          const controlY = (state.center.y + position.y) / 2 + bend * direction;
+
+          connectionLayer.append(svgElement("path", {
+            class: "px-connection",
+            d: `M ${state.center.x} ${state.center.y} Q ${controlX} ${controlY} ${position.x} ${position.y}`
+          }));
+
+          const group = svgElement("g", {
+            class: "px-map-cluster",
+            "data-cluster": cluster.id
+          });
+
+          const particleCount = state.mobile ? 13 : 20;
+          const particleRadius = state.mobile ? 65 : cluster.kind === "Hersteller" ? 56 : 43;
+
+          for (let particleIndex = 0; particleIndex < particleCount; particleIndex += 1) {
+            const angle = particleIndex * Math.PI * 2 / particleCount;
+            const jitter = (hashString(
+              `${cluster.id}-${particleIndex}`
+            ) % 20) - 10;
+
+            group.append(svgElement("circle", {
+              class: "px-particle",
+              cx: position.x + Math.cos(angle) * (particleRadius + jitter),
+              cy: position.y + Math.sin(angle) * (particleRadius + jitter),
+              r: particleIndex % 5 === 0 ? 1.5 : 0.85,
+              fill: cluster.color
+            }));
+          }
+
+          group.append(svgElement("circle", {
+            class: "px-cluster-halo",
+            cx: position.x,
+            cy: position.y,
+            r: state.mobile
+              ? 67
+              : cluster.kind === "Hersteller" ? 48 : 35,
+            fill: cluster.color
+          }));
+
+          group.append(svgElement("circle", {
+            class: "px-cluster-ring",
+            cx: position.x,
+            cy: position.y,
+            r: state.mobile
+              ? 44
+              : cluster.kind === "Hersteller" ? 35 : 28,
+            stroke: cluster.color,
+            "stroke-width": 0.8
+          }));
+
+          const label = svgElement("text", {
+            class: "px-cluster-label",
+            x: position.x,
+            y: state.mobile ? 34 : position.y - 43
+          });
+          setSvgText(label, cluster.label);
+
+          const kind = svgElement("text", {
+            class: "px-cluster-kind",
+            x: position.x,
+            y: state.mobile ? 48 : position.y - 31
+          });
+          setSvgText(kind, cluster.kind.toUpperCase());
+
+          group.append(label, kind);
+
+          const hubGroup = svgElement("g", {
+            class: "px-map-node",
+            "data-node": cluster.hub.key
+          });
+
+          hubGroup.append(svgElement("circle", {
+            class: "px-node-shape px-map-hub",
+            "data-base-r": state.mobile ? 31 : 27,
+            cx: position.x,
+            cy: position.y,
+            r: state.mobile ? 31 : 27,
+            stroke: cluster.color
+          }));
+
+          const hubLabel = svgElement("text", {
+            class: "px-hub-label",
+            x: position.x,
+            y: position.y + 4
+          });
+          setSvgText(hubLabel, shortLabel(cluster.hub.label, state.mobile));
+
+          hubGroup.append(hubLabel);
+          addNodeInteraction(hubGroup, cluster.hub);
+          group.append(hubGroup);
+          state.positions.set(cluster.hub.key, position);
+
+          cluster.nodes.forEach((node, nodeIndex) => {
+            const point = state.mobile
+              ? mobileSatellitePosition(nodeIndex)
+              : desktopSatellitePosition(
+                position,
+                nodeIndex,
+                cluster.nodes.length,
+                index
+              );
+
+            state.positions.set(node.key, point);
+
+            group.append(svgElement("line", {
+              class: "px-node-link",
+              x1: position.x,
+              y1: position.y,
+              x2: point.x,
+              y2: point.y,
+              stroke: cluster.color
+            }));
+
+            const nodeGroup = svgElement("g", {
+              class: "px-map-node",
+              "data-node": node.key
+            });
+
+            const baseRadius = state.mobile ? 13 : 10;
+
+            nodeGroup.append(svgElement("circle", {
+              class: "px-node-shape px-map-sat",
+              "data-base-r": baseRadius,
+              cx: point.x,
+              cy: point.y,
+              r: baseRadius,
+              stroke: cluster.color
+            }));
+
+            const nodeLabel = svgElement("text", {
+              class: "px-node-label",
+              x: point.x,
+              y: point.y + (state.mobile ? 25 : 19)
+            });
+            setSvgText(nodeLabel, shortLabel(node.label, state.mobile));
+
+            nodeGroup.append(nodeLabel);
+            addNodeInteraction(nodeGroup, node);
+            group.append(nodeGroup);
+          });
+
+          clusterLayer.append(group);
+        });
+
+        const centerGroup = svgElement("g", {
+          class: "px-center-node",
+          role: "button",
+          tabindex: "0",
+          "aria-label": "Zum Zentrum KI heute zurückkehren"
+        });
+
+        centerGroup.append(svgElement("circle", {
+          class: "px-center-orbit",
+          cx: state.center.x,
+          cy: state.center.y,
+          r: state.mobile ? 49 : 66
+        }));
+
+        centerGroup.append(svgElement("circle", {
+          class: "px-center-pulse",
+          cx: state.center.x,
+          cy: state.center.y,
+          r: state.mobile ? 46 : 61
+        }));
+
+        centerGroup.append(svgElement("circle", {
+          cx: state.center.x,
+          cy: state.center.y,
+          r: state.mobile ? 41 : 54,
+          fill: "#00d4ff",
+          opacity: 0.035,
+          stroke: "#00d4ff",
+          "stroke-width": 0.7,
+          "stroke-dasharray": "2 6"
+        }));
+
+        centerGroup.append(svgElement("circle", {
+          class: "px-center-core",
+          cx: state.center.x,
+          cy: state.center.y,
+          r: state.mobile ? 33 : 43
+        }));
+
+        const centerTitle = svgElement("text", {
+          class: "px-center-title",
+          x: state.center.x,
+          y: state.center.y - 1
+        });
+        setSvgText(centerTitle, "KI heute");
+
+        const centerMeta = svgElement("text", {
+          class: "px-center-meta",
+          x: state.center.x,
+          y: state.center.y + 15
+        });
+        setSvgText(centerMeta, "AKTUALITÄTSKNOTEN");
+
+        centerGroup.append(centerTitle, centerMeta);
+
+        const reset = event => {
+          event.preventDefault();
+          state.selection = null;
+          updateTabs();
+          applySelectionVisuals();
+          renderDetails();
+          renderMetrics();
+        };
+
+        centerGroup.addEventListener("click", reset);
+        centerGroup.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            reset(event);
+          }
+        });
+
+        elements.map.append(centerGroup);
+        applySelectionVisuals();
+      }
+
+      function selectCluster(cluster) {
+        state.activeCluster = cluster.id;
+        state.selection = cluster.hub;
+        updateTabs();
+
+        if (state.mobile) {
+          renderMap();
+
+          const activeButton = [...elements.tabs.querySelectorAll(".px-tab")]
+            .find(button => button.dataset.cluster === cluster.id);
+
+          activeButton?.scrollIntoView({
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? "auto"
+              : "smooth",
+            inline: "center",
+            block: "nearest"
+          });
+        } else {
+          applySelectionVisuals();
+        }
+
+        renderDetails();
+        renderMetrics();
+      }
+
+      function selectSelection(selection) {
+        state.selection = selection;
+        state.activeCluster = selection.cluster.id;
+        updateTabs();
+        applySelectionVisuals();
+        renderDetails();
+        renderMetrics();
+      }
+
+      function applySelectionVisuals() {
+        const selectedKey = state.selection?.key || "";
+        const selectedColor = state.selection?.cluster.color || "#00d4ff";
+
+        elements.map.querySelectorAll(".px-map-node").forEach(node => {
+          const selected = node.dataset.node === selectedKey;
+          node.classList.toggle("is-selected", selected);
+          node.setAttribute("aria-pressed", String(selected));
+
+          const shape = node.querySelector(".px-node-shape");
+
+          if (shape) {
+            const baseRadius = Number(shape.dataset.baseR || 10);
+            shape.setAttribute(
+              "r",
+              String(selected ? baseRadius * 1.48 : baseRadius)
+            );
+          }
+        });
+
+        elements.map.querySelectorAll(".px-map-cluster").forEach(group => {
+          const active = group.dataset.cluster === state.activeCluster;
+          group.classList.toggle("is-active", active);
+          group.classList.toggle(
+            "is-dimmed",
+            !active && Boolean(state.selection)
+          );
+        });
+
+        const centerCore = elements.map.querySelector(".px-center-core");
+        const centerOrbit = elements.map.querySelector(".px-center-orbit");
+        const centerPulse = elements.map.querySelector(".px-center-pulse");
+
+        [centerCore, centerOrbit, centerPulse].forEach(element => {
+          if (element) element.style.stroke = selectedColor;
+        });
+
+        if (!state.route) return;
+
+        const position = state.positions.get(selectedKey);
+        const visible = Boolean(state.selection && position);
+
+        [state.route.line, state.route.halo].forEach(line => {
+          line.setAttribute("x2", position?.x || state.center.x);
+          line.setAttribute("y2", position?.y || state.center.y);
+          line.setAttribute("stroke", selectedColor);
+          line.style.opacity = visible ? "1" : "0";
+        });
+      }
+
+      function isNewsRelated(item, selection) {
+        if (!selection) return true;
+
+        const text = normalise(
+          `${cleanText(item.title)} ${cleanText(item.summary)}`
+        );
+
+        const names = unique([selection.label, ...selection.aliases]);
+
+        if (names.some(name => {
+          const normalised = normalise(name);
+          return normalised.length > 2 && text.includes(normalised);
+        })) {
+          return true;
+        }
+
+        if (selection.cluster.kind === "Hersteller") {
+          return text.includes(normalise(selection.cluster.label));
+        }
+
+        return selection.cluster.keywords.some(keyword => {
+          const normalised = normalise(keyword);
+          return normalised.length > 2 && text.includes(normalised);
+        });
+      }
+
+      function relatedNews(selection) {
+        return state.news
+          .filter(item => isNewsRelated(item, selection))
+          .sort((first, second) => {
+            const firstDate = parseDate(
+              first.date || first.first_seen
+            )?.getTime() || 0;
+
+            const secondDate = parseDate(
+              second.date || second.first_seen
+            )?.getTime() || 0;
+
+            return secondDate - firstDate;
+          });
+      }
+
+      function latestRelease(selection) {
+        if (!selection) return null;
+
+        const manufacturer = normalise(selection.cluster.label);
+        const label = normalise(selection.label);
+
+        return state.releases
+          .filter(release => {
+            const releaseManufacturer = normalise(release.hersteller);
+            const releaseModel = normalise(release.modell);
+
+            if (selection.cluster.kind === "Hersteller") {
+              return releaseManufacturer === manufacturer && (
+                label === manufacturer ||
+                label === releaseModel ||
+                selection.aliases.includes(releaseModel)
+              );
+            }
+
+            return label === releaseModel;
+          })
+          .sort((first, second) => {
+            const firstDate = parseDate(first.datum)?.getTime() || 0;
+            const secondDate = parseDate(second.datum)?.getTime() || 0;
+            return secondDate - firstDate;
+          })[0] || null;
+      }
+
+      function renderDetails() {
+        const selection = state.selection;
+        const matches = relatedNews(selection);
+
+        elements.detailKicker.textContent = selection
+          ? "Ausgewählter Knoten"
+          : "Zentrum";
+
+        elements.detailTitle.textContent = selection?.label || "KI heute";
+        elements.detailType.textContent = selection
+          ? typeLabel(selection.kind)
+          : "Überblick";
+
+        elements.detailCluster.textContent = selection
+          ? selection.cluster.label
+          : "Gesamter Nachrichtenraum";
+
+        elements.detailCopy.textContent = selection
+          ? `${selection.label} ist im Cluster ${selection.cluster.label} verortet. ${selection.cluster.description}`
+          : "Die Karte verbindet aktuelle Nachrichten mit Modellen, Produkten und Personen. Ein Klick auf einen Knoten grenzt Meldungen, Release und Verlauf auf diesen Kontext ein.";
+
+        elements.newsCount.textContent = `${matches.length} Treffer`;
+
+        const fragment = document.createDocumentFragment();
+
+        if (!matches.length) {
+          fragment.append(createElement(
+            "p",
+            "px-empty",
+            selection
+              ? "Für diesen Knoten liegen aktuell keine passenden Meldungen vor. Weitere Cluster können neue Hinweise liefern."
+              : "Es wurden noch keine Meldungen geladen. Die Landkarte bleibt mit Clustern und Release-Hinweisen nutzbar."
+          ));
+        } else {
+          matches.slice(0, 3).forEach(item => {
+            const article = createElement("article", "px-news-item");
+            const href = safeHref(item.link);
+            const container = createElement(
+              href ? "a" : "div",
+              "px-news-link"
+            );
+
+            if (href) {
+              container.href = href;
+              container.target = "_blank";
+              container.rel = "noopener noreferrer";
+            }
+
+            const meta = createElement("div", "px-news-meta");
+            meta.append(
+              createElement(
+                "span",
+                "",
+                cleanText(item.source) || "Quelle unbekannt"
+              ),
+              createElement(
+                "span",
+                "",
+                formatDate(item.date || item.first_seen, true)
+              )
+            );
+
+            container.append(
+              meta,
+              createElement(
+                "h3",
+                "px-news-title",
+                cleanText(item.title) || "Meldung ohne Titel"
+              )
+            );
+
+            article.append(container);
+            fragment.append(article);
+          });
+        }
+
+        elements.newsList.replaceChildren(fragment);
+
+        const release = latestRelease(selection);
+        const href = release ? safeHref(release.url) : "";
+
+        if (release && href) {
+          elements.release.hidden = false;
+          elements.release.href = href;
+          elements.release.textContent =
+            `Release: ${release.titel || release.modell || "ansehen"}`;
+          elements.releaseStatus.hidden = true;
+          elements.releaseStatus.textContent = "";
+        } else {
+          elements.release.hidden = true;
+          elements.release.removeAttribute("href");
+          elements.release.textContent = "";
+
+          if (selection) {
+            elements.releaseStatus.hidden = false;
+            elements.releaseStatus.textContent =
+              "Für diesen Knoten ist derzeit kein verifizierter Release-Link hinterlegt.";
+          } else {
+            elements.releaseStatus.hidden = true;
+            elements.releaseStatus.textContent = "";
+          }
+        }
+      }
+
+      function last14Days(selection, matches) {
+        const parsedDates = matches
+          .map(item => parseDate(item.date || item.first_seen))
+          .filter(Boolean)
+          .sort((first, second) => second - first);
+
+        const standDate = parseDate(state.standText);
+        const anchor = standDate || parsedDates[0] || new Date();
+
+        const end = new Date(Date.UTC(
+          anchor.getUTCFullYear(),
+          anchor.getUTCMonth(),
+          anchor.getUTCDate(),
+          12
+        ));
+
+        const counts = new Map();
+
+        matches.forEach(item => {
+          const parsed = parseDate(item.date || item.first_seen);
+          if (!parsed) return;
+
+          const key = dateKey(parsed);
+          counts.set(key, (counts.get(key) || 0) + 1);
+        });
+
+        const days = [];
+
+        for (let offset = 13; offset >= 0; offset -= 1) {
+          const date = new Date(end.getTime() - offset * DAY);
+          const key = dateKey(date);
+
+          days.push({
+            date,
+            key,
+            count: counts.get(key) || 0
+          });
+        }
+
+        return days;
+      }
+
+      function smoothLinePath(points) {
+        if (!points.length) return "";
+        if (points.length === 1) {
+          return `M ${points[0].x} ${points[0].y}`;
+        }
+
+        let path = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+
+        for (let index = 1; index < points.length; index += 1) {
+          const previous = points[index - 1];
+          const current = points[index];
+          const middleX = (previous.x + current.x) / 2;
+          const middleY = (previous.y + current.y) / 2;
+
+          path += ` Q ${previous.x.toFixed(1)} ${previous.y.toFixed(1)} ${middleX.toFixed(1)} ${middleY.toFixed(1)}`;
+
+          if (index === points.length - 1) {
+            path += ` L ${current.x.toFixed(1)} ${current.y.toFixed(1)}`;
+          }
+        }
+
+        return path;
+      }
+
+      function renderChart(selection, matches) {
+        elements.chart.replaceChildren();
+
+        const days = last14Days(selection, matches);
+        const width = 620;
+        const height = 190;
+        const left = 15;
+        const right = 12;
+        const top = 14;
+        const bottom = 31;
+        const chartWidth = width - left - right;
+        const chartHeight = height - top - bottom;
+        const maximum = Math.max(1, ...days.map(day => day.count));
+
+        const grid = svgElement("g", { "aria-hidden": "true" });
+
+        for (let row = 0; row <= 3; row += 1) {
+          const y = top + chartHeight * row / 3;
+
+          grid.append(svgElement("line", {
+            class: "px-chart-grid",
+            x1: left,
+            y1: y,
+            x2: width - right,
+            y2: y
+          }));
+        }
+
+        elements.chart.append(grid);
+
+        const points = days.map((day, index) => ({
+          x: left + chartWidth * index / Math.max(1, days.length - 1),
+          y: top + chartHeight - (day.count / maximum) * chartHeight
+        }));
+
+        const linePath = smoothLinePath(points);
+        const lastPoint = points[points.length - 1] || {
+          x: left,
+          y: top + chartHeight
+        };
+
+        const areaPath =
+          `${linePath} L ${lastPoint.x} ${top + chartHeight} ` +
+          `L ${left} ${top + chartHeight} Z`;
+
+        elements.chart.append(svgElement("path", {
+          class: "px-chart-area",
+          d: areaPath
+        }));
+
+        elements.chart.append(svgElement("path", {
+          class: "px-chart-line",
+          d: linePath,
+          pathLength: 1
+        }));
+
+        points.forEach((point, index) => {
+          const dot = svgElement("circle", {
+            class: "px-chart-dot",
+            cx: point.x,
+            cy: point.y,
+            r: days[index].count ? 3.5 : 2
+          });
+
+          const title = svgElement("title");
+          setSvgText(
+            title,
+            `${formatDate(days[index].key, true)}: ${days[index].count} Meldungen`
+          );
+
+          dot.append(title);
+          elements.chart.append(dot);
+        });
+
+        const firstLabel = svgElement("text", {
+          class: "px-chart-label",
+          x: left,
+          y: height - 7
+        });
+        setSvgText(firstLabel, formatDate(days[0]?.key || "", true));
+
+        const lastLabel = svgElement("text", {
+          class: "px-chart-label",
+          x: width - right,
+          y: height - 7,
+          "text-anchor": "end"
+        });
+        setSvgText(lastLabel, formatDate(days[days.length - 1]?.key || "", true));
+
+        elements.chart.append(firstLabel, lastLabel);
+      }
+
+      function topicIndex() {
+        return state.clusters
+          .filter(cluster => cluster.kind === "Thema")
+          .map(cluster => ({
+            cluster,
+            count: relatedNews(cluster.hub).length
+          }))
+          .sort((first, second) => second.count - first.count)
+          .slice(0, 5);
+      }
+
+      function animateShare(nextValue) {
+        window.cancelAnimationFrame(state.numberFrame);
+
+        const startValue = state.displayedShare;
+        const difference = nextValue - startValue;
+        const startTime = performance.now();
+
+        const reduced = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+
+        const duration = reduced ? 1 : 520;
+
+        function frame(now) {
+          const progress = Math.min(1, (now - startTime) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const value = Math.round(startValue + difference * eased);
+
+          state.displayedShare = value;
+          elements.ringNumber.textContent = `${value}%`;
+
+          if (progress < 1) {
+            state.numberFrame = window.requestAnimationFrame(frame);
+          }
+        }
+
+        state.numberFrame = window.requestAnimationFrame(frame);
+      }
+
+      function renderMetrics() {
+        const selection = state.selection;
+        const matches = relatedNews(selection);
+        const total = state.news.length;
+
+        const share = total
+          ? selection
+            ? Math.min(100, Math.round(matches.length / total * 100))
+            : 100
+          : 0;
+
+        elements.metricsScope.textContent = selection
+          ? selection.cluster.label
+          : "Gesamte Karte";
+
+        elements.activityTitle.textContent = selection
+          ? selection.label
+          : "Alle Meldungen";
+
+        elements.ring.style.stroke = selection?.cluster.color || "#00d4ff";
+        elements.ring.style.strokeDasharray = String(RING_CIRCUMFERENCE);
+        elements.ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+
+        window.requestAnimationFrame(() => {
+          elements.ring.style.strokeDashoffset = String(
+            RING_CIRCUMFERENCE * (1 - share / 100)
+          );
+        });
+
+        animateShare(share);
+
+        elements.shareNote.textContent = total
+          ? `${matches.length} von ${total} geladenen Meldungen sind diesem Knoten zugeordnet.`
+          : "Es liegen noch keine Meldungen für eine Anteilsberechnung vor.";
+
+        renderChart(selection, matches);
+
+        const fragment = document.createDocumentFragment();
+        const ranked = topicIndex();
+
+        if (!ranked.length) {
+          fragment.append(createElement(
+            "p",
+            "px-empty",
+            "Noch keine Themenwerte vorhanden."
+          ));
+        } else {
+          ranked.forEach(entry => {
+            const item = createElement("div", "px-index-item");
+            const dot = createElement("span", "px-index-dot");
+
+            dot.style.setProperty(
+              "--px-index-color",
+              entry.cluster.color
+            );
+
+            item.append(
+              dot,
+              createElement("span", "px-index-name", entry.cluster.label),
+              createElement("span", "px-index-value", String(entry.count))
+            );
+
+            fragment.append(item);
+          });
+        }
+
+        elements.indexList.replaceChildren(fragment);
+      }
+
+      function readStoredTheme() {
+        try {
+          return (
+            localStorage.getItem("ki-news-theme") ||
+            localStorage.getItem("ki-theme") ||
+            localStorage.getItem("theme") ||
+            ""
+          ).toLowerCase();
+        } catch {
+          return "";
+        }
+      }
+
+      function currentDarkMode() {
+        const explicit = (
+          document.documentElement.dataset.theme ||
+          document.documentElement.dataset.colorMode ||
+          document.body.dataset.theme ||
+          document.body.dataset.colorMode ||
+          readStoredTheme()
+        ).toLowerCase();
+
+        if (explicit) return explicit === "dark";
+
+        return (
+          document.documentElement.classList.contains("dark") ||
+          document.body.classList.contains("dark")
+        );
+      }
+
+      function syncTheme() {
+        if (!elements.root) return;
+
+        elements.root.classList.toggle("px-is-dark", currentDarkMode());
+
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) {
+          themeColor.setAttribute(
+            "content",
+            currentDarkMode() ? "#050b11" : "#edf7f8"
+          );
+        }
+      }
+
+      function setupThemeSync() {
+        syncTheme();
+
+        const observer = new MutationObserver(syncTheme);
+        const options = {
+          attributes: true,
+          attributeFilter: ["data-theme", "data-color-mode", "class"]
+        };
+
+        observer.observe(document.documentElement, options);
+        observer.observe(document.body, options);
+      }
+
+      function addFallbackHeader() {
+        if (!elements.header || elements.header.querySelector("a, button")) {
+          return;
+        }
+
+        const header = createElement("div", "px-fallback-header");
+        const brand = createElement("a", "px-fallback-brand");
+        brand.href = "./";
+
+        const mark = createElement("span", "px-fallback-mark", "S");
+        const name = createElement("span", "", "KI NEWS");
+        const section = createElement("span", "", "LANDKARTE");
+
+        brand.append(mark, name, section);
+
+        const spacer = createElement("div", "px-fallback-spacer");
+        const theme = createElement(
+          "button",
+          "px-fallback-theme",
+          currentDarkMode() ? "Helles Design" : "Dunkles Design"
+        );
+
+        theme.type = "button";
+        theme.setAttribute("aria-label", "Farbschema wechseln");
+
+        theme.addEventListener("click", () => {
+          const next = !currentDarkMode();
+
+          document.documentElement.dataset.theme = next ? "dark" : "light";
+          document.body.dataset.theme = next ? "dark" : "light";
+          document.documentElement.classList.toggle("dark", next);
+          document.body.classList.toggle("dark", next);
+
+          try {
+            localStorage.setItem(
+              "ki-news-theme",
+              next ? "dark" : "light"
+            );
+          } catch {
+            // Der lokale Speicher ist optional.
+          }
+
+          theme.textContent = next
+            ? "Helles Design"
+            : "Dunkles Design";
+
+          syncTheme();
+        });
+
+        header.append(brand, spacer, theme);
+        elements.header.replaceChildren(header);
+      }
+
+      function updateDataStatus() {
+        elements.stand.textContent = state.standText || "Stand nicht angegeben";
+
+        elements.sourceStatus.textContent = state.loadedSources >= state.coreSources
+          ? `${state.loadedSources} Kernquellen geladen. Release-Register ist optional.`
+          : `${state.loadedSources}/${state.coreSources} Kernquellen verfügbar. Die Karte bleibt eingeschränkt nutzbar.`;
+
+        elements.footSources.textContent = state.releaseSource
+          ? `Lokale Quellen: news.json, entities.json, graph.json und ${state.releaseSource}`
+          : "Lokale Quellen: news.json, entities.json, graph.json und dashboard_config.json";
+      }
+
+      function updateMapSubtitle() {
+        const activeCluster = state.clusters.find(
+          cluster => cluster.id === state.activeCluster
+        );
+
+        if (!activeCluster) return;
+
+        const nodeCount = 1 + activeCluster.nodes.length;
+
+        elements.mapSubtitle.textContent =
+          `${activeCluster.label}: ${nodeCount} sichtbare Knoten. ` +
+          (state.mobile
+            ? "Reiter wischen. Knoten antippen."
+            : "Knoten anklicken. Zusammenhang prüfen.");
+      }
+
+      function handleViewportChange(event) {
+        const nextMobile = event.matches;
+
+        if (nextMobile === state.mobile) return;
+
+        state.mobile = nextMobile;
+
+        if (state.mobile) {
+          const activeCluster = state.clusters.find(
+            cluster => cluster.id === state.activeCluster
+          );
+
+          state.selection = activeCluster?.hub || null;
+        } else {
+          state.selection = null;
+        }
+
+        renderMap();
+        renderDetails();
+        renderMetrics();
+        updateMapSubtitle();
+      }
+
+      function findConfiguredReleaseFile(config) {
+        if (!config || typeof config !== "object") return "";
+
+        const directCandidates = [
+          config.hersteller_json,
+          config.hersteller_datei,
+          config.releases_file,
+          config.release_source,
+          config.sources?.hersteller,
+          config.data?.hersteller
+        ];
+
+        for (const candidate of directCandidates) {
+          const file = safeLocalJSONFile(candidate);
+          if (file) return file;
+        }
+
+        return "";
+      }
+
+      function parseReleases(payload) {
+        return getObjectArray(payload, "releases")
+          .map(item => ({
+            hersteller: cleanText(item.hersteller),
+            modell: cleanText(item.modell),
+            datum: cleanText(item.datum),
+            titel: cleanText(item.titel),
+            url: cleanText(item.url)
+          }))
+          .filter(item => item.hersteller && item.modell);
+      }
+
+      async function init() {
+        elements.reset.addEventListener("click", () => {
+          state.selection = null;
+          updateTabs();
+          applySelectionVisuals();
+          renderDetails();
+          renderMetrics();
+        });
+
+        setupThemeSync();
+        window.setTimeout(addFallbackHeader, 1400);
+
+        const mobileQuery = window.matchMedia("(max-width: 680px)");
+        state.mobile = mobileQuery.matches;
+        mobileQuery.addEventListener("change", handleViewportChange);
+
+        const requests = [
+          { path: "news.json", key: "news" },
+          { path: "entities.json", key: "entities" },
+          { path: "graph.json", key: "graph" },
+          { path: "dashboard_config.json", key: "config" }
+        ];
+
+        const settled = await Promise.allSettled(
+          requests.map(request => fetchJSON(request.path))
+        );
+
+        const byPath = new Map();
+
+        settled.forEach((result, index) => {
+          const path = requests[index].path;
+          byPath.set(
+            path,
+            result.status === "fulfilled" ? result.value : null
+          );
+
+          if (result.status === "fulfilled") {
+            state.loadedSources += 1;
+          }
+        });
+
+        const newsData = byPath.get("news.json");
+        const entitiesData = byPath.get("entities.json");
+        const graphData = byPath.get("graph.json");
+        const configData = byPath.get("dashboard_config.json");
+
+        state.standText = cleanText(
+          newsData?.stand || graphData?.stand || entitiesData?.stand
+        );
+
+        state.news = getObjectArray(newsData, "news");
+        state.entities = getObjectArray(entitiesData, "entities");
+        state.graphNodes = getObjectArray(graphData, "nodes");
+        state.graphEdges = getObjectArray(graphData, "edges");
+
+        const releaseFile = findConfiguredReleaseFile(configData);
+
+        if (releaseFile) {
+          try {
+            const releaseData = await fetchJSON(releaseFile);
+            state.releases = parseReleases(releaseData);
+            state.releaseSource = releaseFile;
+          } catch {
+            state.releases = [];
+            state.releaseSource = null;
+          }
+        }
+
+        buildClusters();
+
+        if (state.mobile) {
+          state.selection = state.clusters.find(
+            cluster => cluster.id === state.activeCluster
+          )?.hub || null;
+        } else {
+          state.selection = null;
+        }
+
+        renderTabs();
+        setupTabKeyboard();
+        renderMap();
+        renderDetails();
+        renderMetrics();
+        updateDataStatus();
+        updateMapSubtitle();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init, { once: true });
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>

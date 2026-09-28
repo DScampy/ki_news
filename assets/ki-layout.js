@@ -21,7 +21,10 @@
   var file = (path.split('/').pop() || 'index.html').toLowerCase();
   var ACTIVE = 'aktuell';
   if (inSub || file === 'artikel.html') ACTIVE = 'artikel';
-  else if (file === 'archiv.html') ACTIVE = 'archiv';
+  else if (file === 'archiv.html' || file === 'suche.html') ACTIVE = 'archiv';
+  else if (file === 'dossiers.html' || file === 'linie.html' || file === 'belege.html') ACTIVE = 'dossiers';
+  else if (file === 'modelle.html' || file === 'landkarte.html') ACTIVE = 'modelle';
+  else if (file === 'woche.html') ACTIVE = 'woche';
   else if (file === 'stats.html') ACTIVE = 'statistik';
   else if (file === 'profil.html' || file === 'cockpit-neu.html') ACTIVE = 'profil';
   else if (file === '' || file === 'index.html') ACTIVE = 'aktuell';
@@ -31,7 +34,10 @@
   var NAV = [
     { key: 'aktuell',   label: 'Aktuell',         href: 'index.html',  icon: 'bolt' },
     { key: 'archiv',    label: 'Archiv',           href: 'Archiv.html', icon: 'archive' },
+    { key: 'dossiers',  label: 'Dossiers',         href: 'dossiers.html', icon: 'view_list' },
     { key: 'artikel',   label: 'Artikel',          href: 'artikel.html', icon: 'menu_book' },
+    { key: 'modelle',   label: 'Modelle',          href: 'modelle.html', icon: 'smart_toy' },
+    { key: 'woche',     label: 'Wochen-Rückblick', href: 'woche.html',   icon: 'schedule', sidebarOnly: true },
     { key: 'podcast',   label: 'Podcast',          href: 'https://soundcloud.com/dscampy/sets/podcast-wissen', ext: true, icon: 'mic' },
     { key: 'youtube',   label: 'YouTube',          href: 'https://youtube.com/@ScampyKI', ext: true, icon: 'play_circle', sidebarOnly: true },
     { key: 'statistik', label: 'Statistik',        href: 'stats.html',  icon: 'bar_chart' },
@@ -370,7 +376,7 @@
     var input = document.getElementById('searchInput');
     var q = (input && input.value || '').trim();
     if (!q || typeof window.handleSearch === 'function') return; // auf Archiv.html schon live
-    location.href = ROOT + 'Archiv.html?such=' + encodeURIComponent(q);
+    location.href = ROOT + 'suche.html?q=' + encodeURIComponent(q);
   };
   window.klSearchClear = function () {
     var input = document.getElementById('searchInput');

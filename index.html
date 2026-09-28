@@ -2106,6 +2106,3072 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       </div>
       <!-- SSR:BRIEFING:END -->
       <div id="ki-morgenlage-slot" hidden></div>
+<!-- KOMPAKT:START (Einbau 28.09.26, Prototyp start_kompakt; ausserhalb der SSR-Marker, die Pipeline laesst ihn stehen) -->
+<style id="pxk-style">
+    #pxk-kompakt {
+      --pxk-bg: #edf4f7;
+      --pxk-bg-deep: #dfeaf0;
+      --pxk-panel: rgba(255, 255, 255, 0.96);
+      --pxk-solid: #ffffff;
+      --pxk-soft: #f3f7f9;
+      --pxk-text: #10182d;
+      --pxk-muted: #5c6d82;
+      --pxk-faint: #7d8c9e;
+      --pxk-line: #d1dfe6;
+      --pxk-line-strong: #b4c6d0;
+      --pxk-cyan: #00d4ff;
+      --pxk-cyan-ink: #007f99;
+      --pxk-green: #00d991;
+      --pxk-violet: #8b5cf6;
+      --pxk-violet-ink: #7147dc;
+      --pxk-pink: #ff5c8a;
+      --pxk-orange: #f59e0b;
+      --pxk-blue: #4f9df7;
+      --pxk-shadow-small: 0 7px 22px rgba(30, 53, 70, 0.07);
+      --pxk-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    html.dark #pxk-kompakt, html.dark #pxk-kompakt, html.dark #pxk-kompakt, html.dark #pxk-kompakt, html.dark #pxk-kompakt {
+      color-scheme: dark;
+      --pxk-bg: #0a1017;
+      --pxk-bg-deep: #050a10;
+      --pxk-panel: rgba(16, 24, 33, 0.97);
+      --pxk-solid: #101820;
+      --pxk-soft: #17222d;
+      --pxk-text: #eef5f8;
+      --pxk-muted: #9aabb9;
+      --pxk-faint: #718394;
+      --pxk-line: #26343f;
+      --pxk-line-strong: #354753;
+      --pxk-cyan-ink: #55e4ff;
+      --pxk-violet-ink: #b69aff;
+      --pxk-shadow-small: 0 9px 26px rgba(0, 0, 0, 0.22);
+    }
+
+    @media (prefers-color-scheme: dark) {
+    }
+
+    #pxk-kompakt *, #pxk-kompakt *::before, #pxk-kompakt *::after {
+      box-sizing: border-box;
+    }
+
+    #pxk-kompakt, #pxk-kompakt {
+      min-width: 0;
+      max-width: 100%;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    #pxk-kompakt {
+      background: var(--pxk-bg);
+      scroll-padding-top: 78px;
+      scroll-behavior: smooth;
+    }
+
+    #pxk-kompakt {
+      min-height: 100vh;
+      color: var(--pxk-text);
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.025) 1px, transparent 1px),
+        radial-gradient(circle at 7% 5%, rgba(0, 212, 255, 0.1), transparent 27rem),
+        radial-gradient(circle at 94% 28%, rgba(139, 92, 246, 0.08), transparent 31rem),
+        linear-gradient(180deg, var(--pxk-bg), var(--pxk-bg-deep));
+      background-size: 32px 32px, 32px 32px, auto, auto, auto;
+      font-family: "Work Sans", system-ui, sans-serif;
+    }
+
+    #pxk-kompakt button, #pxk-kompakt a, #pxk-kompakt summary {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #pxk-kompakt button, #pxk-kompakt a, #pxk-kompakt summary {
+      touch-action: manipulation;
+    }
+
+    #pxk-kompakt button {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    #pxk-kompakt button:focus-visible, #pxk-kompakt a:focus-visible, #pxk-kompakt summary:focus-visible {
+      outline: 3px solid rgba(0, 212, 255, 0.68);
+      outline-offset: 3px;
+    }
+
+    #pxk-kompakt a {
+      color: inherit;
+    }
+
+    #pxk-kompakt [hidden] {
+      display: none !important;
+    }
+
+    #pxk-kompakt .pxk-skip {
+      position: fixed;
+      z-index: 1200;
+      top: 10px;
+      left: 10px;
+      padding: 10px 14px;
+      transform: translateY(-180%);
+      border-radius: 10px;
+      color: #061018;
+      background: var(--pxk-cyan);
+      font-weight: 850;
+      text-decoration: none;
+    }
+
+    #pxk-kompakt .pxk-skip:focus {
+      transform: translateY(0);
+    }
+
+    #pxk-kompakt .pxk-main, #pxk-kompakt .pxk-main * {
+      min-width: 0;
+    }
+
+    #pxk-kompakt .pxk-main a, #pxk-kompakt .pxk-main button, #pxk-kompakt .pxk-main p, #pxk-kompakt .pxk-main h2, #pxk-kompakt .pxk-main h3 {
+      overflow-wrap: anywhere;
+    }
+
+    #pxk-kompakt .pxk-main {
+      width: calc(100% - 32px);
+      max-width: 1360px;
+      margin-inline: auto;
+      padding-block: 10px 34px;
+    }
+
+    #pxk-kompakt .pxk-kicker, #pxk-kompakt .pxk-stand, #pxk-kompakt .pxk-count, #pxk-kompakt .pxk-tab-count, #pxk-kompakt .pxk-topic-meta, #pxk-kompakt .pxk-topic-rank, #pxk-kompakt .pxk-row-time, #pxk-kompakt .pxk-row-source, #pxk-kompakt .pxk-section-copy, #pxk-kompakt .pxk-dossier-meta, #pxk-kompakt .pxk-event-meta, #pxk-kompakt .pxk-footer, #pxk-kompakt .pxk-button-label, #pxk-kompakt .pxk-state-code, #pxk-kompakt .pxk-extra-rank, #pxk-kompakt .pxk-analysis-meta {
+      font-family: var(--pxk-mono);
+    }
+
+    #pxk-kompakt .pxk-section {
+      --pxk-accent: var(--pxk-cyan);
+      position: relative;
+      margin-top: 12px;
+      padding: 14px;
+      overflow: hidden;
+      border: 1px solid var(--pxk-line);
+      border-radius: 16px;
+      background: var(--pxk-panel);
+      box-shadow: var(--pxk-shadow-small);
+      backdrop-filter: blur(16px);
+      scroll-margin-top: 78px;
+    }
+
+    #pxk-kompakt .pxk-section::before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 44%;
+      height: 2px;
+      border-radius: 0 0 4px;
+      background: linear-gradient(90deg, var(--pxk-accent), transparent);
+      box-shadow: 0 0 13px var(--pxk-accent);
+      content: "";
+      opacity: 0.86;
+      pointer-events: none;
+    }
+
+    #pxk-kompakt .pxk-section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+
+    #pxk-kompakt .pxk-section-kicker {
+      margin: 0 0 3px;
+      color: var(--pxk-accent);
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      line-height: 1.3;
+      text-transform: uppercase;
+    }
+
+    #pxk-kompakt .pxk-section-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.28rem, 2vw, 1.68rem);
+      font-weight: 750;
+      letter-spacing: -0.04em;
+      line-height: 1.06;
+    }
+
+    #pxk-kompakt .pxk-section-copy {
+      max-width: 620px;
+      margin: 5px 0 0;
+      color: var(--pxk-muted);
+      font-size: 0.67rem;
+      line-height: 1.45;
+    }
+
+    #pxk-kompakt .pxk-count {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 9px;
+      border: 1px solid var(--pxk-line);
+      border-radius: 999px;
+      color: var(--pxk-muted);
+      background: var(--pxk-soft);
+      font-size: 0.6rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    #pxk-kompakt .pxk-count::before {
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--pxk-green);
+      box-shadow: 0 0 9px rgba(0, 217, 145, 0.72);
+      content: "";
+      animation: pxk-pulse 2.2s ease-in-out infinite;
+    }
+
+    #pxk-kompakt .pxk-rail {
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+      padding: 1px 1px 5px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--pxk-line-strong) transparent;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #pxk-kompakt .pxk-rail::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    #pxk-kompakt .pxk-rail::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+      background: var(--pxk-line-strong);
+    }
+
+    #pxk-kompakt .pxk-morning {
+      --pxk-accent: var(--pxk-green);
+      display: grid;
+      grid-template-columns: 172px minmax(0, 1fr);
+      gap: 13px;
+      align-items: stretch;
+    }
+
+    #pxk-kompakt .pxk-morning-label {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3px 11px 3px 0;
+      border-right: 1px solid var(--pxk-line);
+    }
+
+    #pxk-kompakt .pxk-morning-label strong {
+      display: block;
+      color: var(--pxk-green);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+    }
+
+    #pxk-kompakt .pxk-stand {
+      margin: 7px 0 0;
+      color: var(--pxk-faint);
+      font-size: 0.58rem;
+      line-height: 1.42;
+    }
+
+    #pxk-kompakt .pxk-morning .pxk-rail {
+      min-height: 72px;
+    }
+
+    #pxk-kompakt .pxk-morning-card {
+      position: relative;
+      display: flex;
+      min-width: min(25vw, 260px);
+      min-height: 70px;
+      flex: 0 0 min(25vw, 260px);
+      flex-direction: column;
+      justify-content: center;
+      padding: 9px 11px 9px 14px;
+      overflow: hidden;
+      border: 1px solid var(--pxk-line);
+      border-radius: 12px;
+      color: var(--pxk-text);
+      background: var(--pxk-solid);
+      scroll-snap-align: start;
+      text-decoration: none;
+    }
+
+    #pxk-kompakt .pxk-morning-card::before {
+      position: absolute;
+      top: 9px;
+      bottom: 9px;
+      left: 0;
+      width: 2px;
+      border-radius: 0 4px 4px 0;
+      background: var(--pxk-green);
+      content: "";
+    }
+
+    #pxk-kompakt .pxk-morning-card span {
+      display: block;
+      overflow: hidden;
+      color: var(--pxk-muted);
+      font-family: var(--pxk-mono);
+      font-size: 0.6rem;
+      font-weight: 750;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #pxk-kompakt .pxk-morning-card strong {
+      display: -webkit-box;
+      margin-top: 5px;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1.27;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    #pxk-kompakt .pxk-morning-card:hover {
+      border-color: var(--pxk-green);
+    }
+
+    #pxk-kompakt .pxk-topics {
+      --pxk-accent: var(--pxk-cyan);
+    }
+
+    #pxk-kompakt .pxk-tabs {
+      position: relative;
+      margin-bottom: 9px;
+      padding-right: 20px;
+    }
+
+    #pxk-kompakt .pxk-tab {
+      --pxk-tab-accent: var(--pxk-cyan);
+      display: inline-flex;
+      min-height: 36px;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 7px;
+      padding: 0 9px 0 11px;
+      border: 1px solid var(--pxk-line);
+      border-radius: 999px;
+      color: var(--pxk-muted);
+      background: var(--pxk-solid);
+      font-size: 0.7rem;
+      font-weight: 820;
+      line-height: 1;
+      white-space: nowrap;
+      transition:
+        color 150ms ease,
+        border-color 150ms ease,
+        background 150ms ease;
+    }
+
+    #pxk-kompakt .pxk-tab:hover {
+      color: var(--pxk-text);
+      border-color: var(--pxk-tab-accent);
+    }
+
+    #pxk-kompakt .pxk-tab[aria-selected="true"] {
+      color: var(--pxk-text);
+      border-color: var(--pxk-tab-accent);
+      background: rgba(127, 127, 127, 0.05);
+      background: color-mix(in srgb, var(--pxk-tab-accent) 12%, var(--pxk-solid));
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.08);
+    }
+
+    #pxk-kompakt .pxk-tab-count {
+      display: inline-grid;
+      min-width: 22px;
+      height: 21px;
+      padding-inline: 5px;
+      place-items: center;
+      border-radius: 999px;
+      color: #07131a;
+      background: var(--pxk-tab-accent);
+      font-size: 0.56rem;
+      font-weight: 950;
+    }
+
+    #pxk-kompakt .pxk-topic-panel {
+      --pxk-accent: var(--pxk-cyan);
+      padding: 10px;
+      border: 1px solid var(--pxk-accent);
+      border-radius: 12px;
+      background: var(--pxk-solid);
+      box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.1);
+      scroll-margin-top: 78px;
+    }
+
+    #pxk-kompakt .pxk-topic-panel-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+
+    #pxk-kompakt .pxk-topic-panel-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    #pxk-kompakt .pxk-topic-panel-meta {
+      margin: 3px 0 0;
+      color: var(--pxk-muted);
+      font-size: 0.65rem;
+      line-height: 1.35;
+    }
+
+    #pxk-kompakt .pxk-view-switch {
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      border: 1px solid var(--pxk-line);
+      border-radius: 10px;
+      background: var(--pxk-soft);
+    }
+
+    #pxk-kompakt .pxk-view-button {
+      min-height: 29px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--pxk-muted);
+      background: transparent;
+      font-size: 0.61rem;
+      font-weight: 850;
+    }
+
+    #pxk-kompakt .pxk-view-button[aria-pressed="true"] {
+      color: #07131a;
+      background: var(--pxk-accent);
+    }
+
+    #pxk-kompakt .pxk-topic-bento, #pxk-kompakt .pxk-topic-extra {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    #pxk-kompakt .pxk-topic-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 31px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      min-height: 104px;
+      padding: 9px;
+      overflow: hidden;
+      border: 1px solid var(--pxk-line);
+      border-radius: 12px;
+      background: var(--pxk-soft);
+    }
+
+    #pxk-kompakt .pxk-topic-card::before {
+      position: absolute;
+      top: 9px;
+      bottom: 9px;
+      left: 0;
+      width: 2px;
+      border-radius: 0 4px 4px 0;
+      background: var(--pxk-accent);
+      content: "";
+    }
+
+    #pxk-kompakt .pxk-topic-rank, #pxk-kompakt .pxk-extra-rank {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border: 1px solid var(--pxk-accent);
+      border-radius: 8px;
+      color: var(--pxk-accent);
+      background: var(--pxk-solid);
+      font-size: 0.59rem;
+      font-weight: 950;
+    }
+
+    #pxk-kompakt .pxk-topic-body {
+      min-width: 0;
+    }
+
+    #pxk-kompakt .pxk-topic-title {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    #pxk-kompakt .pxk-topic-title a {
+      text-decoration: none;
+    }
+
+    #pxk-kompakt .pxk-topic-title a:hover {
+      color: var(--pxk-accent);
+    }
+
+    #pxk-kompakt .pxk-topic-summary {
+      display: -webkit-box;
+      margin: 4px 0 0;
+      overflow: hidden;
+      color: var(--pxk-muted);
+      font-size: 0.64rem;
+      line-height: 1.37;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    #pxk-kompakt .pxk-topic-meta {
+      display: flex;
+      gap: 5px;
+      margin-top: 6px;
+      overflow: hidden;
+      color: var(--pxk-faint);
+      font-size: 0.54rem;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-card {
+      min-height: 65px;
+      align-items: center;
+      padding-block: 7px;
+    }
+
+    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-summary {
+      display: none;
+    }
+
+    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-title {
+      -webkit-line-clamp: 1;
+    }
+
+    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-meta {
+      margin-top: 3px;
+    }
+
+    #pxk-kompakt .pxk-topic-extra {
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px dashed var(--pxk-line-strong);
+    }
+
+    #pxk-kompakt .pxk-topic-extra .pxk-topic-card {
+      min-height: 86px;
+    }
+
+    #pxk-kompakt .pxk-more {
+      display: flex;
+      width: 100%;
+      min-height: 37px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-top: 8px;
+      padding: 6px 10px;
+      border: 1px dashed var(--pxk-line-strong);
+      border-radius: 10px;
+      color: var(--pxk-muted);
+      background: var(--pxk-soft);
+    }
+
+    #pxk-kompakt .pxk-more:hover {
+      color: var(--pxk-text);
+      border-color: var(--pxk-accent);
+    }
+
+    #pxk-kompakt .pxk-button-label {
+      font-size: 0.62rem;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    #pxk-kompakt .pxk-more-icon {
+      font-size: 0.84rem;
+      transition: transform 150ms ease;
+    }
+
+    #pxk-kompakt .pxk-more[aria-expanded="true"] .pxk-more-icon {
+      transform: rotate(180deg);
+    }
+
+    #pxk-kompakt .pxk-latest {
+      --pxk-accent: var(--pxk-violet);
+    }
+
+    #pxk-kompakt .pxk-news-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    #pxk-kompakt .pxk-news-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr) 18px;
+      gap: 8px;
+      align-items: center;
+      min-height: 70px;
+      padding: 8px 9px;
+      overflow: hidden;
+      border: 1px solid var(--pxk-line);
+      border-radius: 12px;
+      background: var(--pxk-solid);
+    }
+
+    #pxk-kompakt .pxk-news-row::before {
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 0;
+      width: 2px;
+      background: var(--pxk-violet);
+      content: "";
+      opacity: 0.82;
+    }
+
+    #pxk-kompakt .pxk-row-time {
+      color: var(--pxk-violet-ink);
+      font-size: 0.57rem;
+      font-weight: 950;
+      line-height: 1.2;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    #pxk-kompakt .pxk-row-body {
+      min-width: 0;
+    }
+
+    #pxk-kompakt .pxk-row-title {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1.28;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+    }
+
+    #pxk-kompakt .pxk-row-title a {
+      text-decoration: none;
+    }
+
+    #pxk-kompakt .pxk-row-title a:hover {
+      color: var(--pxk-violet-ink);
+    }
+
+    #pxk-kompakt .pxk-row-summary {
+      display: -webkit-box;
+      margin: 3px 0 0;
+      overflow: hidden;
+      color: var(--pxk-muted);
+      font-size: 0.63rem;
+      line-height: 1.31;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+    }
+
+    #pxk-kompakt .pxk-row-source {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--pxk-faint);
+      font-size: 0.51rem;
+      font-weight: 700;
+      letter-spacing: 0.035em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    #pxk-kompakt .pxk-row-arrow {
+      color: var(--pxk-violet-ink);
+      font-size: 0.84rem;
+      text-align: right;
+    }
+
+    #pxk-kompakt .pxk-dossiers {
+      --pxk-accent: var(--pxk-pink);
+    }
+
+    #pxk-kompakt .pxk-dossier-card {
+      min-width: 286px;
+      min-height: 145px;
+      flex: 0 0 286px;
+      overflow: hidden;
+      border: 1px solid var(--pxk-line);
+      border-radius: 12px;
+      background: var(--pxk-solid);
+      scroll-snap-align: start;
+    }
+
+    #pxk-kompakt .pxk-dossier-main {
+      padding: 10px 11px;
+    }
+
+    #pxk-kompakt .pxk-dossier-top {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #pxk-kompakt .pxk-tag {
+      display: inline-flex;
+      min-height: 23px;
+      max-width: 100%;
+      align-items: center;
+      padding: 0 7px;
+      overflow: hidden;
+      border: 1px solid var(--pxk-pink);
+      border-radius: 6px;
+      color: var(--pxk-pink);
+      background: rgba(255, 92, 138, 0.08);
+      font-family: var(--pxk-mono);
+      font-size: 0.53rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    #pxk-kompakt .pxk-dossier-title {
+      display: -webkit-box;
+      margin: 8px 0 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    #pxk-kompakt .pxk-dossier-meta {
+      margin: 6px 0 0;
+      color: var(--pxk-faint);
+      font-size: 0.55rem;
+      line-height: 1.35;
+    }
+
+    #pxk-kompakt .pxk-dossier-card summary {
+      display: flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 11px;
+      border-top: 1px solid var(--pxk-line);
+      color: var(--pxk-muted);
+      cursor: pointer;
+      font-family: var(--pxk-mono);
+      font-size: 0.56rem;
+      font-weight: 850;
+      list-style: none;
+    }
+
+    #pxk-kompakt .pxk-dossier-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    #pxk-kompakt .pxk-dossier-card summary::after {
+      color: var(--pxk-pink);
+      content: "+";
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1rem;
+    }
+
+    #pxk-kompakt .pxk-dossier-card[open] summary::after {
+      content: "-";
+    }
+
+    #pxk-kompakt .pxk-event-list {
+      display: grid;
+      max-height: 220px;
+      margin: 0;
+      padding: 0 11px 8px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      list-style: none;
+    }
+
+    #pxk-kompakt .pxk-event {
+      padding: 8px 0;
+      border-top: 1px solid var(--pxk-line);
+    }
+
+    #pxk-kompakt .pxk-event-title {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 620;
+      line-height: 1.38;
+    }
+
+    #pxk-kompakt .pxk-event-title a {
+      text-decoration: none;
+    }
+
+    #pxk-kompakt .pxk-event-title a:hover {
+      color: var(--pxk-pink);
+    }
+
+    #pxk-kompakt .pxk-event-meta {
+      margin: 3px 0 0;
+      color: var(--pxk-faint);
+      font-size: 0.52rem;
+      line-height: 1.35;
+    }
+
+    #pxk-kompakt .pxk-analyses {
+      --pxk-accent: var(--pxk-orange);
+    }
+
+    #pxk-kompakt .pxk-analysis-card {
+      display: flex;
+      min-width: 310px;
+      min-height: 144px;
+      flex: 0 0 310px;
+      flex-direction: column;
+      padding: 11px;
+      border: 1px solid var(--pxk-line);
+      border-radius: 12px;
+      color: var(--pxk-text);
+      background: var(--pxk-solid);
+      scroll-snap-align: start;
+      text-decoration: none;
+    }
+
+    #pxk-kompakt .pxk-analysis-card .pxk-tag {
+      align-self: flex-start;
+      border-color: var(--pxk-orange);
+      color: var(--pxk-orange);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    #pxk-kompakt .pxk-analysis-title {
+      display: -webkit-box;
+      margin: 9px 0 0;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    #pxk-kompakt .pxk-analysis-copy {
+      display: -webkit-box;
+      margin: 6px 0 0;
+      overflow: hidden;
+      color: var(--pxk-muted);
+      font-size: 0.64rem;
+      line-height: 1.4;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    #pxk-kompakt .pxk-analysis-meta {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 8px;
+      color: var(--pxk-faint);
+      font-size: 0.53rem;
+    }
+
+    #pxk-kompakt .pxk-analysis-card:hover {
+      border-color: var(--pxk-orange);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.08);
+    }
+
+    #pxk-kompakt .pxk-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 18px;
+      justify-content: space-between;
+      margin: 11px 2px 0;
+      color: var(--pxk-faint);
+      font-size: 0.56rem;
+      line-height: 1.5;
+    }
+
+    #pxk-kompakt .pxk-state {
+      display: grid;
+      width: 100%;
+      min-height: 110px;
+      padding: 16px 13px;
+      place-items: center;
+      border: 1px dashed var(--pxk-line-strong);
+      border-radius: 12px;
+      color: var(--pxk-muted);
+      background: var(--pxk-soft);
+      text-align: center;
+    }
+
+    #pxk-kompakt .pxk-state-inner {
+      max-width: 540px;
+    }
+
+    #pxk-kompakt .pxk-state-code {
+      display: inline-grid;
+      width: 39px;
+      height: 39px;
+      margin-bottom: 8px;
+      place-items: center;
+      border: 1px solid var(--pxk-accent);
+      border-radius: 11px;
+      color: var(--pxk-accent);
+      font-size: 0.66rem;
+      font-weight: 950;
+    }
+
+    #pxk-kompakt .pxk-state-title {
+      margin: 0;
+      color: var(--pxk-text);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.07rem;
+      line-height: 1.22;
+    }
+
+    #pxk-kompakt .pxk-state-copy {
+      margin: 5px 0 0;
+      font-size: 0.72rem;
+      line-height: 1.45;
+    }
+
+    #pxk-kompakt .pxk-retry {
+      min-height: 36px;
+      margin-top: 10px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 9px;
+      color: #061018;
+      background: var(--pxk-accent);
+      font-family: var(--pxk-mono);
+      font-size: 0.59rem;
+      font-weight: 900;
+    }
+
+    #pxk-kompakt .pxk-skeleton {
+      width: 100%;
+      height: 68px;
+      flex: 0 0 100%;
+      overflow: hidden;
+      border: 1px solid var(--pxk-line);
+      border-radius: 12px;
+      background: var(--pxk-soft);
+    }
+
+    #pxk-kompakt .pxk-skeleton::after {
+      display: block;
+      width: 70%;
+      height: 10px;
+      margin: 28px 12px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--pxk-line), var(--pxk-solid), var(--pxk-line));
+      background-size: 220% 100%;
+      content: "";
+      animation: pxk-loading 1.4s linear infinite;
+    }
+
+    #pxk-kompakt .pxk-noscript {
+      width: calc(100% - 32px);
+      max-width: 1360px;
+      margin: 20px auto;
+      padding: 16px;
+      border: 1px solid var(--pxk-line-strong);
+      border-radius: 12px;
+      color: var(--pxk-text);
+      background: var(--pxk-solid);
+    }
+
+    @keyframes pxk-pulse {
+      0%,
+      100% {
+        opacity: 0.55;
+        transform: scale(0.88);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes pxk-loading {
+      from {
+        background-position: 100% 0;
+      }
+
+      to {
+        background-position: -100% 0;
+      }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      #pxk-kompakt .pxk-news-row:hover, #pxk-kompakt .pxk-topic-card:hover, #pxk-kompakt .pxk-dossier-card:hover, #pxk-kompakt .pxk-analysis-card:hover {
+        border-color: var(--pxk-accent);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.08);
+      }
+    }
+
+    @media (max-width: 920px) {
+      #pxk-kompakt .pxk-topic-bento, #pxk-kompakt .pxk-topic-extra {
+        grid-template-columns: 1fr;
+      }
+
+      #pxk-kompakt .pxk-topic-card {
+        min-height: 76px;
+      }
+
+      #pxk-kompakt .pxk-topic-title {
+        -webkit-line-clamp: 1;
+      }
+
+      #pxk-kompakt .pxk-topic-summary {
+        -webkit-line-clamp: 1;
+      }
+    }
+
+    @media (max-width: 700px) {
+      #pxk-kompakt .pxk-main {
+        width: calc(100% - 16px);
+        padding-block: 9px 25px;
+      }
+
+      #pxk-kompakt .pxk-section {
+        margin-top: 8px;
+        padding: 10px 8px 9px;
+        border-radius: 14px;
+        scroll-margin-top: 70px;
+      }
+
+      #pxk-kompakt .pxk-section-head {
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      #pxk-kompakt .pxk-section-kicker {
+        font-size: 0.57rem;
+      }
+
+      #pxk-kompakt .pxk-section-title {
+        font-size: 1.27rem;
+      }
+
+      #pxk-kompakt .pxk-section-copy {
+        max-width: 270px;
+        font-size: 0.62rem;
+        line-height: 1.4;
+      }
+
+      #pxk-kompakt .pxk-count {
+        min-height: 26px;
+        padding-inline: 7px;
+        font-size: 0.54rem;
+      }
+
+      #pxk-kompakt .pxk-morning {
+        display: block;
+      }
+
+      #pxk-kompakt .pxk-morning-label {
+        min-height: 36px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2px 8px;
+        border-right: 0;
+        border-bottom: 1px solid var(--pxk-line);
+      }
+
+      #pxk-kompakt .pxk-morning-label > div {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      #pxk-kompakt .pxk-morning-label .pxk-section-kicker {
+        margin: 0;
+        font-size: 0.53rem;
+      }
+
+      #pxk-kompakt .pxk-morning-label strong {
+        font-size: 1rem;
+        white-space: nowrap;
+      }
+
+      #pxk-kompakt .pxk-stand {
+        max-width: 175px;
+        margin: 0;
+        font-size: 0.5rem;
+        text-align: right;
+      }
+
+      #pxk-kompakt .pxk-morning .pxk-rail {
+        min-height: 70px;
+        margin-top: 7px;
+        padding-bottom: 2px;
+      }
+
+      #pxk-kompakt .pxk-morning-card {
+        min-width: min(78vw, 286px);
+        min-height: 67px;
+        flex-basis: min(78vw, 286px);
+        padding: 8px 9px 8px 12px;
+      }
+
+      #pxk-kompakt .pxk-morning-card span {
+        font-size: 0.56rem;
+      }
+
+      #pxk-kompakt .pxk-morning-card strong {
+        font-size: 0.8rem;
+        line-height: 1.25;
+      }
+
+      #pxk-kompakt .pxk-tabs {
+        margin-bottom: 7px;
+      }
+
+      #pxk-kompakt .pxk-tab {
+        min-height: 33px;
+        padding-inline: 9px;
+        font-size: 0.65rem;
+      }
+
+      #pxk-kompakt .pxk-tab-count {
+        min-width: 20px;
+        height: 19px;
+        font-size: 0.52rem;
+      }
+
+      #pxk-kompakt .pxk-topic-panel {
+        padding: 8px;
+      }
+
+      #pxk-kompakt .pxk-topic-panel-head {
+        gap: 7px;
+        margin-bottom: 7px;
+      }
+
+      #pxk-kompakt .pxk-topic-panel-title {
+        font-size: 0.99rem;
+      }
+
+      #pxk-kompakt .pxk-topic-panel-meta {
+        font-size: 0.58rem;
+      }
+
+      #pxk-kompakt .pxk-view-button {
+        min-height: 27px;
+        padding-inline: 6px;
+        font-size: 0.55rem;
+      }
+
+      #pxk-kompakt .pxk-topic-card {
+        min-height: 79px;
+        gap: 7px;
+        padding: 8px;
+      }
+
+      #pxk-kompakt .pxk-topic-rank, #pxk-kompakt .pxk-extra-rank {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        font-size: 0.54rem;
+      }
+
+      #pxk-kompakt .pxk-topic-title {
+        font-size: 0.78rem;
+        line-height: 1.29;
+      }
+
+      #pxk-kompakt .pxk-topic-summary {
+        margin-top: 3px;
+        font-size: 0.62rem;
+        line-height: 1.33;
+      }
+
+      #pxk-kompakt .pxk-topic-meta {
+        margin-top: 4px;
+        font-size: 0.51rem;
+      }
+
+      #pxk-kompakt .pxk-topic-extra .pxk-topic-card {
+        min-height: 79px;
+      }
+
+      #pxk-kompakt .pxk-more {
+        min-height: 36px;
+        margin-top: 6px;
+      }
+
+      #pxk-kompakt .pxk-button-label {
+        font-size: 0.59rem;
+      }
+
+      #pxk-kompakt .pxk-news-list {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      #pxk-kompakt .pxk-news-row {
+        grid-template-columns: 49px minmax(0, 1fr) 15px;
+        min-height: 72px;
+        gap: 7px;
+        padding: 8px;
+      }
+
+      #pxk-kompakt .pxk-row-time {
+        font-size: 0.52rem;
+      }
+
+      #pxk-kompakt .pxk-row-title {
+        font-size: 0.78rem;
+        line-height: 1.28;
+      }
+
+      #pxk-kompakt .pxk-row-summary {
+        font-size: 0.62rem;
+        line-height: 1.32;
+      }
+
+      #pxk-kompakt .pxk-row-source {
+        font-size: 0.49rem;
+      }
+
+      #pxk-kompakt .pxk-dossier-card {
+        min-width: min(84vw, 286px);
+        flex-basis: min(84vw, 286px);
+        min-height: 136px;
+      }
+
+      #pxk-kompakt .pxk-dossier-title {
+        font-size: 0.82rem;
+      }
+
+      #pxk-kompakt .pxk-analysis-card {
+        min-width: min(86vw, 310px);
+        flex-basis: min(86vw, 310px);
+        min-height: 136px;
+      }
+
+      #pxk-kompakt .pxk-analysis-title {
+        font-size: 0.82rem;
+      }
+
+      #pxk-kompakt .pxk-analysis-copy {
+        font-size: 0.62rem;
+      }
+
+      #pxk-kompakt .pxk-footer {
+        display: block;
+        margin-inline: 2px;
+      }
+
+      #pxk-kompakt .pxk-footer span {
+        display: block;
+        margin-top: 3px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      #pxk-kompakt .pxk-section-title {
+        font-size: 1.24rem;
+      }
+
+      #pxk-kompakt .pxk-section-copy {
+        max-width: 235px;
+      }
+
+      #pxk-kompakt .pxk-topic-panel-meta {
+        max-width: 180px;
+      }
+
+      #pxk-kompakt .pxk-view-button {
+        padding-inline: 5px;
+      }
+
+      #pxk-kompakt .pxk-morning-label > div {
+        gap: 6px;
+      }
+
+      #pxk-kompakt .pxk-morning-label strong {
+        font-size: 0.96rem;
+      }
+
+      #pxk-kompakt .pxk-stand {
+        max-width: 160px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #pxk-kompakt {
+        scroll-behavior: auto;
+      }
+
+      #pxk-kompakt *, #pxk-kompakt *::before, #pxk-kompakt *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  
+  /* Einbau 28.09.: Morgenlage und Analysen gibt es auf der Startseite schon (Hero-Laufband, SSR "Neueste Analysen") */
+  #pxk-kompakt .pxk-morning, #pxk-kompakt .pxk-analyses, #pxk-kompakt .pxk-footer { display: none !important; }
+  #pxk-kompakt { margin: 0 0 32px; border-radius: 16px; padding: clamp(12px, 2vw, 24px); }
+  html.pxk-ok #news-grid { display: none !important; }
+</style>
+<section id="pxk-kompakt" aria-label="Meldungen nach Thema">
+<div
+    id="pxk-main"
+    class="pxk-main"
+    aria-label="Kompakter Nachrichtenbereich"
+    aria-busy="true"
+  >
+    <section class="pxk-section pxk-morning" aria-labelledby="pxk-morning-title">
+      <div class="pxk-morning-label">
+        <div>
+          <p class="pxk-section-kicker">Morgenlage</p>
+          <h2 class="pxk-section-title" id="pxk-morning-title">Kurzlage</h2>
+        </div>
+        <p class="pxk-stand" id="pxk-stand">Daten werden geladen</p>
+      </div>
+
+      <div class="pxk-rail" id="pxk-morning-rail" aria-label="Aktuelle Meldungen">
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="pxk-section pxk-topics" aria-labelledby="pxk-topics-heading">
+      <header class="pxk-section-head">
+        <div>
+          <p class="pxk-section-kicker">Themenlage</p>
+          <h2 class="pxk-section-title" id="pxk-topics-heading">Drei Meldungen je Thema</h2>
+          <p class="pxk-section-copy">Thema wählen und die vollständige Liste aufklappen.</p>
+        </div>
+        <span class="pxk-count" id="pxk-topic-count">Lädt</span>
+      </header>
+
+      <div
+        class="pxk-rail pxk-tabs"
+        id="pxk-tabs"
+        role="tablist"
+        aria-label="Nachrichtenthemen"
+      ></div>
+
+      <article
+        class="pxk-topic-panel"
+        id="pxk-topic-panel"
+        role="tabpanel"
+        aria-labelledby="pxk-topics-heading"
+        data-view="cards"
+      >
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+      </article>
+
+      <button
+        class="pxk-more"
+        id="pxk-topic-more"
+        type="button"
+        aria-expanded="false"
+        hidden
+      >
+        <span class="pxk-more-icon" aria-hidden="true">↓</span>
+        <span class="pxk-button-label">Vollständige Themenliste öffnen</span>
+      </button>
+    </section>
+
+    <section class="pxk-section pxk-latest" aria-labelledby="pxk-latest-heading">
+      <header class="pxk-section-head">
+        <div>
+          <p class="pxk-section-kicker">Restmeldungen</p>
+          <h2 class="pxk-section-title" id="pxk-latest-heading">Weitere Nachrichten</h2>
+          <p class="pxk-section-copy" id="pxk-latest-copy">Wird nach Aktualität geladen.</p>
+        </div>
+        <span class="pxk-count" id="pxk-latest-count">0</span>
+      </header>
+
+      <div class="pxk-news-list" id="pxk-news-list">
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+      </div>
+
+      <button class="pxk-more" id="pxk-news-more" type="button" hidden>
+        <span class="pxk-more-icon" aria-hidden="true">↓</span>
+        <span class="pxk-button-label">Mehr Meldungen zeigen</span>
+      </button>
+    </section>
+
+    <section class="pxk-section pxk-dossiers" aria-labelledby="pxk-dossiers-heading">
+      <header class="pxk-section-head">
+        <div>
+          <p class="pxk-section-kicker">Dossiers und Linien</p>
+          <h2 class="pxk-section-title" id="pxk-dossiers-heading">Beobachtete Entwicklungen</h2>
+          <p class="pxk-section-copy" id="pxk-dossiers-copy">Linien werden geladen.</p>
+        </div>
+        <span class="pxk-count" id="pxk-dossiers-count">0</span>
+      </header>
+
+      <div class="pxk-rail" id="pxk-dossier-rail" aria-label="Dossiers und Linien">
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="pxk-section pxk-analyses" aria-labelledby="pxk-analyses-heading">
+      <header class="pxk-section-head">
+        <div>
+          <p class="pxk-section-kicker">Neueste Analysen</p>
+          <h2 class="pxk-section-title" id="pxk-analyses-heading">Kurz eingeordnet</h2>
+          <p class="pxk-section-copy">Einordnung aus cards.json.</p>
+        </div>
+        <span class="pxk-count" id="pxk-analyses-count">Lädt</span>
+      </header>
+
+      <div class="pxk-rail" id="pxk-analysis-rail" aria-label="Neueste Analysen">
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+        <div class="pxk-skeleton" aria-hidden="true"></div>
+      </div>
+
+      <button class="pxk-more" id="pxk-analysis-more" type="button" hidden>
+        <span class="pxk-more-icon" aria-hidden="true">↓</span>
+        <span class="pxk-button-label">Weitere Analysen zeigen</span>
+      </button>
+    </section>
+
+    <footer class="pxk-footer">
+      <span>Relative Datenquellen: news.json und cards.json</span>
+      <span>Daniel, Scampy / KI NEWS</span>
+    </footer>
+  </div>
+</section>
+<script>
+    (() => {
+      "use strict";
+
+      const root = document.getElementById("pxk-main");
+      if (!root) return;
+      root.addEventListener("click", (ev) => {
+        const a = ev.target.closest && ev.target.closest("a");
+        if (!a || !a.__pxkItem || typeof window.klOpenArticle !== "function") return;
+        if (window.klPlainClick && !window.klPlainClick(ev)) return;
+        ev.preventDefault();
+        window.klOpenArticle(a.__pxkItem);
+      });
+
+      const refs = {
+        stand: document.getElementById("pxk-stand"),
+        morningRail: document.getElementById("pxk-morning-rail"),
+        topicCount: document.getElementById("pxk-topic-count"),
+        tabs: document.getElementById("pxk-tabs"),
+        topicPanel: document.getElementById("pxk-topic-panel"),
+        topicMore: document.getElementById("pxk-topic-more"),
+        latestCopy: document.getElementById("pxk-latest-copy"),
+        latestCount: document.getElementById("pxk-latest-count"),
+        newsList: document.getElementById("pxk-news-list"),
+        newsMore: document.getElementById("pxk-news-more"),
+        dossierCopy: document.getElementById("pxk-dossiers-copy"),
+        dossierCount: document.getElementById("pxk-dossiers-count"),
+        dossierRail: document.getElementById("pxk-dossier-rail"),
+        analysisCount: document.getElementById("pxk-analyses-count"),
+        analysisRail: document.getElementById("pxk-analysis-rail"),
+        analysisMore: document.getElementById("pxk-analysis-more")
+      };
+
+      const themes = [
+        {
+          id: "modelle",
+          label: "KI-Modelle",
+          aliases: [
+            "modelle",
+            "model release",
+            "foundation models",
+            "sprachmodelle"
+          ],
+          color: "#00d4ff",
+          patterns: [
+            /\b(gpt|chatgpt|claude|gemini|llama|mistral|deepseek|qwen|grok|opus)\b/i,
+            /\b(openai|anthropic|google deepmind|deepmind|xai|ki[- ]?modell|sprachmodell|modellversion|model release|training)\b/i,
+            /\b(kodiermodell|coding[- ]?modell|open[- ]?weight|frontier[- ]?modell|reasoning[- ]?modell)\b/i
+          ]
+        },
+        {
+          id: "politik",
+          label: "Politik",
+          aliases: [
+            "politik",
+            "recht",
+            "regulierung",
+            "regulatorik",
+            "governance",
+            "ai act"
+          ],
+          color: "#8b5cf6",
+          patterns: [
+            /\b(eu[- ]?kommission|eu[- ]?rat|ai act|gesetzgebung|parlament|kongress|senat|wahl|bundesberufungsgericht)\b/i,
+            /\b(politik|recht|regulierung|regulator|gericht|urteil|behörde|gesetz|exportkontrollen|sanktionen|geopolitik)\b/i,
+            /\b(trump|white house|regierung|staatsvertrag|pentagon|demokratie|verfassung)\b/i
+          ]
+        },
+        {
+          id: "forschung",
+          label: "Forschung",
+          aliases: [
+            "forschung",
+            "research",
+            "wissenschaft",
+            "labor"
+          ],
+          color: "#f59e0b",
+          patterns: [
+            /\b(forschung|wissenschaft|forscher|studie|paper|arxiv|benchmark|neurips|icml|iclr|acl)\b/i,
+            /\b(labor|universität|universitaet|experiment|publikation|entdeckung|konferenz)\b/i,
+            /\b(scientific research|knowledge graph|reasoning benchmark|dataset)\b/i
+          ]
+        },
+        {
+          id: "wirtschaft",
+          label: "Wirtschaft",
+          aliases: [
+            "wirtschaft",
+            "business",
+            "finanzen",
+            "investitionen",
+            "maerkte"
+          ],
+          color: "#00d991",
+          patterns: [
+            /\b(investition|investitionen|finanzierung|funding|kapital|börse|boersen|aktie|aktien|valuation)\b/i,
+            /\b(umsatz|revenue|quartalszahlen|gewinne|gewinn|verlust|billionär|billionaer|übernahme|uebernahme|fusion|deal)\b/i,
+            /\b(wirtschaft|finanzen|business|economics|venture capital|marktanteil|kosten|gewerbe)\b/i
+          ]
+        },
+        {
+          id: "sicherheit",
+          label: "Sicherheit",
+          aliases: [
+            "sicherheit",
+            "security",
+            "cybersecurity",
+            "datenschutz"
+          ],
+          color: "#ff5c8a",
+          patterns: [
+            /\b(sicherheit|security|cyber|cyberangriff|cyberangriffe|cyber attack|hacker|angriff|attacke|malware|datenverlust|data breach)\b/i,
+            /\b(deepfake|prompt injection|jailbreak|schwachstelle|schwachstellen|exploit|sicherheitslücke|modellrisiko|ki risiko|schadsoftware)\b/i,
+            /\b(sicherheitsforscher|threat intelligence|phishing|ransomware|zugangsdaten|unbefugter zugriff)\b/i
+          ]
+        },
+        {
+          id: "produkte",
+          label: "Produkte & Tools",
+          aliases: [
+            "produkte",
+            "tools",
+            "software",
+            "anwendungen",
+            "robotik"
+          ],
+          color: "#4f9df7",
+          patterns: [
+            /\b(app|browser|software|plattform|tool|werkzeug|ki agent|agenten|assistent|chatbot|coding tool)\b/i,
+            /\b(roboter|robotik|humanoider|maschine|startup|feature|funktion|update|produkt|api)\b/i,
+            /\b(plugin|arbeitsablauf|automatisierung|anwendung|entwicklerwerkzeug|cursor)\b/i
+          ]
+        },
+        {
+          id: "sonstiges",
+          label: "Weitere Themen",
+          aliases: [
+            "sonstiges",
+            "allgemein",
+            "general"
+          ],
+          color: "#94a3b8",
+          patterns: []
+        }
+      ];
+
+      const numberFormat = new Intl.NumberFormat("de-DE");
+      const fullDateFormat = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC"
+      });
+
+      const shortDateFormat = new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "UTC"
+      });
+
+      let newsItems = [];
+      let newsGroups = new Map();
+      let remainingItems = [];
+      let selectedThemeId = "";
+      let selectedThemeExpanded = false;
+      let shownNews = 6;
+      let shownAnalyses = 6;
+      let analysisItems = [];
+      let viewMode = "cards";
+      let requestId = 0;
+      let activeControllers = [];
+      let storedViewFound = false;
+
+      try {
+        const storedView = localStorage.getItem("ki-news-start-compact-view-v2");
+        storedViewFound = storedView === "cards" || storedView === "compact";
+
+        if (storedViewFound) {
+          viewMode = storedView;
+        } else {
+          viewMode = window.matchMedia("(max-width: 700px)").matches
+            ? "compact"
+            : "cards";
+        }
+      } catch (error) {
+        viewMode = "cards";
+      }
+
+      function create(tag, className, text) {
+        const element = document.createElement(tag);
+
+        if (className) {
+          element.className = className;
+        }
+
+        if (text !== undefined) {
+          element.textContent = text;
+        }
+
+        return element;
+      }
+
+      function cleanText(value, fallback = "") {
+        if (typeof value !== "string" && typeof value !== "number") {
+          return fallback;
+        }
+
+        return String(value)
+          .replace(/\u2014/g, "-")
+          .replace(/\u2013/g, "-")
+          .replace(/\u00AD/g, "")
+          .replace(/[\u0000-\u001F\u007F]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function normalizeText(value) {
+        return cleanText(value)
+          .toLocaleLowerCase("de-DE")
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9äöüß]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function safeUrl(value) {
+        const raw = cleanText(value);
+        if (!raw) return "";
+
+        try {
+          const url = new URL(raw, document.baseURI);
+
+          if (url.protocol !== "http:" && url.protocol !== "https:") {
+            return "";
+          }
+
+          return url.href;
+        } catch (error) {
+          return "";
+        }
+      }
+
+      function firstUrl(value, depth = 0, visited = new Set()) {
+        if (depth > 6 || value === null || value === undefined) {
+          return "";
+        }
+
+        if (typeof value === "string" || typeof value === "number") {
+          return safeUrl(value);
+        }
+
+        if (typeof value !== "object" || visited.has(value)) {
+          return "";
+        }
+
+        visited.add(value);
+
+        if (Array.isArray(value)) {
+          for (const entry of value) {
+            const found = firstUrl(entry, depth + 1, visited);
+            if (found) return found;
+          }
+
+          return "";
+        }
+
+        for (const entry of Object.values(value)) {
+          const found = firstUrl(entry, depth + 1, visited);
+          if (found) return found;
+        }
+
+        return "";
+      }
+
+      function numberValue(value, fallback = 0) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
+      }
+
+      function timestampOf(item) {
+        if (!item || typeof item !== "object") return 0;
+
+        const raw = cleanText(
+          item.date ||
+          item.first_seen ||
+          item.published_at ||
+          item.d
+        );
+
+        if (!raw) return 0;
+
+        let normalized = raw;
+
+        const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+
+        if (isoDate && !raw.includes("T")) {
+          normalized = raw + "T12:00:00Z";
+        }
+
+        const germanDate = /^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(raw);
+
+        if (germanDate) {
+          normalized =
+            germanDate[3] +
+            "-" +
+            germanDate[2] +
+            "-" +
+            germanDate[1] +
+            raw.slice(germanDate[0].length);
+        }
+
+        const timestamp = new Date(normalized).getTime();
+        return Number.isFinite(timestamp) ? timestamp : 0;
+      }
+
+      function rawDateValue(item) {
+        if (!item || typeof item !== "object") return "";
+
+        return cleanText(
+          item.date ||
+          item.first_seen ||
+          item.published_at ||
+          item.d
+        );
+      }
+
+      function formatDate(value) {
+        const item = typeof value === "object" ? value : { date: value };
+        const timestamp = timestampOf(item);
+
+        if (!timestamp) {
+          const raw = rawDateValue(item);
+          return raw ? raw.slice(0, 18) : "Datum offen";
+        }
+
+        try {
+          return fullDateFormat.format(new Date(timestamp));
+        } catch (error) {
+          return "Datum offen";
+        }
+      }
+
+      function formatShortDate(item) {
+        const timestamp = timestampOf(item);
+        if (!timestamp) return "OFFEN";
+
+        try {
+          return shortDateFormat.format(new Date(timestamp));
+        } catch (error) {
+          return "OFFEN";
+        }
+      }
+
+      function formatRowTime(item) {
+        const raw = rawDateValue(item);
+        const timeMatch = /(?:T|\s)(\d{1,2}:\d{2})/.exec(raw);
+
+        if (timeMatch) {
+          return timeMatch[1];
+        }
+
+        return formatShortDate(item);
+      }
+
+      function extractLabels(value, result = [], depth = 0) {
+        if (depth > 3 || value === null || value === undefined) {
+          return result;
+        }
+
+        if (Array.isArray(value)) {
+          value.forEach((entry) => {
+            extractLabels(entry, result, depth + 1);
+          });
+
+          return result;
+        }
+
+        if (typeof value === "object") {
+          const candidates = [
+            value.name,
+            value.label,
+            value.title,
+            value.topic,
+            value.category,
+            value.kategorie,
+            value.id
+          ];
+
+          for (const candidate of candidates) {
+            if (candidate !== undefined && candidate !== null) {
+              extractLabels(candidate, result, depth + 1);
+              break;
+            }
+          }
+
+          return result;
+        }
+
+        const text = cleanText(value);
+        if (!text) return result;
+
+        text.split(/\s*(?:,|;|\||\n)\s*/).forEach((part) => {
+          const label = cleanText(part).slice(0, 64);
+          if (label) result.push(label);
+        });
+
+        return result;
+      }
+
+      function explicitTheme(item) {
+        const labels = [];
+
+        [
+          "topic",
+          "topics",
+          "thema",
+          "themen",
+          "category",
+          "categories",
+          "kategorie",
+          "kategorien",
+          "rubrik",
+          "rubriken",
+          "section",
+          "primary_category",
+          "news_category"
+        ].forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(item, key)) {
+            extractLabels(item[key], labels);
+          }
+        });
+
+        const normalizedLabels = labels.map(normalizeText).filter(Boolean);
+
+        for (const theme of themes) {
+          if (theme.id === "sonstiges") continue;
+
+          const aliases = [theme.label, ...theme.aliases].map(normalizeText);
+
+          const matches = normalizedLabels.some((label) => {
+            return aliases.some((alias) => {
+              return (
+                label === alias ||
+                (alias.length >= 6 && label.includes(alias)) ||
+                (label.length >= 6 && alias.includes(label))
+              );
+            });
+          });
+
+          if (matches) return theme;
+        }
+
+        return null;
+      }
+
+      function keywordTheme(item) {
+        const title = cleanText(item.title || item.headline);
+        const summary = cleanText(item.summary);
+        const candidates = [];
+
+        themes.forEach((theme, themeIndex) => {
+          if (theme.id === "sonstiges") return;
+
+          let score = 0;
+
+          theme.patterns.forEach((pattern, patternIndex) => {
+            if (pattern.test(title)) {
+              score += patternIndex === 0 ? 9 : 7;
+            }
+
+            if (summary && pattern.test(summary)) {
+              score += patternIndex === 0 ? 4 : 3;
+            }
+          });
+
+          if (score > 0) {
+            candidates.push({
+              theme,
+              score,
+              order: themeIndex
+            });
+          }
+        });
+
+        candidates.sort((first, second) => {
+          return second.score - first.score || first.order - second.order;
+        });
+
+        return candidates.length
+          ? candidates[0].theme
+          : themes[themes.length - 1];
+      }
+
+      function resolveTheme(item) {
+        return explicitTheme(item) || keywordTheme(item);
+      }
+
+      function normaliseNews(raw) {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          return null;
+        }
+
+        const title = cleanText(raw.title || raw.headline).slice(0, 300);
+
+        if (!title) return null;
+
+        return {
+          title,
+          summary: cleanText(raw.summary).slice(0, 420),
+          link: safeUrl(firstUrl(raw.link || raw.url)),
+          source: cleanText(
+            raw.source || raw.publisher,
+            "Quelle offen"
+          ).slice(0, 70),
+          date: cleanText(
+            raw.date ||
+            raw.first_seen ||
+            raw.published_at
+          ),
+          timestamp: timestampOf(raw),
+          score: numberValue(
+            raw.story_cluster_score,
+            numberValue(raw.score, numberValue(raw.base_score, 0))
+          ),
+          articleCount: Math.max(
+            1,
+            numberValue(
+              raw.story_article_count,
+              numberValue(raw.article_count, 1)
+            )
+          ),
+          storyId: cleanText(raw.story_id),
+          theme: resolveTheme(raw)
+        };
+      }
+
+      function extractNews(payload) {
+        if (Array.isArray(payload)) return payload;
+        if (!payload || typeof payload !== "object") return [];
+
+        if (Array.isArray(payload.news)) return payload.news;
+        if (Array.isArray(payload.items)) return payload.items;
+        if (Array.isArray(payload.articles)) return payload.articles;
+
+        if (
+          payload.briefing &&
+          typeof payload.briefing === "object" &&
+          Array.isArray(payload.briefing.stories)
+        ) {
+          return payload.briefing.stories;
+        }
+
+        return [];
+      }
+
+      function prepareNews(rawItems) {
+        const seenLinks = new Set();
+        const seenTitles = new Set();
+        const prepared = [];
+
+        rawItems.forEach((raw, sourceIndex) => {
+          const item = normaliseNews(raw);
+          if (!item) return;
+
+          const titleKey = normalizeText(item.title);
+          const linkKey = item.link;
+
+          if (linkKey && seenLinks.has(linkKey)) return;
+          if (titleKey && seenTitles.has(titleKey)) return;
+
+          if (linkKey) seenLinks.add(linkKey);
+          if (titleKey) seenTitles.add(titleKey);
+
+          item.sourceIndex = sourceIndex;
+          prepared.push(item);
+        });
+
+        prepared.sort((first, second) => {
+          if (second.score !== first.score) {
+            return second.score - first.score;
+          }
+
+          if (second.articleCount !== first.articleCount) {
+            return second.articleCount - first.articleCount;
+          }
+
+          if (second.timestamp !== first.timestamp) {
+            return second.timestamp - first.timestamp;
+          }
+
+          return first.sourceIndex - second.sourceIndex;
+        });
+
+        return prepared;
+      }
+
+      function createExternalTitle(tag, item, className) {
+        const title = create(tag, className);
+
+        if (item.link) {
+          const link = create("a", "", item.title);
+          link.href = item.link; link.__pxkItem = item;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          title.appendChild(link);
+        } else {
+          title.textContent = item.title;
+        }
+
+        return title;
+      }
+
+      function makeState(code, title, copy) {
+        const state = create("div", "pxk-state");
+        const inner = create("div", "pxk-state-inner");
+        const codeElement = create("div", "pxk-state-code", code);
+        codeElement.setAttribute("aria-hidden", "true");
+
+        inner.append(
+          codeElement,
+          create("h3", "pxk-state-title", title),
+          create("p", "pxk-state-copy", copy)
+        );
+
+        state.appendChild(inner);
+        return state;
+      }
+
+      function renderMorning() {
+        const latest = newsItems.slice()
+          .sort((first, second) => {
+            return second.timestamp - first.timestamp ||
+              second.score - first.score;
+          })
+          .slice(0, 10);
+
+        refs.morningRail.replaceChildren();
+
+        if (!latest.length) {
+          refs.morningRail.appendChild(makeState(
+            "0",
+            "Noch keine Meldungen",
+            "Der Datenstand enthält keine verwertbare Nachricht."
+          ));
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        latest.forEach((item) => {
+          const card = create(
+            item.link ? "a" : "article",
+            "pxk-morning-card"
+          );
+
+          if (item.link) {
+            card.href = item.link; card.__pxkItem = item;
+            card.target = "_blank";
+            card.rel = "noopener noreferrer";
+          }
+
+          card.append(
+            create(
+              "span",
+              "",
+              item.source + " / " + formatShortDate(item)
+            ),
+            create("strong", "", item.title)
+          );
+
+          fragment.appendChild(card);
+        });
+
+        refs.morningRail.appendChild(fragment);
+      }
+
+      function setViewMode(mode, persist = true) {
+        if (mode !== "cards" && mode !== "compact") return;
+
+        viewMode = mode;
+        refs.topicPanel.dataset.view = mode;
+
+        refs.topicPanel.querySelectorAll("[data-pxk-view]").forEach((button) => {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.dataset.pxView === mode)
+          );
+        });
+
+        if (!persist) return;
+
+        try {
+          localStorage.setItem("ki-news-start-compact-view-v2", mode);
+        } catch (error) {
+          // Die Ansicht bleibt auch ohne localStorage nutzbar.
+        }
+      }
+
+      function makeTopicCard(item, rank) {
+        const card = create("article", "pxk-topic-card");
+        const body = create("div", "pxk-topic-body");
+        const metaParts = [item.source, formatShortDate(item)].filter(Boolean);
+
+        body.appendChild(
+          createExternalTitle("h3", item, "pxk-topic-title")
+        );
+
+        if (item.summary) {
+          body.appendChild(
+            create("p", "pxk-topic-summary", item.summary)
+          );
+        }
+
+        body.appendChild(
+          create(
+            "p",
+            "pxk-topic-meta",
+            metaParts.length ? metaParts.join(" / ") : "Quelle offen"
+          )
+        );
+
+        card.append(
+          create(
+            "span",
+            rank > 3 ? "pxk-extra-rank" : "pxk-topic-rank",
+            String(rank).padStart(2, "0")
+          ),
+          body
+        );
+
+        return card;
+      }
+
+      function renderSelectedTheme() {
+        const group = newsGroups.get(selectedThemeId);
+        refs.topicPanel.replaceChildren();
+
+        if (!group) {
+          refs.topicPanel.style.setProperty("--pxk-accent", "#94a3b8");
+          refs.topicPanel.setAttribute("aria-labelledby", "pxk-topics-heading");
+          refs.topicPanel.appendChild(makeState(
+            "0",
+            "Kein Thema ausgewählt",
+            "Für diesen Datenstand konnte kein Themenblock gebildet werden."
+          ));
+          refs.topicMore.hidden = true;
+          return;
+        }
+
+        refs.topicPanel.style.setProperty("--pxk-accent", group.theme.color);
+        refs.topicPanel.setAttribute("aria-labelledby", "pxk-topic-panel-title");
+
+        const head = create("div", "pxk-topic-panel-head");
+        const copy = create("div");
+        const title = create(
+          "h3",
+          "pxk-topic-panel-title",
+          group.theme.label
+        );
+        title.id = "pxk-topic-panel-title";
+
+        copy.append(
+          title,
+          create(
+            "p",
+            "pxk-topic-panel-meta",
+            numberFormat.format(group.items.length) +
+            " Meldungen im Themenblock"
+          )
+        );
+
+        const view = create("div", "pxk-view-switch");
+        view.setAttribute("aria-label", "Themenkarten darstellen");
+
+        ["cards", "compact"].forEach((mode) => {
+          const button = create(
+            "button",
+            "pxk-view-button",
+            mode === "cards" ? "Karten" : "Kompakt"
+          );
+
+          button.type = "button";
+          button.dataset.pxView = mode;
+          button.setAttribute("aria-pressed", String(mode === viewMode));
+          button.addEventListener("click", () => setViewMode(mode));
+          view.appendChild(button);
+        });
+
+        head.append(copy, view);
+        refs.topicPanel.appendChild(head);
+
+        const topGrid = create("div", "pxk-topic-bento");
+
+        group.items.slice(0, 3).forEach((item, index) => {
+          topGrid.appendChild(makeTopicCard(item, index + 1));
+        });
+
+        refs.topicPanel.appendChild(topGrid);
+
+        const extraCount = Math.max(0, group.items.length - 3);
+        const extra = create("div", "pxk-topic-extra");
+        extra.id = "pxk-topic-extra";
+
+        if (selectedThemeExpanded) {
+          group.items.slice(3).forEach((item, index) => {
+            extra.appendChild(makeTopicCard(item, index + 4));
+          });
+        }
+
+        extra.hidden = !selectedThemeExpanded;
+        refs.topicPanel.appendChild(extra);
+
+        refs.topicMore.hidden = extraCount <= 0;
+        refs.topicMore.setAttribute(
+          "aria-expanded",
+          String(selectedThemeExpanded)
+        );
+        refs.topicMore.setAttribute("aria-controls", "pxk-topic-extra");
+        refs.topicMore.querySelector(".pxk-button-label").textContent =
+          selectedThemeExpanded
+            ? "Themenliste schließen"
+            : numberFormat.format(extraCount) +
+              " weitere Meldungen öffnen";
+
+        setViewMode(viewMode, false);
+      }
+
+      function selectTheme(themeId, shouldScroll) {
+        if (!newsGroups.has(themeId)) return;
+
+        selectedThemeId = themeId;
+        selectedThemeExpanded = false;
+
+        refs.tabs.querySelectorAll('[role="tab"]').forEach((button) => {
+          const active = button.dataset.pxTheme === themeId;
+          button.setAttribute("aria-selected", String(active));
+          button.tabIndex = active ? 0 : -1;
+        });
+
+        renderSelectedTheme();
+
+        if (shouldScroll) {
+          requestAnimationFrame(() => {
+            refs.topicPanel.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest"
+            });
+          });
+        }
+      }
+
+      function updateTabs() {
+        refs.tabs.replaceChildren();
+
+        if (!newsGroups.size) return;
+
+        themes.forEach((theme) => {
+          const group = newsGroups.get(theme.id);
+          if (!group) return;
+
+          const button = create("button", "pxk-tab");
+          button.type = "button";
+          button.id = "pxk-tab-" + theme.id;
+          button.dataset.pxTheme = theme.id;
+          button.style.setProperty("--pxk-tab-accent", theme.color);
+          button.setAttribute("role", "tab");
+          button.setAttribute("aria-controls", "pxk-topic-panel");
+          button.setAttribute(
+            "aria-selected",
+            String(theme.id === selectedThemeId)
+          );
+          button.tabIndex = theme.id === selectedThemeId ? 0 : -1;
+
+          button.append(
+            document.createTextNode(theme.label),
+            create(
+              "span",
+              "pxk-tab-count",
+              numberFormat.format(group.items.length)
+            )
+          );
+
+          button.addEventListener("click", () => {
+            selectTheme(theme.id, true);
+          });
+
+          button.addEventListener("keydown", (event) => {
+            const visibleTabs = Array.from(
+              refs.tabs.querySelectorAll('[role="tab"]:not([hidden])')
+            );
+
+            const currentIndex = visibleTabs.indexOf(button);
+            let nextIndex = currentIndex;
+
+            if (event.key === "ArrowRight") {
+              nextIndex = (currentIndex + 1) % visibleTabs.length;
+            } else if (event.key === "ArrowLeft") {
+              nextIndex = (
+                currentIndex - 1 + visibleTabs.length
+              ) % visibleTabs.length;
+            } else if (event.key === "Home") {
+              nextIndex = 0;
+            } else if (event.key === "End") {
+              nextIndex = visibleTabs.length - 1;
+            } else {
+              return;
+            }
+
+            event.preventDefault();
+
+            const nextTab = visibleTabs[nextIndex];
+            if (!nextTab) return;
+
+            selectTheme(nextTab.dataset.pxTheme, false);
+            nextTab.focus();
+            nextTab.scrollIntoView({
+              block: "nearest",
+              inline: "center"
+            });
+          });
+
+          refs.tabs.appendChild(button);
+        });
+      }
+
+      function makeNewsRow(item) {
+        const row = create("article", "pxk-news-row");
+        const body = create("div", "pxk-row-body");
+
+        body.appendChild(
+          createExternalTitle("p", item, "pxk-row-title")
+        );
+
+        if (item.summary) {
+          body.appendChild(
+            create("p", "pxk-row-summary", item.summary)
+          );
+        }
+
+        body.appendChild(
+          create("span", "pxk-row-source", item.source)
+        );
+
+        row.append(
+          create("span", "pxk-row-time", formatRowTime(item)),
+          body,
+          create("span", "pxk-row-arrow", item.link ? "↗" : "·")
+        );
+
+        return row;
+      }
+
+      function renderNewsList() {
+        refs.newsList.replaceChildren();
+
+        if (!remainingItems.length) {
+          refs.newsList.appendChild(makeState(
+            "0",
+            newsItems.length ? "Alles eingeordnet" : "Keine Meldungen",
+            newsItems.length
+              ? "Die drei wichtigsten Meldungen jedes Themas stehen oben."
+              : "Der aktuelle Datenstand enthält keine verwertbare Nachricht."
+          ));
+          refs.newsMore.hidden = true;
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        remainingItems.slice(0, shownNews).forEach((item) => {
+          fragment.appendChild(makeNewsRow(item));
+        });
+
+        refs.newsList.appendChild(fragment);
+
+        const hiddenCount = Math.max(
+          0,
+          remainingItems.length - shownNews
+        );
+
+        refs.newsMore.hidden = hiddenCount <= 0;
+        refs.newsMore.querySelector(".pxk-button-label").textContent =
+          numberFormat.format(hiddenCount) +
+          " weitere Meldungen zeigen";
+      }
+
+      function extractLines(payload) {
+        if (
+          !payload ||
+          typeof payload !== "object" ||
+          !payload.linien ||
+          typeof payload.linien !== "object" ||
+          Array.isArray(payload.linien)
+        ) {
+          return [];
+        }
+
+        return Object.entries(payload.linien).map(([id, line]) => {
+          if (!line || typeof line !== "object") return null;
+
+          const rawEvents = Array.isArray(line.e)
+            ? line.e
+            : line.e && typeof line.e === "object"
+              ? Object.values(line.e)
+              : [];
+
+          const events = rawEvents
+            .filter((event) => {
+              return event && typeof event === "object";
+            })
+            .map((event, index) => {
+              return {
+                title: cleanText(
+                  event.t || event.title,
+                  "Ohne Überschrift"
+                ).slice(0, 320),
+                link: safeUrl(firstUrl(event.l || event.link)),
+                source: cleanText(
+                  event.q || event.source,
+                  "Quelle offen"
+                ),
+                date: cleanText(event.d || event.date),
+                timestamp: timestampOf(event),
+                index
+              };
+            })
+            .sort((first, second) => {
+              return second.timestamp - first.timestamp ||
+                first.index - second.index;
+            });
+
+          const dossier =
+            line.dossier && typeof line.dossier === "object"
+              ? line.dossier
+              : {};
+
+          return {
+            id,
+            title: cleanText(
+              dossier.titel ||
+              line.titel ||
+              (events[0] ? events[0].title : ""),
+              "Automatisches Dossier"
+            ),
+            since: cleanText(
+              line.seit ||
+              (events[0] ? events[0].date : "")
+            ),
+            count: Math.max(
+              1,
+              numberValue(line.n, events.length),
+              events.length
+            ),
+            events
+          };
+        }).filter(Boolean);
+      }
+
+      function makeDossierCard(line) {
+        const card = create("article", "pxk-dossier-card");
+        const main = create("div", "pxk-dossier-main");
+        const top = create("div", "pxk-dossier-top");
+        const countLabel = line.count === 1
+          ? "Meldung"
+          : "Meldungen";
+        const lineLabel =
+          "Linie " + line.id.slice(0, 4).toUpperCase();
+
+        top.append(
+          create("span", "pxk-tag", lineLabel),
+          create(
+            "span",
+            "pxk-dossier-meta",
+            numberFormat.format(line.count) + " " + countLabel
+          )
+        );
+
+        main.append(
+          top,
+          create("h3", "pxk-dossier-title", line.title)
+        );
+
+        if (line.since) {
+          main.appendChild(
+            create(
+              "p",
+              "pxk-dossier-meta",
+              "Seit " + formatDate(line.since)
+            )
+          );
+        }
+
+        const details = create("details");
+        const summary = create(
+          "summary",
+          "",
+          line.events.length
+            ? numberFormat.format(line.events.length) +
+              " Meldungen öffnen"
+            : "Noch keine Meldungsdetails"
+        );
+
+        details.appendChild(summary);
+
+        if (line.events.length) {
+          const list = create("ul", "pxk-event-list");
+
+          line.events.forEach((event) => {
+            const entry = create("li", "pxk-event");
+            const title = create("p", "pxk-event-title");
+
+            if (event.link) {
+              const link = create("a", "", event.title);
+              link.href = event.link;
+              link.target = "_blank";
+              link.rel = "noopener noreferrer";
+              title.appendChild(link);
+            } else {
+              title.textContent = event.title;
+            }
+
+            const meta = [
+              event.source,
+              formatDate(event.date)
+            ]
+              .filter(Boolean)
+              .join(" / ");
+
+            entry.append(
+              title,
+              create(
+                "p",
+                "pxk-event-meta",
+                meta || "Meldungsdetails"
+              )
+            );
+
+            list.appendChild(entry);
+          });
+
+          details.appendChild(list);
+        }
+
+        card.append(main, details);
+        return card;
+      }
+
+      function renderDossiers(payload) {
+        const lines = extractLines(payload);
+        refs.dossierRail.replaceChildren();
+
+        if (!lines.length) {
+          refs.dossierCount.textContent = "0";
+          refs.dossierCopy.textContent =
+            "Für diesen Stand sind keine Linien hinterlegt.";
+
+          refs.dossierRail.appendChild(makeState(
+            "0",
+            "Noch keine Linien",
+            "Dossiers werden mit einem passenden Datenstand ergänzt."
+          ));
+          return;
+        }
+
+        refs.dossierCount.textContent = numberFormat.format(lines.length);
+        refs.dossierCopy.textContent =
+          numberFormat.format(lines.length) +
+          " Linien horizontal öffnen.";
+
+        const fragment = document.createDocumentFragment();
+
+        lines.forEach((line) => {
+          fragment.appendChild(makeDossierCard(line));
+        });
+
+        refs.dossierRail.appendChild(fragment);
+      }
+
+      function normaliseAnalysis(raw) {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          return null;
+        }
+
+        const title = cleanText(
+          raw.headline || raw.title
+        ).slice(0, 320);
+
+        if (!title) return null;
+
+        const rawLinks = Array.isArray(raw.links)
+          ? raw.links
+          : [];
+
+        let link = "";
+
+        for (const candidate of rawLinks) {
+          link = firstUrl(candidate);
+          if (link) break;
+        }
+
+        if (!link) {
+          link = safeUrl(
+            firstUrl(raw.article_url || raw.url)
+          );
+        }
+
+        return {
+          title,
+          copy: cleanText(
+            raw.einordnung ||
+            raw.description ||
+            raw.summary
+          ).slice(0, 440),
+          source: cleanText(
+            raw.source,
+            "KI News"
+          ).slice(0, 60),
+          date: cleanText(raw.date),
+          link,
+          timestamp: timestampOf(raw)
+        };
+      }
+
+      function makeAnalysisCard(item) {
+        const card = create(
+          item.link ? "a" : "article",
+          "pxk-analysis-card"
+        );
+
+        if (item.link) {
+          card.href = item.link; card.__pxkItem = item;
+          card.target = "_blank";
+          card.rel = "noopener noreferrer";
+        }
+
+        card.appendChild(create("span", "pxk-tag", "Analyse"));
+        card.appendChild(
+          create("h3", "pxk-analysis-title", item.title)
+        );
+
+        if (item.copy) {
+          card.appendChild(
+            create("p", "pxk-analysis-copy", item.copy)
+          );
+        }
+
+        const meta = create("div", "pxk-analysis-meta");
+        meta.append(
+          create("span", "", item.source),
+          create("span", "", formatDate(item.date))
+        );
+
+        card.appendChild(meta);
+        return card;
+      }
+
+      function renderAnalysisList() {
+        refs.analysisRail.replaceChildren();
+
+        if (!analysisItems.length) return;
+
+        const fragment = document.createDocumentFragment();
+
+        analysisItems.slice(0, shownAnalyses).forEach((item) => {
+          fragment.appendChild(makeAnalysisCard(item));
+        });
+
+        refs.analysisRail.appendChild(fragment);
+
+        const hiddenCount = Math.max(
+          0,
+          analysisItems.length - shownAnalyses
+        );
+
+        refs.analysisMore.hidden = hiddenCount <= 0;
+        refs.analysisMore.querySelector(".pxk-button-label").textContent =
+          numberFormat.format(hiddenCount) +
+          " weitere Analysen zeigen";
+      }
+
+      function renderAnalyses(payload, failureText = "") {
+        const rawItems = Array.isArray(payload)
+          ? payload
+          : payload && Array.isArray(payload.cards)
+            ? payload.cards
+            : [];
+
+        const seen = new Set();
+
+        analysisItems = rawItems
+          .map(normaliseAnalysis)
+          .filter((item) => {
+            if (!item) return false;
+
+            const identity = item.link
+              ? "link:" + item.link
+              : "analysis:" + normalizeText(item.title);
+
+            if (seen.has(identity)) return false;
+
+            seen.add(identity);
+            return true;
+          })
+          .sort((first, second) => {
+            return second.timestamp - first.timestamp;
+          });
+
+        shownAnalyses = 6;
+
+        refs.analysisCount.textContent = analysisItems.length
+          ? numberFormat.format(analysisItems.length)
+          : "0";
+
+        if (!analysisItems.length) {
+          refs.analysisRail.replaceChildren();
+          refs.analysisRail.appendChild(makeState(
+            "0",
+            "Keine Analysen",
+            failureText ||
+              "cards.json enthält derzeit keine Analyse mit einem vollständigen Titel."
+          ));
+          refs.analysisMore.hidden = true;
+          return;
+        }
+
+        renderAnalysisList();
+      }
+
+      function buildNewsModel(payload) {
+        newsItems = prepareNews(extractNews(payload));
+        newsGroups = new Map();
+
+        shownNews = window.matchMedia("(max-width: 700px)").matches
+          ? 4
+          : 8;
+
+        newsItems.forEach((item) => {
+          if (!newsGroups.has(item.theme.id)) {
+            newsGroups.set(item.theme.id, {
+              theme: item.theme,
+              items: []
+            });
+          }
+
+          newsGroups.get(item.theme.id).items.push(item);
+        });
+
+        const firstExistingTheme = themes.find((theme) => {
+          return newsGroups.has(theme.id);
+        });
+
+        selectedThemeId = firstExistingTheme
+          ? firstExistingTheme.id
+          : "";
+        selectedThemeExpanded = false;
+
+        const topItems = new Set();
+
+        newsGroups.forEach((group) => {
+          group.items.slice(0, 3).forEach((item) => {
+            topItems.add(item);
+          });
+        });
+
+        remainingItems = newsItems
+          .filter((item) => !topItems.has(item))
+          .sort((first, second) => {
+            if (second.timestamp !== first.timestamp) {
+              return second.timestamp - first.timestamp;
+            }
+
+            return second.score - first.score ||
+              first.sourceIndex - second.sourceIndex;
+          });
+
+        let stand = "Stand nicht angegeben";
+
+        if (
+          payload &&
+          typeof payload === "object" &&
+          !Array.isArray(payload)
+        ) {
+          stand = cleanText(
+            payload.stand ||
+            (payload.briefing && payload.briefing.stand)
+          ) || stand;
+        }
+
+        refs.stand.textContent = "Datenstand: " + stand;
+        refs.topicCount.textContent = newsGroups.size
+          ? numberFormat.format(newsGroups.size) + " Themen"
+          : "0 Themen";
+        refs.latestCount.textContent =
+          numberFormat.format(remainingItems.length);
+        refs.latestCopy.textContent = newsItems.length
+          ? numberFormat.format(newsItems.length) +
+            " Meldungen insgesamt, übrige nach Aktualität sortiert."
+          : "Der aktuelle Datenstand ist leer.";
+
+        renderMorning();
+        updateTabs();
+        renderSelectedTheme();
+        renderNewsList();
+        renderDossiers(payload);
+      }
+
+      function showNewsError() {
+        refs.stand.textContent = "Datenstand: nicht verfügbar";
+
+        refs.morningRail.replaceChildren();
+        refs.morningRail.appendChild(makeState(
+          "ERR",
+          "Nachrichten konnten nicht geladen werden",
+          "Die relative Datei news.json ist gerade nicht erreichbar."
+        ));
+
+        refs.tabs.replaceChildren();
+
+        refs.topicPanel.style.setProperty("--pxk-accent", "#ff5c8a");
+        refs.topicPanel.replaceChildren();
+        refs.topicPanel.setAttribute(
+          "aria-labelledby",
+          "pxk-topics-heading"
+        );
+
+        const state = makeState(
+          "ERR",
+          "Der kompakte Nachrichtenbereich ist vorübergehend nicht verfügbar",
+          "Andere Bereiche der Seite bleiben nutzbar. Die Meldungen können erneut geladen werden."
+        );
+
+        const retry = create("button", "pxk-retry", "Erneut versuchen");
+        retry.type = "button";
+
+        retry.addEventListener("click", () => {
+          void loadAll();
+        });
+
+        state.querySelector(".pxk-state-inner").appendChild(retry);
+        refs.topicPanel.appendChild(state);
+        refs.topicMore.hidden = true;
+
+        refs.latestCount.textContent = "0";
+        refs.latestCopy.textContent =
+          "Wegen eines Ladefehlers nicht verfügbar.";
+        refs.newsList.replaceChildren();
+        refs.newsMore.hidden = true;
+
+        refs.dossierCount.textContent = "0";
+        refs.dossierCopy.textContent =
+          "Wegen eines Ladefehlers nicht verfügbar.";
+        refs.dossierRail.replaceChildren();
+        refs.dossierRail.appendChild(makeState(
+          "ERR",
+          "Linien nicht verfügbar",
+          "Auch diese Daten stammen aus news.json."
+        ));
+      }
+
+      async function fetchJSON(path, timeoutMs) {
+        const controller = new AbortController();
+        activeControllers.push(controller);
+
+        const timeout = window.setTimeout(() => {
+          controller.abort();
+        }, timeoutMs);
+
+        try {
+          const response = await fetch(path, {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
+            signal: controller.signal
+          });
+
+          if (!response.ok) {
+            throw new Error(path + " HTTP " + response.status);
+          }
+
+          return await response.json();
+        } finally {
+          window.clearTimeout(timeout);
+          activeControllers = activeControllers.filter((entry) => {
+            return entry !== controller;
+          });
+        }
+      }
+
+      async function loadAll() {
+        const currentRequest = ++requestId;
+
+        activeControllers.forEach((controller) => {
+          controller.abort();
+        });
+        activeControllers = [];
+
+        root.setAttribute("aria-busy", "true");
+        refs.stand.textContent = "Relative Daten werden geladen";
+
+        try {
+          const results = await Promise.allSettled([
+            fetchJSON("news.json", 7500),
+            fetchJSON("cards.json", 6500)
+          ]);
+
+          if (currentRequest !== requestId) return;
+
+          const newsResult = results[0];
+          const cardsResult = results[1];
+
+          if (newsResult.status === "fulfilled") {
+            try {
+              buildNewsModel(newsResult.value);
+              document.documentElement.classList.add("pxk-ok");
+            } catch (error) {
+              showNewsError();
+            }
+          } else {
+            showNewsError();
+          }
+
+          if (cardsResult.status === "fulfilled") {
+            renderAnalyses(cardsResult.value);
+          } else {
+            renderAnalyses(
+              null,
+              "cards.json ist gerade nicht erreichbar. Die Nachrichtenübersicht bleibt verfügbar."
+            );
+          }
+        } catch (error) {
+          if (currentRequest !== requestId) return;
+
+          showNewsError();
+          renderAnalyses(
+            null,
+            "Analysen sind vorübergehend nicht verfügbar."
+          );
+        } finally {
+          if (currentRequest === requestId) {
+            root.setAttribute("aria-busy", "false");
+          }
+        }
+      }
+
+      refs.topicMore.addEventListener("click", () => {
+        const group = newsGroups.get(selectedThemeId);
+
+        if (!group || group.items.length <= 3) return;
+
+        selectedThemeExpanded = !selectedThemeExpanded;
+        renderSelectedTheme();
+      });
+
+      refs.newsMore.addEventListener("click", () => {
+        shownNews = Math.min(
+          remainingItems.length,
+          shownNews + 12
+        );
+        renderNewsList();
+      });
+
+      refs.analysisMore.addEventListener("click", () => {
+        shownAnalyses = Math.min(
+          analysisItems.length,
+          shownAnalyses + 6
+        );
+        renderAnalysisList();
+      });
+
+      window.addEventListener("pagehide", () => {
+        requestId += 1;
+
+        activeControllers.forEach((controller) => {
+          controller.abort();
+        });
+
+        activeControllers = [];
+      });
+
+      refs.topicPanel.dataset.view = viewMode;
+      void loadAll();
+    })();
+  </script>
+<!-- KOMPAKT:END -->
 <!-- SSR:NEWS:START -->
       <script type="application/ld+json" id="ssr-newslist">
 {

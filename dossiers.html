@@ -1,16 +1,14 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta name="robots" content="index, follow"/>
-<link rel="canonical" href="https://ki-news.live/dossiers.html"/>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <meta
     name="description"
-    content="Übersicht aller thematischen Story-Linien und Dossiers von KI News.live"
+    content="Thematische Dossiers, Story-Linien, Quellen und Relevanz-Schätzungen von KI News.live"
   >
-  <title>Dossier-Übersicht | KI News.live</title>
+  <title>Dossiers | KI News</title>
 
   <link rel="stylesheet" href="assets/ki-fonts.css">
   <link rel="stylesheet" href="assets/ki-tw.css">
@@ -18,20 +16,25 @@
   <style>
     :root {
       --px-bg: #edf5f8;
-      --px-bg-deep: #dfeaf0;
+      --px-bg-deep: #dce9ef;
       --px-card: #f8fbfd;
       --px-card-strong: #ffffff;
-      --px-panel: rgba(248, 251, 253, 0.95);
+      --px-panel: rgba(248, 251, 253, 0.96);
       --px-text: #102335;
-      --px-muted: #536a7b;
-      --px-faint: #748899;
+      --px-muted: #516979;
+      --px-faint: #708594;
       --px-cyan: #00d4ff;
-      --px-cyan-ink: #008eaa;
+      --px-cyan-ink: #007f96;
       --px-violet: #955dff;
+      --px-violet-ink: #7040c5;
       --px-green: #00b982;
+      --px-green-ink: #007b5a;
       --px-orange: #f59b35;
-      --px-border: rgba(var(--neon-rgb, 0, 212, 255), 0.14);
-      --px-border-strong: rgba(var(--neon-rgb, 0, 212, 255), 0.28);
+      --px-orange-ink: #9c5107;
+      --px-red: #ff5f7a;
+      --px-red-ink: #bd304d;
+      --px-border: rgba(var(--neon-rgb, 0, 212, 255), 0.12);
+      --px-border-strong: rgba(var(--neon-rgb, 0, 212, 255), 0.22);
       --px-shadow: 0 14px 42px rgba(30, 66, 87, 0.09);
       --px-max: 1440px;
       color-scheme: light;
@@ -45,13 +48,17 @@
       --px-bg-deep: #091720;
       --px-card: #0c1922;
       --px-card-strong: #101f29;
-      --px-panel: rgba(9, 21, 29, 0.95);
+      --px-panel: rgba(9, 21, 29, 0.96);
       --px-text: #eaf7fc;
-      --px-muted: #a3b7c3;
-      --px-faint: #768c99;
-      --px-cyan-ink: #53ddff;
-      --px-border: rgba(var(--neon-rgb, 0, 212, 255), 0.15);
-      --px-border-strong: rgba(var(--neon-rgb, 0, 212, 255), 0.3);
+      --px-muted: #a5bac6;
+      --px-faint: #7f95a2;
+      --px-cyan-ink: #55ddff;
+      --px-violet-ink: #b28bff;
+      --px-green-ink: #42e4b0;
+      --px-orange-ink: #ffb25e;
+      --px-red-ink: #ff7f96;
+      --px-border: rgba(var(--neon-rgb, 0, 212, 255), 0.13);
+      --px-border-strong: rgba(var(--neon-rgb, 0, 212, 255), 0.22);
       --px-shadow: 0 18px 54px rgba(0, 0, 0, 0.3);
       color-scheme: dark;
     }
@@ -71,6 +78,7 @@
 
     html {
       min-width: 0;
+      overflow-x: hidden;
       background: var(--px-bg);
       scroll-behavior: smooth;
     }
@@ -91,8 +99,16 @@
           rgba(var(--neon-rgb, 0, 212, 255), 0.045) 1px,
           transparent 1px
         ),
-        radial-gradient(circle at 94% 5%, rgba(149, 93, 255, 0.12), transparent 29rem),
-        radial-gradient(circle at 3% 43%, rgba(0, 212, 255, 0.07), transparent 26rem),
+        radial-gradient(
+          circle at 94% 5%,
+          rgba(149, 93, 255, 0.12),
+          transparent 29rem
+        ),
+        radial-gradient(
+          circle at 3% 43%,
+          rgba(0, 212, 255, 0.07),
+          transparent 26rem
+        ),
         linear-gradient(180deg, var(--px-bg), var(--px-bg-deep));
       background-size: 42px 42px, 42px 42px, auto, auto, auto;
       font-family: "Work Sans", system-ui, sans-serif;
@@ -103,14 +119,13 @@
     }
 
     button,
-    input,
-    select {
+    input {
+      min-width: 0;
       max-width: 100%;
       font: inherit;
     }
 
-    button,
-    select {
+    button {
       cursor: pointer;
     }
 
@@ -167,10 +182,10 @@
       display: grid;
       min-width: 0;
       overflow: hidden;
-      grid-template-columns: minmax(0, 1fr) minmax(320px, 410px);
-      gap: clamp(30px, 5vw, 72px);
+      grid-template-columns: minmax(0, 1fr) minmax(310px, 390px);
+      gap: clamp(28px, 5vw, 72px);
       align-items: center;
-      padding: clamp(25px, 3.3vw, 40px);
+      padding: clamp(24px, 3.1vw, 38px);
       isolation: isolate;
       border: 1px solid var(--px-border-strong);
       border-radius: 12px;
@@ -234,10 +249,10 @@
     }
 
     .px-hero-title {
-      max-width: 850px;
+      max-width: 790px;
       margin: 0;
       font-family: "Space Grotesk", system-ui, sans-serif;
-      font-size: clamp(43px, 5vw, 72px);
+      font-size: clamp(43px, 5vw, 68px);
       font-weight: 650;
       line-height: 0.96;
       letter-spacing: -0.062em;
@@ -252,8 +267,8 @@
     }
 
     .px-hero-copy {
-      max-width: 720px;
-      margin: 17px 0 0;
+      max-width: 700px;
+      margin: 16px 0 0;
       color: var(--px-muted);
       font-size: clamp(14px, 1.15vw, 16px);
       line-height: 1.55;
@@ -272,7 +287,8 @@
       display: inline-flex;
       max-width: 100%;
       min-width: 0;
-      padding: 6px 9px;
+      min-height: 24px;
+      padding: 5px 9px;
       overflow: hidden;
       align-items: center;
       border: 1px solid var(--px-border-strong);
@@ -287,15 +303,27 @@
     }
 
     .px-tag-violet {
-      border-color: rgba(149, 93, 255, 0.34);
-      color: var(--px-violet);
+      border-color: rgba(149, 93, 255, 0.22);
+      color: var(--px-violet-ink);
       background: rgba(149, 93, 255, 0.08);
+    }
+
+    .px-tag-epic {
+      border-color: rgba(245, 155, 53, 0.22);
+      color: var(--px-orange-ink);
+      background: rgba(245, 155, 53, 0.08);
+    }
+
+    .px-tag-breaking {
+      border-color: rgba(255, 95, 122, 0.22);
+      color: var(--px-red-ink);
+      background: rgba(255, 95, 122, 0.08);
     }
 
     .px-map {
       position: relative;
       min-width: 0;
-      min-height: 208px;
+      min-height: 198px;
       overflow: hidden;
       border: 1px solid var(--px-border);
       border-radius: 12px;
@@ -304,6 +332,7 @@
         linear-gradient(90deg, rgba(0, 212, 255, 0.06) 1px, transparent 1px),
         rgba(0, 212, 255, 0.018);
       background-size: 24px 24px, 24px 24px, auto;
+      box-shadow: inset 0 0 28px rgba(0, 212, 255, 0.025);
     }
 
     .px-map::after {
@@ -316,6 +345,7 @@
       font: 8px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+      pointer-events: none;
     }
 
     .px-map svg {
@@ -350,14 +380,30 @@
       top: 13px;
       left: 14px;
       z-index: 2;
+      max-width: calc(100% - 28px);
       padding: 5px 8px;
+      overflow: hidden;
       border: 1px solid var(--px-border);
       border-radius: 999px;
       color: var(--px-muted);
       background: var(--px-panel);
       font: 800 8px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
+      text-overflow: ellipsis;
       text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .px-map-empty {
+      position: absolute;
+      inset: 50% 20px auto;
+      z-index: 2;
+      color: var(--px-faint);
+      font: 9px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      text-align: center;
+      text-transform: uppercase;
+      pointer-events: none;
     }
 
     .px-stats {
@@ -390,8 +436,7 @@
       margin-top: 6px;
       overflow: hidden;
       color: var(--px-faint);
-      font: 7px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight: 700;
+      font: 700 7px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       letter-spacing: 0.06em;
       overflow-wrap: anywhere;
       text-overflow: ellipsis;
@@ -403,7 +448,7 @@
       z-index: 4;
       min-width: 0;
       margin-top: 15px;
-      padding: 15px 16px 12px;
+      padding: 16px;
       border: 1px solid var(--px-border-strong);
       border-radius: 12px;
       background: var(--px-panel);
@@ -411,14 +456,11 @@
       backdrop-filter: blur(18px);
     }
 
-    .px-control-form {
+    .px-control-top {
       display: grid;
       min-width: 0;
-      margin: 0;
-      padding: 0;
-      border: 0;
-      grid-template-columns: minmax(220px, 1.5fr) minmax(155px, 0.7fr) minmax(160px, 0.7fr) auto;
-      gap: 10px;
+      grid-template-columns: minmax(240px, 1fr) auto;
+      gap: 11px;
       align-items: end;
     }
 
@@ -428,35 +470,28 @@
       gap: 6px;
     }
 
-    .px-field-label {
+    .px-field-label,
+    .px-filter-label {
       color: var(--px-faint);
       font: 800 8px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       letter-spacing: 0.1em;
       text-transform: uppercase;
     }
 
-    .px-input,
-    .px-select {
+    .px-input {
       width: 100%;
       min-width: 0;
       min-height: 42px;
+      padding: 0 14px;
       border: 1px solid var(--px-border);
-      border-radius: 10px;
+      border-radius: 999px;
       color: var(--px-text);
       background: var(--px-card-strong);
-    }
-
-    .px-input {
-      padding: 0 13px;
     }
 
     .px-input::placeholder {
       color: var(--px-faint);
       opacity: 1;
-    }
-
-    .px-select {
-      padding: 0 34px 0 12px;
     }
 
     .px-button {
@@ -469,19 +504,96 @@
       font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      transition:
+        color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        background 140ms ease;
     }
 
     .px-button:hover {
       border-color: var(--px-cyan);
       color: var(--px-cyan-ink);
+      background: rgba(0, 212, 255, 0.045);
       box-shadow: 0 0 18px rgba(0, 212, 255, 0.11);
+    }
+
+    .px-filter-board {
+      display: grid;
+      min-width: 0;
+      margin-top: 14px;
+      padding-top: 13px;
+      grid-template-columns: 1.05fr 1.15fr 1.2fr 0.8fr;
+      gap: 13px;
+      border-top: 1px solid var(--px-border);
+    }
+
+    .px-filter-group {
+      min-width: 0;
+    }
+
+    .px-filter-label {
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .px-pill-row {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .px-pill {
+      display: inline-flex;
+      min-width: 0;
+      min-height: 30px;
+      padding: 0 10px;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid var(--px-border);
+      border-radius: 999px;
+      color: var(--px-muted);
+      background: transparent;
+      font: 800 8px/1.1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+      transition:
+        color 140ms ease,
+        border-color 140ms ease,
+        background 140ms ease,
+        box-shadow 140ms ease;
+    }
+
+    .px-pill:hover {
+      border-color: var(--px-border-strong);
+      color: var(--px-text);
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.07);
+    }
+
+    .px-pill[aria-pressed="true"] {
+      border-color: var(--px-cyan);
+      color: var(--px-cyan-ink);
+      background: rgba(0, 212, 255, 0.09);
+      box-shadow:
+        0 0 17px rgba(0, 212, 255, 0.11),
+        inset 0 0 12px rgba(0, 212, 255, 0.035);
+    }
+
+    .px-pill-count {
+      color: var(--px-faint);
+      font-size: 7px;
+    }
+
+    .px-pill[aria-pressed="true"] .px-pill-count {
+      color: var(--px-cyan-ink);
     }
 
     .px-control-meta {
       display: flex;
       min-width: 0;
-      margin-top: 10px;
-      padding-top: 9px;
+      margin-top: 13px;
+      padding-top: 10px;
       flex-wrap: wrap;
       gap: 6px 18px;
       justify-content: space-between;
@@ -517,11 +629,11 @@
     }
 
     .px-section-note {
-      max-width: 460px;
+      max-width: 530px;
       margin: 0;
       color: var(--px-muted);
       font-size: 12px;
-      line-height: 1.45;
+      line-height: 1.5;
       text-align: right;
     }
 
@@ -563,6 +675,10 @@
 
     .px-dossier-card-orange {
       --px-accent: var(--px-orange);
+    }
+
+    .px-dossier-card-red {
+      --px-accent: var(--px-red);
     }
 
     .px-dossier-card::before {
@@ -653,14 +769,19 @@
       display: grid;
       min-width: 0;
       margin-top: 20px;
-      grid-template-columns: minmax(0, 1.6fr) minmax(58px, 0.48fr) minmax(58px, 0.5fr);
-      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 8px;
     }
 
     .px-metric {
       min-width: 0;
       padding-top: 8px;
       border-top: 1px solid var(--px-border);
+    }
+
+    .px-metric-period,
+    .px-metric-score {
+      grid-column: 1 / -1;
     }
 
     .px-metric-label {
@@ -693,19 +814,70 @@
       color: var(--px-cyan-ink);
     }
 
+    .px-metric-score {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    .px-metric-score .px-metric-label {
+      color: var(--px-faint);
+      font-size: 7px;
+    }
+
+    .px-metric-score .px-metric-value {
+      flex: 0 0 auto;
+      margin: 0;
+      color: var(--px-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .px-source-strip {
+      display: grid;
+      min-width: 0;
+      margin-top: 13px;
+      padding-top: 11px;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      border-top: 1px solid var(--px-border);
+    }
+
+    .px-source-strip-label {
+      color: var(--px-faint);
+      font: 800 7px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .px-source-names {
+      display: -webkit-box;
+      min-width: 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font: 9px/1.35 "Work Sans", system-ui, sans-serif;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
     .px-mini-timeline {
       position: relative;
+      display: block;
       min-width: 0;
-      height: 86px;
-      margin-top: 17px;
-      padding-top: 14px;
+      height: 78px;
+      margin-top: 13px;
+      padding-top: 13px;
       border-top: 1px solid var(--px-border);
     }
 
     .px-mini-label {
       display: flex;
       min-width: 0;
-      margin-bottom: 7px;
+      margin-bottom: 6px;
       gap: 8px;
       justify-content: space-between;
       color: var(--px-faint);
@@ -728,7 +900,7 @@
     .px-mini-track {
       position: relative;
       display: block;
-      height: 37px;
+      height: 35px;
     }
 
     .px-mini-track::before {
@@ -813,7 +985,7 @@
 
     .px-dossier-card:hover .px-card-link::after,
     .px-dossier-card:focus-within .px-card-link::after {
-      color: var(--px-violet);
+      color: var(--px-violet-ink);
     }
 
     .px-state {
@@ -867,7 +1039,7 @@
     .px-skeleton {
       position: relative;
       min-width: 0;
-      min-height: 384px;
+      min-height: 420px;
       overflow: hidden;
       border: 1px solid var(--px-border);
       border-radius: 12px;
@@ -966,13 +1138,17 @@
         --px-bg-deep: #091720;
         --px-card: #0c1922;
         --px-card-strong: #101f29;
-        --px-panel: rgba(9, 21, 29, 0.95);
+        --px-panel: rgba(9, 21, 29, 0.96);
         --px-text: #eaf7fc;
-        --px-muted: #a3b7c3;
-        --px-faint: #768c99;
-        --px-cyan-ink: #53ddff;
-        --px-border: rgba(var(--neon-rgb, 0, 212, 255), 0.15);
-        --px-border-strong: rgba(var(--neon-rgb, 0, 212, 255), 0.3);
+        --px-muted: #a5bac6;
+        --px-faint: #7f95a2;
+        --px-cyan-ink: #55ddff;
+        --px-violet-ink: #b28bff;
+        --px-green-ink: #42e4b0;
+        --px-orange-ink: #ffb25e;
+        --px-red-ink: #ff7f96;
+        --px-border: rgba(var(--neon-rgb, 0, 212, 255), 0.13);
+        --px-border-strong: rgba(var(--neon-rgb, 0, 212, 255), 0.22);
         --px-shadow: 0 18px 54px rgba(0, 0, 0, 0.3);
         color-scheme: dark;
       }
@@ -984,7 +1160,7 @@
         gap: 28px;
       }
 
-      .px-control-form {
+      .px-filter-board {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -1000,18 +1176,18 @@
       }
 
       .px-map {
-        min-height: 180px;
+        min-height: 176px;
       }
 
       .px-section-note {
-        max-width: 390px;
+        max-width: 520px;
         text-align: left;
       }
     }
 
     @media (max-width: 560px) {
       .px-shell {
-        padding-inline: 11px;
+        padding-inline: 10px;
       }
 
       .px-main {
@@ -1020,8 +1196,8 @@
       }
 
       .px-hero {
-        gap: 20px;
-        padding: 20px 15px 15px;
+        gap: 17px;
+        padding: 19px 15px 14px;
       }
 
       .px-eyebrow {
@@ -1030,7 +1206,7 @@
       }
 
       .px-hero-title {
-        font-size: clamp(39px, 11.2vw, 50px);
+        font-size: clamp(38px, 10.4vw, 49px);
         line-height: 0.95;
       }
 
@@ -1048,7 +1224,7 @@
       }
 
       .px-map {
-        min-height: 142px;
+        min-height: 132px;
       }
 
       .px-map-label {
@@ -1083,13 +1259,29 @@
         padding: 12px;
       }
 
-      .px-control-form {
+      .px-control-top {
         grid-template-columns: 1fr;
         gap: 9px;
       }
 
       .px-button {
         width: 100%;
+        font-size: 8px;
+      }
+
+      .px-filter-board {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .px-pill-row {
+        gap: 5px;
+      }
+
+      .px-pill {
+        min-height: 29px;
+        padding-inline: 9px;
+        font-size: 7.5px;
       }
 
       .px-control-meta {
@@ -1125,18 +1317,6 @@
 
       .px-card-id {
         max-width: 72px;
-      }
-
-      .px-metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .px-metric-period {
-        grid-column: 1 / -1;
-      }
-
-      .px-metric-value {
-        font-size: 10px;
       }
 
       .px-state {
@@ -1188,8 +1368,9 @@
           </h1>
 
           <p class="px-hero-copy">
-            Thematische Story-Linien aus dem Nachrichtenarchiv. Jede Karte zeigt
-            Zeitraum, Ereigniszahl und den zeitlichen Verlauf der Meldungen.
+            Thematische Story-Linien aus dem Nachrichtenarchiv. Die Übersicht zeigt
+            Zeitraum, Quellenzahl, Meldungsumfang und eine vorsichtige redaktionelle
+            Einordnung.
           </p>
 
           <div class="px-hero-tags">
@@ -1200,9 +1381,20 @@
 
         <aside class="px-hero-side" aria-label="Kennzahlen der Dossiers">
           <div class="px-map" aria-hidden="true">
-            <span class="px-map-label">Liniennetz aktiv</span>
+            <span id="px-map-label" class="px-map-label">
+              Liniennetz wird geladen
+            </span>
 
-            <svg viewBox="0 0 390 220" role="presentation">
+            <span id="px-map-empty" class="px-map-empty" hidden>
+              Keine passenden Linien
+            </span>
+
+            <svg
+              id="px-map-svg"
+              class="px-map-svg"
+              viewBox="0 0 390 220"
+              role="presentation"
+            >
               <defs>
                 <linearGradient id="px-map-gradient" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0" stop-color="#00d4ff"></stop>
@@ -1210,100 +1402,8 @@
                 </linearGradient>
               </defs>
 
-              <path
-                class="px-map-line"
-                d="M32 164 L101 91 L184 131 L252 54 L344 97"
-                fill="none"
-                stroke="url(#px-map-gradient)"
-                stroke-width="1.4"
-                stroke-opacity="0.42"
-              ></path>
-
-              <path
-                class="px-map-line"
-                d="M62 39 L101 91 L132 190 L184 131 L283 178 L344 97"
-                fill="none"
-                stroke="#955dff"
-                stroke-width="1"
-                stroke-opacity="0.28"
-              ></path>
-
-              <path
-                d="M32 164 L132 190 L252 54"
-                fill="none"
-                stroke="#00d4ff"
-                stroke-width="1"
-                stroke-opacity="0.18"
-              ></path>
-
-              <circle
-                cx="101"
-                cy="91"
-                r="14"
-                fill="#00d4ff"
-                fill-opacity="0.08"
-                stroke="#00d4ff"
-                stroke-opacity="0.5"
-              ></circle>
-
-              <circle
-                cx="252"
-                cy="54"
-                r="11"
-                fill="#955dff"
-                fill-opacity="0.1"
-                stroke="#955dff"
-                stroke-opacity="0.6"
-              ></circle>
-
-              <circle
-                cx="184"
-                cy="131"
-                r="8"
-                fill="#00b982"
-                fill-opacity="0.1"
-                stroke="#00b982"
-                stroke-opacity="0.5"
-              ></circle>
-
-              <circle
-                class="px-map-pulse"
-                cx="101"
-                cy="91"
-                r="12"
-                fill="none"
-                stroke="#00d4ff"
-                stroke-opacity="0.4"
-              ></circle>
-
-              <circle
-                class="px-map-pulse px-map-pulse-one"
-                cx="252"
-                cy="54"
-                r="10"
-                fill="none"
-                stroke="#955dff"
-                stroke-opacity="0.42"
-              ></circle>
-
-              <circle
-                class="px-map-pulse px-map-pulse-two"
-                cx="184"
-                cy="131"
-                r="8"
-                fill="none"
-                stroke="#00b982"
-                stroke-opacity="0.4"
-              ></circle>
-
-              <circle cx="32" cy="164" r="4" fill="#00d4ff"></circle>
-              <circle cx="101" cy="91" r="5" fill="#00d4ff"></circle>
-              <circle cx="184" cy="131" r="4" fill="#00b982"></circle>
-              <circle cx="252" cy="54" r="5" fill="#955dff"></circle>
-              <circle cx="344" cy="97" r="4" fill="#f59b35"></circle>
-              <circle cx="283" cy="178" r="3" fill="#00d4ff"></circle>
-              <circle cx="132" cy="190" r="3" fill="#955dff"></circle>
-              <circle cx="62" cy="39" r="3" fill="#748899"></circle>
+              <g id="px-map-lines"></g>
+              <g id="px-map-nodes"></g>
             </svg>
           </div>
 
@@ -1315,7 +1415,7 @@
 
             <div class="px-stat">
               <strong id="px-stat-events">0</strong>
-              <span>Ereignisse</span>
+              <span>Meldungen</span>
             </div>
 
             <div class="px-stat">
@@ -1327,7 +1427,7 @@
       </section>
 
       <section class="px-controls" aria-label="Dossiers filtern und sortieren">
-        <form id="px-control-form" class="px-control-form">
+        <form id="px-control-form" class="px-control-top">
           <label class="px-field" for="px-search">
             <span class="px-field-label">Dossier durchsuchen</span>
             <input
@@ -1336,27 +1436,8 @@
               type="search"
               placeholder="Titel, Thema oder Quelle"
               autocomplete="off"
+              maxlength="160"
             >
-          </label>
-
-          <label class="px-field" for="px-period">
-            <span class="px-field-label">Zeitraum</span>
-            <select id="px-period" class="px-select px-focusable">
-              <option value="all">Gesamter Bestand</option>
-              <option value="7">Letzte 7 Tage</option>
-              <option value="30">Letzte 30 Tage</option>
-              <option value="90">Letzte 90 Tage</option>
-            </select>
-          </label>
-
-          <label class="px-field" for="px-sort">
-            <span class="px-field-label">Sortierung</span>
-            <select id="px-sort" class="px-select px-focusable">
-              <option value="new">Neueste zuerst</option>
-              <option value="old">Älteste zuerst</option>
-              <option value="events">Meiste Ereignisse</option>
-              <option value="title">Titel A bis Z</option>
-            </select>
           </label>
 
           <button
@@ -1364,9 +1445,159 @@
             class="px-button px-focusable"
             type="button"
           >
-            Zurücksetzen
+            Filter zurücksetzen
           </button>
         </form>
+
+        <div class="px-filter-board">
+          <div class="px-filter-group">
+            <span class="px-filter-label" id="px-region-label">Region</span>
+            <div
+              id="px-region-pills"
+              class="px-pill-row"
+              role="group"
+              aria-labelledby="px-region-label"
+            ></div>
+          </div>
+
+          <div class="px-filter-group">
+            <span class="px-filter-label" id="px-label-label">Label</span>
+            <div
+              id="px-label-pills"
+              class="px-pill-row"
+              role="group"
+              aria-labelledby="px-label-label"
+            >
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="label"
+                data-value="all"
+                aria-pressed="true"
+              >
+                <span>Alle</span>
+                <span class="px-pill-count">0</span>
+              </button>
+
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="label"
+                data-value="normal"
+                aria-pressed="false"
+              >
+                <span>Normal</span>
+                <span class="px-pill-count">0</span>
+              </button>
+
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="label"
+                data-value="episch"
+                aria-pressed="false"
+              >
+                <span>Episch</span>
+                <span class="px-pill-count">0</span>
+              </button>
+
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="label"
+                data-value="breaking"
+                aria-pressed="false"
+              >
+                <span>Breaking</span>
+                <span class="px-pill-count">0</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="px-filter-group">
+            <span class="px-filter-label" id="px-period-label">Zeitraum</span>
+            <div
+              id="px-period-pills"
+              class="px-pill-row"
+              role="group"
+              aria-labelledby="px-period-label"
+            >
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="period"
+                data-value="all"
+                aria-pressed="true"
+              >
+                <span>Gesamt</span>
+                <span class="px-pill-count">0</span>
+              </button>
+
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="period"
+                data-value="7"
+                aria-pressed="false"
+              >
+                <span>7 Tage</span>
+                <span class="px-pill-count">0</span>
+              </button>
+
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="period"
+                data-value="30"
+                aria-pressed="false"
+              >
+                <span>30 Tage</span>
+                <span class="px-pill-count">0</span>
+              </button>
+
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="period"
+                data-value="90"
+                aria-pressed="false"
+              >
+                <span>90 Tage</span>
+                <span class="px-pill-count">0</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="px-filter-group">
+            <span class="px-filter-label" id="px-sort-label">Sortierung</span>
+            <div
+              id="px-sort-pills"
+              class="px-pill-row"
+              role="group"
+              aria-labelledby="px-sort-label"
+            >
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="sort"
+                data-value="newest"
+                aria-pressed="true"
+              >
+                Neueste
+              </button>
+
+              <button
+                class="px-pill px-focusable"
+                type="button"
+                data-filter="sort"
+                data-value="largest"
+                aria-pressed="false"
+              >
+                Größte
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div class="px-control-meta">
           <span id="px-result" aria-live="polite">Dossiers werden geladen</span>
@@ -1381,7 +1612,9 @@
         </div>
 
         <p class="px-section-note">
-          Jeder Punkt der Mini-Zeitleiste steht für eine Meldung im jeweiligen Dossier.
+          Jeder Punkt der Mini-Zeitleiste steht für eine Meldung. Die
+          Relevanz-Schätzung ist eine heuristische redaktionelle Einordnung und
+          kein Wahrheitswert.
         </p>
       </div>
 
@@ -1424,7 +1657,10 @@
         <div class="px-state-inner">
           <div class="px-state-mark">0</div>
           <h3>Keine passenden Dossiers</h3>
-          <p>Für diese Suche und Zeitauswahl gibt es keine Treffer.</p>
+          <p>
+            Für diese Kombination aus Suche und Filtern gibt es keine Treffer.
+          </p>
+
           <button
             id="px-empty-reset"
             class="px-button px-focusable"
@@ -1443,6 +1679,7 @@
             Die Datei news.json fehlt oder konnte nicht gelesen werden.
             Bitte den relativen Serverpfad prüfen.
           </p>
+
           <button
             id="px-retry"
             class="px-button px-focusable"
@@ -1454,8 +1691,8 @@
       </section>
 
       <p class="px-footer">
-        Datenquelle: news.json / Objekt linien / Jede Karte verweist direkt auf
-        die zugehörige Linie in linie.html.
+        Datenquelle: news.json / Objekt linien / Jede Karte verweist auf die
+        zugehörige Story-Linie. Gestaltung und Betrieb: KI News.live / Scampy.
       </p>
 
       <noscript>
@@ -1477,9 +1714,23 @@
       "use strict";
 
       const DAY = 86400000;
+      const HASH_KEYS = ["q", "region", "label", "period", "sort"];
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const LABEL_PRIORITY = {
+        normal: 1,
+        episch: 2,
+        breaking: 3
+      };
+
       const numberFormat = new Intl.NumberFormat("de-DE", {
         maximumFractionDigits: 0
       });
+
+      const decimalFormat = new Intl.NumberFormat("de-DE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
       const dateFormat = new Intl.DateTimeFormat("de-DE", {
         day: "2-digit",
         month: "2-digit",
@@ -1490,8 +1741,10 @@
       const ui = {
         form: document.querySelector("#px-control-form"),
         search: document.querySelector("#px-search"),
-        period: document.querySelector("#px-period"),
-        sort: document.querySelector("#px-sort"),
+        regionPills: document.querySelector("#px-region-pills"),
+        labelPills: document.querySelector("#px-label-pills"),
+        periodPills: document.querySelector("#px-period-pills"),
+        sortPills: document.querySelector("#px-sort-pills"),
         reset: document.querySelector("#px-reset"),
         emptyReset: document.querySelector("#px-empty-reset"),
         retry: document.querySelector("#px-retry"),
@@ -1504,10 +1757,15 @@
         error: document.querySelector("#px-error"),
         statDossiers: document.querySelector("#px-stat-dossiers"),
         statEvents: document.querySelector("#px-stat-events"),
-        statSpan: document.querySelector("#px-stat-span")
+        statSpan: document.querySelector("#px-stat-span"),
+        mapLabel: document.querySelector("#px-map-label"),
+        mapEmpty: document.querySelector("#px-map-empty"),
+        mapLines: document.querySelector("#px-map-lines"),
+        mapNodes: document.querySelector("#px-map-nodes")
       };
 
       const requiredUi = Object.values(ui);
+
       if (requiredUi.some(node => !node)) {
         return;
       }
@@ -1516,6 +1774,16 @@
       let visibleDossiers = [];
       let latestTime = 0;
       let searchTimer = 0;
+      let hashTimer = 0;
+      let suppressHashEvent = false;
+
+      const state = {
+        q: "",
+        region: "all",
+        label: "all",
+        period: "all",
+        sort: "newest"
+      };
 
       function makeElement(tag, className = "", text = "") {
         const node = document.createElement(tag);
@@ -1527,6 +1795,16 @@
         if (text !== "") {
           node.textContent = text;
         }
+
+        return node;
+      }
+
+      function makeSvgElement(tag, attributes = {}) {
+        const node = document.createElementNS(SVG_NS, tag);
+
+        Object.entries(attributes).forEach(([key, value]) => {
+          node.setAttribute(key, String(value));
+        });
 
         return node;
       }
@@ -1547,6 +1825,10 @@
       }
 
       function finiteNumber(value) {
+        if (value === null || value === undefined || value === "") {
+          return null;
+        }
+
         const parsed = typeof value === "number"
           ? value
           : Number.parseFloat(value);
@@ -1639,31 +1921,271 @@
         return `${base}...`;
       }
 
-      function eventDate(event) {
-        if (!event || typeof event !== "object") {
-          return "";
+      function valueFrom(object, keys) {
+        if (!object || typeof object !== "object" || Array.isArray(object)) {
+          return undefined;
         }
 
-        return dateKey(
-          event.d
-          ?? event.date
-          ?? event.first_seen
-          ?? event.published_at
-          ?? event.pubDate
-        );
+        for (const key of keys) {
+          if (
+            object[key] !== undefined
+            && object[key] !== null
+            && object[key] !== ""
+          ) {
+            return object[key];
+          }
+        }
+
+        return undefined;
+      }
+
+      function eventDate(event) {
+        return dateKey(valueFrom(event, [
+          "d",
+          "date",
+          "first_seen",
+          "published_at",
+          "pubDate",
+          "published"
+        ]));
       }
 
       function eventSource(event) {
-        if (!event || typeof event !== "object") {
+        return cleanText(valueFrom(event, [
+          "q",
+          "source",
+          "publisher",
+          "autor",
+          "author"
+        ]));
+      }
+
+      function sourceNames(value) {
+        if (typeof value === "string" || typeof value === "number") {
+          const source = cleanText(value);
+          return source ? [source] : [];
+        }
+
+        if (!Array.isArray(value)) {
+          return [];
+        }
+
+        return value
+          .map(item => {
+            if (typeof item === "object" && item !== null) {
+              return cleanText(valueFrom(item, [
+                "name",
+                "q",
+                "source",
+                "titel",
+                "title"
+              ]));
+            }
+
+            return cleanText(item);
+          })
+          .filter(Boolean);
+      }
+
+      function normaliseLabel(value) {
+        const text = foldText(value);
+        if (!text) return "";
+
+        if (
+          text.includes("breaking")
+          || text.includes("durchbruch")
+          || text.includes("sensationell")
+        ) {
+          return "breaking";
+        }
+
+        if (
+          text.includes("episch")
+          || text.includes("epic")
+          || text.includes("bedeutend")
+        ) {
+          return "episch";
+        }
+
+        if (text.includes("normal")) {
+          return "normal";
+        }
+
+        return "";
+      }
+
+      function normaliseRegion(value) {
+        const text = cleanText(value);
+        if (!text) return "";
+
+        const folded = foldText(text);
+
+        const aliases = [
+          {
+            test: ["world", "welt", "global", "international"],
+            value: "Welt"
+          },
+          {
+            test: ["europe", "europa", "europaeische union", "eu"],
+            value: "Europa"
+          },
+          {
+            test: ["germany", "deutschland"],
+            value: "Deutschland"
+          },
+          {
+            test: [
+              "north america",
+              "nordamerika",
+              "usa",
+              "united states",
+              "canada",
+              "kanada",
+              "mexico",
+              "mexiko"
+            ],
+            value: "Nordamerika"
+          },
+          {
+            test: [
+              "south america",
+              "suedamerika",
+              "sudamerika",
+              "latin america",
+              "lateinamerika"
+            ],
+            value: "Südamerika"
+          },
+          {
+            test: [
+              "asia",
+              "asien",
+              "china",
+              "japan",
+              "india",
+              "israel"
+            ],
+            value: "Asien"
+          },
+          {
+            test: ["africa", "afrika"],
+            value: "Afrika"
+          },
+          {
+            test: ["oceania", "ozeanien", "australien"],
+            value: "Ozeanien"
+          }
+        ];
+
+        const match = aliases.find(item => {
+          return item.test.some(alias => {
+            return folded === alias || folded.includes(alias);
+          });
+        });
+
+        if (match) {
+          return match.value;
+        }
+
+        if (text.length > 42) {
           return "";
         }
 
-        return cleanText(
-          event.q
-          ?? event.source
-          ?? event.publisher
-          ?? event.autor
-        );
+        return text
+          .split(/\s+/)
+          .map(word => {
+            return word.charAt(0).toLocaleUpperCase("de-DE") + word.slice(1);
+          })
+          .join(" ");
+      }
+
+      function inferRegionFromText(value) {
+        const text = foldText(value);
+        if (!text) return "";
+
+        const markers = [
+          {
+            region: "Deutschland",
+            terms: [
+              "deutschland",
+              "bundestag",
+              "bundesgerichtshof",
+              "bundesberufungsgericht",
+              "berlin",
+              "munchen",
+              "hamburg"
+            ]
+          },
+          {
+            region: "Europa",
+            terms: [
+              "europa",
+              "europaische union",
+              "brussel",
+              "frankreich",
+              "italien",
+              "spanien",
+              "grossbritannien"
+            ]
+          },
+          {
+            region: "Nordamerika",
+            terms: [
+              "usa",
+              "vereinigte staaten",
+              "washington",
+              "new york",
+              "silicon valley",
+              "kalifornien",
+              "kanada",
+              "mexiko"
+            ]
+          },
+          {
+            region: "Südamerika",
+            terms: ["sudamerika", "suedamerika", "brasilien", "argentinien"]
+          },
+          {
+            region: "Asien",
+            terms: [
+              "asien",
+              "china",
+              "peking",
+              "shanghai",
+              "japan",
+              "tokio",
+              "india",
+              "israel",
+              "jerusalem"
+            ]
+          },
+          {
+            region: "Afrika",
+            terms: ["afrika", "agypten", "aegypten", "nigeria", "kenia"]
+          },
+          {
+            region: "Ozeanien",
+            terms: ["ozeanien", "australien", "neuseeland", "auckland"]
+          }
+        ];
+
+        for (const marker of markers) {
+          if (marker.terms.some(term => text.includes(term))) {
+            return marker.region;
+          }
+        }
+
+        return "";
+      }
+
+      function eventArray(line) {
+        const candidates = [
+          line?.e,
+          line?.events,
+          line?.ereignisse
+        ];
+
+        return candidates.find(Array.isArray) || [];
       }
 
       function getLineSource(payload) {
@@ -1682,14 +2204,94 @@
         return null;
       }
 
-      function eventArray(line) {
-        const candidates = [
-          line?.e,
-          line?.events,
-          line?.ereignisse
+      function chooseLabel(values) {
+        const valid = values
+          .map(normaliseLabel)
+          .filter(Boolean)
+          .sort((left, right) => {
+            return LABEL_PRIORITY[right] - LABEL_PRIORITY[left];
+          });
+
+        return valid[0] || "normal";
+      }
+
+      function chooseRegion(values, text) {
+        const valid = values
+          .map(normaliseRegion)
+          .filter(Boolean);
+
+        if (!valid.length) {
+          return inferRegionFromText(text) || "Welt";
+        }
+
+        const specific = valid.filter(region => region !== "Welt");
+
+        if (specific.length) {
+          const preferred = [
+            "Deutschland",
+            "Europa",
+            "Nordamerika",
+            "Asien",
+            "Afrika",
+            "Ozeanien",
+            "Südamerika"
+          ];
+
+          for (const region of preferred) {
+            if (specific.includes(region)) {
+              return region;
+            }
+          }
+
+          return specific[0];
+        }
+
+        return "Welt";
+      }
+
+      function relevanceValue(line, dossier) {
+        const direct = [
+          valueFrom(dossier, ["relevanz", "relevance"]),
+          valueFrom(line, ["relevanz", "relevance"]),
+          valueFrom(dossier, ["jev"]),
+          valueFrom(line, ["jev"])
         ];
 
-        return candidates.find(Array.isArray) || [];
+        for (const value of direct) {
+          const parsed = finiteNumber(value);
+
+          if (parsed !== null && parsed >= 0) {
+            return parsed <= 1 ? parsed : null;
+          }
+        }
+
+        const scores = [
+          valueFrom(dossier, ["score", "base_score"]),
+          valueFrom(line, ["score", "base_score"]),
+          valueFrom(dossier, ["story_cluster_score"]),
+          valueFrom(line, ["story_cluster_score"])
+        ];
+
+        for (const value of scores) {
+          const parsed = finiteNumber(value);
+
+          if (parsed !== null && parsed >= 0) {
+            return parsed <= 1
+              ? parsed
+              : Math.min(100, parsed) / 100;
+          }
+        }
+
+        return null;
+      }
+
+      function relevanceDisplay(value) {
+        if (value === null) {
+          return "k. A.";
+        }
+
+        const normalised = Math.max(0, Math.min(1, value));
+        return `${decimalFormat.format(normalised)} / 1`;
       }
 
       function normaliseLines(payload) {
@@ -1740,17 +2342,17 @@
                 && !Array.isArray(event)
               ))
               .map(event => {
-                const title = cleanText(
-                  event.t
-                  ?? event.title
-                  ?? event.headline
-                );
+                const title = cleanText(valueFrom(event, [
+                  "t",
+                  "title",
+                  "headline"
+                ]));
 
-                const summary = cleanText(
-                  event.z
-                  ?? event.summary
-                  ?? event.description
-                );
+                const summary = cleanText(valueFrom(event, [
+                  "z",
+                  "summary",
+                  "description"
+                ]));
 
                 const sourceName = eventSource(event);
 
@@ -1759,6 +2361,14 @@
                   title,
                   summary,
                   source: sourceName,
+                  region: normaliseRegion(valueFrom(event, [
+                    "region",
+                    "gebiet"
+                  ])),
+                  label: normaliseLabel(valueFrom(event, [
+                    "label",
+                    "klasse"
+                  ])),
                   searchable: foldText(`${title} ${summary} ${sourceName}`)
                 };
               })
@@ -1778,7 +2388,10 @@
             const startTime = dateTime(start);
             const endTime = dateTime(end) || startTime;
 
-            const reportedCount = finiteNumber(line.n);
+            const reportedCount = finiteNumber(
+              valueFrom(line, ["n", "anzahl", "event_count"])
+            );
+
             const normalisedCount = reportedCount === null
               ? 0
               : Math.max(0, Math.floor(reportedCount));
@@ -1787,33 +2400,52 @@
             const firstEvent = events[0] || {};
 
             const title = cleanText(
-              dossier.titel
-              ?? line.titel
-              ?? line.title
+              valueFrom(dossier, ["titel", "title"])
+              ?? valueFrom(line, ["titel", "title"])
               ?? firstEvent.title,
               `Dossier ${index + 1}`
             );
 
             const summary = cleanText(
-              dossier.worum
-              ?? line.worum
-              ?? line.summary
+              valueFrom(dossier, ["worum", "summary"])
+              ?? valueFrom(line, ["worum", "summary"])
               ?? firstEvent.summary,
               "Für dieses Dossier liegt derzeit keine Zusammenfassung vor."
             );
 
-            const sources = Array.from(new Set(
-              events
-                .map(event => event.source)
-                .filter(Boolean)
-            ));
+            const regionText = [
+              title,
+              summary,
+              ...events.flatMap(event => [event.title, event.summary])
+            ].join(" ");
+
+            const region = chooseRegion(
+              [
+                valueFrom(dossier, ["region", "gebiet"]),
+                valueFrom(line, ["region", "gebiet"]),
+                ...events.map(event => event.region)
+              ],
+              regionText
+            );
+
+            const label = chooseLabel([
+              valueFrom(dossier, ["label", "klasse"]),
+              valueFrom(line, ["label", "klasse"]),
+              ...events.map(event => event.label)
+            ]);
+
+            const sources = Array.from(new Set([
+              ...sourceNames(valueFrom(line, ["quellen", "sources"])),
+              ...sourceNames(valueFrom(dossier, ["quellen", "sources"])),
+              ...events.map(event => event.source)
+            ].filter(Boolean)));
 
             const eventSearch = events
               .map(event => event.searchable)
               .join(" ");
 
             const searchable = foldText(
-              `${title} ${summary} ${eventSearch} ${sources.join(" ")} ${id}`
+              `${title} ${summary} ${eventSearch} ${sources.join(" ")} ${id} ${region} ${label}`
             );
 
             return {
@@ -1824,6 +2456,9 @@
               eventCount,
               sources,
               searchable,
+              region,
+              label,
+              relevance: relevanceValue(line, dossier),
               start,
               end,
               startTime: startTime || 0,
@@ -1845,6 +2480,12 @@
         );
       }
 
+      function labelVariant(label) {
+        if (label === "breaking") return "px-tag-breaking";
+        if (label === "episch") return "px-tag-epic";
+        return "";
+      }
+
       function createMetric(labelText, valueText, className = "") {
         const metric = makeElement(
           "span",
@@ -1861,6 +2502,11 @@
 
       function createMetrics(dossier) {
         const metrics = makeElement("span", "px-metrics");
+        const score = createMetric(
+          "Relevanz-Schätzung",
+          relevanceDisplay(dossier.relevance),
+          "px-metric-score"
+        );
 
         metrics.append(
           createMetric(
@@ -1869,14 +2515,15 @@
             "px-metric-period"
           ),
           createMetric(
-            "Ereignisse",
-            numberFormat.format(dossier.eventCount),
+            "Quellen",
+            numberFormat.format(dossier.sources.length),
             "px-metric-count"
           ),
           createMetric(
-            "Quellen",
-            numberFormat.format(dossier.sources.length)
-          )
+            "Meldungen",
+            numberFormat.format(dossier.eventCount)
+          ),
+          score
         );
 
         return metrics;
@@ -1892,19 +2539,44 @@
         return Math.abs(hash);
       }
 
+      function createSourceStrip(dossier) {
+        const strip = makeElement("span", "px-source-strip");
+        const label = makeElement(
+          "span",
+          "px-source-strip-label",
+          dossier.sources.length === 1
+            ? "1 Quelle"
+            : `${numberFormat.format(dossier.sources.length)} Quellen`
+        );
+
+        const names = makeElement(
+          "span",
+          "px-source-names",
+          dossier.sources.length
+            ? dossier.sources.join(" / ")
+            : "Quellenangabe nicht vorhanden"
+        );
+
+        strip.append(label, names);
+        return strip;
+      }
+
       function createMiniTimeline(dossier) {
         const wrapper = makeElement("span", "px-mini-timeline");
         const label = makeElement("span", "px-mini-label");
+
         const startLabel = makeElement(
           "span",
           "",
           dossier.start ? formatDate(dossier.start) : "Start unbekannt"
         );
+
         const endLabel = makeElement(
           "span",
           "",
           dossier.end ? formatDate(dossier.end) : "Ende unbekannt"
         );
+
         const track = makeElement("span", "px-mini-track");
 
         label.append(startLabel, endLabel);
@@ -1916,7 +2588,8 @@
             source: event.source,
             title: event.title
           }))
-          .filter(event => event.time !== null);
+          .filter(event => event.time !== null)
+          .sort((left, right) => left.time - right.time);
 
         if (!datedEvents.length || !dossier.startTime || !dossier.endTime) {
           track.append(makeElement(
@@ -1940,11 +2613,13 @@
           const position = Math.max(0, Math.min(100, rawPosition));
           const positionKey = Math.round(position);
           const lane = occupiedPositions.get(positionKey) || 0;
+
           occupiedPositions.set(positionKey, lane + 1);
 
           const seed = stableNumber(
             `${dossier.id}:${event.source}:${event.title}:${index}`
           );
+
           const top = 4 + ((lane + seed) % 3) * 9;
           const dot = makeElement("span", "px-mini-dot");
 
@@ -1974,7 +2649,19 @@
         return wrapper;
       }
 
-      function cardVariant(dossier, index) {
+      function cardVariant(dossier) {
+        if (dossier.label === "breaking") {
+          return "px-dossier-card-red";
+        }
+
+        if (dossier.label === "episch") {
+          return "px-dossier-card-orange";
+        }
+
+        if (dossier.eventCount >= 8) {
+          return "px-dossier-card-violet";
+        }
+
         const variants = [
           "",
           "px-dossier-card-violet",
@@ -1982,16 +2669,11 @@
           "px-dossier-card-orange"
         ];
 
-        if (dossier.eventCount >= 8) {
-          return "px-dossier-card-violet";
-        }
-
-        return variants[stableNumber(dossier.id) % variants.length]
-          || variants[index % variants.length];
+        return variants[stableNumber(dossier.id) % variants.length] || "";
       }
 
       function createCard(dossier, index) {
-        const variant = cardVariant(dossier, index);
+        const variant = cardVariant(dossier);
         const card = makeElement(
           "article",
           variant ? `px-dossier-card ${variant}` : "px-dossier-card"
@@ -2004,6 +2686,7 @@
         const tags = makeElement("span", "px-card-tags");
         const id = makeElement("span", "px-card-id", dossier.id);
         const title = makeElement("h3", "px-card-title", dossier.title);
+
         const summary = makeElement(
           "p",
           "px-card-summary",
@@ -2011,11 +2694,15 @@
         );
 
         const eventLabel = dossier.eventCount === 1
-          ? "1 Ereignis"
-          : `${numberFormat.format(dossier.eventCount)} Ereignisse`;
+          ? "1 Meldung"
+          : `${numberFormat.format(dossier.eventCount)} Meldungen`;
+
+        const readableLabel = dossier.label.charAt(0).toLocaleUpperCase("de-DE")
+          + dossier.label.slice(1);
 
         tags.append(
-          createTag("Dossier"),
+          createTag(dossier.region),
+          createTag(readableLabel, labelVariant(dossier.label)),
           createTag(eventLabel, "px-tag-violet")
         );
 
@@ -2026,19 +2713,23 @@
           title,
           summary,
           createMetrics(dossier),
+          createSourceStrip(dossier),
           createMiniTimeline(dossier)
         );
 
         card.append(link);
+        card.setAttribute("data-index", String(index + 1));
+
         return card;
       }
 
-      function overlapsPeriod(dossier, days) {
-        if (days === "all" || !latestTime) {
+      function overlapsPeriod(dossier, period) {
+        if (period === "all" || !latestTime) {
           return true;
         }
 
-        const dayCount = Number(days);
+        const dayCount = Number(period);
+
         if (!Number.isFinite(dayCount) || dayCount <= 0) {
           return true;
         }
@@ -2054,27 +2745,16 @@
       }
 
       function sortDossiers(items) {
-        const mode = ui.sort.value;
-
-        return items.sort((left, right) => {
-          if (mode === "old") {
-            const leftTime = left.startTime || Number.MAX_SAFE_INTEGER;
-            const rightTime = right.startTime || Number.MAX_SAFE_INTEGER;
-
-            return leftTime - rightTime
-              || left.title.localeCompare(right.title, "de");
-          }
-
-          if (mode === "events") {
+        if (state.sort === "largest") {
+          return items.sort((left, right) => {
             return right.eventCount - left.eventCount
+              || right.sources.length - left.sources.length
               || right.endTime - left.endTime
               || left.title.localeCompare(right.title, "de");
-          }
+          });
+        }
 
-          if (mode === "title") {
-            return left.title.localeCompare(right.title, "de");
-          }
-
+        return items.sort((left, right) => {
           const leftTime = left.endTime || Number.MAX_SAFE_INTEGER;
           const rightTime = right.endTime || Number.MAX_SAFE_INTEGER;
 
@@ -2084,8 +2764,237 @@
         });
       }
 
+      function createPill(filter, value, label, count) {
+        const button = makeElement("button", "px-pill px-focusable");
+        const text = makeElement("span", "", label);
+        const badge = makeElement(
+          "span",
+          "px-pill-count",
+          numberFormat.format(count)
+        );
+
+        button.type = "button";
+        button.dataset.filter = filter;
+        button.dataset.value = value;
+
+        button.setAttribute(
+          "aria-pressed",
+          String(state[filter] === value)
+        );
+
+        button.append(text, badge);
+        return button;
+      }
+
+      function renderRegionPills() {
+        const counts = new Map();
+
+        dossiers.forEach(dossier => {
+          counts.set(
+            dossier.region,
+            (counts.get(dossier.region) || 0) + 1
+          );
+        });
+
+        const regions = Array.from(counts.keys())
+          .sort((left, right) => left.localeCompare(right, "de"))
+          .slice(0, 12);
+
+        const fragment = document.createDocumentFragment();
+
+        fragment.append(
+          createPill("region", "all", "Alle", dossiers.length)
+        );
+
+        regions.forEach(region => {
+          fragment.append(
+            createPill("region", region, region, counts.get(region) || 0)
+          );
+        });
+
+        ui.regionPills.replaceChildren(fragment);
+      }
+
+      function updatePillBadge(button, count) {
+        let badge = button.querySelector(".px-pill-count");
+
+        if (!badge) {
+          badge = makeElement("span", "px-pill-count");
+          button.append(badge);
+        }
+
+        badge.textContent = numberFormat.format(count);
+      }
+
+      function renderPillCounts() {
+        const labelCounts = {
+          normal: 0,
+          episch: 0,
+          breaking: 0
+        };
+
+        dossiers.forEach(dossier => {
+          if (Object.prototype.hasOwnProperty.call(labelCounts, dossier.label)) {
+            labelCounts[dossier.label] += 1;
+          }
+        });
+
+        ui.labelPills
+          .querySelectorAll("[data-filter='label']")
+          .forEach(button => {
+            const value = button.dataset.value || "all";
+            const count = value === "all"
+              ? dossiers.length
+              : labelCounts[value] || 0;
+
+            updatePillBadge(button, count);
+
+            button.setAttribute(
+              "aria-pressed",
+              String(state.label === value)
+            );
+          });
+
+        const periodCounts = {
+          all: dossiers.length,
+          7: 0,
+          30: 0,
+          90: 0
+        };
+
+        dossiers.forEach(dossier => {
+          Object.keys(periodCounts).forEach(period => {
+            if (period !== "all" && overlapsPeriod(dossier, period)) {
+              periodCounts[period] += 1;
+            }
+          });
+        });
+
+        ui.periodPills
+          .querySelectorAll("[data-filter='period']")
+          .forEach(button => {
+            const value = button.dataset.value || "all";
+            const count = periodCounts[value] || 0;
+
+            updatePillBadge(button, count);
+
+            button.setAttribute(
+              "aria-pressed",
+              String(state.period === value)
+            );
+          });
+
+        ui.sortPills
+          .querySelectorAll("[data-filter='sort']")
+          .forEach(button => {
+            button.setAttribute(
+              "aria-pressed",
+              String(state.sort === button.dataset.value)
+            );
+          });
+      }
+
+      function renderMap(items) {
+        const displayed = items.slice(0, 24);
+        const lineFragment = document.createDocumentFragment();
+        const nodeFragment = document.createDocumentFragment();
+        const points = [];
+        const colors = ["#00d4ff", "#955dff", "#00b982", "#f59b35"];
+
+        ui.mapLabel.textContent = displayed.length
+          ? `${numberFormat.format(displayed.length)} Linien im Auswahlbereich`
+          : "Keine Linien im Auswahlbereich";
+
+        ui.mapEmpty.hidden = displayed.length !== 0;
+
+        displayed.forEach((dossier, index) => {
+          const angle = index * 2.3999632297;
+          const radiusX = 27 + (index % 5) * 19;
+          const radiusY = 18 + (index % 4) * 15;
+
+          const x = 195 + Math.cos(angle) * radiusX;
+          const y = 104 + Math.sin(angle) * radiusY;
+
+          points.push({ x, y });
+        });
+
+        for (let index = 1; index < points.length; index += 1) {
+          const previous = points[index - 1];
+          const current = points[index];
+
+          const line = makeSvgElement("path", {
+            d: `M${previous.x.toFixed(1)} ${previous.y.toFixed(1)} L${current.x.toFixed(1)} ${current.y.toFixed(1)}`,
+            fill: "none",
+            stroke: index % 3 === 0 ? "#955dff" : "#00d4ff",
+            "stroke-width": "1",
+            "stroke-opacity": index % 3 === 0 ? "0.25" : "0.18"
+          });
+
+          line.classList.add("px-map-line");
+          lineFragment.append(line);
+        }
+
+        if (points.length > 4) {
+          const bridge = makeSvgElement("path", {
+            d: `M${points[1].x.toFixed(1)} ${points[1].y.toFixed(1)} L${points[points.length - 2].x.toFixed(1)} ${points[points.length - 2].y.toFixed(1)}`,
+            fill: "none",
+            stroke: "url(#px-map-gradient)",
+            "stroke-width": "1.3",
+            "stroke-opacity": "0.34"
+          });
+
+          bridge.classList.add("px-map-line");
+          lineFragment.append(bridge);
+        }
+
+        points.forEach((point, index) => {
+          const dossier = displayed[index];
+          const size = Math.max(
+            5,
+            Math.min(13, 5 + dossier.eventCount * 0.8)
+          );
+
+          const color = colors[index % colors.length];
+
+          const halo = makeSvgElement("circle", {
+            cx: point.x.toFixed(1),
+            cy: point.y.toFixed(1),
+            r: size.toFixed(1),
+            fill: color,
+            "fill-opacity": "0.08",
+            stroke: color,
+            "stroke-opacity": "0.42",
+            "stroke-width": "1"
+          });
+
+          const node = makeSvgElement("circle", {
+            cx: point.x.toFixed(1),
+            cy: point.y.toFixed(1),
+            r: Math.max(3, size * 0.42).toFixed(1),
+            fill: color
+          });
+
+          if (index === 0 || index === 3 || index === 6) {
+            halo.classList.add("px-map-pulse");
+          }
+
+          if (index === 1) {
+            halo.classList.add("px-map-pulse", "px-map-pulse-one");
+          }
+
+          if (index === 2) {
+            halo.classList.add("px-map-pulse", "px-map-pulse-two");
+          }
+
+          nodeFragment.append(halo, node);
+        });
+
+        ui.mapLines.replaceChildren(lineFragment);
+        ui.mapNodes.replaceChildren(nodeFragment);
+      }
+
       function render() {
-        const terms = foldText(ui.search.value)
+        const terms = foldText(state.q)
           .split(/\s+/)
           .filter(Boolean);
 
@@ -2094,8 +3003,16 @@
             return dossier.searchable.includes(term);
           });
 
+          const matchesRegion = state.region === "all"
+            || dossier.region === state.region;
+
+          const matchesLabel = state.label === "all"
+            || dossier.label === state.label;
+
           return matchesSearch
-            && overlapsPeriod(dossier, ui.period.value);
+            && matchesRegion
+            && matchesLabel
+            && overlapsPeriod(dossier, state.period);
         });
 
         sortDossiers(visibleDossiers);
@@ -2110,6 +3027,9 @@
         ui.grid.hidden = visibleDossiers.length === 0;
         ui.empty.hidden = visibleDossiers.length !== 0;
 
+        renderPillCounts();
+        renderMap(visibleDossiers);
+
         ui.result.textContent =
           `${numberFormat.format(visibleDossiers.length)} von ` +
           `${numberFormat.format(dossiers.length)} Dossiers`;
@@ -2120,12 +3040,25 @@
           return sum + dossier.eventCount;
         }, 0);
 
-        const times = dossiers
-          .flatMap(dossier => [dossier.startTime, dossier.endTime])
-          .filter(time => Number.isFinite(time) && time > 0);
+        let firstTime = 0;
+        let lastTime = 0;
 
-        const firstTime = times.length ? Math.min(...times) : 0;
-        const lastTime = times.length ? Math.max(...times) : 0;
+        dossiers.forEach(dossier => {
+          const candidates = [
+            dossier.startTime,
+            dossier.endTime
+          ].filter(time => Number.isFinite(time) && time > 0);
+
+          candidates.forEach(time => {
+            if (!firstTime || time < firstTime) {
+              firstTime = time;
+            }
+
+            if (time > lastTime) {
+              lastTime = time;
+            }
+          });
+        });
 
         const totalDays = firstTime && lastTime
           ? Math.max(1, Math.round((lastTime - firstTime) / DAY) + 1)
@@ -2146,6 +3079,8 @@
         ui.grid.replaceChildren();
         ui.empty.hidden = true;
         ui.error.hidden = false;
+        ui.mapEmpty.hidden = false;
+        ui.mapLabel.textContent = "Liniennetz nicht verfügbar";
         setFinishedState();
 
         ui.status.textContent = "news.json konnte nicht gelesen werden";
@@ -2167,6 +3102,10 @@
         ui.status.textContent = "news.json geladen, keine Linien enthalten";
         ui.result.textContent = "0 Dossiers";
         ui.stand.textContent = "Datenstand geladen, Bestand leer";
+
+        renderRegionPills();
+        renderPillCounts();
+        renderMap([]);
       }
 
       async function fetchNews() {
@@ -2190,11 +3129,143 @@
         }
       }
 
+      function defaultState() {
+        return {
+          q: "",
+          region: "all",
+          label: "all",
+          period: "all",
+          sort: "newest"
+        };
+      }
+
+      function allowedValue(name, value) {
+        const text = cleanText(value).slice(0, 160);
+        if (!text) return "all";
+
+        if (name === "sort") {
+          return ["largest", "big", "groesste"].includes(text)
+            ? "largest"
+            : "newest";
+        }
+
+        if (name === "period") {
+          return ["all", "7", "30", "90"].includes(text)
+            ? text
+            : "all";
+        }
+
+        if (name === "label") {
+          return ["all", "normal", "episch", "breaking"].includes(text)
+            ? text
+            : "all";
+        }
+
+        return text === "all"
+          ? "all"
+          : text.slice(0, 42);
+      }
+
+      function readHash() {
+        const next = defaultState();
+        const rawHash = window.location.hash.replace(/^#/, "");
+
+        if (!rawHash || rawHash.startsWith("l=")) {
+          return next;
+        }
+
+        try {
+          const params = new URLSearchParams(rawHash);
+
+          HASH_KEYS.forEach(key => {
+            if (params.has(key)) {
+              next[key] = allowedValue(key, params.get(key));
+            }
+          });
+        } catch (error) {
+          console.warn(
+            "Filter im URL-Hash konnten nicht gelesen werden.",
+            error
+          );
+        }
+
+        return next;
+      }
+
+      function syncControlsFromState() {
+        ui.search.value = state.q;
+        renderPillCounts();
+
+        const knownRegions = Array.from(
+          ui.regionPills.querySelectorAll("[data-filter='region']")
+        )
+          .map(button => button.dataset.value || "");
+
+        if (
+          state.region !== "all"
+          && knownRegions.length
+          && !knownRegions.includes(state.region)
+        ) {
+          state.region = "all";
+        }
+      }
+
+      function writeHash() {
+        const params = new URLSearchParams();
+
+        HASH_KEYS.forEach(key => {
+          const value = state[key];
+
+          if (value && value !== "all") {
+            params.set(key, value);
+          }
+        });
+
+        const hash = params.toString();
+
+        const nextUrl =
+          `${window.location.pathname}` +
+          `${window.location.search}` +
+          `${hash ? `#${hash}` : ""}`;
+
+        try {
+          suppressHashEvent = true;
+
+          window.history.replaceState(null, "", nextUrl);
+
+          window.setTimeout(() => {
+            suppressHashEvent = false;
+          }, 0);
+        } catch (error) {
+          suppressHashEvent = false;
+
+          console.warn(
+            "Filter konnten nicht im URL-Hash gespeichert werden.",
+            error
+          );
+        }
+      }
+
+      function scheduleHashWrite() {
+        window.clearTimeout(hashTimer);
+        hashTimer = window.setTimeout(writeHash, 100);
+      }
+
+      function applyState(next, shouldWrite = true) {
+        Object.assign(state, next);
+        syncControlsFromState();
+
+        if (dossiers.length) {
+          render();
+        }
+
+        if (shouldWrite) {
+          scheduleHashWrite();
+        }
+      }
+
       function resetControls(shouldFocus = true) {
-        ui.search.value = "";
-        ui.period.value = "all";
-        ui.sort.value = "new";
-        render();
+        applyState(defaultState());
 
         if (shouldFocus) {
           ui.search.focus();
@@ -2208,37 +3279,98 @@
 
         ui.search.addEventListener("input", () => {
           window.clearTimeout(searchTimer);
-          searchTimer = window.setTimeout(render, 120);
+          state.q = ui.search.value;
+
+          searchTimer = window.setTimeout(() => {
+            render();
+            scheduleHashWrite();
+          }, 120);
         });
 
-        ui.period.addEventListener("change", render);
-        ui.sort.addEventListener("change", render);
+        const pillContainers = [
+          ui.regionPills,
+          ui.labelPills,
+          ui.periodPills,
+          ui.sortPills
+        ];
+
+        pillContainers.forEach(container => {
+          container.addEventListener("click", event => {
+            if (!(event.target instanceof Element)) {
+              return;
+            }
+
+            const button = event.target.closest("button[data-filter]");
+
+            if (!button || !container.contains(button)) {
+              return;
+            }
+
+            const filter = button.dataset.filter;
+            const value = button.dataset.value;
+
+            if (
+              !HASH_KEYS.includes(filter)
+              || !value
+              || !Object.prototype.hasOwnProperty.call(state, filter)
+            ) {
+              return;
+            }
+
+            state[filter] = value;
+            render();
+            scheduleHashWrite();
+          });
+        });
+
         ui.reset.addEventListener("click", () => resetControls(false));
         ui.emptyReset.addEventListener("click", () => resetControls(true));
         ui.retry.addEventListener("click", () => window.location.reload());
+
+        window.addEventListener("hashchange", () => {
+          if (suppressHashEvent) {
+            return;
+          }
+
+          applyState(readHash(), false);
+        });
+      }
+
+      function getLatestTime(items) {
+        return items.reduce((latest, dossier) => {
+          const candidate = dossier.endTime || dossier.startTime || 0;
+          return candidate > latest ? candidate : latest;
+        }, 0);
       }
 
       async function initialise() {
         bindControls();
+        applyState(readHash(), false);
 
         try {
           const payload = await fetchNews();
-          dossiers = normaliseLines(payload);
 
-          latestTime = Math.max(
-            0,
-            ...dossiers.map(dossier => {
-              return dossier.endTime || dossier.startTime || 0;
-            })
-          );
+          dossiers = normaliseLines(payload);
+          latestTime = getLatestTime(dossiers);
 
           const stand = cleanText(payload?.stand);
 
           ui.stand.textContent = stand
             ? `Datenstand ${stand}`
             : latestTime
-              ? `Datenstand ${formatDate(new Date(latestTime).toISOString())}`
+              ? `Datenstand ${formatDate(
+                  new Date(latestTime).toISOString()
+                )}`
               : "Datenstand unbekannt";
+
+          const savedRegion = state.region;
+
+          renderRegionPills();
+          syncControlsFromState();
+
+          if (state.region !== savedRegion) {
+            scheduleHashWrite();
+          }
 
           if (!dossiers.length) {
             showEmptyArchive();
@@ -2250,7 +3382,8 @@
           setFinishedState();
 
           ui.status.textContent =
-            `news.json geladen / ${numberFormat.format(dossiers.length)} Linien`;
+            `news.json geladen / ` +
+            `${numberFormat.format(dossiers.length)} Linien`;
         } catch (error) {
           console.warn(
             "Dossier-Übersicht konnte nicht geladen werden.",
