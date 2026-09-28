@@ -2607,6 +2607,37 @@ CLUSTER_MEMBER_MALUS = 10
 def _today_iso():
     return datetime.now(BERLIN).strftime("%Y-%m-%d")
 
+def _monatsarchiv_ablegen(base_dir, eintraege):
+    """Legt aus archive.json fallende Eintraege in archiv-monate/YYYY-MM.json ab.
+
+    Schluessel ist der Link; ein vorhandener Eintrag wird durch den neueren
+    Stand ersetzt. Sortierung aufsteigend nach first_seen, damit neue Eintraege
+    hinten anhaengen (kleine Git-Deltas). Kompaktes JSON, keine Einrueckung."""
+    if not eintraege:
+        return
+    ordner = Path(base_dir) / "archiv-monate"
+    ordner.mkdir(exist_ok=True)
+    nach_monat = {}
+    for n in eintraege:
+        monat = str(n.get("first_seen") or n.get("date") or "")[:7]
+        if not re.match(r"^\d{4}-\d{2}$", monat):
+            monat = "ohne-datum"
+        nach_monat.setdefault(monat, []).append(n)
+    for monat, neu in nach_monat.items():
+        pfad = ordner / ("%s.json" % monat)
+        try:
+            alt = json.loads(pfad.read_text(encoding="utf-8")) if pfad.exists() else []
+        except Exception:
+            logger.warning("Monatsarchiv %s unlesbar - wird NICHT ueberschrieben", pfad.name)
+            continue
+        nach_link = {e.get("link"): e for e in alt if e.get("link")}
+        for n in neu:
+            nach_link[n["link"]] = n
+        liste = sorted(nach_link.values(), key=lambda e: str(e.get("first_seen") or e.get("date") or ""))
+        pfad.write_text(json.dumps(liste, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        logger.info("Monatsarchiv %s: %d neu abgelegt, %d gesamt", pfad.name, len(neu), len(liste))
+
+
 def _days_since(date_str):
     """Volle Tage zwischen date_str (YYYY-MM-DD) und heute. Robust gegen Müll."""
     if not date_str:
@@ -5679,14 +5710,25 @@ def main():
         # (gilt fuer news.json/Startseite, 5 Tage) - das Archiv soll laenger
         # vorhalten als die Startseite, aber nicht unbegrenzt wachsen.
         ARCHIVE_MAX_AGE_DAYS = 10
-        merged = [
+        behalten = [
             n for n in merged
             if _days_since(n.get("first_seen")) <= ARCHIVE_MAX_AGE_DAYS
         ]
         # Sicherheits-Cap bleibt zusaetzlich bestehen (falls an einem Tag
         # ungewoehnlich viele Artikel durchlaufen) - 2000 ist jetzt ein reines
         # Notfall-Limit, kein normales Verhalten mehr.
-        merged = merged[:2000]
+        behalten = behalten[:2000]
+        # Monatsarchiv (28.09.26, Daniels Wunsch): was aus archive.json faellt,
+        # wird nicht mehr geloescht, sondern nach archiv-monate/YYYY-MM.json
+        # verschoben. archive.json bleibt klein (Startseite/Archivseite laden es),
+        # die Monatsdateien halten alle alten Links. Backfill Mai-Sept aus dem
+        # Mirror ki_news_mirror_260926.git. Darf den Lauf nie kippen.
+        try:
+            _behalten_links = {n.get("link") for n in behalten}
+            _monatsarchiv_ablegen(base_dir, [n for n in merged if n.get("link") not in _behalten_links])
+        except Exception as e:
+            logger.warning("Monatsarchiv uebersprungen (archive.json unberuehrt): %s", e)
+        merged = behalten
         # NEU: Score-Verfall auf das GANZE Archiv neu anwenden, damit auch alte
         # Einträge in der Statistik-Seite über die Zeit absinken (idempotent aus
         # base_score + first_seen). Migriert alte Einträge ohne diese Felder.
