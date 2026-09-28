@@ -58,14 +58,138 @@ MOTIV_BESCHREIBUNG = {
 # Rueckwaerts-Kompatibilitaet (erster Stil je Motiv)
 STIL_JE_MOTIV = {m: st[0] for m, st in STILE_JE_MOTIV.items()}
 
+# Auftrag 6 (28.09.26): neue Stile. Daniel 28.09.: neon live in der Rotation, typo und riso aus.
+# Steuerung per Umgebungsvariable:
+#   KARTEN_NEUE_STILE nicht gesetzt  -> NEUE_STILE_STANDARD (heute nur "neon")
+#   KARTEN_NEUE_STILE="neon,typo"    -> diese Stile kommen je Motiv zur Auswahl dazu ("alle" = alle, "aus" = keiner)
+#   KARTEN_STIL_ZWANG="riso"         -> jede Karte in diesem Stil (Vorschau/Test)
+NEUE_STILE = ["neon", "typo", "riso"]
+NEUE_STILE_STANDARD = "neon"
+NEUE_STILE_JE_MOTIV = {
+    "gericht": ["typo", "riso"], "politik": ["typo", "riso"], "rechenzentrum": ["neon"],
+    "chip": ["neon", "typo"], "hack": ["neon", "typo"], "zahl": ["typo", "neon"], "netz": ["neon", "typo", "riso"],
+    "energie": ["riso", "neon"], "zitat": ["typo", "riso"], "roboter": ["riso", "neon"], "deal": ["typo", "riso"],
+    "humanoid": ["neon", "riso"], "auto": ["neon", "riso"], "handy": ["neon", "typo"], "forschung": ["riso", "typo"],
+    "arbeit": ["riso", "typo"], "medizin": ["riso", "neon"], "weltraum": ["neon"], "militaer": ["riso", "typo"],
+    "bildung": ["riso", "typo"],
+}
+
+
+def _aktive_neue_stile():
+    roh = os.environ.get("KARTEN_NEUE_STILE", NEUE_STILE_STANDARD).strip().lower()
+    if roh in ("1", "alle", "all", "ja"):
+        return list(NEUE_STILE)
+    return [s for s in re.split(r"[,\s]+", roh) if s in NEUE_STILE]
+
 
 def _stil(motiv, headline):
-    """Fester Stil je Titel: FNV-Hash wie in der Vorlage, Index in STILE_JE_MOTIV."""
+    """Fester Stil je Titel: FNV-Hash wie in der Vorlage, Index in STILE_JE_MOTIV
+    (plus eingeschaltete neue Stile, siehe NEUE_STILE_JE_MOTIV)."""
+    zwang = os.environ.get("KARTEN_STIL_ZWANG", "").strip().lower()
+    alle = set(NEUE_STILE) | {st for liste in STILE_JE_MOTIV.values() for st in liste}
+    if zwang in alle:
+        return zwang
     h = 2166136261
     for ch in (headline or ""):
         h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
-    stile = STILE_JE_MOTIV[motiv]
+    aktiv = _aktive_neue_stile()
+    stile = STILE_JE_MOTIV[motiv] + [st for st in NEUE_STILE_JE_MOTIV.get(motiv, []) if st in aktiv]
+    if "typo" in stile and len(typo_worte(headline, _geld(headline))) < 2:
+        stile.remove("typo")  # Typo nur mit mindestens zwei tragenden Stichworten
     return stile[h % len(stile)]
+
+
+# Typo-Stil (28.09.26, Daniels Kritik am ersten Kontaktbogen: "KUERZE, DUTZENDE, UNTERSTUETZUNG"):
+# Stichworte nur noch aus Zahlen/Betraegen, Modellnamen, bekannten Firmen/Produkten (entities.json),
+# Personen und klar erkennbaren Eigennamen. Kein Fuellwort, keine allgemeinen Hauptwoerter.
+# Findet sich weniger als zwei solche Woerter, bekommt die Karte keinen Typo-Stil.
+_TYPO_KEINE = {"KI", "AI", "CEO", "CTO", "CFO", "US", "EX", "IT", "PC", "TV", "APP", "API"}
+_TYPO_ORTE = ("USA", "EU", "China", "Europa", "Deutschland", "Japan", "Indien", "Frankreich", "Großbritannien",
+              "Russland", "Iran", "Israel", "Taiwan", "Südkorea", "Korea", "Australien", "Ukraine", "Kanada",
+              "Brasilien", "Kalifornien", "Brüssel", "Washington", "Peking", "Pentagon", "Weißes Haus", "Vatikan")
+_TYPO_PERSONEN = ("Trump", "Musk", "Altman", "Amodei", "Zuckerberg", "Huang", "Nadella", "Pichai", "Hassabis",
+                  "Bezos", "Cook", "Suleyman", "LeCun", "Hinton", "Sutskever", "Murati", "Xi", "Macron", "Merz",
+                  "von der Leyen", "Leo XIV")
+_TYPO_ROLLE = re.compile(r"(CEO|[Cc]hef(in)?|minister(in)?|[Pp]räsident(in)?|[Gg]ründer(in)?|[Ff]orscher(in)?|"
+                         r"[Ss]precher(in)?|[Ss]enator(in)?|[Pp]apst)$")
+_TYPO_BETRAG = re.compile(r"\b\d+(?:[.,]\d+)*\s?(?:Billionen|Milliarden|Millionen|Mrd\.|Mio\.)")
+_ENTITAETEN = None
+
+
+def _entitaeten():
+    """Firmen, Modelle, Produkte aus entities.json (ohne Themen wie 'Energie'). Leer bei Fehler."""
+    global _ENTITAETEN
+    if _ENTITAETEN is None:
+        _ENTITAETEN = []
+        try:
+            pfad = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entities.json")
+            with open(pfad, encoding="utf-8") as f:
+                for e in json.load(f).get("entities", []):
+                    if e.get("typ") in ("anbieter", "modell", "produkt"):
+                        for a in e.get("aliasse") or []:
+                            a = re.sub(r"\\b$", "", a)  # Wortende prueft das Muster selbst (Genitiv-s erlaubt)
+                            _ENTITAETEN.append(re.compile(r"(?<![\w-])((?:%s))s?(?![a-zäöüß])" % a, re.I))
+        except Exception:
+            _ENTITAETEN = []
+    return _ENTITAETEN
+
+
+def _typo_eigennamen(titel):
+    """(Position, Wort) fuer Eigennamen im Titel, in Titelreihenfolge."""
+    funde = []
+    for rx in _entitaeten():
+        for m in rx.finditer(titel):
+            # Wortteil einer Zusammensetzung hinten im Titel ("... fuer Google-Kalender") zaehlt nicht
+            if titel[m.end():m.end() + 1] == "-" and m.start() > len(titel) * 0.5:
+                continue
+            funde.append((m.start(), m.group(1)))
+    for name in _TYPO_ORTE + _TYPO_PERSONEN:
+        for m in re.finditer(r"(?<!\w)%s(?:s)?(?!\w)" % re.escape(name), titel):
+            funde.append((m.start(), name))
+    toks = list(re.finditer(r"[\wÄÖÜäöüß][\w.ÄÖÜäöüß'’+-]*", titel))
+    for i, m in enumerate(toks):
+        w = m.group(0).strip(".-'’")
+        if re.fullmatch(r".*[a-z][A-Z]+s", w):
+            w = w[:-1]  # Genitiv: OpenAIs -> OpenAI
+        if len(w) < 2 or w.upper() in _TYPO_KEINE:
+            continue
+        # Binnenmajuskel oder Ziffer im Wort: ClickFix, macOS, NeMo, GPT-7, H200
+        if (re.search(r"[a-zäöü][A-Z]", w) or (re.search(r"\d", w) and re.search(r"[A-Za-z]", w))) \
+                and not re.fullmatch(r"\d+[.,]?\d*", w):
+            funde.append((m.start(), w))
+        # Akronym: EU, TSMC, NASA
+        elif re.fullmatch(r"[A-ZÄÖÜ]{2,6}", w):
+            funde.append((m.start(), w))
+        # Name nach Rolle: "Anthropic-CEO Amodei", "Verteidigungsminister Fedorov"
+        elif i > 0 and w[:1].isupper() and _TYPO_ROLLE.search(toks[i - 1].group(0).split("-")[-1]):
+            funde.append((m.start(), w))
+    return sorted(funde)
+
+
+def typo_worte(headline, geld=None, anbieter=None, einordnung=""):
+    """Stichworte fuer den Typo-Stil (hoechstens drei, woertlich aus dem Titel):
+    zuerst Betrag/Prozent/Modellname, dann Eigennamen in Titelreihenfolge."""
+    titel = headline or ""
+    worte = []
+    if geld:
+        worte.append(geld["zahl"])
+    else:
+        b = _TYPO_BETRAG.search(titel)
+        pr = _PROZENT.search(titel)
+        if b:
+            worte.append(b.group(0))
+        elif pr:
+            worte.append(pr.group(1) + " %")
+    m = _MODELL.search(titel)
+    if m:
+        worte.append(m.group(1))
+    for _, w in _typo_eigennamen(titel):
+        if len(worte) >= 3:
+            break
+        kern = w.split("-")[0].lower()
+        if not any(w.lower() in x.lower() or x.lower() in w.lower() or kern in x.lower() for x in worte):
+            worte.append(w)
+    return worte[:3]
 
 
 # Anbieter-Zeichen, die die Vorlage kennt (MARKEN in breaking_news_card_v2.html)
@@ -139,7 +263,7 @@ def _regel_motiv(text):
     return "netz"
 
 
-def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20, badge="Breaking"):
+def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20, badge="Breaking", motiv_vorgabe=None):
     text = "%s %s" % (headline or "", summary or "")
     # Reihenfolge wie im Text (erster genannter Anbieter = Hauptakteur, beim Deal Partner A)
     treffer = [(m.start(), n) for n, muster in ANBIETER for m in [re.search(muster, text)] if m]
@@ -148,6 +272,9 @@ def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20,
     key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     quelle_wahl = "regel"
     motiv, negativ = None, bool(_NEGATIV_WORTE.search(headline or ""))
+    if motiv_vorgabe in STILE_JE_MOTIV:
+        # Vorschau/Kontaktbogen: Motiv der schon gerenderten Karte uebernehmen, kein Jev-Aufruf
+        motiv, key = motiv_vorgabe, ""
     if key:
         try:
             motiv, conf, p_neg = _jev(headline, summary, key)
@@ -171,6 +298,8 @@ def karte_daten(headline, einordnung, summary="", source="", datum="", dauer=20,
     k = {"stil": _stil(motiv, headline), "motiv": motiv, "titel": headline, "einordnung": einordnung,
          "quelle": source, "datum": datum, "dauer": dauer, "badge": badge, "anbieter": anbieter[:1],
          "negativ": negativ, "bildzeile": motiv.upper() if motiv != "netz" else "", "wahl": quelle_wahl}
+    if k["stil"] == "typo":
+        k["typo_worte"] = typo_worte(headline, geld, anbieter, einordnung)
     if geld:
         k.update(geld)
         k["zahl_label"] = "gestoppt" if negativ and motiv == "energie" else ""
