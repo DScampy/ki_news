@@ -255,6 +255,8 @@ def main():
     ap.add_argument("--max", type=int, default=3)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--ohne-uebersetzung", action="store_true")
+    ap.add_argument("--nur-entwurf", action="store_true",
+                    help="nur artikel/entwurf/ schreiben, Freigaben nicht veroeffentlichen (Workflow)")
     a = ap.parse_args()
     try:
         releases = json.loads((BASE / "hersteller.json").read_text(encoding="utf-8")).get("releases") or []
@@ -281,7 +283,7 @@ def main():
         (ENTWURF_DIR / f"release-{s}.html").write_text(seite, encoding="utf-8")
         verzeichnis.append({"id": f"release-{s}", "typ": "release", "titel": f"{r['modell']}: was es kann",
                             "ereignisse": len(b["berichte"]), "datei": f"artikel/entwurf/release-{s}.html", "hype": funde})
-        if f"release-{s}" in freigabe:
+        if f"release-{s}" in freigabe and not a.nur_entwurf:
             _, live = rendere(b, stand, entwurf=False)
             (BASE / "artikel" / f"{s}.html").write_text(live, encoding="utf-8")
             sitemap_eintrag(f"https://ki-news.live/artikel/{s}.html")

@@ -507,6 +507,8 @@ def main():
     ap.add_argument("--linie", action="append", help="nur diese Linien-ID(s)")
     ap.add_argument("--max", type=int, default=0, help="hoechstens N Linien (nach Groesse)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--nur-entwurf", action="store_true",
+                    help="nur artikel/entwurf/ schreiben, Freigaben nicht veroeffentlichen (Workflow)")
     a = ap.parse_args()
 
     news = _lade("news.json", {})
@@ -551,7 +553,7 @@ def main():
         (ENTWURF_DIR / f"linie-{lid}.html").write_text(rendere(d, stand, entwurf=True), encoding="utf-8")
         verzeichnis.append({"id": lid, "titel": d["titel"], "ereignisse": len(d["ereignisse"]),
                             "datei": f"artikel/entwurf/linie-{lid}.html", "hype": funde})
-        if lid in freigabe:
+        if lid in freigabe and not a.nur_entwurf:
             (BASE / "artikel" / f"dossier-{lid}.html").write_text(rendere(d, stand, entwurf=False), encoding="utf-8")
             if sitemap_eintrag(f"https://ki-news.live/artikel/dossier-{lid}.html"):
                 print(f"    freigegeben -> artikel/dossier-{lid}.html, Sitemap ergaenzt")
