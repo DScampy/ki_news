@@ -1001,6 +1001,74 @@
       background: rgba(var(--px-neon-rgb), 0.12);
     }
 
+    /* 30.09.26 Reportage: Titelbild, Zeitbruecke, Hintergrund-Block */
+    .px-intro-hero {
+      position: relative;
+      margin: 0;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      border: 1px solid rgba(var(--px-neon-rgb), 0.2);
+      border-radius: var(--px-radius);
+      background: var(--px-bg-soft);
+      box-shadow: 0 20px 55px var(--px-shadow), 0 0 32px rgba(var(--px-neon-rgb), 0.06);
+    }
+
+    .px-intro-hero img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .px-intro-hero figcaption {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding: 26px 14px 10px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.62));
+      color: rgba(255, 255, 255, 0.78);
+      font: 9px/1.4 monospace;
+      letter-spacing: 0.04em;
+      text-align: right;
+    }
+
+    .px-zeitbruecke {
+      display: block;
+      margin-top: 10px;
+      color: var(--px-text-muted);
+      font: 10px/1.3 monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .px-event-context {
+      padding: 0 28px 22px;
+      color: var(--px-text-soft);
+      font-size: clamp(15px, 1.45vw, 17px);
+      line-height: 1.72;
+      overflow-wrap: anywhere;
+    }
+
+    .px-event-context-label {
+      display: block;
+      margin: 0 0 9px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--px-line);
+      color: var(--px-accent);
+      font: 9px/1.3 monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .px-event-context p {
+      margin: 0 0 0.9em;
+    }
+
+    .px-event-context p:last-child {
+      margin-bottom: 0;
+    }
+
     @media (max-width: 900px) {
       .px-intro-grid {
         grid-template-columns: 1fr;
@@ -1167,6 +1235,11 @@
         padding: 20px 18px 13px;
         font-size: 16px;
         line-height: 1.68;
+      }
+
+      .px-event-context {
+        padding: 0 18px 18px;
+        font-size: 15px;
       }
 
       .px-source-link {
@@ -1418,7 +1491,8 @@
       }
 
       function setChapterImage(ref, article) {
-        var imageUrl = safeUrl(asObject(article).image) || safeUrl(asObject(ref.event).image);
+        // 30.09.26: image_local_gross = 1600-px-Spiegel (bilder_spiegel.py), fuer Vollbild-Kapitel gedacht
+        var imageUrl = safeUrl(asObject(article).image_local_gross) || safeUrl(asObject(article).image) || safeUrl(asObject(ref.event).image);
         if (!imageUrl) return;
 
         var image = createImage();
@@ -1592,14 +1666,23 @@
       function fillEventCopy(ref) {
         var text = cleanText(ref.event.z);
 
-        if (text.length < 80 && ref.sourceArticle) {
+        // 30.09.26: nur Text DERSELBEN Meldung (gleicher Link). Der unscharfe Titelvergleich
+        // in findSourceArticle() traf bei Muse eine andere Meldung (Adressleck statt 500.000 Nutzer).
+        var gleicheMeldung = ref.sourceArticle && safeUrl(ref.event.l) &&
+          (safeUrl(ref.sourceArticle.link) === safeUrl(ref.event.l) || safeUrl(ref.sourceArticle.dub_von) === safeUrl(ref.event.l));
+        if (text.length < 80 && gleicheMeldung) {
           text = cleanText(ref.sourceArticle.summary) || cleanText(ref.sourceArticle.full_text);
         }
 
         ref.copy.replaceChildren();
 
         var paragraphs = splitText(text);
+        ref.copy.hidden = false;
         if (!paragraphs.length) {
+          if (cleanText(ref.event.kx)) {        // Hintergrund-Block traegt das Kapitel
+            ref.copy.hidden = true;
+            return;
+          }
           ref.copy.appendChild(make("p", "", "Für dieses Ereignis liegt derzeit kein ausführlicher Text vor."));
           return;
         }
@@ -1615,7 +1698,18 @@
         return text.slice(0, maxLength - 1).trim() + "…";
       }
 
-      function createChapter(event, index, total) {
+      // 30.09.26 Reportage: Abstand zum vorigen Kapitel, nur aus den Datumsfeldern
+      function zeitbruecke(vorher, jetzt) {
+        var a = Date.parse(String(vorher || "").slice(0, 10));
+        var b = Date.parse(String(jetzt || "").slice(0, 10));
+        if (!isFinite(a) || !isFinite(b)) return "";
+        var tage = Math.round((b - a) / 86400000);
+        if (tage <= 0) return "Am selben Tag";
+        if (tage === 1) return "Einen Tag später";
+        return tage + " Tage später";
+      }
+
+      function createChapter(event, index, total, vorher) {
         var section = make("section", "px-chapter");
         var id = "px-kapitel-" + (index + 1);
         var indexLabel = String(index + 1).padStart(2, "0");
@@ -1639,6 +1733,8 @@
         title.id = id + "-titel";
         title.tabIndex = -1;
         heading.append(kicker, title);
+        var bruecke = vorher ? zeitbruecke(vorher.d, event.d) : "";
+        if (bruecke) heading.append(make("span", "px-zeitbruecke", bruecke));
 
         var layout = make("div", "px-chapter-layout px-no-media");
         var eventCard = make("article", "px-event-card");
@@ -1661,7 +1757,17 @@
           sourceLink.setAttribute("aria-disabled", "true");
         }
 
-        eventCard.append(signal, copy, sourceLink);
+        eventCard.append(signal, copy);
+        // 30.09.26: Kapiteltext "kx" = Hintergrund aus Anriss/Volltext/anderen Quellen,
+        // von der Pipeline gegen den Stoff geprueft (ki_news.py _linien_kapitel)
+        // Ein Absatz: splitText() teilt an jedem Satzende und bricht bei Abkuerzungen ("D.C.")
+        var kontext = cleanText(event.kx);
+        if (kontext) {
+          var box = make("div", "px-event-context");
+          box.append(make("span", "px-event-context-label", "Hintergrund aus den Quellen"), make("p", "", kontext));
+          eventCard.appendChild(box);
+        }
+        eventCard.appendChild(sourceLink);
 
         var media = make("aside", "px-media-rail");
         media.setAttribute("aria-label", "Optionale Karte zum Ereignis");
@@ -1685,6 +1791,10 @@
         };
 
         fillEventCopy(ref);
+        if (safeUrl(event.b)) {
+          ref.bildAusPipeline = true;
+          setChapterImage(ref, { image: event.b, source: event.q });
+        }
         return ref;
       }
 
@@ -1697,7 +1807,8 @@
         var eyebrow = make("div", "px-eyebrow");
         // 29.09.26: nicht jede Linie hat schon ein KI-Dossier (titel/worum) - dann aus den Ereignissen
         var evs = Array.isArray(entries) ? entries : [];
-        var ersatzTitel = evs.length ? cleanText(evs[0].t || "").replace(/\.$/, "") : "";
+        // entries sind seit 30.09.26 chronologisch - Ersatztitel bleibt die neueste Meldung
+        var ersatzTitel = evs.length ? cleanText(evs[evs.length - 1].t || "").replace(/\.$/, "") : "";
         var quellen = evs.map(function (e) { return cleanText(e.q || ""); }).filter(function (q, i, a) { return q && a.indexOf(q) === i; });
         var ersatzLead = evs.length ? evs.length + " Meldungen" + (quellen.length ? " aus " + quellen.slice(0, 4).join(", ") : "") + ", fortlaufend verfolgt." : "";
         var title = make("h1", "", dossier.titel || ersatzTitel || "Dossier");
@@ -1710,11 +1821,17 @@
           make("span", "px-pill px-pill-violet", entries.length + " Ereignisse")
         );
 
+        // 30.09.26: Fakten-Leiste statt Linien-Kennung
+        var erstes = evs.length ? evs[0].d : line.seit;
+        var letztes = evs.length ? evs[evs.length - 1].d : "";
         meta.append(
-          make("span", "", "Linie " + lineId),
-          make("span", "", "Seit " + formatDate(line.seit)),
-          make("span", "", entries.length + " Kapitel")
+          make("span", "", letztes && letztes !== erstes
+            ? formatDate(erstes) + " bis " + formatDate(letztes)
+            : "Seit " + formatDate(erstes || line.seit)),
+          make("span", "", entries.length + " Kapitel"),
+          make("span", "", quellen.length + (quellen.length === 1 ? " Quelle" : " Quellen"))
         );
+        meta.title = "Linie " + lineId;
 
         start.type = "button";
         start.addEventListener("click", function () {
@@ -1740,7 +1857,20 @@
         var mapCount = make("div", "px-map-count", String(entries.length).padStart(2, "0"));
         var mapCaption = make("div", "px-map-caption", "Ereignisse mit Verbindung");
         map.append(mapLabel, mapVisual, mapCount, mapCaption);
-        right.append(map);
+        // 30.09.26 Reportage: Titelbild = Bild der neuesten Meldung mit Bild (Feld b aus der Pipeline)
+        var heroEvent = evs.slice().reverse().find(function (e) { return safeUrl(e.b); });
+        if (heroEvent) {
+          var hero = make("figure", "px-intro-hero");
+          var heroImg = make("img", "");
+          heroImg.alt = "";
+          heroImg.decoding = "async";
+          heroImg.src = safeUrl(heroEvent.b);
+          heroImg.addEventListener("error", function () { hero.replaceWith(map); }, { once: true });
+          hero.append(heroImg, make("figcaption", "", "Quellbild: " + cleanText(heroEvent.q || "")));
+          right.append(hero);
+        } else {
+          right.append(map);
+        }
 
         grid.append(left, right);
         section.append(grid);
@@ -1858,7 +1988,7 @@
           if (!ref.sourceArticle) {
             ref.sourceArticle = findSourceArticle(ref.event);
             if (ref.sourceArticle) {
-              setChapterImage(ref, ref.sourceArticle);
+              if (!ref.bildAusPipeline) setChapterImage(ref, ref.sourceArticle);
               if (cleanText(ref.event.z).length < 80) fillEventCopy(ref);
             }
           }
@@ -1943,7 +2073,10 @@
 
         var line = asObject(lines[selectedId]);
         var dossier = asObject(line.dossier);
-        var events = getEntries(line);
+        // 30.09.26 Reportage: Kapitel chronologisch erzaehlen (Pipeline liefert neueste zuerst)
+        var events = getEntries(line).slice().sort(function (a, b) {
+          return String(a.d || "").localeCompare(String(b.d || ""));
+        });
 
         chapterRefs = [];
         chapterButtons = [];
@@ -1984,7 +2117,7 @@
 
           chapterButtons.push(button);
           chapterStrip.appendChild(button);
-          chapterRefs.push(createChapter(event, index, events.length));
+          chapterRefs.push(createChapter(event, index, events.length, index ? events[index - 1] : null));
           fragment.appendChild(chapterRefs[index].section);
         });
 
