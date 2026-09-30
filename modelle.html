@@ -1375,6 +1375,133 @@
     #registry-panel .text-\[\#1d9bf0\] { color: var(--px-cyan, #00d4ff); }
     html.light #registry-panel .text-gray-500, html.light #registry-panel .text-gray-600 { color: #64748b; }
     html.light #registry-panel .border-\[\#2f3336\] { border-color: rgba(0, 150, 190, .22); }
+    /* 30.09.26: alte und neue Ansicht zusammengefuehrt - die Modellliste steckt jetzt im
+       Stammbaum oben, hier bleibt nur der Artikel-Browser mit seinen Facetten-Filtern. */
+    #rg-tab-mod, #rg-view-mod { display: none !important; }
+  </style>
+  <style>
+    /* 30.09.26: Stammbaum je Hersteller - Linie (Zeile) -> Generationen (Knoten, Pfeil = Nachfolger)
+       -> Stufen (Chips). Knotengroesse nach Zahl der Meldungen bei KI News. */
+    .px-stammbaum {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .px-linie {
+      display: grid;
+      grid-template-columns: minmax(130px, 190px) minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+      padding: 10px 0;
+      border-top: 1px dashed var(--px-border);
+    }
+    .px-linie:first-child { border-top: 0; }
+    .px-linie-kopf {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      min-width: 0;
+    }
+    .px-linie-kopf strong {
+      color: var(--px-text);
+      font: 700 15px/1.2 "Space Grotesk", sans-serif;
+      overflow-wrap: anywhere;
+    }
+    .px-linie-kopf span {
+      color: var(--px-faint);
+      font: 600 10px/1.3 ui-monospace, monospace;
+      letter-spacing: .04em;
+    }
+    .px-linie-spur {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      min-width: 0;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+    .px-pfeil {
+      display: flex;
+      align-items: center;
+      color: rgba(var(--px-neon-rgb), .7);
+      font: 700 18px/1 ui-monospace, monospace;
+      flex: 0 0 auto;
+    }
+    .px-gen {
+      display: flex;
+      flex: 0 0 auto;
+      flex-direction: column;
+      gap: 5px;
+      width: 190px;
+      padding: 11px 12px;
+      border: 1px solid var(--px-border);
+      border-radius: 12px;
+      background: var(--px-panel);
+    }
+    .px-gen-mittel { width: 220px; border-color: var(--px-border-strong); }
+    .px-gen-gross {
+      width: 260px;
+      border-color: rgba(var(--px-neon-rgb), .55);
+      box-shadow: 0 0 0 1px rgba(var(--px-neon-rgb), .12), 0 10px 26px rgba(var(--px-neon-rgb), .1);
+    }
+    .px-gen-date {
+      color: var(--px-cyan);
+      font: 700 10px/1.2 ui-monospace, monospace;
+      letter-spacing: .06em;
+    }
+    .px-gen-name {
+      margin: 0;
+      color: var(--px-text);
+      font: 700 16px/1.2 "Space Grotesk", sans-serif;
+      overflow-wrap: anywhere;
+    }
+    .px-gen-gross .px-gen-name { font-size: 19px; }
+    .px-gen-meta {
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .px-gen-stufen,
+    .px-gen-news,
+    .px-maker-arten {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .px-stufe {
+      padding: 2px 8px;
+      border: 1px solid rgba(167, 139, 250, .45);
+      border-radius: 999px;
+      color: var(--px-violet);
+      font: 700 10.5px/1.5 ui-monospace, monospace;
+      cursor: help;
+    }
+    .px-gen-news a {
+      padding: 3px 7px;
+      border: 1px solid rgba(var(--px-neon-rgb), .3);
+      border-radius: 999px;
+      color: inherit;
+      font: 600 10.5px/1.2 ui-monospace, monospace;
+      text-decoration: none;
+    }
+    .px-maker-arten { margin-top: 5px; }
+    .px-art {
+      padding: 1px 6px;
+      border: 1px solid currentColor;
+      border-radius: 4px;
+      font: 800 9px/1.5 ui-monospace, monospace;
+      letter-spacing: .06em;
+    }
+    .px-art-bild { color: var(--px-green); }
+    .px-art-video { color: var(--px-violet); }
+    .px-art-audio { color: var(--px-orange); }
+    @media (max-width: 720px) {
+      .px-linie { grid-template-columns: 1fr; gap: 8px; }
+      .px-gen, .px-gen-mittel, .px-gen-gross { width: 200px; }
+    }
   </style>
 </head>
 
@@ -1550,7 +1677,7 @@
         <button onclick="toggleRegistryPanel()" class="w-full flex items-center justify-between px-5 py-3 panel-toggle-btn transition-all">
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-[#1d9bf0] text-base">smart_toy</span>
-            <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">🧩 Modell-Registry</span>
+            <span class="text-[11px] font-mono text-[#1d9bf0] font-bold uppercase tracking-widest">Meldungen mit Modellbezug</span>
             <span class="text-[9px] font-mono text-gray-500 border border-[#2f3336] px-1.5 py-0.5" id="registry-count">Registry wird geladen …</span>
           </div>
           <span class="material-symbols-outlined text-gray-600 text-sm" id="registry-panel-icon">expand_less</span>
@@ -1982,6 +2109,8 @@
           name,
           provider,
           family: field(item.f),
+          line: field(item.v),     // 30.09.26: Linie innerhalb der Familie ("Sol", "Luna")
+          stufe: field(item.st),   // 30.09.26: Stufe ("Pro", "Mini", "Lite")
           release,
           dateInfo: parseDateInfo(release),
           context: field(item.c),
@@ -2302,97 +2431,131 @@
         }).sort(compareModelsNewest);
       }
 
-      function createModelCard(model, index) {
-        const card = create("article", "px-model");
-        card.style.setProperty(
-          "--px-delay",
-          `${Math.min(index, 12) * 22}ms`
-        );
+      // ── Stammbaum (30.09.26, Daniel: Varianten als Abhaengigkeit statt gleich grosser Kacheln)
+      // Linie   = Familie + Linie ohne Versionsnummern ("GPT-6 Sol" und "GPT-6.1 Sol" -> "GPT Sol")
+      // Generation = ein Modell ohne Stufe plus seine Stufen ("GPT-6 Sol" + "Pro")
+      // Pfeile verbinden die Generationen einer Linie chronologisch (Vorgaenger -> Nachfolger).
+      function linienSchluessel(model) {
+        const basis = [model.family || model.name, model.line].filter(Boolean).join(" ");
+        const teile = basis.split(/[\s_]+/).map(t => {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(t) || /^\d{2}-\d{2}$/.test(t) || /^\d{4}$/.test(t)) return "";
+          if (/^[vV]?\d+(?:\.\d+)*$/.test(t)) return "";
+          const m = t.match(/^([A-Za-zÄÖÜäöü]{3,})(\d+(?:\.\d+)*)$/);
+          if (m) return m[1];
+          const bindestrich = t.match(/^([A-Za-zÄÖÜäöü]+)-[vV]?\d+(?:\.\d+)*$/);
+          if (bindestrich) return bindestrich[1];
+          return t;
+        }).filter(Boolean);
+        return teile.join(" ") || model.family || model.name;
+      }
 
-        const top = create("div", "px-model-top");
-        const dateNode = create(
-          "time",
-          "px-model-date",
-          formatDate(model.dateInfo)
-        );
+      function ohneStufe(model) {
+        if (!model.stufe) return model.name;
+        const muster = new RegExp("\\s*\\b" + model.stufe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+        return model.name.replace(muster, "").trim() || model.name;
+      }
 
-        if (model.dateInfo) {
-          dateNode.dateTime = model.dateInfo.key;
-          dateNode.title = model.release;
-        } else if (model.release) {
-          dateNode.title = model.release;
+      function meldungenVon(models) {
+        const alle = new Set();
+        models.forEach(m => ((window.__kiArtModell && window.__kiArtModell[m.slug]) || []).forEach(u => alle.add(u)));
+        return [...alle];
+      }
+
+      function kontextText(model) {
+        const zahl = Number(String(model.context || "").replace(/[^0-9]/g, "")) || 0;
+        if (zahl >= 1e6) return (zahl / 1e6).toLocaleString("de-DE", { maximumFractionDigits: 2 }) + " Mio. Token";
+        if (zahl >= 1000) return Math.round(zahl / 1000).toLocaleString("de-DE") + " Tsd. Token";
+        return "";
+      }
+
+      function baueLinien(models) {
+        const linien = new Map();
+        models.forEach(model => {
+          const key = linienSchluessel(model);
+          if (!linien.has(key)) linien.set(key, new Map());
+          const gens = linien.get(key);
+          const gKey = normalize(ohneStufe(model));
+          if (!gens.has(gKey)) gens.set(gKey, []);
+          gens.get(gKey).push(model);
+        });
+        return [...linien.entries()].map(([name, gens]) => {
+          const generationen = [...gens.values()].map(ms => {
+            const sortiert = ms.slice().sort(compareModelsNewest).reverse();
+            const basis = sortiert.find(m => !m.stufe) || sortiert[0];
+            const stamps = ms.map(m => m.dateInfo ? m.dateInfo.stamp : null).filter(v => v !== null);
+            return { basis, modelle: sortiert, stamp: stamps.length ? Math.min(...stamps) : null };
+          }).sort((a, b) => (a.stamp ?? Infinity) - (b.stamp ?? Infinity));
+          const neueste = Math.max(...generationen.map(g => g.stamp ?? -Infinity));
+          return { name, generationen, neueste, anzahl: generationen.reduce((n, g) => n + g.modelle.length, 0) };
+        }).sort((a, b) => b.neueste - a.neueste || b.anzahl - a.anzahl);
+      }
+
+      function createGeneration(gen, provider, linie) {
+        const basis = gen.basis;
+        const news = meldungenVon(gen.modelle);
+        const groesse = news.length >= 5 ? " px-gen-gross" : news.length >= 1 ? " px-gen-mittel" : "";
+        const knoten = create("article", "px-gen" + groesse);
+        knoten.title = [provider, linie, ohneStufe(basis)].filter(Boolean).join(" › ");
+
+        const datum = create("time", "px-gen-date", formatDate(basis.dateInfo));
+        if (basis.dateInfo) datum.dateTime = basis.dateInfo.key;
+        const name = create("h3", "px-gen-name", ohneStufe(basis));
+        const meta = create("p", "px-gen-meta", [
+          kindLabel(basis.kind) !== "Sprachmodell" ? kindLabel(basis.kind) : "",
+          kontextText(basis),
+          news.length ? news.length + (news.length === 1 ? " Meldung" : " Meldungen") : ""
+        ].filter(Boolean).join(" · ") || "Noch keine Details im Katalog.");
+        knoten.append(datum, name, meta);
+
+        const stufen = gen.modelle.filter(m => m !== basis);
+        if (stufen.length) {
+          const leiste = create("div", "px-gen-stufen");
+          stufen.forEach(m => {
+            const chip = create("span", "px-stufe", m.stufe || m.name.replace(ohneStufe(basis), "").trim() || m.name);
+            chip.title = m.name + (m.dateInfo ? " · " + formatDate(m.dateInfo) : "") + (kontextText(m) ? " · " + kontextText(m) : "");
+            leiste.appendChild(chip);
+          });
+          knoten.appendChild(leiste);
         }
 
-        top.append(
-          dateNode,
-          create("span", "px-model-index", String(index + 1).padStart(2, "0"))
-        );
-
-        const title = create("h3", "", model.name);
-        const badges = create("div", "px-model-badges");
-
-        if (model.family) {
-          const family = create(
-            "span",
-            "px-model-meta px-model-family",
-            model.family
-          );
-          family.title = model.family;
-          badges.appendChild(family);
-        }
-
-        if (model.kind) {
-          const kind = create(
-            "span",
-            "px-model-meta px-model-kind",
-            kindLabel(model.kind)
-          );
-          kind.title = model.kind;
-          badges.appendChild(kind);
-        }
-
-        // 29.09.26: roher Zahlenwert (1050000) -> lesbarer Steckbrief + Meldungen zum Modell
-        const ctxZahl = Number(String(model.context || "").replace(/[^0-9]/g, "")) || 0;
-        const ctxText = ctxZahl >= 1e6 ? (ctxZahl / 1e6).toLocaleString("de-DE", { maximumFractionDigits: 2 }) + " Mio. Token Kontext"
-          : ctxZahl >= 1000 ? Math.round(ctxZahl / 1000).toLocaleString("de-DE") + " Tsd. Token Kontext" : "";
-        const meldungen = (window.__kiArtModell && window.__kiArtModell[model.slug]) || [];
-        const context = create(
-          "p",
-          "px-model-context",
-          [ctxText, meldungen.length ? meldungen.length + (meldungen.length === 1 ? " Meldung" : " Meldungen") + " bei KI News" : ""]
-            .filter(Boolean).join(" · ") || "Noch keine Details im Katalog."
-        );
-
-        const foot = create("div", "px-model-foot");
-        if (meldungen.length) {
-          const liste = create("div", "px-model-news");
-          liste.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0";
-          meldungen.slice(0, 3).forEach(u => {
+        if (news.length) {
+          const liste = create("div", "px-gen-news");
+          news.slice(0, 2).forEach(u => {
             let host = "";
             try { host = new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return; }
             const a = create("a", "", host + " ↗");
             a.href = u; a.target = "_blank"; a.rel = "noopener noreferrer";
-            a.style.cssText = "font:600 11px/1.2 ui-monospace,monospace;padding:4px 8px;border-radius:999px;border:1px solid rgba(var(--neon-rgb,0,212,255),.3);color:inherit;text-decoration:none";
             liste.appendChild(a);
           });
-          foot.appendChild(liste);
+          knoten.appendChild(liste);
         }
-        const slug = create(
-          "span",
-          "px-model-slug",
-          model.slug ? `slug: ${model.slug}` : "slug: nicht angegeben"
-        );
+        return knoten;
+      }
 
-        if (model.slug) slug.title = model.slug;
-
-        card.append(top, title);
-
-        if (badges.childElementCount) {
-          card.appendChild(badges);
-        }
-
-        card.append(context, foot);
-        return card;
+      function createStammbaum(provider, models) {
+        const baum = create("div", "px-stammbaum");
+        baueLinien(models).forEach(linie => {
+          const zeile = create("div", "px-linie");
+          const kopf = create("div", "px-linie-kopf");
+          kopf.append(
+            create("strong", "", linie.name),
+            create("span", "", linie.generationen.length > 1
+              ? `${linie.generationen.length} Generationen · ${linie.anzahl} Modelle`
+              : (linie.anzahl === 1 ? "1 Modell" : `${linie.anzahl} Modelle`))
+          );
+          const spur = create("div", "px-linie-spur");
+          linie.generationen.forEach((gen, i) => {
+            if (i) {
+              const pfeil = create("span", "px-pfeil", "→");
+              pfeil.setAttribute("aria-hidden", "true");
+              spur.appendChild(pfeil);
+            }
+            spur.appendChild(createGeneration(gen, provider, linie.name));
+          });
+          zeile.append(kopf, spur);
+          baum.appendChild(zeile);
+        });
+        return baum;
       }
 
       function createMakerSection(provider, models, startIndex, sectionIndex) {
@@ -2414,15 +2577,19 @@
         title.id = headingId;
         section.setAttribute("aria-labelledby", headingId);
 
-        titleWrap.append(
-          title,
-          create(
-            "span",
-            "px-maker-count",
-            `${PX_NUMBER.format(models.length)} ` +
-            `${models.length === 1 ? "Modell" : "Modelle"}`
-          )
-        );
+        // 30.09.26: aus der alten Registry-Ansicht uebernommen - Meldungen je Hersteller und Modellarten
+        const newsGesamt = meldungenVon(models).length;
+        const zaehler = [
+          `${PX_NUMBER.format(models.length)} ${models.length === 1 ? "Modell" : "Modelle"}`,
+          newsGesamt ? `${PX_NUMBER.format(newsGesamt)} ${newsGesamt === 1 ? "Meldung" : "Meldungen"}` : ""
+        ].filter(Boolean).join(" · ");
+        titleWrap.append(title, create("span", "px-maker-count", zaehler));
+        const arten = [...new Set(models.map(m => m.kindKey).filter(k => k === "bild" || k === "video" || k === "audio"))];
+        if (arten.length) {
+          const artLeiste = create("span", "px-maker-arten");
+          arten.forEach(k => artLeiste.appendChild(create("span", `px-art px-art-${k}`, k.toUpperCase())));
+          titleWrap.appendChild(artLeiste);
+        }
 
         header.append(
           orb,
@@ -2438,16 +2605,11 @@
 
         section.appendChild(header);
 
-        const grid = create("div", "px-model-grid");
-
         const sortiert = models.slice().sort(compareModelsNewest);
         // 28.09.26 (Daniel: alle offen ist zu unuebersichtlich): ohne Filter/Suche nur der Herstellerkopf
         const zu = !state.provider && !state.query && sortiert.length > 0;
-        sortiert.forEach((model, index) => {
-          const card = createModelCard(model, startIndex + index);
-          if (zu) card.hidden = true;
-          grid.appendChild(card);
-        });
+        // 30.09.26: Stammbaum statt gleich grosser Kacheln (siehe createStammbaum)
+        const grid = createStammbaum(provider, sortiert);
 
         section.appendChild(grid);
         if (zu) {
@@ -2768,5 +2930,12 @@
     })();
   </script>
   <script src="assets/registry-panel.js" defer></script>
+  <script>
+    // 30.09.26: Artikel-Reiter direkt oeffnen (Modelle-Reiter ist ausgeblendet, s. CSS)
+    window.addEventListener("load", function () {
+      var t = document.getElementById("rg-tab-art");
+      if (t) t.click();
+    });
+  </script>
 </body>
 </html>

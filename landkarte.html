@@ -1296,6 +1296,57 @@
     }
   </style>
   <style>/* 29.09.26 Ersatz-Kopf aus */ .px-fallback-header { display: none !important; }</style>
+  <style>
+    /* 30.09.26 (Daniel: "das weisse Design hat da ein grosses schwarzes Feld"): helle Fassung
+       der Karte, wenn die Seite hell ist (ki-layout.js setzt html.light, die Einbettung in
+       modelle.html uebernimmt die Klassen des Elternfensters). Dunkel bleibt wie bisher. */
+    html.light .px-map-card {
+      border-color: rgba(0, 150, 190, .22);
+      background: #f5fafc;
+      box-shadow: 0 18px 50px rgba(20, 60, 80, .12), 0 0 0 1px rgba(0, 150, 190, .05);
+    }
+    html.light .px-map-head {
+      color: #102335;
+      border-bottom-color: rgba(0, 150, 190, .14);
+      background: rgba(255, 255, 255, .94);
+    }
+    html.light .px-map-subtitle,
+    html.light .px-legend { color: #5b7686; }
+    html.light .px-tab-strip {
+      border-color: rgba(0, 150, 190, .12);
+      background: rgba(245, 250, 252, .96);
+    }
+    html.light .px-tab {
+      color: #4a6574;
+      background: rgba(0, 120, 160, .045);
+    }
+    html.light .px-tab:hover,
+    html.light .px-tab:focus-visible { color: #0b2533; }
+    html.light .px-tab.is-active { color: #061015; }
+    html.light .px-map-stage {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(0, 190, 230, .12), transparent 31rem),
+        #eef6f9;
+    }
+    html.light .px-map-bg { fill: #eef6f9; }
+    html.light .px-star,
+    html.light .px-particle { fill: #0a8fb0; opacity: .22; }
+    html.light .px-connection { stroke: rgba(20, 110, 140, .22); }
+    html.light .px-orbit { stroke: rgba(0, 150, 190, .25); }
+    html.light .px-center-core { fill: #ffffff; }
+    html.light .px-center-node:focus-visible .px-center-core { fill: #e9f8fc; }
+    html.light .px-center-title,
+    html.light .px-hub-label { fill: #0b2533; }
+    html.light .px-center-meta { fill: #2a7f95; }
+    html.light .px-cluster-ring { fill: rgba(255, 255, 255, .72); }
+    html.light .px-cluster-label { fill: #0b2533; stroke: #ffffff; }
+    html.light .px-cluster-kind { fill: #5d7a8a; }
+    html.light .px-map-hub { fill: #ffffff; }
+    html.light .px-map-sat { fill: #f5fafc; }
+    html.light .px-node-label { fill: #35505f; stroke: #ffffff; }
+    html.light .px-map-node:focus-visible .px-node-label,
+    html.light .px-map-node.is-selected .px-node-label { fill: #000000; }
+  </style>
 </head>
 
 <body>
@@ -2203,7 +2254,8 @@
           y: 0,
           width,
           height,
-          fill: "#050b11"
+          fill: "#050b11",
+          class: "px-map-bg"
         }));
 
         elements.map.append(svgElement("rect", {
