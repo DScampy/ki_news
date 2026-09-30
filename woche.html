@@ -2398,8 +2398,7 @@
         });
 
         return {
-          id: clean(representative.story_id)
-            || clean(key)
+          id: clean(key)     // 30.09.26: story_id ist ueber Laeufe nicht eindeutig
             || normalizeKey(representative.title),
           key,
           title: clean(representative.title) || "Story ohne Titel",
@@ -2421,13 +2420,35 @@
         };
       }
 
+      // 30.09.26: NICHT nach story_id gruppieren - die ist nur eine Lauf-Nummer ("s008").
+      // Im Archiv standen so 21 fremde Meldungen aus 8 Tagen (Hugging-Face-Klage, GPT-6.1 Sol,
+      // Weisses Haus ...) in EINER Story, waehrend "Dots" auf s001 und s007 verteilt war.
+      // Stattdessen: Kette dub_von -> Kopf-Meldung (von ki_news.py _markiere_dubletten gesetzt,
+      // umfasst auch die Cluster-Mitglieder desselben Laufs), sonst der eigene Link.
       function clusterStories(articles) {
         const groups = new Map();
+        const dubVon = new Map();
+
+        // Leere Felder vorher abfangen: safeUrl("") liefert die Adresse DIESER Seite
+        const linkVon = value => clean(value) ? canonicalUrl(value) : "";
 
         articles.forEach(article => {
-          const storyId = clean(article.story_id);
-          const key = storyId
-            || "title:" + (normalizeKey(article.title || article.link) || "unbekannt");
+          const link = linkVon(article.link);
+          const ziel = linkVon(article.dub_von);
+          if (link && ziel && ziel !== link) dubVon.set(link, ziel);
+        });
+
+        function kopf(link) {
+          let aktuell = link;
+          for (let i = 0; i < 10 && dubVon.has(aktuell); i++) aktuell = dubVon.get(aktuell);
+          return aktuell;
+        }
+
+        articles.forEach(article => {
+          const link = linkVon(article.link);
+          const key = link
+            ? "link:" + kopf(link)
+            : "title:" + (normalizeKey(article.title || article.link) || "unbekannt");
 
           if (!groups.has(key)) groups.set(key, []);
           groups.get(key).push(article);

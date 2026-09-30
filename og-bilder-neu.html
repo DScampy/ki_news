@@ -1331,7 +1331,7 @@
         <div class="px-editor-foot">
           <div class="px-editor-meta">
             <strong id="px-active-title">Noch keine Meldung ausgewählt</strong>
-            <span id="px-active-file">assets/og/kein-artikel.png</span>
+            <span id="px-active-file">assets/og/kein-artikel.jpg</span>
           </div>
 
           <div class="px-actions">
@@ -1402,7 +1402,7 @@
             </div>
           </dl>
 
-          <div class="px-file-path" id="px-output-path">assets/og/kein-artikel.png</div>
+          <div class="px-file-path" id="px-output-path">assets/og/kein-artikel.jpg</div>
         </section>
 
         <section class="px-panel" aria-labelledby="px-pipeline-title">
@@ -1884,7 +1884,7 @@
         ctx.fillStyle = palette.muted;
         ctx.font = '700 9px "IBM Plex Mono", monospace';
         ctx.textAlign = "right";
-        ctx.fillText("OG / EDITORIAL SIGNAL", 1136, 43);
+        ctx.fillText("KI-NACHRICHTEN AUF DEUTSCH", 1136, 43);  // 30.09.26: keine internen Labels im oeffentlichen Bild
         ctx.fillText(article.dateLabel.toUpperCase(), 1136, 61);
 
         ctx.fillStyle = accent;
@@ -1966,9 +1966,7 @@
         ctx.font = '700 10px "IBM Plex Mono", monospace';
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
-        ctx.fillText("SIGNAL / V2", x + 20, y + 32);
-        ctx.textAlign = "right";
-        ctx.fillText(`H-${article.hash % 900 + 100}`, x + width - 20, y + 32);
+        ctx.fillText("QUELLE", x + 20, y + 32);
 
         const centerX = x + width / 2;
         const centerY = y + 142;
@@ -2035,9 +2033,6 @@
         ctx.textAlign = "center";
         ctx.fillText(fitText(ctx, article.region.toUpperCase(), 62), x + 58, y + height - 27);
 
-        ctx.fillStyle = palette.muted;
-        ctx.textAlign = "right";
-        ctx.fillText(`S${String(article.score).padStart(2, "0")}`, x + width - 20, y + height - 27);
         ctx.restore();
       }
 
@@ -2066,8 +2061,6 @@
         ctx.fillStyle = palette.muted;
         ctx.font = '700 10px "IBM Plex Mono", monospace';
         ctx.fillText(`REGION / ${article.region.toUpperCase()}`, 148, y + 34);
-        ctx.textAlign = "right";
-        ctx.fillText(`SCORE / ${String(article.score).padStart(2, "0")}`, 810, y + 34);
         ctx.restore();
       }
 
@@ -2089,7 +2082,7 @@
         ctx.font = '700 10px "IBM Plex Mono", monospace';
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        ctx.fillText("KI NEWS / OG OUTPUT", 86, 590);
+        ctx.fillText("KI-NEWS.LIVE", 86, 590);
 
         ctx.fillStyle = palette.muted;
         ctx.font = '700 9px "IBM Plex Mono", monospace';
@@ -2097,7 +2090,7 @@
         ctx.fillText(article.dateLabel.toUpperCase(), 600, 590);
 
         ctx.textAlign = "right";
-        ctx.fillText(fitText(ctx, `${article.rawId} / ${article.region.toUpperCase()}`, 290), 1136, 590);
+        ctx.fillText("KURATIERT UND EINGEORDNET", 1136, 590);   // 30.09.26: vorher story_id (Lauf-Nummer) + Region
         ctx.restore();
       }
 
@@ -2210,15 +2203,15 @@
       }
 
       function filenameFor(article) {
-        return article ? `artikel-${article.id}.png` : "kein-artikel.png";
+        return article ? `artikel-${article.id}.jpg` : "kein-artikel.jpg";
       }
 
       function setNoSelection() {
         state.selected = null;
         els.articleSelect.value = "";
         els.activeTitle.textContent = "Noch keine Meldung ausgewählt";
-        els.activeFile.textContent = "assets/og/kein-artikel.png";
-        els.outputPath.textContent = "assets/og/kein-artikel.png";
+        els.activeFile.textContent = "assets/og/kein-artikel.jpg";
+        els.outputPath.textContent = "assets/og/kein-artikel.jpg";
         els.activeSource.textContent = "-";
         els.activeRegion.textContent = "-";
         els.activeScore.textContent = "-";
@@ -2285,7 +2278,7 @@
       function canvasBlob(canvas) {
         return new Promise(resolve => {
           try {
-            canvas.toBlob(blob => resolve(blob), "image/png");
+            canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.86);   // 30.09.26: PNG war ~850 KB
           } catch (error) {
             resolve(null);
           }

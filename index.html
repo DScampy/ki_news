@@ -5236,7 +5236,11 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   (function () {
     fetch("news.json").then(function (r) { return r.json(); }).then(function (d) {
       var liste = (d && d.news) || [], grenze = Date.now() - 7 * 864e5, je = {};
+      // 30.09.26: Dubletten (dub_von, gesetzt von _markiere_dubletten) nicht zaehlen - sonst stand
+      // "OpenAI startet Dots" zweimal in den Top 3 (Heise s001 + SiliconAngle s002, gleicher Score).
+      var links = {}; liste.forEach(function (n) { if (n.link) links[n.link] = true; });
       liste.forEach(function (n) {
+        if (n.dub_von && links[n.dub_von]) return;
         var t = Date.parse(n.first_seen || n.date || ""); if (isNaN(t) || t < grenze) return;
         var k = n.story_id || n.link, w = Number(n.story_cluster_score || n.score) || 0;
         if (!je[k] || w > je[k].w) je[k] = { n: n, w: w };
