@@ -829,6 +829,19 @@
       // Weiterleitung aufgeloest hat (link_verlag). data.link bleibt Schluessel
       // fuer Hash/Linien, nur das Sprungziel aendert sich.
       linkEl.href = data.link_verlag || data.link;
+      // 29.09.26: Belegstrang der Story (belege.html), wenn eine story_id bekannt ist
+      var belegEl = document.getElementById('kl-ov-belege');
+      if (!belegEl) {
+        belegEl = document.createElement('a');
+        belegEl.id = 'kl-ov-belege';
+        belegEl.className = linkEl.className;
+        belegEl.style.marginLeft = '8px';
+        belegEl.textContent = 'Belege und Quellen';
+        linkEl.parentNode.insertBefore(belegEl, linkEl.nextSibling);
+      }
+      var sid = data.story_id || (window.__pxkStory && window.__pxkStory[data.link]) || '';
+      belegEl.href = ROOT + 'belege.html#story=' + encodeURIComponent(sid);
+      belegEl.style.display = sid ? '' : 'none';
       linkEl.style.display = '';
     } else {
       linkEl.style.display = 'none';

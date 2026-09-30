@@ -159,6 +159,24 @@ def details(slugs, key):
         return dict(pool.map(eins, list(dict.fromkeys(slugs))))
 
 
+def korrekturen_anwenden(releases, pfad=BASE / "hersteller_korrekturen.json"):
+    """Hand-Korrekturen je Release-URL (29.09.26): z.B. der Haupt-Post eines Threads mit Video,
+    wenn HuggingNews nur eine Antwort darin ausgewaehlt hat. Gewinnt immer."""
+    try:
+        korr = json.loads(pfad.read_text(encoding="utf-8"))
+    except Exception:
+        return 0
+    n = 0
+    for r in releases:
+        k = korr.get(r.get("url") or "")
+        if isinstance(k, dict):
+            for feld in ("x_url", "video_url", "poster"):
+                if k.get(feld) and r.get(feld) != k[feld]:
+                    r[feld] = k[feld]
+                    n += 1
+    return n
+
+
 def release_posts(releases, storys, speicher):
     geaendert = 0
     for r in releases:
@@ -274,6 +292,7 @@ def main():
     n_rel = 0
     if isinstance(hersteller, dict) and isinstance(hersteller.get("releases"), list):
         n_rel = release_posts(hersteller["releases"], storys, speicher["releases"])
+        n_rel += korrekturen_anwenden(hersteller["releases"])
         for r in hersteller["releases"]:
             log(f"  Release {r.get('modell', ''):<28} x_url={r.get('x_url') or '-'}  "
                 f"Analysen={len(r.get('x_analysen') or [])}")

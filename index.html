@@ -2130,7 +2130,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       <!-- SSR:BRIEFING:END -->
       <div id="ki-morgenlage-slot" hidden></div>
 <!-- KOMPAKT:START (Einbau 28.09.26, Prototyp start_kompakt; ausserhalb der SSR-Marker, die Pipeline laesst ihn stehen) -->
-<style id="pxk-style">
+<style id="pxk-style">#pxk-kompakt li:has(a), #pxk-kompakt article:has(a) { cursor: pointer; }
+
     #pxk-kompakt {
       --pxk-bg: #edf4f7;
       --pxk-bg-deep: #dfeaf0;
@@ -3615,6 +3616,14 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
       const root = document.getElementById("pxk-main");
       if (!root) return;
+      // 29.09.26: ganze Kaesten anklickbar (nicht nur der Titel-Link)
+      root.addEventListener("click", (ev) => {
+        if (!ev.target.closest || ev.target.closest("a, button, summary, input, select")) return;
+        const box = ev.target.closest("article, li");
+        const a = box && [...box.querySelectorAll("a")].find(x => x.__pxkItem);
+        if (!a || typeof window.klOpenArticle !== "function") return;
+        window.klOpenArticle(a.__pxkItem);
+      });
       root.addEventListener("click", (ev) => {
         const a = ev.target.closest && ev.target.closest("a");
         if (!a || !a.__pxkItem || typeof window.klOpenArticle !== "function") return;
@@ -4953,6 +4962,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
           jeStory.get(sid).push(n);
         });
         const entdoppelt = [];
+        window.__pxkStory = window.__pxkStory || {};
+        (Array.isArray(rohNews) ? rohNews : []).forEach((n) => { if (n && n.link && n.story_id) window.__pxkStory[n.link] = n.story_id; });
         jeStory.forEach((liste) => {
           liste.sort((a, b) => (Number(b && b.score) || 0) - (Number(a && a.score) || 0));
           const kopf = Object.assign({}, liste[0]);
@@ -7675,6 +7686,16 @@ window.addEventListener('resize',()=>{
     // kommt der naechste Release in die Kachel (sonst doppelt auf der Startseite).
     let allReleases = [];
     let freshReleases = [];
+    // 29.09.26: bei mehreren frischen Releases alle 9 s weiterschalten; Pause bei Maus/Fokus/Video,
+    // aus nach Klick auf den Umschalter, aus bei prefers-reduced-motion
+    let releaseAuto = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setInterval(() => {
+      if (!releaseAuto || freshReleases.length < 2 || document.hidden) return;
+      if (releaseMount.matches(":hover, :focus-within") || releaseMount.querySelector(".px-hero-video-player")) return;
+      const i = freshReleases.indexOf(releaseData);
+      releaseData = freshReleases[(i + 1) % freshReleases.length];
+      renderRelease();
+    }, 9000);
     const pickRelease = () => {
       const heroLinks = new Set(stories.map(story => cleanText(story && story.link)).filter(Boolean));
       const frei = allReleases.filter(release => !release.news_link || !heroLinks.has(release.news_link));
@@ -7807,6 +7828,12 @@ window.addEventListener('resize',()=>{
       const youtube = youtubeEmbedUrl(item.video_url);
       const directVideo = directVideoUrl(item.video_url);
 
+      if (!youtube && !directVideo && safeHref(item.x_url)) {
+        // 29.09.26: kein MP4 (z.B. OpenAI sperrt Abrufe), das Video liegt im X-Post -> dort oeffnen
+        preview.append(make("span", "px-hero-video-caption", "Video auf X"));
+        preview.addEventListener("click", () => window.open(item.x_url, "_blank", "noopener"));
+        return;
+      }
       if (!youtube && !directVideo) {
         preview.disabled = true;
         preview.setAttribute(
@@ -7917,6 +7944,7 @@ window.addEventListener('resize',()=>{
           b.type = "button";
           b.setAttribute("aria-pressed", r === releaseData ? "true" : "false");
           b.addEventListener("click", () => {
+            releaseAuto = false;          // Hand hat Vorrang: Automatik aus
             if (r === releaseData) return;
             releaseData = r;
             renderRelease();
