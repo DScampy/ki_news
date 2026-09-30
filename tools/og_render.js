@@ -42,10 +42,10 @@ const ZIEL = path.join(__dirname, "..", "_vorschau", "og");
       c.width = window.__og.width;
       c.height = window.__og.height;
       const ok = await window.__og.render(meldung, c);
-      return ok === false ? null : c.toDataURL("image/png");
+      return ok === false ? null : c.toDataURL("image/jpeg", 0.86);   // 30.09.26: PNG ~850 KB, JPEG siehe PR
     }, m);
     // Dateiname aus dem Link: story_id wird je Pipeline-Lauf neu vergeben
-    const name = "og-" + crypto.createHash("sha1").update(m.link).digest("hex").slice(0, 12) + ".png";
+    const name = "og-" + crypto.createHash("sha1").update(m.link).digest("hex").slice(0, 12) + ".jpg";
     if (!png) { ergebnis.push({ link: m.link, fehler: "render false" }); continue; }
     fs.writeFileSync(path.join(ZIEL, name), Buffer.from(png.split(",")[1], "base64"));
     ergebnis.push({ link: m.link, titel: m.title, datei: "_vorschau/og/" + name });
