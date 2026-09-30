@@ -1156,6 +1156,207 @@
       }
     }
 
+    /* 30.09.26: Aufmacher (volle Breite) + Bild-Mosaik */
+    .px-grid {
+      grid-auto-flow: dense;
+    }
+
+    .px-dossier-lead {
+      grid-column: 1 / -1;
+    }
+
+    .px-lead-link,
+    .px-tile-link {
+      display: flex;
+      min-width: 0;
+      min-height: 100%;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .px-lead-link {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      min-height: 380px;
+    }
+
+    .px-lead-media,
+    .px-tile-media {
+      position: relative;
+      display: block;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--px-accent) 30%, transparent), transparent 60%),
+        linear-gradient(135deg, var(--px-bg-deep), var(--px-card));
+    }
+
+    .px-lead-media > img,
+    .px-tile-media > img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 400ms ease;
+    }
+
+    .px-dossier-card:hover .px-lead-media > img,
+    .px-dossier-card:hover .px-tile-media > img {
+      transform: scale(1.03);
+    }
+
+    .px-lead-body {
+      display: flex;
+      min-width: 0;
+      padding: 26px 28px 24px;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .px-lead-kicker {
+      color: var(--px-accent);
+      font: 800 10px/1.2 "IBM Plex Mono", ui-monospace, monospace;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .px-lead-title {
+      margin: 0;
+      color: var(--px-text);
+      font: 700 clamp(26px, 2.8vw, 40px)/1.06 "Space Grotesk", sans-serif;
+      letter-spacing: -.035em;
+      text-wrap: balance;
+    }
+
+    .px-lead-summary {
+      margin: 0;
+      color: var(--px-muted);
+      font-size: 15.5px;
+      line-height: 1.6;
+    }
+
+    .px-lead-cta {
+      margin-top: auto;
+      align-self: flex-start;
+      padding: 9px 15px;
+      border: 1px solid var(--px-border-strong);
+      border-radius: 999px;
+      color: var(--px-accent);
+      font: 800 11px/1 "IBM Plex Mono", ui-monospace, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .px-lead-cta::after {
+      content: " →";
+    }
+
+    .px-tile-link {
+      flex-direction: column;
+    }
+
+    .px-tile-media {
+      aspect-ratio: 16 / 9;
+    }
+
+    .px-tile-wide .px-tile-media {
+      aspect-ratio: 32 / 9;
+    }
+
+    .px-tile-media::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: linear-gradient(180deg, transparent 30%, rgba(4, 12, 18, .82));
+    }
+
+    .px-tile-title {
+      position: absolute;
+      right: 14px;
+      bottom: 12px;
+      left: 14px;
+      z-index: 1;
+      margin: 0;
+      color: #fff;
+      font: 700 19px/1.18 "Space Grotesk", sans-serif;
+      letter-spacing: -.02em;
+      text-shadow: 0 1px 12px rgba(0, 0, 0, .45);
+      text-wrap: balance;
+    }
+
+    .px-tile-wide .px-tile-title {
+      font-size: 24px;
+    }
+
+    .px-tile-media .px-tag {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      z-index: 1;
+    }
+
+    .px-tile-body {
+      display: flex;
+      min-width: 0;
+      padding: 13px 15px 14px;
+      flex: 1;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .px-tile-summary {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      color: var(--px-muted);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .px-tile-kicker {
+      margin-top: auto;
+      color: var(--px-faint);
+      font: 700 10px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+      letter-spacing: .05em;
+    }
+
+    .px-tile-wide {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 760px) {
+      .px-lead-link {
+        grid-template-columns: 1fr;
+      }
+
+      .px-lead-media {
+        aspect-ratio: 16 / 9;
+      }
+
+      .px-lead-body {
+        padding: 18px 16px;
+      }
+
+      .px-lead-summary {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 6;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .px-tile-wide {
+        grid-column: auto;
+      }
+
+      .px-tile-wide .px-tile-media {
+        aspect-ratio: 16 / 9;
+      }
+    }
+
     @media (max-width: 1100px) {
       .px-hero {
         grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
@@ -1615,9 +1816,8 @@
         </div>
 
         <p class="px-section-note">
-          Jeder Punkt der Mini-Zeitleiste steht für eine Meldung. Die
-          Relevanz-Schätzung ist eine heuristische redaktionelle Einordnung und
-          kein Wahrheitswert.
+          Oben das aktuellste Dossier, darunter alle weiteren. Jeder Punkt der
+          Mini-Zeitleiste steht für eine Meldung.
         </p>
       </div>
 
@@ -2288,15 +2488,6 @@
         return null;
       }
 
-      function relevanceDisplay(value) {
-        if (value === null) {
-          return "k. A.";
-        }
-
-        const normalised = Math.max(0, Math.min(1, value));
-        return `${decimalFormat.format(normalised)} / 1`;
-      }
-
       function normaliseLines(payload) {
         const source = getLineSource(payload);
         if (!source) {
@@ -2359,10 +2550,15 @@
 
                 const sourceName = eventSource(event);
 
+                // 30.09.26: Kapitelbild aus der Pipeline (ki_news.py _linien_kapitel, Feld "b")
+                const bild = typeof event.b === "string" && /^https:\/\//.test(event.b) ? event.b : "";
+
                 return {
                   date: eventDate(event),
+                  key: cleanText(event.k),
                   title,
                   summary,
+                  bild,
                   source: sourceName,
                   region: normaliseRegion(valueFrom(event, [
                     "region",
@@ -2451,11 +2647,20 @@
               `${title} ${summary} ${eventSearch} ${sources.join(" ")} ${id} ${region} ${label}`
             );
 
+            // neuestes Ereignis mit Bild zuerst (Aufmacher/Kachel)
+            // Ereignisse, die Jev als "abseits" markiert hat (dossier.abseits), liefern kein
+            // Titelbild - sonst zeigte "OpenAI-Agenten" die Zhipu-Logos einer GLM-Meldung.
+            const abseits = new Set(Array.isArray(dossier.abseits) ? dossier.abseits : []);
+            const imKern = events.filter(event => event.bild && !abseits.has(event.key));
+            const bilder = (imKern.length ? imKern : events.filter(event => event.bild))
+              .map(event => event.bild).reverse();
+
             return {
               id,
               title,
               summary,
               events,
+              bilder,
               eventCount,
               sources,
               searchable,
@@ -2504,12 +2709,8 @@
       }
 
       function createMetrics(dossier) {
+        // 30.09.26: "Relevanz-Schätzung" nicht mehr angezeigt (interner Rechenwert)
         const metrics = makeElement("span", "px-metrics");
-        const score = createMetric(
-          "Relevanz-Schätzung",
-          relevanceDisplay(dossier.relevance),
-          "px-metric-score"
-        );
 
         metrics.append(
           createMetric(
@@ -2525,8 +2726,7 @@
           createMetric(
             "Meldungen",
             numberFormat.format(dossier.eventCount)
-          ),
-          score
+          )
         );
 
         return metrics;
@@ -2540,28 +2740,6 @@
         }
 
         return Math.abs(hash);
-      }
-
-      function createSourceStrip(dossier) {
-        const strip = makeElement("span", "px-source-strip");
-        const label = makeElement(
-          "span",
-          "px-source-strip-label",
-          dossier.sources.length === 1
-            ? "1 Quelle"
-            : `${numberFormat.format(dossier.sources.length)} Quellen`
-        );
-
-        const names = makeElement(
-          "span",
-          "px-source-names",
-          dossier.sources.length
-            ? dossier.sources.join(" / ")
-            : "Quellenangabe nicht vorhanden"
-        );
-
-        strip.append(label, names);
-        return strip;
       }
 
       function createMiniTimeline(dossier) {
@@ -2675,55 +2853,103 @@
         return variants[stableNumber(dossier.id) % variants.length] || "";
       }
 
-      function createCard(dossier, index) {
-        const variant = cardVariant(dossier);
-        const card = makeElement(
-          "article",
-          variant ? `px-dossier-card ${variant}` : "px-dossier-card"
-        );
+      // 30.09.26 (Daniel: Mix aus "Titelseite" und "Bild-Mosaik"): das erste Dossier der
+      // aktuellen Sortierung als Aufmacher ueber die volle Breite, der Rest als Bildkacheln.
+      // Interne Werte (Linien-ID, Relevanz-Schaetzung, Label "Normal") nicht mehr sichtbar.
+      function createMedia(dossier, className, gross) {
+        const media = makeElement("span", className);
+        media.setAttribute("aria-hidden", "true");
+        let bild = dossier.bilder[0];
+        // Spiegel-Bilder gibt es in 640 und 1600 px (bilder_spiegel.py). Kacheln brauchen 640.
+        if (bild && !gross) bild = bild.replace("/bilder/1600/", "/bilder/640/");
+        if (bild) {
+          const img = makeElement("img");
+          img.alt = "";
+          img.loading = gross ? "eager" : "lazy";
+          img.decoding = "async";
+          img.src = bild;
+          img.addEventListener("error", function fehler() {
+            // 1600er werden nach einigen Tagen geloescht - dann die 640er nehmen
+            if (img.src.includes("/bilder/1600/")) {
+              img.src = img.src.replace("/bilder/1600/", "/bilder/640/");
+              return;
+            }
+            img.removeEventListener("error", fehler);
+            img.remove();
+            media.classList.add("px-media-leer");
+          });
+          media.append(img);
+        } else {
+          media.classList.add("px-media-leer");
+        }
+        return media;
+      }
 
-        const link = makeElement("a", "px-card-link px-focusable");
+      function createKicker(dossier) {
+        const kicker = makeElement("span", "px-tile-kicker");
+        const teile = [dossier.eventCount === 1 ? "1 Meldung" : `${numberFormat.format(dossier.eventCount)} Meldungen`];
+        if (dossier.sources.length) {
+          teile.push(dossier.sources.length === 1 ? "1 Quelle" : `${numberFormat.format(dossier.sources.length)} Quellen`);
+        }
+        teile.push(formatCardPeriod(dossier.start, dossier.end));
+        kicker.textContent = teile.join(" · ");
+        return kicker;
+      }
+
+      function createLabelTag(dossier) {
+        if (dossier.label !== "breaking" && dossier.label !== "episch") return null;
+        const text = dossier.label.charAt(0).toLocaleUpperCase("de-DE") + dossier.label.slice(1);
+        return createTag(text, labelVariant(dossier.label));
+      }
+
+      function createLeadCard(dossier) {
+        const variant = cardVariant(dossier);
+        const card = makeElement("article", `px-dossier-card px-dossier-lead ${variant}`.trim());
+        const link = makeElement("a", "px-lead-link px-focusable");
         link.href = `linie.html#l=${encodeURIComponent(dossier.id)}`;
 
-        const top = makeElement("span", "px-card-top");
-        const tags = makeElement("span", "px-card-tags");
-        const id = makeElement("span", "px-card-id", dossier.id);
-        const title = makeElement("h3", "px-card-title", dossier.title);
+        const body = makeElement("span", "px-lead-body");
+        const kicker = makeElement("span", "px-lead-kicker", "Aufmacher-Dossier");
+        const labelTag = createLabelTag(dossier);
+        const title = makeElement("h3", "px-lead-title", dossier.title);
+        const summary = makeElement("p", "px-lead-summary", dossier.summary);
+        const cta = makeElement("span", "px-lead-cta", "Dossier lesen");
 
-        const summary = makeElement(
-          "p",
-          "px-card-summary",
-          shortenText(dossier.summary)
+        body.append(kicker);
+        if (labelTag) body.append(labelTag);
+        body.append(title, summary, createMetrics(dossier), createMiniTimeline(dossier), cta);
+        link.append(createMedia(dossier, "px-lead-media", true), body);
+        card.append(link);
+        return card;
+      }
+
+      function createTile(dossier, index) {
+        const variant = cardVariant(dossier);
+        const breit = dossier.eventCount >= 8 ? " px-tile-wide" : "";
+        const card = makeElement("article", `px-dossier-card px-tile${breit} ${variant}`.trim());
+        const link = makeElement("a", "px-tile-link px-focusable");
+        link.href = `linie.html#l=${encodeURIComponent(dossier.id)}`;
+
+        const media = createMedia(dossier, "px-tile-media");
+        const titel = makeElement("h3", "px-tile-title", dossier.title);
+        media.append(titel);
+        const labelTag = createLabelTag(dossier);
+        if (labelTag) media.append(labelTag);
+
+        const body = makeElement("span", "px-tile-body");
+        body.append(
+          makeElement("p", "px-tile-summary", shortenText(dossier.summary, 150)),
+          createKicker(dossier)
         );
 
-        const eventLabel = dossier.eventCount === 1
-          ? "1 Meldung"
-          : `${numberFormat.format(dossier.eventCount)} Meldungen`;
-
-        const readableLabel = dossier.label.charAt(0).toLocaleUpperCase("de-DE")
-          + dossier.label.slice(1);
-
-        tags.append(
-          createTag(dossier.region),
-          createTag(readableLabel, labelVariant(dossier.label)),
-          createTag(eventLabel, "px-tag-violet")
-        );
-
-        top.append(tags, id);
-
-        link.append(
-          top,
-          title,
-          summary,
-          createMetrics(dossier),
-          createSourceStrip(dossier),
-          createMiniTimeline(dossier)
-        );
-
+        link.append(media, body);
         card.append(link);
         card.setAttribute("data-index", String(index + 1));
-
         return card;
+      }
+
+      function createCard(dossier, index) {
+        return index === 0 ? createLeadCard(dossier) : createTile(dossier, index);
       }
 
       function overlapsPeriod(dossier, period) {
