@@ -68,7 +68,8 @@ REGISTRY_FILE = "story_registry_shadow.json"
 # wird nie schlechter (Invariante I8, Fail-safe = nicht andocken bleibt unberuehrt).
 JUDGE_MODELLE = [
     "openai/gpt-oss-120b",
-    "google/gemma-4-31b-it:free",
+    # 30.09.26: google/gemma-4-31b-it:free entfernt - im Log 28.-30.09. 14 von 14
+    # Aufrufen HTTP 402 Payment Required.
     # 14.08.26: meta-llama/llama-3.3-70b-instruct:free entfernt - Live-Check
     # gegen OpenRouter /api/v1/models (14.08.26) zeigt: die :free-Variante
     # existiert nicht mehr im Katalog, nur noch die bezahlte ID ohne
@@ -104,8 +105,25 @@ JUDGE_SYSTEM = (
     "('DeepSeek-Moment', 'das iPhone der KI', 'ein Sputnik-Moment') macht die "
     "genannte Firma NICHT zum Handelnden — entscheidend ist, WER im Ereignis "
     "handelt, nicht wer als Vergleich erwaehnt wird. "
+    # 30.09.26 (Registry-Zerfaserung): Nvidias Agenten-Sicherheitsplattform (28.09.) lag
+    # auf 5 Storys, weil die Zusammenfassungen verschiedene Namen nennen ("NeMo
+    # Guardrails", "Open Agent Safety Platform") und der Richter das als "verschiedene
+    # Produkte" wertete. Gemessen an 48 Ground-Truth-Paaren (cluster-harness), 12
+    # Regressionspaaren (merge_quality_eval.json) und 5 Live-Paaren: Recall 33 -> 38
+    # von 45, klare Fehl-Merges weiter 0 (gpt-oss-120b). Kill-Switch: Satz entfernen.
+    "Verschiedene Medien benennen dieselbe Ankuendigung oft unterschiedlich (Uebersetzung, "
+    "Umschreibung, Plattform- statt Produktname, ein Teilaspekt im Titel). Handelt dieselbe Firma "
+    "oder Person in beiden Artikeln bei derselben Ankuendigung oder demselben Vorfall, ist es "
+    "dieselbe Story, auch wenn Produktnamen oder Blickwinkel abweichen. "
     "Antworte NUR mit der Paar-Nummer gefolgt von JA oder NEIN (Beispiel: '3: JA'), "
     "eine Zeile pro Paar, alle Paare, keine Erklaerung.")
+
+# 30.09.26: Paare je Richter-Aufruf (so gemessen). Token-Budget: gpt-oss ist ein
+# Reasoning-Modell - mit den bisherigen 300 Tokens verbrauchte es alles fuers Denken und
+# lieferte leeren Text (Log 28.-30.09.: 84 von 107 Urteilen kamen deshalb vom Ersatz
+# llama-3.3-70b). Lokal nachgestellt: 300 -> leer, 1500 + reasoning low -> 65/65 Urteile.
+JUDGE_JE_AUFRUF = 12
+PASS3_CACHE_VERSION = 2   # neuer Richter -> alte NEIN-Urteile einmal neu pruefen lassen
 
 
 def _centroid(vecs):
@@ -152,6 +170,15 @@ def _judge(pairs, llm_fn, modelle):
     aus `modelle` sie tatsaechlich geurteilt hat, weil bisher nirgends geloggt wurde,
     welches Modell in der Fallback-Kette den Call gewonnen hat. Rein additiv - aendert
     nichts an der Urteils-Logik, nur an dem, was zurueckgegeben/geloggt wird."""
+    if len(pairs) > JUDGE_JE_AUFRUF:
+        verdicts, modelle_benutzt = {}, []
+        for start in range(0, len(pairs), JUDGE_JE_AUFRUF):
+            teil, m = _judge(pairs[start:start + JUDGE_JE_AUFRUF], llm_fn, modelle)
+            for n, v in teil.items():
+                verdicts[start + n] = v
+            if m and m not in modelle_benutzt:
+                modelle_benutzt.append(m)
+        return verdicts, ("+".join(modelle_benutzt) or None)
     lines = []
     for i, (a, b) in enumerate(pairs, 1):
         lines.append(f"{i}) A: {a}\n    B: {b}")
@@ -163,7 +190,7 @@ def _judge(pairs, llm_fn, modelle):
     used_model = None
     for model in modelle:
         try:
-            content = llm_fn(model, messages, max_tokens=300)
+            content = llm_fn(model, messages, max_tokens=1500 if "gpt-oss" in model else 400)
             if content:
                 used_model = model
                 break
@@ -234,6 +261,11 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
             _raw = json.loads(reg_path.read_text(encoding="utf-8"))
             registry = _raw.get("stories", {})
             pass3_checked = set(_raw.get("_pass3_checked", []))
+            if _raw.get("_pass3_version") != PASS3_CACHE_VERSION:
+                logger.info("Shadow-Registry Pass-3: Cache-Version %s -> %s, %d alte Urteile "
+                            "werden einmal neu geprueft", _raw.get("_pass3_version"),
+                            PASS3_CACHE_VERSION, len(pass3_checked))
+                pass3_checked = set()
         except Exception:
             logger.warning("Shadow-Registry: %s unlesbar - Registry startet neu", REGISTRY_FILE)
     # Aging
@@ -610,6 +642,7 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
         "updated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "stories": registry,
         "_pass3_checked": sorted(pass3_checked),
+        "_pass3_version": PASS3_CACHE_VERSION,
     }
     reg_path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     dt = (datetime.utcnow() - t0).total_seconds()
