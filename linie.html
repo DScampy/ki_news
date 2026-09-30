@@ -1695,8 +1695,13 @@
         var right = make("div", "");
         var dossier = asObject(line.dossier);
         var eyebrow = make("div", "px-eyebrow");
-        var title = make("h1", "", dossier.titel || "Dossier ohne Titel");
-        var lead = make("p", "px-dossier-lead", dossier.worum || "Zu diesem Dossier liegt derzeit keine Einleitung vor.");
+        // 29.09.26: nicht jede Linie hat schon ein KI-Dossier (titel/worum) - dann aus den Ereignissen
+        var evs = Array.isArray(entries) ? entries : [];
+        var ersatzTitel = evs.length ? cleanText(evs[0].t || "").replace(/\.$/, "") : "";
+        var quellen = evs.map(function (e) { return cleanText(e.q || ""); }).filter(function (q, i, a) { return q && a.indexOf(q) === i; });
+        var ersatzLead = evs.length ? evs.length + " Meldungen" + (quellen.length ? " aus " + quellen.slice(0, 4).join(", ") : "") + ", fortlaufend verfolgt." : "";
+        var title = make("h1", "", dossier.titel || ersatzTitel || "Dossier");
+        var lead = make("p", "px-dossier-lead", dossier.worum || ersatzLead || "Mehrere Meldungen zu einem fortlaufenden Thema.");
         var meta = make("div", "px-dossier-meta");
         var start = make("button", "px-dossier-start", "Zum ersten Ereignis");
 

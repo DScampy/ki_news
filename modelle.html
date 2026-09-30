@@ -2351,13 +2351,32 @@
           badges.appendChild(kind);
         }
 
+        // 29.09.26: roher Zahlenwert (1050000) -> lesbarer Steckbrief + Meldungen zum Modell
+        const ctxZahl = Number(String(model.context || "").replace(/[^0-9]/g, "")) || 0;
+        const ctxText = ctxZahl >= 1e6 ? (ctxZahl / 1e6).toLocaleString("de-DE", { maximumFractionDigits: 2 }) + " Mio. Token Kontext"
+          : ctxZahl >= 1000 ? Math.round(ctxZahl / 1000).toLocaleString("de-DE") + " Tsd. Token Kontext" : "";
+        const meldungen = (window.__kiArtModell && window.__kiArtModell[model.slug]) || [];
         const context = create(
           "p",
           "px-model-context",
-          model.context || "Für dieses Modell ist kein Kontext hinterlegt."
+          [ctxText, meldungen.length ? meldungen.length + (meldungen.length === 1 ? " Meldung" : " Meldungen") + " bei KI News" : ""]
+            .filter(Boolean).join(" · ") || "Noch keine Details im Katalog."
         );
 
         const foot = create("div", "px-model-foot");
+        if (meldungen.length) {
+          const liste = create("div", "px-model-news");
+          liste.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0";
+          meldungen.slice(0, 3).forEach(u => {
+            let host = "";
+            try { host = new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return; }
+            const a = create("a", "", host + " ↗");
+            a.href = u; a.target = "_blank"; a.rel = "noopener noreferrer";
+            a.style.cssText = "font:600 11px/1.2 ui-monospace,monospace;padding:4px 8px;border-radius:999px;border:1px solid rgba(var(--neon-rgb,0,212,255),.3);color:inherit;text-decoration:none";
+            liste.appendChild(a);
+          });
+          foot.appendChild(liste);
+        }
         const slug = create(
           "span",
           "px-model-slug",
@@ -2365,7 +2384,6 @@
         );
 
         if (model.slug) slug.title = model.slug;
-        foot.appendChild(slug);
 
         card.append(top, title);
 
@@ -2705,6 +2723,14 @@
       bindControls();
       void loadRegistry();
     })();
+  </script>
+  <script>
+    // 29.09.26: Meldungen je Modell (registry.json artModell) fuer die Karten
+    fetch("registry/registry.json").then(r => r.json()).then(d => {
+      window.__kiArtModell = (d && d.artModell) || {};
+      const f = document.getElementById("px-provider-filter");
+      if (f) f.dispatchEvent(new Event("change"));
+    }).catch(() => {});
   </script>
   <script>
     // Landkarte -> Registry (28.09.26)
