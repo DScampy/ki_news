@@ -1859,7 +1859,11 @@
         var mapCaption = make("div", "px-map-caption", "Ereignisse mit Verbindung");
         map.append(mapLabel, mapVisual, mapCount, mapCaption);
         // 30.09.26 Reportage: Titelbild = Bild der neuesten Meldung mit Bild (Feld b aus der Pipeline)
-        var heroEvent = evs.slice().reverse().find(function (e) { return safeUrl(e.b); });
+        // 30.09.26: keine Ereignisse, die Jev als "abseits" markiert hat (sonst Zhipu-Logos
+        // einer GLM-Meldung als Titelbild von "OpenAI-Agenten"), ausser es gibt nur solche.
+        var abseits = Array.isArray(dossier.abseits) ? dossier.abseits : [];
+        var mitBild = evs.slice().reverse().filter(function (e) { return safeUrl(e.b); });
+        var heroEvent = mitBild.find(function (e) { return abseits.indexOf(e.k) === -1; }) || mitBild[0];
         if (heroEvent) {
           var hero = make("figure", "px-intro-hero");
           var heroImg = make("img", "");
