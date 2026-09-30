@@ -1186,6 +1186,32 @@
       gap: 12px;
     }
 
+    .px-story-grid-rest {
+      margin-top: 12px;
+    }
+
+    .px-day-more {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 11px 14px;
+      border: 1px dashed rgba(var(--px-neon-rgb), .35);
+      border-radius: 12px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: 700 11px/1.3 "IBM Plex Mono", ui-monospace, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      opacity: .8;
+    }
+
+    .px-day-more:hover,
+    .px-day-more:focus-visible {
+      opacity: 1;
+      border-style: solid;
+    }
+
     .px-story-card {
       display: grid;
       min-width: 0;
@@ -3385,13 +3411,47 @@
               "px-empty-day"
             ));
           } else {
+            // 30.09.26: pro Tag nur die JE_TAG staerksten Storys sofort. Vorher standen 385
+            // Karten fuer 3 Tage untereinander (146/148/91). Der Rest wird erst beim
+            // Aufklappen gebaut - spart auch die DOM-Arbeit beim Laden.
+            const JE_TAG = 6;
             const grid = element("div", "px-story-grid");
 
-            stories.forEach(story => {
+            stories.slice(0, JE_TAG).forEach(story => {
               grid.append(createStoryCard(story, week));
             });
 
             section.append(grid);
+
+            const rest = stories.slice(JE_TAG);
+            if (rest.length) {
+              const mehr = element(
+                "button",
+                "px-day-more",
+                "Weitere " + rest.length + (rest.length === 1 ? " Meldung" : " Meldungen") + " dieses Tages"
+              );
+              mehr.type = "button";
+              mehr.setAttribute("aria-expanded", "false");
+              mehr.addEventListener("click", () => {
+                const offen = mehr.getAttribute("aria-expanded") === "true";
+                if (!offen && !mehr.dataset.gebaut) {
+                  const restGrid = element("div", "px-story-grid px-story-grid-rest");
+                  rest.forEach(story => {
+                    restGrid.append(createStoryCard(story, week));
+                  });
+                  mehr.before(restGrid);
+                  mehr.dataset.gebaut = "1";
+                } else {
+                  const restGrid = section.querySelector(".px-story-grid-rest");
+                  if (restGrid) restGrid.hidden = offen;
+                }
+                mehr.setAttribute("aria-expanded", offen ? "false" : "true");
+                mehr.textContent = offen
+                  ? "Weitere " + rest.length + (rest.length === 1 ? " Meldung" : " Meldungen") + " dieses Tages"
+                  : "Weniger anzeigen";
+              });
+              section.append(mehr);
+            }
           }
 
           fragment.append(section);
