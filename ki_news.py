@@ -3993,6 +3993,11 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
     # disabled." Deshalb bewusst nur fuer nvidia/-Modelle gesetzt.
     if ollama_model.startswith("nvidia/"):
         payload["reasoning"] = {"enabled": False}
+    # 30.09.26: gpt-oss laesst sich nicht abschalten, aber drosseln. Ohne das verbrauchte
+    # der Registry-Richter sein Budget fuers Denken und lieferte leeren Text (siehe
+    # story_registry_shadow.JUDGE_JE_AUFRUF). Nutzt aktuell nur JUDGE_MODELLE.
+    elif ollama_model.startswith("openai/gpt-oss"):
+        payload["reasoning"] = {"effort": "low"}
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -5942,6 +5947,18 @@ def main():
         update_themenketten_shadow(proj_dir if proj_dir.exists() else Path("."), news_list, _call_llm_api)
     except Exception as e:
         logger.exception("Themenkette uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # ── Story-Registry (20.07.26 Shadow, 30.09.26 vorgezogen): lief bisher erst nach
+    #    update_archive(). _markiere_dubletten() liest die Registry aber schon HIER -
+    #    frische Meldungen waren beim Markieren noch unbekannt, Dubletten fielen erst
+    #    einen Lauf spaeter auf, die Karten entstehen aber im ersten Lauf. Die Registry
+    #    braucht nur news_list (archive.json nur fuer Wortfrequenzen). Kill-Switch:
+    #    Block wieder hinter update_archive() setzen. Details: story_registry_shadow.py.
+    try:
+        from story_registry_shadow import update_story_registry_shadow, JUDGE_MODELLE
+        update_story_registry_shadow(proj_dir if proj_dir.exists() else Path("."),
+                                     news_list, cluster_news, _call_llm_api, JUDGE_MODELLE)
+    except Exception as e:
+        logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
     _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
     # Linien fuer Startseite/Overlay (19.09.26): setzt n["linie"], liefert die Linien
     # als eigenes Feld. Nur lesen, nie blockieren. Kill-Switch: linien = {} setzen.
@@ -6107,12 +6124,7 @@ def main():
     #    11.08.2026: laeuft jetzt VOR dem Entity-Graph-Schritt (statt danach),
     #    damit dessen Story-Zuordnung fuer den heutigen Lauf schon steht, wenn
     #    update_entity_graph() sie unten liest (link_to_story_map).
-    try:
-        from story_registry_shadow import update_story_registry_shadow, JUDGE_MODELLE
-        update_story_registry_shadow(proj_dir if proj_dir.exists() else Path("."),
-                                     news_list, cluster_news, _call_llm_api, JUDGE_MODELLE)
-    except Exception as e:
-        logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
+    #    30.09.26: noch weiter vorgezogen, vor _markiere_dubletten() (siehe dort).
 
     # ── Entity-Graph kumulativ fortschreiben (Phase 2, 16.07.26) ──────────
     # 11.08.2026: erste tatsaechliche LIVE-Nutzung der Shadow-Registry (bisher
