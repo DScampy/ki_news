@@ -3953,7 +3953,7 @@ News:
 # -------------------------
 # NEU: Einheitlicher LLM-Aufruf (OpenRouter + Ollama)
 # -------------------------
-def _call_llm_api(model, messages, max_tokens, timeout=90):
+def _call_llm_api(model, messages, max_tokens, timeout=90, temperature=None):
     """
     Ruft OpenRouter oder einen lokalen Ollama-Server auf.
     Modell-Prefix 'ollama/' → Ollama, alles andere → OpenRouter.
@@ -3980,6 +3980,9 @@ def _call_llm_api(model, messages, max_tokens, timeout=90):
         "messages": messages,
         "max_tokens": max_tokens,
     }
+    # 30.09.26: optional (Registry-Richter setzt 0). Ohne Angabe wie bisher Anbieter-Standard.
+    if temperature is not None:
+        payload["temperature"] = temperature
     # Reasoning-Schalter (14.08.26, Live-Test gegen die echte OpenRouter-API):
     # nvidia/nemotron-*:free-Modelle sind standardmaessig "Reasoning"-Modelle -
     # sie verbrauchen das GESAMTE max_tokens-Budget fuer unsichtbares Nachdenken

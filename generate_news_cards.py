@@ -169,6 +169,7 @@ TEMPLATE_V2_PATH = Path(__file__).with_name("breaking_news_card_v2.html")
 RECORD_JS      = Path(__file__).with_name("record.js")
 CARDS_JSON     = ROOT_DIR / "cards.json"
 CARD_STATE_JSON = ROOT_DIR / "card_state.json"  # Dedup-Gedaechtnis, analog telegram_state.json
+KARTEN_JE_STORY_UND_TAG = 1   # 30.09.26 (Daniel: "1 oder 2"), siehe main()
 DASHBOARD_CONFIG_JSON = ROOT_DIR / "dashboard_config.json"  # featured_links/force_cards (Admin-Pin)
 TMP_DIR        = Path("/tmp/cards")
 # 26.09.26: Karten-Medien liegen im eigenen Repo DScampy/ki_news_media (GitHub Pages), damit
@@ -1146,9 +1147,17 @@ def main() -> None:
     # wusste, dass es Duplikate sind. Fix: pro story_id nur den ersten (= hoechst
     # bewerteten) Artikel behalten, erst DANACH auf TOP_N kappen. Artikel ohne
     # story_id (= "" oder fehlend) gelten als eigene Story (kein Dedup-Risiko).
+    # 30.09.26: zusaetzlich dub_von aus ki_news.py (_markiere_dubletten: Cluster + Story-
+    # Registry + Titelvergleich). story_id deckt nur den Cluster ab - dieselbe Meldung in
+    # zwei Clustern (Messung news.json 30.09.: "OpenAI startet Dots" Heise s001 und
+    # SiliconAngle s002, beide Score 69) haette sonst zwei Top-Plaetze belegt. Der Kopf
+    # der Dublette steht selbst in news.json und wird hier normal ausgewaehlt.
+    links_im_feed = {a.get("link") for a in articles_by_score if a.get("link")}
     seen_story_ids = set()
     articles_deduped = []
     for a in articles_by_score:
+        if a.get("dub_von") and a.get("dub_von") in links_im_feed:
+            continue
         sid = a.get("story_id") or ""
         if sid and sid in seen_story_ids:
             continue
@@ -1209,11 +1218,39 @@ def main() -> None:
         _pre_sent = set(json.loads(CARD_STATE_JSON.read_text(encoding="utf-8")).get("sent_links", {}))
     except Exception:
         pass
-    articles_sorted = forced_articles + [
-        a for a in articles_deduped
-        if (a.get("link") or "").strip() not in forced_links
-        and (a.get("link") or "").strip() not in _pre_sent
-    ][:TOP_N]
+    # 30.09.26 (Daniel): max. KARTEN_JE_STORY_UND_TAG Karten je Registry-Story und Tag.
+    # story_id gilt nur fuer einen Lauf, dub_von nur fuer den aktuellen Feed - eine Story
+    # bekam so ueber mehrere Laeufe mehrere Karten (cards.json 30.09.: DeepSeek/Huawei
+    # 2x am selben Tag). Zaehlt die heutigen Karten aus cards.json je Story der
+    # story_registry_shadow.json. Force-Cards laufen vorneweg und sind ausgenommen.
+    # Fehlt/klemmt die Registry: kein Limit (Verhalten wie vorher).
+    _l2s, _story_karten = {}, {}
+    try:
+        from story_registry_shadow import link_to_story_map
+        _l2s = link_to_story_map(ROOT_DIR)
+        for _k in json.loads(CARDS_JSON.read_text(encoding="utf-8")):
+            if _k.get("date") != today:
+                continue
+            _sids = {_l2s.get(_l) for _l in (_k.get("links") or []) if _l2s.get(_l)}
+            for _sid in _sids:
+                _story_karten[_sid] = _story_karten.get(_sid, 0) + 1
+    except Exception as e:  # noqa: BLE001
+        print(f"  [INFO] Karten-Limit je Story inaktiv ({e.__class__.__name__}: {e})")
+    _kandidaten = []
+    for a in articles_deduped:
+        _lnk = (a.get("link") or "").strip()
+        if _lnk in forced_links or _lnk in _pre_sent:
+            continue
+        _sid = _l2s.get(_lnk)
+        if _sid and _story_karten.get(_sid, 0) >= KARTEN_JE_STORY_UND_TAG:
+            print(f"  [SKIP] Story {_sid} hat heute schon {_story_karten[_sid]} Karte(n): {_lnk}")
+            continue
+        if _sid:
+            _story_karten[_sid] = _story_karten.get(_sid, 0) + 1
+        _kandidaten.append(a)
+        if len(_kandidaten) >= TOP_N:
+            break
+    articles_sorted = forced_articles + _kandidaten
 
     if not articles_sorted:
         print("[WARN] Keine Artikel in news.json gefunden — nichts zu tun.")
