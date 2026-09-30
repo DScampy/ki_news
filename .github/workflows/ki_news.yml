@@ -185,6 +185,15 @@ jobs:
         run: python3 hersteller_feed.py 2>&1 | tee -a ki_news.log
         continue-on-error: true
 
+      # 30.09.26: LMArena-Raenge fuer die Modelle-Seite (arena_holen.py -> registry/arena.json).
+      # Oeffentliche Hugging-Face-API ohne Schluessel, Lizenz CC BY 4.0, ~7 s gemessen.
+      # registry/ wird in beiden Commit-Schritten schon mit "git add registry/" erfasst.
+      # Faellt die API aus, bleibt die alte arena.json stehen (Exit 0).
+      - name: Arena-Raenge (registry/arena.json)
+        run: python3 arena_holen.py 2>&1 | tee -a ki_news.log
+        timeout-minutes: 3
+        continue-on-error: true
+
       # 28.09.26 (Auftrag 10 Punkt 7): X-Post, Video und Analysen zu Releases (hersteller.json)
       # und X-Post der Quelle zu Top-Meldungen (news.json) - ausschliesslich ueber die
       # HuggingNews-API (selectedTweets / Story-Video), nur fest gepflegte offizielle Konten.
