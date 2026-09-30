@@ -494,11 +494,17 @@ jobs:
             # dieses Workflow-Schritts (1edd40f, "cards + template update") wieder
             # entfernt, ca. 3 Stunden nach dem Upload. Fix: Datei nicht mehr in diesem
             # Schritt anfassen, dafuer gibt es hier keinen Generierungsgrund.
+            # 30.09.26: dasselbe Muster erneut, diesmal mit Quellcode. generate_news_cards.py,
+            # record.js, breaking_news_card_template.html und breaking_player.html standen hier
+            # im git add, obwohl das Skript keine davon schreibt (schreibt nur /tmp/cards,
+            # cards.json, card_state.json, MP4s). Folge: PR #25 (Merge d1aea25, 15:14 UTC) wurde
+            # vom Karten-Commit ff397f6 (15:29 UTC) des bereits um 15:00 gestarteten Laufs mit dem
+            # alten generate_news_cards.py still zurueckgedreht. Quelldateien kommen nur per PR.
             if [ "$MEDIA_OK" = "true" ]; then
               git rm -r --cached --quiet --ignore-unmatch assets/cards
-              git add cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+              git add cards.json card_state.json
             else
-              git add assets/cards/ cards.json card_state.json breaking_news_card_template.html generate_news_cards.py record.js breaking_player.html
+              git add assets/cards/ cards.json card_state.json
             fi
             # Auch hier, sonst ueberlebt die Registry keinen Push-Konflikt-Retry:
             # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.

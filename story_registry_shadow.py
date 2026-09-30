@@ -123,7 +123,36 @@ JUDGE_SYSTEM = (
 # lieferte leeren Text (Log 28.-30.09.: 84 von 107 Urteilen kamen deshalb vom Ersatz
 # llama-3.3-70b). Lokal nachgestellt: 300 -> leer, 1500 + reasoning low -> 65/65 Urteile.
 JUDGE_JE_AUFRUF = 12
-PASS3_CACHE_VERSION = 2   # neuer Richter -> alte NEIN-Urteile einmal neu pruefen lassen
+# v3 (30.09.26 abends): Temperatur 0 + mehr Kontext + Politik-Akteure. Das Urteil schwankte
+# vorher: Nvidia-Paar im Trockenlauf JA, eine Stunde spaeter im Live-Lauf NEIN.
+PASS3_CACHE_VERSION = 3   # neuer Richter -> alte NEIN-Urteile einmal neu pruefen lassen
+
+# 30.09.26 (Daniel: "Politik ist aehnlich wie eine Firma"): R1 verlangte eine gemeinsame
+# Entitaet aus entities.json (nur Firmen/Produkte). Politik-Storys fielen dadurch komplett
+# durch - "Trump benennt KI in Super Intelligence um" lag auf 3 Registry-Storys (Aehnlichkeit
+# bis 0,90, R1 blockt). Diese Akteure zaehlen fuer R1 wie eine Firma. Nur hier, entities.json
+# (Landkarte, Graph) bleibt unberuehrt.
+POLITIK_AKTEURE = [
+    ("pol:trump", r"\btrump"),
+    ("pol:weisses-haus", r"wei(ß|ss)e[sn]? haus|white house"),
+    ("pol:eu", r"\bEU\b|eu-kommission|europ(ä|ae)ische[nr]? (union|kommission)"),
+    ("pol:pentagon", r"pentagon|verteidigungsministerium|department of (defense|war)|kriegsministerium"),
+    ("pol:us-kongress", r"kongress|congress|us-senat|repr(ä|ae)sentantenhaus"),
+    ("pol:china-regierung", r"peking|beijing|\bxi\b|chinesische regierung"),
+    ("pol:uk-regierung", r"gro(ß|ss)britannien|britische regierung|\bUK\b"),
+    ("pol:vatikan", r"papst|pope|vatikan"),
+]
+
+
+def _story_text(st):
+    """Richter-Text einer Registry-Story: Leittitel, Datum, bis zu 2 weitere Quellentitel,
+    Zusammenfassung. Vorher nur Leittitel + Zusammenfassung - nannte die Zusammenfassung einen
+    anderen Produktnamen, fehlte dem Richter jeder Gegenbeleg (Nvidia, 28.09.)."""
+    weitere = [t for t in st.get("titles", []) if t and t != st.get("rep_title")][:2]
+    kopf = f"{st.get('rep_title', '')} [{st.get('created', '')}]"
+    if weitere:
+        kopf += " (auch: " + " / ".join(t[:120] for t in weitere) + ")"
+    return f"{kopf} | {st.get('summary', '')}"
 
 
 def _centroid(vecs):
@@ -136,7 +165,8 @@ def _centroid(vecs):
 def _load_entities(base):
     try:
         ents = json.loads((base / "entities.json").read_text(encoding="utf-8"))["entities"]
-        return [(e["id"], re.compile("|".join(e["aliasse"]), re.I)) for e in ents]
+        return ([(e["id"], re.compile("|".join(e["aliasse"]), re.I)) for e in ents]
+                + [(pid, re.compile(muster, re.I)) for pid, muster in POLITIK_AKTEURE])
     except Exception as e:
         logger.warning("Shadow-Registry: entities.json nicht lesbar (%s) - R1 uebersprungen", e)
         return None
@@ -190,7 +220,11 @@ def _judge(pairs, llm_fn, modelle):
     used_model = None
     for model in modelle:
         try:
-            content = llm_fn(model, messages, max_tokens=1500 if "gpt-oss" in model else 400)
+            budget = 1500 if "gpt-oss" in model else 400
+            try:   # 30.09.26: Temperatur 0 fuer reproduzierbare Urteile
+                content = llm_fn(model, messages, max_tokens=budget, temperature=0)
+            except TypeError:   # llm_fn ohne temperature-Parameter
+                content = llm_fn(model, messages, max_tokens=budget)
             if content:
                 used_model = model
                 break
@@ -370,7 +404,7 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
         for ci, sid, sim in candidates:
             a_t = clusters[ci][0].get("title", "")
             pairs.append((f"{a_t} | {sum_of.get(a_t, '')}",
-                          f"{registry[sid]['rep_title']} | {registry[sid].get('summary', '')}"))
+                          _story_text(registry[sid])))
         verdicts, judge_model = _judge(pairs, llm_fn, modelle)
         model_tag = judge_model or "keins (Fail-safe)"
         for i, (ci, sid, sim) in enumerate(candidates, 1):
@@ -561,8 +595,7 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
 
             if raw_pairs:
                 p3_pairs_text = [
-                    (f"{registry[a]['rep_title']} | {registry[a].get('summary', '')}",
-                     f"{registry[b]['rep_title']} | {registry[b].get('summary', '')}")
+                    (_story_text(registry[a]), _story_text(registry[b]))
                     for a, b, sim in raw_pairs
                 ]
                 p3_verdicts, p3_model = _judge(p3_pairs_text, llm_fn, modelle)
