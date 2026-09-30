@@ -1499,6 +1499,35 @@
     .px-art-bild { color: var(--px-green); }
     .px-art-video { color: var(--px-violet); }
     .px-art-audio { color: var(--px-orange); }
+    /* 30.09.26: Knotenfarbe nach Modellart + LMArena-Etiketten */
+    .px-gen { border-left-width: 3px; }
+    .px-gen-art-text { border-left-color: var(--px-cyan); }
+    .px-gen-art-bild { border-left-color: var(--px-green); }
+    .px-gen-art-video { border-left-color: var(--px-violet); }
+    .px-gen-art-audio { border-left-color: var(--px-orange); }
+    .px-gen-art-bild .px-gen-date { color: var(--px-green); }
+    .px-gen-art-video .px-gen-date { color: var(--px-violet); }
+    .px-gen-art-audio .px-gen-date { color: var(--px-orange); }
+    .px-art-text { color: var(--px-cyan); }
+    .px-gen-arena { display: flex; flex-wrap: wrap; gap: 5px; }
+    .px-arena {
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(var(--px-neon-rgb), .08);
+      color: var(--px-muted);
+      font: 700 10.5px/1.5 ui-monospace, monospace;
+      cursor: help;
+    }
+    .px-arena-top {
+      background: rgba(234, 179, 8, .16);
+      color: #a16207;
+    }
+    html:not(.light) .px-arena-top { color: #facc15; }
+    .px-arena-quelle {
+      margin: 14px 2px 0;
+      color: var(--px-faint);
+      font-size: 12px;
+    }
     @media (max-width: 720px) {
       .px-linie { grid-template-columns: 1fr; gap: 8px; }
       .px-gen, .px-gen-mittel, .px-gen-gross { width: 200px; }
@@ -1659,6 +1688,7 @@
         </div>
 
         <div class="px-makers" id="px-makers"></div>
+        <p class="px-arena-quelle" id="px-arena-quelle" hidden></p>
 
         <section class="px-empty" id="px-empty" hidden>
           <p class="px-empty-code" id="px-empty-code">Kein Ergebnis</p>
@@ -2495,7 +2525,9 @@
         const basis = gen.basis;
         const news = meldungenVon(gen.modelle);
         const groesse = news.length >= 5 ? " px-gen-gross" : news.length >= 1 ? " px-gen-mittel" : "";
-        const knoten = create("article", "px-gen" + groesse);
+        // 30.09.26: Farbe nach Modellart, passend zu den Art-Etiketten im Herstellerkopf
+        const art = ["bild", "video", "audio"].includes(basis.kindKey) ? basis.kindKey : "text";
+        const knoten = create("article", "px-gen" + groesse + " px-gen-art-" + art);
         knoten.title = [provider, linie, ohneStufe(basis)].filter(Boolean).join(" › ");
 
         const datum = create("time", "px-gen-date", formatDate(basis.dateInfo));
@@ -2507,6 +2539,30 @@
           news.length ? news.length + (news.length === 1 ? " Meldung" : " Meldungen") : ""
         ].filter(Boolean).join(" · ") || "Noch keine Details im Katalog.");
         knoten.append(datum, name, meta);
+
+        // 30.09.26: LMArena-Raenge (registry/arena.json, arena_holen.py). Je Kategorie der beste
+        // Rang ueber Basis und Stufen der Generation, hoechstens drei Kategorien.
+        const arena = (window.__kiArena && window.__kiArena.modelle) || {};
+        const beste = {};
+        gen.modelle.forEach(m => {
+          Object.entries(arena[m.slug] || {}).forEach(([kat, w]) => {
+            if (w && w.rang && (!beste[kat] || w.rang < beste[kat].w.rang)) beste[kat] = { w, name: m.name };
+          });
+        });
+        const arenaKats = Object.entries(beste).sort((a, b) => a[1].w.rang - b[1].w.rang).slice(0, 3);
+        if (arenaKats.length) {
+          const leiste = create("div", "px-gen-arena");
+          arenaKats.forEach(([kat, { w, name: mName }]) => {
+            const chip = create("span", "px-arena" + (w.rang <= 10 ? " px-arena-top" : ""),
+              `${kat} #${w.rang}` + (w.wert ? ` · ${w.wert}` : ""));
+            chip.title = `LMArena ${kat}: Rang ${w.rang}` + (w.wert ? `, Wertung ${w.wert}` : "") +
+              (w.stimmen ? `, ${w.stimmen.toLocaleString("de-DE")} Stimmen` : "") +
+              `\n${mName} (Arena: ${w.arena})` +
+              (window.__kiArena.stand_arena ? `\nStand ${window.__kiArena.stand_arena}` : "");
+            leiste.appendChild(chip);
+          });
+          knoten.appendChild(leiste);
+        }
 
         const stufen = gen.modelle.filter(m => m !== basis);
         if (stufen.length) {
@@ -2585,7 +2641,8 @@
           newsGesamt ? `${PX_NUMBER.format(newsGesamt)} ${newsGesamt === 1 ? "Meldung" : "Meldungen"}` : ""
         ].filter(Boolean).join(" · ");
         titleWrap.append(title, create("span", "px-maker-count", zaehler));
-        const arten = [...new Set(models.map(m => m.kindKey).filter(k => k === "bild" || k === "video" || k === "audio"))];
+        const arten = ["text", "bild", "video", "audio"].filter(k => models.some(m =>
+          k === "text" ? !["bild", "video", "audio"].includes(m.kindKey) : m.kindKey === k));
         if (arten.length) {
           const artLeiste = create("span", "px-maker-arten");
           arten.forEach(k => artLeiste.appendChild(create("span", `px-art px-art-${k}`, k.toUpperCase())));
@@ -2891,6 +2948,20 @@
     // 29.09.26: Meldungen je Modell (registry.json artModell) fuer die Karten
     fetch("registry/registry.json").then(r => r.json()).then(d => {
       window.__kiArtModell = (d && d.artModell) || {};
+      const f = document.getElementById("px-provider-filter");
+      if (f) f.dispatchEvent(new Event("change"));
+    }).catch(() => {});
+    // 30.09.26: LMArena-Raenge (arena_holen.py) - Etiketten an den Stammbaum-Knoten
+    fetch("registry/arena.json").then(r => r.ok ? r.json() : null).then(d => {
+      if (!d || !d.modelle) return;
+      window.__kiArena = d;
+      const hinweis = document.getElementById("px-arena-quelle");
+      if (hinweis) {
+        hinweis.textContent = "Arena-Ränge: LMArena (lmarena.ai), Lizenz CC BY 4.0" +
+          (d.stand_arena ? ", Stand " + d.stand_arena.split("-").reverse().join(".") : "") +
+          ". Rang in der jeweiligen Arena-Rangliste, Wertung = Arena-Score.";
+        hinweis.hidden = false;
+      }
       const f = document.getElementById("px-provider-filter");
       if (f) f.dispatchEvent(new Event("change"));
     }).catch(() => {});
