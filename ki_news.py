@@ -4839,7 +4839,10 @@ def update_entity_graph(base_dir, news_items, link_to_story=None):
 # Titel + "worum"-Absatz per LLM, Ausreisser-Ereignisse per Jev abgesetzt.
 # Fail-open: jeder Fehler laesst die betroffene Linie einfach ohne "dossier".
 LINIEN_DOSSIER_AKTIV = True
-LINIEN_DOSSIER_MAX_LINIEN = 8
+# 30.09.26: war 8. news.json 30.09. 07:10 hatte 12 Linien - genau die 4 kleinsten
+# (je 3 Ereignisse, u. a. Papst Leo/Nvidia 6206552f) bekamen nie ein Dossier.
+# Aus dem Cache kostet ein Dossier nichts, das LLM-Budget unten deckelt weiterhin.
+LINIEN_DOSSIER_MAX_LINIEN = 16
 LINIEN_DOSSIER_MAX_LLM = 12
 LINIEN_DOSSIER_MAX_JEV = 80   # Probe 27.09.: 40 reichten fuer 6 von 8 Linien
 LINIEN_DOSSIER_MAX_SEKUNDEN = 150
@@ -4876,7 +4879,8 @@ def _linie_dossier_llm(ereignisse):
         "1. \"titel\": ein sachlicher Titel, max. 60 Zeichen, benennt das Thema, kein Clickbait.\n"
         "2. \"worum\": 2 bis 4 Saetze, max. 400 Zeichen - was ist passiert und was verbindet "
         "die Ereignisse. Der letzte Satz ist eine Tatsache aus der Liste, keine Floskel. Verboten: "
-        "\"wirft Fragen auf\", \"zeigt, wie\", \"bleibt abzuwarten\", \"unterstreicht\", \"verdeutlicht\".\n\n"
+        "\"wirft Fragen auf\", \"zeigt, wie\", \"bleibt abzuwarten\", \"unterstreicht\", \"verdeutlicht\". "
+        "Melden mehrere Quellen dieselbe Tatsache, nenne sie nur einmal.\n\n"
         "HAUPTREGEL: nur Tatsachen, die in den Zeilen oben stehen. Keine Gruende, Folgen, "
         "Zahlen oder Wertungen erfinden, die dort nicht stehen. Kein Gedankenstrich (- oder --) "
         "als Satzpause. Personen nur mit Rolle nennen, wenn die Rolle oben steht. Deutsch.\n"
@@ -4982,7 +4986,10 @@ def _linien_dossiers(linien, post_cache):
             return None
         jev_aufrufe[0] += 1
         try:
-            zsm = " ".join((e.get("z") or "") for e in ereignisse).strip()[:1800]
+            # 30.09.26: vorher nur die "z"-Texte, bei 1800 Zeichen abgeschnitten. Folge:
+            # Titel, Datum und alles ab Ereignis ~6 fehlten dem Pruefer -> 3 von 8 Einleitungen
+            # verworfen (Muse: "500.000 Nutzer" stand nur im Titel; OpenAI-Agenten: 12 Ereignisse).
+            zsm = _linien_stofftext(ereignisse, 2400)
             body = json.dumps({"model": "jev-latest",
                                "state": {"titel": titel, "zusammenfassung": zsm, "post": worum},
                                "questions": {"erfunden": _X_TOR_FRAGE}}).encode("utf-8")
@@ -5007,7 +5014,9 @@ def _linien_dossiers(linien, post_cache):
             sig = ",".join(sorted(e.get("k", "") for e in ereignisse))
             cache_key = "linie:" + lid
             cached = post_cache.get(cache_key)
-            if cached and cached.get("sig") == sig:
+            # 30.09.26: verworfene Einleitungen aus der Zeit vor dem Pruefer-Fix (ohne "v")
+            # einmal neu erzeugen, gedeckte bleiben aus dem Cache.
+            if cached and cached.get("sig") == sig and (cached.get("worum_ok") or cached.get("v") == 2):
                 linie["dossier"] = {"titel": cached.get("titel", ""),
                                      "worum": cached.get("worum", "") if cached.get("worum_ok") else "",
                                      "abseits": cached.get("abseits", []),
@@ -5047,7 +5056,7 @@ def _linien_dossiers(linien, post_cache):
             worum_ok = jev_p is not None and jev_p < X_TOR_JEV_SCHWELLE
 
             post_cache[cache_key] = {"sig": sig, "titel": titel, "worum": worum,
-                                     "worum_ok": worum_ok, "jev": jev_p,
+                                     "worum_ok": worum_ok, "jev": jev_p, "v": 2,
                                      "abseits": abseits_keys, "generated_at": heute}
             linie["dossier"] = {"titel": titel, "worum": worum if worum_ok else "",
                                 "abseits": abseits_keys, "jev": jev_p}
@@ -5057,6 +5066,291 @@ def _linien_dossiers(linien, post_cache):
             continue
 
     logger.info("Dossiers: %d neu, %d aus Cache, %d Ereignisse abseits", neu, aus_cache, ereignisse_abseits)
+
+
+def _linien_stofftext(ereignisse, maxlen):
+    """Chronologische Zeilen "Datum (Quelle): Titel. Zusammenfassung" fuer Pruefer/Prompts.
+    Passt es nicht in maxlen, wird jede Zusammenfassung auf ihren ersten Satz gekuerzt,
+    statt hinten ganze Ereignisse abzuschneiden."""
+    chrono = sorted(ereignisse, key=lambda e: e.get("d", ""))
+
+    def zeilen(kurz):
+        out = []
+        for e in chrono:
+            z = (e.get("z") or "").strip()
+            if kurz and z:
+                m = re.match(r"(.+?[.!?])(\s|$)", z)
+                z = m.group(1) if m else z
+            out.append(f"{e.get('d','')} ({e.get('q','')}): {(e.get('t') or '').strip()} {z}".strip())
+        return "\n".join(out)
+
+    text = zeilen(False)
+    if len(text) > maxlen:
+        text = zeilen(True)
+    return text[:maxlen]
+
+
+# ── Reportage-Kapitel (30.09.26) ────────────────────────────────────────────
+# Je Linien-Ereignis ein Kapiteltext "kx" (2-4 Saetze Hintergrund) und ein Kapitelbild
+# "b". Der Text entsteht NUR aus Stoff, den die Pipeline wirklich hat: Feed-Anriss,
+# Meldungen anderer Quellen derselben Story (story_id), Artikeltext (Volltext-Abruf
+# ueber die Verlagsadresse). Anriss und Volltext gibt es nur im Lauf, in dem das
+# Ereignis frisch ist - deshalb Cache je Ereignis ("kapitel:<k>"), nicht je Linie.
+# Ohne genug Stoff kein Text (die Seite zeigt dann nur die Kurzmeldung). Gezeigt wird
+# ein Text nur, wenn Jev ihn als gedeckt einstuft UND jede Zahl darin im Stoff steht.
+# Fail-open wie die Dossiers. Kill-Switch: LINIEN_KAPITEL_AKTIV = False.
+LINIEN_KAPITEL_AKTIV = True
+LINIEN_KAPITEL_MAX_LLM = 8          # ein Aufruf je Linie (alle neuen Ereignisse zusammen)
+LINIEN_KAPITEL_MAX_JEV = 60          # je Kapitel 2 Fragen: gedeckt? beim Ereignis?
+LINIEN_KAPITEL_MAX_VOLLTEXT = 6     # HTTP-Abrufe je Lauf, je max. 12 s
+LINIEN_KAPITEL_MAX_SEKUNDEN = 180
+LINIEN_KAPITEL_MIN_STOFF = 160      # Zeichen Stoff ueber die Kurzmeldung hinaus
+LINIEN_KAPITEL_JE_AUFRUF = 6
+
+
+def _zahlen_gedeckt(text, stoff):
+    """Jede Zahl im Text muss (ohne Tausender-/Dezimalzeichen) auch im Stoff stehen."""
+    norm_stoff = re.sub(r"(?<=\d)[.,](?=\d)", "", stoff)
+    for z in re.findall(r"\d+(?:[.,]\d+)*", text):
+        if re.sub(r"[.,]", "", z) not in norm_stoff:
+            return False
+    return True
+
+
+def _linien_kapitel(linien, post_cache, news_list, archiv, feed_texte):
+    """Setzt e["kx"] (Kapiteltext) und e["b"] (Bild) an den Linien-Ereignissen.
+    Nie eine Exception nach aussen."""
+    if not LINIEN_KAPITEL_AKTIV or not linien:
+        return
+    import time as _time
+    start = _time.time()
+    heute = datetime.now(BERLIN).strftime("%Y-%m-%d")
+    tsk = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    zaehler = {"llm": 0, "jev": 0, "volltext": 0, "neu": 0, "cache": 0, "ohne_stoff": 0,
+               "verworfen": 0, "bilder": 0}
+
+    alle = [a for a in (archiv or []) if isinstance(a, dict)] + [n for n in news_list if isinstance(n, dict)]
+    per_link = {}
+    for a in alle:                      # news_list zuletzt -> frischer Stand gewinnt
+        if a.get("link"):
+            per_link[a["link"]] = a
+    # Andere Quellen zum selben Ereignis: NICHT per story_id - die ist nur eine Lauf-Nummer
+    # ("s000"), im Archiv teilen sich so Muse, AMD/World Labs und OpenAI-Hacks eine Kennung
+    # (Messung 30.09.). Stattdessen: +-2 Tage und mind. 2 gemeinsame Kernwoerter im Titel.
+    _stop = {"nach", "wegen", "einer", "einem", "eines", "neue", "neuen", "neuer", "seine", "ihre",
+             "gegen", "sagt", "sagte", "laut", "ueber", "über", "wird", "werden", "haben", "hat"}
+
+    def kernwoerter(titel):
+        return {w for w in re.findall(r"[a-zäöüß0-9][a-zäöüß0-9\-]{3,}", (titel or "").lower())
+                if w not in _stop}
+
+    def tage(a, b):
+        try:
+            return abs((datetime.strptime(a[:10], "%Y-%m-%d") - datetime.strptime(b[:10], "%Y-%m-%d")).days)
+        except Exception:
+            return 99
+
+    kandidaten_quellen = [(a, kernwoerter(a.get("title"))) for a in per_link.values() if a.get("title")]
+
+    def geschwister(e):
+        kw = kernwoerter(e.get("t"))
+        if len(kw) < 2:
+            return []
+        out = []
+        for a, akw in kandidaten_quellen:
+            if a.get("link") == e.get("l") or tage(a.get("first_seen") or a.get("date") or "", e.get("d", "")) > 2:
+                continue
+            if len(kw & akw) >= 2:
+                out.append((len(kw & akw), a))
+        out.sort(key=lambda x: -x[0])
+        return [a for _, a in out[:4]]
+
+    def bild(eintrag):
+        if not eintrag:
+            return ""
+        for feld in ("image_local_gross", "image_local", "image"):
+            wert = eintrag.get(feld) or ""
+            if isinstance(wert, str) and wert.startswith("https://"):
+                return wert
+        return ""
+
+    def zeit_frei():
+        return _time.time() - start < LINIEN_KAPITEL_MAX_SEKUNDEN
+
+    def stoff_fuer(e):
+        eigen = per_link.get(e.get("l", "")) or {}
+        teile = []
+        anriss = feed_texte.get(e.get("l", ""), "")
+        if anriss:
+            teile.append("Anriss des Verlags: " + anriss)
+        for s in geschwister(e):
+            t = f"{s.get('source','')}: {s.get('title','')}. {s.get('summary','')}".strip()
+            if t and t not in teile:
+                teile.append("Andere Quelle, " + t)
+        volltext = "" if eigen.get("paywalled") else (eigen.get("full_text") or "")
+        if not volltext and zaehler["volltext"] < LINIEN_KAPITEL_MAX_VOLLTEXT and zeit_frei():
+            ziel = eigen.get("link_verlag") or e.get("l", "")
+            if ziel and "news.google.com" not in ziel and not _ist_gesperrt(ziel):
+                zaehler["volltext"] += 1
+                try:
+                    txt, pw = fetch_full_text(ziel)
+                    volltext = "" if pw else txt
+                except Exception:
+                    volltext = ""
+        if volltext:
+            teile.append("Artikeltext: " + volltext[:2500])
+        return "\n".join(teile)
+
+    def jev_gedeckt(titel, stoff, text):
+        if not tsk or zaehler["jev"] >= LINIEN_KAPITEL_MAX_JEV:
+            return None
+        zaehler["jev"] += 1
+        try:
+            body = json.dumps({"model": "jev-latest",
+                               "state": {"titel": titel[:300], "zusammenfassung": stoff[:2400], "post": text},
+                               "questions": {"erfunden": _X_TOR_FRAGE}}).encode("utf-8")
+            req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                         headers={"Authorization": "Bearer " + tsk,
+                                                  "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return round(float(json.loads(r.read())["answers"]["erfunden"]["noul"]), 2)
+        except Exception as ex:
+            logger.info("Linien-Kapitel Jev: Aufruf fehlgeschlagen (%s)", ex.__class__.__name__)
+            return None
+
+    def jev_beim_thema(ereignis_text, text):
+        """p(Kapiteltext behandelt denselben Vorgang wie das Ereignis), Frage wie bei den Dossiers."""
+        if not tsk or zaehler["jev"] >= LINIEN_KAPITEL_MAX_JEV:
+            return None
+        zaehler["jev"] += 1
+        try:
+            body = json.dumps({"model": "jev-latest",
+                               "state": {"thema": ereignis_text[:1200], "meldung": text[:1200]},
+                               "questions": {"kern": _LINIE_DOSSIER_FRAGE}}).encode("utf-8")
+            req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                         headers={"Authorization": "Bearer " + tsk,
+                                                  "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return round(float(json.loads(r.read())["answers"]["kern"]["noul"]), 2)
+        except Exception as ex:
+            logger.info("Linien-Kapitel Jev (Thema): Aufruf fehlgeschlagen (%s)", ex.__class__.__name__)
+            return None
+
+    def llm_kapitel(thema, offen):
+        bloecke = []
+        for e, stoff in offen:
+            bloecke.append(f"### Ereignis {e.get('k','')}\nDatum: {e.get('d','')}\nKurzmeldung: "
+                           f"{e.get('t','')} {(e.get('z') or '')}\nSTOFF:\n{stoff[:1800]}")
+        prompt = (
+            f"Du schreibst Kapiteltexte fuer ein Dossier zum Thema \"{thema}\". Zu jedem Ereignis "
+            "gibt es eine Kurzmeldung (steht schon auf der Seite) und STOFF (Anriss des Verlags, "
+            "Meldungen anderer Quellen, Artikeltext, teils Englisch).\n\n" + "\n\n".join(bloecke) +
+            "\n\nSchreibe je Ereignis 2 bis 4 Saetze auf Deutsch, max. 450 Zeichen, mit dem, was der "
+            "STOFF ueber die Kurzmeldung hinaus hergibt: wer genau beteiligt ist, Zahlen, was vorher "
+            "geschah, was Beteiligte sagen. Die Kurzmeldung nicht wiederholen.\n"
+            "Nur STOFF verwenden, der GENAU DIESES Ereignis betrifft. Steht im STOFF etwas zu einer "
+            "anderen Firma, einem anderen Produkt oder Vorgang (Artikelseiten enthalten oft Links "
+            "und Randmeldungen), dann ignorieren. Keine Ereignisse miteinander verknuepfen.\n"
+            "HAUPTREGEL: nur Tatsachen aus STOFF oder Kurzmeldung. Kein Allgemeinwissen ergaenzen, "
+            "keine Gruende, Folgen, Motive, Zahlen oder Wertungen erfinden. Gibt der STOFF nichts "
+            "Neues her, schreibe \"\" fuer dieses Ereignis.\n"
+            "Personen beim ersten Nennen mit Rolle, aber nur wenn die Rolle im STOFF steht. Ein Zitat "
+            "nur, wenn es im STOFF woertlich steht, dann uebersetzt in „...“ mit Sprecher. Kein "
+            "Gedankenstrich als Satzpause, kein Semikolon. Verboten: \"wirft Fragen auf\", "
+            "\"zeigt, wie\", \"bleibt abzuwarten\", \"unterstreicht\", \"verdeutlicht\", \"spannend\".\n"
+            "Antworte NUR mit einem JSON-Objekt {\"<Ereignis-Kennung>\": \"Text\", ...}."
+        )
+        messages = [{"role": "user", "content": prompt}]
+        for modell in MODELLE_POSTS:
+            if _model_blocked(modell):
+                continue
+            try:
+                antwort = _call_llm_api(modell, messages, max_tokens=1600, timeout=90)
+            except Exception as ex:
+                logger.info("Linien-Kapitel: %s fehlgeschlagen (%s)", modell, ex.__class__.__name__)
+                continue
+            m = re.search(r"\{.*\}", antwort or "", re.S)
+            if not m:
+                continue
+            try:
+                daten = json.loads(m.group(0))
+            except Exception:
+                continue
+            if isinstance(daten, dict):
+                return {str(k): str(v or "").strip() for k, v in daten.items()}
+        return None
+
+    for lid, linie in linien.items():
+        try:
+            ereignisse = linie.get("e", [])
+            offen = []
+            for e in ereignisse:
+                eigen = per_link.get(e.get("l", ""))
+                b = bild(eigen)
+                if not b:
+                    for s in geschwister(e):
+                        b = bild(s)
+                        if b:
+                            break
+                if b:
+                    e["b"] = b
+                    zaehler["bilder"] += 1
+                k = e.get("k", "")
+                if not k:
+                    continue
+                c = post_cache.get("kapitel:" + k)
+                if c and (c.get("ok") or not c.get("offen")):
+                    if c.get("ok") and c.get("kx"):
+                        e["kx"] = c["kx"]
+                    zaehler["cache"] += 1
+                    continue
+                if not zeit_frei():
+                    continue
+                stoff = stoff_fuer(e)
+                if len(stoff) < LINIEN_KAPITEL_MIN_STOFF:
+                    # Stoff kommt vielleicht noch (andere Quelle, Volltext im naechsten Lauf):
+                    # "offen" markieren, solange das Ereignis frisch ist.
+                    post_cache["kapitel:" + k] = {"kx": "", "ok": False, "stoff": len(stoff),
+                                                  "offen": e.get("d", "") >= heute, "generated_at": heute}
+                    zaehler["ohne_stoff"] += 1
+                    continue
+                offen.append((e, stoff))
+
+            thema = (linie.get("dossier") or {}).get("titel") or (ereignisse[0].get("t", "") if ereignisse else "")
+            while offen and zaehler["llm"] < LINIEN_KAPITEL_MAX_LLM and zeit_frei():
+                paket, offen = offen[:LINIEN_KAPITEL_JE_AUFRUF], offen[LINIEN_KAPITEL_JE_AUFRUF:]
+                zaehler["llm"] += 1
+                texte = llm_kapitel(thema, paket)
+                if texte is None:
+                    continue
+                for e, stoff in paket:
+                    kx = _kuerzen_satz(re.sub(r"\s+", " ", re.sub(r"\s[–—]\s", ", ", texte.get(e.get("k", ""), ""))).strip(), 520)
+                    voll = f"{e.get('t','')} {e.get('z') or ''}\n{stoff}"
+                    ok, p = False, None
+                    if len(kx) >= 60:
+                        verboten = any(w in kx.lower() for w in X_TOR_VERBOTEN)
+                        if not verboten and _zahlen_gedeckt(kx, voll):
+                            p = jev_gedeckt(e.get("t", ""), voll, kx)
+                            ok = p is not None and p < X_TOR_JEV_SCHWELLE
+                            if ok:
+                                # Gedeckt heisst nicht passend: Artikelseiten liefern Randmeldungen
+                                # mit (Messung 30.09.). Bleibt der Text beim Ereignis?
+                                pk = jev_beim_thema(e.get("t", "") + " " + (e.get("z") or ""), kx)
+                                ok = pk is not None and pk >= 0.5
+                    if kx and not ok:
+                        zaehler["verworfen"] += 1
+                    post_cache["kapitel:" + e["k"]] = {"kx": kx, "ok": ok, "jev": p, "stoff": len(stoff),
+                                                       "generated_at": heute}
+                    if ok:
+                        e["kx"] = kx
+                        zaehler["neu"] += 1
+        except Exception as ex:
+            logger.warning("Linien-Kapitel: Linie %s uebersprungen (%s)", lid, ex)
+            continue
+
+    logger.info("Linien-Kapitel: %d neu, %d aus Cache, %d ohne Stoff, %d verworfen, %d Bilder "
+                "(LLM %d, Jev %d, Volltext %d)", zaehler["neu"], zaehler["cache"], zaehler["ohne_stoff"],
+                zaehler["verworfen"], zaehler["bilder"], zaehler["llm"], zaehler["jev"], zaehler["volltext"])
 
 
 # -------------------------
@@ -5673,6 +5967,14 @@ def main():
         save_post_cache(_cfg_base, post_cache)
     except Exception as e:
         logger.exception("Linien-Dossiers uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Reportage-Kapitel (30.09.26): Kapiteltext + Bild je Ereignis, siehe _linien_kapitel().
+    try:
+        _feed_texte = {n.get("link"): n.get("feed_text") for n in alle_news
+                       if n.get("link") and n.get("feed_text")}
+        _linien_kapitel(linien, post_cache, news_list, _existing_archive, _feed_texte)
+        save_post_cache(_cfg_base, post_cache)
+    except Exception as e:
+        logger.exception("Linien-Kapitel uebersprungen (Pipeline unbeeinflusst): %s", e)
     news_json_data = {
         "stand":    datum,
         "news":     news_list,
