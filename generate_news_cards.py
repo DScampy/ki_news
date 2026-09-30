@@ -1146,17 +1146,9 @@ def main() -> None:
     # wusste, dass es Duplikate sind. Fix: pro story_id nur den ersten (= hoechst
     # bewerteten) Artikel behalten, erst DANACH auf TOP_N kappen. Artikel ohne
     # story_id (= "" oder fehlend) gelten als eigene Story (kein Dedup-Risiko).
-    # 30.09.26: zusaetzlich dub_von aus ki_news.py (_markiere_dubletten: Cluster + Story-
-    # Registry + Titelvergleich). story_id deckt nur den Cluster ab - dieselbe Meldung in
-    # zwei Clustern (Messung news.json 30.09.: "OpenAI startet Dots" Heise s001 und
-    # SiliconAngle s002, beide Score 69) haette sonst zwei Top-Plaetze belegt. Der Kopf
-    # der Dublette steht selbst in news.json und wird hier normal ausgewaehlt.
-    links_im_feed = {a.get("link") for a in articles_by_score if a.get("link")}
     seen_story_ids = set()
     articles_deduped = []
     for a in articles_by_score:
-        if a.get("dub_von") and a.get("dub_von") in links_im_feed:
-            continue
         sid = a.get("story_id") or ""
         if sid and sid in seen_story_ids:
             continue
