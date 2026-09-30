@@ -1416,7 +1416,7 @@
     }
     .px-linie-spur {
       display: flex;
-      align-items: stretch;
+      align-items: flex-start;   /* 30.09.26: nicht auf die Hoehe des hoechsten Knotens ziehen */
       gap: 8px;
       min-width: 0;
       overflow-x: auto;
@@ -1425,6 +1425,7 @@
     }
     .px-pfeil {
       display: flex;
+      align-self: center;
       align-items: center;
       color: rgba(var(--px-neon-rgb), .7);
       font: 700 18px/1 ui-monospace, monospace;
@@ -1530,7 +1531,10 @@
     }
     @media (max-width: 720px) {
       .px-linie { grid-template-columns: 1fr; gap: 8px; }
-      .px-gen, .px-gen-mittel, .px-gen-gross { width: 200px; }
+      .px-gen, .px-gen-mittel { width: 200px; }
+      .px-gen-gross { width: 240px; }
+      .px-intro, .px-stand-card { min-height: 0; }
+      .px-stand-card .px-latest { position: static; margin-top: 16px; }
     }
   </style>
 </head>
@@ -2601,10 +2605,13 @@
               : (linie.anzahl === 1 ? "1 Modell" : `${linie.anzahl} Modelle`))
           );
           const spur = create("div", "px-linie-spur");
-          linie.generationen.forEach((gen, i) => {
+          // 30.09.26 (Daniel): neueste Generation vorne, Vorgaenger rechts dahinter.
+          // Pfeil zeigt vom Vorgaenger zum Nachfolger (also nach links).
+          linie.generationen.slice().reverse().forEach((gen, i) => {
             if (i) {
-              const pfeil = create("span", "px-pfeil", "→");
+              const pfeil = create("span", "px-pfeil", "←");
               pfeil.setAttribute("aria-hidden", "true");
+              pfeil.title = "Nachfolger links";
               spur.appendChild(pfeil);
             }
             spur.appendChild(createGeneration(gen, provider, linie.name));

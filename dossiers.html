@@ -44,6 +44,7 @@
     }
 
     :root[data-theme="dark"],
+    :root.dark,
     body[data-theme="dark"],
     body.px-theme-dark,
     body.dark-theme {
@@ -1135,8 +1136,10 @@
       }
     }
 
+    /* 30.09.26: Handy im Dunkelmodus + Seite hell (ki-layout.js setzt html.light) ergab eine
+       dunkle Dossier-Seite unter hellem Kopf. Dunkelmodus des Geraets nur ohne html.light. */
     @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
+      :root:not([data-theme="light"]):not(.light) {
         --px-bg: #071017;
         --px-bg-deep: #091720;
         --px-card: #0c1922;
