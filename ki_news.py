@@ -957,7 +957,8 @@ MODELLE = [
     # deepseek/deepseek-v4.1-flash - 4/8 (ein Batch leer, auch mit reasoning:false),
     # 19-92 s, und mit $0.30/$1.20 dreimal so teuer wie gemini-2.5-flash-lite (8/8, 5 s).
     "nvidia/nemotron-3-ultra-550b-a55b:free",           # traegt heute die Gratis-Batches (19 OK / 10 Laeufe)
-    "nex-agi/nex-n2.5-pro:free",                         # 14.09. neu: 8/8 im Produktionsformat, langsam (~55 s/Batch)
+    # 01.10.26 entfernt: "nex-agi/nex-n2.5-pro:free" - nicht mehr im OpenRouter-Katalog,
+    # 18 Fehlversuche in den Laeufen 30.09. 18 UTC bis 01.10. 05 UTC.
     "poolside/laguna-s-2.1:free",                        # 14.09. neu: 4/8, schnell (18 s), gelegentlich 429
     # 25.09.26 entfernt: "google/gemma-4-31b-it:free" - Modell-Check 15.09.: 0 von 30 Versuchen
     # in MODELLE, nur Wartezeit als Fallback-Slot. In MODELLE_POSTS bleibt es (eigenes Thema).
@@ -1063,7 +1064,12 @@ MODELLE_POSTS = [
     # 25.09.26 entfernt: "google/gemma-4-31b-it:free" - letzte 10 Laeufe (ki_news.log)
     # 224 Nennungen, 0 Erfolge (502/504/429); kostete je Lauf ~10 Fehlversuche in
     # score_cluster_llm. gemma-4-26b lieferte am 24.09. noch Posts, bleibt.
-    "google/gemma-4-26b-a4b-it:free",                  # Gemma (DE-Format, Scampy-6)
+    # 01.10.26: ":free"-Variante tot - HTTP 402 in allen 10 Laeufen 29.09.-01.10. (40-56
+    # Fehlversuche je Lauf), Ursache: Googles AI-Studio-Guthaben hinter dem Gratis-Endpunkt
+    # leer. Bezahlte Variante ($0.08/$0.26 je 1M, billiger als gemini-2.5-flash-lite):
+    # Produktionsformat-Test 01.10. 8/8 in 16 s. Gratis-Alternativen im selben Test:
+    # dots-3-note-preview:free 0/8, nemotron-3-super:free 0/8 (beide leer, Reasoning).
+    "google/gemma-4-26b-a4b-it",                       # Gemma (DE-Format, Scampy-6)
     # 14.08.26: :free-IDs von llama-3.3-70b-instruct/hermes-3-405b entfernt,
     # siehe Begruendung bei MODELLE oben - identischer Befund (100% 404).
     # gpt-oss-20b ergaenzt (live getestet, siehe MODELLE oben) - die Nemotron-

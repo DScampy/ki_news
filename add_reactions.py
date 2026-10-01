@@ -85,8 +85,9 @@ UA = (
 # zuverlaessigsten). Ohne Key: Uebersetzung wird uebersprungen, kein Fehler.
 OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "").strip()
 TRANSLATE_MODELLE = [
-    "google/gemma-4-31b-it:free",
-    "google/gemma-4-26b-a4b-it:free",
+    # 01.10.26: beide Gemma-":free" tot (HTTP 402, Googles Guthaben hinter dem Gratis-
+    # Endpunkt leer). Bezahlte gemma-4-26b ($0.08/$0.26 je 1M) im Produktionstest 8/8.
+    "google/gemma-4-26b-a4b-it",
     # 22.08.26: meta-llama/llama-3.3-70b-instruct:free entfernt. Die :free-
     # Variante ist seit dem 14.08. nicht mehr im OpenRouter-Katalog - in
     # ki_news.py und story_registry_shadow.py wurde sie damals ausgetauscht,
