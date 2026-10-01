@@ -1368,6 +1368,73 @@
     #px-makers { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); align-items: start; }
     #px-makers > .px-maker:not(.px-zu) { grid-column: 1 / -1; }
     #px-makers > .px-maker.px-zu { content-visibility: visible; }
+    /* 01.10.26 (Daniel): alle Kacheln gleich gross, Aufklappen in einer Detailzeile unter der Reihe */
+    #px-makers { align-items: stretch; }
+    #px-makers > .px-maker.px-zu {
+      display: flex;
+      flex-direction: column;
+      min-height: 196px;
+      contain-intrinsic-size: auto 196px;
+    }
+    #px-makers > .px-maker.px-zu > .px-button { margin-top: auto !important; }
+    #px-makers > .px-maker.px-zu .px-maker-head { flex-wrap: wrap; row-gap: 6px; }
+    #px-makers > .px-maker.px-zu .px-maker-title-wrap { flex: 1 1 0; }
+    #px-makers > .px-maker.px-zu h2 {
+      overflow: hidden;
+      font-size: clamp(20px, 1.9vw, 26px);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #px-makers > .px-maker.px-zu .px-maker-arten { flex-wrap: nowrap; }
+    #px-makers > .px-maker.px-zu .px-maker-latest {
+      display: block;
+      order: 3;
+      flex-basis: 100%;
+      max-width: none;
+      text-align: left;
+      white-space: normal;
+    }
+    #px-makers > .px-maker.px-aktiv {
+      border-color: rgba(var(--px-neon-rgb), .6);
+      box-shadow: 0 0 0 1px rgba(var(--px-neon-rgb), .25), 0 14px 34px rgba(var(--px-neon-rgb), .12);
+    }
+    #px-makers > .px-maker.px-aktiv > .px-button {
+      background: rgba(var(--px-neon-rgb), .14);
+      border-color: rgba(var(--px-neon-rgb), .55);
+    }
+    #px-makers > .px-maker-detail {
+      content-visibility: visible;
+      border-color: rgba(var(--px-neon-rgb), .45);
+      animation: px-detail-auf .22s ease-out;
+    }
+    #px-makers > .px-maker-detail:hover { transform: none; }
+    .px-detail-kopf {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--px-border);
+    }
+    .px-detail-kopf h3 {
+      margin: 0;
+      color: var(--px-text);
+      font: 700 22px/1.1 "Space Grotesk", sans-serif;
+    }
+    .px-detail-zu {
+      padding: 7px 12px;
+      border: 1px solid var(--px-border-strong);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--px-muted);
+      font: 700 11px/1 ui-monospace, monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .px-detail-zu:hover { color: var(--px-text); border-color: rgba(var(--px-neon-rgb), .6); }
+    @keyframes px-detail-auf { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { #px-makers > .px-maker-detail { animation: none; } }
   </style>
   <link rel="stylesheet" href="assets/registry-panel.css">
   <style>
@@ -2622,6 +2689,77 @@
         return baum;
       }
 
+      // 01.10.26 (Daniel: Auf-/Zuklappen besser loesen): Die Kachel bleibt an ihrem Platz und
+      // gleich gross. Der Stammbaum oeffnet in einer Detailzeile direkt unter der Kachelreihe,
+      // immer nur einer zur Zeit. Vorher sprang die Kachel auf volle Breite und das Raster
+      // sortierte sich neu.
+      let pxOffen = null;
+
+      function pxZeigenText(n) {
+        return `${PX_NUMBER.format(n)} ${n === 1 ? "Modell" : "Modelle"} zeigen`;
+      }
+
+      function pxDetailSchliessen() {
+        if (!pxOffen) return;
+        const o = pxOffen;
+        pxOffen = null;
+        o.grid.hidden = true;
+        o.grid.style.display = "none";
+        o.section.insertBefore(o.grid, o.mehr);
+        o.section.classList.remove("px-aktiv");
+        o.mehr.setAttribute("aria-expanded", "false");
+        o.mehr.textContent = pxZeigenText(o.n);
+        o.panel.remove();
+      }
+
+      function pxDetailPlatzieren() {
+        if (!pxOffen) return;
+        const { section, panel } = pxOffen;
+        panel.remove();
+        const reihe = section.offsetTop;
+        let letzte = section;
+        [...section.parentElement.children].forEach(k => {
+          if (k.classList.contains("px-maker") && Math.abs(k.offsetTop - reihe) < 4) letzte = k;
+        });
+        letzte.after(panel);
+      }
+
+      function pxDetailUmschalten(section, grid, mehr, provider, n) {
+        const warOffen = pxOffen && pxOffen.section === section;
+        pxDetailSchliessen();
+        if (warOffen) return;
+
+        const panel = create("section", "px-maker px-maker-detail");
+        panel.setAttribute("aria-label", `Stammbaum ${provider}`);
+        const kopf = create("div", "px-detail-kopf");
+        const zu = create("button", "px-detail-zu", "Schließen ✕");
+        zu.type = "button";
+        zu.addEventListener("click", () => { pxDetailSchliessen(); mehr.focus(); });
+        kopf.append(create("h3", "", provider), zu);
+        [...grid.children].forEach(c => { c.hidden = false; });
+        grid.hidden = false;
+        grid.style.display = "";
+        panel.append(kopf, grid);
+
+        pxOffen = { section, grid, mehr, n, panel };
+        section.classList.add("px-aktiv");
+        mehr.setAttribute("aria-expanded", "true");
+        mehr.textContent = "Schließen";
+        pxDetailPlatzieren();
+        panel.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          block: "nearest"
+        });
+      }
+
+      window.addEventListener("resize", () => { if (pxOffen) pxDetailPlatzieren(); });
+      document.addEventListener("keydown", event => {
+        if (event.key !== "Escape" || !pxOffen) return;
+        const mehr = pxOffen.mehr;
+        pxDetailSchliessen();
+        mehr.focus();
+      });
+
       function createMakerSection(provider, models, startIndex, sectionIndex) {
         const section = create("section", "px-maker");
         const headingId = `px-maker-heading-${sectionIndex}`;
@@ -2686,17 +2824,7 @@
           mehr.type = "button";
           mehr.style.marginTop = "12px";
           mehr.setAttribute("aria-expanded", "false");
-          mehr.addEventListener("click", () => {
-            const offen = mehr.getAttribute("aria-expanded") === "true";
-            [...grid.children].forEach(c => { c.hidden = offen; });
-            grid.hidden = offen;
-            grid.style.display = offen ? "none" : "";
-            section.classList.toggle("px-zu", offen);
-            mehr.setAttribute("aria-expanded", offen ? "false" : "true");
-            mehr.textContent = offen
-              ? `${PX_NUMBER.format(sortiert.length)} ${sortiert.length === 1 ? "Modell" : "Modelle"} zeigen`
-              : "Weniger zeigen";
-          });
+          mehr.addEventListener("click", () => pxDetailUmschalten(section, grid, mehr, provider, sortiert.length));
           section.appendChild(mehr);
         }
         return section;
@@ -2715,6 +2843,7 @@
         const filtered = filteredModels();
         const fragment = document.createDocumentFragment();
 
+        pxOffen = null;
         container.replaceChildren();
         renderProviderIndex();
 
