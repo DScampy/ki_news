@@ -357,6 +357,14 @@
       line-height: 1.4;
     }
 
+    .px-map-erklaerung {
+      max-width: 68ch;
+      margin: 8px 0 0;
+      color: var(--px-muted, #5b7383);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
     .px-legend {
       display: flex;
       flex-wrap: wrap;
@@ -1387,6 +1395,13 @@
           <div>
             <h2 class="px-map-title" id="px-map-heading">Entities im aktuellen KI-Nachrichtenraum</h2>
             <p class="px-map-subtitle" id="px-map-subtitle">Knoten anklicken. Zusammenhang prüfen. Release öffnen.</p>
+            <!-- 01.10.26 (Daniel): Karte braucht eine Lesehilfe -->
+            <p class="px-map-erklaerung">
+              So liest du die Karte: In der Mitte steht „KI heute“. Darum liegen acht Hersteller und fünf Themen.
+              An einem Hersteller hängen Modelle, Produkte und Firmen, die in den Meldungen oft mit ihm zusammen genannt werden.
+              An einem Thema hängen die Namen, die in den aktuellen Meldungen zu diesem Thema am häufigsten vorkommen.
+              Ein Klick zeigt unten die passenden Meldungen und den Verlauf der letzten 14 Tage.
+            </p>
           </div>
           <div class="px-legend" aria-label="Legende">
             <span style="--px-legend-color:#00d4ff">KI-Zentrum</span>
@@ -1985,6 +2000,11 @@
               );
             });
           } else {
+            // 01.10.26: nur Meldungen zum Thema zaehlen. Vorher wurde ueber ALLE Meldungen
+            // gezaehlt -> jedes Thema zeigte dieselben vier (Nvidia, OpenAI, Anthropic, Google).
+            const themaWoerter = (cluster.keywords || []).map(normalise).filter(k => k.length > 2);
+            const themaText = newsText.filter(text => themaWoerter.some(k => text.includes(k)));
+
             state.graphNodes.forEach(graphNode => {
               const id = cleanText(graphNode.id);
               if (!id) return;
@@ -1992,7 +2012,7 @@
               const entity = findEntityById(id);
               const terms = unique([id, ...aliasTerms(entity)]);
 
-              const newsHits = newsText.reduce(
+              const newsHits = themaText.reduce(
                 (total, text) => total + (
                   terms.some(term => {
                     const normalised = normalise(term);
@@ -2007,7 +2027,8 @@
               add(
                 id,
                 typeLabel(graphNode.typ || entity?.typ),
-                Number(graphNode.count || 1) + newsHits * 5,
+                // Treffer im Thema entscheiden; der Gesamtzaehler bricht nur Gleichstaende
+                newsHits * 100 + Math.log1p(Number(graphNode.count || 1)),
                 graphNode.count,
                 aliasTerms(entity)
               );
