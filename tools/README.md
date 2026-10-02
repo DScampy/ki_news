@@ -43,7 +43,7 @@ python tools/neuer-artikel.py \
 
 Das Script erzeugt/aktualisiert automatisch:
 - `artikel/<slug>.html` (komplette Seite im Site-Design)
-- Karte in `artikel.html` (Longform-Liste, neueste zuerst)
+- Eintrag in `artikel/artikel-index.json` (daraus baut `artikel.html` die Longform-Liste, neueste zuerst; Vorschaubild = `<slug>-og.png`, falls vorhanden)
 - `sitemap.xml`
 
 3. Lokal prüfen, dann deployen.

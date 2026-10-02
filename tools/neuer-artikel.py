@@ -8,7 +8,7 @@ im Site-Design (Template: tools/artikel-template.html, Chrome: ki-layout.js)
 und registriert sie überall, wo sie hingehört:
 
   1. artikel/<slug>.html          (fertige Seite)
-  2. artikel.html                 (Karte in der Longform-Liste, neueste zuerst)
+  2. artikel/artikel-index.json   (Longform-Liste auf artikel.html, neueste zuerst)
   3. sitemap.xml                  (<url>-Eintrag)
 
 Aufruf (vom Repo-Root):
@@ -112,62 +112,50 @@ def main():
     leftover = re.findall(r"\{\{[A-Z_]+\}\}", page)
     if leftover: fail("Unersetzte Platzhalter: %s" % set(leftover))
 
-    print("DEBUG: Writing article to", out_path)
     io.open(out_path, "w", encoding="utf-8").write(page)
-    print("DEBUG: Article written")
     print("✓ artikel/%s.html geschrieben" % a.slug)
 
-    # ── Karte in artikel.html (#longform-list, neueste zuerst) ──
-    art_list = os.path.join(ROOT, "artikel.html")
-    html = io.open(art_list, encoding="utf-8").read()
-    if ("artikel/%s.html" % a.slug) in html:
-        print("· Karte existiert schon in artikel.html — übersprungen")
-    else:
-        badge = ('<span style="display:inline-flex;padding:3px 10px;font-family:\'Space Grotesk\',sans-serif;'
-                 'font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#fff;'
-                 'background:var(--accent);border-radius:3px;">%s</span>' % tags[0])
-        outline = "".join('\n            <span style="display:inline-flex;padding:3px 8px;font-family:\'Space Grotesk\',sans-serif;'
-                          'font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;'
-                          'color:rgba(var(--neon-rgb),0.85);border:1px solid rgba(var(--neon-rgb),0.3);'
-                          'border-radius:3px;">%s</span>' % t for t in tags[1:])
-        card = '''
-        <a href="artikel/{slug}.html" style="display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:12px;border:1px solid rgba(var(--neon-rgb),0.35);background:rgba(10,14,22,0.6);text-decoration:none;transition:border-color 0.2s,box-shadow 0.2s;backdrop-filter:blur(8px);"
-           onmouseenter="this.style.borderColor='rgba(var(--neon-rgb),0.7)';this.style.boxShadow='0 0 22px rgba(var(--neon-rgb),0.28)'"
-           onmouseleave="this.style.borderColor='rgba(var(--neon-rgb),0.35)';this.style.boxShadow='none'">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            {badge}{outline}
-          </div>
-          <h3 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(18px,2vw,24px);font-weight:700;color:#dfe3ea;letter-spacing:-0.01em;line-height:1.2;">{titel}</h3>
-          <p style="font-family:'Work Sans',sans-serif;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">{desc}</p>
-          <div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.38);letter-spacing:0.05em;flex-wrap:wrap;">
-            <span>@{autor}</span>
-            <span style="width:3px;height:3px;border-radius:50%;background:currentColor;display:inline-block;opacity:0.5;"></span>
-            <span>{datum}</span>
-            <span style="width:3px;height:3px;border-radius:50%;background:currentColor;display:inline-block;opacity:0.5;"></span>
-            <span>≈ {min} Min. Lesezeit</span>
-            <span style="margin-left:auto;color:rgba(var(--neon-rgb),0.6);font-weight:700;">Artikel lesen →</span>
-          </div>
-        </a>'''.format(slug=a.slug, badge=badge, outline=outline, titel=a.titel,
-                       desc=a.desc, autor=a.autor, datum=date_de, min=a.lesezeit)
-        marker = '<div id="longform-list" style="display:flex;flex-direction:column;gap:16px;margin-bottom:32px;">'
-        if marker not in html: fail("#longform-list nicht in artikel.html gefunden")
-        html = html.replace(marker, marker + card, 1)
-        io.open(art_list, "w", encoding="utf-8").write(html)
-        print("✓ Karte in artikel.html eingefügt")
+    # ── artikel.html: KEINE Karte mehr einfuegen (02.10.26) ──
+    # Die Seite laedt ihre Longform-Liste seit dem 28.09. aus artikel/artikel-index.json.
+    # Bis heute suchte dieses Skript hier noch "#longform-list", brach ab ("nicht in
+    # artikel.html gefunden") und erreichte Sitemap und Index nie. Zudem war die Datei
+    # nach "import json" abgeschnitten - der Index-Teil fehlte ganz.
 
     # ── sitemap.xml ──
     sm_path = os.path.join(ROOT, "sitemap.xml")
-    sm = io.open(sm_path, encoding="utf-8").read()
+    sm = io.open(sm_path, encoding="utf-8", newline="").read()
     loc = "https://ki-news.live/artikel/%s.html" % a.slug
     if loc in sm:
         print("· sitemap.xml hat den Eintrag schon — übersprungen")
     else:
-        entry = ('  <url>\n    <loc>%s</loc>\n    <lastmod>%s</lastmod>\n'
-                 '    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>\n' % (loc, a.datum))
+        nl = "\r\n" if "\r\n" in sm else "\n"
+        entry = nl.join(["  <url>", "    <loc>%s</loc>" % loc, "    <lastmod>%s</lastmod>" % a.datum,
+                         "    <changefreq>monthly</changefreq>", "    <priority>0.7</priority>", "  </url>", ""])
         sm = sm.replace("</urlset>", entry + "</urlset>")
-        io.open(sm_path, "w", encoding="utf-8").write(sm)
+        io.open(sm_path, "w", encoding="utf-8", newline="").write(sm)
         print("✓ sitemap.xml ergänzt")
 
-    # ── artikel/artikel-index.json (für "Weiterlesen"-Block) ──
+    # ── artikel/artikel-index.json (Longform-Liste auf artikel.html + "Weiterlesen") ──
     import json
-  
+    idx_path = os.path.join(ROOT, "artikel", "artikel-index.json")
+    roh = io.open(idx_path, encoding="utf-8", newline="").read() if os.path.exists(idx_path) else "[]"
+    nl = "\r\n" if "\r\n" in roh else "\n"
+    eintraege = json.loads(roh or "[]")
+    bild = ""
+    if a.ogimage.startswith("https://ki-news.live/artikel/"):
+        bild = "artikel/" + a.ogimage.rsplit("/", 1)[-1]
+    neu = {"slug": a.slug, "titel": a.titel, "desc": a.desc, "tags": tags,
+           "datum": a.datum, "lesezeit": int(a.lesezeit) if str(a.lesezeit).isdigit() else a.lesezeit}
+    if bild:
+        neu["bild"] = bild          # artikel.html nimmt "bild" vor ihrer festen Bilderliste
+    eintraege = [e for e in eintraege if e.get("slug") != a.slug] + [neu]
+    eintraege.sort(key=lambda e: e.get("datum", ""), reverse=True)
+    text = json.dumps(eintraege, ensure_ascii=False, indent=2).replace("\n", nl) + nl
+    io.open(idx_path, "w", encoding="utf-8", newline="").write(text)
+    print("✓ artikel/artikel-index.json: %s eingetragen (%d Artikel)" % (a.slug, len(eintraege)))
+
+    print("Fertig. Pruefen: python tools/site_check.py")
+
+
+if __name__ == "__main__":
+    main()

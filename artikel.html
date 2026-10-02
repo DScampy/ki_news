@@ -2894,7 +2894,7 @@
           nd.artikel = results[2].value.map(function (e) {
             return {
               longform: true, title: e.titel, summary: e.desc, date: e.datum, tags: e.tags,
-              local_url: "artikel/" + e.slug + ".html", image: ARTIKEL_BILDER[e.slug] || ""
+              local_url: "artikel/" + e.slug + ".html", image: e.bild || ARTIKEL_BILDER[e.slug] || ""   // 02.10.26: "bild" aus dem Index (tools/neuer-artikel.py)
             };
           });
         }
