@@ -4329,6 +4329,26 @@ _X_TOR_FRAGE = {
 }
 
 
+# 02.10.26: X-Tor fragt positiv "Fakten belegt?" statt "etwas erfunden?". Messung an 30 echten
+# Teasern (ox-analyse/MESSUNG_021026_Kapiteltexte.md, Abschnitt X-Tor): beide Fragen stoppen
+# alle 30 untergeschobenen Fakten, die neue deutlicher (p 0,02-0,06 statt 0,95-0,98); echte
+# Teaser laesst die neue 19 von 30 durch statt 11, ein angehaengter Rhetorik-Satz aendert
+# nichts. Ergebnis wird als 1 - p(belegt) gespeichert, damit "jev" weiter "Risiko erfunden"
+# heisst und Schwelle, Nachbesserung und Telegram-Markierung unveraendert bleiben.
+_X_TOR_FRAGE_BELEGT = {
+    "type": "noul",
+    "instructions": "Sind alle Tatsachenbehauptungen in `post` durch `titel` oder `zusammenfassung` belegt? "
+                    "Tatsachen sind Namen, Firmen, Produkte, Zahlen, Daten, Rollen, Ursachen, Motive und Folgen. "
+                    "Uebersetzung und Umformulierung sind erlaubt.",
+    "criteria": {
+        "true": "Jede Tatsache in `post` steht so oder sinngemaess in `titel` oder `zusammenfassung`. "
+                "Meinung, Einordnung, Ironie, rhetorische Fragen und Ausrufe ohne neue Tatsache sind erlaubt.",
+        "false": "`post` behauptet mindestens eine Tatsache (Name, Zahl, Datum, Grund, Motiv, Folge, "
+                 "andere Bezeichnung des Vorgangs), die weder in `titel` noch in `zusammenfassung` steht.",
+    },
+}
+
+
 def _x_tor(teaser, titel, zusammenfassung):
     """-> {"ok": bool, "gruende": [...], "jev": p|None}. Jev-Fehler/kein Key = nicht
     geprueft (jev None), zaehlt nicht als Verstoss."""
@@ -4350,12 +4370,12 @@ def _x_tor(teaser, titel, zusammenfassung):
             body = json.dumps({"model": "jev-latest",
                                "state": {"titel": titel or "", "zusammenfassung": (zusammenfassung or "")[:600],
                                          "post": text},
-                               "questions": {"erfunden": _X_TOR_FRAGE}}).encode("utf-8")
+                               "questions": {"belegt": _X_TOR_FRAGE_BELEGT}}).encode("utf-8")
             req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
                                          headers={"Authorization": "Bearer " + key,
                                                   "Content-Type": "application/json"})
             with urllib.request.urlopen(req, timeout=20) as r:
-                p = round(float(json.loads(r.read())["answers"]["erfunden"]["noul"]), 2)
+                p = round(1.0 - float(json.loads(r.read())["answers"]["belegt"]["noul"]), 2)
         except Exception as e:
             logger.warning("X-Tor: Jev nicht erreichbar (%s)", e)
     if p is not None and p >= X_TOR_JEV_SCHWELLE:
@@ -5143,7 +5163,9 @@ _KAPITEL_BELEGT_FRAGE = {
                  "Wertung, die im `stoff` nicht vorkommt.",
     },
 }
-KAPITEL_SATZ_SCHWELLE = 0.5
+# 02.10.26 abends 0,5 -> 0,6: erster Live-Lauf liess einen Satz mit 0,51 durch ("Nachdem bisherige
+# Versuche ... gescheitert sind ..."). Echte Saetze lagen in der Messung bei >= 0,80.
+KAPITEL_SATZ_SCHWELLE = 0.6
 
 
 def _saetze(text):
