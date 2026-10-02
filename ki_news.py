@@ -4005,7 +4005,9 @@ def _call_llm_api(model, messages, max_tokens, timeout=90, temperature=None):
     # 30.09.26: gpt-oss laesst sich nicht abschalten, aber drosseln. Ohne das verbrauchte
     # der Registry-Richter sein Budget fuers Denken und lieferte leeren Text (siehe
     # story_registry_shadow.JUDGE_JE_AUFRUF). Nutzt aktuell nur JUDGE_MODELLE.
-    elif ollama_model.startswith("openai/gpt-oss"):
+    # 02.10.26: Pruefung bewusst in zwei Teilen. Der String "openai/gpt-oss" sah fuer
+    # modell_check.py wie eine Modell-ID aus -> "Tote Modell-ID" in jedem Lauf (Fehlalarm).
+    elif ollama_model.startswith("openai/") and "gpt-oss" in ollama_model:
         payload["reasoning"] = {"effort": "low"}
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers=headers)
