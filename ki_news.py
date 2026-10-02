@@ -5163,7 +5163,9 @@ _KAPITEL_BELEGT_FRAGE = {
                  "Wertung, die im `stoff` nicht vorkommt.",
     },
 }
-KAPITEL_SATZ_SCHWELLE = 0.5
+# 02.10.26 abends 0,5 -> 0,6: erster Live-Lauf liess einen Satz mit 0,51 durch ("Nachdem bisherige
+# Versuche ... gescheitert sind ..."). Echte Saetze lagen in der Messung bei >= 0,80.
+KAPITEL_SATZ_SCHWELLE = 0.6
 
 
 def _saetze(text):
