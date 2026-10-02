@@ -137,6 +137,60 @@ PASS3_CACHE_VERSION = 3   # neuer Richter -> alte NEIN-Urteile einmal neu pruefe
 # die aelteste Story behaelt ihren Text). Messung: ox-analyse/MESSUNG_021026_Richter-Stabilitaet.md
 PASS3_LEITTITEL_NACH_GROESSE = True
 
+# 02.10.26: Jev (TypeSafe) als Vorrichter vor dem LLM-Richter. Eindeutige Paare entscheidet
+# Jev allein (0,3 s je Paar, reproduzierbar), nur der Graubereich geht an JUDGE_MODELLE.
+# Messung (108 Paare, ox-analyse/MESSUNG_021026_Richter-Stabilitaet.md): mit 0,9/0,1
+# entscheidet Jev 58 von 108 Paaren, Ergebnis identisch mit luna allein (38/41 echte
+# Dubletten, 0/17 Fehl-Merges). Ohne Key oder bei Fehler geht das Paar an das LLM.
+# Kill-Switch: JEV_VORRICHTER = False.
+JEV_VORRICHTER = True
+JEV_JA_AB = 0.9
+JEV_NEIN_BIS = 0.1
+_JEV_FRAGE_STORY = {
+    "type": "noul",
+    "instructions": ("Beschreiben `artikel_a` und `artikel_b` dasselbe konkrete Ereignis (dieselbe "
+                     "Ankuendigung, denselben Vorfall, dieselbe Entscheidung)? Verschiedene Medien "
+                     "benennen dieselbe Ankuendigung oft unterschiedlich (Uebersetzung, Umschreibung, "
+                     "Teilaspekt im Titel)."),
+    "criteria": {
+        "true": ("Beide berichten ueber dasselbe Ereignis derselben handelnden Firma oder Person, "
+                 "auch bei abweichenden Produktnamen oder Blickwinkeln."),
+        "false": ("Nur dieselbe Firma, nur aehnliches Thema, verschiedene Produkte, verschiedene "
+                  "Personen oder verschiedene Ereignisse. Ein Firmenname als blosser Vergleich "
+                  "zaehlt nicht."),
+    },
+}
+
+
+def _jev_vorurteil(pairs):
+    """Jev-Wahrscheinlichkeit je Paar (Index ab 1) oder None. Nie eine Ausnahme nach aussen."""
+    import os
+    import urllib.request
+    from concurrent.futures import ThreadPoolExecutor
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not (JEV_VORRICHTER and key and pairs):
+        return {}
+
+    def eins(nr_paar):
+        nr, (a, b) = nr_paar
+        body = json.dumps({"model": "jev-latest", "state": {"artikel_a": a, "artikel_b": b},
+                           "questions": {"gleich": _JEV_FRAGE_STORY}}).encode("utf-8")
+        req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                     headers={"Authorization": "Bearer " + key,
+                                              "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return nr, float(json.loads(r.read())["answers"]["gleich"]["noul"])
+        except Exception:
+            return nr, None
+
+    try:
+        with ThreadPoolExecutor(8) as ex:
+            return dict(ex.map(eins, enumerate(pairs, 1)))
+    except Exception as e:
+        logger.info("Shadow-Judge: Jev-Vorrichter nicht verfuegbar (%s)", e)
+        return {}
+
 # 30.09.26 (Daniel: "Politik ist aehnlich wie eine Firma"): R1 verlangte eine gemeinsame
 # Entitaet aus entities.json (nur Firmen/Produkte). Politik-Storys fielen dadurch komplett
 # durch - "Trump benennt KI in Super Intelligence um" lag auf 3 Registry-Storys (Aehnlichkeit
@@ -202,6 +256,33 @@ def _token_df(base):
 
 
 def _judge(pairs, llm_fn, modelle):
+    """02.10.26: Jev-Vorrichter + LLM-Richter. Gleiche Rueckgabe wie _judge_llm():
+    (dict nr->True/False, Modell-Kennung|None). Paare mit Jev >= JEV_JA_AB sind JA, mit
+    Jev <= JEV_NEIN_BIS NEIN, alle anderen (auch ohne Jev-Wert) entscheidet das LLM."""
+    p = _jev_vorurteil(pairs)
+    verdicts, rest = {}, []
+    for nr in range(1, len(pairs) + 1):
+        wert = p.get(nr)
+        if wert is not None and wert >= JEV_JA_AB:
+            verdicts[nr] = True
+        elif wert is not None and wert <= JEV_NEIN_BIS:
+            verdicts[nr] = False
+        else:
+            rest.append(nr)
+    if p:
+        logger.info("Shadow-Judge: Jev-Vorrichter %d JA, %d NEIN, %d an LLM (ohne Jev-Wert: %d)",
+                    sum(verdicts.values()), len(verdicts) - sum(verdicts.values()), len(rest),
+                    sum(1 for nr in rest if p.get(nr) is None))
+    if not rest:
+        return verdicts, "jev"
+    teil, m = _judge_llm([pairs[nr - 1] for nr in rest], llm_fn, modelle)
+    for k, nr in enumerate(rest, 1):
+        verdicts[nr] = teil.get(k, False)
+    kennung = m if len(rest) == len(pairs) else ("jev+" + m if m else "jev")
+    return verdicts, kennung
+
+
+def _judge_llm(pairs, llm_fn, modelle):
     """Ein gebatchter Call. Rueckgabe: (dict nr->True/False, verwendetes Modell|None).
     Fehler => alles False, Modell None (Fail-safe).
 
@@ -213,7 +294,7 @@ def _judge(pairs, llm_fn, modelle):
     if len(pairs) > JUDGE_JE_AUFRUF:
         verdicts, modelle_benutzt = {}, []
         for start in range(0, len(pairs), JUDGE_JE_AUFRUF):
-            teil, m = _judge(pairs[start:start + JUDGE_JE_AUFRUF], llm_fn, modelle)
+            teil, m = _judge_llm(pairs[start:start + JUDGE_JE_AUFRUF], llm_fn, modelle)
             for n, v in teil.items():
                 verdicts[start + n] = v
             if m and m not in modelle_benutzt:
