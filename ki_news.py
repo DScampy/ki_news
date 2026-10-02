@@ -959,7 +959,7 @@ MODELLE = [
     "nvidia/nemotron-3-ultra-550b-a55b:free",           # traegt heute die Gratis-Batches (19 OK / 10 Laeufe)
     # 01.10.26 entfernt: "nex-agi/nex-n2.5-pro:free" - nicht mehr im OpenRouter-Katalog,
     # 18 Fehlversuche in den Laeufen 30.09. 18 UTC bis 01.10. 05 UTC.
-    "poolside/laguna-s-2.1:free",                        # 14.09. neu: 4/8, schnell (18 s), gelegentlich 429
+    # 02.10.26: laguna-s-2.1:free nach hinten verschoben (siehe Ende der Liste).
     # 25.09.26 entfernt: "google/gemma-4-31b-it:free" - Modell-Check 15.09.: 0 von 30 Versuchen
     # in MODELLE, nur Wartezeit als Fallback-Slot. In MODELLE_POSTS bleibt es (eigenes Thema).
     # 14.08.26: meta-llama/llama-3.3-70b-instruct:free und
@@ -1052,10 +1052,17 @@ MODELLE = [
     # jedes Ergebnis, im Uebersetzungs-Pfad mit vollem 1500-Token-Budget.
     # Das reasoning:{enabled:false}-Gegenmittel greift nur fuer nvidia/.
     # Wieder aufnehmen erst nach erneuter Live-Messung, nicht auf Verdacht.
-    "google/gemini-2.5-flash-lite",                     # Haupt-Anker: 26 von 44 erfolgreichen Batches (25.-26.08.)
-    "meta-llama/llama-3.3-70b-instruct",               # bisheriger Anker
+    # 02.10.26 neu geordnet (Daniel: "was stabil laeuft, kriegt Vorrang"). Produktionspfad,
+    # 21 Artikel, 3 Runden (ox-analyse/MESSUNG_021026_Uebersetzer-Partner.md):
+    # llama-3.3 Ø 17,7/21 (am stabilsten, langsam), gemini-2.5-flash-lite Ø 15,3 (10 s),
+    # gemma-4-26b Ø 12,7, nemotron-ultra bezahlt Ø 7 (lohnt nicht), laguna:free 4/8 + 429.
+    # Erfunden hat keines etwas (Jev-Satzpruefung).
+    "meta-llama/llama-3.3-70b-instruct",               # stabilster Partner fuer ultra
+    "google/gemini-2.5-flash-lite",                     # schnell, zweite Wahl
+    "poolside/laguna-s-2.1:free",                        # einziger weiterer Gratis-Slot
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
+NACHZUEGLER_MAX = 12   # 02.10.26: einzeln aussortierte Artikel bekommen eine zweite Runde (0 = aus)
 
 # NEU: Separate Modellliste für Post-Generierung
 # Gemma-4-31b schreibt bessere deutsche Posts als Llama – empirisch aus Logs bestätigt.
@@ -3676,9 +3683,30 @@ def summarize_news(alle_news, summary_cache=None):
 
     # Batches laufen ueber die PENDING-Indizes (Cache-Fix 02.07.26) - lokale
     # Batch-id 1..N wird ueber batch_indices auf den globalen Index abgebildet.
-    for batch_start in range(0, len(pending), batch_size):
+    # 02.10.26 Nachzuegler-Runde: Artikel, die in ihrem Paket einzeln aussortiert wurden
+    # (Mehrheitsregel) oder deren Paket bei allen Modellen scheiterte, bekommen am Ende
+    # einzeln eine zweite Chance durch die ganze Modellkette. Vorher fielen sie still auf
+    # den Originaltitel zurueck und wurden danach als "unuebersetzt" verworfen.
+    # Messung: ox-analyse/MESSUNG_021026_Uebersetzer-Partner.md (ein Wired-Sammeltitel
+    # riss ein Paket bei 5 von 6 Modellen mit). Kill-Switch: NACHZUEGLER_MAX = 0.
+    _pakete = [pending[s:s + batch_size] for s in range(0, len(pending), batch_size)]
+    _paket_nr = 0
+    _nachzuegler_gestartet = False
+    _uebersetzt = set()
+    while True:
+        if _paket_nr >= len(_pakete):
+            offen = [gi for gi in pending if gi not in _uebersetzt]
+            if _nachzuegler_gestartet or not offen or NACHZUEGLER_MAX <= 0:
+                break
+            _nachzuegler_gestartet = True
+            logger.info("Nachzuegler-Runde: %d Artikel einzeln (max. %d): %s", len(offen),
+                        NACHZUEGLER_MAX, "; ".join(alle_news[gi]["title"][:50] for gi in offen[:NACHZUEGLER_MAX]))
+            _pakete += [[gi] for gi in offen[:NACHZUEGLER_MAX]]
+            continue
+        batch_indices = _pakete[_paket_nr]
+        _paket_nr += 1
+        batch_start = (_paket_nr - 1) * batch_size   # nur fuer die Paket-Nummer im Log
         globals()["_BATCH_VERSUCHE"] = globals()["_BATCH_VERSUCHE"] + 1
-        batch_indices = pending[batch_start:batch_start + batch_size]
         batch = [alle_news[gi] for gi in batch_indices]
         news_text = "\n".join([
             f"{i+1}. {n['title']} (via {n['source']})"
@@ -3919,6 +3947,8 @@ News:
                             "title_de": title_de,
                             "summary": _fix_latex_escapes(item.get("summary", ""))
                         }
+                        if raw_title and not _is_placeholder(raw_title):
+                            _uebersetzt.add(global_index)
                         # Nur ECHTE LLM-Erfolge cachen (kein Placeholder-Fallback),
                         # sonst wuerde ein englischer Originaltitel zementiert.
                         link = alle_news[global_index].get("link", "")
