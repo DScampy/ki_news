@@ -67,6 +67,13 @@ REGISTRY_FILE = "story_registry_shadow.json"
 # mal nicht erreichbar ist - Verhalten degradiert dann auf den bisherigen Stand,
 # wird nie schlechter (Invariante I8, Fail-safe = nicht andocken bleibt unberuehrt).
 JUDGE_MODELLE = [
+    # 02.10.26: gpt-6-luna vorne. Vergleich von 17 Modellen auf 108 Paaren (60 mit
+    # Soll-Urteil, je 2 Runden, ox-analyse/MESSUNG_021026_Richter-Stabilitaet.md):
+    # luna 38/41 echte Dubletten, 0/17 Fehl-Merges, 4 kippende Paare, $0.0032 je 216
+    # Urteile - gpt-oss-120b 36-39/41, 0-1/17, 10 kippende, $0.0040. Braucht wie
+    # gpt-oss Budget 1500 + reasoning low (ohne: 180/216 Urteile leer).
+    # gpt-oss-120b bleibt dahinter als Ersatz.
+    "openai/gpt-6-luna",
     "openai/gpt-oss-120b",
     # 30.09.26: google/gemma-4-31b-it:free entfernt - im Log 28.-30.09. 14 von 14
     # Aufrufen HTTP 402 Payment Required.
@@ -223,7 +230,7 @@ def _judge(pairs, llm_fn, modelle):
     used_model = None
     for model in modelle:
         try:
-            budget = 1500 if "gpt-oss" in model else 400
+            budget = 1500 if ("gpt-oss" in model or "gpt-6-luna" in model) else 400
             try:   # 30.09.26: Temperatur 0 fuer reproduzierbare Urteile
                 content = llm_fn(model, messages, max_tokens=budget, temperature=0)
             except TypeError:   # llm_fn ohne temperature-Parameter

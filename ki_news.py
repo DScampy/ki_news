@@ -4007,7 +4007,9 @@ def _call_llm_api(model, messages, max_tokens, timeout=90, temperature=None):
     # story_registry_shadow.JUDGE_JE_AUFRUF). Nutzt aktuell nur JUDGE_MODELLE.
     # 02.10.26: Pruefung bewusst in zwei Teilen. Der String "openai/gpt-oss" sah fuer
     # modell_check.py wie eine Modell-ID aus -> "Tote Modell-ID" in jedem Lauf (Fehlalarm).
-    elif ollama_model.startswith("openai/") and "gpt-oss" in ollama_model:
+    # 02.10.26: gpt-6-luna (neuer Registry-Richter) denkt ebenfalls vor der Antwort - ohne
+    # Drossel und mit 400 Tokens kamen 180 von 216 Urteilen leer zurueck.
+    elif ollama_model.startswith("openai/") and ("gpt-oss" in ollama_model or "gpt-6-luna" in ollama_model):
         payload["reasoning"] = {"effort": "low"}
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers=headers)
