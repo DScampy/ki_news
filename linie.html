@@ -943,6 +943,58 @@
       text-align: center;
     }
 
+    /* 02.10.26: Meldungen, die Jev als "abseits" markiert hat, stehen nicht mehr als
+       vollwertige Kapitel in der Folge, sondern kompakt am Ende. */
+    .px-rand {
+      width: min(820px, calc(100% - 32px));
+      margin: 8px auto 40px;
+      padding: 18px 20px;
+      border: 1px dashed var(--px-line);
+      border-radius: var(--px-radius);
+      background: var(--px-surface);
+    }
+    .px-rand h2 {
+      margin: 0 0 4px;
+      color: var(--px-text);
+      font-size: 17px;
+    }
+    .px-rand p {
+      margin: 0 0 12px;
+      color: var(--px-text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .px-rand ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .px-rand li {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      color: var(--px-text-soft);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .px-rand-datum {
+      color: var(--px-text-muted);
+      font: 600 12px/1.6 ui-monospace, monospace;
+      white-space: nowrap;
+    }
+    .px-rand a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: rgba(var(--px-neon-rgb), 0.45);
+      text-underline-offset: 3px;
+    }
+    .px-rand-quelle {
+      color: var(--px-text-muted);
+      font-size: 12px;
+    }
+
     .px-end-mark {
       display: grid;
       width: 48px;
@@ -1882,6 +1934,33 @@
         return section;
       }
 
+      function createRand(randEvents) {
+        var section = make("section", "px-rand");
+        section.setAttribute("aria-label", "Meldungen am Rand dieser Linie");
+        var liste = make("ul", "");
+        randEvents.slice().reverse().forEach(function (e) {
+          var li = make("li", "");
+          var url = safeUrl(e.l);
+          var titel = url ? make("a", "", e.t || "Meldung") : make("span", "", e.t || "Meldung");
+          if (url) {
+            titel.href = url;
+            titel.target = "_blank";
+            titel.rel = "noopener noreferrer";
+          }
+          var text = make("span", "");
+          text.append(titel);
+          if (e.q) text.append(" ", make("span", "px-rand-quelle", "· " + e.q));
+          li.append(make("span", "px-rand-datum", formatDate(e.d)), text);
+          liste.appendChild(li);
+        });
+        section.append(
+          make("h2", "", "Am Rand dieser Linie"),
+          make("p", "", "Diese Meldungen wurden der Linie zugeordnet, gehören aber nicht zu ihrem Kern. Sie fließen nicht in die Einleitung ein."),
+          liste
+        );
+        return section;
+      }
+
       function createEnd() {
         var section = make("section", "px-end");
         var inner = make("div", "px-end-inner");
@@ -2079,9 +2158,18 @@
         var line = asObject(lines[selectedId]);
         var dossier = asObject(line.dossier);
         // 30.09.26 Reportage: Kapitel chronologisch erzaehlen (Pipeline liefert neueste zuerst)
-        var events = getEntries(line).slice().sort(function (a, b) {
+        var alleEvents = getEntries(line).slice().sort(function (a, b) {
           return String(a.d || "").localeCompare(String(b.d || ""));
         });
+        // 02.10.26: "abseits" (Jev: gehoert nicht zum Kern der Linie, z. B. Papst Leo in der
+        // Trump-Linie) nicht als Kapitel zaehlen, sondern am Ende unter "Am Rand" zeigen.
+        var abseitsKeys = Array.isArray(dossier.abseits) ? dossier.abseits : [];
+        var events = alleEvents.filter(function (e) { return abseitsKeys.indexOf(e.k) === -1; });
+        var randEvents = alleEvents.filter(function (e) { return abseitsKeys.indexOf(e.k) !== -1; });
+        if (!events.length) {
+          events = alleEvents;
+          randEvents = [];
+        }
 
         chapterRefs = [];
         chapterButtons = [];
@@ -2126,6 +2214,7 @@
           fragment.appendChild(chapterRefs[index].section);
         });
 
+        if (randEvents.length) fragment.appendChild(createRand(randEvents));
         fragment.appendChild(createEnd());
         main.replaceChildren(fragment);
 
