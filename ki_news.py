@@ -4882,7 +4882,8 @@ LINIEN_DOSSIER_AKTIV = True
 # Aus dem Cache kostet ein Dossier nichts, das LLM-Budget unten deckelt weiterhin.
 LINIEN_DOSSIER_MAX_LINIEN = 16
 LINIEN_DOSSIER_MAX_LLM = 12
-LINIEN_DOSSIER_MAX_JEV = 80   # Probe 27.09.: 40 reichten fuer 6 von 8 Linien
+LINIEN_DOSSIER_MAX_JEV = 160  # Probe 27.09.: 40 reichten fuer 6 von 8 Linien; 02.10.: satzweise (~4 je Einleitung)
+DOSSIER_SATZWEISE = True      # 02.10.26: Einleitung satzweise mit Jev "belegt?" pruefen
 LINIEN_DOSSIER_MAX_SEKUNDEN = 150
 
 _LINIE_DOSSIER_FRAGE = {
@@ -5019,6 +5020,24 @@ def _linien_dossiers(linien, post_cache):
             logger.info("Linien-Dossier Jev: Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
             return None
 
+    def jev_satz_belegt(titel, zsm, satz):
+        """02.10.26: p(Satz steht in den Ereignissen), Frage wie bei den Kapiteln."""
+        if not tsk or jev_aufrufe[0] >= LINIEN_DOSSIER_MAX_JEV:
+            return None
+        jev_aufrufe[0] += 1
+        try:
+            body = json.dumps({"model": "jev-latest",
+                               "state": {"titel": titel, "stoff": zsm, "satz": satz},
+                               "questions": {"belegt": _KAPITEL_BELEGT_FRAGE}}).encode("utf-8")
+            req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                         headers={"Authorization": "Bearer " + tsk,
+                                                  "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return round(float(json.loads(r.read())["answers"]["belegt"]["noul"]), 2)
+        except Exception as e:
+            logger.info("Linien-Dossier Jev (Satz): Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+            return None
+
     def jev_deckung(titel, worum, ereignisse):
         if not tsk or jev_aufrufe[0] >= LINIEN_DOSSIER_MAX_JEV:
             return None
@@ -5054,7 +5073,7 @@ def _linien_dossiers(linien, post_cache):
             cached = post_cache.get(cache_key)
             # 30.09.26: verworfene Einleitungen aus der Zeit vor dem Pruefer-Fix (ohne "v")
             # einmal neu erzeugen, gedeckte bleiben aus dem Cache.
-            if cached and cached.get("sig") == sig and (cached.get("worum_ok") or cached.get("v") == 2):
+            if cached and cached.get("sig") == sig and (cached.get("worum_ok") or cached.get("v") == 3):  # 02.10.26 v3: verworfene Einleitungen einmal satzweise neu pruefen
                 linie["dossier"] = {"titel": cached.get("titel", ""),
                                      "worum": cached.get("worum", "") if cached.get("worum_ok") else "",
                                      "abseits": cached.get("abseits", []),
@@ -5090,11 +5109,34 @@ def _linien_dossiers(linien, post_cache):
                     titel, worum = erg2["titel"], erg2["worum"]
             ereignisse_abseits += len(abseits_keys)
 
-            jev_p = jev_deckung(titel, worum, behalten)
-            worum_ok = jev_p is not None and jev_p < X_TOR_JEV_SCHWELLE
+            # 02.10.26: satzweise wie die Kapitel statt "erfunden?" ueber den ganzen Text.
+            # Messung (11 Live-Dossiers, ox-analyse/MESSUNG_021026_Kapiteltexte.md): die alte
+            # Frage verwarf 2 Einleitungen ganz wegen je eines Satzes und liess eine
+            # untergeschobene Zahl durch (0,46); satzweise lagen alle untergeschobenen Fakten
+            # bei 0,01-0,39. Kill-Switch: DOSSIER_SATZWEISE = False -> alte Pruefung.
+            if DOSSIER_SATZWEISE:
+                zsm = _linien_stofftext(behalten, 2400)
+                ok_saetze, ps = [], []
+                for satz in _saetze(worum):
+                    if any(w in satz.lower() for w in X_TOR_VERBOTEN):
+                        ps.append(0.0)
+                        continue
+                    p_s = jev_satz_belegt(titel, zsm, satz)
+                    ps.append(p_s)
+                    if p_s is not None and p_s >= KAPITEL_SATZ_SCHWELLE:
+                        ok_saetze.append(satz)
+                worum_neu = " ".join(ok_saetze)
+                worum_ok = len(ok_saetze) >= 2 and len(worum_neu) >= 80
+                if worum_ok:
+                    worum = worum_neu
+                # "jev" bleibt ein Risiko-Wert (hoch = schlecht) wie bisher
+                jev_p = round(1.0 - min((x for x in ps if x is not None), default=0.0), 2) if ps else None
+            else:
+                jev_p = jev_deckung(titel, worum, behalten)
+                worum_ok = jev_p is not None and jev_p < X_TOR_JEV_SCHWELLE
 
             post_cache[cache_key] = {"sig": sig, "titel": titel, "worum": worum,
-                                     "worum_ok": worum_ok, "jev": jev_p, "v": 2,
+                                     "worum_ok": worum_ok, "jev": jev_p, "v": 3,
                                      "abseits": abseits_keys, "generated_at": heute}
             linie["dossier"] = {"titel": titel, "worum": worum if worum_ok else "",
                                 "abseits": abseits_keys, "jev": jev_p}
