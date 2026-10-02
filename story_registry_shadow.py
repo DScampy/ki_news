@@ -126,6 +126,9 @@ JUDGE_JE_AUFRUF = 12
 # v3 (30.09.26 abends): Temperatur 0 + mehr Kontext + Politik-Akteure. Das Urteil schwankte
 # vorher: Nvidia-Paar im Trockenlauf JA, eine Stunde spaeter im Live-Lauf NEIN.
 PASS3_CACHE_VERSION = 3   # neuer Richter -> alte NEIN-Urteile einmal neu pruefen lassen
+# 02.10.26: Kill-Switch fuer die Leittitel-Wahl beim Pass-3-Merge (False = alter Stand:
+# die aelteste Story behaelt ihren Text). Messung: ox-analyse/MESSUNG_021026_Richter-Stabilitaet.md
+PASS3_LEITTITEL_NACH_GROESSE = True
 
 # 30.09.26 (Daniel: "Politik ist aehnlich wie eine Firma"): R1 verlangte eine gemeinsame
 # Entitaet aus entities.json (nur Firmen/Produkte). Politik-Storys fielen dadurch komplett
@@ -639,6 +642,16 @@ def _run(base, news_list, cluster_fn, llm_fn, modelle):
                     members_sorted = sorted(members, key=lambda s: (registry[s].get("created", ""), s))
                     survivor = members_sorted[0]
                     surv = registry[survivor]
+                    # 02.10.26: Leittitel + Zusammenfassung von der Story mit den meisten Titeln
+                    # (Gleichstand: die aelteste). Vorher behielt die aelteste Story ihren Text -
+                    # st-06766 hiess "Trump: Justizministerium koennte KI-Firmen zuegeln", obwohl
+                    # 7 von 8 Titeln die Umbenennung in "Super Intelligence" betrafen. Der Richter
+                    # sah danach bei jedem neuen Paar den falschen Text. ID bleibt die aelteste.
+                    if PASS3_LEITTITEL_NACH_GROESSE:
+                        leit = max(members_sorted, key=lambda s: len(registry[s].get("titles", [])))
+                        if leit != survivor:
+                            surv["rep_title"] = registry[leit]["rep_title"]
+                            surv["summary"] = registry[leit].get("summary", "")
                     all_titles, all_links, all_cents = list(surv["titles"]), list(surv["links"]),                         [_np.asarray(surv["centroid"], dtype=_np.float32)]
                     latest_seen = surv.get("last_seen", today)
                     for absorbed_id in members_sorted[1:]:
