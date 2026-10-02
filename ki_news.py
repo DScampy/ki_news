@@ -5119,11 +5119,43 @@ def _linien_stofftext(ereignisse, maxlen):
 # Fail-open wie die Dossiers. Kill-Switch: LINIEN_KAPITEL_AKTIV = False.
 LINIEN_KAPITEL_AKTIV = True
 LINIEN_KAPITEL_MAX_LLM = 8          # ein Aufruf je Linie (alle neuen Ereignisse zusammen)
-LINIEN_KAPITEL_MAX_JEV = 60          # je Kapitel 2 Fragen: gedeckt? beim Ereignis?
+LINIEN_KAPITEL_MAX_JEV = 160         # 02.10.26: je Satz eine Frage (belegt?) + je Kapitel eine (beim Ereignis?)
 LINIEN_KAPITEL_MAX_VOLLTEXT = 6     # HTTP-Abrufe je Lauf, je max. 12 s
 LINIEN_KAPITEL_MAX_SEKUNDEN = 180
 LINIEN_KAPITEL_MIN_STOFF = 160      # Zeichen Stoff ueber die Kurzmeldung hinaus
 LINIEN_KAPITEL_JE_AUFRUF = 6
+
+
+# 02.10.26: Kapiteltexte satzweise pruefen statt ganz verwerfen. Die bisherige Frage
+# (_X_TOR_FRAGE "erfunden?" ueber den ganzen Text) streute bei langem englischem Artikeltext
+# von 0,11 bis 0,98 ohne Muster: 51 von 79 Kapiteln verworfen, auch reine Faktentexte.
+# Messung (ox-analyse/MESSUNG_021026_Kapiteltexte.md, 16 Kapitel, 50 echte Saetze,
+# 16 angehaengte Wertungen, 8 falsch eingesetzte Fakten): diese Frage gibt echten Saetzen
+# 0,80-0,99, Wertungen 0,02-0,21, falschen Fakten 0,01-0,02. Schwelle 0,5.
+_KAPITEL_BELEGT_FRAGE = {
+    "type": "noul",
+    "instructions": "Steht die Aussage von `satz` im `stoff` (Titel, Anriss oder Artikeltext, auch auf "
+                    "Englisch)? Uebersetzung, Umformulierung und Kuerzung sind erlaubt.",
+    "criteria": {
+        "true": "Jede Tatsache in `satz` (Namen, Zahlen, Daten, Zitate, Ablaeufe) findet sich so oder "
+                "sinngemaess im `stoff`.",
+        "false": "`satz` enthaelt mindestens eine Tatsache, Folge, Absicht, Strategie, Bedeutung oder "
+                 "Wertung, die im `stoff` nicht vorkommt.",
+    },
+}
+KAPITEL_SATZ_SCHWELLE = 0.5
+
+
+def _saetze(text):
+    """Satzweise teilen, ohne an "9. November" oder "Björn R." zu brechen."""
+    teile = re.split(r"(?<=[.!?“\"])\s+(?=[A-ZÄÖÜ„\"])", (text or "").strip())
+    out = []
+    for t in teile:
+        if out and re.search(r"(\b\d{1,2}|\b[A-ZÄÖÜ])\.$", out[-1]):
+            out[-1] += " " + t
+        else:
+            out.append(t)
+    return [t for t in out if t]
 
 
 def _zahlen_gedeckt(text, stoff):
@@ -5236,6 +5268,24 @@ def _linien_kapitel(linien, post_cache, news_list, archiv, feed_texte):
             logger.info("Linien-Kapitel Jev: Aufruf fehlgeschlagen (%s)", ex.__class__.__name__)
             return None
 
+    def jev_satz_belegt(titel, stoff, satz):
+        """p(Satz steht im Stoff) mit _KAPITEL_BELEGT_FRAGE, None bei Fehler/Budget."""
+        if not tsk or zaehler["jev"] >= LINIEN_KAPITEL_MAX_JEV:
+            return None
+        zaehler["jev"] += 1
+        try:
+            body = json.dumps({"model": "jev-latest",
+                               "state": {"titel": titel[:300], "stoff": stoff[:2400], "satz": satz},
+                               "questions": {"belegt": _KAPITEL_BELEGT_FRAGE}}).encode("utf-8")
+            req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                         headers={"Authorization": "Bearer " + tsk,
+                                                  "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return round(float(json.loads(r.read())["answers"]["belegt"]["noul"]), 2)
+        except Exception as ex:
+            logger.info("Linien-Kapitel Jev (Satz): Aufruf fehlgeschlagen (%s)", ex.__class__.__name__)
+            return None
+
     def jev_beim_thema(ereignis_text, text):
         """p(Kapiteltext behandelt denselben Vorgang wie das Ereignis), Frage wie bei den Dossiers."""
         if not tsk or zaehler["jev"] >= LINIEN_KAPITEL_MAX_JEV:
@@ -5345,19 +5395,31 @@ def _linien_kapitel(linien, post_cache, news_list, archiv, feed_texte):
                     kx = _kuerzen_satz(re.sub(r"\s+", " ", re.sub(r"\s[–—]\s", ", ", texte.get(e.get("k", ""), ""))).strip(), 520)
                     voll = f"{e.get('t','')} {e.get('z') or ''}\n{stoff}"
                     ok, p = False, None
+                    roh, ps = kx, []
                     if len(kx) >= 60:
-                        verboten = any(w in kx.lower() for w in X_TOR_VERBOTEN)
-                        if not verboten and _zahlen_gedeckt(kx, voll):
-                            p = jev_gedeckt(e.get("t", ""), voll, kx)
-                            ok = p is not None and p < X_TOR_JEV_SCHWELLE
-                            if ok:
-                                # Gedeckt heisst nicht passend: Artikelseiten liefern Randmeldungen
-                                # mit (Messung 30.09.). Bleibt der Text beim Ereignis?
-                                pk = jev_beim_thema(e.get("t", "") + " " + (e.get("z") or ""), kx)
-                                ok = pk is not None and pk >= 0.5
-                    if kx and not ok:
+                        # 02.10.26: satzweise. Ein Satz mit Wertung, verbotenem Wort oder nicht
+                        # belegter Zahl fliegt raus, der Rest bleibt (vorher: ganzer Text weg).
+                        behalten = []
+                        for satz in _saetze(kx):
+                            if any(w in satz.lower() for w in X_TOR_VERBOTEN) or not _zahlen_gedeckt(satz, voll):
+                                ps.append(0.0)
+                                continue
+                            ps_satz = jev_satz_belegt(e.get("t", ""), voll, satz)
+                            ps.append(ps_satz)
+                            if ps_satz is not None and ps_satz >= KAPITEL_SATZ_SCHWELLE:
+                                behalten.append(satz)
+                        zaehler["saetze_raus"] = zaehler.get("saetze_raus", 0) + (len(ps) - len(behalten))
+                        kx = " ".join(behalten)
+                        p = min((x for x in ps if x is not None), default=None)
+                        if len(kx) >= 60:
+                            # Gedeckt heisst nicht passend: Artikelseiten liefern Randmeldungen
+                            # mit (Messung 30.09.). Bleibt der Text beim Ereignis?
+                            pk = jev_beim_thema(e.get("t", "") + " " + (e.get("z") or ""), kx)
+                            ok = pk is not None and pk >= 0.5
+                    if roh and not ok:
                         zaehler["verworfen"] += 1
-                    post_cache["kapitel:" + e["k"]] = {"kx": kx, "ok": ok, "jev": p, "stoff": len(stoff),
+                    post_cache["kapitel:" + e["k"]] = {"kx": kx if ok else roh, "ok": ok, "jev": p,
+                                                       "jev_saetze": ps, "stoff": len(stoff),
                                                        "generated_at": heute}
                     if ok:
                         e["kx"] = kx
@@ -5366,9 +5428,10 @@ def _linien_kapitel(linien, post_cache, news_list, archiv, feed_texte):
             logger.warning("Linien-Kapitel: Linie %s uebersprungen (%s)", lid, ex)
             continue
 
-    logger.info("Linien-Kapitel: %d neu, %d aus Cache, %d ohne Stoff, %d verworfen, %d Bilder "
-                "(LLM %d, Jev %d, Volltext %d)", zaehler["neu"], zaehler["cache"], zaehler["ohne_stoff"],
-                zaehler["verworfen"], zaehler["bilder"], zaehler["llm"], zaehler["jev"], zaehler["volltext"])
+    logger.info("Linien-Kapitel: %d neu, %d aus Cache, %d ohne Stoff, %d verworfen, %d Saetze gestrichen, "
+                "%d Bilder (LLM %d, Jev %d, Volltext %d)", zaehler["neu"], zaehler["cache"],
+                zaehler["ohne_stoff"], zaehler["verworfen"], zaehler.get("saetze_raus", 0),
+                zaehler["bilder"], zaehler["llm"], zaehler["jev"], zaehler["volltext"])
 
 
 # -------------------------
