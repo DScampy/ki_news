@@ -247,6 +247,7 @@ jobs:
       - name: Bilder ins Medien-Repo (image_local)
         env:
           SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}   # Platz-Warnung (hoechstens 1x je Tag)
           BILDER_GROSS_TAGE: "60"
         run: |
           if [ -z "$SECRETS_PAT" ]; then echo "SECRETS_PAT fehlt - kein Bilder-Spiegel."; exit 0; fi
