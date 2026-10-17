@@ -2218,11 +2218,22 @@
           image.setAttribute("fetchpriority", "high");
         }
 
-        image.addEventListener("error", function () {
-          image.hidden = true;
-        }, { once: true });
+        // 17.10.26: Titelbilder (eager) aus dem Spiegel in 1600 px. Die 1600er werden nach
+        // 60 Tagen geloescht (bilder_spiegel.py), dann faellt das Bild auf den 640er zurueck.
+        var gross = eager ? url.replace("/bilder/640/", "/bilder/1600/") : url;
 
-        image.src = url;
+        var fallbackOffen = gross !== url;
+
+        image.addEventListener("error", function () {
+          if (fallbackOffen) {
+            fallbackOffen = false;
+            image.src = url;
+            return;
+          }
+          image.hidden = true;
+        });
+
+        image.src = gross;
         return image;
       };
 
