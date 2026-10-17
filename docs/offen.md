@@ -1,0 +1,66 @@
+# Offene Punkte (Stand 28.09.2026 abends)
+
+Arbeits-Branch: `daniel/youthful-wozniak-tyzceg`. Die Session wurde nach PR 1 wegen Budget angehalten.
+
+## Erledigt heute
+- **Hero direkt auf main (a886a2f):** Die rechte Spalte endet bündig mit der großen Karte (die Kante war 2 px), der Genesis-Hintergrund ist hinter dem Hero wieder sichtbar, und das Morgenlage-Laufband hat ein eigenes Fenster. PR #3 ist deshalb ohne Merge geschlossen.
+- Seitenkacheln: 47f251a war bereits auf main (als 812d5a9, gleiche patch-id). Live und main sind byte-gleich, und der Test zeigt korrekt mitlaufende Kacheln. Der beobachtete Fehler kam vermutlich aus dem Browser-Cache (max-age 600).
+- Genesis ist nicht mit c54637c verschwunden, sondern mit 69e6a17 (deckender Hero-Verlauf).
+
+## PRs zum Mergen (Daniel)
+- **#4 Kartenstile** neon + typo + riso, einschließlich des typo-Fixes 330b60d. Achtung: riso wird damit der häufigste Stil (18 von 60), neon fällt auf 4. Gegebenenfalls `NEUE_STILE_JE_MOTIV` umsortieren.
+- **#5 Archiv Atlas + neue Artikel-Seite + dossiers.html**, mit „Die aktivsten Entwicklungen“ oben. Offen: Nav-Eintrag „Dossiers“ in `assets/ki-layout.js`?
+- **#6 Vorschau-Seiten** (karten/woche/hersteller/og-bilder-neu) + tools + Übersetzungsfix `hersteller_feed.py`.
+
+## Angefangen, nicht fertig
+1. **X-Links über HuggingNews** (Branch `daniel/pr5-x-links`, WIP 281765d, `x_quellen.py`):
+   - API-Befund: `GET /api/stories/<slug>` liefert `selectedTweets` (role source/support/commentary/analysis/signal, authorHandle, url, bestBit). Das geht auch ohne Key, der Feed reicht nur 3 Tage zurück und ist nicht paginierbar.
+   - Logik: Nur fest gepflegte offizielle Handles werden verlinkt, nichts wird geraten. Den Hersteller-Post gibt es nur aus der Story zur Ankündigung (±2 Tage), Analysen (@ArtificialAnlys u.a.) bis 7 Tage danach. Top-Meldungen laufen über die `themenketten.json`-Zuordnung zum Post der eigenen Quelle (z.B. WSJ → @WSJ). Funde werden in `x_quellen.json` gespeichert.
+   - Getestet: ElevenLabs Eleven v4 → 2 Analysen von @ArtificialAnlys. „OpenAI fixes GPT-6 vision bug“ wird richtig NICHT als GPT-6-Sol-Release-Post genommen. WSJ-Meldung → @WSJ-Post.
+   - Offen: der Workflow-Schritt nach hersteller_feed (env `HUGGINGNEWS_API_KEY: ${{ secrets.HUGGINGNEWS_API }}`, dazu `git add x_quellen.json`), die Anzeige „Auf X“ im Hero (`story.x_quelle`) und ein PR.
+   - Die aktuellen 4 Releases (22./23.09.) liegen vor dem Feed-Fenster, deshalb gibt es für sie keinen X-Post. Erst neue Releases werden erfasst.
+   - Die Beispiele von Google (2103608768609370118) und ElevenLabs (2104572127617994917) sind nicht mehr im Feed. Laut Beispiel heißt das Konto @ElevenLabs; in `HERSTELLER_HANDLES` steht noch `elevenlabsio`, dort muss `elevenlabs` ergänzt werden.
+2. **Prompt-Ursache in ki_news.py:** Rollen und Wertungen nicht erfinden („ehemaliger/designierter Präsident Trump“, „Dieser Preiskampf hat das Potenzial …“). Noch nicht begonnen, nur auf dem Branch.
+
+## Weitere Befunde
+- `tools/neuer-artikel.py` ist abgeschnitten, `main()` wird nie aufgerufen.
+- `_prototypen/` steht nicht in `.gitignore`.
+- og:image aus `tools/og_render.js`: ca. 850 KB je Bild; zeigt `story_id` und Score öffentlich.
+- index-neu.html zeigt ohne JS dauerhaft „wird geladen“.
+- Deckungsprüfung: 14 von 50 Meldungen ohne Quelltext (Google-News-Links). Die Ämterliste (Stand 28.09.2026) sollte Daniel gegenlesen.
+
+## Auftrag 9 (28.09.26 spät)
+- **PR #7 Startseite Nachbesserung** (Punkte 1–5): Genesis ist wieder Bühne hinter dem Hero, Bild der Meldung statt Kartenposter, keine doppelte Meldung, Ton nach Klick im Overlay (sonst Knopf „Ton an“), Release-Video per Klick mit Ton.
+  - Den Ton nach dem Klick konnte ich im Test nicht mit echtem Ton belegen, weil das Test-Chromium kein H.264 abspielen kann. Bitte im echten Browser prüfen.
+  - Punkt 5, Daten fehlen: Kein Release hat `video_url` oder `x_url`. Das Video des Hersteller-Posts liefert HuggingNews unter `image.videoUrl` mit `credit.tweetUrl`. Das Füllen gehört in `x_quellen.py` (Branch `daniel/pr5-x-links`).
+- **PR #8 Sprach-Guard** (Punkt 6): Eine Meldung ohne deutschen Teaser und ohne deutsches Signal wird verworfen. py3langid hielt den ACEMAGIC-Titel für Deutsch (p = 0,61). Einen Filter für reine Produktwerbung gibt es weiterhin nicht, darüber muss Daniel entscheiden.
+
+## Auftrag 10 (28.09.26 abends)
+- **PR #11 Startseite Tempo** (Punkte 1, 2, 6): Genesis-Code exakt wie vor c54637c, einzige Ergänzung ist die Pause bei `document.hidden`. Der Hero ist wieder undurchsichtig, die Aurora läuft ohne Live-Blur, der Ton-Knopf hat 52 px Trefferfläche.
+  - Gemessen: verdeckter Tab 105 % → 0 % CPU. Bei sichtbarem Tab zeigt Headless ohne GPU keinen Unterschied (etwa 102 %). **Daniel misst im echten Chrome (Shift+Esc).**
+- **PR #12 Bilder-Spiegel**: WebP 640 und 1600 ins Medien-Repo, `image_local`. Pages erlaubt 1 GB, deshalb werden die 1600er nach 60 Tagen gelöscht. Artikel-, Archiv- und Dossier-Seiten nutzen `image_local` noch nicht.
+- Offen aus Auftrag 10:
+  - 3a: Hero und Kacheln eager, Rest lazy (`fetchpriority=high`)
+  - 4: `archive.json` auf der Startseite erst bei Leerlauf laden
+  - 5: Füllmotiv statt leerer Gitterfläche
+  - 7: `video_url` und `x_url` aus HuggingNews (`x_quellen.py`, Branch `daniel/pr5-x-links`)
+
+## 28.09.26 spät: PR #13 und #14
+- **#13 Startseite:** Genesis ist wieder sichtbar (nur CSS, der Code ist unverändert). Alle drei Hero-Kacheln zeigen ein Bild: zuerst ein Bild aus derselben Story, sonst ein Füllmotiv. archive.json lädt nicht mehr beim Start. Die Seitenkacheln laden eager.
+- **#14 X-Posts über HuggingNews:** `x_quellen.py` im Workflow. Sonnet 5.5 bekommt den Post von @claudeai und eine Analyse von @ArtificialAnlys.
+- Offen:
+  - Anzeige „Auf X“ (`x_quelle`) an den Top-Meldungen im Hero
+  - Story-Clustering in ki_news.py: Nvidia Bloomberg (s000) und Reuters (s002) laufen als zwei Storys
+  - Artikel-, Archiv- und Dossier-Seiten nutzen `image_local` noch nicht
+  - Prompt-Ursache (Rollen und Wertungen)
+
+## Stand 17.10.2026 (Übergabe für einen neuen Chat)
+- **Auswertung 28.09. bis 17.10.:** Nichts Gravierendes. 112 Pipeline-Läufe, keiner rot. Live ist identisch mit main, im Repo liegen keine Geheimnisse, und seit dem 28.09. wurde nichts ohne Freigabe veröffentlicht.
+- **PR #46 gemergt:** Der Wächter meldet per Telegram, wenn die Übersetzung wirklich ausfällt. Die Platz-Warnung zählt Bilder und Karten-Videos zusammen (Stand: rund 540 von 1024 MB). Die Telegram-Zustellung ist noch nicht an einem echten Alarm bestätigt.
+- **Risiko Übersetzer:** Fast alle Batches laufen über `meta-llama/llama-3.3-70b-instruct`. Das Modell hat kein `:free` im Namen, ist also vermutlich bezahlt. Gratis-Modelle scheitern oft (Zeitüberschreitungen, leere Antworten).
+- **Noch offen:**
+  - Anzeige „Auf X“ (`x_quelle`) an den Top-Meldungen im Hero
+  - Artikel-, Archiv- und Dossier-Seiten sollen `image_local` / `image_local_gross` nutzen
+  - Story-Clustering in `ki_news.py`: dieselbe Meldung (z.B. Nvidia von Bloomberg und Reuters) läuft als zwei Storys
+  - Bilder, die sich nie spiegeln lassen (etwa 30 von 40 je Lauf), werden bei jedem Lauf erneut versucht
+  - Prompt-Ursache für erfundene Rollen und Wertungen: In den letzten 120 Meldungen trat nichts mehr auf, die Ursache ist aber nicht untersucht
