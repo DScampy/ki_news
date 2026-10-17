@@ -26,7 +26,7 @@ import sys
 import urllib.request
 import urllib.error
 import urllib.parse
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 # Karten v2 (26.09.26): gezeichnete Szene, Felder aus karten_v2.py. Import darf die
@@ -101,6 +101,16 @@ TYPESAFE_API_KEY     = os.environ.get("TYPESAFE_API_KEY", "").strip()
 JEV_API              = "https://api.typesafe.ai/v1/systemone"
 JEV_DECKUNG_AKTIV    = True
 JEV_DECKUNG_SCHWELLE = 0.5   # p >= Schwelle -> Einordnung gilt als vermutlich erfunden
+# 17.10.26: Dubletten-Schutz Stufe 3 (Jev). Messung cards.json 11.-17.10.: 7 Ereignisse mit
+# 2-3 Karten (Amazon Bee, China-Exportkontrolle, Nvidia Europa ...), alle durch topics_match
+# gekommen (meist nur 1 gemeinsamer Eigenname). Jev fragt: gleiches konkretes Ereignis wie eine
+# Karte der letzten DUBLETTE_TAGE Tage? Nur bei mindestens 1 gemeinsamen Eigennamen, hoechstens
+# DUBLETTE_MAX_ABFRAGEN Jev-Aufrufe je Artikel. Kill-Switch: JEV_DUBLETTE_MODUS = "aus".
+# "schatten" = nur loggen ([DUBLETTE-JEV ...], nichts wird uebersprungen), "skip" = Karte auslassen.
+JEV_DUBLETTE_MODUS    = "schatten"
+JEV_DUBLETTE_SCHWELLE = 0.7
+DUBLETTE_TAGE         = 2
+DUBLETTE_MAX_ABFRAGEN = 6
 
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 # Zwei Studio-Stimmen, pro Karte zufaellig gewaehlt (random.choice in main()) —
@@ -779,6 +789,40 @@ def _jev_gedeckt(headline: str, summary: str, text: str) -> float | None:
         return None
 
 
+def _jev_gleiches_ereignis(neu: str, vorher: str) -> float | None:
+    """Jev-Dublettenpruefung (TypeSafe, 17.10.26): Wahrscheinlichkeit (0..1), dass die Headlines
+    `neu` und `vorher` DASSELBE konkrete Ereignis melden (gleiche Ankuendigung, gleicher Deal,
+    gleiche Person/Aktion). Dasselbe Unternehmen oder Thema allein reicht nicht; eine
+    Folgemeldung mit neuem Detail zum selben Ereignis zaehlt als gleich.
+
+    None = Pruefung uebersprungen (kein Key oder irgendein Fehler/Timeout). Das blockiert NIE
+    eine Karte - der Aufrufer behandelt None wie "nicht geprueft" (wie _jev_gedeckt)."""
+    if not TYPESAFE_API_KEY:
+        return None
+    body = json.dumps({
+        "model": "jev-latest",
+        "state": {"neu": neu or "", "vorher": vorher or ""},
+        "questions": {"gleich": {
+            "type": "noul",
+            "instructions": "Berichten `neu` und `vorher` ueber DASSELBE konkrete Ereignis "
+                            "(gleiche Ankuendigung, gleicher Deal, gleiche Person/Aktion)? "
+                            "Dasselbe Unternehmen oder Thema allein reicht nicht.",
+            "criteria": {
+                "true": "Ja: beide Headlines melden dasselbe konkrete Ereignis, auch als "
+                        "Folgemeldung mit neuem Detail.",
+                "false": "Nein: nur dasselbe Unternehmen oder Thema, oder ein anderes Ereignis.",
+            }}}
+    }).encode("utf-8")
+    req = urllib.request.Request(JEV_API, data=body, headers={
+        "Authorization": "Bearer " + TYPESAFE_API_KEY, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            antwort = json.loads(r.read())["answers"]
+        return float(antwort["gleich"]["noul"])
+    except Exception:
+        return None
+
+
 def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, str]:
     """Groq → OpenRouter Fallback für ScampyKI-Einordnung.
     Gibt (text, model_label) zurueck. model_label dokumentiert, welches
@@ -1295,6 +1339,18 @@ def main() -> None:
     # Themen, die in DIESEM Lauf schon verarbeitet wurden (faengt z.B. 3 Karten
     # zum selben Vorfall von 3 unterschiedlichen Quellen/Links ab).
     seen_topics_this_run = []  # Liste von (keyword_set, entity_set, headline, slug)
+    # Stufe 3 (17.10.26): Headlines der Karten von heute und den DUBLETTE_TAGE-1 Tagen davor.
+    # Fehler/fehlende Datei = leere Liste (Stufe 3 tut dann nichts).
+    _letzte_karten = []
+    try:
+        _dub_grenze = (date.today() - timedelta(days=DUBLETTE_TAGE - 1)).isoformat()
+        _letzte_karten = [
+            (k["headline"], entity_words(k["headline"]))
+            for k in json.loads(CARDS_JSON.read_text(encoding="utf-8"))
+            if k.get("date", "") >= _dub_grenze and k.get("headline")
+        ]
+    except Exception:
+        pass
     # 27.09.26: Artikel, die wegen Themen-Dedup keine eigene Karte bekommen, haengen
     # ihren Link an die vorhandene Karte (card_id -> [links]) - so findet die Website
     # (Karussell/Overlay) auch fuer sie ein Video.
@@ -1356,6 +1412,21 @@ def main() -> None:
                     duplicate_topic = True
                     if link:
                         alias_links.setdefault(prev_slug, []).append(link)
+                    break
+        # Stufe 3 (17.10.26): gleiches Ereignis wie eine Karte der letzten Tage? (Jev)
+        if not duplicate_topic and JEV_DUBLETTE_MODUS != "aus":
+            _abfragen = 0
+            for _h, _ent in _letzte_karten + [(_ph, _pe) for _pk, _pe, _ph, _ps in seen_topics_this_run]:
+                if not (ent & _ent):
+                    continue
+                if _abfragen >= DUBLETTE_MAX_ABFRAGEN:
+                    break
+                _abfragen += 1
+                p = _jev_gleiches_ereignis(headline, _h)
+                if p is not None and p >= JEV_DUBLETTE_SCHWELLE:
+                    print(f"  [DUBLETTE-JEV {JEV_DUBLETTE_MODUS} p={p:.2f}] {headline[:60]!r} ~ {_h[:60]!r}")
+                    if JEV_DUBLETTE_MODUS == "skip":
+                        duplicate_topic = True
                     break
         if duplicate_topic:
             if link:
