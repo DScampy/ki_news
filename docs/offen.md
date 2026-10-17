@@ -59,8 +59,17 @@ Arbeits-Branch: `daniel/youthful-wozniak-tyzceg`. Die Session wurde nach PR 1 we
 - **PR #46 gemergt:** Der Wächter meldet per Telegram, wenn die Übersetzung wirklich ausfällt. Die Platz-Warnung zählt Bilder und Karten-Videos zusammen (Stand: rund 540 von 1024 MB). Die Telegram-Zustellung ist noch nicht an einem echten Alarm bestätigt.
 - **Risiko Übersetzer:** Fast alle Batches laufen über `meta-llama/llama-3.3-70b-instruct`. Das Modell hat kein `:free` im Namen, ist also vermutlich bezahlt. Gratis-Modelle scheitern oft (Zeitüberschreitungen, leere Antworten).
 - **Noch offen:**
-  - Anzeige „Auf X“ (`x_quelle`) an den Top-Meldungen im Hero
-  - Artikel-, Archiv- und Dossier-Seiten sollen `image_local` / `image_local_gross` nutzen
+  - ~~Anzeige „Auf X“ (`x_quelle`) an den Top-Meldungen im Hero~~ -> siehe Abschnitt 17.10. (nachmittags): lohnt sich nicht
+  - ~~Artikel-, Archiv- und Dossier-Seiten sollen `image_local` nutzen~~ -> erledigt über `assets/ki-bilder.js`; offen nur noch `image_local_gross` für große Bilder
   - Story-Clustering in `ki_news.py`: dieselbe Meldung (z.B. Nvidia von Bloomberg und Reuters) läuft als zwei Storys
   - Bilder, die sich nie spiegeln lassen (etwa 30 von 40 je Lauf), werden bei jedem Lauf erneut versucht
   - Prompt-Ursache für erfundene Rollen und Wertungen: In den letzten 120 Meldungen trat nichts mehr auf, die Ursache ist aber nicht untersucht
+
+## Stand 17.10.2026 nachmittags (neuer Chat, Branch auf main neu aufgesetzt)
+- **„Auf X“ im Hero: Kill-Switch ausgelöst, nicht gebaut.** Von 204 Meldungen in `news.json` hat keine `x_quelle`; nur 2 passen zu den 32 Funden in `x_quellen.json` (Rang 132 und 152). In den Tages-Top-30 der letzten 10 Tage gab es höchstens 2 Treffer, meist 0 bis 1.
+  - Ursache ist nicht die Handle-Liste (71 von 100 Top-Meldungen seit 03.10. haben eine Quelle mit Handle), sondern die HuggingNews-Zuordnung: 22 von 30 aktuellen Top-Meldungen haben keinen Eintrag in `themenketten.json` (`zuordnung`), bei den übrigen fehlt meist der Post der Quelle im `selectedTweets`.
+  - Releases funktionieren (4 von 5 haben `x_url`, `index.html` zeigt ihn schon).
+  - Wieder aufnehmen nur, wenn die Zuordnung deutlich besser wird (Ziel: mind. 1 von 5 Hero-Meldungen).
+- **`image_local` auf Artikel-/Archiv-/Dossier-Seiten: im Kern erledigt.** `assets/ki-bilder.js` (Fetch-Shim, setzt `image` auf `image_local`) ist in artikel, Archiv, dossiers, index, belege, landkarte, linie, modelle, suche und woche eingebunden. 983 von 1012 Archiv-Einträgen mit Bild haben einen Spiegel.
+  - Offen: `image_local_gross` (1600 px) nutzt nur `linie.html`. Große Bilder in `artikel.html` (Dossier-Visual Index 0, Longform-Lead, ca. Zeile 2206 ff.) laden den 640er und wirken auf großen Displays weich.
+  - Die `*-neu.html`-Vorschauseiten haben den Shim nicht.
