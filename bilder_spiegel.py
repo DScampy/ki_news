@@ -31,6 +31,8 @@ BASIS_URL = "https://dscampy.github.io/ki_news_media/bilder"
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
 MAX_BYTES = 15_000_000
 GROESSEN = {"640": 640, "1600": 1600}
+WARN_MB = 700        # Gesamtgroesse der Site (Bilder + Karten) ab hier Warnung
+KRITISCH_MB = 900    # ab hier als Fehler-Annotation
 QUALITAET = {"640": 72, "1600": 78}
 
 
@@ -93,6 +95,45 @@ def aufraeumen(ziel, tage, index):
 
 def groesse_mb(ziel):
     return sum(f.stat().st_size for f in ziel.rglob("*.webp")) / 1048576
+
+
+def site_mb(wurzel):
+    """Gesamtgroesse der Site im Medien-Repo (ohne .git): Bilder UND Karten-Videos.
+    GitHub Pages erlaubt 1 GB je Site; die Warnung zaehlte bisher nur den Bilder-Ordner."""
+    return sum(f.stat().st_size for f in wurzel.rglob("*")
+               if f.is_file() and ".git" not in f.relative_to(wurzel).parts) / 1048576
+
+
+def platz_melden(ziel, bilder_mb, gesamt_mb):
+    """Annotation im Actions-Lauf; ab WARN_MB zusaetzlich Telegram, hoechstens einmal je Tag
+    (Datum in bilder/status.json im Medien-Repo)."""
+    if gesamt_mb <= WARN_MB:
+        return
+    stufe = "error" if gesamt_mb > KRITISCH_MB else "warning"
+    text = (f"Medien-Repo {gesamt_mb:.0f} MB von 1024 MB (Bilder {bilder_mb:.0f} MB, Rest vor allem Karten-Videos). "
+            f"GitHub Pages erlaubt 1 GB je Site. BILDER_GROSS_TAGE senken oder Karten kuerzer halten.")
+    print(f"::{stufe} title=Medien-Repo fast voll::{text}", flush=True)
+    token = os.environ.get("TELEGRAM_TOKEN", "").strip()
+    if not token:
+        return
+    status_pfad = ziel / "status.json"
+    try:
+        status = json.loads(status_pfad.read_text(encoding="utf-8"))
+    except Exception:
+        status = {}
+    heute = time.strftime("%Y-%m-%d", time.gmtime())
+    if status.get("letzte_warnung") == heute:
+        return
+    try:
+        daten = json.dumps({"chat_id": os.environ.get("TELEGRAM_CHAT_ID", "9096438").strip(),
+                            "text": "\u26a0\ufe0f KI News: " + text}).encode()
+        req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=daten,
+                                     headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=15).read()
+        status["letzte_warnung"] = heute
+        status_pfad.write_text(json.dumps(status) + "\n", encoding="utf-8")
+    except Exception as e:
+        print(f"bilder_spiegel: Telegram-Warnung fehlgeschlagen ({type(e).__name__})")
 
 
 def eintragen(eintraege, ziel, basis):
@@ -158,10 +199,10 @@ def main():
     if n_arch:
         schreibe(archiv_pfad, archiv)
     mb = groesse_mb(ziel)
+    gesamt = site_mb(ziel.parent)
     print(f"bilder_spiegel: {ok}/{len(offen)} neu gespiegelt, {weg} alte 1600er geloescht, "
-          f"image_local gesetzt: news {n_news}, archiv {n_arch}, Ordner {mb:.0f} MB")
-    if mb > 700:
-        print(f"::warning::Bilder-Spiegel {mb:.0f} MB - GitHub Pages erlaubt 1 GB je Site. BILDER_GROSS_TAGE senken.")
+          f"image_local gesetzt: news {n_news}, archiv {n_arch}, Bilder {mb:.0f} MB, Site gesamt {gesamt:.0f} MB")
+    platz_melden(ziel, mb, gesamt)
     return 0
 
 

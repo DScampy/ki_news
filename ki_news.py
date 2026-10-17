@@ -1124,6 +1124,27 @@ _MODEL_429_LIMIT = 3
 _BATCH_VERSUCHE = 0
 _BATCH_OK = {}          # modell -> Anzahl erfolgreicher Batches
 _GUARD_VERWORFEN = 0    # Artikel, die der Sprach-Guard aus news.json geworfen hat
+_GUARD_GEPRUEFT = 0     # Artikel, die der Sprach-Guard in diesem Lauf angesehen hat (fuer den Waechter)
+
+
+def _waechter_pruefen(versucht, ok_je_modell, geprueft, verworfen):
+    """Lauf-Waechter (17.10.26): meldet nur, wenn die Uebersetzung WIRKLICH ausfaellt.
+    Hintergrund: Faellt der Uebersetzer aus, wirft der Sprach-Guard englische Meldungen weg,
+    statt den Lauf zu kippen - die Seite duennt dann still aus, der Lauf bleibt gruen.
+    Die alte BILANZ-WARNUNG (ein Modell traegt >=70 %) feuert seit Wochen bei jedem Lauf
+    (llama-3.3 ist de facto der Standard) und wird deshalb ueberlesen. Der Waechter prueft
+    darum das ERGEBNIS, nicht die Verteilung. Gemessene Normalwerte 15.-17.10.26: Batch-Quote
+    ab 75 %, Guard verwirft 0 bis 1 Artikel von ~200. Gibt eine Liste von Meldungen zurueck."""
+    ok = sum(ok_je_modell.values())
+    meldungen = []
+    if versucht >= 4 and ok == 0:
+        meldungen.append("Uebersetzung ausgefallen: %d Batches versucht, keiner OK." % versucht)
+    elif versucht >= 8 and ok < versucht * 0.5:
+        meldungen.append("Uebersetzung wackelt: nur %d von %d Batches OK." % (ok, versucht))
+    if verworfen >= 5 and geprueft and verworfen >= geprueft * 0.10:
+        meldungen.append("Sprach-Guard verwirft %d von %d Artikeln (%.0f %%) - die Seite duennt aus."
+                         % (verworfen, geprueft, 100.0 * verworfen / geprueft))
+    return meldungen
 _VERWORFEN_LISTE = []   # 25.09.26 (D4): dieselben Artikel einzeln, -> verworfen.json
 
 
@@ -5903,6 +5924,7 @@ def main():
         # Lauf die Uebersetzung schafft. Analog zu generate_news_cards.py's
         # SKIP-Logik, damit Website und Cards konsistent filtern.
         _title_de_check = s.get("title_de", n.get("title", ""))
+        globals()["_GUARD_GEPRUEFT"] = globals()["_GUARD_GEPRUEFT"] + 1
         # 26.08.26: Originaltitel wird mitgegeben, aber von _looks_german()
         # bewusst nicht mehr ausgewertet - Begruendung im Docstring dort
         # (deutsche Quellen liefern title_de == Original als Normalfall).
@@ -6428,6 +6450,16 @@ def main():
                 "ist halb tot. modell_check.py pruefen und Free-Slots nachbesetzen.",
                 _top[0], _top[1], _ok_gesamt,
             )
+        # Lauf-Waechter (17.10.26): sichtbar machen, wenn die Uebersetzung wirklich ausfaellt.
+        # Annotation im Actions-Lauf + Telegram an Daniel (Secret ist im Schritt vorhanden).
+        # Der Lauf selbst wird NICHT rot: Er soll weiter veroeffentlichen, was da ist.
+        _alarme = _waechter_pruefen(_BATCH_VERSUCHE, _BATCH_OK, _GUARD_GEPRUEFT, _GUARD_VERWORFEN)
+        for _a in _alarme:
+            logger.error("WAECHTER: %s", _a)
+            print("::warning title=KI News Waechter::%s" % _a, flush=True)
+        if _alarme and TELEGRAM_TOKEN:
+            _telegram_send_message("\u26a0\ufe0f <b>KI News Waechter</b>\n" + "\n".join(_alarme)
+                                   + "\nModelle/OpenRouter-Guthaben pruefen (modell_check.py).")
     except Exception as e:      # Bilanz darf den Lauf nie kippen
         logger.warning("Bilanz-Zeile fehlgeschlagen: %s", e)
 
