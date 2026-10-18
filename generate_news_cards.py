@@ -109,6 +109,7 @@ JEV_DECKUNG_SCHWELLE = 0.5   # p >= Schwelle -> Einordnung gilt als vermutlich e
 # "schatten" = nur loggen ([DUBLETTE-JEV ...], nichts wird uebersprungen), "skip" = Karte auslassen.
 JEV_DUBLETTE_MODUS    = "schatten"
 JEV_DUBLETTE_SCHWELLE = 0.7
+JEV_DUBLETTE_LOG_AB   = 0.3   # 18.10.26: Antworten ab p=0.3 (unter der Schwelle) als "knapp" loggen
 DUBLETTE_TAGE         = 2
 DUBLETTE_MAX_ABFRAGEN = 6
 
@@ -1420,14 +1421,21 @@ def main() -> None:
                 if not (ent & _ent):
                     continue
                 if _abfragen >= DUBLETTE_MAX_ABFRAGEN:
+                    print(f"  [DUBLETTE-JEV Deckel {DUBLETTE_MAX_ABFRAGEN} erreicht] {headline[:60]!r}")
                     break
                 _abfragen += 1
                 p = _jev_gleiches_ereignis(headline, _h)
-                if p is not None and p >= JEV_DUBLETTE_SCHWELLE:
+                if p is None:
+                    if TYPESAFE_API_KEY:   # ohne Key ist None der Normalfall, nicht loggen
+                        print(f"  [DUBLETTE-JEV keine Antwort] {headline[:60]!r} ~ {_h[:60]!r}")
+                    continue
+                if p >= JEV_DUBLETTE_SCHWELLE:
                     print(f"  [DUBLETTE-JEV {JEV_DUBLETTE_MODUS} p={p:.2f}] {headline[:60]!r} ~ {_h[:60]!r}")
                     if JEV_DUBLETTE_MODUS == "skip":
                         duplicate_topic = True
                     break
+                if p >= JEV_DUBLETTE_LOG_AB:
+                    print(f"  [DUBLETTE-JEV knapp p={p:.2f}] {headline[:60]!r} ~ {_h[:60]!r}")
         if duplicate_topic:
             if link:
                 card_sent[link] = today  # diesen Link kuenftig auch ueber Link-Dedup abfangen
