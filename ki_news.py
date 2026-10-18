@@ -941,6 +941,12 @@ FEEDS = [
 # bekommt weiterhin nur die UNCACHED Stories (meist 1-2 pro Lauf).
 MAX_LLM_NEWS = 5
 
+# 18.10.26: Reasoning-Schalter auch im Uebersetzungs-Pfad (summarize_news ruft die API direkt auf und
+# umging den Schalter aus _call_llm_api). Messung ki_news.log 17.-18.10., 10 Laeufe: nemotron-3-ultra
+# :free lieferte nur 10 von 28 Batches, 10 der 18 Fehlversuche "leerer Content (Reasoning-Budget
+# aufgebraucht?)", 5 leere/kaputte JSON-Antworten, 3 abgeschnittene Strings. Gleiches Muster wie 14.08.
+# (siehe Kommentar in _call_llm_api). VERMUTUNG, nicht bewiesen. Kill-Switch: False.
+UEBERSETZUNG_NVIDIA_OHNE_DENKEN = True
 MODELLE = [
     # Free-Modelle – Gemma zuerst (empirisch: llama/hermes dauerhaft auf 429)
     # 14.09.26 NEU GEORDNET (ox-analyse/MODELLCHECK_140926.md). Log-Bilanz 10 Laeufe
@@ -3765,7 +3771,7 @@ News:
             if _model_blocked(modell):
                 continue
             try:
-                data = json.dumps({
+                _nutzlast = {
                     "model": modell,
                     "messages": [{"role": "user", "content": prompt}],
                     # 1500 statt vormals 900: bei batch_size=4 muss das Modell pro
@@ -3776,7 +3782,10 @@ News:
                     # aber syntaktisch gueltig, daher faengt die ID-/Anker-Pruefung
                     # das nicht ab (siehe Vollstaendigkeits-Check unten).
                     "max_tokens": 1500
-                }).encode()
+                }
+                if UEBERSETZUNG_NVIDIA_OHNE_DENKEN and modell.startswith("nvidia/"):
+                    _nutzlast["reasoning"] = {"enabled": False}
+                data = json.dumps(_nutzlast).encode()
                 req = urllib.request.Request(url, data=data, headers={
                     "Authorization": f"Bearer {OPENROUTER_KEY}",
                     "Content-Type": "application/json",
