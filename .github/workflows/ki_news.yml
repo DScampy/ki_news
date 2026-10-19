@@ -444,6 +444,7 @@ jobs:
         id: media
         env:
           SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
+          MEDIEN_NACH_VERWEIS: "1"   # 19.10.26: "0" = nur alte 10-Tage-Regel (medien_aufraeumen.py)
         run: |
           if [ -z "$SECRETS_PAT" ]; then
             echo "SECRETS_PAT fehlt - Medien bleiben in ki_news (altes Verhalten)."
@@ -457,11 +458,18 @@ jobs:
             if git clone --quiet --depth 1 "$URL" "$M"; then
               mkdir -p "$M/cards"
               cp assets/cards/*.mp4 assets/cards/*.jpg "$M/cards/" 2>/dev/null || true
-              cutoff=$(date -d '10 days ago' +%Y-%m-%d)
-              for f in "$M"/cards/*; do
-                d=$(basename "$f" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
-                if [ -n "$d" ] && [ "$d" \< "$cutoff" ]; then rm -f "$f"; fi
-              done
+              # 19.10.26: nach Verweis aufraeumen - Medien zwischen 2 und 10 Tagen bleiben nur,
+              # wenn cards.json oder artikel/**/*.html sie noch nennt (Messung: 291 von 617 MB
+              # ohne Verweis). Kill-Switch: Env MEDIEN_NACH_VERWEIS=0. Stirbt das Skript,
+              # greift die alte 10-Tage-Schleife.
+              if ! python3 medien_aufraeumen.py --cards "$M/cards" --min-tage 2 --max-tage 10; then
+                echo "::warning::medien_aufraeumen.py fehlgeschlagen - alte 10-Tage-Regel."
+                cutoff=$(date -d '10 days ago' +%Y-%m-%d)
+                for f in "$M"/cards/*; do
+                  d=$(basename "$f" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
+                  if [ -n "$d" ] && [ "$d" \< "$cutoff" ]; then rm -f "$f"; fi
+                done
+              fi
               cd "$M"
               git checkout --quiet --orphan neu
               git add -A
