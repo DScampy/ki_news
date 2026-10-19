@@ -50,7 +50,11 @@ def main() -> None:
     card = pick_card()
     # 26.09.26: Medien koennen absolut im Repo ki_news_media liegen
     video_url = card['mp4_url'] if card['mp4_url'].startswith("http") else f"{SITE_BASE}/{card['mp4_url'].lstrip('/')}"
-    caption = CAPTION_OVERRIDE or card.get("headline", "")
+    try:  # 19.10.26 (G3): Einordnung + Quelle, bei jedem Fehler nur die Ueberschrift
+        from insta_caption import caption as _insta_caption
+        caption = CAPTION_OVERRIDE or _insta_caption(card)
+    except Exception:
+        caption = CAPTION_OVERRIDE or card.get("headline", "")
     print(f"Card:    {card.get('id')}")
     print(f"Video:   {video_url}")
     print(f"Caption: {caption}")
