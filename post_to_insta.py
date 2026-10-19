@@ -8,7 +8,7 @@ Env-Variablen:
   IG_USER_ID       (Secret)  = 17841476614625141
   IG_ACCESS_TOKEN  (Secret)  = langlebiger Token
   CARD_ID          (Input)   = ID oder Teilstring aus cards.json. Leer = neueste Card.
-  CAPTION          (Input)   = optionaler Caption-Override. Leer = Headline aus cards.json.
+  CAPTION          (Input)   = optionaler Caption-Override. Leer = Ueberschrift + Einordnung + Quelle (insta_caption.py).
   SITE_BASE        (optional)= Basis-URL, Default https://ki-news.live
 """
 import os
@@ -50,7 +50,12 @@ def main() -> None:
     card = pick_card()
     # 26.09.26: Medien koennen absolut im Repo ki_news_media liegen
     video_url = card['mp4_url'] if card['mp4_url'].startswith("http") else f"{SITE_BASE}/{card['mp4_url'].lstrip('/')}"
-    caption = CAPTION_OVERRIDE or card.get("headline", "")
+    try:  # 19.10.26 (G3): Einordnung + Quelle, bei jedem Fehler nur die Ueberschrift
+        from insta_caption import caption as _insta_caption
+        caption = CAPTION_OVERRIDE or _insta_caption(card)
+    except Exception as e:
+        print(f"WARN insta_caption: {e.__class__.__name__} - nur Ueberschrift")
+        caption = CAPTION_OVERRIDE or card.get("headline", "")
     print(f"Card:    {card.get('id')}")
     print(f"Video:   {video_url}")
     print(f"Caption: {caption}")
