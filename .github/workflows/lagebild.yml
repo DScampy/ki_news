@@ -1,0 +1,100 @@
+name: Lagebild (Telegram)
+
+# 19.10.26: Taegliches Lagebild an Daniels Telegram-Chat (lagebild.py). Ausgeloest nach jedem
+# fertigen "KI News"-Lauf auf main, gesendet aber nur EINMAL am Tag: beim ersten Lauf, der
+# zwischen 06:00 und 12:00 Uhr Berliner Zeit fertig wird (Marke im Actions-Cache, Schluessel =
+# Datum). Die Marke wird nur gesetzt, wenn die Nachricht wirklich rausging; sonst versucht es
+# der naechste Lauf im Fenster erneut. Von der Doppellauf-Sperre uebersprungene oder
+# abgebrochene Laeufe loesen nichts aus. Von Hand (workflow_dispatch) kommt die Nachricht
+# immer, wahlweise nur als Ausgabe im Log (trocken), ohne die Tagesmarke zu beruehren.
+# Kill-Switch: Workflow im Actions-Tab deaktivieren.
+
+on:
+  workflow_run:
+    workflows: ["KI News"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      trocken:
+        description: 'Nur im Log ausgeben, nicht senden'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: lagebild
+  cancel-in-progress: false
+
+jobs:
+  lagebild:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Zeitfenster pruefen
+        id: zeit
+        env:
+          EREIGNIS: ${{ github.event_name }}
+        run: |
+          h=$(TZ=Europe/Berlin date +%-H); tag=$(TZ=Europe/Berlin date +%F)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$EREIGNIS" != "workflow_run" ] || { [ "$h" -ge 6 ] && [ "$h" -lt 12 ]; }; then
+            echo "fenster=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fenster=false" >> "$GITHUB_OUTPUT"; echo "Ausserhalb 06-12 Uhr Berlin ($h Uhr) - kein Lagebild."
+          fi
+
+      - name: Heute schon gesendet?
+        id: schon
+        if: steps.zeit.outputs.fenster == 'true' && github.event_name == 'workflow_run'
+        uses: actions/cache/restore@v4
+        with:
+          path: .lagebild_gesendet
+          key: lagebild-${{ steps.zeit.outputs.tag }}
+
+      - name: Repository auschecken
+        if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          # Taeglicher Lauf: immer neuester main. Test/Handlauf: der eigene Branch.
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
+
+      - name: Lagebild messen und senden
+        id: senden
+        if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TROCKEN: ${{ github.event.inputs.trocken }}
+          EREIGNIS: ${{ github.event_name }}
+          AUSLOESER_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set +e
+          if [ "$TROCKEN" = "true" ] || [ "$EREIGNIS" = "push" ]; then
+            python3 lagebild.py --trocken
+          else
+            python3 lagebild.py
+          fi
+          rc=$?
+          echo "lagebild.py Exit-Code: $rc"
+          if [ "$rc" = "0" ] && [ "$EREIGNIS" = "workflow_run" ]; then
+            date -u +%FT%TZ > .lagebild_gesendet
+            echo "gesendet=true" >> "$GITHUB_OUTPUT"
+          fi
+          # 2 = nicht gesendet -> sichtbar rot, Marke bleibt frei (naechster Lauf versucht es)
+          if [ "$rc" = "2" ]; then exit 1; fi
+          exit 0
+        timeout-minutes: 6
+
+      - name: Marke fuer heute setzen
+        if: steps.senden.outputs.gesendet == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .lagebild_gesendet
+          key: lagebild-${{ steps.zeit.outputs.tag }}
