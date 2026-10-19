@@ -21,6 +21,14 @@ body{position:relative;font-family:'Inter',Arial,sans-serif;-webkit-font-smoothi
 .einordnung .lab{font:700 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--accent);margin-bottom:7px}
 .einordnung p{font:500 12.5px/1.55 'Inter',sans-serif;color:var(--main)}
 .einordnung p span{transition:none}
+/* 19.10.26 Lesbarkeit (Vorschlag Session "Video-Tests Canvas"): nur aktiv mit body.lesbar, Kill-Switch LESBAR im Script */
+body.lesbar .text{top:308px;bottom:34px}
+body.lesbar .badge{font-size:12px;padding:6px 9px}
+body.lesbar .marke,body.lesbar .datum{font-size:11px}
+body.lesbar .quelle{font-size:11px;margin-top:9px}
+body.lesbar .einordnung{padding:10px 12px 11px}
+body.lesbar .einordnung .lab{font-size:10px;margin-bottom:6px}
+body.lesbar .einordnung p{font-size:16.5px;line-height:1.4}
 .fuss{position:absolute;left:22px;right:22px;bottom:14px;display:flex;justify-content:space-between;font:700 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--sub);z-index:3}
 .fort{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);z-index:4;width:0}
 /* Zeitung (26.09.26): Zeitungsdruck-Look fuer Kopf/Box, nur in diesem Stil aktiv */
@@ -806,11 +814,31 @@ $('motivLabel').textContent=(K.bildzeile||'').toUpperCase();
 const worte=(K.einordnung||'').split(/\s+/).filter(Boolean);
 $('einordText').innerHTML=worte.map(w=>'<span>'+w.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</span>').join(' ');
 const spans=[...$('einordText').querySelectorAll('span')];
+// 19.10.26 Kill-Switch: LESBAR=false -> altes Aussehen (12.5px, Grund-Deckkraft .18, Box ab 4.4 s)
+const LESBAR=K.lesbar!==false;if(LESBAR)document.body.classList.add('lesbar');
 // Einordnung passend machen: Schrift verkleinern, bis Titel + Box in die Textflaeche passen
-(function(){const box=$('text');let f=12.5,tf=20;const ok=()=>box.scrollHeight<=box.clientHeight+1;
-  while(!ok()&&f>10){f-=.5;$('einordText').style.fontSize=f+'px'}while(!ok()&&tf>16){tf-=1;$('titel').style.fontSize=tf+'px'}})();
+// (lesbar: erst Einordnung bis 15px, dann Titel bis 16px, erst dann Einordnung weiter bis 12px;
+//  nach dem Laden der Webfonts erneut, vorher rechnet die Schleife mit der schmaleren Ersatzschrift)
+(function(){const box=$('text');const ok=()=>box.scrollHeight<=box.clientHeight+1;
+  if(!LESBAR){let f=12.5,tf=20;
+  while(!ok()&&f>10){f-=.5;$('einordText').style.fontSize=f+'px'}while(!ok()&&tf>16){tf-=1;$('titel').style.fontSize=tf+'px'}return}
+  const passen=()=>{let f=16.5,tf=20;$('einordText').style.fontSize='';$('titel').style.fontSize='';
+    // Einblend-Versatz (translateY) beim Messen herausnehmen, sonst zaehlt er als Ueberlauf
+    const tr=[$('titel').style.transform,$('einord').style.transform];$('titel').style.transform=$('einord').style.transform='none';
+    while(!ok()&&f>15){f-=.5;$('einordText').style.fontSize=f+'px'}
+    while(!ok()&&tf>16){tf-=1;$('titel').style.fontSize=tf+'px'}
+    while(!ok()&&f>12){f-=.5;$('einordText').style.fontSize=f+'px'}
+    $('titel').style.transform=tr[0];$('einord').style.transform=tr[1]};
+  passen();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(passen)})();
 
-const D=K.dauer||20, T_EIN=4.4;
+const D=K.dauer||20;
+// 19.10.26: Startzeit je Wort aus dem Audio (wort_sync.py), nur wenn sie zur Wortliste passt
+const WZ=(Array.isArray(K.wort_zeiten)&&K.wort_zeiten.length===spans.length)?K.wort_zeiten:null;
+const T_EIN=LESBAR?2.0:(WZ?Math.max(1.5,Math.min(4.4,WZ[0]-.6)):4.4);
+// Rueckfall ohne wort_zeiten: TTS liest "Titel. Einordnung" in rund D-1 s -> Einsatz der Einordnung
+// anteilig nach Zeichen schaetzen (lesbar), sonst wie frueher T_EIN+.3
+const _zt=(K.titel||'').length+2,_ze=(K.einordnung||'').length,
+  T_AUF=LESBAR?Math.max(T_EIN+.3,(D-1)*_zt/Math.max(1,_zt+_ze)):T_EIN+.3, GRUND=LESBAR?.6:.18;
 window.KI_RENDER_AT=function(t){
   ctx.clearRect(0,0,W,H);grund(t);
   if(K.stil==='typo')typoSzene(t);else{(MOTIVE[K.motiv]||MOTIVE.netz)(t);markeZeichnen(t)}
@@ -818,8 +846,10 @@ window.KI_RENDER_AT=function(t){
   const a=prog(t,.5,.6);$('titel').style.opacity=a;$('titel').style.transform='translateY('+(1-a)*10+'px)';
   $('quelle').style.opacity=prog(t,1.1,.5);
   const e=prog(t,T_EIN,.5);$('einord').style.opacity=e;$('einord').style.transform='translateY('+(1-e)*12+'px)';
-  // Woerter im Takt der Stimme: gleichmaessig von T_EIN bis 2 s vor Schluss
-  const fr=clamp((t-T_EIN-.3)/Math.max(1,D-T_EIN-2.3));spans.forEach((s,i)=>{s.style.opacity=i/spans.length<=fr?1:.18});
+  // Woerter im Takt der Stimme: mit wort_zeiten je Wort ab seiner Startzeit, sonst gleichmaessig
+  // von T_EIN bis 2 s vor Schluss (alter Weg, Rueckfall)
+  if(WZ){spans.forEach((s,i)=>{s.style.opacity=t>=WZ[i]?1:GRUND})}
+  else{const fr=clamp((t-T_AUF)/Math.max(1,D-2-T_AUF));spans.forEach((s,i)=>{s.style.opacity=i/spans.length<=fr?1:GRUND})}
   document.querySelector('.kopf').style.opacity=prog(t,.1,.4);$('fuss').style.opacity=prog(t,1.5,.6);
   $('fort').style.width=(clamp(t/D)*100)+'%';
 };
