@@ -146,7 +146,8 @@ _UMLAUT_STAEMME = [
 ]
 _UMLAUT_RE = re.compile("|".join(sorted((s for s, _ in _UMLAUT_STAEMME), key=len, reverse=True)), re.I)
 _UMLAUT_MAP = dict(_UMLAUT_STAEMME)
-_SUED_RE = re.compile(r"\b([Ss])ued(?=[a-zäöü])")   # Suedkorea, sueden; englisch "sued" bleibt
+# Suedkorea, Suedostasien, sueden ...; englisch "sued"/"suede" bleibt
+_SUED_RE = re.compile(r"\b([Ss])ued(?=(?:kor|ost|west|afr|ame|deut|tirol|europ|asien|see|pol|en\b|lich|seite))")
 
 
 def _umlaute_reparieren(text: str) -> str:
@@ -155,6 +156,8 @@ def _umlaute_reparieren(text: str) -> str:
 
     def _ersetze(m):
         t, u = m.group(0), _UMLAUT_MAP[m.group(0).lower()]
+        if t.isupper() and len(t) > 1:
+            return u.upper()          # Versalien: KOENNEN -> KÖNNEN
         return u[0].upper() + u[1:] if t[0].isupper() else u
     text = _UMLAUT_RE.sub(_ersetze, text)
     return _SUED_RE.sub(lambda m: m.group(1) + "üd", text)
