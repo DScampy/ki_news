@@ -1,0 +1,167 @@
+name: Morgenlage zum Hoeren
+
+# 20.10.26: Die fuenf Meldungen der Morgenlage als gesprochene Folge (~90 s, Studio-C),
+# morgenlage_audio.py. Ausgeloest wie das Lagebild nach jedem fertigen "KI News"-Lauf auf
+# main, erzeugt aber nur EINMAL am Tag: beim ersten Lauf, der zwischen 06:00 und 12:00 Uhr
+# Berliner Zeit fertig wird (Marke im Actions-Cache, Schluessel = Datum). Die Marke wird nur
+# gesetzt, wenn alles durch ist; sonst versucht es der naechste Lauf im Fenster erneut
+# (Wiederholung ist unschaedlich: gleiche Datei, gleicher Feed-Eintrag).
+#
+# Ablage: MP3 als Datei am Release "morgenlage" (nicht im Repo, das bliebe sonst fuer immer
+# in der Git-Historie), Podcast-Feed morgenlage.xml im Repo -> https://ki-news.live/morgenlage.xml.
+# Feed und Release behalten die letzten 30 Folgen. Telegram: nur an Daniels Chat
+# (MORGENLAGE_CHAT_ID, Standard 9096438). Fuer den Kanal spaeter nur diese Variable aendern.
+#
+# Von Hand (workflow_dispatch, trocken = Standard): nur sprechen, MP3 als Artefakt, kein
+# Release, kein Feed, kein Telegram, keine Tagesmarke.
+# Kill-Switch: Workflow im Actions-Tab deaktivieren.
+
+on:
+  push:                       # NUR FUER DEN CI-TEST, vor dem PR entfernen
+    branches: [claude/morgenlage-hoeren]
+  workflow_run:
+    workflows: ["KI News"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      trocken:
+        description: 'Nur sprechen und als Artefakt ablegen (kein Feed, kein Telegram)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+concurrency:
+  group: morgenlage-audio
+  cancel-in-progress: false
+
+jobs:
+  morgenlage:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Zeitfenster pruefen
+        id: zeit
+        env:
+          EREIGNIS: ${{ github.event_name }}
+          TROCKEN_EINGABE: ${{ github.event.inputs.trocken }}
+        run: |
+          h=$(TZ=Europe/Berlin date +%-H); tag=$(TZ=Europe/Berlin date +%F)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$EREIGNIS" = "workflow_run" ] || [ "$TROCKEN_EINGABE" = "false" ]; then
+            echo "trocken=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "trocken=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$EREIGNIS" != "workflow_run" ] || { [ "$h" -ge 6 ] && [ "$h" -lt 12 ]; }; then
+            echo "fenster=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fenster=false" >> "$GITHUB_OUTPUT"; echo "Ausserhalb 06-12 Uhr Berlin ($h Uhr) - keine Folge."
+          fi
+
+      - name: Heute schon erzeugt?
+        id: schon
+        if: steps.zeit.outputs.fenster == 'true' && github.event_name == 'workflow_run'
+        uses: actions/cache/restore@v4
+        with:
+          path: .morgenlage_gesendet
+          key: morgenlage-audio-${{ steps.zeit.outputs.tag }}
+
+      - name: Repository auschecken
+        if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
+
+      - name: Folge sprechen
+        id: sprechen
+        if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
+        env:
+          GOOGLE_TTS_KEY: ${{ secrets.GOOGLE_TTS_KEY }}
+          TROCKEN: ${{ steps.zeit.outputs.trocken }}
+        run: |
+          set +e
+          if [ "$TROCKEN" = "true" ]; then
+            python3 morgenlage_audio.py --basis . --out out --egal-datum
+          else
+            python3 morgenlage_audio.py --basis . --out out --feed
+          fi
+          rc=$?
+          echo "morgenlage_audio.py Exit-Code: $rc"
+          # 3 = Morgenlage nicht von heute -> nichts tun, nicht rot, keine Marke
+          if [ "$rc" = "3" ]; then echo "weiter=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$rc" != "0" ]; then exit 1; fi
+          echo "weiter=true" >> "$GITHUB_OUTPUT"
+        timeout-minutes: 5
+
+      - name: MP3 als Artefakt (trocken)
+        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: morgenlage-${{ steps.zeit.outputs.tag }}
+          path: out/*
+          retention-days: 7
+
+      - name: MP3 ans Release haengen, alte Folgen entfernen
+        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view morgenlage >/dev/null 2>&1; then
+            gh release create morgenlage --title "Morgenlage zum Hoeren" --latest=false \
+              --notes "Taegliche Folgen der Morgenlage (Feed: https://ki-news.live/morgenlage.xml). Wird automatisch gepflegt."
+          fi
+          gh release upload morgenlage out/morgenlage-*.mp3 --clobber
+          gh release view morgenlage --json assets --jq '.assets[].name' | while read -r datei; do
+            case "$datei" in morgenlage-*.mp3) ;; *) continue ;; esac
+            if ! grep -qxF "$datei" out/feed_behalten.txt; then
+              echo "entferne alte Folge $datei"; gh release delete-asset morgenlage "$datei" -y
+            fi
+          done
+
+      - name: Feed committen
+        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'false'
+        env:
+          TAG: ${{ steps.zeit.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp morgenlage.xml /tmp/morgenlage.xml
+          ok=0
+          for i in 1 2 3; do
+            # mixed reset wie in ki_news.yml (nie rebase): neuester main, nur der Feed obendrauf
+            git fetch -q origin main && git reset -q origin/main
+            cp /tmp/morgenlage.xml morgenlage.xml
+            git add morgenlage.xml
+            if git diff --cached --quiet; then echo "Feed unveraendert."; ok=1; break; fi
+            git commit -q -m "Morgenlage zum Hoeren: Folge $TAG"
+            if git push -q origin HEAD:main; then ok=1; break; fi
+            echo "Push-Versuch $i fehlgeschlagen, neuer Versuch."; sleep 7
+          done
+          if [ "$ok" != "1" ]; then echo "::error::Feed nach 3 Versuchen nicht gepusht."; exit 1; fi
+
+      - name: Telegram senden
+        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'false'
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          MORGENLAGE_CHAT_ID: "9096438"
+        run: python3 morgenlage_audio.py --basis . --out out --senden --egal-datum
+        timeout-minutes: 3
+
+      - name: Marke fuer heute setzen
+        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'false' && github.event_name == 'workflow_run'
+        run: date -u +%FT%TZ > .morgenlage_gesendet
+
+      - name: Marke speichern
+        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'false' && github.event_name == 'workflow_run'
+        uses: actions/cache/save@v4
+        with:
+          path: .morgenlage_gesendet
+          key: morgenlage-audio-${{ steps.zeit.outputs.tag }}
