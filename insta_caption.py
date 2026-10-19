@@ -52,16 +52,21 @@ def _verlag(links: list, basis: Path):
             d = json.loads((basis / name).read_text(encoding="utf-8"))
         except Exception:
             continue
-        items = d if isinstance(d, list) else (d.get("news") or d.get("items") or d.get("archive") or [])
+        if isinstance(d, dict):
+            items = d.get("news") or d.get("items") or d.get("archive") or []
+        else:
+            items = d if isinstance(d, list) else []
         for it in items:
             if isinstance(it, dict) and it.get("link") in gesucht and it.get("link_verlag"):
                 host = urlparse(it["link_verlag"]).netloc.lower()
                 host = host[4:] if host.startswith("www.") else host
+                if not host:
+                    continue
                 if host in SAMMEL_DOMAINS:
                     return None
                 if host == "yahoo.com" or host.endswith(".yahoo.com"):
                     return "Yahoo"
-                return DOMAIN_NAMEN.get(host, host or None)
+                return DOMAIN_NAMEN.get(host, host)
     return None
 
 
@@ -91,7 +96,8 @@ def caption(card: dict, basis: Path = BASE) -> str:
                 einordnung = einordnung[: platz - 1].rsplit(" ", 1)[0] + "…"
             return f"{titel}\n\n{einordnung}\n\n{fuss}"
         return f"{titel}\n\n{fuss}"[:MAX_LAENGE]
-    except Exception:
+    except Exception as e:
+        print(f"WARN insta_caption: {e.__class__.__name__} - nur Ueberschrift")
         return titel
 
 
