@@ -1,0 +1,83 @@
+name: Lagebild (Telegram)
+
+# 19.10.26: Taegliches Lagebild an Daniels Telegram-Chat (lagebild.py). Ausgeloest nach jedem
+# fertigen "KI News"-Lauf, gesendet aber nur EINMAL am Tag: beim ersten Lauf, der zwischen
+# 06:00 und 12:00 Uhr Berliner Zeit fertig wird (Marke im Actions-Cache, Schluessel = Datum).
+# So kommt die Nachricht nach dem Morgenlauf, auch wenn der GitHub-Zeitplan sich verspaetet.
+# Von Hand (workflow_dispatch) kommt sie immer, wahlweise nur als Ausgabe im Log (trocken).
+# Kill-Switch: Workflow im Actions-Tab deaktivieren.
+
+on:
+  workflow_run:
+    workflows: ["KI News"]
+    types: [completed]
+  push:
+    branches: [claude/lagebild]   # nur Trockenlauf-Test, wird vor dem PR entfernt
+  workflow_dispatch:
+    inputs:
+      trocken:
+        description: 'Nur im Log ausgeben, nicht senden'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: lagebild
+  cancel-in-progress: false
+
+jobs:
+  lagebild:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Zeitfenster pruefen
+        id: zeit
+        env:
+          EREIGNIS: ${{ github.event_name }}
+        run: |
+          h=$(TZ=Europe/Berlin date +%-H); tag=$(TZ=Europe/Berlin date +%F)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$EREIGNIS" = "workflow_dispatch" ] || [ "$EREIGNIS" = "push" ] || { [ "$h" -ge 6 ] && [ "$h" -lt 12 ]; }; then
+            echo "fenster=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fenster=false" >> "$GITHUB_OUTPUT"; echo "Ausserhalb 06-12 Uhr Berlin ($h Uhr) - kein Lagebild."
+          fi
+
+      - name: Heute schon gesendet?
+        id: schon
+        if: steps.zeit.outputs.fenster == 'true' && github.event_name == 'workflow_run'
+        uses: actions/cache/restore@v4
+        with:
+          path: .lagebild_gesendet
+          key: lagebild-${{ steps.zeit.outputs.tag }}
+
+      - name: Repository auschecken
+        if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Lagebild messen und senden
+        id: senden
+        if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TROCKEN: ${{ github.event.inputs.trocken }}
+          EREIGNIS: ${{ github.event_name }}
+        run: |
+          if [ "$TROCKEN" = "true" ] || [ "$EREIGNIS" = "push" ]; then python3 lagebild.py --trocken; else python3 lagebild.py; fi
+          echo "$(date -u +%FT%TZ)" > .lagebild_gesendet
+        timeout-minutes: 6
+
+      - name: Marke fuer heute setzen
+        if: steps.senden.outcome == 'success' && github.event_name == 'workflow_run'
+        uses: actions/cache/save@v4
+        with:
+          path: .lagebild_gesendet
+          key: lagebild-${{ steps.zeit.outputs.tag }}
