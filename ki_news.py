@@ -119,16 +119,56 @@ except ImportError:            # pragma: no cover
         return True
 
 
+# 19.10.26: ae/oe/ue-Umschrift in LLM-Ausgaben reparieren. Seit dem Uebersetzer-Schalter
+# (UEBERSETZUNG_NVIDIA_OHNE_DENKEN, 18.10.) traegt nemotron-ultra fast alle Batches und schreibt
+# oft "fuer"/"koennte": Meldungen mit Umschrift 0-10 % (14.-18.10.) -> 29 % (19.10.), vorher
+# 3,9 % im ganzen summary-cache. Nur belegte Wortstaemme (aus summary-cache.json), damit
+# "neue", "Quelle", "aktuell", "Steuer" usw. unberuehrt bleiben; englische Originaltitel
+# veraendert die Liste nachweislich nicht (0 Treffer in 3737 title_orig). Kill-Switch: False.
+UMLAUT_REPARATUR = True
+_UMLAUT_STAEMME = [
+    ("ueber", "über"), ("fuer", "für"), ("koenn", "könn"), ("moeg", "mög"), ("moech", "möch"),
+    ("waehr", "währ"), ("fuehr", "führ"), ("fueg", "füg"), ("staerk", "stärk"), ("oeffentlich", "öffentlich"),
+    ("gruend", "gründ"), ("kuenstlich", "künstlich"), ("geraet", "gerät"), ("faehig", "fähig"),
+    ("erhaelt", "erhält"), ("muess", "müss"), ("wuerd", "würd"), ("haett", "hätt"), ("laeuft", "läuft"),
+    ("schlaeg", "schläg"), ("stuetz", "stütz"), ("loes", "lös"), ("hoeh", "höh"), ("hoer", "hör"),
+    ("natuerlich", "natürlich"), ("guenstig", "günstig"), ("persoenlich", "persönlich"),
+    ("abhaengig", "abhängig"), ("gespraech", "gespräch"), ("erklaer", "erklär"), ("oekosystem", "ökosystem"),
+    ("militaer", "militär"), ("juengst", "jüngst"), ("kaeuf", "käuf"), ("vorwuerf", "vorwürf"),
+    ("luecke", "lücke"), ("rueck", "rück"), ("aender", "änder"), ("naechst", "nächst"), ("spaet", "spät"),
+    ("frueh", "früh"), ("groess", "größ"), ("saetz", "sätz"), ("laend", "länd"), ("taeglich", "täglich"),
+    ("waehl", "wähl"), ("schaetz", "schätz"), ("gefaehr", "gefähr"), ("aehnlich", "ähnlich"),
+    ("faelsch", "fälsch"), ("maenn", "männ"), ("kuendig", "kündig"), ("pruef", "prüf"), ("fuenf", "fünf"),
+    ("zaehl", "zähl"), ("traeg", "träg"), ("waere", "wäre"), ("haelt", "hält"), ("faellt", "fällt"),
+    ("laesst", "lässt"), ("koerper", "körper"), ("duerf", "dürf"), ("wuensch", "wünsch"), ("huerde", "hürde"),
+    ("buerger", "bürger"), ("muench", "münch"), ("duesseldorf", "düsseldorf"), ("zuerich", "zürich"),
+    ("uebung", "übung"), ("uebrig", "übrig"), ("taet", "tät"), ("ueblich", "üblich"), ("verguet", "vergüt"), ("kraeft", "kräft"),
+]
+_UMLAUT_RE = re.compile("|".join(sorted((s for s, _ in _UMLAUT_STAEMME), key=len, reverse=True)), re.I)
+_UMLAUT_MAP = dict(_UMLAUT_STAEMME)
+_SUED_RE = re.compile(r"\b([Ss])ued(?=[a-zäöü])")   # Suedkorea, sueden; englisch "sued" bleibt
+
+
+def _umlaute_reparieren(text: str) -> str:
+    if not UMLAUT_REPARATUR or not text or not re.search(r"ae|oe|ue", text, re.I):
+        return text
+
+    def _ersetze(m):
+        t, u = m.group(0), _UMLAUT_MAP[m.group(0).lower()]
+        return u[0].upper() + u[1:] if t[0].isupper() else u
+    text = _UMLAUT_RE.sub(_ersetze, text)
+    return _SUED_RE.sub(lambda m: m.group(1) + "üd", text)
+
 def _fix_latex_escapes(text: str) -> str:
-    """LaTeX-Umlaut-Escapes durch echte Umlaute ersetzen. No-op wenn keine da."""
+    """LaTeX-Umlaut-Escapes durch echte Umlaute ersetzen. No-op wenn keine da.
+    19.10.26: danach auch ae/oe/ue-Umschrift belegter Wortstaemme (_umlaute_reparieren)."""
     t = text or ""
     if '"' in t:
         t = _LATEX_INLINE.sub(lambda m: _INLINE_MAP[m.group(1)], t)
-    if "{" not in t and "\\ss" not in t:
-        return t
-    for esc, ch in _LATEX_UMLAUTS.items():
-        t = t.replace(esc, ch)
-    return t
+    if "{" in t or "\\ss" in t:
+        for esc, ch in _LATEX_UMLAUTS.items():
+            t = t.replace(esc, ch)
+    return _umlaute_reparieren(t)
 
 
 # ── Statistische Sprach-ID (26.08.26) ────────────────────────────────────
@@ -3630,7 +3670,9 @@ def summarize_news(alle_news, summary_cache=None):
     for i, n in enumerate(alle_news):
         c = (summary_cache or {}).get(n.get("link", ""))
         if c and c.get("title_de"):
-            result[i] = {"title_de": c["title_de"], "summary": c.get("summary", "")}
+            # 19.10.26: auch Cache-Eintraege reparieren (Umschrift aus frueheren Laeufen)
+            result[i] = {"title_de": _umlaute_reparieren(c["title_de"]),
+                         "summary": _umlaute_reparieren(c.get("summary", ""))}
             # title_orig nachtragen (02.09.26): Bestandseintraege aus der Zeit vor
             # diesem Feld bekommen den Originaltitel beim naechsten Sehen ergaenzt -
             # sonst waere der Datensatz erst nach dem 30-Tage-Pruning vollstaendig.
@@ -3764,6 +3806,7 @@ Wichtig:
 - title_de und summary AUSSCHLIESSLICH auf Deutsch, keine Zeichen aus anderen Schriftsystemen (z.B. chinesische/japanische/koreanische Zeichen) uebernehmen, auch wenn der Original-Titel mehrsprachig ist
 - title_de MUSS ein Aussagesatz sein, KEINE Frage (kein Fragezeichen, keine Frageform wie "Hat X sich...?"). Falls der Original-Titel selbst eine Frage oder reine Spekulation ist, in eine Aussage mit Unsicherheits-Marker umformulieren (z.B. "moeglicherweise", "laut Bericht") statt die Frage zu uebernehmen – das gilt nur fuer die Formulierung, nicht als Grund den Artikel zu verwerfen
 - title_de MUSS GENAU EIN Satz sein (genau EIN Satzzeichen . oder ! am Ende, sonst nichts) – KEIN zweiter Satz mit weiteren Erlaeuterungen ("...ins Auge gefasst. Dies koennte..."). Alles ueber den Kern-Fakt Hinausgehende (Einordnung, Kontext, Vermutungen zur Bedeutung) gehoert in summary, NIEMALS in title_de. Card-Rendering nutzt title_de als feste Kachel-Ueberschrift – ein zweisaetziger Titel sprengt das Layout.
+- Schreibe echte deutsche Umlaute und ß (ä, ö, ü, Ä, Ö, Ü, ß), NIEMALS ae/oe/ue/ss als Ersatz ("für", nicht "fuer")
 - Jede id muss vorkommen (1 bis {len(batch)})
 - Nur das JSON-Array zurueckgeben, sonst nichts
 
