@@ -1831,6 +1831,9 @@ JEV_VETO_SCHWELLE = 0.2
 JEV_VETO_MAX_AUFRUFE = 300       # 26.09.: von 150, alle Paare je Cluster statt nur Anker
 JEV_VOLLPAAR_MAX = 12            # bis zu dieser Groesse jedes Paar pruefen (66 Paare)
 JEV_VETO_ZEIT_S = 90
+# 19.10.26: Telegram-Gedaechtnis (telegram_state.json sent_links) in Tagen, s. Versand in main().
+TG_SENT_TAGE = 8
+
 JEV_URTEILE_DATEI = "jev_urteile.json"
 JEV_URTEILE_TAGE = 7
 _JEV_FRAGE_EREIGNIS = {
@@ -5897,8 +5900,16 @@ def main():
         jetzt = datetime.now(BERLIN).isoformat()
         for n, _ in neue_stories:
             tg_sent[n["link"]] = jetzt
-        if len(tg_sent) > 60:  # State begrenzen: nur die 60 juengsten Links
-            tg_sent = dict(sorted(tg_sent.items(), key=lambda kv: kv[1])[-60:])
+        # 19.10.26: nach ALTER statt nach Anzahl begrenzen (TG_SENT_TAGE). Die 60er-Grenze
+        # reichte nur ~1,5 Tage, Artikel bleiben aber bis MAX_AGE_DAYS in news.json. Beleg:
+        # Golem "16-Jaehrige in Koeln von Roboter belaestigt" ging am 13.10. 12:13 und erneut
+        # am 15.10. 16:59 raus (telegram_state.json-Historie). Kill-Switch: TG_SENT_TAGE = 0.
+        if TG_SENT_TAGE > 0:
+            _tg_grenze = (datetime.now(BERLIN) - timedelta(days=TG_SENT_TAGE)).date().isoformat()
+            tg_sent = {l: t for l, t in tg_sent.items() if str(t) >= _tg_grenze}
+        _tg_max = 2000 if TG_SENT_TAGE > 0 else 60
+        if len(tg_sent) > _tg_max:
+            tg_sent = dict(sorted(tg_sent.items(), key=lambda kv: str(kv[1]))[-_tg_max:])
         try:
             tg_state_file.write_text(
                 json.dumps({"sent_links": tg_sent, "stand": jetzt}, ensure_ascii=False, indent=2),

@@ -157,6 +157,15 @@ MAX_SENTENCES  = 3      # Einordnung wird auf max. N Sätze gekappt (Text + TTS)
 FORCE_RENDER   = os.environ.get("FORCE_RENDER", "0") == "1"
 
 MAX_STATE_LINKS  = 60   # wie telegram_state.json: nur die juengsten Links merken
+# 19.10.26: sent_links (Link-Dedup) nach ALTER statt nach Anzahl begrenzen. Die 60er-Grenze
+# reichte bei 20-35 Karten/Tag nur ~1,5 Tage; news.json haelt Artikel bis MAX_AGE_DAYS = 5.
+# Beleg: Heise "KI bisher kein Jobkiller in Deutschland" fiel am 17.10. 20:33 (f5825f1) aus
+# card_state.json und bekam am 18.10. 10:12 (ca5fd2d) eine zweite Karte mit gleicher URL.
+# sent_topics bleibt bei MAX_STATE_LINKS (Themen-Abgleich hat keine Datumsgrenze, mehr
+# Eintraege wuerden dort laengerfristig Folgemeldungen schlucken).
+# Kill-Switch: SENT_LINKS_TAGE = 0 -> alte Regel (nur die juengsten MAX_STATE_LINKS Links).
+SENT_LINKS_TAGE  = 8
+MAX_SENT_LINKS   = 2000  # harte Obergrenze, falls ein Lauf ungewoehnlich viele Links markiert
 # 20 -> 150 (01.09., Daniels Fund: "Insta-Links werden nicht gefunden"). Ursache
 # war NICHT ein Bug im Code-Abgleich, sondern die Retention selbst: cards.json
 # diente bisher als Doppelzweck-Datei (Anzeige-Feed + Nachschlagewerk fuer
@@ -1388,6 +1397,9 @@ def main() -> None:
 
         # ── Link-Dedup: exakt dieser Artikel-Link schon mal verarbeitet? ────
         if link and link in card_sent:
+            if link in forced_links:  # 19.10.26: sichtbar machen (Sperre jetzt SENT_LINKS_TAGE statt ~1,5 Tage)
+                print(f"  [SKIP] Force-Card blockiert: Link seit {card_sent[link]} in card_state.json "
+                      f"(Link-Sperre {SENT_LINKS_TAGE} Tage) — zum Erzwingen dort entfernen: {link}")
             print(f"  [SKIP] Artikel {i}: Link bereits abgedeckt ({link}) — keine neue Karte.")
             continue
 
@@ -1612,8 +1624,14 @@ def main() -> None:
             print(f"  [GIVE-UP] 3x Render-Fehler — Link dauerhaft übersprungen: {_l}")
 
     # ── Dedup-Gedaechtnis speichern, auf juengste Links/Themen begrenzt ─────
-    if len(card_sent) > MAX_STATE_LINKS:
-        card_sent = dict(sorted(card_sent.items(), key=lambda kv: kv[1])[-MAX_STATE_LINKS:])
+    if SENT_LINKS_TAGE > 0:
+        _link_grenze = (date.today() - timedelta(days=SENT_LINKS_TAGE)).isoformat()
+        card_sent = {l: d for l, d in card_sent.items() if str(d) >= _link_grenze}
+        _link_max = MAX_SENT_LINKS
+    else:
+        _link_max = MAX_STATE_LINKS
+    if len(card_sent) > _link_max:
+        card_sent = dict(sorted(card_sent.items(), key=lambda kv: str(kv[1]))[-_link_max:])
     if len(sent_topics) > MAX_STATE_LINKS:
         # Sortierschluessel ist jetzt verschachtelt (Migration auf dict-Format,
         # siehe Ladelogik oben) - kv[1]["date"] statt kv[1].
