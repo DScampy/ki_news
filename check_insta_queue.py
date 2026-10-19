@@ -107,7 +107,8 @@ def post_card_to_instagram(card: dict) -> str:
     try:  # 19.10.26 (G3): Einordnung + Quelle, bei jedem Fehler nur die Ueberschrift
         from insta_caption import caption as _insta_caption
         caption = _insta_caption(card)
-    except Exception:
+    except Exception as e:
+        print(f"WARN insta_caption: {e.__class__.__name__} - nur Ueberschrift")
         caption = card.get("headline", "")
 
     data = requests.post(
