@@ -114,7 +114,8 @@ JEV_DECKUNG_SCHWELLE = 0.5   # p >= Schwelle -> Einordnung gilt als vermutlich e
 # Karte der letzten DUBLETTE_TAGE Tage? Nur bei mindestens 1 gemeinsamen Eigennamen, hoechstens
 # DUBLETTE_MAX_ABFRAGEN Jev-Aufrufe je Artikel. Kill-Switch: JEV_DUBLETTE_MODUS = "aus".
 # "schatten" = nur loggen ([DUBLETTE-JEV ...], nichts wird uebersprungen), "skip" = Karte auslassen.
-JEV_DUBLETTE_MODUS    = "schatten"
+# 20.10.26: "skip" (Daniel). Schattenlog 17.-19.10.: 3 von 3 Treffern echt, 0 Fehlalarme.
+JEV_DUBLETTE_MODUS    = "skip"
 JEV_DUBLETTE_SCHWELLE = 0.7
 JEV_DUBLETTE_LOG_AB   = 0.3   # 18.10.26: Antworten ab p=0.3 (unter der Schwelle) als "knapp" loggen
 DUBLETTE_TAGE         = 2
@@ -1365,7 +1366,7 @@ def main() -> None:
     try:
         _dub_grenze = (date.today() - timedelta(days=DUBLETTE_TAGE - 1)).isoformat()
         _letzte_karten = [
-            (k["headline"], entity_words(k["headline"]))
+            (k["headline"], entity_words(k["headline"]), k.get("id", ""))
             for k in json.loads(CARDS_JSON.read_text(encoding="utf-8"))
             if k.get("date", "") >= _dub_grenze and k.get("headline")
         ]
@@ -1439,7 +1440,7 @@ def main() -> None:
         # Stufe 3 (17.10.26): gleiches Ereignis wie eine Karte der letzten Tage? (Jev)
         if not duplicate_topic and JEV_DUBLETTE_MODUS != "aus":
             _abfragen = 0
-            for _h, _ent in _letzte_karten + [(_ph, _pe) for _pk, _pe, _ph, _ps in seen_topics_this_run]:
+            for _h, _ent, _kid in _letzte_karten + [(_ph, _pe, _ps) for _pk, _pe, _ph, _ps in seen_topics_this_run]:
                 if not (ent & _ent):
                     continue
                 if _abfragen >= DUBLETTE_MAX_ABFRAGEN:
@@ -1455,6 +1456,10 @@ def main() -> None:
                     print(f"  [DUBLETTE-JEV {JEV_DUBLETTE_MODUS} p={p:.2f}] {headline[:60]!r} ~ {_h[:60]!r}")
                     if JEV_DUBLETTE_MODUS == "skip":
                         duplicate_topic = True
+                        # 20.10.26: Link an die vorhandene Karte haengen (wie beim Themen-Dedup),
+                        # damit Website/Overlay auch fuer die ausgelassene Meldung ein Video findet
+                        if link and _kid:
+                            alias_links.setdefault(_kid, []).append(link)
                     break
                 if p >= JEV_DUBLETTE_LOG_AB:
                     print(f"  [DUBLETTE-JEV knapp p={p:.2f}] {headline[:60]!r} ~ {_h[:60]!r}")
