@@ -21,7 +21,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 19.10.26: Doppellauf-Sperre. Jeder Slot hat zwei Ausloeser: cron-job.org (workflow_dispatch,
+  # puenktlich 05/10/15/18 UTC) und den GitHub-Zeitplan, der oft Stunden zu spaet kommt (z. B.
+  # 05-Uhr-Tick erst 09:23). Spaete Zeitplan-Laeufe fuellen Luecken und bleiben. Uebersprungen wird
+  # ein ZEITPLAN-Lauf nur, wenn (a) der naechste Dispatch-Slot hoechstens VORLAUF_MIN entfernt ist
+  # oder (b) der letzte Bot-Commit auf main juenger als ABSTAND_MIN ist. Beleg 13.-19.10.: 9 solche
+  # Kollisionen (z. B. #1387 17:54 + #1388 18:00, #1355 09:59 + #1356 10:00 -> Telegram doppelt).
+  # Dispatch (cron-job.org, Admin.html) laeuft IMMER. Faellt dieser Job aus, laeuft build trotzdem.
+  # Kill-Switch: SPERRE_AKTIV: "0".
+  pruefen:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      laufen: ${{ steps.p.outputs.laufen }}
+    steps:
+      - name: Doppellauf-Sperre (nur Zeitplan-Laeufe)
+        id: p
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EREIGNIS: ${{ github.event_name }}
+          SPERRE_AKTIV: "1"
+          SLOTS_UTC: "5,10,15,18"   # muss zu cron-job.org passen (Zeitumstellung beachten)
+          VORLAUF_MIN: "30"
+          ABSTAND_MIN: "45"
+        run: |
+          laufen=true; grund="kein Zeitplan-Lauf ($EREIGNIS)"
+          if [ "$EREIGNIS" = "schedule" ] && [ "$SPERRE_AKTIV" = "1" ]; then
+            jetzt=$(date -u +%s); grund="frei"
+            for h in ${SLOTS_UTC//,/ }; do
+              slot=$(date -u -d "today $h:00" +%s)
+              d=$(( (slot - jetzt) / 60 ))
+              if [ "$d" -ge 0 ] && [ "$d" -le "$VORLAUF_MIN" ]; then
+                laufen=false; grund="Dispatch-Slot $h:00 UTC in $d min"
+              fi
+            done
+            letzte=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=20"               --jq '[.[] | select(.commit.author.email | test("actions"))][0].commit.author.date' 2>/dev/null || true)
+            if [ -n "$letzte" ] && [ "$letzte" != "null" ]; then
+              alter=$(( (jetzt - $(date -u -d "$letzte" +%s)) / 60 ))
+              if [ "$alter" -lt "$ABSTAND_MIN" ]; then
+                laufen=false; grund="letzter Bot-Commit vor $alter min"
+              fi
+            fi
+          fi
+          echo "laufen=$laufen" >> "$GITHUB_OUTPUT"
+          echo "Doppellauf-Sperre: laufen=$laufen ($grund)"
+          if [ "$laufen" = "false" ]; then echo "::notice::Zeitplan-Lauf uebersprungen: $grund"; fi
+
   build:
+    needs: pruefen
+    # always(): auch wenn "pruefen" selbst scheitert (dann ist laufen leer) -> build laeuft.
+    if: ${{ always() && needs.pruefen.outputs.laufen != 'false' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
