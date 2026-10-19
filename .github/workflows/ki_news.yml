@@ -29,6 +29,14 @@ jobs:
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
+        with:
+          # 19.10.26: Ohne ref checkt ein WARTENDER Lauf (concurrency-Queue) den Stand vom
+          # Ausloesezeitpunkt aus (GITHUB_SHA), nicht den neuesten main. Beleg: Lauf #1356
+          # (14.10., ausgeloest 10:00, Start 10:27) arbeitete auf db1592a, ohne den
+          # telegram_state.json-Commit 608525d (10:20) von #1355 -> 5 Telegram-Meldungen
+          # doppelt (10:13 und 10:41 UTC). Gleich 15.10. #1363/#1364. Gleiches Muster wie
+          # in insta_queue.yml. Kill-Switch: die zwei with/ref-Zeilen entfernen.
+          ref: main
 
       - name: Python einrichten
         uses: actions/setup-python@v5
