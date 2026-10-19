@@ -36,6 +36,13 @@ try:
 except Exception as _e:  # noqa: BLE001
     karten_v2 = None
     print(f"[KARTE v2] Modul nicht ladbar ({_e.__class__.__name__}) - altes Template.")
+# 19.10.26: Woerter synchron zur Stimme (wort_sync.py). Fehlt das Modul -> gleichmaessig wie bisher.
+# Kill-Switch: WORT_SYNC_AKTIV = False.
+WORT_SYNC_AKTIV = True
+try:
+    import wort_sync
+except Exception:  # noqa: BLE001
+    wort_sync = None
 
 # ─── Konfiguration ────────────────────────────────────────────────────────────
 
@@ -898,10 +905,13 @@ def fill_template(template: str, fields: dict) -> str:
 
 
 def fill_template_v2(template_v2: str, headline: str, einordnung: str, summary: str,
-                     source: str, datum: str, dauer: int, badge: str) -> tuple[str, dict]:
+                     source: str, datum: str, dauer: int, badge: str,
+                     wort_zeiten: list | None = None) -> tuple[str, dict]:
     """Karten v2: Felder via karten_v2.karte_daten() als JSON in {{KARTE_JSON}}.
     Wirft bei jedem Problem - der Aufrufer faellt dann auf das alte Template zurueck."""
     k = karten_v2.karte_daten(headline, einordnung, summary, source, datum, dauer, badge)
+    if wort_zeiten:
+        k["wort_zeiten"] = wort_zeiten   # 19.10.26: Wort-Startzeiten aus dem Audio (wort_sync.py)
     # "</" escapen: das JSON steht in einem <script>-Block
     js = json.dumps(k, ensure_ascii=False).replace("</", "<\\/")
     if "{{KARTE_JSON}}" not in template_v2:
@@ -1503,10 +1513,19 @@ def main() -> None:
         # Karten v2: eigene HTML daneben; bei Fehler bleibt es beim alten Template
         html_v2, karte_v2_info = None, None
         if template_v2:
+            # 19.10.26: Woerter synchron zur Stimme - Zeiten aus den Sprechpausen des Audios.
+            # Fehler/ohne Audio -> None, die Karte hebt dann wie bisher gleichmaessig hervor.
+            _wz = None
+            if WORT_SYNC_AKTIV and wort_sync and audio_path:
+                _wz = wort_sync.wort_zeiten(audio_path, headline, einordnung_clean)
+                _wi = wort_sync.wort_zeiten.letzte_info if _wz else {}
+                print(f"  {'✓' if _wz else '[INFO]'} Wort-Sync: "
+                      + (f"{_wi.get('eingerastet')}/{_wi.get('grenzen')} Satzgrenzen an Pausen, "
+                         f"erstes Wort {_wz[0]:.1f}s" if _wz else "keine Zeiten - gleichmaessig"))
             try:
                 filled_v2, karte_v2_info = fill_template_v2(
                     template_v2, headline, einordnung_clean, summary, source,
-                    date.today().strftime("%d.%m.%Y"), int(video_dauer), badge_label)
+                    date.today().strftime("%d.%m.%Y"), int(video_dauer), badge_label, _wz)
                 html_v2 = TMP_DIR / f"{slug}.v2.html"
                 html_v2.write_text(filled_v2, encoding="utf-8")
                 print(f"  ✓ v2: {karte_v2_info['motiv']}/{karte_v2_info['stil']}"

@@ -810,7 +810,10 @@ const spans=[...$('einordText').querySelectorAll('span')];
 (function(){const box=$('text');let f=12.5,tf=20;const ok=()=>box.scrollHeight<=box.clientHeight+1;
   while(!ok()&&f>10){f-=.5;$('einordText').style.fontSize=f+'px'}while(!ok()&&tf>16){tf-=1;$('titel').style.fontSize=tf+'px'}})();
 
-const D=K.dauer||20, T_EIN=4.4;
+const D=K.dauer||20;
+// 19.10.26: Startzeit je Wort aus dem Audio (wort_sync.py), nur wenn sie zur Wortliste passt
+const WZ=(Array.isArray(K.wort_zeiten)&&K.wort_zeiten.length===spans.length)?K.wort_zeiten:null;
+const T_EIN=WZ?Math.max(1.5,Math.min(4.4,WZ[0]-.6)):4.4;
 window.KI_RENDER_AT=function(t){
   ctx.clearRect(0,0,W,H);grund(t);
   if(K.stil==='typo')typoSzene(t);else{(MOTIVE[K.motiv]||MOTIVE.netz)(t);markeZeichnen(t)}
@@ -818,8 +821,10 @@ window.KI_RENDER_AT=function(t){
   const a=prog(t,.5,.6);$('titel').style.opacity=a;$('titel').style.transform='translateY('+(1-a)*10+'px)';
   $('quelle').style.opacity=prog(t,1.1,.5);
   const e=prog(t,T_EIN,.5);$('einord').style.opacity=e;$('einord').style.transform='translateY('+(1-e)*12+'px)';
-  // Woerter im Takt der Stimme: gleichmaessig von T_EIN bis 2 s vor Schluss
-  const fr=clamp((t-T_EIN-.3)/Math.max(1,D-T_EIN-2.3));spans.forEach((s,i)=>{s.style.opacity=i/spans.length<=fr?1:.18});
+  // Woerter im Takt der Stimme: mit wort_zeiten je Wort ab seiner Startzeit, sonst gleichmaessig
+  // von T_EIN bis 2 s vor Schluss (alter Weg, Rueckfall)
+  if(WZ){spans.forEach((s,i)=>{s.style.opacity=t>=WZ[i]?1:.18})}
+  else{const fr=clamp((t-T_EIN-.3)/Math.max(1,D-T_EIN-2.3));spans.forEach((s,i)=>{s.style.opacity=i/spans.length<=fr?1:.18})}
   document.querySelector('.kopf').style.opacity=prog(t,.1,.4);$('fuss').style.opacity=prog(t,1.5,.6);
   $('fort').style.width=(clamp(t/D)*100)+'%';
 };
