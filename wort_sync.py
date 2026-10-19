@@ -17,12 +17,13 @@ import subprocess
 
 STILLE_DB = -35        # Schwelle fuer "still" (dB)
 STILLE_MIN = 0.12      # kuerzeste Pause (s), die zaehlt
-SATZ_RE = re.compile(r"(?<=[.!?])\s+")
+# Satzende, aber nicht nach Ziffer ("3. Oktober") oder Einzelbuchstabe ("z. B.")
+SATZ_RE = re.compile(r"(?<=[.!?])(?<!\d\.)(?<!\w\.)\s+")
 
 
 def pausen(audio_path, ffmpeg="ffmpeg"):
     """[(start, ende), ...] und Gesamtdauer aus ffmpeg silencedetect."""
-    r = subprocess.run([ffmpeg, "-hide_banner", "-nostats", "-i", str(audio_path), "-af",
+    r = subprocess.run([ffmpeg, "-hide_banner", "-nostats", "-nostdin", "-i", str(audio_path), "-af",
                         f"silencedetect=noise={STILLE_DB}dB:d={STILLE_MIN}", "-f", "null", "-"],
                        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
     log = r.stderr
@@ -52,8 +53,8 @@ def wort_zeiten(audio_path, headline, einordnung, ffmpeg="ffmpeg"):
         if not p or not dauer:
             return None
         # Sprechbereich: nach fuehrender, vor abschliessender Stille
-        sp_start = p[0][1] if p[0][0] <= 0.05 else 0.0
-        sp_ende = p[-1][0] if p[-1][1] >= dauer - 0.05 else dauer
+        sp_start = p[0][1] if p[0][0] <= 0.2 else 0.0
+        sp_ende = p[-1][0] if p[-1][1] >= dauer - 0.2 else dauer
         innen = [(a, b) for a, b in p if a > sp_start + 0.05 and b < sp_ende - 0.05]
         if sp_ende - sp_start < 2:
             return None
