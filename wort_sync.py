@@ -18,7 +18,7 @@ import subprocess
 STILLE_DB = -35        # Schwelle fuer "still" (dB)
 STILLE_MIN = 0.12      # kuerzeste Pause (s), die zaehlt
 # Satzende, aber nicht nach Ziffer ("3. Oktober") oder Einzelbuchstabe ("z. B.")
-SATZ_RE = re.compile(r"(?<=[.!?])(?<!\d\.)(?<!\w\.)\s+")
+SATZ_RE = re.compile(r"(?<=[.!?])(?<!\d\.)(?<!\b\w\.)\s+")
 
 
 def pausen(audio_path, ffmpeg="ffmpeg"):
