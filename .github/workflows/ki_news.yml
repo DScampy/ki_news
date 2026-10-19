@@ -62,7 +62,7 @@ jobs:
                 laufen=false; grund="Dispatch-Slot $h:00 UTC in $d min"
               fi
             done
-            letzte=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=20"               --jq '[.[] | select((.commit.author.email | test("actions")) and (.commit.message | test("^(KI News Update|cards \+ template update)")))][0].commit.author.date' 2>/dev/null || true)
+            letzte=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=20"               --jq '[.[] | select((.commit.author.email | test("actions")) and (.commit.message | test("^(KI News Update|cards . template update)")))][0].commit.author.date' 2>/dev/null || true)
             if [ -n "$letzte" ] && [ "$letzte" != "null" ]; then
               alter=$(( (jetzt - $(date -u -d "$letzte" +%s)) / 60 ))
               if [ "$alter" -lt "$ABSTAND_MIN" ]; then
