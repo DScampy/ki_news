@@ -30,7 +30,7 @@ body.lesbar .einordnung{padding:10px 12px 11px}
 body.lesbar .einordnung .lab{font-size:10px;margin-bottom:6px}
 body.lesbar .einordnung p{font-size:16.5px;line-height:1.4}
 /* 20.10.26 Hochformat 9:16 (Reels/Shorts): nur bei Viewport 420 x 747 aktiv (HOCH im Script).
-   Kopf oben am Rand (26 px; hoch_kopf=sicher -> 56 px), Motivfeld und Quelle darunter, Satzkarten unten buendig ueber dem
+   Kopf oben am Rand (26 px; hoch_kopf=sicher -> 56 px), Motivfeld und Quelle darunter, Hook/Satzkarten/Schluss mittig zwischen Quellzeile und dem
    20-%-Rand (597 px), rechts 48 px frei (Knopfleiste). Kaesten in der Hintergrundfarbe getoent und weichgezeichnet.
    Ablauf: Titel gross (Hook) -> Einordnung Satz fuer Satz -> Schlussbild. Website-Karte (420 x 660) unberuehrt. */
 html.hoch,html.hoch body{height:747px}
@@ -1008,13 +1008,15 @@ if(HOCH){(function(){
   const B0=st.map(([a])=>WT[a]-VOR);if(B0.length)B0[0]=Math.max(B0[0],1.8);
   for(let i=1;i<B0.length;i++)B0[i]=Math.max(B0[i],B0[i-1]+.8);
   const T_END=Math.max(D-.7,(B0[B0.length-1]||0)+1.5),MIT_ENDE=T_END<=D-.4;
-  // Passen: Kaesten hoechstens MAXH hoch (Oberkante unter der Quelle), lange Woerter duerfen nicht ueberstehen
-  const MAXH=597-(MY0+MH+6+16);
+  // Passen: Kaesten hoechstens MAXH hoch (Flaeche AT..AB zwischen Quellzeile und unterem 20-%-Rand),
+  // lange Woerter duerfen nicht ueberstehen; danach jeden Kasten in dieser Flaeche senkrecht mittig setzen
+  const AT=MY0+MH+6+30,AB=597,MAXH=AB-AT;
   const fit=(d,e,f0,fmin)=>{let f=f0;e.style.fontSize=f+'px';while((d.offsetHeight>MAXH||e.scrollWidth>e.clientWidth+1)&&f>fmin){f-=1;e.style.fontSize=f+'px'}return f};
   const passenH=()=>{hook._fs=fit(hook,hook,28,20);ende._fs=fit(ende,ende.querySelector('.ende-t'),22,16);
-    boxen.forEach(d=>{d._fs=fit(d,d.querySelector('p'),28,22)})};
+    boxen.forEach(d=>{d._fs=fit(d,d.querySelector('p'),28,22)});
+    [hook,ende,...boxen].forEach(d=>{d.style.bottom='auto';d.style.top=Math.round(AT+(AB-AT-d.offsetHeight)/2)+'px'})};
   passenH();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(passenH);
-  window.KI_HOCH_INFO=()=>({wz:!!WZ,lab:LAB,kopf:KOPF_Y,quelleY:MY0+MH+6,fi:FI,fo:FO,hook:{start:.4,ende:B0[0]||D,fs:hook._fs,h:hook.offsetHeight},
+  window.KI_HOCH_INFO=()=>({wz:!!WZ,flaeche:[AT,AB],lab:LAB,kopf:KOPF_Y,quelleY:MY0+MH+6,fi:FI,fo:FO,hook:{start:.4,ende:B0[0]||D,fs:hook._fs,h:hook.offsetHeight},
     karten:st.map(([a,b],i)=>({text:worte.slice(a,b).join(' '),start:B0[i],ende:i+1<B0.length?B0[i+1]:(MIT_ENDE?T_END:D),
       stimme:WT[a],fs:boxen[i]._fs,h:boxen[i].offsetHeight})),schluss:MIT_ENDE?T_END:null,maxh:MAXH});
   hochRender=t=>{
