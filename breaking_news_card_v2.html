@@ -30,21 +30,23 @@ body.lesbar .einordnung{padding:10px 12px 11px}
 body.lesbar .einordnung .lab{font-size:10px;margin-bottom:6px}
 body.lesbar .einordnung p{font-size:16.5px;line-height:1.4}
 /* 20.10.26 Hochformat 9:16 (Reels/Shorts): nur bei Viewport 420 x 747 aktiv (HOCH im Script).
-   Motiv voll (0-300 = 40 %), Kopf unter dem oberen Rand (10 %), Text unten buendig ueber dem Rand (unten 20 % frei),
-   rechts 48 px Abstand fuer die Knopfleiste. Ablauf: Titel gross (Hook) -> Einordnung -> Schlussbild.
-   Layout A (Standard): Satzkarten, B: ein Block. Website-Karte (420 x 660) unberuehrt. */
+   Kopf 82 px (unter dem 10-%-Rand), Motivfeld 108-364 px, Quelle 370 px, Satzkarten unten buendig ueber dem
+   20-%-Rand (597 px), rechts 48 px frei (Knopfleiste). Kaesten in der Hintergrundfarbe getoent und weichgezeichnet.
+   Ablauf: Titel gross (Hook) -> Einordnung Satz fuer Satz -> Schlussbild. Website-Karte (420 x 660) unberuehrt. */
 html.hoch,html.hoch body{height:747px}
 body.hoch #szene{height:747px}
-body.hoch .kopf{top:78px}
+body.hoch .kopf{top:82px}
 body.hoch .text{display:none}
-body.hoch .hq{position:absolute;left:22px;right:48px;top:312px;font:600 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);z-index:3;opacity:0}
+body.hoch .hq{position:absolute;left:22px;right:48px;top:370px;font:600 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);z-index:3;opacity:0}
 body.hoch .hq b{color:var(--accent);font-weight:700}
-body.hoch .hook,body.hoch .karte,body.hoch .ende{position:absolute;left:22px;right:48px;bottom:150px;z-index:3;opacity:0}
-body.hoch .hook{border-left:5px solid var(--accent);padding:2px 0 2px 14px;font:800 28px/1.18 'Inter',sans-serif;color:var(--main);letter-spacing:-.01em}
-body.hoch .karte{background:var(--main);color:var(--bg);border-left:6px solid var(--accent);padding:11px 14px 13px;box-shadow:0 10px 30px -12px rgba(0,0,0,.45)}
-body.hoch .karte .lab{font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:.2em;margin-bottom:8px;opacity:.65}
+body.hoch .hook,body.hoch .karte,body.hoch .ende{position:absolute;left:22px;right:48px;bottom:150px;z-index:3;opacity:0;
+  background:var(--kasten);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-left:6px solid var(--accent);
+  box-shadow:0 0 0 1px var(--kasten-rand),0 12px 30px -14px rgba(0,0,0,.35)}
+body.hoch .hook{padding:12px 14px 13px;font:800 28px/1.18 'Inter',sans-serif;color:var(--main);letter-spacing:-.01em}
+body.hoch .karte{color:var(--main);padding:11px 14px 13px}
+body.hoch .karte .lab{font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:.2em;margin-bottom:8px;color:var(--accent)}
 body.hoch .karte p{font:700 26px/1.22 'Inter',sans-serif;letter-spacing:-.005em}
-body.hoch.hl-b .karte p{font-weight:600;font-size:20px;line-height:1.38;letter-spacing:0}
+body.hoch .ende{padding:12px 14px 14px}
 body.hoch .ende-t{font:800 22px/1.2 'Inter',sans-serif;color:var(--main)}
 body.hoch .ende-m{margin-top:12px;font:700 22px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--accent)}
 .fuss{position:absolute;left:22px;right:22px;bottom:14px;display:flex;justify-content:space-between;font:700 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--sub);z-index:3}
@@ -80,9 +82,10 @@ body[data-stil="riso"] .einordnung{border-left-color:var(--accent);box-shadow:-2
 'use strict';
 // 20.10.26 Hochformat: record.js rendert mit Viewport 420 x 747 (9:16) -> HOCH. Bei 420 x 660 (Website)
 // bleibt alles wie bisher. Kill-Switch fuer eine Karte: "hoch": false im KARTE-JSON.
+// Motivfeld im Hochformat: Website-Szene ab y=MSY wird auf MY0 gesetzt und mit MS skaliert (MY0..MY0+MH).
 const K = window.KARTE, W = 420,
   HOCH = K.hoch !== false && window.innerWidth === 420 && window.innerHeight >= 740,
-  H = HOCH ? 747 : 660, SH = 300;
+  H = HOCH ? 747 : 660, SH = 300, MY0 = 108, MS = .9, MSY = 15, MH = Math.round((300 - MSY) * MS);
 if (HOCH) { document.documentElement.classList.add('hoch'); document.body.classList.add('hoch'); }
 const DPR = window.devicePixelRatio || 1;
 const cv = document.getElementById('szene'), ctx = cv.getContext('2d');
@@ -242,7 +245,8 @@ function neonGrund(t){
 }
 // Bloom: die fertige Szene weichgezeichnet additiv darueberlegen
 function neonBloom(){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.55;
-  ctx.filter='blur('+Math.round(9*DPR)+'px)';ctx.drawImage(cv,0,0,cv.width,SH*DPR,0,0,cv.width,SH*DPR);ctx.restore()}
+  ctx.filter='blur('+Math.round(9*DPR)+'px)';const by=(HOCH?MY0:0)*DPR,bh=(HOCH?MH:SH)*DPR;
+  ctx.drawImage(cv,0,by,cv.width,bh,0,by,cv.width,bh);ctx.restore()}
 
 // Typo: Stichworte kommen aus karten_v2.typo_worte (Zahl, Modell, Anbieter, laengste Hauptwoerter)
 function typoWorte(){let w=(K.typo_worte||[]).filter(Boolean);
@@ -862,15 +866,95 @@ const T_EIN=LESBAR?2.0:(WZ?Math.max(1.5,Math.min(4.4,WZ[0]-.6)):4.4);
 // anteilig nach Zeichen schaetzen (lesbar), sonst wie frueher T_EIN+.3
 const _zt=(K.titel||'').length+2,_ze=(K.einordnung||'').length,
   T_AUF=LESBAR?Math.max(T_EIN+.3,(D-1)*_zt/Math.max(1,_zt+_ze)):T_EIN+.3, GRUND=LESBAR?.6:.18;
-// 20.10.26 Hochformat-Ebene: Titel gross als Hook -> Einordnung -> Schlussbild (Titel + ki-news.live).
-// A (Standard, K.hoch_layout fehlt oder 'a'): je Satz eine grosse Karte; lange Saetze an Komma/Bindewort geteilt
-// (hoechstens MAXC Zeichen), sehr kurze mit dem naechsten zusammengelegt. Karte erscheint VOR s vor ihrem
-// Stimmeinsatz (wort_zeiten), das gesprochene Wort wird hell, der Rest ist vorauslesbar (GRUND).
-// B (K.hoch_layout==='b'): ganze Einordnung als ein Block unten, groessere Schrift als die Website.
+// ── 20.10.26 Hochformat-Hintergrund: ganze 9:16-Flaeche, ruhig und langsam, je Stil aus dem Website-Grund ──
+// Reine Funktion von t (gleiches t = gleiches Bild). Strukturen (Papier, Kreide, Raster) einmal vorgerechnet.
+let hTex=null;
+const hY=y=>MY0+(y-MSY)*MS;
+function hTextur(){
+  const c0=document.createElement('canvas');c0.width=W*DPR;c0.height=H*DPR;const c=c0.getContext('2d');c.scale(DPR,DPR);
+  const r=rng(SEED^0x5a17),st=K.stil;
+  if(st==='tusche'||st==='zeitung'){
+    for(let i=0;i<3400;i++){c.fillStyle='rgba(60,45,25,'+(r()*.055)+')';c.fillRect(r()*W,r()*H,r()*1.6+.3,r()*1.6+.3)}
+    const g=c.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.75);g.addColorStop(0,'rgba(0,0,0,0)');
+    g.addColorStop(1,st==='tusche'?'rgba(90,60,20,.13)':'rgba(40,35,25,.08)');c.fillStyle=g;c.fillRect(0,0,W,H)}
+  if(st==='zeitung'){const g=6;c.fillStyle='rgba(20,18,15,.045)';
+    for(let y=0;y<=H;y+=g)for(let x=0;x<=W;x+=g){const off=((Math.round(x/g)+Math.round(y/g))%2)*g/2;c.beginPath();c.arc(x+off,y,1,0,Math.PI*2);c.fill()}}
+  if(st==='kreide'){
+    for(let i=0;i<2800;i++){c.fillStyle='rgba(230,230,220,'+(r()*.05)+')';c.fillRect(r()*W,r()*H,r()*1.4+.3,r()*1.4+.3)}
+    for(let i=0;i<16;i++){const y=20+r()*(H-40),len=60+r()*160,x0=r()*W;c.strokeStyle='rgba(255,255,255,'+(.02+r()*.03)+')';
+      c.lineWidth=8+r()*14;c.lineCap='round';c.beginPath();c.moveTo(x0,y);c.quadraticCurveTo(x0+len*.5,y+(r()-.5)*24,x0+len,y+(r()-.5)*10);c.stroke()}}
+  if(st==='riso'){
+    for(let i=0;i<4200;i++){c.fillStyle=(r()<.5?'rgba(29,95,184,':'rgba(255,61,139,')+(r()*.07)+')';c.fillRect(r()*W,r()*H,r()*1.3+.2,r()*1.3+.2)}
+    // Raster-Sonne wie auf der Website, ins Motivfeld umgerechnet
+    const sx=W*(.62+(SEED%5)*.05),sy=hY(300*.42),sr=118*MS;c.globalCompositeOperation='multiply';
+    for(let y=sy-sr;y<=sy+sr;y+=6)for(let x=sx-sr;x<=sx+sr;x+=6){const d=Math.hypot(x-sx,y-sy)/sr;if(d>1)continue;
+      const k=clamp(1-d*.85)*(.35+.65*clamp((y-sy+sr)/(2*sr)));c.fillStyle='#ff3d8b';c.globalAlpha=.85;c.beginPath();c.arc(x+3*((y/6)&1),y,2.9*k,0,Math.PI*2);c.fill()}
+    // Punktraster-Baender (blau) statisch: unten im Motivfeld wie auf der Website und am unteren Bildrand
+    [[hY(300*.62),MY0+MH,1],[600,H,-1]].forEach(([y0,y1,d])=>{for(let y=y0;y<=y1;y+=5)for(let x=0;x<=W;x+=5){
+      const q=clamp((y-y0)/(y1-y0)),k=d>0?q:1-q;if(k<=0)continue;c.fillStyle='#1d5fb8';c.globalAlpha=d>0?.55:.35;c.beginPath();
+      c.arc(x+2.5*((Math.round(y/5))&1)+RISO_DX,y+RISO_DY,1.9*k*(1-k*.35),0,Math.PI*2);c.fill()}});
+    c.globalAlpha=1;c.globalCompositeOperation='source-over'}
+  return c0}
+function grundHoch(t){
+  // Kill-Switch Hintergrund-Animation: "hoch_anim": false -> fester Stand (t=6), z. B. wenn die Dateigroesse stoert
+  if(K.hoch_anim===false)t=6;
+  ctx.fillStyle=P.bg;ctx.fillRect(0,0,W,H);const st=K.stil;
+  if(st==='tusche'||st==='zeitung'||st==='kreide'||st==='riso'){if(!hTex)hTex=hTextur();ctx.drawImage(hTex,0,0,W,H)}
+  if(st==='tusche'){
+    // zwei Tusche-Schleier wandern langsam ueber das Papier
+    [[.25,.55,170,0],[.75,.86,150,2.1]].forEach(([fx,fy,rr,ph])=>{const x=W*fx+Math.sin(t*.12+ph)*50,y=H*fy+Math.cos(t*.1+ph)*40;
+      const g=ctx.createRadialGradient(x,y,0,x,y,rr);g.addColorStop(0,'rgba(60,45,25,.07)');g.addColorStop(1,'rgba(60,45,25,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)});
+  }else if(st==='zeitung'){
+    // heller Lichtstreifen wandert sehr langsam ueber das Zeitungspapier
+    const x=((t*14)%(W+300))-150,g=ctx.createLinearGradient(x-120,0,x+120,0);
+    g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(255,255,255,.2)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }else if(st==='kreide'){
+    // Kreidestaub rieselt langsam
+    const r=rng(SEED^0x3c1);for(let i=0;i<60;i++){const x0=r()*W,y0=r()*H,v=4+r()*8,sw=8+r()*14,ph=r()*6.28,sz=.8+r()*1.6,a=.1+r()*.18;
+      ctx.fillStyle='rgba(235,238,230,'+a+')';ctx.fillRect(x0+Math.sin(t*.4+ph)*sw,(y0+t*v)%H,sz,sz)}
+  }else if(st==='riso'){
+    // zwei weiche Druckfarben-Wolken (Pink, Blau) wandern langsam; Raster bleibt fest (bewegtes Raster kostet Dateigroesse)
+    [['#ff3d8b',.22,.62,170,0],['#1d5fb8',.78,.9,150,2.4]].forEach(([c,fx,fy,rr,ph])=>{const x=W*fx+Math.sin(t*.15+ph)*45,y=H*fy+Math.cos(t*.12+ph)*35;
+      const g=ctx.createRadialGradient(x,y,0,x,y,rr);g.addColorStop(0,rgba(c,.10));g.addColorStop(1,rgba(c,0));ctx.fillStyle=g;ctx.fillRect(0,0,W,H)});
+  }else if(st==='neon'){
+    // Lichtwolken und Partikelstrom ueber die ganze Hoehe, langsamer als auf der Website
+    [[P.accent,.30,.22,170,0],[P.accent2,.72,.45,150,1.7],[P.accent,.40,.80,160,3.1]].forEach(([c,fx,fy,rr,ph])=>{
+      const x=W*fx+Math.sin(t*.25+ph+SEED%7)*40,y=H*fy+Math.cos(t*.2+ph)*30;
+      const g=ctx.createRadialGradient(x,y,0,x,y,rr);g.addColorStop(0,rgba(c&&c.charAt(0)==='#'?c:'#b46bff',.22));g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)});
+    const hy=hY(300*.72),hb=MY0+MH;ctx.save();ctx.beginPath();ctx.rect(0,hy,W,hb-hy);ctx.clip();ctx.lineWidth=1;
+    for(let i=-8;i<=8;i++){ctx.strokeStyle=rgba('#ffffff',.05);ctx.beginPath();ctx.moveTo(W/2+i*6,hy);ctx.lineTo(W/2+i*70,hb);ctx.stroke()}
+    for(let k=0;k<8;k++){const f=((k+t*.6)%8)/8,y=hy+(hb-hy)*f*f;ctx.strokeStyle=rgba(P.accent.charAt(0)==='#'?P.accent:'#b46bff',.05+.2*f);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+    ctx.restore();
+    const r=rng(SEED^0x9e37),n=150;ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+    for(let i=0;i<n;i++){const x0=r()*W,y0=r()*H,v=8+r()*16,a=-.35+r()*.7,amp=6+r()*18,fr=.5+r()*1.1,ph=r()*6.28,sz=.6+r()*1.4,
+        c=r()<.7?P.accent:P.accent2,aufl=clamp((t-r()*1.2)/.8);if(aufl<=0)continue;
+      const pos=tt=>{let x=x0+Math.cos(a)*v*tt,y=y0+Math.sin(a)*v*tt+Math.sin(tt*fr+ph)*amp;x=((x%(W+40))+(W+40))%(W+40)-20;y=((y%H)+H)%H;return[x,y]};
+      ctx.strokeStyle=rgba(c&&c.charAt(0)==='#'?c:'#b46bff',.45*aufl);ctx.lineWidth=sz;ctx.beginPath();let q=pos(t),alt=q;ctx.moveTo(q[0],q[1]);
+      for(let k=1;k<=5;k++){const z=pos(t-k*.07);if(Math.abs(z[0]-alt[0])>30||Math.abs(z[1]-alt[1])>30)break;ctx.lineTo(z[0],z[1]);alt=z}ctx.stroke()}
+    ctx.restore();
+  }else if(st==='typo'){
+    // Laufband-Konturen ueber die ganze Hoehe, unten schwaecher und langsamer
+    const wort=(TW[0]||'KI-NEWS')+'  ·  ';ctx.save();ctx.font="700 120px 'Space Grotesk'";ctx.lineWidth=1;ctx.strokeStyle=P.dim;
+    const bw=ctx.measureText(wort).width||400;
+    [[hY(120),-1,.35],[hY(250),1,.35],[490,-1,.16],[620,1,.13],[745,-1,.1]].forEach(([y,d,a])=>{ctx.globalAlpha=a;const off=((t*18*d)%bw+bw)%bw;
+      for(let x=-off-bw;x<W+bw;x+=bw)ctx.strokeText(wort,x,y)});
+    ctx.restore();
+  }else{
+    // blaupause, daten: Raster ueber die ganze Hoehe, langsame Abtastlinie
+    const g=st==='blaupause'?20:30;ctx.lineWidth=1;
+    for(let x=0;x<=W;x+=g){ctx.strokeStyle=(x/g)%5===0&&P.grid2?P.grid2:P.grid;ctx.beginPath();ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,H);ctx.stroke()}
+    for(let y=0;y<=H;y+=g){ctx.strokeStyle=(y/g)%5===0&&P.grid2?P.grid2:P.grid;ctx.beginPath();ctx.moveTo(0,y+.5);ctx.lineTo(W,y+.5);ctx.stroke()}
+    const sp=st==='daten'?45:28,col=st==='daten'?'0,229,255':'150,200,255',al=st==='daten'?.10:.06,y=(t*sp)%(H+40)-20;
+    const sg=ctx.createLinearGradient(0,y-16,0,y);sg.addColorStop(0,'rgba('+col+',0)');sg.addColorStop(1,'rgba('+col+','+al+')');ctx.fillStyle=sg;ctx.fillRect(0,y-16,W,16);
+  }
+}
+// ── 20.10.26 Hochformat-Text: Titel gross als Hook -> Einordnung Satz fuer Satz -> Schlussbild (Titel + ki-news.live) ──
+// Je Satz eine grosse Karte (26 px); Saetze ueber MAXC Zeichen an Komma/Bindewort geteilt, sehr kurze zusammengelegt.
+// Karte erscheint VOR s vor ihrem Stimmeinsatz (wort_zeiten), gesprochenes Wort hell, Rest vorauslesbar (GRUND).
 let hochRender=null;
-const HL=K.hoch_layout==='b'?'b':'a';
 if(HOCH){(function(){
-  document.body.classList.add('hl-'+HL);
+  document.body.style.setProperty('--kasten',rgba(P.bg,.82));
+  document.body.style.setProperty('--kasten-rand',rgba(P.ink&&P.ink.charAt(0)==='#'?P.ink:'#ffffff',.12));
   const neu=(cls,html)=>{const d=document.createElement('div');d.className=cls;if(html)d.innerHTML=html;document.body.appendChild(d);return d};
   const esc=w=>w.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   const hq=neu('hq','Quelle · <b></b>');hq.querySelector('b').textContent=K.quelle||'';
@@ -881,36 +965,34 @@ if(HOCH){(function(){
   let WT=WZ;
   if(!WT){const L=worte.map(w=>w.length+1),S=L.reduce((a,b)=>a+b,0)||1;let acc=0;WT=L.map(l=>{const v=T_AUF+(D-2-T_AUF)*acc/S;acc+=l;return v})}
   const len=(a,b)=>worte.slice(a,b).join(' ').length;
-  const MAXC=110,MINC=30;
+  const MAXC=100,MINC=30;
   const satzEnde=w=>/[.!?]["'»“”]?$/.test(w)&&!/^\d+\.$/.test(w)&&!/^\w\.$/.test(w);
   const vorWort=new Set(['und','aber','weil','dass','denn','sondern','wenn','damit','doch','oder','während','als','bevor','nachdem']);
-  let st=[];
-  if(HL==='a'){
-    const saetze=[];let s0=0;worte.forEach((w,i)=>{if(satzEnde(w)||i===n-1){saetze.push([s0,i+1]);s0=i+1}});
-    saetze.forEach(([a,b])=>{let c=a;
-      while(len(c,b)>MAXC){let best=-1;
-        for(let k=c+1;k<b;k++){if(len(c,k)>MAXC)break;if(/[,;:–—]$/.test(worte[k-1])||vorWort.has(worte[k].toLowerCase()))best=k}
-        if(best<0||len(c,best)<MAXC*.35){let k=c+1;while(k<b-1&&len(c,k+1)<=MAXC)k++;best=k}
-        st.push([c,best]);c=best}
-      st.push([c,b])});
-    for(let i=0;i<st.length-1;i++){if(len(st[i][0],st[i][1])<MINC&&len(st[i][0],st[i+1][1])<=MAXC*1.25){st.splice(i,2,[st[i][0],st[i+1][1]]);i--}}
-    const z=st.length;if(z>1&&len(st[z-1][0],st[z-1][1])<MINC&&len(st[z-2][0],n)<=MAXC*1.25)st.splice(z-2,2,[st[z-2][0],n]);
-  }else if(n)st=[[0,n]];
+  const st=[],saetze=[];let s0=0;worte.forEach((w,i)=>{if(satzEnde(w)||i===n-1){saetze.push([s0,i+1]);s0=i+1}});
+  saetze.forEach(([a,b])=>{let c=a;
+    while(len(c,b)>MAXC){let best=-1;
+      for(let k=c+1;k<b;k++){if(len(c,k)>MAXC)break;if(/[,;:–—]$/.test(worte[k-1])||vorWort.has(worte[k].toLowerCase()))best=k}
+      if(best<0||len(c,best)<MAXC*.35){let k=c+1;while(k<b-1&&len(c,k+1)<=MAXC)k++;best=k}
+      st.push([c,best]);c=best}
+    st.push([c,b])});
+  for(let i=0;i<st.length-1;i++){if(len(st[i][0],st[i][1])<MINC&&len(st[i][0],st[i+1][1])<=MAXC*1.25){st.splice(i,2,[st[i][0],st[i+1][1]]);i--}}
+  const z=st.length;if(z>1&&len(st[z-1][0],st[z-1][1])<MINC&&len(st[z-2][0],n)<=MAXC*1.25)st.splice(z-2,2,[st[z-2][0],n]);
   const boxen=st.map(([a,b])=>{const d=neu('karte','<div class="lab">⚡ SCAMPY ORDNET EIN</div><p></p>');
     d.querySelector('p').innerHTML=worte.slice(a,b).map((w,k)=>'<span data-i="'+(a+k)+'">'+esc(w)+'</span>').join(' ');return d});
   const wsp=boxen.map(d=>[...d.querySelectorAll('span')]);
   // Zeiten: Karte i steht von B0[i] bis B0[i+1]; Hook bis B0[0]; Schlussbild ab T_END, wenn danach noch Zeit ist
-  const VOR=.5,FI=HL==='a'?.25:.6,FO=HL==='a'?.2:.5;
+  // Vorauslesbare Woerter im Hochformat 0,7 statt 0,6: Kontrast >= 4,5:1 auch auf hellen Stilen (tusche, riso)
+  const VOR=.5,FI=.25,FO=.2,GH=LESBAR?.7:GRUND;
   const B0=st.map(([a])=>WT[a]-VOR);if(B0.length)B0[0]=Math.max(B0[0],1.8);
   for(let i=1;i<B0.length;i++)B0[i]=Math.max(B0[i],B0[i-1]+.8);
   const T_END=Math.max(D-.7,(B0[B0.length-1]||0)+1.5),MIT_ENDE=T_END<=D-.4;
-  // Passen: Karten/Hook duerfen hoechstens MAXH hoch sein (Oberkante 330 px, also unter Quelle und Motiv)
-  const MAXH=267;
-  const fit=(d,e,f0,fmin,schritt)=>{let f=f0;e.style.fontSize=f+'px';while((d.offsetHeight>MAXH||e.scrollWidth>e.clientWidth+1)&&f>fmin){f-=schritt;e.style.fontSize=f+'px'}return f};
-  const passenH=()=>{hook._fs=fit(hook,hook,28,20,1);ende._fs=fit(ende,ende.querySelector('.ende-t'),22,16,1);
-    boxen.forEach(d=>{d._fs=HL==='a'?fit(d,d.querySelector('p'),26,22,1):fit(d,d.querySelector('p'),20,12,.5)})};
+  // Passen: Kaesten hoechstens MAXH hoch (Oberkante unter der Quelle), lange Woerter duerfen nicht ueberstehen
+  const MAXH=597-386;
+  const fit=(d,e,f0,fmin)=>{let f=f0;e.style.fontSize=f+'px';while((d.offsetHeight>MAXH||e.scrollWidth>e.clientWidth+1)&&f>fmin){f-=1;e.style.fontSize=f+'px'}return f};
+  const passenH=()=>{hook._fs=fit(hook,hook,28,20);ende._fs=fit(ende,ende.querySelector('.ende-t'),22,16);
+    boxen.forEach(d=>{d._fs=fit(d,d.querySelector('p'),26,22)})};
   passenH();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(passenH);
-  window.KI_HOCH_INFO=()=>({layout:HL,wz:!!WZ,fi:FI,fo:FO,hook:{start:.4,ende:B0[0]||D,fs:hook._fs,h:hook.offsetHeight},
+  window.KI_HOCH_INFO=()=>({wz:!!WZ,fi:FI,fo:FO,hook:{start:.4,ende:B0[0]||D,fs:hook._fs,h:hook.offsetHeight},
     karten:st.map(([a,b],i)=>({text:worte.slice(a,b).join(' '),start:B0[i],ende:i+1<B0.length?B0[i+1]:(MIT_ENDE?T_END:D),
       stimme:WT[a],fs:boxen[i]._fs,h:boxen[i].offsetHeight})),schluss:MIT_ENDE?T_END:null,maxh:MAXH});
   hochRender=t=>{
@@ -919,13 +1001,15 @@ if(HOCH){(function(){
     const h0=prog(t,.4,.5);hook.style.opacity=Math.min(h0,B0.length?aus(B0[0]):1);hook.style.transform='translateY('+(1-h0)*8+'px)';
     boxen.forEach((d,i)=>{const t0=B0[i],t1=i+1<B0.length?B0[i+1]:(MIT_ENDE?T_END:D+1);
       const a=(t>=t0&&t<t1)?Math.min(ein(t0),aus(t1)):0;d.style.opacity=a;d.style.transform='translateY('+(1-ein(t0))*6+'px)';
-      if(a>0)wsp[i].forEach(s=>{s.style.opacity=t>=WT[+s.dataset.i]?1:GRUND})});
+      if(a>0)wsp[i].forEach(s=>{s.style.opacity=t>=WT[+s.dataset.i]?1:GH})});
     ende.style.opacity=MIT_ENDE?prog(t,T_END,.35):0;
   };
 })()}
 window.KI_RENDER_AT=function(t){
-  ctx.clearRect(0,0,W,H);grund(t);
+  ctx.clearRect(0,0,W,H);if(HOCH)grundHoch(t);else grund(t);
+  if(HOCH){ctx.save();ctx.translate(W/2,MY0);ctx.scale(MS,MS);ctx.translate(-W/2,-MSY)}
   if(K.stil==='typo')typoSzene(t);else{(MOTIVE[K.motiv]||MOTIVE.netz)(t);markeZeichnen(t)}
+  if(HOCH)ctx.restore();
   if(K.stil==='neon')neonBloom();
   const a=prog(t,.5,.6);$('titel').style.opacity=a;$('titel').style.transform='translateY('+(1-a)*10+'px)';
   $('quelle').style.opacity=prog(t,1.1,.5);
