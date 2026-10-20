@@ -200,9 +200,13 @@ def sprechen_teile(teile, ziel: Path, arbeit: Path):
         if i:
             t += pause
         d = dauer_sekunden(tp)
-        zeiten.append((round(t, 3), round(t + d, 3)))
+        zeiten.append((t, t + d))
         t += d
-    return zeiten
+    # Einzelteile tragen je etwas MP3-Polster, das beim Zusammensetzen wegfaellt (20.10.26
+    # gemessen: Summe 69,96 s, fertige Datei 69,54 s, Versatz am Ende 0,3 s). Auf die echte
+    # Laenge stauchen, dann liegen die Starts auf ~0,1 s an den Sprechpausen.
+    f = dauer_sekunden(ziel) / t if t else 1.0
+    return [(round(a * f, 3), round(b * f, 3)) for a, b in zeiten]
 
 
 def zeiten_json(briefing, news, teile, zeiten, gesamt):
