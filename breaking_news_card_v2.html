@@ -29,6 +29,14 @@ body.lesbar .quelle{font-size:11px;margin-top:9px}
 body.lesbar .einordnung{padding:10px 12px 11px}
 body.lesbar .einordnung .lab{font-size:10px;margin-bottom:6px}
 body.lesbar .einordnung p{font-size:16.5px;line-height:1.4}
+/* 20.10.26 Hochformat 9:16 (Reels/Shorts): nur bei Viewport 420 x 747 aktiv (HOCH im Script).
+   Sichere Zone: oben 10 % (75 px) und unten 20 % (150 px) frei; der Einordnungskasten haelt rechts 48 px
+   Abstand fuer die Knopfleiste. Website-Karte (420 x 660) unberuehrt. */
+html.hoch,html.hoch body{height:747px}
+body.hoch #szene{height:747px}
+body.hoch .kopf{top:78px}
+body.hoch .text{top:270px;bottom:150px}
+body.hoch .einordnung{margin-right:26px}
 .fuss{position:absolute;left:22px;right:22px;bottom:14px;display:flex;justify-content:space-between;font:700 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--sub);z-index:3}
 .fort{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);z-index:4;width:0}
 /* Zeitung (26.09.26): Zeitungsdruck-Look fuer Kopf/Box, nur in diesem Stil aktiv */
@@ -60,7 +68,15 @@ body[data-stil="riso"] .einordnung{border-left-color:var(--accent);box-shadow:-2
 <script>
 (function () {
 'use strict';
-const K = window.KARTE, W = 420, H = 660, SH = 300;
+// 20.10.26 Hochformat: record.js rendert mit Viewport 420 x 747 (9:16) -> HOCH. Bei 420 x 660 (Website)
+// bleibt alles wie bisher. Kill-Switch fuer eine Karte: "hoch": false im KARTE-JSON.
+// Im Hochformat endet der Szenen-Hintergrund bei SH_G=264, das Motiv wird mit SH=300 gezeichnet und
+// per HOCH_S/HOCH_Y zwischen Kopf (78 px) und Text (270 px) gesetzt.
+const K = window.KARTE, W = 420,
+  HOCH = K.hoch !== false && window.innerWidth === 420 && window.innerHeight >= 740,
+  H = HOCH ? 747 : 660, SH_G = HOCH ? 264 : 300, HOCH_S = .62, HOCH_Y = 102;
+let SH = SH_G;
+if (HOCH) { document.documentElement.classList.add('hoch'); document.body.classList.add('hoch'); }
 const DPR = window.devicePixelRatio || 1;
 const cv = document.getElementById('szene'), ctx = cv.getContext('2d');
 cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
@@ -822,12 +838,14 @@ const LESBAR=K.lesbar!==false;if(LESBAR)document.body.classList.add('lesbar');
 (function(){const box=$('text');const ok=()=>box.scrollHeight<=box.clientHeight+1;
   if(!LESBAR){let f=12.5,tf=20;
   while(!ok()&&f>10){f-=.5;$('einordText').style.fontSize=f+'px'}while(!ok()&&tf>16){tf-=1;$('titel').style.fontSize=tf+'px'}return}
-  const passen=()=>{let f=16.5,tf=20;$('einordText').style.fontSize='';$('titel').style.fontSize='';
+  const passen=()=>{let f=16.5,tf=20;$('einordText').style.fontSize='';$('titel').style.fontSize='';$('text').style.bottom='';
     // Einblend-Versatz (translateY) beim Messen herausnehmen, sonst zaehlt er als Ueberlauf
     const tr=[$('titel').style.transform,$('einord').style.transform];$('titel').style.transform=$('einord').style.transform='none';
     while(!ok()&&f>15){f-=.5;$('einordText').style.fontSize=f+'px'}
     while(!ok()&&tf>16){tf-=1;$('titel').style.fontSize=tf+'px'}
     while(!ok()&&f>12){f-=.5;$('einordText').style.fontSize=f+'px'}
+    // Hochformat, letzter Ausweg: Textflaeche in den Rand unten verlaengern (150 -> min. 110 px)
+    if(HOCH){let b=150;while(!ok()&&b>110){b-=5;$('text').style.bottom=b+'px'}}
     $('titel').style.transform=tr[0];$('einord').style.transform=tr[1]};
   passen();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(passen)})();
 
@@ -841,7 +859,9 @@ const _zt=(K.titel||'').length+2,_ze=(K.einordnung||'').length,
   T_AUF=LESBAR?Math.max(T_EIN+.3,(D-1)*_zt/Math.max(1,_zt+_ze)):T_EIN+.3, GRUND=LESBAR?.6:.18;
 window.KI_RENDER_AT=function(t){
   ctx.clearRect(0,0,W,H);grund(t);
+  if(HOCH){ctx.save();SH=300;ctx.translate(W/2,HOCH_Y);ctx.scale(HOCH_S,HOCH_S);ctx.translate(-W/2,-30)}
   if(K.stil==='typo')typoSzene(t);else{(MOTIVE[K.motiv]||MOTIVE.netz)(t);markeZeichnen(t)}
+  if(HOCH){ctx.restore();SH=SH_G}
   if(K.stil==='neon')neonBloom();
   const a=prog(t,.5,.6);$('titel').style.opacity=a;$('titel').style.transform='translateY('+(1-a)*10+'px)';
   $('quelle').style.opacity=prog(t,1.1,.5);
