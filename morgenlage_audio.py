@@ -159,8 +159,9 @@ def dauer_sekunden(mp3: Path):
                             "-of", "csv=p=0", str(mp3)], capture_output=True, text=True, timeout=20)
         return float(r.stdout.strip())
     except Exception:
-        # Google liefert MP3 mit konstanter Bitrate (32 kbit/s) - grobe Schaetzung reicht
-        return mp3.stat().st_size * 8 / 32000
+        # Kein ffprobe auf dem Runner (ubuntu-24.04, 20.10. gemessen). Google liefert MP3 mit
+        # konstanter Bitrate, am 20.10. gemessen 64 kbit/s bei 24 kHz (588 KB = 73,6 s).
+        return mp3.stat().st_size * 8 / 64000
 
 
 def mmss(sek):
