@@ -84,6 +84,14 @@ def bauen(out: Path):
     return mp4
 
 
+def pruefzeile(out: Path):
+    """Ergebnis von die5_pruefen.py (eine Zeile), falls vorhanden."""
+    try:
+        return "\n" + (out / "pruefung.txt").read_text(encoding="utf-8").strip()
+    except Exception:
+        return ""
+
+
 def senden(mp4: Path, daten):
     token = os.environ.get("TELEGRAM_TOKEN", "").strip()
     if not token:
@@ -93,7 +101,7 @@ def senden(mp4: Path, daten):
     grenze = uuid.uuid4().hex
     felder = {"chat_id": chat, "width": str(AUS_W), "height": str(AUS_H), "supports_streaming": "true",
               "duration": str(int(round(daten["dauer"]))),
-              "caption": f"Die 5 des Tages · {daten['datum_kurz']} · 9:16 für Reels/Shorts"}
+              "caption": f"Die 5 des Tages · {daten['datum_kurz']} · 9:16 für Reels/Shorts" + pruefzeile(mp4.parent)}
     koerper = b""
     for k, v in felder.items():
         koerper += (f"--{grenze}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n").encode("utf-8")
