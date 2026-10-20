@@ -5,7 +5,7 @@
 <title>ki-news Die 5 des Tages (9:16)</title>
 <!--
   "Die 5 des Tages" (21.10.26): die fuenf Meldungen der Morgenlage als Hochkant-Video 1080 x 1920.
-  Gefuellt von die5_video.py ({{DIE5_JSON}}), aufgenommen von record.js im bildgenauen Modus:
+  Gefuellt von die5_video.py (Platzhalter DIE5_JSON im script-Block), aufgenommen von record.js im bildgenauen Modus:
   record.js ruft fuer jedes Bild window.KI_RENDER_AT(t) auf, t in Sekunden ab Videobeginn.
   Die Zeiten je Meldung kommen aus morgenlage_audio.py (jeder Abschnitt einzeln gesprochen),
   Bild und Stimme laufen dadurch synchron. Viewport 420 x 747 CSS-px wie Karten v2 im
@@ -79,6 +79,7 @@ const D = window.DIE5, S = document.getElementById('szene');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const segs = D.segmente;
 const meld = segs.filter(s => s.art === 'meldung');
+window.DIE5_SEGS = segs;   // fuer die5_pruefen.py (Playwright liest Bildquelle und Textblock je Meldung)
 document.getElementById('kopf-datum').textContent = D.datum_kurz || '';
 const fort = document.getElementById('fort');
 meld.forEach(() => { const i = document.createElement('i'); i.appendChild(document.createElement('u')); fort.appendChild(i); });

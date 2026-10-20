@@ -189,6 +189,19 @@ jobs:
           python3 die5_video.py --out out
         timeout-minutes: 30
 
+      - name: Video pruefen
+        # die5_pruefen.py: Bildquellen und Textblock je Meldung (Playwright), MP4-Format, Sync gegen
+        # die Sprechpausen, schwarze/eingefrorene Strecken, Feed online. Befunde = Warnungen, kein
+        # Abbruch; die Ergebniszeile steht in der Telegram-Beschriftung des Videos.
+        if: steps.video.outcome == 'success'
+        continue-on-error: true
+        env:
+          TROCKEN: ${{ steps.zeit.outputs.trocken }}
+        run: |
+          if [ "$TROCKEN" = "true" ]; then python3 die5_pruefen.py --out out
+          else python3 die5_pruefen.py --out out --online --feed morgenlage.xml; fi
+        timeout-minutes: 8
+
       - name: Video ans Release haengen
         if: steps.video.outcome == 'success' && steps.zeit.outputs.trocken == 'false'
         continue-on-error: true
