@@ -765,12 +765,14 @@ function n3Claude(x,y,o){const a=o.a==null?1:o.a;if(a<=0)return;const sq=o.sq||1
     if(o.schildText>0){ctx.save();ctx.globalAlpha=a*o.schildText;ctx.fillStyle=P.accent;ctx.font="700 10px 'JetBrains Mono'";ctx.textAlign='center';ctx.fillText('NEIN',18,hy-7);ctx.restore()}}
   ctx.restore()}
 // Kleiner Vogel (Politik), Fuesse bei (x,y); dir 1 = schaut nach rechts
-function n3Vogel(x,y,o){const a=o.a==null?1:o.a;if(a<=0)return;ctx.save();ctx.translate(x,y);ctx.scale(o.dir||1,o.sq||1);
-  const k=()=>{ctx.moveTo(6,-6);ctx.ellipse(0,-6,6,4.8,0,0,7);ctx.moveTo(8.4,-11);ctx.arc(4.4,-11,4,0,7)},schw=()=>{ctx.moveTo(-5,-7);ctx.lineTo(-11,-10);ctx.lineTo(-10,-5);ctx.closePath()};
-  n3Deck(()=>{k();schw()},a);ton(()=>{k();schw()},P.ink,2,a);kontur(()=>{k();schw()},1.2,P.ink,a);
+function n3Vogel(x,y,o){const a=o.a==null?1:o.a;if(a<=0)return;ctx.save();ctx.translate(x,y);const gr=o.gr||1;ctx.scale((o.dir||1)*gr,(o.sq||1)*gr);
+  // 21.10.26: Kopf ueber den Koerper gezeichnet (kein Kreisbogen mehr quer durch den Koerper)
+  const kb=()=>{ctx.moveTo(6,-6);ctx.ellipse(0,-6,6,4.8,0,0,7)},kk=()=>{ctx.moveTo(8.4,-11);ctx.arc(4.4,-11,4,0,7)},schw=()=>{ctx.moveTo(-5,-7);ctx.lineTo(-11,-10);ctx.lineTo(-10,-5);ctx.closePath()};
+  n3Deck(()=>{kb();schw()},a);ton(()=>{kb();schw()},P.ink,2,a);kontur(()=>{kb();schw()},1.2,P.ink,a);
+  n3Deck(kk,a);ton(kk,P.ink,2,a);kontur(kk,1.2,P.ink,a);
   ctx.save();ctx.globalAlpha=a;ctx.fillStyle=P.accent;ctx.beginPath();ctx.moveTo(8,-12);ctx.lineTo(12,-10.4);ctx.lineTo(8,-9.4);ctx.closePath();ctx.fill();ctx.restore();
   if(o.blinzeln)kontur(()=>{ctx.moveTo(4.2,-11.6);ctx.lineTo(6.8,-11.6)},1,P.ink,a);else n3Punkte([[5.4,-11.8]],1.1,HELL?P.ink:P.bg,a);
-  const fl=o.fluegel||0;kontur(()=>{ctx.moveTo(-3,-7);ctx.quadraticCurveTo(0,-7-8*fl,4,-7-3*fl)},1.4,P.ink,a);
+  const fl=o.fluegel||0;kontur(()=>{ctx.moveTo(-3.5,-7);ctx.quadraticCurveTo(0,-7-8*fl+3.2*(1-Math.abs(fl)),4,-7-3*fl)},1.4,P.ink,a);   // in Ruhe gebogen statt flacher Strich
   if(!o.flug)kontur(()=>{ctx.moveTo(-1,-1.5);ctx.lineTo(-1,0);ctx.moveTo(2,-1.5);ctx.lineTo(2,0)},1.1,P.accent,a);
   ctx.restore()}
 
@@ -837,10 +839,11 @@ const MOTIVE3N={
     [[-122,11],[-142,8],[124,11],[144,8]].forEach(([dx,rb],i)=>{const t0=2.6+i*.12,sc=easeOut(clamp((t-t0)/.18))+.15*n3Feder(t-t0-.18);if(sc<=0)return;
       const x=cx+dx,y=gy+8,k=rb*sc,busch=()=>{[[-.55,-.6,.62],[.55,-.6,.62],[0,-1,.8]].forEach(([u,v,q])=>{ctx.moveTo(x+u*k+q*k,y+v*k);ctx.arc(x+u*k,y+v*k,q*k,0,7)})};
       n3Deck(busch,1);n3Ton(busch,P.ink,1,1,true);glanz(x-k*.4,y-k*1.3,k,.5,busch);kontur(busch,1.3,P.ink,1)});
-    // Voegelchen fliegt auf die Mastspitze, schaut sich spaeter einmal um
-    if(t>3.4){const f=clamp((t-3.4)/.85),land=t>4.25,d=t-4.25;
-      const x=land?cx:lerp(30,cx,easeOut(f)),y=land?gy-187:lerp(60,gy-187,f)-Math.sin(f*Math.PI)*22;
-      n3Vogel(x,y,{a:clamp((t-3.4)/.15),flug:!land,fluegel:land?0:Math.sin(t*32),sq:land?1-.18*feder(d):1,dir:t>6.4?-1:1,blinzeln:n3Rest(t,5.3,4.7,.13)})}
+    // Voegelchen fliegt auf die linke Dachkante (Balustrade), schaut sich spaeter einmal um.
+    // 21.10.26: nicht mehr auf der Mastspitze - dort lagen Mastknauf und (Website) die Kopfzeilen-Linie im Vogel; 1,4-fach groesser
+    if(t>3.4){const f=clamp((t-3.4)/.85),land=t>4.25,d=t-4.25,VX=cx-66,VY=gy-86;
+      const x=land?VX:lerp(20,VX,easeOut(f)),y=land?VY:lerp(130,VY,f)-Math.sin(f*Math.PI)*30;
+      n3Vogel(x,y,{gr:1.4,a:clamp((t-3.4)/.15),flug:!land,fluegel:land?0:Math.sin(t*32),sq:land?1-.18*feder(d):1,dir:t>6.4?-1:1,blinzeln:n3Rest(t,5.3,4.7,.13)})}
   },
 
   // ── Regale (Racks): fallen rein, Einschuebe klicken ins Regal, Racks wachen auf, seufzen einmal zufrieden (Bogenaugen, Woelkchen) ──
