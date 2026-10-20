@@ -78,6 +78,9 @@ def main(argv=None) -> int:
     ap.add_argument("--min-tage", type=int, default=2)
     ap.add_argument("--max-tage", type=int, default=10)
     ap.add_argument("--min-karten", type=int, default=20)
+    # 20.10.26: Hochkant-Videos (<slug>_hoch.mp4, Reels/Shorts) kosten mehr Platz und werden nur fuer
+    # Insta/Shorts gebraucht - aelter als --hoch-tage weg, auch mit Verweis. 0 = keine Sonderregel.
+    ap.add_argument("--hoch-tage", type=int, default=0)
     ap.add_argument("--heute", default="", help="nur fuer Tests: YYYY-MM-DD")
     ap.add_argument("--trocken", action="store_true", help="nichts loeschen, nur melden")
     a = ap.parse_args(argv)
@@ -85,6 +88,7 @@ def main(argv=None) -> int:
     heute = date.fromisoformat(a.heute) if a.heute else date.today()
     grenze_alt = (heute - timedelta(days=a.max_tage)).isoformat()
     grenze_frisch = (heute - timedelta(days=a.min_tage)).isoformat()
+    grenze_hoch = (heute - timedelta(days=a.hoch_tage)).isoformat() if a.hoch_tage > 0 else ""
 
     nach_verweis = os.environ.get("MEDIEN_NACH_VERWEIS", "1") != "0"
     text, grund = (None, "MEDIEN_NACH_VERWEIS=0") if not nach_verweis else \
@@ -95,7 +99,7 @@ def main(argv=None) -> int:
         print(f"medien_aufraeumen: {ordner} fehlt - nichts zu tun.")
         return 0
 
-    behalten = weg_alt = weg_verweis = 0
+    behalten = weg_alt = weg_verweis = weg_hoch = 0
     mb_weg = 0.0
     for f in sorted(ordner.iterdir()):
         if not f.is_file():
@@ -107,6 +111,8 @@ def main(argv=None) -> int:
         d = m.group(1)
         if d < grenze_alt:
             grund_weg = "alt"
+        elif grenze_hoch and f.stem.endswith("_hoch") and d < grenze_hoch:
+            grund_weg = "hoch"
         elif d >= grenze_frisch or text is None or f.stem in text:
             behalten += 1
             continue
@@ -115,6 +121,8 @@ def main(argv=None) -> int:
         mb_weg += f.stat().st_size / 1e6
         if grund_weg == "alt":
             weg_alt += 1
+        elif grund_weg == "hoch":
+            weg_hoch += 1
         else:
             weg_verweis += 1
         if not a.trocken:
@@ -122,7 +130,7 @@ def main(argv=None) -> int:
 
     modus = "nach Verweis" if text is not None else f"nur Alter ({grund})"
     print(f"medien_aufraeumen [{modus}{', trocken' if a.trocken else ''}]: "
-          f"behalten {behalten}, weg {weg_alt} alt + {weg_verweis} ohne Verweis "
+          f"behalten {behalten}, weg {weg_alt} alt + {weg_verweis} ohne Verweis + {weg_hoch} hochkant "
           f"({mb_weg:.0f} MB); Verweise: {grund}")
     return 0
 

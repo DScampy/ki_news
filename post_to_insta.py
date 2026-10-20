@@ -49,7 +49,15 @@ def pick_card() -> dict:
 def main() -> None:
     card = pick_card()
     # 26.09.26: Medien koennen absolut im Repo ki_news_media liegen
-    video_url = card['mp4_url'] if card['mp4_url'].startswith("http") else f"{SITE_BASE}/{card['mp4_url'].lstrip('/')}"
+    # 20.10.26: 9:16-Video (mp4_hoch_url) bevorzugen, wenn erreichbar; sonst wie bisher die Website-Karte
+    _abs = lambda u: u if u.startswith("http") else f"{SITE_BASE}/{u.lstrip('/')}"
+    video_url = _abs(card['mp4_url'])
+    if card.get('mp4_hoch_url'):
+        try:
+            if requests.head(_abs(card['mp4_hoch_url']), timeout=15, allow_redirects=True).status_code == 200:
+                video_url = _abs(card['mp4_hoch_url'])
+        except requests.RequestException:
+            pass
     try:  # 19.10.26 (G3): Einordnung + Quelle, bei jedem Fehler nur die Ueberschrift
         from insta_caption import caption as _insta_caption
         caption = CAPTION_OVERRIDE or _insta_caption(card)
