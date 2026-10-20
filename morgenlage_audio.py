@@ -9,7 +9,10 @@ Ablauf (gesteuert von .github/workflows/morgenlage_audio.yml):
      steht, also kann nichts dazuerfunden werden.
   3. Google-TTS mit der Studio-Stimme der Karten (de-DE-Studio-C), dieselbe Aussprache-
      Aufbereitung (build_tts_ssml aus generate_news_cards.py).
-  4. Ausgabe: <out>/morgenlage-YYYY-MM-DD.mp3 und .txt (Sprechtext).
+  4. Ausgabe: <out>/morgenlage-YYYY-MM-DD.mp3 und .txt (Sprechtext). Mit ffmpeg wird jeder
+     Abschnitt einzeln gesprochen und zusammengesetzt (21.10.26, fuer "Die 5 des Tages"): dann
+     steht in <out>/morgenlage-YYYY-MM-DD.json, wann welche Meldung beginnt (Zeitmarken im SSML
+     gehen mit Studio-Stimmen nicht, Test 19.10.26). Ohne ffmpeg: ein Aufruf, kein JSON.
   5. --feed: Folge oben in morgenlage.xml (Podcast-RSS) eintragen, max. FEED_MAX Folgen.
   6. --senden: MP3 per Telegram sendAudio an MORGENLAGE_CHAT_ID (Standard: Daniels Chat).
 
@@ -151,6 +154,84 @@ def sprechen(ssml_text, ziel: Path):
     except Exception as e:
         print(f"morgenlage: TTS Fehler: {e}")
     return False
+
+
+def _ffmpeg_da():
+    try:
+        return subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=20).returncode == 0
+    except Exception:
+        return False
+
+
+def sprechen_teile(teile, ziel: Path, arbeit: Path):
+    """Jeden Abschnitt einzeln sprechen, mit PAUSE_MS Stille dazwischen zusammensetzen.
+    Gibt [(start, ende), ...] je Abschnitt zurueck oder None (dann einteilig sprechen)."""
+    if not _ffmpeg_da():
+        print("morgenlage: kein ffmpeg - einteilig, ohne Zeiten.")
+        return None
+    arbeit.mkdir(parents=True, exist_ok=True)
+    stille = arbeit / "stille.mp3"
+    teil_pfade = []
+    try:
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                        "anullsrc=r=24000:cl=mono", "-t", f"{PAUSE_MS / 1000:.3f}",
+                        "-c:a", "libmp3lame", "-b:a", "64k", str(stille)], check=True, timeout=60)
+        for i, t in enumerate(teile):
+            tp = arbeit / f"teil{i:02d}.mp3"
+            if not sprechen(karten.build_tts_ssml(t), tp):
+                return None
+            teil_pfade.append(tp)
+        liste = arbeit / "liste.txt"
+        zeilen = []
+        for i, tp in enumerate(teil_pfade):
+            if i:
+                zeilen.append(f"file '{stille.resolve().as_posix()}'")
+            zeilen.append(f"file '{tp.resolve().as_posix()}'")
+        liste.write_text("\n".join(zeilen) + "\n", encoding="utf-8")
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",
+                        "-i", str(liste), "-c:a", "libmp3lame", "-b:a", "64k", "-ar", "24000",
+                        "-ac", "1", str(ziel)], check=True, timeout=120)
+    except Exception as e:
+        print(f"morgenlage: Zusammensetzen fehlgeschlagen ({e}) - einteilig.")
+        return None
+    pause = dauer_sekunden(stille)
+    zeiten, t = [], 0.0
+    for i, tp in enumerate(teil_pfade):
+        if i:
+            t += pause
+        d = dauer_sekunden(tp)
+        zeiten.append((t, t + d))
+        t += d
+    # Einzelteile tragen je etwas MP3-Polster, das beim Zusammensetzen wegfaellt (20.10.26
+    # gemessen: Summe 69,96 s, fertige Datei 69,54 s, Versatz am Ende 0,3 s). Auf die echte
+    # Laenge stauchen, dann liegen die Starts auf ~0,1 s an den Sprechpausen.
+    f = dauer_sekunden(ziel) / t if t else 1.0
+    return [(round(a * f, 3), round(b * f, 3)) for a, b in zeiten]
+
+
+def zeiten_json(briefing, news, teile, zeiten, gesamt):
+    """Ablauf fuer das Video: wann welche Meldung laeuft, was angezeigt wird."""
+    nach_link = {n.get("link"): n for n in news if n.get("link")}
+    storys = briefing.get("stories") or []
+    seg = [{"art": "intro", "start": zeiten[0][0], "ende": zeiten[0][1]}]
+    for i, s in enumerate(storys):
+        n = nach_link.get(s.get("link")) or {}
+        zf = _kappen(n.get("summary", "") or "")
+        bild = n.get("image_local_gross") or n.get("image_local") or ""
+        seg.append({
+            "art": "meldung", "nr": i + 1,
+            "start": zeiten[i + 1][0], "ende": zeiten[i + 1][1],
+            "titel": s.get("title", ""),
+            "text": "" if wiederholt_titel(s.get("title", ""), zf) and len(zf) < 90 else zf,
+            "quelle": s.get("source", ""), "link": s.get("link", ""),
+            # nur eigene Kopien aus dem Medien-Repo, nie Fremd-URLs direkt
+            "bild": bild if bild.startswith("https://dscampy.github.io/") else "",
+        })
+    seg.append({"art": "outro", "start": zeiten[-1][0], "ende": zeiten[-1][1]})
+    tag = datetime.strptime(briefing["datum"], "%Y-%m-%d").date()
+    return {"datum": briefing["datum"], "datum_text": datum_gesprochen(tag),
+            "datum_kurz": tag.strftime("%d.%m."), "dauer": round(gesamt, 3),
+            "segmente": seg, "sprechtext": teile}
 
 
 def dauer_sekunden(mp3: Path):
@@ -298,10 +379,16 @@ def main(argv=None):
     print(f"morgenlage: Sprechtext ({len(text.split())} Wörter, {len(text)} Zeichen):\n")
     print(text + "\n")
 
-    if not sprechen(ssml(teile), mp3):
+    zeiten = sprechen_teile(teile, mp3, out / "_teile")
+    if zeiten is None and not sprechen(ssml(teile), mp3):
         return 2 if a.feed else 0
     sek = dauer_sekunden(mp3)
-    print(f"morgenlage: {mp3.name} {mp3.stat().st_size // 1024} KB, {mmss(sek)} min")
+    print(f"morgenlage: {mp3.name} {mp3.stat().st_size // 1024} KB, {mmss(sek)} min"
+          + (f", {len(zeiten)} Abschnitte mit Zeiten" if zeiten else ""))
+    if zeiten:
+        (out / f"{name}.json").write_text(json.dumps(
+            zeiten_json(briefing, daten.get("news") or [], teile, zeiten, sek),
+            ensure_ascii=False, indent=1), encoding="utf-8")
 
     if a.feed:
         behalten = feed_eintragen(basis / FEED_DATEI, briefing, mp3, sek)

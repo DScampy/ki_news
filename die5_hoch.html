@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>ki-news Die 5 des Tages (9:16)</title>
+<!--
+  "Die 5 des Tages" (21.10.26): die fuenf Meldungen der Morgenlage als Hochkant-Video 1080 x 1920.
+  Gefuellt von die5_video.py ({{DIE5_JSON}}), aufgenommen von record.js im bildgenauen Modus:
+  record.js ruft fuer jedes Bild window.KI_RENDER_AT(t) auf, t in Sekunden ab Videobeginn.
+  Die Zeiten je Meldung kommen aus morgenlage_audio.py (jeder Abschnitt einzeln gesprochen),
+  Bild und Stimme laufen dadurch synchron. Viewport 420 x 747 CSS-px wie Karten v2 im
+  Hochformat; Bedienzonen von Reels/Shorts frei: unten 150 px, rechts 48 px.
+  Ohne ?rec=1 laeuft die Vorschau im Browser in Echtzeit in Schleife.
+-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0e14;--main:#f3f6fa;--sub:#a9b4c2;--accent:#00d4ff;--kasten:rgba(10,14,20,.72);--rand:rgba(255,255,255,.10)}
+html,body{width:420px;height:747px;overflow:hidden;background:var(--bg)}
+body{font-family:'Inter',Arial,sans-serif;color:var(--main);-webkit-font-smoothing:antialiased}
+#szene{position:relative;width:420px;height:747px;overflow:hidden;
+  background:radial-gradient(120% 70% at 85% 0%,rgba(0,212,255,.16),transparent 60%),
+             radial-gradient(90% 60% at 0% 100%,rgba(167,139,250,.14),transparent 60%),var(--bg)}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* Bild je Meldung: oben, weich nach unten ausgeblendet, langsamer Zoom */
+.bild{position:absolute;left:0;top:0;width:420px;height:400px;opacity:0;overflow:hidden;
+  -webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.bild img{width:100%;height:100%;object-fit:cover;transform-origin:50% 40%;filter:saturate(1.05)}
+/* ohne Bild: grosse Ziffer als Hintergrund */
+.ziffer{position:absolute;right:-18px;top:40px;font:900 380px/1 'Inter',sans-serif;color:var(--accent);opacity:0;letter-spacing:-.06em}
+
+.kopf{position:absolute;left:14px;right:14px;top:26px;z-index:5;display:flex;justify-content:space-between;align-items:center;
+  padding:7px 9px;background:var(--kasten);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 0 0 1px var(--rand);
+  font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase}
+.kopf b{color:var(--accent)}
+.fort{position:absolute;left:14px;right:14px;top:62px;z-index:5;display:flex;gap:5px}
+.fort i{flex:1;height:4px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden;display:block}
+.fort i u{display:block;height:100%;width:0;background:var(--accent)}
+
+/* Meldung: Block unten, ueber der Bedienzone */
+.block{position:absolute;left:22px;right:48px;bottom:150px;z-index:4;opacity:0}
+.nr{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.nr b{font:900 58px/.9 'Inter',sans-serif;color:var(--accent);letter-spacing:-.04em}
+.nr span{font:700 11px/1.3 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--sub)}
+.titel{font:800 25px/1.18 'Inter',sans-serif;letter-spacing:-.01em;color:var(--main);
+  padding:11px 13px 12px;background:var(--kasten);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-left:6px solid var(--accent);box-shadow:0 0 0 1px var(--rand),0 12px 30px -14px rgba(0,0,0,.5)}
+.zf{margin-top:10px;font:500 16px/1.42 'Inter',sans-serif;color:var(--sub);padding:0 2px;opacity:0}
+
+/* Vorspann und Abspann */
+.intro,.outro{position:absolute;left:22px;right:48px;bottom:190px;z-index:4;opacity:0}
+.intro .lab,.outro .lab{font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:14px}
+.intro h1{font:900 54px/1.0 'Inter',sans-serif;letter-spacing:-.03em}
+.intro h1 em{font-style:normal;color:var(--accent)}
+.intro p{margin-top:16px;font:600 19px/1.35 'Inter',sans-serif;color:var(--sub)}
+.liste{margin-top:22px;display:flex;gap:6px}
+.liste i{display:block;width:34px;height:34px;border:2px solid var(--accent);color:var(--accent);font:800 17px/30px 'Inter',sans-serif;text-align:center;font-style:normal;opacity:0}
+.outro h2{font:900 40px/1.05 'Inter',sans-serif;letter-spacing:-.02em}
+.outro h2 em{font-style:normal;color:var(--accent)}
+.outro p{margin-top:16px;font:600 19px/1.35 'Inter',sans-serif;color:var(--sub)}
+</style>
+</head>
+<body>
+<div id="szene">
+  <div class="kopf"><span><b>Die 5</b> des Tages</span><span id="kopf-datum"></span></div>
+  <div class="fort" id="fort"></div>
+</div>
+<script>window.DIE5 = {{DIE5_JSON}};</script>
+<script>
+(function(){
+const D = window.DIE5, S = document.getElementById('szene');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const segs = D.segmente;
+const meld = segs.filter(s => s.art === 'meldung');
+document.getElementById('kopf-datum').textContent = D.datum_kurz || '';
+const fort = document.getElementById('fort');
+meld.forEach(() => { const i = document.createElement('i'); i.appendChild(document.createElement('u')); fort.appendChild(i); });
+
+// Sichtfenster je Abschnitt: Mitte der Pause davor bis Mitte der Pause danach
+segs.forEach((s, i) => {
+  s.von = i ? (segs[i - 1].ende + s.start) / 2 : 0;
+  s.bis = i < segs.length - 1 ? (s.ende + segs[i + 1].start) / 2 : D.dauer + 5;
+});
+
+// DOM bauen
+segs.forEach(s => {
+  if (s.art === 'intro') {
+    s.el = el('div', 'intro', '<div class="lab">Morgenlage</div><h1>Die <em>5</em><br>des Tages</h1>' +
+      '<p>' + esc(D.datum_text) + '<br>' + meld.length + ' Meldungen in ' + Math.round(D.dauer) + ' Sekunden</p>' +
+      '<div class="liste">' + meld.map(m => '<i>' + m.nr + '</i>').join('') + '</div>');
+    s.kugeln = [...s.el.querySelectorAll('.liste i')];
+  } else if (s.art === 'outro') {
+    s.el = el('div', 'outro', '<div class="lab">Das war die Morgenlage</div><h2>Alle Quellen auf<br><em>ki-news.live</em></h2><p>Bis morgen.</p>');
+  } else {
+    if (s.bild) {
+      s.bildEl = el('div', 'bild', '<img alt="" src="' + esc(s.bild) + '">');
+      s.img = s.bildEl.querySelector('img');
+      s.img.onerror = () => { s.bildEl.remove(); s.bildEl = null; s.ziffer = el('div', 'ziffer', String(s.nr)); };
+    } else {
+      s.ziffer = el('div', 'ziffer', String(s.nr));
+    }
+    s.el = el('div', 'block',
+      '<div class="nr"><b>' + s.nr + '</b><span>von ' + meld.length + '<br>' + esc(s.quelle) + '</span></div>' +
+      '<div class="titel">' + esc(s.titel).replace(/ (%|€|\$)/g, ' $1') + '</div>' + (s.text ? '<div class="zf">' + esc(s.text) + '</div>' : ''));
+    s.zf = s.el.querySelector('.zf');
+  }
+});
+function el(tag, cls, html) { const e = document.createElement(tag); e.className = cls; e.innerHTML = html; S.appendChild(e); return e; }
+
+// Text in den freien Platz einpassen (einmal, nach dem Laden der Schriften)
+let gepasst = false;
+function einpassen() {
+  meld.forEach(s => {
+    const oben = s.bildEl ? 300 : 110;               // Bild darf ein Stueck ueberdeckt werden
+    const max = 747 - 150 - oben;
+    const t = s.el.querySelector('.titel');
+    let ft = 25, fz = 16;
+    while (s.el.offsetHeight > max && (ft > 19 || fz > 13)) {
+      if (fz > 13) fz -= 0.5; else ft -= 0.5;
+      if (ft > 19 && s.el.offsetHeight > max + 60) ft -= 0.5;
+      t.style.fontSize = ft + 'px'; if (s.zf) s.zf.style.fontSize = fz + 'px';
+    }
+    if (s.el.offsetHeight > max && s.zf) s.zf.style.display = 'none';   // Notbremse: Titel bleibt
+  });
+  gepasst = true;
+}
+
+const klemm = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const weich = x => x * x * (3 - 2 * x);
+
+window.KI_RENDER_AT = function (t) {
+  if (!gepasst && (document.fonts.status === 'loaded')) einpassen();
+  let fortSicht = 0;
+  segs.forEach(s => {
+    const rein = weich(klemm((t - s.von) / 0.35)), raus = weich(klemm((s.bis - t) / 0.3));
+    const sicht = Math.min(rein, raus);
+    s.el.style.opacity = sicht;
+    s.el.style.transform = 'translateY(' + ((1 - rein) * 14).toFixed(2) + 'px)';
+    if (s.art === 'meldung') {
+      fortSicht = Math.max(fortSicht, sicht);
+      const bs = Math.min(weich(klemm((t - s.von) / 0.5)), raus);
+      if (s.bildEl) { s.bildEl.style.opacity = bs; s.img.style.transform = 'scale(' + (1.04 + 0.07 * klemm((t - s.von) / (s.bis - s.von))).toFixed(4) + ')'; }
+      if (s.ziffer) s.ziffer.style.opacity = (bs * 0.13).toFixed(3);
+      if (s.zf) s.zf.style.opacity = weich(klemm((t - s.start - 0.9) / 0.5));
+    }
+    if (s.kugeln) s.kugeln.forEach((k, j) => { k.style.opacity = weich(klemm((t - 0.6 - j * 0.18) / 0.3)); });
+  });
+  // Fortschritt: fertige Meldungen voll, laufende anteilig
+  meld.forEach((m, j) => {
+    const p = t >= m.bis ? 1 : t <= m.von ? 0 : klemm((t - m.von) / (m.bis - m.von));
+    fort.children[j].firstChild.style.width = (p * 100).toFixed(1) + '%';
+  });
+  fort.style.opacity = fortSicht.toFixed(3);
+};
+
+if (!/[?&]rec=1/.test(location.search)) {
+  document.fonts.ready.then(() => { const t0 = performance.now();
+    (function loop(){ KI_RENDER_AT(((performance.now() - t0) / 1000) % (D.dauer + 1)); requestAnimationFrame(loop); })(); });
+} else KI_RENDER_AT(0);
+})();
+</script>
+</body>
+</html>

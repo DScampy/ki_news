@@ -15,6 +15,11 @@ name: Morgenlage zum Hoeren
 # Von Hand (workflow_dispatch, trocken = Standard): nur sprechen, MP3 als Artefakt, kein
 # Release, kein Feed, kein Telegram, keine Tagesmarke.
 # Kill-Switch: Workflow im Actions-Tab deaktivieren.
+#
+# 21.10.26 "Die 5 des Tages": danach dieselbe Folge als Hochkant-Video 1080 x 1920 (die5_video.py,
+# Vorlage die5_hoch.html). Laeuft NACH Audio, Feed, Telegram-Audio und Tagesmarke - ein Fehler
+# kostet nur das Video und wird nicht wiederholt. MP4 ans Release (letzte 7), Telegram
+# sendVideo nur an Daniels Chat. Kill-Switch nur fuers Video: DIE5_VIDEO: "0".
 
 on:
   workflow_run:
@@ -43,6 +48,9 @@ jobs:
     permissions:
       contents: write
       actions: read
+    env:
+      DIE5_VIDEO: "1"
+      DIE5_FPS: "20"
     steps:
       - name: Zeitfenster pruefen
         id: zeit
@@ -77,6 +85,11 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
 
+      - name: ffmpeg installieren
+        if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
+        # fuer das abschnittsweise Sprechen (Zeiten fuers Video); fehlt es, spricht das Skript einteilig
+        run: sudo apt-get install -y ffmpeg >/dev/null || echo "::warning::ffmpeg nicht installiert"
+
       - name: Folge sprechen
         id: sprechen
         if: steps.zeit.outputs.fenster == 'true' && steps.schon.outputs.cache-hit != 'true'
@@ -97,14 +110,6 @@ jobs:
           if [ "$rc" != "0" ]; then exit 1; fi
           echo "weiter=true" >> "$GITHUB_OUTPUT"
         timeout-minutes: 5
-
-      - name: MP3 als Artefakt (trocken)
-        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: morgenlage-${{ steps.zeit.outputs.tag }}
-          path: out/*
-          retention-days: 7
 
       - name: MP3 ans Release haengen, alte Folgen entfernen
         if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'false'
@@ -163,3 +168,56 @@ jobs:
         with:
           path: .morgenlage_gesendet
           key: morgenlage-audio-${{ steps.zeit.outputs.tag }}
+
+      # ─── Die 5 des Tages (Video) ─────────────────────────────────────────────
+      - name: Node und Playwright fuers Video
+        id: node
+        if: steps.sprechen.outputs.weiter == 'true' && env.DIE5_VIDEO == '1' && hashFiles('out/morgenlage-*.json') != ''
+        continue-on-error: true
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Video aufnehmen
+        id: video
+        if: steps.node.outcome == 'success'
+        continue-on-error: true
+        run: |
+          npm init -y >/dev/null
+          npm install playwright >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          python3 die5_video.py --out out
+        timeout-minutes: 30
+
+      - name: Video ans Release haengen
+        if: steps.video.outcome == 'success' && steps.zeit.outputs.trocken == 'false'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload morgenlage out/die5-*.mp4 --clobber
+          gh release view morgenlage --json assets --jq '.assets[].name' | grep '^die5-.*\.mp4$' | sort -r | tail -n +8 | while read -r datei; do
+            echo "entferne altes Video $datei"; gh release delete-asset morgenlage "$datei" -y
+          done
+
+      - name: Video per Telegram
+        if: steps.video.outcome == 'success' && steps.zeit.outputs.trocken == 'false'
+        continue-on-error: true
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          MORGENLAGE_CHAT_ID: "9096438"
+        run: python3 die5_video.py --out out --senden
+        timeout-minutes: 4
+
+      - name: Artefakt (trocken)
+        if: steps.sprechen.outputs.weiter == 'true' && steps.zeit.outputs.trocken == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: morgenlage-${{ steps.zeit.outputs.tag }}
+          path: |
+            out/*.mp3
+            out/*.mp4
+            out/*.jpg
+            out/*.json
+            out/*.txt
+          retention-days: 7
