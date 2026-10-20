@@ -193,6 +193,16 @@ TEMPLATE_PATH  = Path(__file__).with_name("breaking_news_card_template.html")
 # Kill-Switch Karten v2: False -> nur altes Template. Jede Ausnahme beim Befuellen
 # oder Rendern von v2 faellt pro Karte automatisch auf das alte Template zurueck.
 CARD_V2        = True
+# 20.10.26 Hochformat 9:16 (Reels/Shorts): zweiter Render derselben v2-Karte mit Viewport 420 x 747,
+# Ausgabe 1080 x 1920 -> assets/cards/{slug}_hoch.mp4, Feld "mp4_hoch_url" in cards.json (Insta nimmt es
+# bevorzugt). Ein Fehler hier kostet nur das Hochkant-Video, nie die Website-Karte.
+# Kill-Switch: Env KARTEN_HOCH (Standard "0" = aus, heutiges Verhalten). KARTEN_HOCH_CRF: x264-CRF.
+KARTEN_HOCH     = os.environ.get("KARTEN_HOCH", "0").strip() == "1"
+KARTEN_HOCH_CRF = os.environ.get("KARTEN_HOCH_CRF", "26").strip() or "26"
+# Wie medien_aufraeumen.py --hoch-tage (ki_news.yml): aeltere Karten verlieren mp4_hoch_url in cards.json,
+# weil die Datei dann aus dem Medien-Repo geloescht ist (Insta faellt auf mp4_url zurueck).
+KARTEN_HOCH_TAGE = 2
+HOCH_WIDTH, HOCH_HEIGHT, HOCH_OUT_W, HOCH_OUT_H = 420, 747, 1080, 1920
 TEMPLATE_V2_PATH = Path(__file__).with_name("breaking_news_card_v2.html")
 RECORD_JS      = Path(__file__).with_name("record.js")
 CARDS_JSON     = ROOT_DIR / "cards.json"
@@ -1134,19 +1144,23 @@ def _send_x_button(headline: str, link: str = "", einordnung: str = "") -> bool:
 
 def render_card(html_path: Path, mp4_path: Path,
                 audio_path: Path | None = None,
-                duration: int = CARD_DURATION) -> bool:
-    """Ruft record.js via Node auf. Gibt True zurück bei Erfolg."""
+                duration: int = CARD_DURATION,
+                width: int = CARD_WIDTH, height: int = CARD_HEIGHT,
+                env_extra: dict | None = None, timeout: int = 420) -> bool:
+    """Ruft record.js via Node auf. Gibt True zurück bei Erfolg.
+    width/height/env_extra/timeout (20.10.26): fuer den Hochformat-Render (siehe KARTEN_HOCH)."""
     cmd = [
         "node", str(RECORD_JS),
         str(html_path), str(mp4_path),
-        str(CARD_WIDTH), str(CARD_HEIGHT), str(duration),
+        str(width), str(height), str(duration),
     ]
     if audio_path and audio_path.exists():
         cmd.append(str(audio_path))
 
     print(f"  → render ({duration}s{', +audio' if audio_path else ''})")
     # 24 fps bildgenau (v2) braucht mehr Zeit als 8 fps Echtzeit - 180 s reichten nur fuer v1
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=420)
+    env = {**os.environ, **env_extra} if env_extra else None
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
     if result.returncode != 0:
         print(f"  [ERROR] record.js:\n{result.stderr[-500:]}")
         return False
@@ -1560,6 +1574,8 @@ def main() -> None:
             }
             if poster_url:
                 meta_entry["poster_url"] = poster_url
+            if KARTEN_HOCH and (ASSETS_DIR / f"{slug}_hoch.mp4").exists():
+                meta_entry["mp4_hoch_url"] = f"assets/cards/{slug}_hoch.mp4"
             if link:
                 meta_entry["links"] = [link]
             cards_meta.append(meta_entry)
@@ -1596,6 +1612,7 @@ def main() -> None:
 
         print(f"  ✓ MP4:  {mp4_out.name}")
 
+
         # 26.09.26: Standbild fuers Web ziehen - siehe make_poster(). Darf die
         # Karte nie zu Fall bringen, deshalb ist der Fehlerfall in make_poster()
         # selbst abgefangen (WARN statt Exception).
@@ -1604,6 +1621,30 @@ def main() -> None:
         # Karte direkt an Telegram schicken (einordnung_clean: kein [OR]-Label)
         # card_id=slug -> Insta-Post-Button auf der Karte (siehe check_insta_queue.py)
         send_card_to_telegram(mp4_out, headline, einordnung_clean, card_id=slug, link=link)
+
+        # 20.10.26: Hochformat 9:16 - dieselbe v2-HTML mit hohem Viewport noch einmal aufnehmen, erst nach
+        # Telegram (verzoegert die Auslieferung nicht). Nur wenn die Website-Karte selbst v2 ist und das
+        # Medien-Repo aktiv ist (CARD_MEDIA_BASE; grosse Dateien nie ins Hauptrepo). Fehler/Timeout ->
+        # Reste weg, nur Website-Karte.
+        mp4_hoch_url = None
+        if KARTEN_HOCH and CARD_MEDIA_BASE and html_v2 is not None and karte_v2_info is not None:
+            mp4_hoch = ASSETS_DIR / f"{slug}_hoch.mp4"
+            ok_hoch = False
+            try:
+                ok_hoch = render_card(html_v2, mp4_hoch, audio_path, video_dauer, HOCH_WIDTH, HOCH_HEIGHT,
+                                      {"CARD_OUT_W": str(HOCH_OUT_W), "CARD_OUT_H": str(HOCH_OUT_H),
+                                       "CARD_CRF": KARTEN_HOCH_CRF, "CARD_PRESET": "slow"}, timeout=900)
+            except Exception as e:  # noqa: BLE001
+                print(f"  [HOCH] Render abgebrochen ({e.__class__.__name__}) - nur Website-Karte.")
+            if ok_hoch and mp4_hoch.exists():
+                mp4_hoch_url = f"assets/cards/{slug}_hoch.mp4"
+                print(f"  ✓ Hochkant: {mp4_hoch.name} ({mp4_hoch.stat().st_size / 1e6:.1f} MB)")
+            else:
+                print("  [HOCH] kein Hochkant-Video - nur Website-Karte.")
+                import shutil as _sh
+                mp4_hoch.unlink(missing_ok=True)
+                for _d in ASSETS_DIR.glob("_frames_*"):
+                    _sh.rmtree(_d, ignore_errors=True)
 
         cards_meta.append({
             "id":       slug,
@@ -1622,6 +1663,8 @@ def main() -> None:
         })
         if poster_url:
             cards_meta[-1]["poster_url"] = poster_url
+        if mp4_hoch_url:
+            cards_meta[-1]["mp4_hoch_url"] = mp4_hoch_url
         if link:
             # 27.09.26: Zuordnung Meldung -> Karte auf der Website per Link statt nur Titel
             cards_meta[-1]["links"] = [link]
@@ -1687,8 +1730,11 @@ def main() -> None:
             print(f"  ↪ {len(ls)} Link(s) an vorhandene Karte gehaengt: {cid}")
     cards_final = sorted(merged.values(), key=lambda c: c.get("date", ""), reverse=True)[:MAX_CARDS_DISPLAY]
     # 26.09.26: alle Eintraege (auch alte) auf das Medien-Repo zeigen lassen, wenn aktiv
+    _hoch_grenze = (date.today() - timedelta(days=KARTEN_HOCH_TAGE)).isoformat()
     for c in cards_final:
-        for feld in ("mp4_url", "poster_url"):
+        if c.get("mp4_hoch_url") and str(c.get("date", "")) < _hoch_grenze:
+            c.pop("mp4_hoch_url", None)   # Datei nach --hoch-tage aus dem Medien-Repo geloescht
+        for feld in ("mp4_url", "poster_url", "mp4_hoch_url"):
             if c.get(feld):
                 c[feld] = _media_url(c[feld])
 

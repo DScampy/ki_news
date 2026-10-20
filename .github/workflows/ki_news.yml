@@ -474,6 +474,9 @@ jobs:
           # 26.09.26: Medien ins Repo ki_news_media (s. Schritt "Karten ins Medien-Repo").
           # Nur gesetzt, wenn SECRETS_PAT existiert - sonst relative URLs wie bisher.
           CARD_MEDIA_BASE: ${{ secrets.SECRETS_PAT != '' && 'https://dscampy.github.io/ki_news_media/cards' || '' }}
+          # 20.10.26: Hochformat 9:16 ({slug}_hoch.mp4, Feld mp4_hoch_url). "1" = an, "0" = aus (Kill-Switch).
+          KARTEN_HOCH: "0"
+          KARTEN_HOCH_CRF: "26"
         run: |
           # Bug-Fix (02.07.26): die Default-Shell von GitHub Actions ist "bash -e"
           # OHNE pipefail -> der Exit-Code von "python3 ... | tee" war immer der
@@ -527,7 +530,8 @@ jobs:
               # wenn cards.json oder artikel/**/*.html sie noch nennt (Messung: 291 von 617 MB
               # ohne Verweis). Kill-Switch: Env MEDIEN_NACH_VERWEIS=0. Stirbt das Skript,
               # greift die alte 10-Tage-Schleife.
-              if ! python3 medien_aufraeumen.py --cards "$M/cards" --min-tage 2 --max-tage 10; then
+              # 20.10.26: Hochkant-Dateien (*_hoch.mp4) nur 2 Tage, auch wenn cards.json sie noch nennt.
+              if ! python3 medien_aufraeumen.py --cards "$M/cards" --min-tage 2 --max-tage 10 --hoch-tage 2; then
                 echo "::warning::medien_aufraeumen.py fehlgeschlagen - alte 10-Tage-Regel."
                 cutoff=$(date -d '10 days ago' +%Y-%m-%d)
                 for f in "$M"/cards/*; do
@@ -559,6 +563,9 @@ jobs:
           # (einmalige Umstellung passiert beim ersten erfolgreichen Lauf von selbst).
           # Sonst: URLs in cards.json zurueck auf relativ und Medien wie bisher committen.
           if [ "$MEDIA_OK" != "true" ] && [ -f cards.json ]; then
+            # 20.10.26: Hochkant-Videos nie ins Hauptrepo (Platz) - Dateien und Feld mp4_hoch_url weg
+            rm -f assets/cards/*_hoch.mp4
+            python3 -c "import json;p='cards.json';c=json.load(open(p,encoding='utf-8'));[x.pop('mp4_hoch_url',None) for x in c];json.dump(c,open(p,'w',encoding='utf-8'),ensure_ascii=False,indent=2)"
             python3 -c "import json;p='cards.json';c=json.load(open(p,encoding='utf-8'));b='https://dscampy.github.io/ki_news_media/cards/';[x.__setitem__(k,'assets/cards/'+x[k][len(b):]) for x in c for k in ('mp4_url','poster_url') if str(x.get(k,'')).startswith(b)];json.dump(c,open(p,'w',encoding='utf-8'),ensure_ascii=False,indent=2)"
           fi
           git config user.name "github-actions[bot]"

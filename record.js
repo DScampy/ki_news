@@ -45,6 +45,19 @@ const FPS_GENAU = parseInt(process.env.CARD_FPS || '24', 10);
 // waechst nicht). Probe: Schrift/Linien sichtbar schaerfer, Datei ~2,6x, Renderzeit gleich.
 // Zurueck auf das alte Verhalten: '2' -> '1' oder CARD_SCALE=1 im Workflow.
 const CARD_SCALE = parseInt(process.env.CARD_SCALE || '2', 10);
+// 20.10.26 Hochformat (Reels/Shorts): CARD_OUT_W/CARD_OUT_H setzen die Ausgabegroesse direkt
+// (z.B. 1080x1920 bei Viewport 420x747). Der Aufnahme-Faktor ist dann CARD_OUT_W/WIDTH statt 2,
+// damit nichts hochskaliert werden muss. CARD_CRF/CARD_PRESET: x264-Einstellungen.
+// Ohne diese Env-Variablen bleibt alles wie bisher (Faktor 2, WIDTH*CARD_SCALE, CRF 18, fast).
+const OUT_W = parseInt(process.env.CARD_OUT_W || '0', 10);
+const OUT_H = parseInt(process.env.CARD_OUT_H || '0', 10);
+const EIGENE_GROESSE = OUT_W > 0 && OUT_H > 0;
+const AUFNAHME_FAKTOR = EIGENE_GROESSE ? OUT_W / WIDTH : 2;
+const ZIEL_W = EIGENE_GROESSE ? OUT_W : WIDTH * CARD_SCALE;
+const ZIEL_H = EIGENE_GROESSE ? OUT_H : HEIGHT * CARD_SCALE;
+const X264_CRF = String(parseInt(process.env.CARD_CRF || '18', 10) || 18);
+const X264_PRESET = /^(ultrafast|superfast|veryfast|faster|fast|medium|slow|slower|veryslow)$/.test(process.env.CARD_PRESET || '')
+  ? process.env.CARD_PRESET : 'fast';
 
 const absHtml  = path.resolve(htmlPath);
 const absMp4   = path.resolve(mp4Path);
@@ -83,7 +96,7 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
   // Zwischenspeicherung + H264-Encoding verwaschen/unleserlich.
   const context = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT },
-    deviceScaleFactor: 2,
+    deviceScaleFactor: AUFNAHME_FAKTOR,
   });
 
   const page = await context.newPage();
@@ -208,13 +221,13 @@ fs.mkdirSync(path.dirname(absMp4), { recursive: true });
     // Pixel zu droppen wie der ffmpeg-Default (bilinear). Zielgroesse skaliert
     // mit CARD_SCALE (siehe oben) - bei "2" faellt weniger Downscale an bzw.
     // wird sogar hochskaliert, je nach Supersampling-Faktor 2 oben.
-    '-vf', `scale=${WIDTH * CARD_SCALE}:${HEIGHT * CARD_SCALE}:flags=lanczos`,
+    '-vf', `scale=${ZIEL_W}:${ZIEL_H}:flags=lanczos`,
     '-c:v', 'libx264',
-    '-preset', 'fast',
+    '-preset', X264_PRESET,
     // crf 18 statt 23 - schaerferer Encode. Bei kurzen 8s-Clips kaum
     // Dateigroessen-Unterschied, aber sichtbar weniger Kompressions-Matsch
     // auf feinem Text (Badge, Einordnung).
-    '-crf', '18',
+    '-crf', X264_CRF,
     '-pix_fmt', 'yuv420p',
     '-movflags', '+faststart',
     '-t', String(DURATION),
