@@ -32,6 +32,11 @@ SSR_MAX = 24  # max. News-Karten im vorgerenderten HTML
 # Karten, die sich ueber den Tag weiterdrehen. Ohne diese Ablage laesst sich der
 # Tagesverlauf nicht zeigen - news.json kennt immer nur den aktuellen Stand.
 BRIEFING_MAX = 5
+# Morgenlage nur Neues (20.10.26, Daniel, fuer die Morgenlage zum Hoeren): was gestern schon
+# in der Morgenlage stand oder vor gestern zuerst gesehen wurde, rueckt nach hinten. Kill-Switch:
+# MORGENLAGE_NUR_NEUES = False -> wieder die besten fuenf, egal wie alt.
+MORGENLAGE_NUR_NEUES = True
+MORGENLAGE_NUR_NEUES_MIN = 3   # so viele Plaetze werden notfalls mit Bekanntem aufgefuellt
 
 # Deutsche Signalwoerter (14.08.26, portiert aus generate_news_cards.py'
 # GERMAN_MARKERS/_looks_german() - dort seit 08.07.26 im Einsatz, um
@@ -451,6 +456,7 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
     heutigen Datum, wird es unveraendert durchgereicht - sonst wuerde jeder der
     vier Tageslaeufe die Morgenlage ueberschreiben und der Sinn waere weg.
     """
+    alt = {}
     try:
         p = Path(base_dir) / "news.json"
         if p.exists():
@@ -459,6 +465,33 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
                 return alt
     except Exception as e:
         logger.debug("Morgenlage: alte news.json nicht lesbar (%s)", e)
+
+    # Nur Neues (20.10.26): "alt" ist hier die Morgenlage des Vortags. Bekannt ist eine
+    # Meldung mit demselben Link, eine Titel-Dublette davon (gleiche Schranke wie unten)
+    # oder eine, die vor gestern zuerst gesehen wurde. Bekannte kommen erst ganz hinten
+    # dran und nur, solange weniger als MORGENLAGE_NUR_NEUES_MIN Plaetze belegt sind.
+    # story_id taugt hier nicht: sie wird in jedem Lauf neu vergeben (s000, s001, ...).
+    try:
+        gestern = (datetime.strptime(heute, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    except Exception:
+        gestern = ""
+    alt_links = {s.get("link") for s in (alt.get("stories") or []) if s.get("link")}
+    alt_titel = [s.get("title", "") for s in (alt.get("stories") or []) if s.get("title")]
+    # Andere Fassungen derselben Geschichte: Clustergefaehrten (gleiche story_id IN DIESEM
+    # Lauf) einer Meldung, deren Link gestern schon in der Morgenlage stand.
+    alt_sids = {(n.get("story_id") or "").strip() for n in news_list
+                if n.get("link") in alt_links} - {""}
+
+    def _schon_bekannt(n):
+        if not MORGENLAGE_NUR_NEUES:
+            return False
+        if n.get("link") in alt_links or (n.get("story_id") or "").strip() in alt_sids:
+            return True
+        fs = (n.get("first_seen") or "")[:10]
+        if gestern and fs and fs < gestern:
+            return True
+        t = n.get("title", "") or ""
+        return any(_ist_dublette(t, a, _BRIEFING_MIN_SIM) for a in alt_titel)
 
     # Entdopplung (10.09.26): vorher waren es stumpf die Top-5 nach Score - am
     # 10.09. standen dadurch VIER Meldungen desselben Clusters s001 (TechCrunch,
@@ -472,7 +505,12 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
     # Die Morgenlage ist mit BRIEFING_MAX=5 der engste Platz der Seite - hier ist
     # eine zu strenge Entdopplung billiger als eine Zeile mit einer Meldung drin.
     top, gesehen_ids, gesehen_kw, gesehen_titel = [], set(), [], []
-    for n in sorted(news_list, key=lambda n: -(n.get("score") or 0)):
+    sortiert = sorted(news_list, key=lambda n: -(n.get("score") or 0))
+    bekannt = {id(n) for n in sortiert if _schon_bekannt(n)}
+    for n in ([n for n in sortiert if id(n) not in bekannt]
+              + [n for n in sortiert if id(n) in bekannt]):
+        if id(n) in bekannt and len(top) >= MORGENLAGE_NUR_NEUES_MIN:
+            continue
         sid = (n.get("story_id") or "").strip()
         if sid and sid in gesehen_ids:
             continue
@@ -495,6 +533,9 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
         gesehen_titel.append(titel)
         if len(top) >= BRIEFING_MAX:
             break
+    if MORGENLAGE_NUR_NEUES:
+        logger.info("Morgenlage nur Neues: %d bekannte Meldungen zurueckgestellt, %d davon aufgefuellt",
+                    len(bekannt), sum(id(n) in bekannt for n in top))
     logger.info("Morgenlage fuer %s gesetzt: %d Storys aus %d Artikeln (Stand %s)",
                 heute, len(top), len(news_list), stand)
     return {
