@@ -27,6 +27,12 @@ body{font-family:'Inter',Arial,sans-serif;color:var(--main);-webkit-font-smoothi
 .bild{position:absolute;left:0;top:0;width:420px;height:400px;opacity:0;overflow:hidden;
   -webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
 .bild img{width:100%;height:100%;object-fit:cover;transform-origin:50% 40%;filter:saturate(1.05)}
+/* Kartenmotiv (21.10.26): Standbild der Karte (420 x 660 CSS-px), nur das Motivfeld y 40-300
+   zeigen, auf 400 px Hoehe gestreckt; Kopfzeile und Kartentext liegen ausserhalb */
+.bild.karte img{position:absolute;width:646px;height:auto;left:-113px;top:-62px;object-fit:fill;transform-origin:50% 18%}
+/* eigenes Motiv, wenn es kein Bild gibt: animiertes Netz in der Akzentfarbe */
+.motiv{position:absolute;left:0;top:0;width:420px;height:400px;opacity:0;
+  -webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
 /* ohne Bild: grosse Ziffer als Hintergrund */
 .ziffer{position:absolute;right:-18px;top:40px;font:900 380px/1 'Inter',sans-serif;color:var(--accent);opacity:0;letter-spacing:-.06em}
 
@@ -94,11 +100,11 @@ segs.forEach(s => {
     s.el = el('div', 'outro', '<div class="lab">Das war die Morgenlage</div><h2>Alle Quellen auf<br><em>ki-news.live</em></h2><p>Bis morgen.</p>');
   } else {
     if (s.bild) {
-      s.bildEl = el('div', 'bild', '<img alt="" src="' + esc(s.bild) + '">');
+      s.bildEl = el('div', 'bild' + (s.bild_art === 'karte' ? ' karte' : ''), '<img alt="" src="' + esc(s.bild) + '">');
       s.img = s.bildEl.querySelector('img');
-      s.img.onerror = () => { s.bildEl.remove(); s.bildEl = null; s.ziffer = el('div', 'ziffer', String(s.nr)); };
+      s.img.onerror = () => { s.bildEl.remove(); s.bildEl = null; motivBauen(s); };
     } else {
-      s.ziffer = el('div', 'ziffer', String(s.nr));
+      motivBauen(s);
     }
     s.el = el('div', 'block',
       '<div class="nr"><b>' + s.nr + '</b><span>von ' + meld.length + '<br>' + esc(s.quelle) + '</span></div>' +
@@ -106,13 +112,41 @@ segs.forEach(s => {
     s.zf = s.el.querySelector('.zf');
   }
 });
+// Eigenes Motiv: Punkte mit festem Zufall je Meldungsnummer (jeder Tag gleich aufgebaut,
+// jede Nummer anders), driften langsam, nahe Punkte verbunden, einzelne pulsieren.
+function motivBauen(s) {
+  const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+  c.className = 'motiv'; c.width = 420 * dpr; c.height = 400 * dpr;
+  S.insertBefore(c, S.firstChild ? S.firstChild.nextSibling : null);
+  s.motiv = c; s.ctx = c.getContext('2d'); s.ctx.scale(dpr, dpr);
+  let x = (s.nr * 7919 + 104729) % 233280;
+  const zufall = () => (x = (x * 9301 + 49297) % 233280) / 233280;
+  s.punkte = Array.from({ length: 52 }, (_, i) => ({
+    x: zufall() * 420, y: 40 + zufall() * 330, ax: 8 + zufall() * 24, ay: 6 + zufall() * 18,
+    f: .15 + zufall() * .35, ph: zufall() * 6.283, r: 1.3 + zufall() * 2.2, lila: i % 6 === 0 }));
+  s.ziffer = el('div', 'ziffer', String(s.nr));
+}
+function zeichne(s, t) {
+  const g = s.ctx, P = s.punkte.map(p => [p.x + Math.sin(t * p.f + p.ph) * p.ax, p.y + Math.cos(t * p.f * .8 + p.ph) * p.ay, p]);
+  g.clearRect(0, 0, 420, 400); g.lineWidth = 1;
+  for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+    const d = Math.hypot(P[i][0] - P[j][0], P[i][1] - P[j][1]);
+    if (d < 95) { g.strokeStyle = 'rgba(0,212,255,' + (.62 * (1 - d / 95)).toFixed(3) + ')';
+      g.beginPath(); g.moveTo(P[i][0], P[i][1]); g.lineTo(P[j][0], P[j][1]); g.stroke(); }
+  }
+  P.forEach(([px, py, p], i) => {
+    const puls = Math.max(0, Math.sin(t * 1.3 + i * 1.7));
+    g.fillStyle = (p.lila ? 'rgba(167,139,250,' : 'rgba(0,212,255,') + (.45 + .55 * puls).toFixed(3) + ')';
+    g.beginPath(); g.arc(px, py, p.r + puls * 1.6, 0, 6.283); g.fill();
+  });
+}
 function el(tag, cls, html) { const e = document.createElement(tag); e.className = cls; e.innerHTML = html; S.appendChild(e); return e; }
 
 // Text in den freien Platz einpassen (einmal, nach dem Laden der Schriften)
 let gepasst = false;
 function einpassen() {
   meld.forEach(s => {
-    const oben = s.bildEl ? 300 : 110;               // Bild darf ein Stueck ueberdeckt werden
+    const oben = (s.bildEl || s.motiv) ? 300 : 110;               // Bild darf ein Stueck ueberdeckt werden
     const max = 747 - 150 - oben;
     const t = s.el.querySelector('.titel');
     let ft = 25, fz = 16;
@@ -141,7 +175,8 @@ window.KI_RENDER_AT = function (t) {
       fortSicht = Math.max(fortSicht, sicht);
       const bs = Math.min(weich(klemm((t - s.von) / 0.5)), raus);
       if (s.bildEl) { s.bildEl.style.opacity = bs; s.img.style.transform = 'scale(' + (1.04 + 0.07 * klemm((t - s.von) / (s.bis - s.von))).toFixed(4) + ')'; }
-      if (s.ziffer) s.ziffer.style.opacity = (bs * 0.13).toFixed(3);
+      if (s.motiv) { s.motiv.style.opacity = bs; if (bs > 0) zeichne(s, t); }
+      if (s.ziffer) s.ziffer.style.opacity = (bs * (s.motiv ? 0.07 : 0.13)).toFixed(3);
       if (s.zf) s.zf.style.opacity = weich(klemm((t - s.start - 0.9) / 0.5));
     }
     if (s.kugeln) s.kugeln.forEach((k, j) => { k.style.opacity = weich(klemm((t - 0.6 - j * 0.18) / 0.3)); });

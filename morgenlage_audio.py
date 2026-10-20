@@ -209,8 +209,31 @@ def sprechen_teile(teile, ziel: Path, arbeit: Path):
     return [(round(a * f, 3), round(b * f, 3)) for a, b in zeiten]
 
 
-def zeiten_json(briefing, news, teile, zeiten, gesamt):
-    """Ablauf fuer das Video: wann welche Meldung laeuft, was angezeigt wird."""
+MEDIEN = "https://dscampy.github.io/"   # nur eigene Kopien aus dem Medien-Repo, nie Fremd-URLs
+
+
+def kartenposter(basis: Path):
+    """Link -> Standbild der neuesten Karte zu diesem Link (cards.json, Feld links).
+    Zweite Bildquelle fuer "Die 5 des Tages" (21.10.26, Daniel): das Video zeigt davon nur
+    das Motivfeld der Karte, der Kartentext liegt darunter und wird abgeschnitten."""
+    try:
+        karten_liste = json.loads((basis / "cards.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    poster = {}
+    for k in sorted(karten_liste, key=lambda k: k.get("date") or ""):
+        url = k.get("poster_url") or ""
+        if url.startswith(MEDIEN) and str(k.get("karte") or "").startswith("v2"):
+            for link in k.get("links") or []:
+                poster[link] = url
+    return poster
+
+
+def zeiten_json(briefing, news, teile, zeiten, gesamt, basis=Path(".")):
+    """Ablauf fuer das Video: wann welche Meldung laeuft, was angezeigt wird.
+    Bild je Meldung: Meldungsbild > Motivfeld der Karte > (leer: die Vorlage zeichnet ein
+    eigenes animiertes Motiv)."""
+    poster = kartenposter(basis)
     nach_link = {n.get("link"): n for n in news if n.get("link")}
     storys = briefing.get("stories") or []
     seg = [{"art": "intro", "start": zeiten[0][0], "ende": zeiten[0][1]}]
@@ -218,14 +241,17 @@ def zeiten_json(briefing, news, teile, zeiten, gesamt):
         n = nach_link.get(s.get("link")) or {}
         zf = _kappen(n.get("summary", "") or "")
         bild = n.get("image_local_gross") or n.get("image_local") or ""
+        bild = bild if bild.startswith(MEDIEN) else ""
+        bild_art = "meldung" if bild else ""
+        if not bild and poster.get(s.get("link")):
+            bild, bild_art = poster[s.get("link")], "karte"
         seg.append({
             "art": "meldung", "nr": i + 1,
             "start": zeiten[i + 1][0], "ende": zeiten[i + 1][1],
             "titel": s.get("title", ""),
             "text": "" if wiederholt_titel(s.get("title", ""), zf) and len(zf) < 90 else zf,
             "quelle": s.get("source", ""), "link": s.get("link", ""),
-            # nur eigene Kopien aus dem Medien-Repo, nie Fremd-URLs direkt
-            "bild": bild if bild.startswith("https://dscampy.github.io/") else "",
+            "bild": bild, "bild_art": bild_art,
         })
     seg.append({"art": "outro", "start": zeiten[-1][0], "ende": zeiten[-1][1]})
     tag = datetime.strptime(briefing["datum"], "%Y-%m-%d").date()
@@ -387,7 +413,7 @@ def main(argv=None):
           + (f", {len(zeiten)} Abschnitte mit Zeiten" if zeiten else ""))
     if zeiten:
         (out / f"{name}.json").write_text(json.dumps(
-            zeiten_json(briefing, daten.get("news") or [], teile, zeiten, sek),
+            zeiten_json(briefing, daten.get("news") or [], teile, zeiten, sek, basis),
             ensure_ascii=False, indent=1), encoding="utf-8")
 
     if a.feed:
