@@ -1,0 +1,42 @@
+name: TEST Morgenlage Jev (vor dem PR entfernen)
+
+on:
+  push:
+    branches: [claude/morgenlage-jev]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Morgenlage 21.10. mit Jev nachspielen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFEAI }}
+        run: |
+          set -e
+          mkdir -p /tmp/gestern /tmp/heute
+          g=$(gh api "repos/${{ github.repository }}/commits?path=news.json&until=2026-10-20T21:59:00Z&per_page=1" --jq '.[0].sha')
+          h=$(gh api "repos/${{ github.repository }}/commits?path=news.json&until=2026-10-21T05:30:00Z&per_page=1" --jq '.[0].sha')
+          echo "gestern=$g heute(07:04)=$h"
+          gh api "repos/${{ github.repository }}/contents/news.json?ref=$g" -H "Accept: application/vnd.github.v3.raw" > /tmp/gestern/news.json
+          gh api "repos/${{ github.repository }}/contents/news.json?ref=$h" -H "Accept: application/vnd.github.v3.raw" > /tmp/heute/news.json
+          python3 - <<'EOF'
+          import json, sys
+          sys.path.insert(0, ".")
+          import ki_news as k
+          heute = json.load(open("/tmp/heute/news.json", encoding="utf-8"))
+          print("Live-Morgenlage 21.10.:")
+          for s in heute["briefing"]["stories"]:
+              print("   ", s["title"][:95])
+          b = k._tagesbriefing(heute["news"], "/tmp/gestern", "2026-10-21", "test")
+          print("Neu berechnet (Vortag = Morgenlage 20.10.):")
+          for s in b["stories"]:
+              print("   ", s["title"][:95])
+          print("--- Cluster-Schatten auf demselben Stand:")
+          for t in k._jev_cluster_schatten(heute["news"]):
+              print("   ", t["a"], "~", t["b"], t["p"])
+          EOF
