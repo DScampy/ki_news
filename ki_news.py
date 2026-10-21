@@ -47,7 +47,8 @@ MORGENLAGE_NUR_NEUES_MIN = 3   # so viele Plaetze werden notfalls mit Bekanntem 
 # Kill-Switch: MORGENLAGE_JEV_AKTIV = False.
 MORGENLAGE_JEV_AKTIV = True
 MORGENLAGE_JEV_SCHWELLE = 0.7
-MORGENLAGE_JEV_MAX = 12        # Jev-Aufrufe je Morgenlage (einmal am Tag)
+MORGENLAGE_JEV_MAX = 25        # Jev-Aufrufe je Morgenlage (einmal am Tag). Test 21.10.: 12 reichten
+                               # nicht, 13 Fassungen der DeepSeek-Sperre fragten einzeln.
 
 # Deutsche Signalwoerter (14.08.26, portiert aus generate_news_cards.py'
 # GERMAN_MARKERS/_looks_german() - dort seit 08.07.26 im Einsatz, um
@@ -545,6 +546,7 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
     top, gesehen_ids, gesehen_kw, gesehen_titel = [], set(), [], []
     jev = {"key": os.environ.get("TYPESAFE_API_KEY", "").strip(), "aufrufe": 0, "treffer": 0}
     spaeter = []   # per Jev als "gestern schon da" erkannt
+    gestern_sids = set()   # deren story_id: Clustergefaehrten gelten ohne neue Abfrage auch als gestern
     sortiert = sorted(news_list, key=lambda n: -(n.get("score") or 0))
     bekannt = {id(n) for n in sortiert if _schon_bekannt(n)}
     for n in ([n for n in sortiert if id(n) not in bekannt]
@@ -553,6 +555,9 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
             continue
         sid = (n.get("story_id") or "").strip()
         if sid and sid in gesehen_ids:
+            continue
+        if sid and sid in gestern_sids:
+            spaeter.append(n)
             continue
         kw = _title_keywords(n.get("title", "") or "")
         if any(len(kw & frueher) >= 2 for frueher in gesehen_kw):
@@ -572,6 +577,8 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
         if (MORGENLAGE_NUR_NEUES and id(n) not in bekannt
                 and _morgenlage_jev_gleich(titel, alt_titel, jev, "gestern")):
             spaeter.append(n)
+            if sid:
+                gestern_sids.add(sid)
             continue
         top.append(n)
         if sid:
