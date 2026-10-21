@@ -37,6 +37,18 @@ BRIEFING_MAX = 5
 # MORGENLAGE_NUR_NEUES = False -> wieder die besten fuenf, egal wie alt.
 MORGENLAGE_NUR_NEUES = True
 MORGENLAGE_NUR_NEUES_MIN = 3   # so viele Plaetze werden notfalls mit Bekanntem aufgefuellt
+# Morgenlage Jev-Dublettencheck (21.10.26, Daniel): Am 21.10. stand die US-Sperre gegen DeepSeek
+# zweimal in der Morgenlage (CNBC + The Decoder) und schon am 20.10. (DHS-Meldung). Das Clustering
+# hatte die Geschichte in 4 Cluster zerlegt, Titelfilter und Schlagwoerter teilen nur "deepseek".
+# Jetzt: teilt ein Kandidat mindestens einen Eigennamen (entities.json) mit einer schon gewaehlten
+# Meldung oder mit der Morgenlage von gestern, fragt Jev "dasselbe konkrete Ereignis?" (gleiche
+# Frage wie JEV-VETO). p >= Schwelle: gegen Gewaehlte -> raus, gegen gestern -> nach hinten wie
+# "bekannt". Fail-open: ohne Key, bei Fehler oder Deckel zaehlt das Paar als verschieden.
+# Kill-Switch: MORGENLAGE_JEV_AKTIV = False.
+MORGENLAGE_JEV_AKTIV = True
+MORGENLAGE_JEV_SCHWELLE = 0.7
+MORGENLAGE_JEV_MAX = 25        # Jev-Aufrufe je Morgenlage (einmal am Tag). Test 21.10.: 12 reichten
+                               # nicht, 13 Fassungen der DeepSeek-Sperre fragten einzeln.
 
 # Deutsche Signalwoerter (14.08.26, portiert aus generate_news_cards.py'
 # GERMAN_MARKERS/_looks_german() - dort seit 08.07.26 im Einsatz, um
@@ -449,6 +461,33 @@ def _ssr_card(n):
     )
 
 
+def _morgenlage_jev_gleich(titel, vergleich, jev, art):
+    """Erster Titel aus `vergleich`, den Jev als dasselbe Ereignis wie `titel` sieht, sonst None.
+    Gefragt wird nur bei mindestens einem gemeinsamen Eigennamen (entities.json)."""
+    if not MORGENLAGE_JEV_AKTIV or not jev["key"] or not vergleich:
+        return None
+    ent = set(_dub_entitaeten(titel))
+    if not ent:
+        return None
+    for v in vergleich:
+        if not (ent & set(_dub_entitaeten(v))):
+            continue
+        if jev["aufrufe"] >= MORGENLAGE_JEV_MAX:
+            return None
+        jev["aufrufe"] += 1
+        try:
+            p = _jev_gleich(titel, v, jev["key"])
+        except Exception as e:
+            logger.info("Morgenlage Jev: Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+            continue
+        if p >= MORGENLAGE_JEV_SCHWELLE:
+            jev["treffer"] += 1
+            print(f"[MORGENLAGE-JEV {art} p={p:.2f}] {titel[:60]!r} ~ {v[:60]!r}")
+            logger.info("Morgenlage Jev %s p=%.2f: %r ~ %r", art, p, titel[:80], v[:80])
+            return v
+    return None
+
+
 def _tagesbriefing(news_list, base_dir, heute, stand):
     """Morgenlage des Tages: einmal pro Tag gesetzt, danach unveraendert.
 
@@ -505,6 +544,9 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
     # Die Morgenlage ist mit BRIEFING_MAX=5 der engste Platz der Seite - hier ist
     # eine zu strenge Entdopplung billiger als eine Zeile mit einer Meldung drin.
     top, gesehen_ids, gesehen_kw, gesehen_titel = [], set(), [], []
+    jev = {"key": os.environ.get("TYPESAFE_API_KEY", "").strip(), "aufrufe": 0, "treffer": 0}
+    spaeter = []   # per Jev als "gestern schon da" erkannt
+    gestern_sids = set()   # deren story_id: Clustergefaehrten gelten ohne neue Abfrage auch als gestern
     sortiert = sorted(news_list, key=lambda n: -(n.get("score") or 0))
     bekannt = {id(n) for n in sortiert if _schon_bekannt(n)}
     for n in ([n for n in sortiert if id(n) not in bekannt]
@@ -513,6 +555,9 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
             continue
         sid = (n.get("story_id") or "").strip()
         if sid and sid in gesehen_ids:
+            continue
+        if sid and sid in gestern_sids:
+            spaeter.append(n)
             continue
         kw = _title_keywords(n.get("title", "") or "")
         if any(len(kw & frueher) >= 2 for frueher in gesehen_kw):
@@ -526,6 +571,15 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
         titel = n.get("title", "") or ""
         if any(_ist_dublette(titel, t, _BRIEFING_MIN_SIM) for t in gesehen_titel):
             continue
+        # Stufe 4 (21.10.26): Jev, wenn ein Eigenname geteilt wird (s. MORGENLAGE_JEV_AKTIV)
+        if _morgenlage_jev_gleich(titel, gesehen_titel, jev, "gewaehlt"):
+            continue
+        if (MORGENLAGE_NUR_NEUES and id(n) not in bekannt
+                and _morgenlage_jev_gleich(titel, alt_titel, jev, "gestern")):
+            spaeter.append(n)
+            if sid:
+                gestern_sids.add(sid)
+            continue
         top.append(n)
         if sid:
             gesehen_ids.add(sid)
@@ -533,9 +587,18 @@ def _tagesbriefing(news_list, base_dir, heute, stand):
         gesehen_titel.append(titel)
         if len(top) >= BRIEFING_MAX:
             break
+    for n in spaeter:
+        if len(top) >= MORGENLAGE_NUR_NEUES_MIN:
+            break
+        top.append(n)
     if MORGENLAGE_NUR_NEUES:
         logger.info("Morgenlage nur Neues: %d bekannte Meldungen zurueckgestellt, %d davon aufgefuellt",
                     len(bekannt), sum(id(n) in bekannt for n in top))
+    if jev["aufrufe"]:
+        print(f"Morgenlage Jev: {jev['aufrufe']} Abfragen, {jev['treffer']} gleiche Ereignisse, "
+              f"{len(spaeter)} als 'gestern schon da' zurueckgestellt")
+        logger.info("Morgenlage Jev: %d Abfragen, %d Treffer, %d zurueckgestellt",
+                    jev["aufrufe"], jev["treffer"], len(spaeter))
     logger.info("Morgenlage fuer %s gesetzt: %d Storys aus %d Artikeln (Stand %s)",
                 heute, len(top), len(news_list), stand)
     return {
@@ -1943,6 +2006,52 @@ def _jev_gleich(titel_a, titel_b, key):
                                           "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=20) as r:
         return float(json.loads(r.read())["answers"]["gleich"]["noul"])
+
+
+# Cluster-Zusammenlegung per Jev, SCHATTEN (21.10.26, Daniel). Gegenstueck zum Veto oben, das
+# nur trennt: am 21.10. lag die US-Sperre gegen DeepSeek in s000 (9 Artikel, uebersetzte Quellen)
+# und s002 (The Decoder, Heise), dazu s009/s132 - auf der Seite zweimal unter den Top 3. Hier werden
+# die besten Vertreter der CLUSTER_JEV_TOP staerksten Storys paarweise gefragt, wenn sie einen
+# Eigennamen teilen. Modus "schatten": nur loggen ([CLUSTER-JEV ...]) und in news.json unter
+# "cluster_schatten" ablegen, nichts wird zusammengelegt. Erst nach Messung scharf schalten.
+# Kill-Switch: CLUSTER_JEV_MODUS = "aus".
+CLUSTER_JEV_MODUS = "schatten"
+CLUSTER_JEV_TOP = 12
+CLUSTER_JEV_MAX = 20
+CLUSTER_JEV_SCHWELLE = 0.7
+CLUSTER_JEV_LOG_AB = 0.3
+
+
+def _jev_cluster_schatten(news_list):
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if CLUSTER_JEV_MODUS == "aus" or not key:
+        return []
+    beste = {}
+    for n in sorted(news_list, key=lambda n: -(n.get("score") or 0)):
+        beste.setdefault((n.get("story_id") or "").strip() or n.get("link", ""), n)
+    reps = list(beste.items())[:CLUSTER_JEV_TOP]
+    ent = {sid: set(_dub_entitaeten(n.get("title", ""))) for sid, n in reps}
+    paare = [(a, b) for i, a in enumerate(reps) for b in reps[i + 1:] if ent[a[0]] & ent[b[0]]]
+    treffer, gefragt = [], 0
+    for (sa, a), (sb, b) in paare[:CLUSTER_JEV_MAX]:
+        try:
+            p = _jev_gleich(a.get("title", ""), b.get("title", ""), key)
+            gefragt += 1
+        except Exception as e:
+            logger.info("CLUSTER-JEV: Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+            continue
+        if p >= CLUSTER_JEV_LOG_AB:
+            stufe = "gleich" if p >= CLUSTER_JEV_SCHWELLE else "knapp"
+            print(f"[CLUSTER-JEV {CLUSTER_JEV_MODUS} {stufe} p={p:.2f}] {sa} {a.get('title', '')[:55]!r}"
+                  f" ~ {sb} {b.get('title', '')[:55]!r}")
+            logger.info("CLUSTER-JEV %s %s p=%.2f: %s %r ~ %s %r", CLUSTER_JEV_MODUS, stufe, p,
+                        sa, a.get("title", "")[:80], sb, b.get("title", "")[:80])
+        if p >= CLUSTER_JEV_SCHWELLE:
+            treffer.append({"a": sa, "b": sb, "p": round(p, 3),
+                            "titel_a": a.get("title", ""), "titel_b": b.get("title", "")})
+    print(f"CLUSTER-JEV {CLUSTER_JEV_MODUS}: {gefragt} von {len(paare)} Paaren gefragt "
+          f"(Top {len(reps)} Storys), {len(treffer)} gleiche Ereignisse")
+    return treffer
 
 
 def _jev_veto(clusters, base_dir):
@@ -6302,6 +6411,7 @@ def main():
         "belegarchiv": beleg_stat,
         "briefing": _tagesbriefing(news_list, proj_dir if proj_dir.exists() else Path("."),
                                    heute, datum),
+        "cluster_schatten": _jev_cluster_schatten(news_list),
     }
 
     if proj_dir.exists():
