@@ -463,14 +463,15 @@ def _ssr_card(n):
 
 def _morgenlage_jev_gleich(titel, vergleich, jev, art):
     """Erster Titel aus `vergleich`, den Jev als dasselbe Ereignis wie `titel` sieht, sonst None.
-    Gefragt wird nur bei mindestens einem gemeinsamen Eigennamen (entities.json)."""
+    Gefragt wird nur bei mindestens einem gemeinsamen Eigennamen (entities.json, ohne
+    Entitaet seltene grossgeschriebene Woerter, s. _jev_namen)."""
     if not MORGENLAGE_JEV_AKTIV or not jev["key"] or not vergleich:
         return None
-    ent = set(_dub_entitaeten(titel))
+    ent = _jev_namen(titel)
     if not ent:
         return None
     for v in vergleich:
-        if not (ent & set(_dub_entitaeten(v))):
+        if not (ent & _jev_namen(v)):
             continue
         if jev["aufrufe"] >= MORGENLAGE_JEV_MAX:
             return None
@@ -2036,7 +2037,7 @@ def _jev_cluster_schatten(news_list):
     for n in sorted(news_list, key=lambda n: -(n.get("score") or 0)):
         beste.setdefault((n.get("story_id") or "").strip() or n.get("link", ""), n)
     reps = list(beste.items())[:CLUSTER_JEV_TOP]
-    ent = {sid: set(_dub_entitaeten(n.get("title", ""))) for sid, n in reps}
+    ent = {sid: _jev_namen(n.get("title", "")) for sid, n in reps}
     paare = [(a, b) for i, a in enumerate(reps) for b in reps[i + 1:] if ent[a[0]] & ent[b[0]]]
     treffer, gefragt = [], 0
     for (sa, a), (sb, b) in paare[:CLUSTER_JEV_MAX]:
@@ -2509,6 +2510,51 @@ def _dub_entitaeten(titel, _cache={}):
                            "Titelvergleich laeuft ohne Entitaeten", ex)
         _cache["pats"] = pats
     return [i for i, p in _cache["pats"] if p.search(titel or "")]
+
+
+# Ersatz-Eigennamen fuer die Jev-Paarauswahl (23.10.26, Daniel). Flint (Recursive) stand am
+# 22.10. in drei Clustern und kam zweimal als Karte, weil kein Titel einen Namen aus
+# entities.json hatte - Cluster-Jev und Morgenlage-Jev fragen nur bei gemeinsamem Namen.
+# Hat ein Titel KEINE Entitaet, gelten seine grossgeschriebenen Woerter als Namen, sofern sie
+# in hoechstens ERSATZ_NAMEN_MAX_DF Titeln von archive.json vorkommen (seltene Woerter wie
+# "Flint", nicht "Modell"). Gemessen 13.-23.10.: alle 3 Flint-Paare gefunden, im Mittel 0,3
+# Jev-Fragen mehr je Tag, 2 der 3 Zusatzpaare echte Dubletten. Jev entscheidet weiter allein.
+# Kill-Switch: ERSATZ_NAMEN_MAX_DF = 0.
+# Genitiv ("OpenAIs", "Anthropics", "Nvidias"): 45 von 1400 Archivtiteln hatten dadurch keine
+# Entitaet. Nur HIER beruecksichtigt, nicht in _dub_entitaeten selbst - dort liess das Karten-
+# Raster damit zwei verschiedene OpenAI-Meldungen zusammenfallen (Test 23.10. auf news.json).
+ERSATZ_NAMEN_MAX_DF = 10
+_ERSATZ_TOK = re.compile(r"\b[A-ZÄÖÜ][\wÄÖÜäöüß]*(?:[-.][\wÄÖÜäöüß]+)*")
+_GENITIV_S = re.compile(r"\b([A-ZÄÖÜ][\w-]*[A-Za-z0-9])s\b")
+
+
+def _ersatz_kandidaten(titel):
+    return {w for w in _ERSATZ_TOK.findall(titel or "") if len(w) >= 3}
+
+
+def _titel_df(_cache={}):
+    """Wie viele Archivtitel jedes grossgeschriebene Wort enthalten (einmal je Lauf)."""
+    if "df" not in _cache:
+        df = Counter()
+        try:
+            p = Path(__file__).resolve().parent / "archive.json"
+            for t in {n.get("title", "") for n in json.loads(p.read_text(encoding="utf-8"))}:
+                df.update(_ersatz_kandidaten(t))
+        except Exception as ex:
+            logger.warning("Ersatz-Namen: archive.json nicht lesbar (%s) - nur entities.json", ex)
+            df = None
+        _cache["df"] = df
+    return _cache["df"]
+
+
+def _jev_namen(titel):
+    """Entitaeten des Titels (auch im Genitiv), ohne Entitaet die seltenen grossgeschriebenen
+    Woerter (mit "~"). Nur fuer die Jev-Paarauswahl."""
+    ent = set(_dub_entitaeten(titel)) | set(_dub_entitaeten(_GENITIV_S.sub(r"\1", titel or "")))
+    df = _titel_df() if not ent and ERSATZ_NAMEN_MAX_DF > 0 else None
+    if df is None:
+        return ent
+    return {"~" + w for w in _ersatz_kandidaten(titel) if df[w] <= ERSATZ_NAMEN_MAX_DF}
 
 
 def _ist_dublette(titel_a, titel_b, min_sim=None):
