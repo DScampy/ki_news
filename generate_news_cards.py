@@ -229,7 +229,7 @@ def _media_url(url: str) -> str:
 # "KI" trotz altem Text-Trick "K I" -> "kai" (reiner Text mit Leerzeichen
 # zwingt die Stimme NICHT zur Buchstabier-Phonetik - SSML-Markup schon).
 # Erweiterbar, sobald neue Faelle auffallen.
-TTS_SPELL_OUT = {"KI", "xAI", "RL", "LLM", "API", "GPU", "CPU", "NSFW", "HBM", "DRAM", "IT"}  # IT: 26.09.26
+TTS_SPELL_OUT = {"KI", "xAI", "RL", "LLM", "API", "GPU", "CPU", "NSFW", "HBM", "DRAM", "IT", "AI2"}  # IT: 26.09.26, AI2: 23.10.26
 
 # TTS-Wortersatz: ganze Woerter mit falscher Betonung, die KEINE Buchstabier-
 # Faelle sind (z.B. "SpaceX" - kein Akronym, sondern ein Markenname mit
@@ -238,6 +238,11 @@ PRONOUNCE_FIXES = {
     "SpaceX": "Space X",
     # 26.09.26: Studio-Stimme las "Schynkompetenz" - Bindestrich trennt das Kompositum
     "Scheinkompetenz": "Schein-Kompetenz",
+    # 23.10.26 (Daniel): "Ai2" wurde "ei2" gelesen, "Programmieraufgaben" gehaspelt.
+    # "AI2" steht in TTS_SPELL_OUT und wird danach buchstabiert.
+    "Ai2": "AI2",
+    "Programmieraufgabe": "Programmier-Aufgabe",
+    "Programmieraufgaben": "Programmier-Aufgaben",
 }
 
 # 26.09.26 (Daniel: "IKEA" wurde I-K-E-A vorgelesen): Google-TTS buchstabiert jedes Wort
@@ -548,7 +553,10 @@ def cap_headline(text: str, max_chars: int = 140) -> str:
     sonst die komplette kontext-section (WAS IST PASSIERT) aus der fix 660px
     hohen Karte."""
     text = (text or "").strip()
-    first_sentence = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)[0]
+    # 23.10.26: kein Satzende nach Ziffer oder Einzelbuchstabe ("am 12. November",
+    # "z. B."), sonst wurde "Das Buch ... soll am 12." als Titel gezeigt. Regel wie
+    # wort_sync.SATZ_RE.
+    first_sentence = re.split(r"(?<=[.!?])(?<!\d\.)(?<!\b\w\.)\s+", text, maxsplit=1)[0]
     if len(first_sentence) > max_chars:
         cut = first_sentence[:max_chars].rstrip()
         last_space = cut.rfind(" ")
