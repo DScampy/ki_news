@@ -2014,8 +2014,14 @@ def _jev_gleich(titel_a, titel_b, key):
 # die besten Vertreter der CLUSTER_JEV_TOP staerksten Storys paarweise gefragt, wenn sie einen
 # Eigennamen teilen. Modus "schatten": nur loggen ([CLUSTER-JEV ...]) und in news.json unter
 # "cluster_schatten" ablegen, nichts wird zusammengelegt. Erst nach Messung scharf schalten.
-# Kill-Switch: CLUSTER_JEV_MODUS = "aus".
-CLUSTER_JEV_MODUS = "schatten"
+# 23.10.26 SCHARF (Daniel). Messung 21.-23.10., 8 Laeufe: 19 Treffer, alle dasselbe Ereignis
+# (US-Sperre gegen DeepSeek in 3 Clustern, DeepSeek-15-Mrd.-Runde in bis zu 4 Clustern - am 22.10.
+# abends stand sie bis zu viermal in den Top 12 der Seite), 0 Fehlalarme. Grenzfall: Reaktion
+# ("China kritisiert das Verbot") wird zur Ursprungsmeldung gelegt - fuer die Seite gewollt.
+# "scharf": _jev_cluster_zusammenlegen() gibt den Meldungen des schwaecheren Clusters die
+# story_id des staerkeren, VOR _markiere_dubletten, Morgenlage und SSR. Treffer weiter in news.json
+# unter "cluster_schatten". Kill-Switch: "schatten" (nur loggen) oder "aus".
+CLUSTER_JEV_MODUS = "scharf"
 CLUSTER_JEV_TOP = 12
 CLUSTER_JEV_MAX = 20
 CLUSTER_JEV_SCHWELLE = 0.7
@@ -2052,6 +2058,62 @@ def _jev_cluster_schatten(news_list):
     print(f"CLUSTER-JEV {CLUSTER_JEV_MODUS}: {gefragt} von {len(paare)} Paaren gefragt "
           f"(Top {len(reps)} Storys), {len(treffer)} gleiche Ereignisse")
     return treffer
+
+
+def _jev_cluster_zusammenlegen(news_list, treffer):
+    """Modus "scharf": Cluster, die Jev als dasselbe Ereignis sieht, werden eins. Wurzel ist
+    jeweils der Cluster mit der staerksten Meldung (hoechster score), Verkettung ueber
+    Union-Find (s000~s003, s003~s009 -> alle drei in s000). Gibt die Zahl umgehaengter
+    Meldungen zurueck."""
+    if CLUSTER_JEV_MODUS != "scharf" or not treffer:
+        return 0
+
+    def sid_von(n):
+        return (n.get("story_id") or "").strip() or n.get("link", "")
+
+    best = {}
+    for n in news_list:
+        k = sid_von(n)
+        best[k] = max(best.get(k, 0), n.get("score") or 0)
+    eltern = {}
+
+    def wurzel(x):
+        while eltern.get(x, x) != x:
+            x = eltern[x]
+        return x
+    for t in treffer:
+        ra, rb = wurzel(t["a"]), wurzel(t["b"])
+        if ra == rb:
+            continue
+        stark, schwach = sorted((ra, rb), key=lambda k: (-best.get(k, 0), k))
+        eltern[schwach] = stark
+    if not eltern:
+        return 0
+    gruppen, umgehaengt = {}, 0
+    wurzeln = {wurzel(x) for x in eltern}
+    for n in news_list:
+        alt = sid_von(n)
+        neu = wurzel(alt)
+        if neu != alt:
+            n["story_id"] = neu
+            n["story_jev_aus"] = alt   # Herkunft, fuer Nachpruefung
+            umgehaengt += 1
+        if neu in wurzeln:
+            gruppen.setdefault(neu, []).append(n)
+    for wurzel_id, mitglieder in gruppen.items():
+        anzahl = len(mitglieder)
+        cscore = max((m.get("story_cluster_score") or m.get("score") or 0) for m in mitglieder)
+        for m in mitglieder:
+            m["story_article_count"] = anzahl
+            m["story_cluster_score"] = cscore
+    for schwach in sorted(eltern):
+        msg = f"CLUSTER-JEV scharf: {schwach} -> {wurzel(schwach)}"
+        print(msg)
+        logger.info(msg)
+    print(f"CLUSTER-JEV scharf: {len(eltern)} Cluster zusammengelegt, {umgehaengt} Meldungen umgehaengt")
+    logger.info("CLUSTER-JEV scharf: %d Cluster zusammengelegt, %d Meldungen umgehaengt",
+                len(eltern), umgehaengt)
+    return umgehaengt
 
 
 def _jev_veto(clusters, base_dir):
@@ -6367,6 +6429,14 @@ def main():
                                      news_list, cluster_news, _call_llm_api, JUDGE_MODELLE)
     except Exception as e:
         logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Cluster-Zusammenlegung per Jev (23.10.26 scharf, s. CLUSTER_JEV_MODUS): vor den Dubletten-
+    # Markierungen, der Morgenlage und dem SSR, damit alle mit den zusammengelegten Storys arbeiten.
+    try:
+        _cluster_treffer = _jev_cluster_schatten(news_list)
+        _jev_cluster_zusammenlegen(news_list, _cluster_treffer)
+    except Exception as e:
+        _cluster_treffer = []
+        logger.exception("CLUSTER-JEV uebersprungen (Pipeline unbeeinflusst): %s", e)
     _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
     # Linien fuer Startseite/Overlay (19.09.26): setzt n["linie"], liefert die Linien
     # als eigenes Feld. Nur lesen, nie blockieren. Kill-Switch: linien = {} setzen.
@@ -6411,7 +6481,7 @@ def main():
         "belegarchiv": beleg_stat,
         "briefing": _tagesbriefing(news_list, proj_dir if proj_dir.exists() else Path("."),
                                    heute, datum),
-        "cluster_schatten": _jev_cluster_schatten(news_list),
+        "cluster_schatten": _cluster_treffer,
     }
 
     if proj_dir.exists():
