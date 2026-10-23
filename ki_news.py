@@ -2008,6 +2008,89 @@ def _jev_gleich(titel_a, titel_b, key):
         return float(json.loads(r.read())["answers"]["gleich"]["noul"])
 
 
+# Werbe-Pruefung per Jev (23.10.26, Daniel). "Das Buch Evals for AI Engineers soll am 12. November
+# erscheinen" (Digg AI, Score 23-28) wurde am 22.10. Karte - eine reine Erscheinungsankuendigung.
+# Dazu Konferenz-Ankuendigungen von AlignedNews mit Score 18. Eine Wortliste allein trifft zu viel
+# echte News ("Deal", "Angebot", "Gipfel"), deshalb: enger Vorfilter auf Titel+Zusammenfassung,
+# dann fragt Jev nur bei Storys der Top WERBUNG_JEV_TOP. Ja (p >= Schwelle) -> alle Meldungen der
+# Story verlieren WERBUNG_JEV_ABZUG Punkte (Boden 0), damit faellt sie aus Top 12 und Karten.
+# Digg AI wird bewusst NICHT pauschal abgewertet (6 von 150 Karten, teils frueher als die Presse).
+# Modus "schatten": nur loggen ([WERBUNG-JEV ...] in ki_news.log), "scharf": Abzug, "aus".
+WERBUNG_JEV_MODUS = "schatten"
+WERBUNG_JEV_TOP = 12
+WERBUNG_JEV_MAX = 6
+WERBUNG_JEV_SCHWELLE = 0.8
+WERBUNG_JEV_ABZUG = 30
+_WERBUNG_VORFILTER = re.compile(
+    r"\b(?:Buch|Buches|Bücher|Kurs|Kurse|Kursen|Konferenz|Online-Konferenz|Summit|Webinar|Workshop|"
+    r"Hackathon|Bootcamp|erscheint|erscheinen|Vorbestell\w*|book|course|conference|webinar)\b",
+    re.IGNORECASE)
+_JEV_FRAGE_WERBUNG = {
+    "type": "noul",
+    "instructions": "Ist `meldung` nur die Ankündigung oder Bewerbung eines Buchs, Kurses, Webinars, "
+                    "Workshops, einer Konferenz oder eines anderen Events, ohne eigenen Nachrichtenwert?",
+    "criteria": {
+        "true": "Ja: Kern der Meldung ist, dass ein Buch erscheint, ein Kurs, Webinar oder Workshop "
+                "angeboten wird oder eine Konferenz, ein Event oder Hackathon stattfindet. Es wird keine "
+                "neue Tatsache über Firmen, Produkte, Forschung, Politik oder Markt berichtet.",
+        "false": "Nein: Die Meldung berichtet ein Ereignis mit Nachrichtenwert, z. B. Produktstart, "
+                 "Forschungsergebnis, Deal, Gesetz, Personalie oder eine Aussage auf einer Konferenz, "
+                 "auch wenn ein Buch, Kurs oder Event darin vorkommt.",
+    },
+}
+
+
+def _jev_werbung(meldung, key):
+    body = json.dumps({"model": "jev-latest", "state": {"meldung": meldung},
+                       "questions": {"werbung": _JEV_FRAGE_WERBUNG}}).encode("utf-8")
+    req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                 headers={"Authorization": "Bearer " + key,
+                                          "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return float(json.loads(r.read())["answers"]["werbung"]["noul"])
+
+
+def _jev_werbung_pruefen(news_list):
+    """Fragt Jev bei vorgefilterten Top-Storys, ob es reine Ankuendigungs-Werbung ist. Im Modus
+    "scharf" Abzug fuer alle Meldungen der Story. Gibt die Treffer zurueck."""
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if WERBUNG_JEV_MODUS == "aus" or not key:
+        return []
+
+    def sid_von(n):
+        return (n.get("story_id") or "").strip() or n.get("link", "")
+
+    beste = {}
+    for n in sorted(news_list, key=lambda n: -(n.get("score") or 0)):
+        beste.setdefault(sid_von(n), n)
+    kandidaten = [(sid, n) for sid, n in list(beste.items())[:WERBUNG_JEV_TOP]
+                  if _WERBUNG_VORFILTER.search(f"{n.get('title', '')} {(n.get('summary') or '')[:400]}")]
+    treffer, gefragt = [], 0
+    for sid, n in kandidaten[:WERBUNG_JEV_MAX]:
+        titel = n.get("title", "")
+        try:
+            p = _jev_werbung(f"{titel}\n{(n.get('summary') or '')[:600]}", key)
+            gefragt += 1
+        except Exception as e:
+            logger.info("WERBUNG-JEV: Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+            continue
+        ja = p >= WERBUNG_JEV_SCHWELLE
+        print(f"[WERBUNG-JEV {WERBUNG_JEV_MODUS} {'ja' if ja else 'nein'} p={p:.2f}] {sid} {titel[:70]!r}")
+        logger.info("WERBUNG-JEV %s %s p=%.2f: %s %s %r", WERBUNG_JEV_MODUS, "ja" if ja else "nein", p,
+                    sid, n.get("source", ""), titel[:90])
+        if not ja:
+            continue
+        treffer.append({"story": sid, "p": round(p, 3), "titel": titel})
+        if WERBUNG_JEV_MODUS == "scharf":
+            for m in news_list:
+                if sid_von(m) == sid:
+                    m["score"] = max(0, (m.get("score") or 0) - WERBUNG_JEV_ABZUG)
+                    m["werbung_jev"] = round(p, 3)
+    print(f"WERBUNG-JEV {WERBUNG_JEV_MODUS}: {gefragt} von {len(kandidaten)} Kandidaten gefragt "
+          f"(Top {WERBUNG_JEV_TOP} Storys), {len(treffer)} Werbung")
+    return treffer
+
+
 # Cluster-Zusammenlegung per Jev, SCHATTEN (21.10.26, Daniel). Gegenstueck zum Veto oben, das
 # nur trennt: am 21.10. lag die US-Sperre gegen DeepSeek in s000 (9 Artikel, uebersetzte Quellen)
 # und s002 (The Decoder, Heise), dazu s009/s132 - auf der Seite zweimal unter den Top 3. Hier werden
@@ -6429,6 +6512,12 @@ def main():
                                      news_list, cluster_news, _call_llm_api, JUDGE_MODELLE)
     except Exception as e:
         logger.exception("Shadow-Registry uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Werbe-Pruefung per Jev (23.10.26, s. WERBUNG_JEV_MODUS): vor Cluster-Jev und Ranking, damit
+    # eine abgewertete Ankuendigung keinen Top-12-Platz und keine Karte mehr bekommt.
+    try:
+        _jev_werbung_pruefen(news_list)
+    except Exception as e:
+        logger.exception("WERBUNG-JEV uebersprungen (Pipeline unbeeinflusst): %s", e)
     # Cluster-Zusammenlegung per Jev (23.10.26 scharf, s. CLUSTER_JEV_MODUS): vor den Dubletten-
     # Markierungen, der Morgenlage und dem SSR, damit alle mit den zusammengelegten Storys arbeiten.
     try:
