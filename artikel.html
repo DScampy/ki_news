@@ -1416,6 +1416,14 @@
       .px-dossier-visual-link { grid-column: auto; grid-row: auto; min-height: 190px; }
       .px-dossier-visual-link .px-dossier-visual { min-height: 190px; }
     }
+    /* 26.10.26 (Daniel-Screenshots): die Regel oben traf auch die Longform-Karten (gleiche Link-
+       Klasse) - Bild in einer 80-px-Zusatzspalte, darunter 250 px leer. Und in den kleinen Dossier-
+       Karten lief die Meldungszeile (volle Breite) unter dem Bild durch, das Bild verdeckte sie. */
+    .px-longform-card:not(.px-longform-lead) .px-dossier-visual-link { grid-column: auto; grid-row: auto; min-height: 218px; }
+    .px-longform-card:not(.px-longform-lead) .px-dossier-visual-link .px-longform-visual { height: 100%; }
+    @media (min-width: 761px) {
+      .px-dossier-card:not(.px-dossier-lead) .px-dossier-visual-link { grid-row: 1; }
+    }
   </style>
 </head>
 
