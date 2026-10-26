@@ -73,7 +73,27 @@ QUELLEN = [
     # Die Uebersicht listet die Tech-Blogs neueste zuerst, Datum/Titel stehen nur auf der
     # Beitragsseite, s. lies_kimi().
     ("Moonshot Kimi", "kimi", "https://www.kimi.com/blog"),
+    # 26.10.26 (Daniel): sechs weitere Hersteller, Kanaele am 26.10. geprueft. Keiner hat einen
+    # brauchbaren RSS-Feed ausser Nvidia; Olshansk-Spiegel gibt es fuer keinen.
+    ("MiniMax", "minimax", "https://www.minimax.io/blog"),
+    # /en/blog und /en/news sind JS-Huellen, die Startseite rendert "Latest updates" (6 Eintraege).
+    # Seedream 5.0 Flash (01.10.) steht dort nicht - ByteDance kuendigt nicht alles hier an.
+    ("ByteDance Seed", "seed", "https://seed.bytedance.com/en/"),
+    # z.ai/blog gibt 404, die Release Notes der Doku sind serverseitig (ein Block je Datum).
+    ("Z.ai", "zai", "https://docs.z.ai/release-notes/new-released"),
+    ("Nvidia", "rss", "https://developer.nvidia.com/blog/feed"),
+    ("Microsoft", "microsoft", "https://microsoft.ai/blog/"),
+    ("Black Forest Labs", "bfl", "https://bfl.ai/blog"),
 ]
+
+# 26.10.26: Hersteller mit gemischten Blogs. Ein Release zaehlt nur, wenn das Modell zur eigenen
+# Familie gehoert (Nvidia-Tutorials nennen oft Gemma oder Llama). "ueberall": Microsoft schreibt
+# Fliesstext-Titel ("Pushing the quality-cost frontier with MAI-Image-2.6"), dort darf der
+# eigene Modellname irgendwo im Titel stehen.
+QUELLEN_FAMILIE = {
+    "MiniMax": (r"^MiniMax", False), "ByteDance Seed": (r"^Seed", False), "Z.ai": (r"^GLM", False),
+    "Nvidia": (r"^Nemotron", False), "Microsoft": (r"^MAI-", True), "Black Forest Labs": (r"^FLUX", False),
+}
 
 # Modellfamilien; danach muss eine Versionsnummer folgen (Muse Spark 1.1, GPT-6).
 _FAMILIEN = (
@@ -81,12 +101,16 @@ _FAMILIEN = (
     r"Gemini|Gemma|Veo|Imagen|Lyria|WeatherNext|Llama|Muse(?:\s+(?:Spark|Image|Video))?|"
     r"Grok(?:\s+Imagine)?|Mistral(?:\s+(?:Large|Medium|Small))?|Magistral|Codestral|Devstral|"
     r"Voxtral|Pixtral|Ministral|Qwen|DeepSeek|Kimi(?:[\s\-]?K)?|GLM|ChatGPT\s+Images|"  # Kimi K3.1 Pro, Kimi-K2.6
-    r"Eleven(?:\s+(?:Music|Multilingual|Flash|Turbo))?|Scribe"
+    r"Eleven(?:\s+(?:Music|Multilingual|Flash|Turbo))?|Scribe|"
+    # 26.10.26 (Daniel): sechs weitere Hersteller - MiniMax M3.1, Seedream 5.0/Seedance 2.0/Seed 2.0,
+    # Nemotron 3.5, MAI-Image-2.6/MAI-Base-2, FLUX.2/FLUX 3
+    r"MiniMax(?:[\s\-]?[A-Z]|\s+(?:Music|Speech|Hailuo|Video))?|Seed(?:ream|ance)?|Nemotron|MAI-(?:Image|Base|Voice|Code|Transcribe|DS)|FLUX\.?"
 )
 _ZUSATZ = (
     r"Pro|Flash|Lite|Live|Sol|Luna|Astra|Mini|Nano|Ultra|Max|Plus|Turbo|Thinking|"
     r"Extended|Vision|Exp|Preview|Coder|Code|Instruct|Omni|Image|Video|Cyber|Fast|Edit|"
-    r"Opus|Sonnet|Haiku|Fable|Medium|Large|Small|Deep\s+Think|text-to-speech|TTS"
+    r"Opus|Sonnet|Haiku|Fable|Medium|Large|Small|Deep\s+Think|text-to-speech|TTS|"
+    r"Prime|Super|VL|Klein|Kontext|Dev|Schnell|Air|Action"
 )
 MODELL_RE = re.compile(
     rf"\b((?:{_FAMILIEN})[\s\-‑]?V?\d[\w.]*(?:[\s\-‑](?:{_ZUSATZ})\b)*)",
@@ -118,14 +142,25 @@ def _text(s, maxlen=260):
     return (cut[: satz + 1] if satz > 80 else cut.rsplit(" ", 1)[0] + " ...").strip()
 
 
-def modell_aus_titel(titel):
-    """Modellname aus dem Titel, oder '' wenn es kein Modell-Release ist."""
+# 26.10.26: "NVIDIA Nemotron 3.5 Super VL Powers ..." beginnt mit dem Herstellernamen, und
+# "One-take Creation ...: Introducing Seedance 2.5" kuendigt erst nach dem Doppelpunkt an.
+_HERSTELLER_PRAEFIX = re.compile(r"^(?:NVIDIA|Microsoft(?:\s+AI)?|ByteDance(?:\s+Seed)?|Black Forest Labs|"
+                                 r"Z\.ai|Moonshot AI)\s+", re.IGNORECASE)
+_ANKUENDIGUNG_DAVOR = re.compile(r"\b(?:introducing|announcing|meet)\s*$", re.IGNORECASE)
+
+
+def modell_aus_titel(titel, ueberall=False):
+    """Modellname aus dem Titel, oder '' wenn es kein Modell-Release ist. ueberall=True: der
+    Modellname darf irgendwo stehen (nur fuer Quellen mit Familienfilter, s. QUELLEN_FAMILIE)."""
     t = (titel or "").replace("‑", "-").strip()
     m = MODELL_RE.search(t)
     if not m:
         return ""
-    beginnt_mit_modell = t.lower().startswith(m.group(1).lower()[:4])
-    if not (START_RE.match(t) or beginnt_mit_modell):
+    if ueberall:
+        return re.sub(r"\s+", " ", m.group(1)).strip(" -")
+    ohne = _HERSTELLER_PRAEFIX.sub("", t)
+    beginnt_mit_modell = ohne.lower().startswith(m.group(1).lower()[:4])
+    if not (START_RE.match(t) or beginnt_mit_modell or _ANKUENDIGUNG_DAVOR.search(t[: m.start()])):
         return ""
     if VERBOTEN_RE.search(t[: m.start()]) and not START_RE.match(t):
         return ""
@@ -253,6 +288,88 @@ def lies_kimi(seite):
     return out
 
 
+def _eintrag(titel, url, datum, text="", poster=""):
+    return {"titel": html.unescape(re.sub(r"<[^>]+>", "", titel or "")).strip(), "url": url,
+            "datum": _datum(datum), "text": text, "poster": poster, "video_url": ""}
+
+
+def lies_minimax(seite):
+    """minimax.io/blog: Karten <a href="/blog/<slug>"><section><img alt="Titel">...
+    2026-10-19</span></section><h3>Titel</h3>."""
+    out = []
+    for slug, karte in re.findall(r'<a [^>]*href="/blog/([^"]+)"[^>]*><section[^>]*>(.*?)</a>', seite, re.S):
+        d = re.search(r"(\d{4}-\d{2}-\d{2})</span>", karte)
+        t = re.search(r"<h3[^>]*>(.*?)</h3>", karte, re.S) or re.search(r'<img alt="([^"]+)"', karte)
+        if d and t:
+            out.append(_eintrag(t.group(1), f"https://www.minimax.io/blog/{slug}", d.group(1)))
+    return out
+
+
+def lies_seed(seite):
+    """seed.bytedance.com/en/: Block "Latest updates", <a href=".../blog/<slug>"> ... <h3>Titel</h3>
+    <div><span>Jul 31, 2026</span>."""
+    out, gesehen = [], set()
+    for link, titel, datum in re.findall(
+            r'<a [^>]*href="([^"]*/blog/[^"]+)"[^>]*>(?:(?!</a>).){0,1500}?<h3[^>]*>([^<]+)</h3>\s*<div[^>]*>'
+            r'\s*<span[^>]*>([A-Z][a-z]{2,8} \d{1,2}, \d{4})</span>', seite, re.S):
+        url = link if link.startswith("http") else "https://seed.bytedance.com" + link
+        if url not in gesehen:     # die Startseite rendert den Block mehrfach (Desktop/Mobil)
+            gesehen.add(url)
+            out.append(_eintrag(titel, url, datum))
+    return out
+
+
+def lies_zai(seite):
+    """docs.z.ai Release Notes: <div ... update-container" id="2026-08-26">, darin zuerst das
+    Datum, dann der Modellname ("GLM-5.3-Flash"), dann die Beschreibung."""
+    out = []
+    bloecke = re.split(r'update-container" id="(\d{4}-\d{2}-\d{2})"', seite)
+    for datum, teil in zip(bloecke[1::2], bloecke[2::2]):
+        txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", teil[:8000]))).replace("​", "")
+        txt = txt.split(datum, 1)[-1].strip(" >")
+        name = txt.split(" ", 1)[0]
+        out.append(_eintrag(name, f"https://docs.z.ai/release-notes/new-released#{datum}", datum,
+                            text=_text(txt[len(name):])))
+    return out
+
+
+MS_MAX_BEITRAEGE = 4
+
+
+def lies_microsoft(seite):
+    """microsoft.ai/blog: Karten <a title="<Titel> Link" href="https://microsoft.ai/news/<slug>/">,
+    ohne Datum. Die neuesten MS_MAX_BEITRAEGE Beitraege werden geoeffnet (datePublished im JSON-LD).
+    Der Feed microsoft.ai/feed/ ist leer (26.10.)."""
+    out, gesehen = [], set()
+    for titel, url in re.findall(r'title="([^"]+?) Link"\s+href="(https://microsoft\.ai/news/[^"]+)"', seite):
+        if url in gesehen:
+            continue
+        gesehen.add(url)
+        if len(gesehen) > MS_MAX_BEITRAEGE:
+            break
+        try:
+            s = _get(url, timeout=15)
+        except Exception:
+            continue
+        d = re.search(r'"datePublished":"([^"]+)"', s)
+        og = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]*)"', s)
+        if d:
+            out.append(_eintrag(html.unescape(titel), url, d.group(1), poster=og.group(1) if og else ""))
+    return out
+
+
+def lies_bfl(seite):
+    """bfl.ai/blog: <a aria-label="Read blog post: <Titel>" href="/blog/<slug>"> mit
+    <time dateTime="2026-10-15T15:00:00.000Z"> in der Karte (nicht jede Karte hat eins)."""
+    out = []
+    for titel, slug, karte in re.findall(
+            r'<a [^>]*aria-label="Read blog post: ([^"]+)"[^>]*href="/blog/([^"]+)"[^>]*>(.*?)</a>', seite, re.S):
+        d = re.search(r'<time[^>]*dateTime="([^"]+)"', karte)
+        if d:
+            out.append(_eintrag(html.unescape(titel), f"https://bfl.ai/blog/{slug}", d.group(1)))
+    return out
+
+
 def og_tags(url):
     """og:image / og:video / og:description der offiziellen Release-Seite."""
     try:
@@ -363,7 +480,9 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
         try:
             roh = _get(url)
             items = {"rss": lies_rss, "anthropic": lies_anthropic, "deepseek": lies_deepseek,
-                     "elevenlabs": lies_elevenlabs, "kimi": lies_kimi}[art](roh)
+                     "elevenlabs": lies_elevenlabs, "kimi": lies_kimi, "minimax": lies_minimax,
+                     "seed": lies_seed, "zai": lies_zai, "microsoft": lies_microsoft,
+                     "bfl": lies_bfl}[art](roh)
             ok_hersteller.add(hersteller)
         except Exception as e:
             fehl.append(f"{hersteller} ({url}): {type(e).__name__}: {e}")
@@ -372,8 +491,9 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
         for it in items:
             if not it["datum"] or not (grenze <= it["datum"] <= heute + timedelta(days=1)):
                 continue
-            modell = modell_aus_titel(it["titel"])
-            if not modell:
+            familie, ueberall = QUELLEN_FAMILIE.get(hersteller, (None, False))
+            modell = modell_aus_titel(it["titel"], ueberall=ueberall)
+            if not modell or (familie and not re.match(familie, modell, re.IGNORECASE)):
                 continue
             key = (hersteller, modell.lower())
             # frueheste Meldung eines Modells gewinnt (die Ankuendigung, nicht der Nachklapp)
