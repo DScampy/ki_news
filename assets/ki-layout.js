@@ -221,6 +221,15 @@
     '.kl-ov-video-mute{position:absolute;right:10px;bottom:10px;z-index:2;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;pointer-events:none;}',
     '.kl-ov-video-mute.kl-ov-ton-an{width:auto;height:auto;padding:9px 15px;border-radius:20px;background:rgba(0,212,255,0.94);color:#03121a;font:700 13px/1 sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.45);}',
     '.kl-ov-body{padding:22px 24px 24px;}',
+    /* Overlay zweispaltig (26.10.26, Daniel: "seh fast gar nicht, dass da was zum Scrollen ist"):
+       ab 1100 px steht Bild/Karte links fest, nur der Text rechts scrollt, unten blendet er aus. */
+    '@media (min-width:1100px){' +
+      '.kl-ov-card{display:grid;grid-template-columns:minmax(360px,0.95fr) minmax(0,1.05fr);max-width:1180px;height:min(88vh,760px);overflow:hidden;}' +
+      '.kl-ov-img-wrap,.kl-ov-img-wrap.kl-ov-card-mode{padding-top:0;height:100%;border-radius:14px 0 0 14px;}' +
+      '.kl-ov-body{overflow-y:auto;padding:36px 40px 72px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 64px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 64px),transparent);}' +
+      '.kl-ov-title{font-size:28px;}' +
+      '.kl-ov-summary{font-size:16px;}' +
+    '}',
     '.kl-ov-meta{font-size:11px;font-family:monospace;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted,#8b98a5);margin-bottom:8px;}',
     '.kl-ov-title{font-family:\'Space Grotesk\',sans-serif;font-size:22px;font-weight:800;line-height:1.28;color:var(--text,#e8f8ff);margin:0 0 12px;}',
     '.kl-ov-summary{font-family:\'Work Sans\',sans-serif;font-size:14.5px;line-height:1.6;color:var(--text,#e8f8ff);opacity:0.88;margin:0 0 16px;white-space:pre-line;}',
