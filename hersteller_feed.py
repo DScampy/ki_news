@@ -68,6 +68,11 @@ QUELLEN = [
     # gerendert (<article><h2><a href="/blog/..."> + <time datetime>). Eleven v4 (28.09.)
     # fehlte sonst in Kachel und Registry.
     ("ElevenLabs", "elevenlabs", "https://elevenlabs.io/blog"),
+    # 26.10.26 (Daniel): Kimi K3.1 Pro (24.10.) fehlte in der Kachel - es gab keine Kimi-Quelle.
+    # kimi.com/blog hat kein RSS, der Google-News-Feed aus ki_news.py kennt nur K3 (Juni).
+    # Die Uebersicht listet die Tech-Blogs neueste zuerst, Datum/Titel stehen nur auf der
+    # Beitragsseite, s. lies_kimi().
+    ("Moonshot Kimi", "kimi", "https://www.kimi.com/blog"),
 ]
 
 # Modellfamilien; danach muss eine Versionsnummer folgen (Muse Spark 1.1, GPT-6).
@@ -75,7 +80,7 @@ _FAMILIEN = (
     r"GPT|o\d|Claude(?:\s+(?:Opus|Sonnet|Haiku|Fable))?|Opus|Sonnet|Haiku|Fable|"
     r"Gemini|Gemma|Veo|Imagen|Lyria|WeatherNext|Llama|Muse(?:\s+(?:Spark|Image|Video))?|"
     r"Grok(?:\s+Imagine)?|Mistral(?:\s+(?:Large|Medium|Small))?|Magistral|Codestral|Devstral|"
-    r"Voxtral|Pixtral|Ministral|Qwen|DeepSeek|Kimi|GLM|ChatGPT\s+Images|"
+    r"Voxtral|Pixtral|Ministral|Qwen|DeepSeek|Kimi(?:[\s\-]?K)?|GLM|ChatGPT\s+Images|"  # Kimi K3.1 Pro, Kimi-K2.6
     r"Eleven(?:\s+(?:Music|Multilingual|Flash|Turbo))?|Scribe"
 )
 _ZUSATZ = (
@@ -216,6 +221,38 @@ def lies_deepseek(seite):
     return out
 
 
+KIMI_MAX_BEITRAEGE = 3
+
+
+def lies_kimi(seite):
+    """kimi.com/blog: Liste <a href="/blog/kimi-k3-1-pro">, neueste zuerst, Titel dort nur
+    chinesisch. Die ersten KIMI_MAX_BEITRAEGE Modell-Beitraege werden geoeffnet: Titel aus
+    og:title ("Kimi K3.1 Pro Tech Blog: ..."), Datum aus datePublished, sonst dateModified
+    (26.10.: K3.1 Pro hat nur dateModified 2026-10-24, K3 gar keins - ohne Datum kein Eintrag)."""
+    out = []
+    slugs = list(dict.fromkeys(re.findall(r'href="/blog/(kimi-[a-z0-9-]+)"', seite)))
+    for slug in slugs[:KIMI_MAX_BEITRAEGE]:
+        url = f"https://www.kimi.com/blog/{slug}"
+        try:
+            s = _get(url, timeout=15)
+        except Exception:
+            continue
+        roh = s.replace('\\"', '"')
+        d = (re.search(r'"datePublished":"(\d{4}-\d{2}-\d{2})', roh)
+             or re.search(r'"dateModified":"(\d{4}-\d{2}-\d{2})', roh))
+
+        def meta(name):
+            m = re.search(r'<meta[^>]+(?:property|name)="%s"[^>]+content="([^"]*)"' % name, s)
+            return html.unescape(m.group(1)) if m else ""
+
+        titel = meta("og:title")
+        if not d or not titel:
+            continue
+        out.append({"titel": titel, "url": url, "datum": _datum(d.group(1)),
+                    "text": meta("og:description"), "poster": meta("og:image"), "video_url": ""})
+    return out
+
+
 def og_tags(url):
     """og:image / og:video / og:description der offiziellen Release-Seite."""
     try:
@@ -326,7 +363,7 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
         try:
             roh = _get(url)
             items = {"rss": lies_rss, "anthropic": lies_anthropic, "deepseek": lies_deepseek,
-                     "elevenlabs": lies_elevenlabs}[art](roh)
+                     "elevenlabs": lies_elevenlabs, "kimi": lies_kimi}[art](roh)
             ok_hersteller.add(hersteller)
         except Exception as e:
             fehl.append(f"{hersteller} ({url}): {type(e).__name__}: {e}")
