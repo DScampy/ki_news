@@ -1995,9 +1995,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     main .max-w-\[1400px\] { max-width: min(92vw, 1840px); }
     main #pxk-kompakt .pxk-main { max-width: none; }
   }
-  @media (min-width: 2200px) {
-    main #pxk-kompakt .pxk-news-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  }
 </style>
 </head>
 <body class="font-body-lg">
@@ -2187,9 +2184,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       --pxk-shadow-small: 0 9px 26px rgba(0, 0, 0, 0.22);
     }
 
-    @media (prefers-color-scheme: dark) {
-    }
-
     #pxk-kompakt *, #pxk-kompakt *::before, #pxk-kompakt *::after {
       box-sizing: border-box;
     }
@@ -2280,7 +2274,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       padding-block: 10px 34px;
     }
 
-    #pxk-kompakt .pxk-kicker, #pxk-kompakt .pxk-stand, #pxk-kompakt .pxk-count, #pxk-kompakt .pxk-tab-count, #pxk-kompakt .pxk-topic-meta, #pxk-kompakt .pxk-topic-rank, #pxk-kompakt .pxk-row-time, #pxk-kompakt .pxk-row-source, #pxk-kompakt .pxk-section-copy, #pxk-kompakt .pxk-dossier-meta, #pxk-kompakt .pxk-event-meta, #pxk-kompakt .pxk-footer, #pxk-kompakt .pxk-button-label, #pxk-kompakt .pxk-state-code, #pxk-kompakt .pxk-extra-rank, #pxk-kompakt .pxk-analysis-meta {
+    #pxk-kompakt .pxk-kicker, #pxk-kompakt .pxk-stand, #pxk-kompakt .pxk-count, #pxk-kompakt .pxk-section-copy, #pxk-kompakt .pxk-dossier-meta, #pxk-kompakt .pxk-event-meta, #pxk-kompakt .pxk-footer, #pxk-kompakt .pxk-button-label, #pxk-kompakt .pxk-state-code, #pxk-kompakt .pxk-analysis-meta {
       font-family: var(--pxk-mono);
     }
 
@@ -2493,238 +2487,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       --pxk-accent: var(--pxk-cyan);
     }
 
-    #pxk-kompakt .pxk-tabs {
-      position: relative;
-      margin-bottom: 9px;
-      padding-right: 20px;
-    }
-
-    #pxk-kompakt .pxk-tab {
-      --pxk-tab-accent: var(--pxk-cyan);
-      display: inline-flex;
-      min-height: 36px;
-      flex: 0 0 auto;
-      align-items: center;
-      gap: 7px;
-      padding: 0 9px 0 11px;
-      border: 1px solid var(--pxk-line);
-      border-radius: 999px;
-      color: var(--pxk-muted);
-      background: var(--pxk-solid);
-      font-size: 0.7rem;
-      font-weight: 820;
-      line-height: 1;
-      white-space: nowrap;
-      transition:
-        color 150ms ease,
-        border-color 150ms ease,
-        background 150ms ease;
-    }
-
-    #pxk-kompakt .pxk-tab:hover {
-      color: var(--pxk-text);
-      border-color: var(--pxk-tab-accent);
-    }
-
-    #pxk-kompakt .pxk-tab[aria-selected="true"] {
-      color: var(--pxk-text);
-      border-color: var(--pxk-tab-accent);
-      background: rgba(127, 127, 127, 0.05);
-      background: color-mix(in srgb, var(--pxk-tab-accent) 12%, var(--pxk-solid));
-      box-shadow: 0 0 14px rgba(0, 212, 255, 0.08);
-    }
-
-    #pxk-kompakt .pxk-tab-count {
-      display: inline-grid;
-      min-width: 22px;
-      height: 21px;
-      padding-inline: 5px;
-      place-items: center;
-      border-radius: 999px;
-      color: #07131a;
-      background: var(--pxk-tab-accent);
-      font-size: 0.56rem;
-      font-weight: 950;
-    }
-
-    #pxk-kompakt .pxk-topic-panel {
-      --pxk-accent: var(--pxk-cyan);
-      padding: 10px;
-      border: 1px solid var(--pxk-accent);
-      border-radius: 12px;
-      background: var(--pxk-solid);
-      box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.1);
-      scroll-margin-top: 78px;
-    }
-
-    #pxk-kompakt .pxk-topic-panel-head {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 9px;
-    }
-
-    #pxk-kompakt .pxk-topic-panel-title {
-      margin: 0;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.1rem;
-      font-weight: 750;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-    }
-
-    #pxk-kompakt .pxk-topic-panel-meta {
-      margin: 3px 0 0;
-      color: var(--pxk-muted);
-      font-size: 0.65rem;
-      line-height: 1.35;
-    }
-
-    #pxk-kompakt .pxk-view-switch {
-      display: inline-flex;
-      gap: 2px;
-      padding: 3px;
-      border: 1px solid var(--pxk-line);
-      border-radius: 10px;
-      background: var(--pxk-soft);
-    }
-
-    #pxk-kompakt .pxk-view-button {
-      min-height: 29px;
-      padding: 0 8px;
-      border: 0;
-      border-radius: 7px;
-      color: var(--pxk-muted);
-      background: transparent;
-      font-size: 0.61rem;
-      font-weight: 850;
-    }
-
-    #pxk-kompakt .pxk-view-button[aria-pressed="true"] {
-      color: #07131a;
-      background: var(--pxk-accent);
-    }
-
-    #pxk-kompakt .pxk-topic-bento, #pxk-kompakt .pxk-topic-extra {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 7px;
-    }
-
-    #pxk-kompakt .pxk-topic-card {
-      position: relative;
-      display: grid;
-      grid-template-columns: 31px minmax(0, 1fr);
-      gap: 8px;
-      align-items: start;
-      min-height: 104px;
-      padding: 9px;
-      overflow: hidden;
-      border: 1px solid var(--pxk-line);
-      border-radius: 12px;
-      background: var(--pxk-soft);
-    }
-
-    #pxk-kompakt .pxk-topic-card::before {
-      position: absolute;
-      top: 9px;
-      bottom: 9px;
-      left: 0;
-      width: 2px;
-      border-radius: 0 4px 4px 0;
-      background: var(--pxk-accent);
-      content: "";
-    }
-
-    #pxk-kompakt .pxk-topic-rank, #pxk-kompakt .pxk-extra-rank {
-      display: grid;
-      width: 28px;
-      height: 28px;
-      place-items: center;
-      border: 1px solid var(--pxk-accent);
-      border-radius: 8px;
-      color: var(--pxk-accent);
-      background: var(--pxk-solid);
-      font-size: 0.59rem;
-      font-weight: 950;
-    }
-
-    #pxk-kompakt .pxk-topic-body {
-      min-width: 0;
-    }
-
-    #pxk-kompakt .pxk-topic-title {
-      display: -webkit-box;
-      margin: 0;
-      overflow: hidden;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 0.82rem;
-      font-weight: 700;
-      line-height: 1.3;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-    }
-
-    #pxk-kompakt .pxk-topic-title a {
-      text-decoration: none;
-    }
-
-    #pxk-kompakt .pxk-topic-title a:hover {
-      color: var(--pxk-accent);
-    }
-
-    #pxk-kompakt .pxk-topic-summary {
-      display: -webkit-box;
-      margin: 4px 0 0;
-      overflow: hidden;
-      color: var(--pxk-muted);
-      font-size: 0.64rem;
-      line-height: 1.37;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-    }
-
-    #pxk-kompakt .pxk-topic-meta {
-      display: flex;
-      gap: 5px;
-      margin-top: 6px;
-      overflow: hidden;
-      color: var(--pxk-faint);
-      font-size: 0.54rem;
-      line-height: 1.25;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-card {
-      min-height: 65px;
-      align-items: center;
-      padding-block: 7px;
-    }
-
-    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-summary {
-      display: none;
-    }
-
-    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-title {
-      -webkit-line-clamp: 1;
-    }
-
-    #pxk-kompakt .pxk-topic-panel[data-view="compact"] .pxk-topic-meta {
-      margin-top: 3px;
-    }
-
-    #pxk-kompakt .pxk-topic-extra {
-      margin-top: 7px;
-      padding-top: 7px;
-      border-top: 1px dashed var(--pxk-line-strong);
-    }
-
-    #pxk-kompakt .pxk-topic-extra .pxk-topic-card {
-      min-height: 86px;
-    }
-
     #pxk-kompakt .pxk-more {
       display: flex;
       width: 100%;
@@ -2762,100 +2524,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
     #pxk-kompakt .pxk-latest {
       --pxk-accent: var(--pxk-violet);
-    }
-
-    #pxk-kompakt .pxk-news-list {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px;
-    }
-
-    #pxk-kompakt .pxk-news-row {
-      position: relative;
-      display: grid;
-      grid-template-columns: 58px minmax(0, 1fr) 18px;
-      gap: 8px;
-      align-items: center;
-      min-height: 70px;
-      padding: 8px 9px;
-      overflow: hidden;
-      border: 1px solid var(--pxk-line);
-      border-radius: 12px;
-      background: var(--pxk-solid);
-    }
-
-    #pxk-kompakt .pxk-news-row::before {
-      position: absolute;
-      top: 10px;
-      bottom: 10px;
-      left: 0;
-      width: 2px;
-      background: var(--pxk-violet);
-      content: "";
-      opacity: 0.82;
-    }
-
-    #pxk-kompakt .pxk-row-time {
-      color: var(--pxk-violet-ink);
-      font-size: 0.57rem;
-      font-weight: 950;
-      line-height: 1.2;
-      text-align: center;
-      text-transform: uppercase;
-    }
-
-    #pxk-kompakt .pxk-row-body {
-      min-width: 0;
-    }
-
-    #pxk-kompakt .pxk-row-title {
-      display: -webkit-box;
-      margin: 0;
-      overflow: hidden;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 0.8rem;
-      font-weight: 700;
-      line-height: 1.28;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
-    }
-
-    #pxk-kompakt .pxk-row-title a {
-      text-decoration: none;
-    }
-
-    #pxk-kompakt .pxk-row-title a:hover {
-      color: var(--pxk-violet-ink);
-    }
-
-    #pxk-kompakt .pxk-row-summary {
-      display: -webkit-box;
-      margin: 3px 0 0;
-      overflow: hidden;
-      color: var(--pxk-muted);
-      font-size: 0.63rem;
-      line-height: 1.31;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
-    }
-
-    #pxk-kompakt .pxk-row-source {
-      display: block;
-      margin-top: 3px;
-      overflow: hidden;
-      color: var(--pxk-faint);
-      font-size: 0.51rem;
-      font-weight: 700;
-      letter-spacing: 0.035em;
-      text-overflow: ellipsis;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    #pxk-kompakt .pxk-row-arrow {
-      color: var(--pxk-violet-ink);
-      font-size: 0.84rem;
-      text-align: right;
     }
 
     #pxk-kompakt .pxk-dossiers {
@@ -3180,27 +2848,9 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     }
 
     @media (hover: hover) and (pointer: fine) {
-      #pxk-kompakt .pxk-news-row:hover, #pxk-kompakt .pxk-topic-card:hover, #pxk-kompakt .pxk-dossier-card:hover, #pxk-kompakt .pxk-analysis-card:hover {
+      #pxk-kompakt .pxk-dossier-card:hover, #pxk-kompakt .pxk-analysis-card:hover {
         border-color: var(--pxk-accent);
         box-shadow: 0 0 15px rgba(0, 212, 255, 0.08);
-      }
-    }
-
-    @media (max-width: 920px) {
-      #pxk-kompakt .pxk-topic-bento, #pxk-kompakt .pxk-topic-extra {
-        grid-template-columns: 1fr;
-      }
-
-      #pxk-kompakt .pxk-topic-card {
-        min-height: 76px;
-      }
-
-      #pxk-kompakt .pxk-topic-title {
-        -webkit-line-clamp: 1;
-      }
-
-      #pxk-kompakt .pxk-topic-summary {
-        -webkit-line-clamp: 1;
       }
     }
 
@@ -3301,78 +2951,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         line-height: 1.25;
       }
 
-      #pxk-kompakt .pxk-tabs {
-        margin-bottom: 7px;
-      }
-
-      #pxk-kompakt .pxk-tab {
-        min-height: 33px;
-        padding-inline: 9px;
-        font-size: 0.65rem;
-      }
-
-      #pxk-kompakt .pxk-tab-count {
-        min-width: 20px;
-        height: 19px;
-        font-size: 0.52rem;
-      }
-
-      #pxk-kompakt .pxk-topic-panel {
-        padding: 8px;
-      }
-
-      #pxk-kompakt .pxk-topic-panel-head {
-        gap: 7px;
-        margin-bottom: 7px;
-      }
-
-      #pxk-kompakt .pxk-topic-panel-title {
-        font-size: 0.99rem;
-      }
-
-      #pxk-kompakt .pxk-topic-panel-meta {
-        font-size: 0.58rem;
-      }
-
-      #pxk-kompakt .pxk-view-button {
-        min-height: 27px;
-        padding-inline: 6px;
-        font-size: 0.55rem;
-      }
-
-      #pxk-kompakt .pxk-topic-card {
-        min-height: 79px;
-        gap: 7px;
-        padding: 8px;
-      }
-
-      #pxk-kompakt .pxk-topic-rank, #pxk-kompakt .pxk-extra-rank {
-        width: 26px;
-        height: 26px;
-        border-radius: 7px;
-        font-size: 0.54rem;
-      }
-
-      #pxk-kompakt .pxk-topic-title {
-        font-size: 0.78rem;
-        line-height: 1.29;
-      }
-
-      #pxk-kompakt .pxk-topic-summary {
-        margin-top: 3px;
-        font-size: 0.62rem;
-        line-height: 1.33;
-      }
-
-      #pxk-kompakt .pxk-topic-meta {
-        margin-top: 4px;
-        font-size: 0.51rem;
-      }
-
-      #pxk-kompakt .pxk-topic-extra .pxk-topic-card {
-        min-height: 79px;
-      }
-
       #pxk-kompakt .pxk-more {
         min-height: 36px;
         margin-top: 6px;
@@ -3380,36 +2958,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
       #pxk-kompakt .pxk-button-label {
         font-size: 0.59rem;
-      }
-
-      #pxk-kompakt .pxk-news-list {
-        grid-template-columns: 1fr;
-        gap: 5px;
-      }
-
-      #pxk-kompakt .pxk-news-row {
-        grid-template-columns: 49px minmax(0, 1fr) 15px;
-        min-height: 72px;
-        gap: 7px;
-        padding: 8px;
-      }
-
-      #pxk-kompakt .pxk-row-time {
-        font-size: 0.52rem;
-      }
-
-      #pxk-kompakt .pxk-row-title {
-        font-size: 0.78rem;
-        line-height: 1.28;
-      }
-
-      #pxk-kompakt .pxk-row-summary {
-        font-size: 0.62rem;
-        line-height: 1.32;
-      }
-
-      #pxk-kompakt .pxk-row-source {
-        font-size: 0.49rem;
       }
 
       #pxk-kompakt .pxk-dossier-card {
@@ -3456,14 +3004,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         max-width: 235px;
       }
 
-      #pxk-kompakt .pxk-topic-panel-meta {
-        max-width: 180px;
-      }
-
-      #pxk-kompakt .pxk-view-button {
-        padding-inline: 5px;
-      }
-
       #pxk-kompakt .pxk-morning-label > div {
         gap: 6px;
       }
@@ -3495,6 +3035,176 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   #pxk-kompakt { margin: 0 0 32px; border-radius: 16px; padding: clamp(12px, 2vw, 24px); }
   html.pxk-ok #news-grid { display: none !important; }
 </style>
+<style id="pxz-style">
+    /* Themenlage + Weitere Nachrichten (Designsprache 27.10.2026, Entwurf 26.10.):
+       keine Karten in Karten, Trennung nur über Linien, Reiter als Text, eine Akzentfarbe (--accent).
+       Schriften und Größen aus assets/ki-type.css. */
+    #pxk-kompakt .pxk-topics,
+    #pxk-kompakt .pxk-latest { padding: clamp(16px, 2vw, 32px); }
+    #pxk-kompakt .pxk-topics::before,
+    #pxk-kompakt .pxk-latest::before { display: none; }
+    #pxk-kompakt .pxk-topics .pxk-section-head,
+    #pxk-kompakt .pxk-latest .pxk-section-head {
+      align-items: baseline;
+      margin-bottom: 0;
+      padding-top: 14px;
+      border-top: 3px solid var(--pxk-text);
+    }
+    #pxk-kompakt .pxk-topics .pxk-count,
+    #pxk-kompakt .pxk-latest .pxk-count {
+      padding: 0;
+      border: 0;
+      background: none;
+      box-shadow: none;
+      color: var(--pxk-faint);
+    }
+    #pxk-kompakt .pxk-topics .pxk-count::before,
+    #pxk-kompakt .pxk-latest .pxk-count::before { display: none; }
+
+    #pxk-kompakt .pxz-reiter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 28px;
+      margin: 18px 0 0;
+      border-bottom: 1px solid var(--pxk-line);
+    }
+    #pxk-kompakt .pxz-reiter-tab {
+      margin-bottom: -1px;
+      padding: 10px 0 12px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: none;
+      color: var(--pxk-muted);
+      font: 500 var(--ki-fs-klein)/1.2 var(--ki-sans);
+      cursor: pointer;
+    }
+    #pxk-kompakt .pxz-reiter-tab:hover { color: var(--pxk-text); }
+    #pxk-kompakt .pxz-reiter-tab[aria-selected="true"] {
+      border-bottom-color: var(--accent);
+      color: var(--pxk-text);
+      font-weight: 600;
+    }
+    #pxk-kompakt .pxz-reiter-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    #pxk-kompakt .pxz-n {
+      margin-left: 5px;
+      color: var(--pxk-faint);
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #pxk-kompakt .pxz-t {
+      margin: 0 0 4px;
+      color: var(--pxk-text);
+      font: 600 var(--ki-fs-text)/1.3 var(--ki-serif);
+      font-variation-settings: "SOFT" 40;
+      letter-spacing: -0.01em;
+      text-wrap: balance;
+      hyphens: auto;
+    }
+    #pxk-kompakt .pxz-t a { color: inherit; text-decoration: none; }
+    #pxk-kompakt .pxz-t a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    #pxk-kompakt .pxz-teaser {
+      margin: 0 0 6px;
+      color: var(--pxk-muted);
+      font: 400 var(--ki-fs-klein)/1.5 var(--ki-sans);
+      text-wrap: pretty;
+      hyphens: auto;
+    }
+    #pxk-kompakt .pxz-meta {
+      margin: 0;
+      color: var(--pxk-faint);
+      font: 500 var(--ki-fs-meta)/1.35 var(--ki-sans);
+      font-variant-numeric: tabular-nums;
+    }
+    #pxk-kompakt .pxz-bild-gross,
+    #pxk-kompakt .pxz-bild-klein {
+      display: block;
+      width: 100%;
+      object-fit: cover;
+      border-radius: 3px;
+      background: var(--pxk-soft);
+    }
+    #pxk-kompakt .pxz-bild-gross { aspect-ratio: 16 / 9; margin-bottom: 14px; }
+    #pxk-kompakt .pxz-bild-klein { aspect-ratio: 4 / 3; }
+
+    #pxk-kompakt .pxz-block {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 28px 36px;
+      padding-top: 24px;
+    }
+    #pxk-kompakt .pxz-auf .pxz-t {
+      margin-bottom: 8px;
+      font-size: clamp(1.375rem, 1rem + 1vw, var(--ki-fs-h3));
+      line-height: 1.16;
+    }
+    #pxk-kompakt .pxz-auf .pxz-teaser { font-size: var(--ki-fs-text); }
+    #pxk-kompakt .pxz-neben-liste { display: grid; align-content: start; gap: 22px; }
+    #pxk-kompakt .pxz-neben {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+    #pxk-kompakt .pxz-neben.pxz-ohne-bild { grid-template-columns: minmax(0, 1fr); }
+    #pxk-kompakt .pxz-schlag { margin: 0; padding: 0; list-style: none; }
+    #pxk-kompakt .pxz-schlag li { padding: 11px 0; border-top: 1px solid var(--pxk-line); break-inside: avoid; }
+    #pxk-kompakt .pxz-schlag .pxz-t { font-weight: 500; line-height: 1.35; }
+
+    @media (min-width: 700px) and (max-width: 1399px) {
+      #pxk-kompakt .pxz-schlag { grid-column: 1 / -1; columns: 2; column-gap: 40px; }
+    }
+    @media (min-width: 900px) {
+      #pxk-kompakt .pxz-block { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+    }
+    @media (min-width: 1400px) {
+      #pxk-kompakt .pxz-block { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); }
+      #pxk-kompakt .pxz-schlag li:first-child { padding-top: 0; border-top: 0; }
+    }
+
+    #pxk-kompakt .pxz-tag-titel {
+      margin: 26px 0 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--pxk-text);
+      color: var(--pxk-muted);
+      font: 600 var(--ki-fs-klein)/1.3 var(--ki-sans);
+    }
+    #pxk-kompakt .pxz-liste { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 48px; }
+    #pxk-kompakt .pxz-zeile {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: start;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--pxk-line);
+    }
+    #pxk-kompakt .pxz-zeile .pxz-teaser {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    #pxk-kompakt .pxz-zeile .pxz-bild-klein { width: 112px; }
+    @media (min-width: 1100px) {
+      #pxk-kompakt .pxz-liste { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1700px) {
+      #pxk-kompakt .pxz-liste { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 700px) {
+      /* Reiter am Handy in einer Zeile zum Wischen statt vier umbrochener Zeilen */
+      #pxk-kompakt .pxz-reiter {
+        flex-wrap: nowrap;
+        gap: 0 20px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      #pxk-kompakt .pxz-reiter::-webkit-scrollbar { display: none; }
+      #pxk-kompakt .pxz-reiter-tab { flex: none; white-space: nowrap; }
+      #pxk-kompakt .pxz-neben { grid-template-columns: 96px minmax(0, 1fr); }
+      #pxk-kompakt .pxz-zeile .pxz-bild-klein { width: 76px; }
+    }
+</style>
 <section id="pxk-kompakt" aria-label="Meldungen nach Thema">
 <div
     id="pxk-main"
@@ -3522,25 +3232,24 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       <header class="pxk-section-head">
         <div>
           <p class="pxk-section-kicker">Themenlage</p>
-          <h2 class="pxk-section-title" id="pxk-topics-heading">Drei Meldungen je Thema</h2>
+          <h2 class="pxk-section-title" id="pxk-topics-heading">Meldungen nach Thema</h2>
           <p class="pxk-section-copy">Thema wählen und die vollständige Liste aufklappen.</p>
         </div>
         <span class="pxk-count" id="pxk-topic-count">Lädt</span>
       </header>
 
       <div
-        class="pxk-rail pxk-tabs"
+        class="pxz-reiter"
         id="pxk-tabs"
         role="tablist"
         aria-label="Nachrichtenthemen"
       ></div>
 
       <article
-        class="pxk-topic-panel"
+        class="pxz-thema"
         id="pxk-topic-panel"
         role="tabpanel"
         aria-labelledby="pxk-topics-heading"
-        data-view="cards"
       >
         <div class="pxk-skeleton" aria-hidden="true"></div>
       </article>
@@ -3567,7 +3276,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         <span class="pxk-count" id="pxk-latest-count">0</span>
       </header>
 
-      <div class="pxk-news-list" id="pxk-news-list">
+      <div class="pxz-tage" id="pxk-news-list">
         <div class="pxk-skeleton" aria-hidden="true"></div>
         <div class="pxk-skeleton" aria-hidden="true"></div>
         <div class="pxk-skeleton" aria-hidden="true"></div>
@@ -3802,25 +3511,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       let shownNews = 6;
       let shownAnalyses = 6;
       let analysisItems = [];
-      let viewMode = "cards";
       let requestId = 0;
       let activeControllers = [];
-      let storedViewFound = false;
-
-      try {
-        const storedView = localStorage.getItem("ki-news-start-compact-view-v2");
-        storedViewFound = storedView === "cards" || storedView === "compact";
-
-        if (storedViewFound) {
-          viewMode = storedView;
-        } else {
-          viewMode = window.matchMedia("(max-width: 700px)").matches
-            ? "compact"
-            : "cards";
-        }
-      } catch (error) {
-        viewMode = "cards";
-      }
 
       function create(tag, className, text) {
         const element = document.createElement(tag);
@@ -4145,6 +3837,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
           title,
           summary: cleanText(raw.summary).slice(0, 420),
           link: safeUrl(firstUrl(raw.link || raw.url)),
+          // 640-px-Spiegel auf dscampy.github.io; Fremd-Bild-URLs (raw.image) bewusst nicht
+          image: safeUrl(firstUrl(raw.image_local)),
           source: cleanText(
             raw.source || raw.publisher,
             "Quelle offen"
@@ -4313,69 +4007,74 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         refs.morningRail.appendChild(fragment);
       }
 
-      function setViewMode(mode, persist = true) {
-        if (mode !== "cards" && mode !== "compact") return;
+      // Themenblock nach Entwurf 26.10.: Aufmacher, zwei Nebenmeldungen, Schlagzeilen.
+      // Keine Karten in Karten, Trennung nur über Linien.
+      const TOPIC_VISIBLE = 9;
+      let shownInBlock = new Set();
 
-        viewMode = mode;
-        refs.topicPanel.dataset.view = mode;
+      function makeImage(item, className) {
+        if (!item.image) return null;
 
-        refs.topicPanel.querySelectorAll("[data-pxk-view]").forEach((button) => {
-          button.setAttribute(
-            "aria-pressed",
-            String(button.dataset.pxView === mode)
-          );
+        const img = create("img", className);
+        img.src = item.image;
+        img.alt = "";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.addEventListener("error", () => {
+          const box = img.closest(".pxz-neben");
+          if (box) box.classList.add("pxz-ohne-bild");
+          img.remove();
         });
-
-        if (!persist) return;
-
-        try {
-          localStorage.setItem("ki-news-start-compact-view-v2", mode);
-        } catch (error) {
-          // Die Ansicht bleibt auch ohne localStorage nutzbar.
-        }
+        return img;
       }
 
-      function makeTopicCard(item, rank) {
-        const card = create("article", "pxk-topic-card");
-        const body = create("div", "pxk-topic-body");
-        const metaParts = [item.source, formatShortDate(item)].filter(Boolean);
-
-        body.appendChild(
-          createExternalTitle("h3", item, "pxk-topic-title")
+      function makeMeta(item, withDate) {
+        const date = withDate ? formatShortDate(item) : "";
+        return create(
+          "p",
+          "pxz-meta",
+          [item.source, date === "OFFEN" ? "" : date].filter(Boolean).join(" · ")
         );
+      }
 
+      function makeLead(item) {
+        const lead = create("article", "pxz-auf");
+        const img = makeImage(item, "pxz-bild-gross");
+        if (img) lead.appendChild(img);
+
+        lead.appendChild(createExternalTitle("h3", item, "pxz-t"));
         if (item.summary) {
-          body.appendChild(
-            create("p", "pxk-topic-summary", item.summary)
-          );
+          lead.appendChild(create("p", "pxz-teaser", item.summary));
         }
+        lead.appendChild(makeMeta(item, true));
+        return lead;
+      }
 
-        body.appendChild(
-          create(
-            "p",
-            "pxk-topic-meta",
-            metaParts.length ? metaParts.join(" / ") : "Quelle offen"
-          )
-        );
+      function makeSide(item) {
+        const side = create("article", "pxz-neben");
+        const img = makeImage(item, "pxz-bild-klein");
+        const text = create("div");
 
-        card.append(
-          create(
-            "span",
-            rank > 3 ? "pxk-extra-rank" : "pxk-topic-rank",
-            String(rank).padStart(2, "0")
-          ),
-          body
-        );
+        if (img) side.appendChild(img);
+        else side.classList.add("pxz-ohne-bild");
 
-        return card;
+        text.append(createExternalTitle("h3", item, "pxz-t"), makeMeta(item, true));
+        side.appendChild(text);
+        return side;
+      }
+
+      function makeHeadline(item) {
+        const line = create("li");
+        line.append(createExternalTitle("p", item, "pxz-t"), makeMeta(item, true));
+        return line;
       }
 
       function renderSelectedTheme() {
         const group = newsGroups.get(selectedThemeId);
         refs.topicPanel.replaceChildren();
+        shownInBlock = new Set();
 
         if (!group) {
-          refs.topicPanel.style.setProperty("--pxk-accent", "#94a3b8");
           refs.topicPanel.setAttribute("aria-labelledby", "pxk-topics-heading");
           refs.topicPanel.appendChild(makeState(
             "0",
@@ -4386,82 +4085,46 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
           return;
         }
 
-        refs.topicPanel.style.setProperty("--pxk-accent", group.theme.color);
-        refs.topicPanel.setAttribute("aria-labelledby", "pxk-topic-panel-title");
+        refs.topicPanel.setAttribute("aria-labelledby", "pxk-tab-" + group.theme.id);
 
-        const head = create("div", "pxk-topic-panel-head");
-        const copy = create("div");
-        const title = create(
-          "h3",
-          "pxk-topic-panel-title",
-          group.theme.label
-        );
-        title.id = "pxk-topic-panel-title";
-
-        copy.append(
-          title,
-          create(
-            "p",
-            "pxk-topic-panel-meta",
-            numberFormat.format(group.items.length) +
-            " Meldungen im Themenblock"
-          )
+        // Aufmacher: die erste der drei wichtigsten Meldungen mit Bild
+        const top = group.items.slice(0, 3);
+        const lead = top.find((item) => item.image) || top[0];
+        const sides = top.filter((item) => item !== lead);
+        const headlines = group.items.slice(
+          3,
+          selectedThemeExpanded ? group.items.length : TOPIC_VISIBLE
         );
 
-        const view = create("div", "pxk-view-switch");
-        view.setAttribute("aria-label", "Themenkarten darstellen");
+        const block = create("div", "pxz-block");
+        block.appendChild(makeLead(lead));
 
-        ["cards", "compact"].forEach((mode) => {
-          const button = create(
-            "button",
-            "pxk-view-button",
-            mode === "cards" ? "Karten" : "Kompakt"
-          );
-
-          button.type = "button";
-          button.dataset.pxView = mode;
-          button.setAttribute("aria-pressed", String(mode === viewMode));
-          button.addEventListener("click", () => setViewMode(mode));
-          view.appendChild(button);
-        });
-
-        head.append(copy, view);
-        refs.topicPanel.appendChild(head);
-
-        const topGrid = create("div", "pxk-topic-bento");
-
-        group.items.slice(0, 3).forEach((item, index) => {
-          topGrid.appendChild(makeTopicCard(item, index + 1));
-        });
-
-        refs.topicPanel.appendChild(topGrid);
-
-        const extraCount = Math.max(0, group.items.length - 3);
-        const extra = create("div", "pxk-topic-extra");
-        extra.id = "pxk-topic-extra";
-
-        if (selectedThemeExpanded) {
-          group.items.slice(3).forEach((item, index) => {
-            extra.appendChild(makeTopicCard(item, index + 4));
-          });
+        if (sides.length) {
+          const sideList = create("div", "pxz-neben-liste");
+          sides.forEach((item) => sideList.appendChild(makeSide(item)));
+          block.appendChild(sideList);
         }
 
-        extra.hidden = !selectedThemeExpanded;
-        refs.topicPanel.appendChild(extra);
+        if (headlines.length) {
+          const list = create("ul", "pxz-schlag");
+          headlines.forEach((item) => list.appendChild(makeHeadline(item)));
+          block.appendChild(list);
+        }
 
-        refs.topicMore.hidden = extraCount <= 0;
+        refs.topicPanel.appendChild(block);
+        top.concat(headlines).forEach((item) => shownInBlock.add(item));
+
+        refs.topicMore.hidden = group.items.length <= TOPIC_VISIBLE;
         refs.topicMore.setAttribute(
           "aria-expanded",
           String(selectedThemeExpanded)
         );
-        refs.topicMore.setAttribute("aria-controls", "pxk-topic-extra");
+        refs.topicMore.setAttribute("aria-controls", "pxk-topic-panel");
         refs.topicMore.querySelector(".pxk-button-label").textContent =
           selectedThemeExpanded
             ? "Themenliste schließen"
-            : numberFormat.format(extraCount) +
-              " weitere Meldungen öffnen";
-
-        setViewMode(viewMode, false);
+            : "Alle " + numberFormat.format(group.items.length) +
+              " Meldungen zu " + group.theme.label;
       }
 
       function selectTheme(themeId, shouldScroll) {
@@ -4477,6 +4140,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         });
 
         renderSelectedTheme();
+        renderNewsList();
 
         if (shouldScroll) {
           requestAnimationFrame(() => {
@@ -4497,11 +4161,10 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
           const group = newsGroups.get(theme.id);
           if (!group) return;
 
-          const button = create("button", "pxk-tab");
+          const button = create("button", "pxz-reiter-tab");
           button.type = "button";
           button.id = "pxk-tab-" + theme.id;
           button.dataset.pxTheme = theme.id;
-          button.style.setProperty("--pxk-tab-accent", theme.color);
           button.setAttribute("role", "tab");
           button.setAttribute("aria-controls", "pxk-topic-panel");
           button.setAttribute(
@@ -4514,7 +4177,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
             document.createTextNode(theme.label),
             create(
               "span",
-              "pxk-tab-count",
+              "pxz-n",
               numberFormat.format(group.items.length)
             )
           );
@@ -4562,60 +4225,90 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         });
       }
 
+      const dayKeyFormat = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: "Europe/Berlin"
+      });
+      const dayLabelFormat = new Intl.DateTimeFormat("de-DE", {
+        timeZone: "Europe/Berlin",
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      });
+
+      function dayKey(item) {
+        return item.timestamp ? dayKeyFormat.format(new Date(item.timestamp)) : "";
+      }
+
+      function dayLabel(item) {
+        const key = dayKey(item);
+        if (!key) return "Ohne Datum";
+
+        const label = dayLabelFormat.format(new Date(item.timestamp));
+        const diff = Math.round(
+          (Date.parse(dayKeyFormat.format(new Date())) - Date.parse(key)) / 86400000
+        );
+
+        if (diff === 0) return "Heute · " + label;
+        if (diff === 1) return "Gestern · " + label;
+        return label;
+      }
+
       function makeNewsRow(item) {
-        const row = create("article", "pxk-news-row");
-        const body = create("div", "pxk-row-body");
+        const row = create("article", "pxz-zeile");
+        const body = create("div");
 
-        body.appendChild(
-          createExternalTitle("p", item, "pxk-row-title")
-        );
-
+        body.appendChild(createExternalTitle("h4", item, "pxz-t"));
         if (item.summary) {
-          body.appendChild(
-            create("p", "pxk-row-summary", item.summary)
-          );
+          body.appendChild(create("p", "pxz-teaser", item.summary));
         }
+        body.appendChild(makeMeta(item, false));
+        row.appendChild(body);
 
-        body.appendChild(
-          create("span", "pxk-row-source", item.source)
-        );
-
-        row.append(
-          create("span", "pxk-row-time", formatRowTime(item)),
-          body,
-          create("span", "pxk-row-arrow", item.link ? "↗" : "·")
-        );
-
+        const img = makeImage(item, "pxz-bild-klein");
+        if (img) row.appendChild(img);
         return row;
       }
 
       function renderNewsList() {
         refs.newsList.replaceChildren();
 
-        if (!remainingItems.length) {
+        const visible = remainingItems.filter((item) => !shownInBlock.has(item));
+        refs.latestCount.textContent = numberFormat.format(visible.length);
+
+        if (!visible.length) {
           refs.newsList.appendChild(makeState(
             "0",
             newsItems.length ? "Alles eingeordnet" : "Keine Meldungen",
             newsItems.length
-              ? "Die drei wichtigsten Meldungen jedes Themas stehen oben."
+              ? "Die wichtigsten Meldungen jedes Themas stehen oben."
               : "Der aktuelle Datenstand enthält keine verwertbare Nachricht."
           ));
           refs.newsMore.hidden = true;
           return;
         }
 
+        const days = new Map();
+
+        visible.slice(0, shownNews).forEach((item) => {
+          const key = dayKey(item);
+          if (!days.has(key)) days.set(key, []);
+          days.get(key).push(item);
+        });
+
         const fragment = document.createDocumentFragment();
 
-        remainingItems.slice(0, shownNews).forEach((item) => {
-          fragment.appendChild(makeNewsRow(item));
+        days.forEach((items) => {
+          const day = create("section", "pxz-tag");
+          const list = create("div", "pxz-liste");
+
+          items.forEach((item) => list.appendChild(makeNewsRow(item)));
+          day.append(create("h3", "pxz-tag-titel", dayLabel(items[0])), list);
+          fragment.appendChild(day);
         });
 
         refs.newsList.appendChild(fragment);
 
-        const hiddenCount = Math.max(
-          0,
-          remainingItems.length - shownNews
-        );
+        const hiddenCount = Math.max(0, visible.length - shownNews);
 
         refs.newsMore.hidden = hiddenCount <= 0;
         refs.newsMore.querySelector(".pxk-button-label").textContent =
@@ -5048,8 +4741,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         refs.topicCount.textContent = newsGroups.size
           ? numberFormat.format(newsGroups.size) + " Themen"
           : "0 Themen";
-        refs.latestCount.textContent =
-          numberFormat.format(remainingItems.length);
         refs.latestCopy.textContent = newsItems.length
           ? numberFormat.format(newsItems.length) +
             " Meldungen insgesamt, übrige nach Aktualität sortiert."
@@ -5203,10 +4894,11 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       refs.topicMore.addEventListener("click", () => {
         const group = newsGroups.get(selectedThemeId);
 
-        if (!group || group.items.length <= 3) return;
+        if (!group || group.items.length <= TOPIC_VISIBLE) return;
 
         selectedThemeExpanded = !selectedThemeExpanded;
         renderSelectedTheme();
+        renderNewsList();
       });
 
       refs.newsMore.addEventListener("click", () => {
@@ -5235,7 +4927,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         activeControllers = [];
       });
 
-      refs.topicPanel.dataset.view = viewMode;
       void loadAll();
     })();
   </script>
