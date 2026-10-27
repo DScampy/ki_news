@@ -5948,6 +5948,263 @@ def _linien_kapitel(linien, post_cache, news_list, archiv, feed_texte):
                 zaehler["bilder"], zaehler["llm"], zaehler["jev"], zaehler["volltext"])
 
 
+
+# -------------------------
+# Schlagzeile + Anriss fuer die Startseite (27.10.26)
+# -------------------------
+# Daniel 27.10.: "die Ueberschrift sollte knackig sein und der Fliesstext einladen, mehr
+# lesen zu wollen". title_de bleibt die woertliche Uebersetzung (Karten, Zuordnung, Vorlesen
+# und Dubletten haengen daran); fuer die Hero-Kandidaten kommen zwei NEUE Felder dazu:
+#   schlagzeile - max. SCHLAGZEILE_MAX_ZEICHEN, Name vorn, kein Punkt
+#   anriss      - 2 Saetze aus Titel, Zusammenfassung, Feed-Anriss und Artikelanfang
+# Die Website zeigt sie, wenn vorhanden, sonst wie bisher. Probe 27.10. (Gemini Flash Lite,
+# nur Titel + Zusammenfassung): Anrisse wiederholten den Titel, einer erfand "angesichts der
+# aktuellen Marktlage", eine Schlagzeile verdrehte den Sinn ("verbietet ... Einzelentwickler").
+# Darum: Artikelanfang als Stoff, Pflichtpruefung im Code und per Jev (fail-closed: ohne
+# Jev-Urteil wird nichts veroeffentlicht). Cache in post-cache.json unter "sz:<link>".
+# Kill-Switch: SCHLAGZEILEN_AKTIV = False.
+SCHLAGZEILEN_AKTIV = True
+SCHLAGZEILEN_KANDIDATEN = 8        # Hero zeigt 5 (+ gepinnte); Puffer fuer Umsortierung im Lauf
+SCHLAGZEILEN_MAX_SEKUNDEN = 120
+SCHLAGZEILE_MAX_ZEICHEN = 70
+ANRISS_MIN_ZEICHEN = 120
+ANRISS_MAX_ZEICHEN = 290    # Hero zeigt bis 4 Zeilen
+_SZ_VERSION = 1
+_SZ_VERBOTEN = X_TOR_VERBOTEN + ("stell dir vor", "bleibt abzuwarten", "wirft fragen auf",
+                                 "wirft die frage auf", "unterstreicht", "verdeutlicht",
+                                 "zeigt, wie", " wir ", " uns ", " unser")
+
+
+# Cookie-Wand (Golem), Uebersetzungsvermerk (Heise), Abo-Hinweise: kein Artikeltext
+_SZ_BOILERPLATE = ("cookie", "javascript", "privacy", "datenschutz", "newsletter", "abonn",
+                   "also available in english", "translated with technical assistance",
+                   "werbung und tracking", "subscribe", "sign up")
+
+
+def _artikel_anfang(url, maxlen=1500):
+    """Anfang des Artikeltexts: Meta-Beschreibung + erste Absaetze (<p> mit >= 60 Zeichen).
+    _extract_readable_text() nimmt die ganze Seite und liefert oft Navigation statt Text."""
+    if not url or "news.google.com" in url:
+        return ""
+    raw = http_get_with_retry(url, timeout=12, retries=1)
+    if not raw:
+        return ""
+    try:
+        html_text = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
+    except Exception:
+        return ""
+    # Skripte/Stile/Navigation weg, sonst greift die Absatzsuche CSS und Menues (Test 27.10.:
+    # TechRepublic lieferte Tailwind-CSS, Heise "heise+ entdecken Suchen Abo")
+    html_text = re.sub(r"(?is)<(script|style|nav|header|footer|aside|form|noscript)[^>]*>.*?</>", " ", html_text)
+    teile = []
+    m = re.search(r'<meta[^>]+(?:property|name)=["\'](?:og:description|description)["\'][^>]+content=["\']([^"\']{40,})',
+                  html_text, re.I)
+    if m:
+        teile.append(_html.unescape(m.group(1)).strip())
+    for absatz in re.findall(r"(?is)<p[^>]*>(.*?)</p>", html_text):
+        satz = re.sub(r"\s+", " ", _html.unescape(re.sub(r"(?s)<[^>]+>", " ", absatz))).strip()
+        # Echter Fliesstext: genug Woerter, endet mit Satzzeichen, kaum Code-Zeichen
+        if (len(satz) >= 60 and len(satz.split()) >= 8 and re.search(r"[.!?\"“”]$", satz)
+                and sum(satz.count(z) for z in "{};<>=|") < 3 and satz not in teile
+                and not any(w in satz.lower() for w in _SZ_BOILERPLATE)):
+            teile.append(satz)
+        if sum(len(t) for t in teile) >= maxlen:
+            break
+    return " ".join(teile)[:maxlen]
+
+
+def _sz_llm(posten):
+    """Ein LLM-Aufruf fuer alle neuen Kandidaten. posten: [{"id","titel","zsm","stoff"}].
+    -> {id: {"schlagzeile","anriss"}} (leer bei Fehler)."""
+    zeilen = []
+    for p in posten:
+        zeilen.append(f"{p['id']}. Titel: {p['titel']}\n"
+                      f"   Zusammenfassung: {p['zsm'] or '(keine)'}\n"
+                      f"   Artikelanfang: {p['stoff'] or '(keiner)'}")
+    prompt = (
+        "Du bist Redakteur einer seriösen deutschen Nachrichtenseite über KI. Für jede Meldung "
+        "unten schreibst du eine Schlagzeile und einen Anriss für die Startseite.\n\n"
+        "SCHLAGZEILE\n"
+        f"- höchstens {SCHLAGZEILE_MAX_ZEICHEN} Zeichen, ein Aussagesatz, kein Punkt am Ende, keine Frage\n"
+        "- wer tut was: Firma, Produkt oder Person steht vorne, Namen wörtlich wie im Titel\n"
+        "- die wichtigste Zahl aus dem Titel bleibt drin, wenn es eine gibt\n"
+        "- der Sinn des Titels bleibt exakt gleich: nichts weglassen, was die Aussage ändert\n"
+        "- sachlich und konkret, kein Clickbait, keine Wertung, keine Hype-Wörter\n\n"
+        "ANRISS\n"
+        "- 2 Sätze, zusammen 160 bis 280 Zeichen\n"
+        "- Satz 1: was genau passiert ist, mit dem konkretesten Detail aus dem Material (Zahl, Ort, Name)\n"
+        "- Satz 2: das wichtigste weitere Detail aus dem Material, das zum Weiterlesen bringt\n"
+        "- Zahlen und Details aus Zusammenfassung und Artikelanfang haben Vorrang vor dem Titel\n"
+        "- wiederhole die Schlagzeile nicht\n"
+        "- kein \"Stell dir vor\", kein \"wir\"/\"uns\", keine Alltagsvergleiche, keine Frage an den Leser\n"
+        "- verboten: \"wirft Fragen auf\", \"zeigt, wie\", \"bleibt abzuwarten\", \"unterstreicht\", "
+        "\"verdeutlicht\"; \"könnte\" höchstens einmal\n"
+        "- kein Gedankenstrich als Satzpause, kein Semikolon\n\n"
+        "HAUPTREGEL: nur Tatsachen aus Titel, Zusammenfassung und Artikelanfang. Keine Gründe, "
+        "Folgen, Zahlen, Rollen oder Wertungen erfinden. Reicht das Material nicht für zwei Sätze, "
+        "schreibe einen. Bringt auch der nichts Neues gegenüber dem Titel, lass \"anriss\" leer.\n"
+        "Echte Umlaute und ß. Antworte NUR mit einem JSON-Array: "
+        "[{\"id\": 1, \"schlagzeile\": \"...\", \"anriss\": \"...\"}]\n\n"
+        "Meldungen:\n" + "\n".join(zeilen)
+    )
+    messages = [{"role": "user", "content": prompt}]
+    for modell in MODELLE_POSTS:
+        if _model_blocked(modell):
+            continue
+        try:
+            antwort = _call_llm_api(modell, messages, max_tokens=300 * len(posten) + 200, timeout=90)
+        except Exception as e:
+            logger.info("Schlagzeilen: %s fehlgeschlagen (%s)", modell, e.__class__.__name__)
+            continue
+        m = re.search(r"\[.*\]", antwort or "", re.S)
+        if not m:
+            continue
+        try:
+            daten = json.loads(m.group(0))
+        except Exception:
+            continue
+        erg = {}
+        for d in daten if isinstance(daten, list) else []:
+            try:
+                erg[int(d.get("id"))] = {"schlagzeile": str(d.get("schlagzeile") or "").strip(),
+                                         "anriss": str(d.get("anriss") or "").strip()}
+            except Exception:
+                continue
+        if erg:
+            logger.info("Schlagzeilen: %d Entwuerfe von %s", len(erg), modell)
+            return erg
+    return {}
+
+
+def _sz_namen(titel):
+    """Modell-/Produktnamen und Zahlen aus dem Titel, die in der Schlagzeile wieder
+    auftauchen muessen: Woerter mit Ziffern oder Grossbuchstaben im Inneren (GPT-6.1,
+    60.000, OpenAI). Gewoehnliche Namen ("Microsoft") prueft Jev auf Sinngleichheit."""
+    woerter = re.findall(r"[\w./-]+", titel or "")
+    namen = [w for w in woerter if re.search(r"\d", w) or re.search(r"[a-z][A-Z]", w)]
+    return [n.strip(".-/") for n in namen if len(n.strip(".-/")) >= 2]
+
+
+def _sz_code_pruefung(schlagzeile, anriss, titel):
+    """-> (schlagzeile, anriss) bereinigt; ein Feld wird '' wenn es eine Regel verletzt."""
+    s = re.sub(r"\s+", " ", schlagzeile or "").strip().rstrip(".").strip()
+    a = re.sub(r"\s+", " ", anriss or "").strip()
+    def faul(text):
+        low = " " + text.lower() + " "
+        return ("—" in text or " – " in text or ";" in text
+                or any(w in low for w in _SZ_VERBOTEN) or not _looks_german(text))
+    if (not s or len(s) > SCHLAGZEILE_MAX_ZEICHEN or "?" in s or faul(s)
+            or any(n.lower() not in s.lower() for n in _sz_namen(titel))
+            or s.lower() == (titel or "").lower().rstrip(".")):
+        s = ""
+    if a and (len(a) < ANRISS_MIN_ZEICHEN or len(a) > ANRISS_MAX_ZEICHEN or "?" in a or faul(a)
+              or difflib.SequenceMatcher(None, a.lower(), (titel or "").lower()).ratio() > 0.75):
+        a = ""
+    return s, a
+
+
+def _sz_jev(titel, stoff, text):
+    """p(nicht belegt) per Jev-Frage des X-Tors; None = kein Key / Fehler."""
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not key or not text:
+        return None
+    try:
+        body = json.dumps({"model": "jev-latest",
+                           "state": {"titel": titel or "", "zusammenfassung": (stoff or "")[:2400], "post": text},
+                           "questions": {"belegt": _X_TOR_FRAGE_BELEGT}}).encode("utf-8")
+        req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                     headers={"Authorization": "Bearer " + key,
+                                              "Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return round(1.0 - float(json.loads(r.read())["answers"]["belegt"]["noul"]), 2)
+    except Exception as e:
+        logger.info("Schlagzeilen: Jev nicht erreichbar (%s)", e.__class__.__name__)
+        return None
+
+
+def _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache):
+    """Setzt n["schlagzeile"]/n["anriss"] fuer die Hero-Kandidaten. Fail-open fuer die
+    Pipeline (nie eine Exception nach aussen), fail-closed fuer die Texte."""
+    if not SCHLAGZEILEN_AKTIV:
+        return
+    import time as _time
+    start = _time.time()
+    heute = datetime.now(BERLIN).strftime("%Y-%m-%d")
+    feed_texte = {n.get("link"): n.get("feed_text") for n in alle_news if n.get("link") and n.get("feed_text")}
+
+    # Kandidaten wie die Startseite: gepinnte zuerst, dann je Story die staerkste Meldung
+    sichtbar = [n for n in news_list if n.get("link") and not n.get("dub_von")]
+    gepinnt = [n for n in sichtbar if n["link"] in set(featured_links or [])]
+    kandidaten, storys = list(gepinnt), set()
+    for n in sorted(sichtbar, key=lambda x: x.get("score") or 0, reverse=True):
+        if len(kandidaten) >= SCHLAGZEILEN_KANDIDATEN + len(gepinnt):
+            break
+        sid = n.get("story_id")
+        if n in kandidaten or (sid and sid in storys):
+            continue
+        if sid:
+            storys.add(sid)
+        kandidaten.append(n)
+
+    zaehler = {"cache": 0, "neu": 0, "verworfen": 0}
+    offen = []
+    for n in kandidaten:
+        c = post_cache.get("sz:" + n["link"])
+        if c and c.get("v") == _SZ_VERSION and c.get("titel") == n.get("title"):
+            if c.get("schlagzeile"):
+                n["schlagzeile"] = c["schlagzeile"]
+            if c.get("anriss"):
+                n["anriss"] = c["anriss"]
+            zaehler["cache"] += 1
+        else:
+            offen.append(n)
+
+    posten = []
+    for i, n in enumerate(offen, 1):
+        if _time.time() - start > SCHLAGZEILEN_MAX_SEKUNDEN / 2:
+            break
+        quelle = n.get("link_verlag") or n.get("link")
+        stoff = " ".join(t for t in (feed_texte.get(n["link"]), _artikel_anfang(quelle)) if t)
+        posten.append({"id": i, "n": n, "titel": n.get("title", ""), "zsm": n.get("summary", ""),
+                       "stoff": stoff[:1800]})
+
+    entwuerfe = _sz_llm(posten) if posten else {}
+    for p in posten:
+        n, e = p["n"], entwuerfe.get(p["id"])
+        if not e:
+            continue                       # LLM ohne Antwort: nicht cachen, naechster Lauf neu
+        material = (p["zsm"] + " " + p["stoff"]).strip()
+        s, a = _sz_code_pruefung(e["schlagzeile"], e["anriss"], p["titel"])
+        p_s = p_a = None
+        if _time.time() - start < SCHLAGZEILEN_MAX_SEKUNDEN:
+            if s:
+                p_s = _sz_jev(p["titel"], material, s)
+                if p_s is None or p_s >= X_TOR_JEV_SCHWELLE:
+                    s = ""
+            if a:
+                p_a = _sz_jev(p["titel"], material, a)
+                if p_a is None or p_a >= X_TOR_JEV_SCHWELLE:
+                    a = ""
+        else:
+            s = a = ""
+        if not s and not a:
+            zaehler["verworfen"] += 1
+        else:
+            zaehler["neu"] += 1
+        if s:
+            n["schlagzeile"] = s
+        if a:
+            n["anriss"] = a
+        logger.info("Schlagzeilen: %s | S %r (Jev %s) | A %d Z. (Jev %s)", p["titel"][:60],
+                    s or "-", p_s, len(a), p_a)
+        post_cache["sz:" + n["link"]] = {"v": _SZ_VERSION, "titel": p["titel"], "schlagzeile": s,
+                                         "anriss": a, "entwurf": e, "jev_s": p_s, "jev_a": p_a,
+                                         "stoff": len(p["stoff"]), "generated_at": heute}
+    logger.info("Schlagzeilen: %d Kandidaten, %d aus Cache, %d neu, %d verworfen (%.0f s)",
+                len(kandidaten), zaehler["cache"], zaehler["neu"], zaehler["verworfen"],
+                _time.time() - start)
+
+
 # -------------------------
 # Main
 # -------------------------
@@ -6605,6 +6862,12 @@ def main():
         save_post_cache(_cfg_base, post_cache)
     except Exception as e:
         logger.exception("Linien-Kapitel uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Schlagzeile + Anriss fuer die Hero-Kandidaten (27.10.26), nie blockierend
+    try:
+        _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache)
+        save_post_cache(_cfg_base, post_cache)
+    except Exception as e:
+        logger.exception("Schlagzeilen uebersprungen (Pipeline unbeeinflusst): %s", e)
     news_json_data = {
         "stand":    datum,
         "news":     news_list,
