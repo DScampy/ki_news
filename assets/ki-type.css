@@ -28,11 +28,6 @@
 :root:not(#_k):not(#_t) .px-hero-side-title,
 :root:not(#_k):not(#_t) .px-hero-release-title,
 :root:not(#_k):not(#_t) .pxk-section-title,
-:root:not(#_k):not(#_t) .pxk-topic-panel-title,
-:root:not(#_k):not(#_t) .pxk-topic-title,
-:root:not(#_k):not(#_t) .pxk-topic-title a,
-:root:not(#_k):not(#_t) .pxk-row-title,
-:root:not(#_k):not(#_t) .pxk-row-title a,
 :root:not(#_k):not(#_t) .pxk-dossier-title,
 :root:not(#_k):not(#_t) .kl-brand-title {
   font-family: var(--ki-serif);
@@ -48,21 +43,9 @@
 :root:not(#_k):not(#_t) .pxk-section-title { font-size: var(--ki-fs-h2); font-weight: 600; line-height: 1.1; }
 :root:not(#_k):not(#_t) .px-hero-side-title,
 :root:not(#_k):not(#_t) .px-hero-release-title,
-:root:not(#_k):not(#_t) .pxk-topic-panel-title,
 :root:not(#_k):not(#_t) .pxk-dossier-title { font-size: var(--ki-fs-titel); font-weight: 600; line-height: 1.18; }
-:root:not(#_k):not(#_t) .pxk-topic-title,
-:root:not(#_k):not(#_t) .pxk-topic-title a,
-:root:not(#_k):not(#_t) .pxk-row-title,
-:root:not(#_k):not(#_t) .pxk-row-title a { font-size: var(--ki-fs-text); font-weight: 560; line-height: 1.3; }
 /* Größere Titel brauchen eine Zeile mehr, sonst schneidet die alte Begrenzung mitten im Satz ab */
-:root:not(#_k):not(#_t) .pxk-row-title { -webkit-line-clamp: 2; line-clamp: 2; }
-:root:not(#_k):not(#_t) .pxk-topic-title,
 :root:not(#_k):not(#_t) .pxk-dossier-title { -webkit-line-clamp: 3; line-clamp: 3; }
-@media (max-width: 760px) {
-  /* Spalten sind am Handy ~200 px schmal: Schlagzeilen ganz zeigen, nur Teaser bleiben begrenzt */
-  :root:not(#_k):not(#_t) .pxk-row-title,
-  :root:not(#_k):not(#_t) .pxk-topic-title { -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
-}
 :root:not(#_k):not(#_t) .kl-brand-title { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; }
 
 /* ---------- Themen-Marke: Fraunces kursiv, Akzentfarbe ---------- */
@@ -86,8 +69,6 @@
 /* ---------- Text klein: Work Sans 15 ---------- */
 :root:not(#_k):not(#_t) .px-hero-side-summary,
 :root:not(#_k):not(#_t) .px-hero-release-text,
-:root:not(#_k):not(#_t) .pxk-topic-summary,
-:root:not(#_k):not(#_t) .pxk-row-summary,
 :root:not(#_k):not(#_t) .pxk-section-copy,
 :root:not(#_k):not(#_t) .pxk-event-title,
 :root:not(#_k):not(#_t) .pxk-event-title a,
@@ -123,14 +104,7 @@
 :root:not(#_k):not(#_t) .c-linie-datum,
 :root:not(#_k):not(#_t) .c-linie-kopf > em,
 :root:not(#_k):not(#_t) .pxk-count,
-:root:not(#_k):not(#_t) .pxk-tab-count,
-:root:not(#_k):not(#_t) .pxk-topic-panel-meta,
-:root:not(#_k):not(#_t) .pxk-view-button,
-:root:not(#_k):not(#_t) .pxk-topic-rank,
-:root:not(#_k):not(#_t) .pxk-topic-meta,
 :root:not(#_k):not(#_t) .pxk-button-label,
-:root:not(#_k):not(#_t) .pxk-row-time,
-:root:not(#_k):not(#_t) .pxk-row-source,
 :root:not(#_k):not(#_t) .pxk-tag,
 :root:not(#_k):not(#_t) .pxk-dossier-meta,
 :root:not(#_k):not(#_t) .pxk-event-meta,
@@ -154,7 +128,6 @@
 /* ---------- Bedienung: Navigation, Reiter, Knöpfe ---------- */
 :root:not(#_k):not(#_t) .sidebar-nav-link,
 :root:not(#_k):not(#_t) #kl-toplinks a,
-:root:not(#_k):not(#_t) .pxk-tab,
 :root:not(#_k):not(#_t) .media-toggle,
 :root:not(#_k):not(#_t) #tts-trigger,
 :root:not(#_k):not(#_t) .kl-side-name {
@@ -165,8 +138,7 @@
   text-transform: none;
 }
 :root:not(#_k):not(#_t) .sidebar-nav-link.kl-active,
-:root:not(#_k):not(#_t) #kl-toplinks a.kl-active,
-:root:not(#_k):not(#_t) .pxk-tab[aria-selected="true"] { font-weight: 600; }
+:root:not(#_k):not(#_t) #kl-toplinks a.kl-active { font-weight: 600; }
 
 /* ---------- Inline-Styles im SSR-Teil (nur hier !important) ---------- */
 :root:not(#_k):not(#_t) [style*="Space Grotesk"] { font-family: var(--ki-sans) !important; }
