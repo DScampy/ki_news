@@ -493,7 +493,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   /* 28.09.26 (Daniel): Genesis wieder sichtbar auf der Startseite. Nur wenn der Genesis-Canvas
      laeuft (Desktop, ohne reduced-motion), ist der Hero-Grund durchsichtig; die Karten bleiben
      deckend. Seit Auftrag 10 ohne Live-Blur, daher kein Neuzeichnen samt Unschaerfe pro Frame. */
-  body:has(#genesis-wrap canvas) #px-hero { background: transparent !important; }
+  /* 27.10.26 (Daniel): Hero mit ruhiger, deckender Fläche (Block px-hero-zeitung), Genesis
+     scheint dort nicht mehr durch. Vorher hier: background transparent !important. */
   body:has(#genesis-wrap canvas) #px-hero .px-hero-canvas { display: none; }
 </style>
 <style id="px-hero-frisch">
@@ -2023,6 +2024,303 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   @media (min-width: 1280px) {
     .px-hero-side-column { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(300px, auto); }
     .px-hero-side-column.px-hero--no-release { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(300px, auto); }
+  }
+</style>
+<style id="px-hero-zeitung">
+  /* 27.10.26 (Daniel: „soll wie eine seriöse Newsseite aussehen, nicht nur nach KI“),
+     Variante B aus KIVault …\entwuerfe\aufmacher_mockup_271026.html:
+     ruhige deckende Fläche statt Sternen-/Netz-Optik, Aufmacher als Bildfläche mit Titel
+     darauf, Kacheln flach mit feiner Linie statt Glow. Kill-Switch: diesen Block entfernen
+     (die Bildbühne bleibt dann ungestylt) bzw. den PR zurücknehmen. */
+  #px-hero {
+    --pz-grund: #f0f4f8;
+    --pz-papier: #fff;
+    --pz-tinte: #16181b;
+    --pz-grau: #565c65;
+    --pz-hell: #7c838c;
+    --pz-linie: #dde2e8;
+    --pz-akzent: #0b6e88;
+    --pz-poster: #efe9df;
+    --pz-buehne: #0d0f11;
+    --px-ink: var(--pz-tinte);
+    --px-muted: var(--pz-grau);
+    --px-line: var(--pz-linie);
+    min-height: 0;
+    background: var(--pz-grund);
+  }
+  html.dark #px-hero,
+  html[data-theme="dark"] #px-hero,
+  body[data-theme="dark"] #px-hero {
+    --pz-grund: rgba(0, 0, 0, 0.92);
+    --pz-papier: #15181b;
+    --pz-tinte: #ecebe7;
+    --pz-grau: #a7acb3;
+    --pz-hell: #858b93;
+    --pz-linie: #2a2e33;
+    --pz-akzent: #55c3de;
+    --pz-poster: #2a2621;
+    background: var(--pz-grund);
+  }
+  #px-hero::before,
+  #px-hero .px-hero-canvas,
+  #px-hero .px-hero-aurora { display: none; }
+  #px-hero .px-hero-status { color: var(--pz-grau); }
+  #px-hero .px-hero-status::before { box-shadow: none; }
+  #px-hero .px-hero-stand { color: var(--pz-hell); }
+
+  /* Aufmacher-Karte: flach, Bildbühne oben, Linie und Kontext darunter */
+  #px-hero .px-hero-main-card {
+    min-height: 0;
+    background: var(--pz-papier);
+    border: 1px solid var(--pz-linie);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #px-hero .px-hero-main-card::before,
+  #px-hero .px-hero-main-card::after { display: none; }
+  #px-hero .px-hero-slide { display: block; min-height: 0; padding: 0; }
+  #px-hero .px-hero-buehne {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(440px, 40vw, 620px);
+    overflow: hidden;
+    color: #fff;
+    background: var(--pz-buehne);
+  }
+  #px-hero .px-hero-buehne .px-hero-main-media {
+    position: absolute;
+    inset: 0;
+    aspect-ratio: auto;
+    background: var(--pz-buehne);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+  }
+  #px-hero .px-hero-buehne .px-hero-main-media::before { display: none; }
+  #px-hero .px-hero-buehne .px-hero-main-media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* Verlauf unter dem Text: liegt im Bild, damit der Video-Knopf darüber bleibt */
+  #px-hero .px-hero-buehne .px-hero-main-media::after {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background: linear-gradient(to top, rgba(8, 9, 10, 0.92) 0, rgba(8, 9, 10, 0.72) 42%, rgba(8, 9, 10, 0.2) 78%, transparent 100%);
+  }
+  #px-hero .px-hero-buehne .px-hero-main-copy {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 920px;
+    padding: clamp(22px, 3vw, 44px);
+  }
+  #px-hero .px-hero-buehne .px-hero-importance {
+    display: block;
+    margin: 0 0 10px;
+    color: #bfeaf5;
+  }
+  #px-hero .px-hero-buehne .px-hero-importance::before { display: none; }
+  #px-hero .px-hero-buehne .px-hero-main-title {
+    max-width: none;
+    margin: 0;
+    color: #fff;
+    -webkit-line-clamp: 6;
+  }
+  #px-hero .px-hero-buehne .px-hero-main-summary {
+    max-width: 68ch;
+    margin: 14px 0 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 18px;
+    line-height: 1.55;
+    -webkit-line-clamp: 3;
+  }
+  #px-hero .px-hero-main-meta {
+    margin-top: 12px;
+    color: rgba(255, 255, 255, 0.72);
+    font: 500 13px/1.35 var(--ki-sans, "Work Sans", sans-serif);
+    font-variant-numeric: tabular-nums;
+  }
+  #px-hero .px-hero-buehne .px-hero-article-link { margin-top: 16px; color: #fff; }
+  #px-hero .px-hero-buehne .px-hero-carousel-controls {
+    position: static;
+    justify-content: flex-start;
+    margin-top: 22px;
+    padding: 0;
+    transform: none;
+  }
+  #px-hero .px-hero-buehne .px-hero-carousel-button {
+    color: #fff;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    box-shadow: none;
+  }
+  #px-hero .px-hero-buehne .px-hero-carousel-button:hover { background: rgba(255, 255, 255, 0.12); border-color: #fff; }
+  #px-hero .px-hero-buehne .px-hero-dot { width: 26px; height: 3px; background: rgba(255, 255, 255, 0.35); border-radius: 0; }
+  #px-hero .px-hero-buehne .px-hero-dot[aria-current="true"] { width: 26px; background: #fff; border-radius: 0; }
+  /* Video als kleiner Knopf oben rechts statt Play-Fläche über dem ganzen Bild */
+  #px-hero .px-hero-buehne .px-hero-vplay {
+    inset: 16px 16px auto auto;
+    z-index: 4;
+    flex-direction: row;
+    gap: 8px;
+    padding: 7px 14px 7px 8px;
+    color: #fff;
+    background: rgba(12, 14, 16, 0.78);
+    border: 0;
+    border-radius: 999px;
+  }
+  #px-hero .px-hero-buehne .px-hero-vplay-icon {
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    box-shadow: none;
+  }
+  #px-hero .px-hero-buehne .px-hero-vplay-icon::after { left: 8px; top: 6px; border-width: 5px 0 5px 8px; border-color: transparent transparent transparent #111; }
+  #px-hero .px-hero-buehne .px-hero-vplay-text { font: 500 14px/1 var(--ki-sans, "Work Sans", sans-serif); letter-spacing: 0; text-transform: none; text-shadow: none; }
+  #px-hero .px-hero-buehne .px-hero-card-video { z-index: 5; }
+  #px-hero .px-hero-buehne:has(.px-hero-card-video) .px-hero-main-copy { visibility: hidden; }
+
+  /* Ohne Foto: dunkle Textfläche links, Motiv der News-Karte rechts (Poster 840×1320,
+     Motivzone etwa y 110–560; Kartentitel und Einordnung bleiben verborgen) */
+  #px-hero .px-hero-motiv {
+    position: absolute;
+    inset: 0;
+    width: min(100%, 640px);
+    height: auto;
+    aspect-ratio: 840 / 450;
+    margin: auto;
+    background-repeat: no-repeat;
+    background-position: 50% 12.6%;
+    background-size: 100% auto;
+  }
+  #px-hero .px-hero-media--motiv { background: var(--pz-poster); }
+  #px-hero .px-hero-buehne--ohne-foto .px-hero-main-media { left: auto; width: 44%; background: var(--pz-poster); }
+  #px-hero .px-hero-buehne--ohne-foto .px-hero-main-media::after { display: none; }
+  #px-hero .px-hero-buehne--ohne-foto .px-hero-main-copy { max-width: 56%; }
+
+  /* Linie und Kontext unter der Bildfläche */
+  #px-hero .px-hero-linie { margin: 0; padding: 18px clamp(22px, 3vw, 44px) 0; }
+  #px-hero .px-hero-main-context {
+    margin: 0;
+    padding: 14px clamp(22px, 3vw, 44px) 18px;
+    border-top: 0;
+  }
+  #px-hero .px-hero-dossier::before { box-shadow: none; }
+
+  /* Reihe darunter: Nebenmeldungen mit Bild oben, flach */
+  #px-hero .px-hero-side-card,
+  #px-hero .px-hero-release {
+    background: var(--pz-papier);
+    border: 1px solid var(--pz-linie);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #px-hero .px-hero-side-card:hover,
+  #px-hero .px-hero-release:hover { transform: none; border-color: var(--pz-hell); box-shadow: none; }
+  #px-hero .px-hero-side-link { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  #px-hero .px-hero-side-image { aspect-ratio: 16 / 9; min-height: 0; height: auto; }
+  #px-hero .px-hero-side-image::before,
+  #px-hero .px-hero-side-image::after { display: none; }
+  #px-hero .px-hero-side-card:hover .px-hero-side-image img { transform: none; }
+  #px-hero .px-hero-side-rank {
+    color: var(--pz-tinte);
+    background: var(--pz-papier);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #px-hero .px-hero-side-body { padding: 16px 18px 18px; }
+  #px-hero .px-hero-side-head .px-hero-pill { padding: 0; color: var(--pz-hell); background: none; }
+  #px-hero .px-hero-side-index { color: var(--pz-hell); }
+  #px-hero .px-hero-side-title { color: var(--pz-tinte); }
+  #px-hero .px-hero-side-summary { color: var(--pz-grau); -webkit-line-clamp: 3; }
+  #px-hero .px-hero-dossier-note { color: var(--pz-akzent); }
+  #px-hero .px-hero-dossier-note::before { box-shadow: none; }
+
+  /* Frisch auf dem Markt: hell statt Neon-Kasten */
+  #px-hero .px-hero-release { color: var(--pz-tinte); }
+  #px-hero .px-hero-release::before { display: none; }
+  #px-hero .px-hero-release-kicker { color: var(--pz-akzent); }
+  #px-hero .px-hero-release-switch { gap: 4px 16px; justify-content: flex-start; }
+  #px-hero .px-hero-release-switch button {
+    padding: 4px 0;
+    color: var(--pz-grau);
+    background: none;
+    border: 0;
+    border-radius: 0;
+    font: 500 14px/1.2 var(--ki-sans, "Work Sans", sans-serif);
+    letter-spacing: 0;
+  }
+  #px-hero .px-hero-release-switch button[aria-pressed="true"] {
+    color: var(--pz-tinte);
+    background: none;
+    box-shadow: inset 0 -2px 0 var(--pz-akzent);
+  }
+  #px-hero .px-hero-release .px-hero-pill,
+  #px-hero .px-hero-release-badge { padding: 0; color: var(--pz-hell); background: none; border: 0; }
+  #px-hero .px-hero-release-title { color: var(--pz-tinte); }
+  #px-hero .px-hero-release-text { color: var(--pz-grau); }
+  #px-hero .px-hero-release-meta,
+  #px-hero .px-hero-release-meta > span { color: var(--pz-hell); }
+  #px-hero .px-hero-release-link {
+    color: var(--pz-akzent);
+    background: none;
+    border: 1px solid var(--pz-linie);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #px-hero .px-hero-release-link:hover { border-color: var(--pz-akzent); background: none; }
+
+  /* Akzente: ruhiges Petrol statt Theme-Neon. Das Präfix schlägt ki-type.css, das
+     Kicker und Linien-Kopf sonst in var(--accent) färbt. */
+  :root:not(#_k):not(#_t) #px-hero .px-hero-buehne .px-hero-importance { color: #bfeaf5; }
+  :root:not(#_k):not(#_t) #px-hero .px-hero-release-kicker,
+  :root:not(#_k):not(#_t) #px-hero .px-hero-context-label,
+  :root:not(#_k):not(#_t) #px-hero .c-linie-kopf > span { color: var(--pz-akzent); }
+  #px-hero .px-hero-buehne .px-hero-article-link {
+    font: 600 15px/1.3 var(--ki-sans, "Work Sans", sans-serif);
+    letter-spacing: 0;
+  }
+  #px-hero .px-hero-linie .c-linie-dossier { color: var(--pz-akzent); }
+  #px-hero .px-hero-linie .c-linie-kopf { color: var(--pz-hell); }
+  #px-hero .px-hero-linie .c-linie-glied {
+    background: var(--pz-papier);
+    border-color: var(--pz-linie);
+    border-radius: 0;
+  }
+  #px-hero .px-hero-linie .c-linie-glied:hover { border-color: var(--pz-hell); }
+  #px-hero .px-hero-linie .c-linie-glied.aktuell { background: var(--pz-papier); border-color: var(--pz-akzent); }
+  #px-hero .px-hero-linie .c-linie-glied.aktuell .c-linie-datum { color: var(--pz-akzent); }
+  #px-hero .px-hero-dossier { color: var(--pz-akzent); }
+  #px-hero .px-hero-dossier-single { color: var(--pz-hell); }
+  #px-hero .px-hero-video-preview { border-radius: 0; box-shadow: none; }
+  #px-hero .px-hero-video-preview::before { display: none; }
+
+  @media (max-width: 760px) {
+    #px-hero .px-hero-buehne { display: block; min-height: 0; }
+    #px-hero .px-hero-buehne .px-hero-main-media { position: relative; aspect-ratio: 4 / 3; }
+    #px-hero .px-hero-buehne .px-hero-main-media::after {
+      background: linear-gradient(to top, var(--pz-buehne) 0, rgba(13, 15, 17, 0.7) 28%, transparent 62%);
+    }
+    #px-hero .px-hero-buehne .px-hero-main-copy { margin-top: -110px; }
+    #px-hero .px-hero-buehne--ohne-foto .px-hero-main-media { width: 100%; aspect-ratio: 840 / 450; }
+    #px-hero .px-hero-buehne--ohne-foto .px-hero-main-copy { max-width: none; margin-top: 0; }
+    #px-hero .px-hero-buehne .px-hero-main-summary { font-size: 17px; }
+  }
+  @media (max-width: 540px) {
+    /* Am Handy den Titel nie kürzen; lange Übersetzungs-Titel brauchen bis zu 7 Zeilen */
+    :root:not(#_k):not(#_t) #px-hero .px-hero-buehne .px-hero-main-title { font-size: 1.75rem; -webkit-line-clamp: unset; line-clamp: none; }
   }
 </style>
 </head>
@@ -3962,19 +4260,24 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         return prepared;
       }
 
+      // Überschriften ohne Schlusspunkt (27.10.26, wie im Hero); "U.S." bleibt
+      function anzeigeTitel(text) {
+        return String(text || "").replace(/([a-zäöüß0-9)"“”])\.\s*$/u, "$1");
+      }
+
       function createExternalTitle(tag, item, className) {
         const title = create(tag, className);
         const logo = window.kiLogoEl ? window.kiLogoEl(item.title, 18) : null;
         if (logo) { logo.style.marginRight = "6px"; logo.style.verticalAlign = "-3px"; title.appendChild(logo); }
 
         if (item.link) {
-          const link = create("a", "", item.title);
+          const link = create("a", "", anzeigeTitel(item.title));
           link.href = item.link; link.__pxkItem = item;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           title.appendChild(link);
         } else {
-          title.textContent = item.title;
+          title.textContent = anzeigeTitel(item.title);
         }
 
         return title;
@@ -6751,6 +7054,70 @@ window.addEventListener('resize',()=>{
         fuellmotiv(story);
     };
 
+    // 27.10.26 (Daniel, Variante B): echtes Foto der Meldung, groß bevorzugt (1600 px),
+    // ohne Füllmotiv. Fehlt es, zeigt der Hero das Motiv der News-Karte.
+    const storyPhoto = (story, gross = false) => {
+      if (!story || typeof story !== "object") return "";
+
+      return (gross && safeImage(story.image_local_gross)) ||
+        safeImage(story.image_local) ||
+        safeImage(story.image) ||
+        (story.story_id && bildJeStory.get("id:" + story.story_id)) ||
+        (story.link && bildJeStory.get("l:" + story.link)) ||
+        safeImage(story.image_url) ||
+        safeImage(story.thumbnail) ||
+        "";
+    };
+
+    // Bildfläche füllen: Foto, sonst Motiv der Karte (oberer Teil des Posters, ohne
+    // Kartentitel und Einordnung), sonst Füllmotiv. Gibt true zurück, wenn ein Foto steht.
+    const fillMedia = (media, story, card, eager, gross) => {
+      media.dataset.pxFuell = fuellmotiv(story);
+      const foto = storyPhoto(story, gross);
+      if (foto) {
+        addImage(media, foto, eager);
+        return true;
+      }
+      const motiv = card && safeImage(card.poster || card.poster_url);
+      if (motiv) {
+        const flaeche = make("div", "px-hero-motiv");
+        flaeche.style.backgroundImage = `url("${motiv}")`;
+        media.classList.add("px-hero-media--motiv");
+        media.append(flaeche);
+        return false;
+      }
+      addImage(media, fuellmotiv(story), eager);
+      return false;
+    };
+
+    // Überschriften ohne Schlusspunkt (Zeitungsregel); Abkürzungen wie "U.S." bleiben
+    const anzeigeTitel = title =>
+      String(title || "").replace(/([a-zäöüß0-9)"“”])\.\s*$/u, "$1");
+
+    const titelWoerter = text =>
+      cleanText(text).toLowerCase().split(/[^a-z0-9äöüß]+/u).filter(Boolean);
+
+    // Wiederholt der Teaser nur den Titel (Feed ohne Anriss), bringt er nichts
+    const wiederholtTitel = (summary, title) => {
+      const t = titelWoerter(title);
+      const z = titelWoerter(summary);
+      if (!t.length || !z.length) return false;
+      const gleich = t.filter(wort => z.includes(wort)).length / t.length;
+      return gleich >= 0.8 && z.length <= t.length + 6;
+    };
+
+    const ersteSaetze = (text, anzahl) =>
+      (cleanText(text).match(/[^.!?]+[.!?]+/g) || [cleanText(text)])
+        .slice(0, anzahl).join(" ").trim();
+
+    // Teaser: summary; wiederholt sie den Titel, der Anfang der Karten-Einordnung, sonst keiner
+    const teaserFor = (story, title, card) => {
+      const summary = storySummary(story);
+      if (summary && !wiederholtTitel(summary, title)) return summary;
+      const einordnung = card && cleanText(card.einordnung);
+      return einordnung ? ersteSaetze(einordnung, 2) : "";
+    };
+
     const dossierData = story => {
       const raw =
         story && typeof story === "object"
@@ -7149,7 +7516,7 @@ window.addEventListener('resize',()=>{
             video.play().catch(fehler);
           });
         };
-        media.addEventListener("click", start);
+        play.addEventListener("click", start);
       }).catch(() => {});
     };
 
@@ -7180,68 +7547,56 @@ window.addEventListener('resize',()=>{
       }
 
       const title = storyTitle(story) || "Ohne Titel";
-      const summary = storySummary(story) ||
-        "Für diese Meldung liegt noch keine kurze Zusammenfassung vor.";
-      const source = cleanText(story.source) || "Unbekannte Quelle";
       const card = resolveCard(story);
-      // Auftrag 9: Bild der Meldung (image), nie das Kartenposter; fehlt es, bleibt der Platzhalter
-      const poster = storyImageOf(story);
+      const summary = teaserFor(story, title, card);
+      const source = cleanText(story.source) || "Unbekannte Quelle";
       const dossier = dossierData(story);
       const slide = make("div", "px-hero-slide");
 
-      const topline = make("div", "px-hero-main-topline");
+      // 27.10.26 (Daniel, Variante B aus aufmacher_mockup_271026): Foto der Meldung als
+      // ganze Fläche, Titel darauf. Ohne Foto: dunkle Textfläche, Kartenmotiv rechts.
+      const stage = make("div", "px-hero-buehne");
+      const media = make("div", "px-hero-main-media");
+      const mitFoto = fillMedia(media, story, card, currentStory === 0, true);
 
-      topline.append(
-        make(
-          "span",
-          "px-hero-counter",
-          `Top Story / ${currentStory + 1} von ${stories.length}`
-        ),
-        make("span", "px-hero-importance", "Im Fokus")
-      );
+      if (!mitFoto) stage.classList.add("px-hero-buehne--ohne-foto");
+      attachCardVideo(media, story);
 
-      const body = make("div", "px-hero-main-body");
       const copy = make("div", "px-hero-main-copy");
+      const datum = formatDate(story.date || story.first_seen);
+      const quellen = Number(story.story_article_count) > 1
+        ? ` · ${story.story_article_count} Quellen`
+        : "";
 
       copy.append(
-        buildPill(source),
-        make("h1", "px-hero-main-title", title),
-        make("p", "px-hero-main-summary", summary)
+        make(
+          "div",
+          "px-hero-importance",
+          stories.length > 1
+            ? `Im Fokus · ${currentStory + 1} von ${stories.length}`
+            : "Im Fokus"
+        ),
+        make("h1", "px-hero-main-title", anzeigeTitel(title))
       );
+
+      if (summary) copy.append(make("p", "px-hero-main-summary", summary));
+      copy.append(make(
+        "div",
+        "px-hero-main-meta",
+        source + (datum ? ` · ${datum}` : "") + quellen
+      ));
 
       if (safeHref(story.link)) {
         copy.append(makeExternalLink(
-          "Artikel lesen",
+          "Weiterlesen",
           story.link,
           "px-hero-article-link"
         ));
       }
 
-      const media = make("div", "px-hero-main-media");
-
-      addPosterFallback(
-        media,
-        "KI NEWS",
-        card ? "CARD POSTER" : "NEWS STILL"
-      );
-
-      media.dataset.pxFuell = fuellmotiv(story);
-      addImage(media, poster, currentStory === 0);
-
-      const mediaCode = make("div", "px-hero-media-code");
-
-      mediaCode.append(
-        make("span", "", "KI NEWS / SIGNAL"),
-        make(
-          "span",
-          "",
-          card ? "CARD POSTER" : "TOP STORY"
-        )
-      );
-
-      media.append(mediaCode);
-      body.append(copy, media);
-      attachCardVideo(media, story);
+      // Blättern sitzt in der Bildfläche unter dem Text
+      copy.append(controls);
+      stage.append(media, copy);
 
       // Entwicklungslinie (19.09.26): heroLinie() der Seite fuellt #c-linie
       const linieBox = make("div", "c-linie px-hero-linie");
@@ -7281,7 +7636,7 @@ window.addEventListener('resize',()=>{
         )
       );
 
-      slide.append(topline, body, linieBox, context);
+      slide.append(stage, linieBox, context);
       mainSlide.append(slide);
       renderSides();
 
@@ -7356,12 +7711,9 @@ window.addEventListener('resize',()=>{
       }
 
       const title = storyTitle(story) || "Ohne Titel";
-      const summary = storySummary(story) ||
-        "Keine Zusammenfassung hinterlegt.";
-      const source = cleanText(story.source) || "Quelle unbekannt";
       const card = resolveCard(story);
-      // Auftrag 9: Bild der Meldung (image), nie das Kartenposter; fehlt es, bleibt der Platzhalter
-      const poster = storyImageOf(story);
+      const summary = teaserFor(story, title, card);
+      const source = cleanText(story.source) || "Quelle unbekannt";
       const dossier = dossierData(story);
       const article = make("article", "px-hero-side-card");
       const href = safeHref(story.link);
@@ -7390,14 +7742,7 @@ window.addEventListener('resize',()=>{
         String(index).padStart(2, "0")
       ));
 
-      addPosterFallback(
-        media,
-        "KI NEWS",
-        card ? "CARD / SIGNAL" : "NEWS STILL"
-      );
-
-      media.dataset.pxFuell = fuellmotiv(story);
-      addImage(media, poster, false);
+      fillMedia(media, story, card, false, false);
       // Auftrag 10 Punkt 3: Seitenkacheln sofort laden (ohne hohe Prioritaet, die hat nur das Hero-Bild)
       const seitenBild = media.querySelector("img");
       if (seitenBild) seitenBild.loading = "eager";
@@ -7415,12 +7760,8 @@ window.addEventListener('resize',()=>{
         )
       );
 
-      body.append(
-        head,
-        make("h2", "px-hero-side-title", title),
-        make("p", "px-hero-side-summary", summary),
-        buildScore(story)
-      );
+      body.append(head, make("h2", "px-hero-side-title", anzeigeTitel(title)));
+      if (summary) body.append(make("p", "px-hero-side-summary", summary));
 
       if (dossier.hasDossier) {
         body.append(make(
