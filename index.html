@@ -1995,6 +1995,35 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     main .max-w-\[1400px\] { max-width: min(92vw, 1840px); }
     main #pxk-kompakt .pxk-main { max-width: none; }
   }
+  /* 27.10.26 (Daniel): Die Top-Story steht allein oben, die weiteren Kacheln darunter.
+     Vorher bestimmte die rechte Spalte die Höhe, die Top-Story-Karte blieb unten bis zu
+     240 px leer und ihr Titel wurde zwischen 961 und 1279 px gekürzt.
+     961–1279 px: 02 und 03 nebeneinander, Frisch auf dem Markt darunter (wie unter 960 px).
+     Ab 1280 px: alle drei als Reihe. */
+  @media (min-width: 961px) {
+    .px-hero-grid { grid-template-columns: minmax(0, 1fr); }
+    .px-hero-main-card,
+    .px-hero-slide { min-height: 0; }
+    .px-hero-main-body { grid-template-columns: minmax(0, 1fr) 260px; }
+  }
+  /* Die Release-Kachel sitzt in .px-hero-release-mount; die alte Regel an .px-hero-release
+     griff deshalb nie und die Kachel blieb halb breit. Zeilen wachsen mit dem Titel mit
+     (bei 768 px ragte „Wichtigkeit“ unten aus Karte 02). */
+  @media (min-width: 761px) and (max-width: 1279px) {
+    .px-hero-side-column { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(218px, auto) minmax(260px, auto); }
+    .px-hero-side-column.px-hero--no-release { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(260px, auto); }
+    .px-hero-release-mount { grid-column: 1 / -1; }
+  }
+  /* Handy: feste Zeilenhöhen schnitten ab – Karte 02 bei 360 px um 5 px, und unter 361 px
+     stapelt die Release-Kachel das Video unter den Text, das dann fast ganz verdeckt war */
+  @media (max-width: 760px) {
+    .px-hero-side-column { grid-template-rows: minmax(230px, auto) minmax(230px, auto) minmax(292px, auto); }
+    .px-hero-side-column.px-hero--no-release { grid-template-rows: minmax(238px, auto) minmax(238px, auto); }
+  }
+  @media (min-width: 1280px) {
+    .px-hero-side-column { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(300px, auto); }
+    .px-hero-side-column.px-hero--no-release { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(300px, auto); }
+  }
 </style>
 </head>
 <body class="font-body-lg">
@@ -3204,6 +3233,14 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       #pxk-kompakt .pxz-neben { grid-template-columns: 96px minmax(0, 1fr); }
       #pxk-kompakt .pxz-zeile .pxz-bild-klein { width: 76px; }
     }
+    /* Titel ohne Silbentrennung brauchen Breite: „Zirkulationsgeschäfte“ passte in der
+       schmalen Spalte nicht neben das Vorschaubild */
+    @media (min-width: 900px) and (max-width: 1199px) {
+      #pxk-kompakt .pxz-neben { grid-template-columns: 96px minmax(0, 1fr); }
+    }
+    @media (max-width: 480px) {
+      #pxk-kompakt .pxz-neben { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; }
+    }
 </style>
 <section id="pxk-kompakt" aria-label="Meldungen nach Thema">
 <div
@@ -4274,6 +4311,11 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
         const visible = remainingItems.filter((item) => !shownInBlock.has(item));
         refs.latestCount.textContent = numberFormat.format(visible.length);
+        // Text und Zähler nennen dieselbe Zahl: ohne die Meldungen, die oben im Themenblock stehen
+        if (visible.length) {
+          refs.latestCopy.textContent = numberFormat.format(visible.length) +
+            " weitere Meldungen, nach Aktualität sortiert.";
+        }
 
         if (!visible.length) {
           refs.newsList.appendChild(makeState(
