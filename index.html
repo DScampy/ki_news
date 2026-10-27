@@ -2143,7 +2143,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     color: rgba(255, 255, 255, 0.88);
     font-size: 18px;
     line-height: 1.55;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
   }
   #px-hero .px-hero-main-meta {
     margin-top: 12px;
@@ -2206,6 +2206,15 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     background-size: 100% auto;
   }
   #px-hero .px-hero-media--motiv { background: var(--pz-poster); }
+  /* Rand um das Motiv in der Farbe des Posters (dunkle Karten standen auf Beige) */
+  #px-hero .px-hero-motiv-grund {
+    position: absolute;
+    inset: -40px;
+    background-position: 50% 30%;
+    background-size: cover;
+    filter: blur(32px) saturate(0.9);
+    opacity: 0.9;
+  }
   #px-hero .px-hero-buehne--ohne-foto .px-hero-main-media { left: auto; width: 44%; background: var(--pz-poster); }
   #px-hero .px-hero-buehne--ohne-foto .px-hero-main-media::after { display: none; }
   #px-hero .px-hero-buehne--ohne-foto .px-hero-main-copy { max-width: 56%; }
@@ -7080,10 +7089,11 @@ window.addEventListener('resize',()=>{
       }
       const motiv = card && safeImage(card.poster || card.poster_url);
       if (motiv) {
+        const grund = make("div", "px-hero-motiv-grund");
         const flaeche = make("div", "px-hero-motiv");
-        flaeche.style.backgroundImage = `url("${motiv}")`;
+        grund.style.backgroundImage = flaeche.style.backgroundImage = `url("${motiv}")`;
         media.classList.add("px-hero-media--motiv");
-        media.append(flaeche);
+        media.append(grund, flaeche);
         return false;
       }
       addImage(media, fuellmotiv(story), eager);
@@ -7112,6 +7122,9 @@ window.addEventListener('resize',()=>{
 
     // Teaser: summary; wiederholt sie den Titel, der Anfang der Karten-Einordnung, sonst keiner
     const teaserFor = (story, title, card) => {
+      // 27.10.26: Anriss aus der Pipeline (ki_news.py _schlagzeilen_anrisse), Jev-geprueft
+      const anriss = cleanText(story && story.anriss);
+      if (anriss) return anriss;
       const summary = storySummary(story);
       if (summary && !wiederholtTitel(summary, title)) return summary;
       const einordnung = card && cleanText(card.einordnung);
@@ -7576,7 +7589,7 @@ window.addEventListener('resize',()=>{
             ? `Im Fokus · ${currentStory + 1} von ${stories.length}`
             : "Im Fokus"
         ),
-        make("h1", "px-hero-main-title", anzeigeTitel(title))
+        make("h1", "px-hero-main-title", anzeigeTitel(cleanText(story.schlagzeile) || title))
       );
 
       if (summary) copy.append(make("p", "px-hero-main-summary", summary));
@@ -7760,7 +7773,7 @@ window.addEventListener('resize',()=>{
         )
       );
 
-      body.append(head, make("h2", "px-hero-side-title", anzeigeTitel(title)));
+      body.append(head, make("h2", "px-hero-side-title", anzeigeTitel(cleanText(story.schlagzeile) || title)));
       if (summary) body.append(make("p", "px-hero-side-summary", summary));
 
       if (dossier.hasDossier) {
