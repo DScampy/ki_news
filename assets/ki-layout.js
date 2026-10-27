@@ -674,7 +674,7 @@
         klCardIdx = [];
         (list || []).forEach(function (c) {
           if (c && c.mp4_url && c.headline) {
-            klCardIdx.push({ key: klFoldKey(c.headline), links: c.links || [], mp4: c.mp4_url, poster: c.poster_url || null, duration: c.duration || null });
+            klCardIdx.push({ key: klFoldKey(c.headline), links: c.links || [], mp4: c.mp4_url, poster: c.poster_url || null, duration: c.duration || null, einordnung: c.einordnung || null });
           }
         });
         return klCardIdx;
@@ -694,7 +694,7 @@
     if (link) {
       for (var j = 0; j < klCardIdx.length; j++) {
         if (klCardIdx[j].links.indexOf(link) !== -1) {
-          return { mp4: klCardIdx[j].mp4, poster: klCardIdx[j].poster, duration: klCardIdx[j].duration };
+          return { mp4: klCardIdx[j].mp4, poster: klCardIdx[j].poster, duration: klCardIdx[j].duration, einordnung: klCardIdx[j].einordnung };
         }
       }
     }
@@ -704,7 +704,7 @@
       var ck = klCardIdx[i].key;
       if (ck.length < 25) continue;
       if (k.indexOf(ck.slice(0, Math.min(ck.length, 45))) === 0) {
-        return { mp4: klCardIdx[i].mp4, poster: klCardIdx[i].poster, duration: klCardIdx[i].duration };
+        return { mp4: klCardIdx[i].mp4, poster: klCardIdx[i].poster, duration: klCardIdx[i].duration, einordnung: klCardIdx[i].einordnung };
       }
     }
     return null;
