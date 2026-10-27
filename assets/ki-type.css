@@ -36,14 +36,26 @@
   letter-spacing: -0.012em;
   text-transform: none;
   text-wrap: balance;
-  hyphens: auto;
+  /* Keine Silbentrennung in Überschriften (Daniel 27.10.: „in jeder Überschrift ein Wort
+     geteilt“, wirkt unprofessionell). Nur ein Wort, das breiter als die Zeile ist, bricht um. */
+  hyphens: manual;
+  overflow-wrap: break-word;
 }
+/* Titel der Listen und SSR-Überschriften ebenfalls ohne Trennung */
+:root:not(#_k):not(#_t) .pxz-t,
+:root:not(#_k):not(#_t) h1,
+:root:not(#_k):not(#_t) h2,
+:root:not(#_k):not(#_t) h3,
+:root:not(#_k):not(#_t) h4 { hyphens: manual; overflow-wrap: break-word; }
 /* Aufmacher hat eine Zeilenbegrenzung im Hero, daher H1 (43) statt Display (54) */
 :root:not(#_k):not(#_t) .px-hero-main-title { font-size: clamp(2rem, 1.25rem + 2vw, var(--ki-fs-h1)); font-weight: 600; line-height: 1.08; letter-spacing: -0.018em; }
 :root:not(#_k):not(#_t) .pxk-section-title { font-size: var(--ki-fs-h2); font-weight: 600; line-height: 1.1; }
-:root:not(#_k):not(#_t) .px-hero-side-title,
 :root:not(#_k):not(#_t) .px-hero-release-title,
 :root:not(#_k):not(#_t) .pxk-dossier-title { font-size: var(--ki-fs-titel); font-weight: 600; line-height: 1.18; }
+/* Nebenmeldungen 02/03: Mit 21 px wurde die rechte Spalte 132 px höher als die Top-Story und
+   lange Titel wurden gekürzt. 17 px, ohne Silbentrennung bis 6 Zeilen, dafür Teaser kürzer. */
+:root:not(#_k):not(#_t) .px-hero-side-title { font-size: var(--ki-fs-text); font-weight: 600; line-height: 1.25; -webkit-line-clamp: 6; line-clamp: 6; }
+:root:not(#_k):not(#_t) .px-hero-side-summary { -webkit-line-clamp: 2; line-clamp: 2; }
 /* Größere Titel brauchen eine Zeile mehr, sonst schneidet die alte Begrenzung mitten im Satz ab */
 :root:not(#_k):not(#_t) .pxk-dossier-title { -webkit-line-clamp: 3; line-clamp: 3; }
 /* „Frisch auf dem Markt“: Die Box bekommt ihre Höhe vom Hero-Raster (Zeile ~133–175 px), nicht vom Inhalt.
@@ -58,10 +70,14 @@
   :root:not(#_k):not(#_t) .px-hero-release-meta,
   :root:not(#_k):not(#_t) .px-hero-video-caption { display: none; }
   :root:not(#_k):not(#_t) .px-hero-release-text { -webkit-line-clamp: 1; line-clamp: 1; }
-  /* Hero-Liste: feste Kartenhöhe, unter 1280 px wurden lange Titel nach 4 Zeilen gekürzt.
-     Titel ganz zeigen, dafür Teaser kürzer */
-  :root:not(#_k):not(#_t) .px-hero-side-title { font-size: var(--ki-fs-text); line-height: 1.25; -webkit-line-clamp: 5; line-clamp: 5; }
-  :root:not(#_k):not(#_t) .px-hero-side-summary { -webkit-line-clamp: 2; line-clamp: 2; }
+}
+@media (max-width: 540px) {
+  /* Am Handy ist die Karte schmal: für 6 Titelzeilen nur eine Zeile Teaser */
+  :root:not(#_k):not(#_t) .px-hero-side-summary { -webkit-line-clamp: 1; line-clamp: 1; }
+}
+@media (max-width: 480px) {
+  /* „Beobachtete Entwicklungen“ passte bei 34 px ohne Trennung nicht in die Zeile */
+  :root:not(#_k):not(#_t) .pxk-section-title { font-size: var(--ki-fs-h3); }
 }
 :root:not(#_k):not(#_t) .kl-brand-title { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; }
 
@@ -102,6 +118,9 @@
 }
 :root:not(#_k):not(#_t) .pxk-event-title a,
 :root:not(#_k):not(#_t) .px-hero-context-title { font-weight: 500; line-height: 1.4; }
+/* Titel der Linien-Glieder sind Überschriften: keine Silbentrennung (siehe oben) */
+:root:not(#_k):not(#_t) .c-linie-titel,
+:root:not(#_k):not(#_t) .px-hero-context-title { hyphens: manual; }
 
 /* ---------- Meta: Work Sans 13, Ziffern tabellarisch (ersetzt Mono) ---------- */
 :root:not(#_k):not(#_t) .px-hero-status,
