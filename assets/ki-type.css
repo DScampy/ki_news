@@ -1,0 +1,187 @@
+/* ki-type.css — Typografie-Schicht ki-news.live (Designsprache vom 27.10.2026)
+   Titel: Fraunces · Text und Bedienung: Work Sans · Themen-Marke: Fraunces kursiv in --accent
+   Leiter (Schritt 1,25 ab 17 px): 13 · 15 · 17 · 21 · 27 · 34 · 43 · 54 px. Nichts unter 13 px.
+   Kein Mono, keine Großbuchstaben mit Sperrung.
+
+   Warum ":root:not(#_k):not(#_t)" vor jedem Selektor: Die alten Stile kommen aus mehreren
+   <style>-Blöcken und aus ki-layout.js (zur Laufzeit eingefügt, also NACH dieser Datei) und
+   nutzen bis zu einer ID ("#pxk-kompakt .x .y"). Die zwei :not(#…) heben die Spezifität
+   über jede Ein-ID-Regel, ohne !important. !important nur für Inline-Styles.
+
+   Kill-Switch: <link … ki-type.css> in index.html entfernen. */
+
+:root {
+  --ki-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --ki-sans: 'Work Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ki-fs-meta: 0.8125rem;   /* 13 */
+  --ki-fs-klein: 0.9375rem;  /* 15 */
+  --ki-fs-text: 1.0625rem;   /* 17 */
+  --ki-fs-titel: 1.3125rem;  /* 21 */
+  --ki-fs-h3: 1.6875rem;     /* 27 */
+  --ki-fs-h2: 2.125rem;      /* 34 */
+  --ki-fs-h1: 2.6875rem;     /* 43 */
+  --ki-fs-display: clamp(2.25rem, 1.4rem + 2.6vw, 3.375rem); /* bis 54 */
+}
+
+/* ---------- Titel: Fraunces ---------- */
+:root:not(#_k):not(#_t) .px-hero-main-title,
+:root:not(#_k):not(#_t) .px-hero-side-title,
+:root:not(#_k):not(#_t) .px-hero-release-title,
+:root:not(#_k):not(#_t) .pxk-section-title,
+:root:not(#_k):not(#_t) .pxk-topic-panel-title,
+:root:not(#_k):not(#_t) .pxk-topic-title,
+:root:not(#_k):not(#_t) .pxk-topic-title a,
+:root:not(#_k):not(#_t) .pxk-row-title,
+:root:not(#_k):not(#_t) .pxk-row-title a,
+:root:not(#_k):not(#_t) .pxk-dossier-title,
+:root:not(#_k):not(#_t) .kl-brand-title {
+  font-family: var(--ki-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 40;
+  letter-spacing: -0.012em;
+  text-transform: none;
+  text-wrap: balance;
+  hyphens: auto;
+}
+/* Aufmacher hat eine Zeilenbegrenzung im Hero, daher H1 (43) statt Display (54) */
+:root:not(#_k):not(#_t) .px-hero-main-title { font-size: clamp(2rem, 1.25rem + 2vw, var(--ki-fs-h1)); font-weight: 600; line-height: 1.08; letter-spacing: -0.018em; }
+:root:not(#_k):not(#_t) .pxk-section-title { font-size: var(--ki-fs-h2); font-weight: 600; line-height: 1.1; }
+:root:not(#_k):not(#_t) .px-hero-side-title,
+:root:not(#_k):not(#_t) .px-hero-release-title,
+:root:not(#_k):not(#_t) .pxk-topic-panel-title,
+:root:not(#_k):not(#_t) .pxk-dossier-title { font-size: var(--ki-fs-titel); font-weight: 600; line-height: 1.18; }
+:root:not(#_k):not(#_t) .pxk-topic-title,
+:root:not(#_k):not(#_t) .pxk-topic-title a,
+:root:not(#_k):not(#_t) .pxk-row-title,
+:root:not(#_k):not(#_t) .pxk-row-title a { font-size: var(--ki-fs-text); font-weight: 560; line-height: 1.3; }
+/* Größere Titel brauchen eine Zeile mehr, sonst schneidet die alte Begrenzung mitten im Satz ab */
+:root:not(#_k):not(#_t) .pxk-row-title { -webkit-line-clamp: 2; line-clamp: 2; }
+:root:not(#_k):not(#_t) .pxk-topic-title,
+:root:not(#_k):not(#_t) .pxk-dossier-title { -webkit-line-clamp: 3; line-clamp: 3; }
+@media (max-width: 760px) {
+  /* Spalten sind am Handy ~200 px schmal: Schlagzeilen ganz zeigen, nur Teaser bleiben begrenzt */
+  :root:not(#_k):not(#_t) .pxk-row-title,
+  :root:not(#_k):not(#_t) .pxk-topic-title { -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
+}
+:root:not(#_k):not(#_t) .kl-brand-title { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; }
+
+/* ---------- Themen-Marke: Fraunces kursiv, Akzentfarbe ---------- */
+:root:not(#_k):not(#_t) .pxk-section-kicker,
+:root:not(#_k):not(#_t) .px-hero-release-kicker,
+:root:not(#_k):not(#_t) .px-hero-context-label,
+:root:not(#_k):not(#_t) .px-hero-importance,
+:root:not(#_k):not(#_t) .ki-morgenlage-label,
+:root:not(#_k):not(#_t) .c-linie-kopf > span,
+:root:not(#_k):not(#_t) .kl-side-label {
+  font-family: var(--ki-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--accent);
+}
+
+/* ---------- Text klein: Work Sans 15 ---------- */
+:root:not(#_k):not(#_t) .px-hero-side-summary,
+:root:not(#_k):not(#_t) .px-hero-release-text,
+:root:not(#_k):not(#_t) .pxk-topic-summary,
+:root:not(#_k):not(#_t) .pxk-row-summary,
+:root:not(#_k):not(#_t) .pxk-section-copy,
+:root:not(#_k):not(#_t) .pxk-event-title,
+:root:not(#_k):not(#_t) .pxk-event-title a,
+:root:not(#_k):not(#_t) .c-linie-titel,
+:root:not(#_k):not(#_t) .px-hero-context-title {
+  font-family: var(--ki-sans);
+  font-size: var(--ki-fs-klein);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  text-wrap: pretty;
+  hyphens: auto;
+}
+:root:not(#_k):not(#_t) .pxk-event-title a,
+:root:not(#_k):not(#_t) .px-hero-context-title { font-weight: 500; line-height: 1.4; }
+
+/* ---------- Meta: Work Sans 13, Ziffern tabellarisch (ersetzt Mono) ---------- */
+:root:not(#_k):not(#_t) .px-hero-status,
+:root:not(#_k):not(#_t) .px-hero-stand,
+:root:not(#_k):not(#_t) .px-hero-counter,
+:root:not(#_k):not(#_t) .px-hero-pill,
+:root:not(#_k):not(#_t) .px-hero-vplay-text,
+:root:not(#_k):not(#_t) .px-hero-dossier,
+:root:not(#_k):not(#_t) .px-hero-side-rank,
+:root:not(#_k):not(#_t) .px-hero-side-index,
+:root:not(#_k):not(#_t) .px-hero-score-label,
+:root:not(#_k):not(#_t) .px-hero-release-switch > button,
+:root:not(#_k):not(#_t) .px-hero-release-meta > span,
+:root:not(#_k):not(#_t) .px-hero-video-caption,
+:root:not(#_k):not(#_t) .px-hero-release-link,
+:root:not(#_k):not(#_t) .c-linie-dossier,
+:root:not(#_k):not(#_t) .c-linie-datum,
+:root:not(#_k):not(#_t) .c-linie-kopf > em,
+:root:not(#_k):not(#_t) .pxk-count,
+:root:not(#_k):not(#_t) .pxk-tab-count,
+:root:not(#_k):not(#_t) .pxk-topic-panel-meta,
+:root:not(#_k):not(#_t) .pxk-view-button,
+:root:not(#_k):not(#_t) .pxk-topic-rank,
+:root:not(#_k):not(#_t) .pxk-topic-meta,
+:root:not(#_k):not(#_t) .pxk-button-label,
+:root:not(#_k):not(#_t) .pxk-row-time,
+:root:not(#_k):not(#_t) .pxk-row-source,
+:root:not(#_k):not(#_t) .pxk-tag,
+:root:not(#_k):not(#_t) .pxk-dossier-meta,
+:root:not(#_k):not(#_t) .pxk-event-meta,
+:root:not(#_k):not(#_t) #pxk-dossier-rail summary,
+:root:not(#_k):not(#_t) .kl-de-badge,
+:root:not(#_k):not(#_t) .kl-side-sub,
+:root:not(#_k):not(#_t) .font-mono {
+  font-family: var(--ki-sans);
+  font-size: var(--ki-fs-meta);
+  font-weight: 500;
+  font-style: normal;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+/* Pillen werden zu schlichten Etiketten */
+:root:not(#_k):not(#_t) .px-hero-pill,
+:root:not(#_k):not(#_t) .pxk-tag { border-radius: 3px; box-shadow: none; }
+
+/* ---------- Bedienung: Navigation, Reiter, Knöpfe ---------- */
+:root:not(#_k):not(#_t) .sidebar-nav-link,
+:root:not(#_k):not(#_t) #kl-toplinks a,
+:root:not(#_k):not(#_t) .pxk-tab,
+:root:not(#_k):not(#_t) .media-toggle,
+:root:not(#_k):not(#_t) #tts-trigger,
+:root:not(#_k):not(#_t) .kl-side-name {
+  font-family: var(--ki-sans);
+  font-size: var(--ki-fs-klein);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+:root:not(#_k):not(#_t) .sidebar-nav-link.kl-active,
+:root:not(#_k):not(#_t) #kl-toplinks a.kl-active,
+:root:not(#_k):not(#_t) .pxk-tab[aria-selected="true"] { font-weight: 600; }
+
+/* ---------- Inline-Styles im SSR-Teil (nur hier !important) ---------- */
+:root:not(#_k):not(#_t) [style*="Space Grotesk"] { font-family: var(--ki-sans) !important; }
+:root:not(#_k):not(#_t) h2[style*="Space Grotesk"],
+:root:not(#_k):not(#_t) h3[style*="Space Grotesk"],
+:root:not(#_k):not(#_t) .ki-main[style*="Space Grotesk"] {
+  font-family: var(--ki-serif) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+:root:not(#_k):not(#_t) [style*="monospace"] {
+  font-family: var(--ki-sans) !important;
+  font-size: max(var(--ki-fs-meta), 1em) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variant-numeric: tabular-nums;
+}
