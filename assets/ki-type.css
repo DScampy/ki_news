@@ -46,6 +46,23 @@
 :root:not(#_k):not(#_t) .pxk-dossier-title { font-size: var(--ki-fs-titel); font-weight: 600; line-height: 1.18; }
 /* Größere Titel brauchen eine Zeile mehr, sonst schneidet die alte Begrenzung mitten im Satz ab */
 :root:not(#_k):not(#_t) .pxk-dossier-title { -webkit-line-clamp: 3; line-clamp: 3; }
+/* „Frisch auf dem Markt“: Die Box bekommt ihre Höhe vom Hero-Raster (Zeile ~133–175 px), nicht vom Inhalt.
+   Mit den größeren Schriften lief der Text in die Link-Zeile (375 px: 11 px, 768 px: 60 px Überlappung).
+   Darum kompakter Titel, kurzer Teaser, und der Body schneidet ab statt zu überlappen. */
+:root:not(#_k):not(#_t) .px-hero-release-title { font-size: var(--ki-fs-text); line-height: 1.25; -webkit-line-clamp: 2; line-clamp: 2; }
+:root:not(#_k):not(#_t) .px-hero-release-text { -webkit-line-clamp: 2; line-clamp: 2; }
+:root:not(#_k):not(#_t) .px-hero-release-body { min-height: 0; overflow: hidden; }
+@media (max-width: 1279px) {
+  /* Meta-Zeile (Anbieter, Modell, Datum) steht schon als Etikett und Reiter darüber;
+     „Video auf X“ stößt bei 13 px an den X-Post-Link, Play-Knopf und Link sagen es schon */
+  :root:not(#_k):not(#_t) .px-hero-release-meta,
+  :root:not(#_k):not(#_t) .px-hero-video-caption { display: none; }
+  :root:not(#_k):not(#_t) .px-hero-release-text { -webkit-line-clamp: 1; line-clamp: 1; }
+  /* Hero-Liste: feste Kartenhöhe, unter 1280 px wurden lange Titel nach 4 Zeilen gekürzt.
+     Titel ganz zeigen, dafür Teaser kürzer */
+  :root:not(#_k):not(#_t) .px-hero-side-title { font-size: var(--ki-fs-text); line-height: 1.25; -webkit-line-clamp: 5; line-clamp: 5; }
+  :root:not(#_k):not(#_t) .px-hero-side-summary { -webkit-line-clamp: 2; line-clamp: 2; }
+}
 :root:not(#_k):not(#_t) .kl-brand-title { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; }
 
 /* ---------- Themen-Marke: Fraunces kursiv, Akzentfarbe ---------- */
