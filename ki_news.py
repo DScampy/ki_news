@@ -5978,6 +5978,8 @@ def _linien_kapitel(linien, post_cache, news_list, archiv, feed_texte):
 # Jev-Urteil wird nichts veroeffentlicht). Cache in post-cache.json unter "sz:<link>".
 # Kill-Switch: SCHLAGZEILEN_AKTIV = False.
 SCHLAGZEILEN_AKTIV = True
+# Meldungsseiten (28.10.26): meldung/JJJJ-MM/<slug>.html + Sitemaps. Kill-Switch: False.
+MELDUNGSSEITEN_AKTIV = True
 SCHLAGZEILEN_KANDIDATEN = 8        # Hero zeigt 5 (+ gepinnte); Puffer fuer Umsortierung im Lauf
 SCHLAGZEILEN_MAX_SEKUNDEN = 120
 SCHLAGZEILE_MAX_ZEICHEN = 70
@@ -6973,6 +6975,13 @@ def main():
         inject_admin_posts(proj_dir if proj_dir.exists() else Path("."), news_json_data)
     except Exception as e:
         logger.exception("Admin-Posts SSR fehlgeschlagen: %s", e)
+    # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.
+    if MELDUNGSSEITEN_AKTIV:
+        try:
+            import meldungsseiten
+            meldungsseiten.erzeuge(proj_dir if proj_dir.exists() else Path("."), news_json_data)
+        except Exception as e:
+            logger.exception("Meldungsseiten uebersprungen (Pipeline unbeeinflusst): %s", e)
 
     # ── archive.json kumulativ schreiben ──────────────────────────────────
     def update_archive(base_dir):
