@@ -2332,6 +2332,29 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     :root:not(#_k):not(#_t) #px-hero .px-hero-buehne .px-hero-main-title { font-size: 1.75rem; -webkit-line-clamp: unset; line-clamp: none; }
   }
 </style>
+<style id="px-schlagzeilen">
+  /* Kopfzeile (H1) und Schlagzeilen-Leiste unter dem Aufmacher, 28.10.26.
+     Kill-Switch: diesen Block, <h1 class="px-kopfzeile"> und <nav class="px-sz"> entfernen. */
+  #px-hero .px-kopfzeile{font:600 clamp(1.05rem,.9rem + .6vw,1.375rem)/1.3 var(--ki-serif,Georgia,serif);
+    color:var(--pz-tinte);margin:0 0 .75rem;letter-spacing:-.005em;hyphens:none}
+  #px-hero .px-sz{margin-top:1.5rem;border-top:2px solid var(--pz-tinte);padding-top:.75rem}
+  #px-hero .px-sz-kopf{font:600 .8125rem/1.2 var(--ki-sans,system-ui,sans-serif);text-transform:uppercase;
+    letter-spacing:.06em;color:var(--pz-grau);margin:0 0 .35rem}
+  #px-hero .px-sz-liste{list-style:none;margin:0;padding:0;display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));column-gap:2rem}
+  #px-hero .px-sz-liste li{border-top:1px solid var(--pz-linie);padding:.65rem 0;display:flex;
+    flex-direction:column;gap:.2rem;min-width:0}
+  #px-hero .px-sz-liste li:nth-child(-n+2){border-top:0}
+  #px-hero .px-sz-liste a{font:500 1.0625rem/1.35 var(--ki-serif,Georgia,serif);color:var(--pz-tinte);
+    text-decoration:none;overflow-wrap:break-word;hyphens:none}
+  #px-hero .px-sz-liste a:hover,#px-hero .px-sz-liste a:focus-visible{color:var(--pz-akzent);text-decoration:underline}
+  #px-hero .px-sz-quelle{font:.8125rem/1.3 var(--ki-sans,system-ui,sans-serif);color:var(--pz-grau)}
+  #px-hero .px-sz-liste:empty,#px-hero .px-sz:has(.px-sz-liste:empty){display:none}
+  @media (max-width:720px){
+    #px-hero .px-sz-liste{grid-template-columns:1fr}
+    #px-hero .px-sz-liste li:nth-child(2){border-top:1px solid var(--pz-linie)}
+  }
+</style>
 </head>
 <body class="font-body-lg">
 <script src="assets/ki-layout.js"></script>
@@ -2370,6 +2393,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   <div class="px-hero-aurora" aria-hidden="true"></div>
 
   <div class="px-hero-shell">
+    <h1 class="px-kopfzeile">KI-News: Nachrichten zu Künstlicher Intelligenz, täglich auf Deutsch</h1>
     <div class="px-hero-status-row" aria-live="polite">
       <span class="px-hero-status" data-px-load-status>
         Aktuelle Meldungen werden geladen
@@ -2396,6 +2420,12 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
             aria-label="Top-Story Karussell"
           ></div>
         </article>
+      <nav class="px-sz" aria-labelledby="px-sz-kopf">
+        <h2 class="px-sz-kopf" id="px-sz-kopf">Schlagzeilen</h2>
+          <!-- SSR:SCHLAGZEILEN:START -->
+          <ol class="px-sz-liste" data-px-schlagzeilen></ol>
+          <!-- SSR:SCHLAGZEILEN:END -->
+      </nav>
       </div>
 
       <aside
@@ -4327,7 +4357,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
         if (item.link) {
           const link = create("a", "", anzeigeTitel(item.title));
-          link.href = item.link; link.__pxkItem = item;
+          link.href = item.seite || item.link; link.__pxkItem = item;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           title.appendChild(link);
@@ -4382,7 +4412,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
           );
 
           if (item.link) {
-            card.href = item.link; card.__pxkItem = item;
+            card.href = item.seite || item.link; card.__pxkItem = item;
             card.target = "_blank";
             card.rel = "noopener noreferrer";
           }
@@ -4953,7 +4983,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         );
 
         if (item.link) {
-          card.href = item.link; card.__pxkItem = item;
+          card.href = item.seite || item.link; card.__pxkItem = item;
           card.target = "_blank";
           card.rel = "noopener noreferrer";
         }
@@ -5808,8 +5838,9 @@ function auchBei(item) {
 function renderCard(item) {
   var c = item.color || srcColor(item.source);
   var a = document.createElement('a');
-  a.href = item.link || '#';
-  if (item.link) {
+  // Meldungsseite (28.10.26): wie _ssr_card() in ki_news.py, intern ohne neuen Tab.
+  a.href = item.seite || item.link || '#';
+  if (item.link && !item.seite) {
     a.target = '_blank';
     // rel fehlte hier (Fund 22.08.26), waehrend _ssr_card() in ki_news.py es
     // laengst setzt. Ohne noopener bekommt die geoeffnete Seite ueber
@@ -7638,7 +7669,12 @@ window.addEventListener('resize',()=>{
         source + (datum ? ` · ${datum}` : "") + quellen
       ));
 
-      if (safeHref(story.link)) {
+      // Meldungsseite (28.10.26): "Weiterlesen" bleibt auf ki-news.live, sonst Originalquelle.
+      if (safeHref(story.seite)) {
+        const weiter = make("a", "px-hero-article-link", "Weiterlesen");
+        weiter.href = safeHref(story.seite);
+        copy.append(weiter);
+      } else if (safeHref(story.link)) {
         copy.append(makeExternalLink(
           "Weiterlesen",
           story.link,
@@ -7768,15 +7804,18 @@ window.addEventListener('resize',()=>{
       const source = cleanText(story.source) || "Quelle unbekannt";
       const dossier = dossierData(story);
       const article = make("article", "px-hero-side-card");
-      const href = safeHref(story.link);
+      const intern = safeHref(story.seite);      // Meldungsseite (28.10.26)
+      const href = intern || safeHref(story.link);
       const link = href
         ? make("a", "px-hero-side-link")
         : make("div", "px-hero-side-link");
 
       if (href) {
         link.href = href;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
+        if (!intern) {
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
       } else {
         link.setAttribute("aria-disabled", "true");
       }
