@@ -16,7 +16,9 @@ Regeln:
   sonst aendern sich bei jedem Lauf alle Seiten.
 
 Einziger Schreiber aller Dateien unter meldung/ und der beiden Sitemaps (I5).
-Aufruf aus ki_news.py nach der SSR-Injektion, Kill-Switch MELDUNGSSEITEN_AKTIV.
+Aufruf aus ki_news.py VOR dem Schreiben von news.json: setzt dort je Meldung das Feld
+"seite" (Pfad der Meldungsseite), das Startseite und Listen verlinken.
+Kill-Switch MELDUNGSSEITEN_AKTIV.
 """
 
 import hashlib
@@ -350,12 +352,12 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         rep = max(glieder, key=lambda x: _zahl(x.get("score")))
         links = [l for g in glieder for l in _links(g)]
         karte = next((karten[l] for l in links if l in karten), None)
-        reihe.append((rep, links, karte))
+        reihe.append((rep, links, karte, glieder))
     reihe.sort(key=lambda t: _zahl(t[0].get("score")), reverse=True)
 
     neu = geaendert = 0
     eintraege = []
-    for rep, links, karte in reihe:
+    for rep, links, karte, glieder in reihe:
         titel = _titel(rep)
         linie = _linie_info(rep, linien)
         index = _substanz(rep, karte, linie)
@@ -384,6 +386,8 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         e["links"] = sorted(set(e["links"]) | set(links))
         for l in links:
             nach_link[l] = (monat, slug)
+        for g in glieder:                 # Startseite und Listen verlinken hierauf
+            g["seite"] = e["pfad"]
         h = _inhalt_hash(rep, karte, linie, titel, index)
         if e.get("h") != h:
             if e.get("h"):

@@ -432,8 +432,11 @@ def _ssr_card(n):
         # noreferrer am 22.08.26 ergaenzt, damit diese Kachel exakt dasselbe rel
         # setzt wie renderCard() in index.html -- die beiden erzeugen dieselbe
         # Kachel, einmal vorgerendert und einmal im Browser.
-        f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" target="_blank" rel="noopener noreferrer" '
-        f'class="ki-card ki-border border p-4 flex flex-col h-full transition-all">'
+        # Meldungsseite (28.10.26): mit "seite" bleibt der Leser auf ki-news.live,
+        # sonst wie bisher die Originalquelle im neuen Tab. renderCard() macht dasselbe.
+        (f'<a href="{_html.escape(n["seite"], quote=True)}" ' if n.get("seite") else
+         f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" target="_blank" rel="noopener noreferrer" ')
+        + f'class="ki-card ki-border border p-4 flex flex-col h-full transition-all">'
         f'{_card_bg_svg(n)}'
         f'<div class="card-scrim"></div>'
         f'<div class="card-content flex flex-col h-full">'
@@ -691,6 +694,37 @@ def _ssr_briefing_block(briefing):
     return "\n".join(teile)
 
 
+SCHLAGZEILEN_LEISTE = 8
+SCHLAGZEILEN_AB = 3   # die ersten drei Storys stehen schon als Aufmacher und Seitenkarten da
+
+
+def _ssr_schlagzeilen_block(news):
+    """Schlagzeilen-Leiste unter dem Aufmacher (28.10.26): die naechsten Storys nach
+    Aufmacher und Seitenkarten als Liste, verlinkt auf die Meldungsseiten. Nur vorgerendert (kein JS): Crawler sehen die
+    Links, und der Stand ist derselbe wie news.json, weil beide im selben Lauf entstehen."""
+    zeilen, gesehen = [], set()
+    for n in news:
+        sid = n.get("story_id") or n.get("link")
+        if sid in gesehen:
+            continue
+        gesehen.add(sid)
+        titel = (n.get("schlagzeile") or n.get("title") or "").strip().rstrip(".")
+        if not titel or len(gesehen) <= SCHLAGZEILEN_AB:
+            continue
+        if n.get("seite"):
+            a = f'<a href="{_html.escape(n["seite"], quote=True)}">'
+        else:
+            a = (f'<a href="{_html.escape(n.get("link") or "#", quote=True)}" '
+                 'target="_blank" rel="noopener noreferrer">')
+        zeilen.append(f'<li>{a}{_html.escape(titel)}</a>'
+                      f'<span class="px-sz-quelle">{_html.escape(n.get("source") or "")}</span></li>')
+        if len(zeilen) >= SCHLAGZEILEN_LEISTE:
+            break
+    return ("<!-- SSR:SCHLAGZEILEN:START -->\n"
+            '        <ol class="px-sz-liste" data-px-schlagzeilen>' + "".join(zeilen) + "</ol>\n"
+            "        <!-- SSR:SCHLAGZEILEN:END -->")
+
+
 def inject_ssr(base_dir, news_json_data):
     """Schreibt Hero + News-Grid + JSON-LD als statisches HTML in index.html."""
     base_dir = Path(base_dir)
@@ -732,7 +766,8 @@ def inject_ssr(base_dir, news_json_data):
             {
                 "@type": "ListItem",
                 "position": i + 1,
-                "url": n.get("link") or "https://ki-news.live/",
+                "url": ("https://ki-news.live" + n["seite"]) if n.get("seite")
+                       else (n.get("link") or "https://ki-news.live/"),
                 "name": n.get("title") or "",
             }
             for i, n in enumerate(news)
@@ -770,6 +805,9 @@ def inject_ssr(base_dir, news_json_data):
         r"<!-- SSR:BRIEFING:START -->.*?<!-- SSR:BRIEFING:END -->",
         lambda _m: briefing_block, html_txt, flags=re.DOTALL,
     )
+    # Schlagzeilen-Leiste (28.10.26): tolerant wie die Morgenlage.
+    html_txt = re.sub(r"<!-- SSR:SCHLAGZEILEN:START -->.*?<!-- SSR:SCHLAGZEILEN:END -->",
+                      lambda _m: _ssr_schlagzeilen_block(news), html_txt, flags=re.DOTALL)
     # Neueste Analysen (25.09.26, F1): ebenfalls tolerant, fehlt der Marker, passiert nichts.
     try:
         artikel_block = _ssr_artikel_block(base_dir)
@@ -6955,6 +6993,15 @@ def main():
         "cluster_schatten": _cluster_treffer,
     }
 
+    # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.
+    # Laeuft VOR news.json, weil es je Meldung das Feld "seite" setzt (Startseite verlinkt es).
+    if MELDUNGSSEITEN_AKTIV:
+        try:
+            import meldungsseiten
+            meldungsseiten.erzeuge(proj_dir if proj_dir.exists() else Path("."), news_json_data)
+        except Exception as e:
+            logger.exception("Meldungsseiten uebersprungen (Pipeline unbeeinflusst): %s", e)
+
     if proj_dir.exists():
         write_json_file(proj_dir / "news.json", news_json_data)
     else:
@@ -6975,13 +7022,6 @@ def main():
         inject_admin_posts(proj_dir if proj_dir.exists() else Path("."), news_json_data)
     except Exception as e:
         logger.exception("Admin-Posts SSR fehlgeschlagen: %s", e)
-    # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.
-    if MELDUNGSSEITEN_AKTIV:
-        try:
-            import meldungsseiten
-            meldungsseiten.erzeuge(proj_dir if proj_dir.exists() else Path("."), news_json_data)
-        except Exception as e:
-            logger.exception("Meldungsseiten uebersprungen (Pipeline unbeeinflusst): %s", e)
 
     # ── archive.json kumulativ schreiben ──────────────────────────────────
     def update_archive(base_dir):
