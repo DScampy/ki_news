@@ -6097,7 +6097,8 @@ def _sz_llm(posten):
         "- der Anriss muss mindestens eine Tatsache bringen, die nicht im Titel steht\n\n"
         "BEIDE: Zusammensetzungen mit Zahl und Hauptwort mit Bindestrich: "
         "\"40-Milliarden-Dollar-Vereinbarung\", \"3-Milliarden-Investition\", nicht "
-        "\"40 Milliarden US-Dollar Vereinbarung\".\n\n"
+        "\"40 Milliarden US-Dollar Vereinbarung\". Ein Betrag allein bleibt ohne Bindestrich: "
+        "\"investiert 3 Milliarden Dollar in Meta\".\n\n"
         "HAUPTREGEL: nur Tatsachen aus Titel, Zusammenfassung und Artikelanfang. Keine Gründe, "
         "Folgen, Zahlen, Rollen oder Wertungen erfinden. Reicht das Material nicht für zwei Sätze, "
         "schreibe einen. Bringt auch der nichts Neues gegenüber dem Titel, lass \"anriss\" leer.\n"
@@ -6152,9 +6153,18 @@ _SZ_KOMPOSITUM = re.compile(
     r"(?=\s+(?:für|von|mit|über|zur|zum|in|an|bei|gegen|aus)\b|\s*[.,]?$)")
 
 
+# 28.10.26 (Daniel, Desktop-Video): Das Modell setzt die Bindestriche aus der Prompt-Regel auch
+# bei reinen Betraegen ("Nvidia investiert 3-Milliarden-Dollar in Metas ..."). Ohne folgendes
+# Hauptwort ist das kein Kompositum, also wieder Leerzeichen. "3-Milliarden-Dollar-Deal" bleibt.
+_SZ_BETRAG = re.compile(
+    r"\b(\d[\d.,]*)-(Milliarden|Millionen|Mrd\.?|Mio\.?)-(US-Dollar|Dollar|Euro|Yuan)\b(?!-)")
+
+
 def _sz_bindestriche(text):
-    return _SZ_KOMPOSITUM.sub(lambda m: "-".join(m.group(i).rstrip(".") if i == 2 and m.group(2) in ("Mrd.", "Mio.")
-                                                   else m.group(i) for i in range(1, 5)), text or "")
+    text = _SZ_KOMPOSITUM.sub(lambda m: "-".join(m.group(i).rstrip(".") if i == 2 and m.group(2) in ("Mrd.", "Mio.")
+                                                 else m.group(i) for i in range(1, 5)), text or "")
+    return _SZ_BETRAG.sub(lambda m: f"{m.group(1)} {m.group(2).rstrip('.')}"
+                                    f"{'.' if m.group(2).startswith(('Mrd', 'Mio')) else ''} {m.group(3)}", text)
 
 
 # Erster Lauf 27.10.: 3 von 7 Anrissen sagten nur den Titel mit anderen Worten (Reddit,
@@ -6256,10 +6266,11 @@ def _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache):
     for n in kandidaten:
         c = post_cache.get("sz:" + n["link"])
         if c and c.get("v") == _SZ_VERSION and c.get("titel") == n.get("title"):
+            # _sz_bindestriche auch auf Cache-Treffer (28.10.26): repariert alte Eintraege ohne Neulauf
             if c.get("schlagzeile"):
-                n["schlagzeile"] = c["schlagzeile"]
+                n["schlagzeile"] = _sz_bindestriche(c["schlagzeile"])
             if c.get("anriss"):
-                n["anriss"] = c["anriss"]
+                n["anriss"] = _sz_bindestriche(c["anriss"])
             zaehler["cache"] += 1
         else:
             offen.append(n)
