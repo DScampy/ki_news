@@ -833,6 +833,11 @@ def load_post_cache(base_dir):
     except Exception:
         return {}
 
+# Rahmen-/Blockzeichen (U+2500-U+259F) und das Ersatzzeichen U+FFFD kommen in deutschen Texten
+# nie echt vor, wohl aber im Zeichensalat eines Modells (28.10.26: "schlie├¤t", "H├Čhere")
+_ZEICHENSALAT = re.compile(r"[─-▟�]")
+
+
 def load_summary_cache(base_dir):
     """Laedt summary-cache.json - gespeicherte Uebersetzungen (title_de/summary)
     pro Artikel-Link. Laufzeit-Fix (02.07.26): summarize_news() hat bisher bei
@@ -855,6 +860,10 @@ def load_summary_cache(base_dir):
     _poisoned = "eines neuen KI-Modells mit erweiterten Codierungsf"
     cache = {k: v for k, v in cache.items()
              if _poisoned not in (v.get("title_de") or "")}
+    # 28.10.26: Eintraege mit Zeichensalat verwerfen -> naechster Lauf uebersetzt neu
+    # (summarize_news laesst solche Texte seitdem nicht mehr durch, s. _item_kaputt)
+    cache = {k: v for k, v in cache.items()
+             if not _ZEICHENSALAT.search((v.get("title_de") or "") + " " + (v.get("summary") or ""))}
     return cache
 
 def save_summary_cache(base_dir, cache):
@@ -4279,6 +4288,11 @@ News:
                         if (t and not _sanitize_llm_output(t)) or \
                            (s and not _sanitize_llm_output(s)):
                             return "Artefakt"
+                        # 28.10.26 (Daniels Handy-Video): "Disruptive schlie├¤t ... f├╝r",
+                        # "H├Čhere Gewalt" - ein Modell lieferte Zeichensalat statt Umlauten,
+                        # gecacht und live. Rahmenzeichen kommen in echten Titeln nie vor.
+                        if _ZEICHENSALAT.search(t + " " + s):
+                            return "Zeichensalat"
                         if t and len(t.split()) < 3:
                             return "Titel zu kurz"
                         # Fund 06.07.26 (Daniels Karten-Screenshots): title_de kam manchmal
@@ -6654,6 +6668,7 @@ def main():
         # UND ohne jedes deutsche Signal im Titel (Umlaut, Marker) gilt er als unuebersetzt.
         _ohne_teaser = not (s.get("summary") or "").strip()
         if _title_de_check and (not _looks_german(_title_de_check, n.get("title", ""))
+                                or _ZEICHENSALAT.search(_title_de_check)   # 28.10.26
                                 or (_ohne_teaser and n.get("source", "") not in _DEUTSCHE_QUELLEN
                                     and not _hat_deutsches_signal(_title_de_check))):
             globals()["_GUARD_VERWORFEN"] = globals()["_GUARD_VERWORFEN"] + 1
