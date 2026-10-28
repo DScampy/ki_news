@@ -522,16 +522,20 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
                                                            or og.get("seite:video", ""))
             if not r["text"]:
                 r["text"] = _text(og.get("og:description") or og.get("description", ""))
-        if r["text"]:
-            r["text_en"] = r["text"]
-            cache = {a.get("url"): a for a in (alt or {}).get("releases", []) if a.get("text_en")}
+        # 28.10.26: auch den Titel uebersetzen (Daniel: "Introducing GPT-6.1 Terra" stand
+        # englisch in "Frisch auf dem Markt"). Original in titel_en, Cache wie beim Text.
+        for feld in ("text", "titel"):
+            if not r[feld]:
+                continue
+            r[feld + "_en"] = r[feld]
+            cache = {a.get("url"): a for a in (alt or {}).get("releases", []) if a.get(feld + "_en")}
             vorher = cache.get(r["url"])
-            if vorher and vorher.get("text_en") == r["text_en"] and vorher.get("text") != r["text_en"]:
-                r["text"] = vorher["text"]
+            if vorher and vorher.get(feld + "_en") == r[feld + "_en"] and vorher.get(feld) != r[feld + "_en"]:
+                r[feld] = vorher[feld]
             else:
-                de = uebersetzen(r["text"]) if uebersetzen else None
+                de = uebersetzen(r[feld]) if uebersetzen else None
                 if de:
-                    r["text"] = de
+                    r[feld] = de
         treffer = news_abgleich(r, news)
         if treffer:
             r["news_link"] = treffer.get("link", "")

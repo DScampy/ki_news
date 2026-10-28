@@ -2356,8 +2356,12 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   #px-hero .px-hero-slide > .px-hero-buehne{flex:1 0 auto}
   @media (max-width:760px){
     #px-hero .px-hero-buehne{display:flex;flex-direction:column}
-    #px-hero .px-hero-buehne .px-hero-main-media{order:0}  /* alte Regel order:2 wuerde das Foto unter den Text schieben */
-    #px-hero .px-hero-buehne .px-hero-main-copy{flex:1 0 auto}
+    /* alte Regel order:2 wuerde das Foto unter den Text schieben. Reservierte Hoehe
+       (28.10.26, Daniel-Screenshot 13:42): waechst ins Foto statt als Leerraum unter den Pfeilen. */
+    #px-hero .px-hero-buehne .px-hero-main-media{order:0;flex:1 0 auto;max-height:none;aspect-ratio:auto;min-height:218px}
+    #px-hero .px-hero-buehne .px-hero-main-copy{flex:0 0 auto}
+    /* Pfeile und Punkte mittig (28.10.26, Daniel) */
+    #px-hero .px-hero-buehne .px-hero-carousel-controls{align-self:stretch;justify-content:center}
   }
   #px-hero .px-sz-liste:empty,#px-hero .px-sz:has(.px-sz-liste:empty){display:none}
   @media (max-width:720px){
