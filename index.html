@@ -3549,6 +3549,52 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       #pxk-kompakt .pxz-neben { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; }
     }
 </style>
+<style id="pxk-ruhig">
+    /* 28.10.26 (Daniels Handy-Video): kein Kasten um die Abschnitte (Raster, Verlauf, runde
+       Ecken), die Abschnitte selbst flach mit feiner Linie wie der Hero, Akzent Petrol statt
+       Theme-Neon, Linien-Karten ohne Kennungs-Etikett. Kill-Switch: diesen Block entfernen. */
+    #pxk-kompakt {
+      --accent: #0b6e88;
+      min-height: 0;
+      margin: 0 0 32px;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    html.dark #pxk-kompakt { --accent: #55c3de; }
+    #pxk-kompakt .pxk-main { width: min(calc(100% - 32px), 1500px); max-width: none; padding-block: 0 24px; }
+    #pxk-kompakt .pxk-section {
+      margin-top: 16px;
+      border-radius: 0;
+      background: var(--pxk-solid);
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+    #pxk-kompakt .pxk-section::before { display: none; }
+    #pxk-kompakt .pxk-dossiers { --pxk-accent: var(--accent); --pxk-pink: var(--accent); padding: clamp(16px, 2vw, 32px); }
+    #pxk-kompakt .pxk-dossiers .pxk-section-head {
+      align-items: baseline;
+      padding-top: 14px;
+      border-top: 3px solid var(--pxk-text);
+    }
+    #pxk-kompakt .pxk-dossiers .pxk-count {
+      padding: 0;
+      border: 0;
+      background: none;
+      box-shadow: none;
+      color: var(--pxk-faint);
+    }
+    #pxk-kompakt .pxk-dossiers .pxk-count::before { display: none; }
+    #pxk-kompakt .pxk-dossier-card { border-radius: 0; }
+    #pxk-kompakt .pxk-dossier-card:hover { box-shadow: none; }
+    @media (max-width: 700px) {
+      #pxk-kompakt .pxk-main { width: calc(100% - 24px); }
+      #pxk-kompakt .pxk-section { margin-top: 12px; }
+    }
+    @media (min-width: 2000px) {
+      #pxk-kompakt .pxk-main { width: min(92vw, 1840px); }
+    }
+</style>
 <section id="pxk-kompakt" aria-label="Meldungen nach Thema">
 <div
     id="pxk-main"
@@ -4749,11 +4795,14 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         const countLabel = line.count === 1
           ? "Meldung"
           : "Meldungen";
-        const lineLabel =
-          "Linie " + line.id.slice(0, 4).toUpperCase();
-
+        // 28.10.26: vorher "Linie 5E0D" (Anfang der internen ID) als rotes Etikett und
+        // darunter noch einmal "Seit ..."; jetzt eine Zeile mit Startdatum und Anzahl
         top.append(
-          create("span", "pxk-tag", lineLabel),
+          create(
+            "span",
+            "pxk-dossier-meta",
+            line.since ? "Seit " + formatDate(line.since) : ""
+          ),
           create(
             "span",
             "pxk-dossier-meta",
@@ -4765,16 +4814,6 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
           top,
           create("h3", "pxk-dossier-title", line.title)
         );
-
-        if (line.since) {
-          main.appendChild(
-            create(
-              "p",
-              "pxk-dossier-meta",
-              "Seit " + formatDate(line.since)
-            )
-          );
-        }
 
         const details = create("details");
         const summary = create(
