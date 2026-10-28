@@ -5969,7 +5969,7 @@ SCHLAGZEILEN_MAX_SEKUNDEN = 120
 SCHLAGZEILE_MAX_ZEICHEN = 70
 ANRISS_MIN_ZEICHEN = 120
 ANRISS_MAX_ZEICHEN = 290    # Hero zeigt bis 4 Zeilen
-_SZ_VERSION = 1
+_SZ_VERSION = 2   # 28.10.26: v1-Eintraege einmal neu (Neuheits-Pruefung, Bindestriche)
 _SZ_VERBOTEN = X_TOR_VERBOTEN + ("stell dir vor", "bleibt abzuwarten", "wirft fragen auf",
                                  "wirft die frage auf", "unterstreicht", "verdeutlicht",
                                  "zeigt, wie", " wir ", " uns ", " unser")
@@ -6039,7 +6039,11 @@ def _sz_llm(posten):
         "- kein \"Stell dir vor\", kein \"wir\"/\"uns\", keine Alltagsvergleiche, keine Frage an den Leser\n"
         "- verboten: \"wirft Fragen auf\", \"zeigt, wie\", \"bleibt abzuwarten\", \"unterstreicht\", "
         "\"verdeutlicht\"; \"könnte\" höchstens einmal\n"
-        "- kein Gedankenstrich als Satzpause, kein Semikolon\n\n"
+        "- kein Gedankenstrich als Satzpause, kein Semikolon\n"
+        "- der Anriss muss mindestens eine Tatsache bringen, die nicht im Titel steht\n\n"
+        "BEIDE: Zusammensetzungen mit Zahl und Hauptwort mit Bindestrich: "
+        "\"40-Milliarden-Dollar-Vereinbarung\", \"3-Milliarden-Investition\", nicht "
+        "\"40 Milliarden US-Dollar Vereinbarung\".\n\n"
         "HAUPTREGEL: nur Tatsachen aus Titel, Zusammenfassung und Artikelanfang. Keine Gründe, "
         "Folgen, Zahlen, Rollen oder Wertungen erfinden. Reicht das Material nicht für zwei Sätze, "
         "schreibe einen. Bringt auch der nichts Neues gegenüber dem Titel, lass \"anriss\" leer.\n"
@@ -6085,10 +6089,57 @@ def _sz_namen(titel):
     return [n.strip(".-/") for n in namen if len(n.strip(".-/")) >= 2]
 
 
+# Erster Lauf 27.10.: "SpaceX schließt 40 Milliarden US-Dollar Vereinbarung für KI-Chips".
+# Zahl + Einheit + Hauptwort wird zum Kompositum, aber nur wenn danach eine Praeposition oder
+# das Ende folgt ("... Vereinbarung fuer KI-Chips"). "sammelt 95 Mrd. Dollar Kapital ein" bleibt.
+_SZ_KOMPOSITUM = re.compile(
+    r"\b(\d[\d.,]*) (Milliarden|Millionen|Mrd\.|Mio\.) (US-Dollar|Dollar|Euro|Yuan) "
+    r"([A-ZÄÖÜ][a-zäöüß]{3,}(?:-[A-Za-zÄÖÜäöüß]+)*)"
+    r"(?=\s+(?:für|von|mit|über|zur|zum|in|an|bei|gegen|aus)\b|\s*[.,]?$)")
+
+
+def _sz_bindestriche(text):
+    return _SZ_KOMPOSITUM.sub(lambda m: "-".join(m.group(i).rstrip(".") if i == 2 and m.group(2) in ("Mrd.", "Mio.")
+                                                   else m.group(i) for i in range(1, 5)), text or "")
+
+
+# Erster Lauf 27.10.: 3 von 7 Anrissen sagten nur den Titel mit anderen Worten (Reddit,
+# Guidewire, Banken); die Aehnlichkeitspruefung greift bei umgestellten Woertern nicht.
+_SZ_NEU_FRAGE = {
+    "type": "noul",
+    "instructions": "Enthaelt `anriss` mindestens eine konkrete Tatsache (Zahl, Name, Ort, Datum, "
+                    "Bedingung, Folge, Zitat), die in `titel` nicht vorkommt?",
+    "criteria": {
+        "true": "Ja: `anriss` nennt mindestens eine Tatsache, die `titel` nicht enthaelt, auch nicht "
+                "sinngemaess, z. B. eine zusaetzliche Zahl, einen beteiligten Namen, eine Frist oder eine Bedingung.",
+        "false": "Nein: `anriss` formuliert nur `titel` um, ordnet die Woerter neu oder ergaenzt "
+                 "allgemeine Fuellwoerter ohne neue Tatsache.",
+    },
+}
+
+
+def _sz_neu(titel, anriss):
+    """p(anriss bringt Neues ggue. Titel); None = kein Key / Fehler."""
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not key or not anriss:
+        return None
+    try:
+        body = json.dumps({"model": "jev-latest", "state": {"titel": titel or "", "anriss": anriss},
+                           "questions": {"neu": _SZ_NEU_FRAGE}}).encode("utf-8")
+        req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                     headers={"Authorization": "Bearer " + key,
+                                              "Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return round(float(json.loads(r.read())["answers"]["neu"]["noul"]), 2)
+    except Exception as e:
+        logger.info("Schlagzeilen: Jev (neu) nicht erreichbar (%s)", e.__class__.__name__)
+        return None
+
+
 def _sz_code_pruefung(schlagzeile, anriss, titel):
     """-> (schlagzeile, anriss) bereinigt; ein Feld wird '' wenn es eine Regel verletzt."""
-    s = re.sub(r"\s+", " ", schlagzeile or "").strip().rstrip(".").strip()
-    a = re.sub(r"\s+", " ", anriss or "").strip()
+    s = _sz_bindestriche(re.sub(r"\s+", " ", schlagzeile or "").strip().rstrip(".").strip())
+    a = _sz_bindestriche(re.sub(r"\s+", " ", anriss or "").strip())
     def faul(text):
         low = " " + text.lower() + " "
         return ("—" in text or " – " in text or ";" in text
@@ -6184,6 +6235,11 @@ def _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache):
             if a:
                 p_a = _sz_jev(p["titel"], material, a)
                 if p_a is None or p_a >= X_TOR_JEV_SCHWELLE:
+                    a = ""
+            if a:
+                p_neu = _sz_neu(p["titel"], a)
+                if p_neu is None or p_neu < 0.5:
+                    logger.info("Schlagzeilen: Anriss ohne Neues verworfen (Jev %s): %s", p_neu, a[:80])
                     a = ""
         else:
             s = a = ""
