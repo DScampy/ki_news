@@ -419,6 +419,8 @@ jobs:
             git add verworfen.json 2>/dev/null || true
             # Jev-Veto (25.09.26): Urteils-Cache 'gleiches Ereignis', spart Aufrufe im naechsten Lauf.
             git add jev_urteile.json 2>/dev/null || true
+            # Meldungsseiten (28.10.26): eine Seite je Story + Sitemaps, siehe meldungsseiten.py.
+            git add meldung/ sitemap-meldungen.xml sitemap-news.xml 2>/dev/null || true
             git diff --staged --quiet || git commit -m "KI News Update $(date +'%Y-%m-%d %H:%M')"
           }
 
