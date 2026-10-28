@@ -1745,7 +1745,11 @@
           date: firstDate(raw),
           firstSeen: clean(raw.first_seen || raw.date),
           image: clean(raw.image || raw.image_url || raw.thumbnail),
-          storyId: clean(raw.story_id || raw.storyId),
+          // 28.10.26 (Daniel: OpenAI-Meldung im DeepSeek-Strang): story_id ist nur die
+          // Platznummer im jeweiligen Lauf (s000 = Top-Story DIESES Laufs) und wird jeden
+          // Lauf neu vergeben. Im Archiv tragen darum fremde Storys dieselbe Nummer. Nur
+          // news.json (ein Lauf) ist in sich stimmig; Archiv verbindet nur Link/Dublette.
+          storyId: file === "news.json" ? clean(raw.story_id || raw.storyId) : "",
           score: scoreFor(raw),
           articleCount: Math.max(1, finiteNumber(raw.story_article_count, 1)),
           dubVon,
