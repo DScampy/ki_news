@@ -764,6 +764,7 @@
     imgWrap.hidden = false;
   }
   window.klOpenArticle = function (data) {
+    var warOffen = klOvOpen;
     data = data || {};
     klCurrent = data;
     var ov = document.getElementById('kl-ov');
@@ -877,10 +878,19 @@
     ov.style.display = 'flex';
     document.documentElement.style.overflow = 'hidden';
     klOvOpen = true;
-    // replaceState statt location.hash: kein Sprung, kein History-Eintrag pro
-    // geoeffnetem Artikel -- die Adresszeile ist trotzdem sofort teilbar.
+    // 28.10.26 (Daniel): Beim ersten Oeffnen EIN History-Eintrag, damit die
+    // Zurueck-Taste am Handy das Overlay schliesst statt die Seite zu verlassen.
+    // Wechsel innerhalb des offenen Overlays und Direktlinks (#a= schon in der
+    // Adresse) ersetzen nur, kein Sprung, die Adresszeile bleibt sofort teilbar.
     if (data.link && window.history && history.replaceState) {
-      try { history.replaceState(null, '', '#a=' + window.klHashId(data.link)); } catch (e) {}
+      var ziel = '#a=' + window.klHashId(data.link);
+      try {
+        if (!warOffen && location.hash !== ziel && history.pushState) {
+          history.pushState({ klOv: 1 }, '', ziel);
+        } else {
+          history.replaceState(history.state, '', ziel);
+        }
+      } catch (e) {}
     }
     try {
       klRelatedHtml(title + ' ' + summary).then(function (html) {
@@ -890,6 +900,17 @@
     } catch (e) {}
   };
   window.klCloseArticle = function () {
+    // Eigener History-Eintrag vorhanden: zurueckgehen, popstate schliesst dann.
+    if (klOvOpen && window.history && history.state && history.state.klOv) {
+      history.back();
+      return;
+    }
+    klOvSchliessen();
+  };
+  window.addEventListener('popstate', function () {
+    if (klOvOpen && !(history.state && history.state.klOv)) klOvSchliessen();
+  });
+  function klOvSchliessen() {
     var ov = document.getElementById('kl-ov');
     if (ov) ov.style.display = 'none';
     klCurrent = null;
@@ -900,7 +921,7 @@
     if (v) v.pause(); // laeuft sonst im Hintergrund weiter (muted, aber unnoetig)
     document.documentElement.style.overflow = '';
     klOvOpen = false;
-  };
+  }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && klOvOpen) window.klCloseArticle(); });
 
   /* ── "Letztes Update" (30.08.) ─────────────────────────────────
