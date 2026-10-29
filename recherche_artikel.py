@@ -60,6 +60,11 @@ MAX_PRO_TAG = 2
 MAX_PRO_LAUF = 1
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
 JEV_SCHWELLE = 0.8
+JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetze, real ~25-30)
+JEV_MAX_QUELLTEXT = 24000        # 7 Quellen a TEXT_JE_QUELLE + Kopfzeilen, nichts kappen
+# Bumpen, wenn sich die Jev-Pruefung aendert: Entwuerfe, die NUR an Jev gescheitert sind und
+# mit einer aelteren Fassung geprueft wurden, bekommen einmal einen neuen Versuch.
+PRUEFUNG_VERSION = 2
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
 MODELLE = ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
@@ -74,11 +79,14 @@ VERBOTEN = ["revolutionär", "bahnbrechend", "game-changer", "gamechanger", "dis
 WEICHMACHER = r"\b(?:möglicherweise|könnte\w*|eventuell|wirft die frage auf)\b"
 WIR = r"\b(?:wir|uns|unser\w*)\b"
 
-_FRAGE_GEDECKT = {
+_FRAGE_SATZ = {
     "type": "noul",
-    "instructions": "Ist jede Tatsachenbehauptung in `text` (Zahlen, Namen, Rollen, Daten, Ereignisse, "
-                    "Zuschreibungen) durch `quellen` gedeckt? Übersetzung ins Deutsche und eigene "
-                    "Formulierung sind erlaubt.",
+    "instructions": "Ist jede Tatsachenbehauptung im Satz `satz` (Zahlen, Namen, Rollen, Daten, Ereignisse, "
+                    "Zuschreibungen) durch `quellen` gedeckt? `kontext` ist der umgebende Absatz und dient "
+                    "nur dem Verständnis (worauf sich \"er\", \"dagegen\" usw. beziehen), geprüft wird nur "
+                    "`satz`. Übersetzung ins Deutsche und eigene Formulierung sind erlaubt. Ein Satz, der "
+                    "nur einordnet, was die Quellen sagen oder nicht sagen (z. B. ein benannter Widerspruch), "
+                    "ist gedeckt, wenn die Quellen das so hergeben.",
     "criteria": {
         "true": "Ja: alles steht so oder sinngemäß in den Quellen, Herstellerangaben sind als solche "
                 "erkennbar.",
@@ -117,7 +125,10 @@ def _sauber(s):
 # ── Auswahl ──────────────────────────────────────────────────────────────────
 
 def kandidaten(news, releases, register, nur_story=None):
-    erledigt = {l for e in register.values() for l in e.get("links", [])}
+    # Entwuerfe, die nur an einer aelteren Jev-Pruefung scheiterten, zaehlen nicht als erledigt
+    erledigt = {l for e in register.values() for l in e.get("links", [])
+                if not (e.get("status") == "entwurf" and e.get("pruefung", 1) < PRUEFUNG_VERSION
+                        and e.get("gruende") and all(g.startswith("Jev") for g in e["gruende"]))}
     storys = {}
     for n in news:
         if n.get("link") and n.get("story_id"):
@@ -357,37 +368,60 @@ def pruefe_text(a, quellen, dp, entities):
     return fehler
 
 
-def _jev(text, quellen_text, key):
-    body = json.dumps({"model": "jev-latest", "state": {"text": text[:4000], "quellen": quellen_text[:12000]},
-                       "questions": {"gedeckt": _FRAGE_GEDECKT}}).encode("utf-8")
+def _jev(text, kontext, quellen_text, key):
+    body = json.dumps({"model": "jev-latest",
+                       "state": {"satz": text[:1500], "kontext": kontext[:2500], "quellen": quellen_text[:JEV_MAX_QUELLTEXT]},
+                       "questions": {"gedeckt": _FRAGE_SATZ}}).encode("utf-8")
     req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
                                  headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return float(json.loads(r.read())["answers"]["gedeckt"]["noul"])
 
 
+def _saetze(text):
+    """Saetze; Kurzstuecke (z. B. nach "z. B.") haengen am vorigen Satz."""
+    out = []
+    for s in re.split(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ0-9„])", text.strip()):
+        if out and len(s) < 25:
+            out[-1] += " " + s
+        elif s:
+            out.append(s)
+    return out
+
+
 def pruefe_jev(a, quellen, key):
-    """Jev je Absatz gegen die genannten Quellen, Titel+Anriss gegen alle. Liefert (fehler, werte)."""
+    """Jev je SATZ gegen die vollstaendigen Quellen seines Absatzes (Titel+Anriss: alle Quellen).
+    Liefert (fehler, werte).
+
+    29.10.26, erster echter Artikel (Gemini 4 Carbon): Je Absatz lag Jev bei 0,14-0,73, obwohl
+    jede geprueft Aussage in den Quellen stand. Zwei Gruende: Der Quelltext wurde bei 12.000
+    Zeichen gekappt (Absatz 1 nannte 6 Quellen a 3.000, Heise mit "vier Wochen" fehlte), und ein
+    dichter Absatz mit fuenf Zahlen aus drei Quellen bekommt bei der kleinsten Unsicherheit einen
+    niedrigen Wert. Satzweise sieht Jev genau das Material, das auch das Schreibmodell hatte,
+    und der Pruefbericht nennt den Satz, der nicht gedeckt ist. Schwelle bleibt JEV_SCHWELLE."""
     if not key:
         return ["Jev: kein TYPESAFE_API_KEY"], []
     nach_nr = {q["nr"]: q for q in quellen}
 
-    def qtext(nrs, je):
-        return "\n\n".join(f"[{n}] {nach_nr[n]['medium']}: {nach_nr[n]['titel']}. {nach_nr[n]['text'][:je]}"
+    def qtext(nrs):
+        return "\n\n".join(f"[{n}] {nach_nr[n]['medium']}: {nach_nr[n]['titel']}. {nach_nr[n]['text']}"
                            for n in nrs if n in nach_nr)
 
-    teile = [("Titel und Anriss", f"{a['titel']}. {a['anriss']}", qtext(list(nach_nr), 2000))]
-    teile += [(f"Absatz {i}", x["text"], qtext(x["quellen"], TEXT_JE_QUELLE))
-              for i, x in enumerate(a["absaetze"], 1)]
+    kopf = f"{a['titel']}. {a['anriss']}"
+    teile = [("Titel/Anriss", s, kopf, qtext(list(nach_nr))) for s in _saetze(kopf)]
+    for i, x in enumerate(a["absaetze"], 1):
+        teile += [(f"Absatz {i}", s, x["text"], qtext(x["quellen"])) for s in _saetze(x["text"])]
+    if len(teile) > JEV_MAX_AUFRUFE:
+        return [f"Jev: {len(teile)} Sätze, mehr als {JEV_MAX_AUFRUFE} Prüfungen"], []
     fehler, werte = [], []
-    for name, text, qt in teile:
+    for name, satz, kontext, qt in teile:
         try:
-            p = _jev(text, qt, key)
+            p = _jev(satz, kontext, qt, key)
         except Exception as e:
             return fehler + [f"Jev nicht erreichbar ({type(e).__name__})"], werte
         werte.append(round(p, 2))
         if p < JEV_SCHWELLE:
-            fehler.append(f"Jev: {name} nicht gedeckt (p={p:.2f})")
+            fehler.append(f'Jev: {name} nicht gedeckt (p={p:.2f}): "{satz[:140]}"')
     return fehler, werte
 
 
@@ -609,7 +643,7 @@ def main():
                    "titel": artikel["titel"], "anriss": artikel["anriss"], "datum": heute,
                    "status": "veroeffentlicht" if bestanden else "entwurf", "story_id": k["sid"],
                    "quellen": len(quellen), "modell": modell, "jev": jev_werte, "gruende": fehler,
-                   "links": k["links"]}
+                   "links": k["links"], "pruefung": PRUEFUNG_VERSION}
         print(f"[RECHERCHE] {eintrag['status']}: {eintrag['pfad']} ({len(quellen)} Quellen)")
         if args.dry_run:
             print(json.dumps(artikel, ensure_ascii=False, indent=1))
