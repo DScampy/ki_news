@@ -850,7 +850,11 @@
         linkEl.parentNode.insertBefore(belegEl, linkEl.nextSibling);
       }
       var sid = data.story_id || (window.__pxkStory && window.__pxkStory[data.link]) || '';
-      belegEl.href = ROOT + 'belege.html#story=' + encodeURIComponent(sid);
+      // 29.10.26: Link der Meldung statt story_id. Die story_id ist nur die Platznummer
+      // des Laufs: Ging zwischen Seitenaufruf und Klick ein neuer Lauf live, oeffnete
+      // #story=s002 eine fremde Story (DeepSeek-Meldung -> Banken/Blackstone).
+      belegEl.href = ROOT + 'belege.html#' + (data.link ? 'link=' + encodeURIComponent(data.link)
+                                                       : 'story=' + encodeURIComponent(sid));
       belegEl.style.display = sid ? '' : 'none';
       linkEl.style.display = '';
     } else {
