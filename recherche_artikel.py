@@ -34,6 +34,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -237,7 +238,8 @@ def prompt(quellen):
         "wegweisend, spannend, und Floskeln wie \"es bleibt abzuwarten\", \"in einer Welt\", \"nicht nur ... "
         "sondern auch\". \"könnte\", \"möglicherweise\", \"eventuell\" höchstens einmal im ganzen Text.\n"
         "- Jeder Absatz nennt die Nummern der Quellen, auf denen er beruht.\n\n"
-        "Antworte NUR mit JSON, ohne Erklärung:\n"
+        "Antworte NUR mit gültigem JSON, ohne Erklärung. Anführungszeichen im Text nur als „ “, "
+        "nie als gerades Anführungszeichen:\n"
         '{"titel": "ein Aussagesatz, höchstens 90 Zeichen, ohne Schlusspunkt", '
         '"anriss": "1 bis 2 Sätze, höchstens 260 Zeichen", '
         '"absaetze": [{"text": "250 bis 700 Zeichen", "quellen": [1, 2]}], '
