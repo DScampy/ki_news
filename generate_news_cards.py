@@ -243,7 +243,21 @@ PRONOUNCE_FIXES = {
     "Ai2": "AI2",
     "Programmieraufgabe": "Programmier-Aufgabe",
     "Programmieraufgaben": "Programmier-Aufgaben",
+    # 29.10.26 (Daniel, Karte DeepSeek/Moonshot): "DeepSeek" wurde "Die Psyk"
+    "DeepSeek": "Deep Seek",
 }
+
+# 29.10.26 (Daniel): "OpenAIs GPT-6 Astra" wurde "Open ASG PT 6 Astra" - "OpenAI" allein
+# liest die Stimme richtig, das Genitiv-s haengt sie an die Buchstaben. Vorlesen deshalb
+# umgestellt: "OpenAIs GPT-6 Astra" -> "GPT-6 Astra von OpenAI" (optional ein Adjektiv
+# davor: "OpenAIs neues Modell" -> "neues Modell von OpenAI"). Nur fuers Audio.
+_GENITIV_AI = re.compile(r"\b(OpenAI|xAI)s\s+((?:[a-zäöüß]+(?:e|es|er|en|em)\s+)?"
+                         r"[A-ZÄÖÜ0-9][\w-]*(?:\.\d+)*(?:\s+[A-ZÄÖÜ0-9][\w-]*(?:\.\d+)*)*)")
+
+# 29.10.26: Die Stimme setzte bei 0,0 s ein. Beim Antippen startet der Ton je nach Player
+# verzoegert, die erste Silbe fehlte ("Die Psyk"). 1 s Stille davor; die Videolaenge folgt
+# der Audiolaenge (generate_tts), es verschiebt sich also nichts gegen das Bild.
+TTS_VORLAUF_MS = 1000
 
 # 26.09.26 (Daniel: "IKEA" wurde I-K-E-A vorgelesen): Google-TTS buchstabiert jedes Wort
 # in Grossbuchstaben. Sprechbare Markennamen (>= 4 Zeichen, >= 2 Vokale: IKEA, NVIDIA,
@@ -272,6 +286,7 @@ def build_tts_ssml(text: str) -> str:
        sind also escape-sicher und werden danach trotzdem korrekt gefunden)
     3) Akronyme mit <say-as interpret-as="characters"> markieren
     """
+    text = _GENITIV_AI.sub(r"\2 von \1", text)
     for original, spoken in PRONOUNCE_FIXES.items():
         text = re.sub(rf"\b{re.escape(original)}\b", spoken, text)
     text = _CAPS_WORT.sub(_caps_sprechbar, text)
@@ -282,7 +297,8 @@ def build_tts_ssml(text: str) -> str:
             f'<say-as interpret-as="characters">{acro}</say-as>',
             text,
         )
-    return f"<speak>{text}</speak>"
+    vorlauf = f'<break time="{TTS_VORLAUF_MS}ms"/>' if TTS_VORLAUF_MS else ""
+    return f"<speak>{vorlauf}{text}</speak>"
 
 # Ton-Umbau (02.07.26, Daniels Vorgabe): Persona-Muster statt Verbotsliste.
 # Vorher war der Prompt fast nur "was NICHT" (nicht kindlich, kein Drama, ...) -

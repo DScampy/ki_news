@@ -2108,7 +2108,8 @@
                 ? "summary"
                 : "";
 
-          const aliases = unique([id, fallback, ...storyIds]);
+          // 29.10.26: auch jeder Meldungslink fuehrt zur Story (#link=..., stabil ueber Laeufe).
+          const aliases = unique([id, fallback, ...storyIds, ...groupRecords.map(record => record.link).filter(Boolean)]);
           const search = normalized([
             id,
             ...aliases,
@@ -2920,12 +2921,13 @@
 
       function requestedStoryId() {
         const hash = window.location.hash.replace(/^#/, "");
-        if (!hash.startsWith("story=")) return "";
+        const m = hash.match(/^(story|link)=(.*)$/);
+        if (!m) return "";
 
         try {
-          return decodeURIComponent(hash.slice(6));
+          return decodeURIComponent(m[2]);
         } catch (_) {
-          return hash.slice(6);
+          return m[2];
         }
       }
 
@@ -2938,15 +2940,20 @@
           if (story) {
             selectStory(story, false);
             if (!initial) setHash(story.id);
+            // Hinweis "nicht gefunden" von vorher wieder aufheben
+            if (!initial && state.statusInfo && $("#px-status-bar").classList.contains("is-warning")) {
+              setStatus(state.statusInfo);
+            }
             return;
           }
 
-          if (!initial) {
-            setStatus(
-              `Story-ID ${requested} wurde nicht gefunden. Die höchste priorisierte Story ist geöffnet.`,
-              true
-            );
-          }
+          // 29.10.26: auch beim ersten Laden melden, sonst steht still eine fremde Story da.
+          setStatus(
+            /^https?:/.test(requested)
+              ? "Diese Meldung ist im aktuellen Datenstand nicht mehr enthalten. Die höchste priorisierte Story ist geöffnet."
+              : `Story-ID ${requested} wurde nicht gefunden. Die höchste priorisierte Story ist geöffnet.`,
+            true
+          );
         }
 
         if (state.stories[0]) {
@@ -2957,6 +2964,7 @@
       }
 
       function setStatus(message, warning = false) {
+        if (!warning) state.statusInfo = message;
         $("#px-status-bar").classList.toggle("is-warning", warning);
         $("#px-status-copy").textContent = clean(message);
       }
