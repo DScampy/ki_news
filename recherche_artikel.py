@@ -272,6 +272,23 @@ def _anfrage(p, modell, key, reasoning):
         return json.loads(r.read())
 
 
+def _fehlertext(e):
+    """Haengt die Begruendung aus der Fehlerantwort an (e.text). 29.10. 16 UTC: Sonnet und Gemini
+    lieferten beide HTTP 429, im Log stand nur der Code - nicht, ob Rate-Limit, Schluessel-Limit
+    oder Anbieter. OpenRouter schickt {"error": {"message": ..., "metadata": ...}}, keine Geheimnisse."""
+    try:
+        roh = e.read().decode("utf-8", "replace")
+        try:
+            f = json.loads(roh).get("error") or {}
+            text = " ".join(str(x) for x in (f.get("message"), f.get("metadata")) if x) or roh
+        except ValueError:
+            text = roh
+    except Exception:
+        text = ""
+    e.text = _sauber(text)[:300]
+    return e.text
+
+
 def schreibe(p, modell, key):
     # 29.10.26, erster Live-Lauf: Sonnet und Gemini lieferten keinen auswertbaren Text (0 Zeichen
     # Titel). Wie bei Nemotron/gpt-oss in ki_news.py: denkende Modelle verbrauchen das Budget fuers
@@ -280,10 +297,15 @@ def schreibe(p, modell, key):
     try:
         roh = _anfrage(p, modell, key, {"effort": "low", "exclude": True})
     except urllib.error.HTTPError as e:
+        _fehlertext(e)
         if e.code != 400:
             raise
-        print(f"[RECHERCHE] {modell}: HTTP 400 mit reasoning-Parameter, zweiter Versuch ohne")
-        roh = _anfrage(p, modell, key, None)
+        print(f"[RECHERCHE] {modell}: HTTP 400 mit reasoning-Parameter ({e.text}), zweiter Versuch ohne")
+        try:
+            roh = _anfrage(p, modell, key, None)
+        except urllib.error.HTTPError as e2:
+            _fehlertext(e2)
+            raise
     wahl = (roh.get("choices") or [{}])[0]
     antwort = (wahl.get("message") or {}).get("content") or ""
     if isinstance(antwort, list):          # manche Anbieter liefern Inhaltsbloecke
@@ -616,7 +638,7 @@ def main():
             try:
                 artikel = schreibe(p, modell, key)
             except Exception as e:
-                print(f"[RECHERCHE] {modell}: {type(e).__name__} {getattr(e, 'code', '')}")
+                print(f"[RECHERCHE] {modell}: {type(e).__name__} {getattr(e, 'code', '')} {getattr(e, 'text', '')}".rstrip())
                 artikel, fehler = None, [f"{modell}: {type(e).__name__}"]
                 continue
             fehler = pruefe_text(artikel, quellen, dp, entities)
