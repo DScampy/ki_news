@@ -34,6 +34,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -237,7 +238,8 @@ def prompt(quellen):
         "wegweisend, spannend, und Floskeln wie \"es bleibt abzuwarten\", \"in einer Welt\", \"nicht nur ... "
         "sondern auch\". \"könnte\", \"möglicherweise\", \"eventuell\" höchstens einmal im ganzen Text.\n"
         "- Jeder Absatz nennt die Nummern der Quellen, auf denen er beruht.\n\n"
-        "Antworte NUR mit JSON, ohne Erklärung:\n"
+        "Antworte NUR mit gültigem JSON, ohne Erklärung. Anführungszeichen im Text nur als „ “, "
+        "nie als gerades Anführungszeichen:\n"
         '{"titel": "ein Aussagesatz, höchstens 90 Zeichen, ohne Schlusspunkt", '
         '"anriss": "1 bis 2 Sätze, höchstens 260 Zeichen", '
         '"absaetze": [{"text": "250 bis 700 Zeichen", "quellen": [1, 2]}], '
@@ -246,16 +248,45 @@ def prompt(quellen):
     )
 
 
-def schreibe(p, modell, key):
-    data = json.dumps({"model": modell, "max_tokens": 2500, "temperature": 0.3,
-                       "messages": [{"role": "user", "content": p}]}).encode()
-    req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=data, headers={
+def _anfrage(p, modell, key, reasoning):
+    nutzlast = {"model": modell, "max_tokens": 8000, "temperature": 0.3,
+                "messages": [{"role": "user", "content": p}]}
+    if reasoning:
+        nutzlast["reasoning"] = reasoning
+    req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",
+                                 data=json.dumps(nutzlast).encode(), headers={
         "Authorization": f"Bearer {key}", "Content-Type": "application/json",
         "HTTP-Referer": "https://ki-news.live/", "X-Title": "KI News Recherche-Artikel"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        antwort = json.loads(r.read())["choices"][0]["message"]["content"] or ""
-    m = re.search(r"\{.*\}", antwort, re.S)
-    a = json.loads(m.group(0)) if m else {}
+    with urllib.request.urlopen(req, timeout=180) as r:
+        return json.loads(r.read())
+
+
+def schreibe(p, modell, key):
+    # 29.10.26, erster Live-Lauf: Sonnet und Gemini lieferten keinen auswertbaren Text (0 Zeichen
+    # Titel). Wie bei Nemotron/gpt-oss in ki_news.py: denkende Modelle verbrauchen das Budget fuers
+    # Denken. Darum Denken drosseln und mehr Budget; lehnt ein Endpunkt den Parameter ab (HTTP 400),
+    # einmal ohne. Leere/kaputte Antworten werden mit Grund protokolliert statt still verworfen.
+    try:
+        roh = _anfrage(p, modell, key, {"effort": "low", "exclude": True})
+    except urllib.error.HTTPError as e:
+        if e.code != 400:
+            raise
+        print(f"[RECHERCHE] {modell}: HTTP 400 mit reasoning-Parameter, zweiter Versuch ohne")
+        roh = _anfrage(p, modell, key, None)
+    wahl = (roh.get("choices") or [{}])[0]
+    antwort = (wahl.get("message") or {}).get("content") or ""
+    if isinstance(antwort, list):          # manche Anbieter liefern Inhaltsbloecke
+        antwort = "".join(b.get("text", "") for b in antwort if isinstance(b, dict))
+    antwort = re.sub(r"^```(?:json)?\s*|\s*```$", "", antwort.strip())
+    a = {}
+    if "{" in antwort and "}" in antwort:
+        try:
+            a = json.loads(antwort[antwort.index("{"): antwort.rindex("}") + 1])
+        except ValueError as e:
+            print(f"[RECHERCHE] {modell}: JSON kaputt ({e}), Anfang: {antwort[:160]!r}")
+    if not a:
+        print(f"[RECHERCHE] {modell}: kein JSON. finish_reason={wahl.get('finish_reason')}, "
+              f"{len(antwort)} Zeichen, usage={roh.get('usage')}, Anfang: {antwort[:160]!r}")
     absaetze = [{"text": _sauber(x.get("text")), "quellen": [int(q) for q in x.get("quellen") or []
                                                              if str(q).isdigit()]}
                 for x in a.get("absaetze") or [] if isinstance(x, dict)]
