@@ -98,6 +98,17 @@ def _karten_nach_link(base):
     return out
 
 
+def _recherche_nach_link(base):
+    """Veroeffentlichte Recherche-Artikel (recherche_artikel.py) je Meldungslink."""
+    out = {}
+    for e in _json_lesen(base / "recherche" / "index.json", {}).values():
+        if e.get("status") == "veroeffentlicht" and e.get("pfad"):
+            for l in e.get("links") or []:
+                out.setdefault(l, {"pfad": e["pfad"], "titel": e.get("titel") or "",
+                                   "anriss": e.get("anriss") or "", "quellen": e.get("quellen") or ""})
+    return out
+
+
 def _linie_info(n, linien):
     k = n.get("linie")
     l = linien.get(k) if k and isinstance(linien, dict) else None
@@ -110,7 +121,9 @@ def _linie_info(n, linien):
     return {"titel": titel, "seit": l.get("seit") or "", "n": l.get("n") or ""}
 
 
-def _substanz(n, karte, linie):
+def _substanz(n, karte, linie, recherche=None):
+    if recherche:
+        return True
     summary = n.get("summary") or ""
     anriss = n.get("anriss") or ""
     if (karte or {}).get("einordnung") or linie:
@@ -165,7 +178,7 @@ _THEME_JS = ("(function(){var s='auto';try{s=localStorage.getItem('ki_theme')||'
              "if(d)document.documentElement.classList.add('dark');})();")
 
 
-def _seite(e, n, karte, linie, weitere):
+def _seite(e, n, karte, linie, weitere, recherche=None):
     esc = html.escape
     titel = e["titel"]
     url = SITE + e["pfad"]
@@ -256,6 +269,11 @@ def _seite(e, n, karte, linie, weitere):
         teile.append(f'<p class="linie"><span class="meta">Teil einer Entwicklung</span><br/>'
                      f'<a href="/dossiers.html">{esc(linie["titel"])}</a><br/>'
                      f'<span class="quelle">{s}{z}</span></p>')
+    if recherche:
+        z = f" aus {esc(str(recherche['quellen']))} Quellen" if recherche.get("quellen") else ""
+        teile.append(f'<p class="linie"><span class="meta">Hintergrund{z}</span><br/>'
+                     f'<a href="{esc(recherche["pfad"])}">{esc(recherche["titel"])}</a><br/>'
+                     f'<span class="quelle">{esc(recherche["anriss"])}</span></p>')
     if q_link:
         auch = [q for q in (n.get("dub_quellen") or []) if isinstance(q, str) and q != quelle]
         a = f" Auch berichtet von: {esc(', '.join(auch))}." if auch else ""
@@ -279,12 +297,14 @@ def _seite(e, n, karte, linie, weitere):
     return "\n".join(teile)
 
 
-def _inhalt_hash(n, karte, linie, titel, index):
+def _inhalt_hash(n, karte, linie, titel, index, recherche=None):
     teile = [titel, n.get("anriss") or "", n.get("summary") or "", n.get("source") or "",
              n.get("link_verlag") or n.get("link") or "", n.get("image_local_gross") or
              n.get("image_local") or "", (karte or {}).get("einordnung") or "",
              (karte or {}).get("mp4_url") or "", json.dumps(linie, sort_keys=True),
              ",".join(n.get("dub_quellen") or []), str(index)]
+    if recherche:                         # ohne Recherche bleibt der Hash wie bisher
+        teile.append(json.dumps(recherche, sort_keys=True))
     return hashlib.sha1("\x1f".join(teile).encode("utf-8")).hexdigest()[:12]
 
 
@@ -332,6 +352,7 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
     news = [n for n in (news_json_data.get("news") or []) if n.get("link") and n.get("title")]
     linien = news_json_data.get("linien") or {}
     karten = _karten_nach_link(base)
+    recherchen = _recherche_nach_link(base)
 
     # Alle vorhandenen Monatsregister laden (klein: ein Eintrag je Story).
     register = {}
@@ -352,16 +373,22 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         rep = max(glieder, key=lambda x: _zahl(x.get("score")))
         links = [l for g in glieder for l in _links(g)]
         karte = next((karten[l] for l in links if l in karten), None)
-        reihe.append((rep, links, karte, glieder))
+        recherche = next((recherchen[l] for l in links if l in recherchen), None)
+        reihe.append((rep, links, karte, glieder, recherche))
     reihe.sort(key=lambda t: _zahl(t[0].get("score")), reverse=True)
 
     neu = geaendert = 0
     eintraege = []
-    for rep, links, karte, glieder in reihe:
+    # Eine Seite gehoert je Lauf genau einer Story (29.10.26). Vorher landeten ueber einen alten
+    # gemeinsamen Link drei Storys auf der Gemini-4-Carbon-Seite, die schwaechste (Score 18)
+    # schrieb zuletzt und ueberschrieb den Inhalt. Reihe ist nach Score sortiert: die staerkste
+    # Story behaelt die Seite, die anderen bekommen eine eigene.
+    vergeben = set()
+    for rep, links, karte, glieder, recherche in reihe:
         titel = _titel(rep)
         linie = _linie_info(rep, linien)
-        index = _substanz(rep, karte, linie)
-        treffer = next((nach_link[l] for l in links if l in nach_link), None)
+        index = _substanz(rep, karte, linie, recherche)
+        treffer = next((nach_link[l] for l in links if l in nach_link and nach_link[l] not in vergeben), None)
         if treffer:
             monat, slug = treffer
             e = register[monat][slug]
@@ -383,19 +410,26 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
                 "weitere": None,
             }
             neu += 1
-        e["links"] = sorted(set(e["links"]) | set(links))
+        # Links ziehen mit ihrer Story um: bei einer anderen Seite austragen, sonst landet die
+        # Story im naechsten Lauf wieder dort (und bekaeme jedes Mal eine neue Seite).
         for l in links:
+            alt = nach_link.get(l)
+            if alt and alt != (monat, slug):
+                ae = register[alt[0]][alt[1]]
+                ae["links"] = [x for x in ae["links"] if x != l]
             nach_link[l] = (monat, slug)
+        e["links"] = sorted(set(e["links"]) | set(links))
+        vergeben.add((monat, slug))
         for g in glieder:                 # Startseite und Listen verlinken hierauf
             g["seite"] = e["pfad"]
-        h = _inhalt_hash(rep, karte, linie, titel, index)
+        h = _inhalt_hash(rep, karte, linie, titel, index, recherche)
         if e.get("h") != h:
             if e.get("h"):
                 e["geaendert"] = jetzt
                 geaendert += 1
             e["h"] = h
         e["titel"], e["index"] = titel, index
-        eintraege.append((e, rep, karte, linie))
+        eintraege.append((e, rep, karte, linie, recherche))
 
     # "Weitere Meldungen": beim ersten Anlegen festschreiben (indexierbare Storys des Laufs).
     indexierbar = [e for e, *_ in eintraege if e["index"]]
@@ -405,10 +439,10 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
     nach_pfad = {e["pfad"]: e for reg in register.values() for e in reg.values()}
 
     geschrieben = 0
-    for e, rep, karte, linie in eintraege:
+    for e, rep, karte, linie, recherche in eintraege:
         weitere = [nach_pfad[p] for p in e["weitere"] if p in nach_pfad]
         datei = base / e["pfad"].lstrip("/")
-        if _schreiben_wenn_neu(datei, _seite(e, rep, karte, linie, weitere)):
+        if _schreiben_wenn_neu(datei, _seite(e, rep, karte, linie, weitere, recherche)):
             geschrieben += 1
 
     for m, reg in register.items():
