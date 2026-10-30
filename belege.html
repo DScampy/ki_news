@@ -1625,7 +1625,10 @@
       function node(tag, className = "", value) {
         const element = document.createElement(tag);
         if (className) element.className = className;
-        if (value !== undefined) element.textContent = clean(value);
+        // 30.10.26: Ein Element als Inhalt einhaengen. Vorher wurde es als Text gesetzt und stand
+        // als "[object HTMLDivElement]" unter "Zugehoerige Videokarte" (Story ohne feste Karte).
+        if (value instanceof Node) element.append(value);
+        else if (value !== undefined) element.textContent = clean(value);
         return element;
       }
 
