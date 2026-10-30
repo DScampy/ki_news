@@ -13,8 +13,9 @@ geht automatisch raus ("wenn nach der Pruefung, dann raus damit"):
   2. Stil: kein Gedanken-/Halbgeviertstrich, kein Semikolon, kein Ausrufezeichen, keine
      Wir-Perspektive, keine Verbotswoerter, hoechstens ein Weichmacher, Laengen-Rahmen.
   3. Belege: jeder Absatz nennt mindestens eine Quellennummer.
-  4. Jev (TypeSafe) je Absatz gegen die dort genannten Quellen und fuer Titel+Anriss gegen
-     alles: "durch die Quellen gedeckt?" p >= JEV_SCHWELLE. Kein Key/Fehler = nicht bestanden.
+  4. Pruefer-Modell (PRUEFER_MODELLE, seit 30.10.): je Absatz gegen die Fundstellen seiner Quellen,
+     Antwort = Liste nicht gedeckter Aussagen, leer = bestanden. Alle Modelle ausgefallen = nicht
+     bestanden. Jev (TypeSafe) laeuft nur noch im Schatten mit (Werte im Register, kein Einfluss).
 
 Bestanden -> recherche/<slug>.html (indexierbar, recherche/sitemap.xml), meldungsseiten.py
 verlinkt den Artikel als "Hintergrund" auf der Meldungsseite (ab dem naechsten Lauf).
@@ -64,7 +65,7 @@ JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetz
 JEV_MAX_QUELLTEXT = 24000        # 7 Quellen a TEXT_JE_QUELLE + Kopfzeilen, nichts kappen
 # Bumpen, wenn sich die Jev-Pruefung aendert: Entwuerfe, die NUR an Jev gescheitert sind und
 # mit einer aelteren Fassung geprueft wurden, bekommen einmal einen neuen Versuch.
-PRUEFUNG_VERSION = 3              # 3: Fundstelle statt ganzer Quellen (29.10.)
+PRUEFUNG_VERSION = 4              # 3: Fundstelle (29.10.), 4: Pruefer-Modell statt Jev (30.10.)
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
 MODELLE = ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
@@ -259,9 +260,10 @@ def prompt(quellen):
     )
 
 
-def _anfrage(p, modell, key, reasoning):
-    nutzlast = {"model": modell, "max_tokens": 8000, "temperature": 0.3,
-                "messages": [{"role": "user", "content": p}]}
+def _anfrage(p, modell, key, reasoning, system="", temperature=0.3):
+    nachrichten = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": p}]
+    nutzlast = {"model": modell, "max_tokens": 8000, "temperature": temperature,
+                "messages": nachrichten, "usage": {"include": True}}
     if reasoning:
         nutzlast["reasoning"] = reasoning
     req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",
@@ -425,7 +427,8 @@ def _anker(satz, dp):
     # gross geschriebene Woerter ausser dem Satzanfang (Firmen, Produkte, Personen, Benchmarks)
     namen |= {w.lower() for w in re.findall(r"\b[A-ZÄÖÜ][a-zäöüß]+\b", satz.split(" ", 1)[-1])
               if len(w) > 3 and w.lower() not in _STOPP}
-    woerter = {w for w in re.findall(r"[a-zäöüß]{5,}", satz.lower()) if w not in _STOPP}
+    # Wortstamm (6 Zeichen): "Verfuegbarkeit" soll "verfuegbar" finden (30.10.: Heise-Satz "bald" verpasst)
+    woerter = {w[:6] for w in re.findall(r"[a-zäöüß]{5,}", satz.lower()) if w not in _STOPP}
     return zahlen, namen, woerter
 
 
@@ -462,6 +465,101 @@ def fundstelle(satz, quellen_liste, dp, vorher="", fenster=700, schritt=250, anz
             break
     nach_nr = {q["nr"]: q for q in quellen_liste}
     return "\n\n".join(f"[{nr}] {nach_nr[nr]['medium']}: …{stueck}…" for nr, start, stueck in gewaehlt)
+
+
+# ── Pruefer-Modell (30.10.26, Daniels Entscheidung 1) ──────────────────────────
+# Jev gab satzweise auch dann 0,1-0,6, wenn der Beleg fast woertlich im kurzen Ausschnitt stand
+# (Gemini 30.10.: Exploitgym 0,62, "tagelang" 0,11). Jetzt entscheidet ein Sprachmodell: ein Aufruf
+# je Artikel, je Absatz die Fundstellen, Antwort = Liste der NICHT gedeckten Aussagen. Leer = raus.
+# Kette nur fuer Ausfaelle (Fehler, leer, kaputtes/unvollstaendiges JSON). Ein echtes Urteil
+# "nicht gedeckt" ist endgueltig, es wird nicht beim naechsten Modell nachgefragt.
+# Nemotron Ultra free (Daniels Wunsch) traegt laut ki_news.log die Uebersetzung (107 OK, 0x 429 im
+# Log-Fenster 30.10.), als Pruefer aber ungemessen. Backup gemini-3.8-flash: Sieger der Oberklasse im
+# Richter-Vergleich 02.10. (KIVault ox-analyse/MESSUNG_021026_Richter-Stabilitaet.md: 39/38 von 41,
+# 0 Fehlurteile, 3 s). Reihenfolge nach tools/pruefer_vergleich.py (Workflow "Pruefer-Vergleich").
+PRUEFER_MODELLE = ["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemini-3.8-flash"]
+PRUEFER_BELEG_JE_ABSATZ = 5000
+_PRUEFER_SYSTEM = ("Du bist Faktenprüfer für eine deutsche Nachrichtenseite. Du prüfst Absätze ausschließlich gegen "
+                   "die mitgelieferten Belegstellen (deutsch oder englisch). Kein Vorwissen benutzen.")
+
+
+def _pruefer_reasoning(modell):
+    # wie ki_news.py: Nemotron denkt sonst das Budget leer und liefert kaputtes JSON
+    return {"enabled": False} if modell.startswith("nvidia/") else {"effort": "low", "exclude": True}
+
+
+def pruefer_material(a, quellen, dp):
+    """[(id, text, belege)] - P0 = Titel+Anriss (alle Quellen), P1.. = Absaetze (ihre Quellen)."""
+    nach_nr = {q["nr"]: q for q in quellen}
+
+    def belege(text, nrs):
+        liste = [nach_nr[n] for n in nrs if n in nach_nr]
+        stuecke = []
+        saetze = _saetze(text)
+        for satz, vorher in zip(saetze, [""] + saetze[:-1]):
+            for teil in (fundstelle(satz, liste, dp, vorher) or fundstelle(text, liste, dp, anzahl=4)).split("\n\n"):
+                if teil and teil not in stuecke:
+                    stuecke.append(teil)
+        return "\n".join(stuecke)[:PRUEFER_BELEG_JE_ABSATZ]
+
+    kopf = f"{a['titel']}. {a['anriss']}"
+    teile = [("P0", kopf, belege(kopf, list(nach_nr)))]
+    teile += [(f"P{i}", x["text"], belege(x["text"], x["quellen"])) for i, x in enumerate(a["absaetze"], 1)]
+    return teile
+
+
+def pruefer_prompt(teile):
+    return ("Prüfe jeden Absatz: Steht jede Tatsachenbehauptung (Zahl, Name, Rolle, Datum, Ereignis, Zuschreibung "
+            "an eine Quelle wie \"laut Heise\") so oder sinngemäß in den Belegen DIESES Absatzes? Übersetzung und eigene "
+            "Formulierung sind erlaubt. Einordnende Sätze (\"die Quellen widersprechen sich\") sind gedeckt, wenn die "
+            "Belege das hergeben. Antworte NUR mit JSON: {\"<id>\": [\"zitierte nicht gedeckte Aussage: kurzer Grund\"], "
+            "...}. Leere Liste, wenn alles gedeckt ist. Jede id muss vorkommen.\n\n"
+            + "\n\n".join(f"### {i}\nAbsatz: {t}\nBelege:\n{b or '(keine Belegstelle gefunden)'}" for i, t, b in teile))
+
+
+def pruefer_urteil(teile, modell, key):
+    """{id: [nicht gedeckte Aussagen]} + Nutzungsdaten. ValueError, wenn die Antwort unbrauchbar ist."""
+    p = pruefer_prompt(teile)
+    try:
+        roh = _anfrage(p, modell, key, _pruefer_reasoning(modell), _PRUEFER_SYSTEM, 0)
+    except urllib.error.HTTPError as e:
+        _fehlertext(e)
+        if e.code != 400:
+            raise
+        roh = _anfrage(p, modell, key, None, _PRUEFER_SYSTEM, 0)
+    wahl = (roh.get("choices") or [{}])[0]
+    text = (wahl.get("message") or {}).get("content") or ""
+    if isinstance(text, list):
+        text = "".join(b.get("text", "") for b in text if isinstance(b, dict))
+    try:
+        urteil = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    except ValueError:
+        raise ValueError(f"kein JSON (finish_reason={wahl.get('finish_reason')}, Anfang {text[:120]!r})")
+    fehlt = [i for i, _, _ in teile if not isinstance(urteil.get(i), list)]
+    if fehlt:
+        raise ValueError(f"unvollständig, fehlt {fehlt}")
+    return {i: [_sauber(x) for x in urteil[i] if _sauber(x)] for i, _, _ in teile}, roh.get("usage") or {}
+
+
+def pruefe_llm(a, quellen, dp, key, modelle=None):
+    """Liefert (fehler, info). Fehler leer = bestanden. Alle Modelle ausgefallen = nicht bestanden."""
+    import time
+    teile = pruefer_material(a, quellen, dp)
+    info = {"ausfaelle": []}
+    for modell in modelle or PRUEFER_MODELLE:
+        start = time.time()
+        try:
+            urteil, usage = pruefer_urteil(teile, modell, key)
+        except Exception as e:
+            grund = f"{modell}: {type(e).__name__} {getattr(e, 'code', '')} {getattr(e, 'text', '') or e}"
+            print(f"[RECHERCHE] Prüfer ausgefallen: {grund[:300]}")
+            info["ausfaelle"].append(grund[:200])
+            continue
+        info.update(modell=modell, sekunden=round(time.time() - start, 1), kosten=usage.get("cost"))
+        namen = {"P0": "Titel/Anriss"}
+        fehler = [f"Prüfer: {namen.get(i, 'Absatz ' + i[1:])}: {x[:200]}" for i, liste in urteil.items() for x in liste]
+        return fehler, info
+    return ["Prüfer: kein Modell lieferte ein Urteil"], info
 
 
 def pruefe_jev(a, quellen, key, dp=None):
@@ -703,7 +801,7 @@ def main():
             continue
         versucht += 1
         p = prompt(quellen)
-        artikel, fehler, modell, jev_werte = None, ["kein Modell lieferte Text"], "", []
+        artikel, fehler, modell, jev_werte, pinfo = None, ["kein Modell lieferte Text"], "", [], {}
         for modell in MODELLE[:MAX_SCHREIBVERSUCHE]:
             try:
                 artikel = schreibe(p, modell, key)
@@ -716,8 +814,12 @@ def main():
             if not fehler:
                 break
         if artikel and not fehler:
-            fehler, jev_werte = pruefe_jev(artikel, quellen, jev_key, dp)
-            print(f"[RECHERCHE] Jev {jev_werte} -> {'bestanden' if not fehler else fehler}")
+            fehler, pinfo = pruefe_llm(artikel, quellen, dp, key)
+            print(f"[RECHERCHE] Prüfer {pinfo.get('modell')} ({pinfo.get('sekunden')} s, {pinfo.get('kosten')} $) -> "
+                  f"{'bestanden' if not fehler else fehler}")
+            if jev_key:                   # Jev nur noch zum Vergleich, entscheidet nicht (30.10.)
+                jev_fehler, jev_werte = pruefe_jev(artikel, quellen, jev_key, dp)
+                print(f"[RECHERCHE] Jev (Schatten) {jev_werte}: {len(jev_fehler)} Saetze unter {JEV_SCHWELLE}")
         if not artikel or not artikel["titel"]:
             print(f"[RECHERCHE] {k['sid']}: kein verwertbarer Text, {fehler}")
             continue
@@ -734,7 +836,7 @@ def main():
         eintrag = {"pfad": f"/recherche/{slug}.html" if bestanden else f"/artikel/entwurf/recherche-{slug}.html",
                    "titel": artikel["titel"], "anriss": artikel["anriss"], "datum": heute,
                    "status": "veroeffentlicht" if bestanden else "entwurf", "story_id": k["sid"],
-                   "quellen": len(quellen), "modell": modell, "jev": jev_werte, "gruende": fehler,
+                   "quellen": len(quellen), "modell": modell, "jev": jev_werte, "pruefer": pinfo, "gruende": fehler,
                    "links": k["links"], "pruefung": PRUEFUNG_VERSION,
                    "artikel": artikel}
         print(f"[RECHERCHE] {eintrag['status']}: {eintrag['pfad']} ({len(quellen)} Quellen)")
