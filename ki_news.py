@@ -3391,6 +3391,19 @@ ALWAYS_KI_RELEVANT_SOURCES = {
     "Meta AI Blog", "Google AI Blog", "xAI News", "Mistral News",
 }
 
+# Ausnahme (30.10.26): AlignedNews ist nur zum Teil ein KI-Aggregator. In diesen
+# Feed-Kategorien kommen auch allgemeine Nachrichten (Live: "Erin Patterson loses
+# appeal in Australian mushroom-murder case" unter "world", Binance-Hack unter
+# "crypto", Munitions-Planspiel unter "industry"), die ohne Titelfilter als Karte
+# landeten. Dort gilt deshalb wieder _is_ki_relevant(). Die uebrigen Kategorien
+# (companies, dev, robotics, creative, ...) bleiben ungefiltert, weil dort viele
+# echte KI-Meldungen ohne Stichwort im Titel stehen ("Qwen4 announced...").
+# Ganz aus ALWAYS_KI_RELEVANT_SOURCES nehmen haette laut Archiv Sep/Okt rund 40 %
+# der AlignedNews-Meldungen gekostet, darunter viele KI-Themen.
+ALIGNEDNEWS_FILTER_KATEGORIEN = {
+    "world", "crypto", "industry", "investors", "cyber", "tesla-ev", "x-spacex", "quantum",
+}
+
 # Generische Hochvolumen-Newsticker (alle IT-Themen, nicht nur KI) brauchen ein
 # tieferes Scan-Fenster als spezialisierte AI-Feeds, siehe Kommentar in fetch_feed().
 DEEP_SCAN_SOURCES = {"Heise", "Golem", "NYT Technology", "CNet", "TechRepublic"}
@@ -3544,7 +3557,11 @@ def fetch_feed(name, url):
                     continue
             except Exception:
                 pass  # Datum nicht parsebar -> wie bisher behandeln, nicht raten
-        if title and (name in ALWAYS_KI_RELEVANT_SOURCES or _is_ki_relevant(title)):
+        immer_ki = name in ALWAYS_KI_RELEVANT_SOURCES
+        if immer_ki and name == "AlignedNews":
+            kategorie = (_first_child_text(item, "category") or "").strip().lower()
+            immer_ki = kategorie not in ALIGNEDNEWS_FILTER_KATEGORIEN
+        if title and (immer_ki or _is_ki_relevant(title)):
             eintrag = {"title": title, "link": link, "source": name}
             anriss = _feed_anriss(item, title)
             if anriss:
