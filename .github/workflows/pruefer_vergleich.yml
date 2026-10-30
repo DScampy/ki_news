@@ -1,0 +1,39 @@
+name: Pruefer-Vergleich (manuell)
+
+# 30.10.26: Misst, welches Sprachmodell als Faktenpruefer fuer die Recherche-Artikel taugt
+# (tools/pruefer_vergleich.py). Nur von Hand, schreibt nichts, committet nichts.
+# Ergebnis: Tabelle am Ende des Logs von "Vergleich laufen lassen".
+
+on:
+  workflow_dispatch:
+    inputs:
+      runden:
+        description: "Runden je Modell"
+        default: "2"
+      modelle:
+        description: "Kommagetrennte OpenRouter-IDs (leer = Standardliste im Skript)"
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  vergleich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Vergleich laufen lassen
+        env:
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          RUNDEN: ${{ github.event.inputs.runden }}
+          MODELLE: ${{ github.event.inputs.modelle }}
+        run: |
+          if [ -n "$MODELLE" ]; then
+            python3 tools/pruefer_vergleich.py --runden "${RUNDEN:-2}" --modelle "$MODELLE"
+          else
+            python3 tools/pruefer_vergleich.py --runden "${RUNDEN:-2}"
+          fi
