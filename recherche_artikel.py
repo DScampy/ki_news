@@ -65,7 +65,7 @@ JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetz
 JEV_MAX_QUELLTEXT = 24000        # 7 Quellen a TEXT_JE_QUELLE + Kopfzeilen, nichts kappen
 # Bumpen, wenn sich die Jev-Pruefung aendert: Entwuerfe, die NUR an Jev gescheitert sind und
 # mit einer aelteren Fassung geprueft wurden, bekommen einmal einen neuen Versuch.
-PRUEFUNG_VERSION = 4              # 3: Fundstelle (29.10.), 4: Pruefer-Modell statt Jev (30.10.)
+PRUEFUNG_VERSION = 5              # 3: Fundstelle (29.10.), 4: Pruefer statt Jev, 5: Gemini-Pruefer (30.10.)
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
 MODELLE = ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
@@ -129,7 +129,7 @@ def kandidaten(news, releases, register, nur_story=None):
     # Entwuerfe, die nur an einer aelteren Jev-Pruefung scheiterten, zaehlen nicht als erledigt
     erledigt = {l for e in register.values() for l in e.get("links", [])
                 if not (e.get("status") == "entwurf" and e.get("pruefung", 1) < PRUEFUNG_VERSION
-                        and e.get("gruende") and all(g.startswith("Jev") for g in e["gruende"]))}
+                        and e.get("gruende") and all(g.startswith(("Jev", "Prüfer")) for g in e["gruende"]))}
     storys = {}
     for n in news:
         if n.get("link") and n.get("story_id"):
@@ -176,11 +176,18 @@ def _quelltext(m, dp):
         t = _absaetze(seite) if seite else ""
         if len(t) < dp.MIN_QUELLTEXT and seite:
             t = dp.text_aus_html(seite)
-        if len(t) >= dp.MIN_QUELLTEXT:
+        if len(t) >= dp.MIN_QUELLTEXT and not _zustimmseite(t):
             return t
         break
     ft = m.get("full_text")
-    return ft if isinstance(ft, str) and len(ft) >= dp.MIN_QUELLTEXT else ""
+    return ft if isinstance(ft, str) and len(ft) >= dp.MIN_QUELLTEXT and not _zustimmseite(ft) else ""
+
+
+def _zustimmseite(t):
+    """Cookie-/Zustimm-Wand statt Artikel (30.10.: Golem lieferte nur "... der Nutzung aller Cookies
+    zustimmen ..."; der Pruefer bemaengelte zu Recht, dass die "Quelle" nichts belegt)."""
+    kopf = t[:1500].lower()
+    return sum(kopf.count(w) for w in ("cookie", "zustimm", "einwillig", "tracking", "consent", "privacy center")) >= 4
 
 
 def material(k, dp):
@@ -429,10 +436,13 @@ def _anker(satz, dp):
               if len(w) > 3 and w.lower() not in _STOPP}
     # Wortstamm (6 Zeichen): "Verfuegbarkeit" soll "verfuegbar" finden (30.10.: Heise-Satz "bald" verpasst)
     woerter = {w[:6] for w in re.findall(r"[a-zäöüß]{5,}", satz.lower()) if w not in _STOPP}
+    # Woertliche Zitate zaehlen wie Zahlen (30.10.: „unsupported claims“ stand nur bei The Verge, die
+    # Suche nahm wegen der vielen deutschen Woerter trotzdem Heise-Stellen)
+    zahlen += [{z.strip().lower()} for z in re.findall(r"[„\"“]([^“”\"„]{3,60})[“”\"]", satz)]
     return zahlen, namen, woerter
 
 
-def fundstelle(satz, quellen_liste, dp, vorher="", fenster=700, schritt=250, anzahl=3):
+def fundstelle(satz, quellen_liste, dp, vorher="", fenster=700, schritt=250, anzahl=3, bereiche=False):
     """Die Ausschnitte der genannten Quellen, die am meisten Zahlen/Namen/Woerter des Satzes
     enthalten (29.10.26, Daniels Entscheidung A). Jev fand wortgleiche Belege in 6.000 Zeichen
     Quelltext nicht zuverlaessig (Mistral: "62 Punkten" stand fast woertlich bei The Decoder,
@@ -445,9 +455,10 @@ def fundstelle(satz, quellen_liste, dp, vorher="", fenster=700, schritt=250, anz
     for q in quellen_liste:
         t = q["text"]
         for start in range(0, max(1, len(t) - fenster // 2), schritt):
-            stueck = t[start:start + fenster]
+            # Rand je 200 Zeichen: 30.10. endete der Ausschnitt kurz vor "in its European data centers"
+            stueck = t[max(0, start - 200):start + fenster + 200]
             sl = stueck.lower()
-            punkte = (3 * sum(any(v in stueck for v in vs) for vs in zahlen)
+            punkte = (3 * sum(any(v in stueck or v in sl for v in vs) for vs in zahlen)
                       + 2 * sum(n in sl for n in namen) + sum(w in sl for w in woerter)
                       + sum(any(v in stueck for v in vs) for vs in v_zahlen) + sum(n in sl for n in v_namen - namen))
             kandidaten.append((punkte, q["nr"], start, stueck))
@@ -455,14 +466,19 @@ def fundstelle(satz, quellen_liste, dp, vorher="", fenster=700, schritt=250, anz
     if not kandidaten or kandidaten[0][0] < 4:
         return ""
     gewaehlt = []
-    for punkte, nr, start, stueck in kandidaten:
-        if punkte < max(4, kandidaten[0][0] // 2):
-            break
-        if any(nr == g[0] and abs(start - g[1]) < fenster for g in gewaehlt):
-            continue                      # keine fast gleichen Ausschnitte doppelt
-        gewaehlt.append((nr, start, stueck))
-        if len(gewaehlt) >= anzahl:
-            break
+    # Zwei Durchgaenge: erst der beste Ausschnitt JE QUELLE, dann weitere. 30.10.: Heise (16 Punkte)
+    # belegte zwei der drei Plaetze, die Verge-Stelle mit dem woertlichen Zitat (12) fiel raus.
+    for durchgang in (1, 2):
+        for punkte, nr, start, stueck in kandidaten:
+            if len(gewaehlt) >= anzahl or punkte < max(4, kandidaten[0][0] // 2):
+                break
+            if durchgang == 1 and any(nr == g[0] for g in gewaehlt):
+                continue
+            if any(nr == g[0] and abs(start - g[1]) < fenster for g in gewaehlt):
+                continue                  # keine fast gleichen Ausschnitte doppelt
+            gewaehlt.append((nr, start, stueck))
+    if bereiche:                          # fuer pruefer_material: (Quelle, von, bis) zum Zusammenlegen
+        return [(nr, max(0, start - 200), start + fenster + 200) for nr, start, _ in gewaehlt]
     nach_nr = {q["nr"]: q for q in quellen_liste}
     return "\n\n".join(f"[{nr}] {nach_nr[nr]['medium']}: …{stueck}…" for nr, start, stueck in gewaehlt)
 
@@ -477,8 +493,13 @@ def fundstelle(satz, quellen_liste, dp, vorher="", fenster=700, schritt=250, anz
 # Log-Fenster 30.10.), als Pruefer aber ungemessen. Backup gemini-3.8-flash: Sieger der Oberklasse im
 # Richter-Vergleich 02.10. (KIVault ox-analyse/MESSUNG_021026_Richter-Stabilitaet.md: 39/38 von 41,
 # 0 Fehlurteile, 3 s). Reihenfolge nach tools/pruefer_vergleich.py (Workflow "Pruefer-Vergleich").
-PRUEFER_MODELLE = ["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemini-3.8-flash"]
-PRUEFER_BELEG_JE_ABSATZ = 5000
+# 30.10. gemessen (Workflow "Pruefer-Vergleich", 2 echte Entwuerfe, 5 eingebaute Fehler x 2 Runden):
+#   gemini-3.8-flash 10/10 (6 s, ~0,5 Cent/Artikel), claude-haiku-5.5 10/10 (13 s), gpt-6-luna 9/10,
+#   qwen3.7-plus 9/10 (84 s), nemotron-3-ultra:free 7/10 - uebersah die vertauschte Zuordnung in beiden
+#   Runden und hielt im Pipeline-Lauf 30.10. einen sauberen Artikel an ("halbiert" sei nicht dasselbe
+#   wie "um das Zweifache reduziert"). Darum Gemini vorn, Haiku als Backup, Nemotron nicht.
+PRUEFER_MODELLE = ["google/gemini-3.8-flash", "anthropic/claude-haiku-5.5"]
+PRUEFER_BELEG_JE_ABSATZ = 8000            # 30.10.: 5000 schnitt den Verge-Beleg ab
 _PRUEFER_SYSTEM = ("Du bist Faktenprüfer für eine deutsche Nachrichtenseite. Du prüfst Absätze ausschließlich gegen "
                    "die mitgelieferten Belegstellen (deutsch oder englisch). Kein Vorwissen benutzen.")
 
@@ -492,20 +513,30 @@ def pruefer_material(a, quellen, dp):
     """[(id, text, belege)] - P0 = Titel+Anriss (alle Quellen), P1.. = Absaetze (ihre Quellen)."""
     nach_nr = {q["nr"]: q for q in quellen}
 
-    def belege(text, nrs):
+    def belege(text, nrs, grenze=PRUEFER_BELEG_JE_ABSATZ):
+        """Fundstellen aller Saetze, je Quelle ueberlappende Bereiche zusammengelegt. 30.10.: Ohne das
+        belegten doppelte Ausschnitte den Platz, "European data centers" fiel hinter die Grenze."""
         liste = [nach_nr[n] for n in nrs if n in nach_nr]
-        stuecke = []
         saetze = _saetze(text)
+        roh = []
         for satz, vorher in zip(saetze, [""] + saetze[:-1]):
-            for teil in (fundstelle(satz, liste, dp, vorher) or fundstelle(text, liste, dp, anzahl=4)).split("\n\n"):
-                if teil and teil not in stuecke:
-                    stuecke.append(teil)
-        return "\n".join(stuecke)[:PRUEFER_BELEG_JE_ABSATZ]
+            roh += (fundstelle(satz, liste, dp, vorher, bereiche=True)
+                    or fundstelle(text, liste, dp, anzahl=4, bereiche=True) or [])
+        gemerged = []
+        for nr, von, bis in sorted(set(roh)):
+            if gemerged and gemerged[-1][0] == nr and von <= gemerged[-1][2]:
+                gemerged[-1][2] = max(gemerged[-1][2], bis)
+            else:
+                gemerged.append([nr, von, bis])
+        return "\n".join(f"[{nr}] {nach_nr[nr]['medium']}: …{nach_nr[nr]['text'][von:bis]}…"
+                         for nr, von, bis in gemerged)[:grenze]
 
     kopf = f"{a['titel']}. {a['anriss']}"
-    teile = [("P0", kopf, belege(kopf, list(nach_nr)))]
-    teile += [(f"P{i}", x["text"], belege(x["text"], x["quellen"])) for i, x in enumerate(a["absaetze"], 1)]
-    return teile
+    absaetze = [(f"P{i}", x["text"], belege(x["text"], x["quellen"])) for i, x in enumerate(a["absaetze"], 1)]
+    # Titel/Anriss fassen den Artikel zusammen ("die Preisangaben widersprechen sich"): eigene
+    # Fundstellen plus die aller Absaetze. 30.10.: Ohne das fehlten die Preise, Fehlalarm bei 4 Modellen.
+    alles = " ".join([kopf] + [x["text"] for x in a["absaetze"]])
+    return [("P0", kopf, belege(alles, list(nach_nr), 2 * PRUEFER_BELEG_JE_ABSATZ))] + absaetze
 
 
 def pruefer_prompt(teile):
