@@ -64,7 +64,7 @@ JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetz
 JEV_MAX_QUELLTEXT = 24000        # 7 Quellen a TEXT_JE_QUELLE + Kopfzeilen, nichts kappen
 # Bumpen, wenn sich die Jev-Pruefung aendert: Entwuerfe, die NUR an Jev gescheitert sind und
 # mit einer aelteren Fassung geprueft wurden, bekommen einmal einen neuen Versuch.
-PRUEFUNG_VERSION = 2
+PRUEFUNG_VERSION = 3              # 3: Fundstelle statt ganzer Quellen (29.10.)
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
 MODELLE = ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
@@ -401,9 +401,10 @@ def _jev(text, kontext, quellen_text, key):
 
 
 def _saetze(text):
-    """Saetze; Kurzstuecke (z. B. nach "z. B.") haengen am vorigen Satz."""
+    """Saetze; Kurzstuecke (z. B. nach "z. B.") haengen am vorigen Satz. Kein Schnitt nach
+    Ziffer+Punkt: "bis zum 4. November 2026" wurde am 29.10. in zwei Saetze zerlegt."""
     out = []
-    for s in re.split(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ0-9„])", text.strip()):
+    for s in re.split(r"(?<=[^\d\s][.!?])\s+(?=[A-ZÄÖÜ0-9„])", text.strip()):
         if out and len(s) < 25:
             out[-1] += " " + s
         elif s:
@@ -411,7 +412,59 @@ def _saetze(text):
     return out
 
 
-def pruefe_jev(a, quellen, key):
+_STOPP = set("aber alle auch beim bereits damit dann dass dabei denn deren diese dieser dieses doch eine einem "
+             "einen einer eines etwa gegen hatte haben jedoch kann laut mehr nach noch nicht nur oder rund sein "
+             "seine seit sich sind soll sowie über unter viel vom von vor wird wurde zwei drei weil wenn wie "
+             "zum zur zwischen dort hier dies diesem erst".split())
+
+
+def _anker(satz, dp):
+    """Was ein Beleg enthalten muss: Zahlen (mit Schreibvarianten), Namen, Inhaltswoerter."""
+    zahlen = [dp._zahl_varianten(z) for z in dp._zahlen(satz)]
+    namen = {w.lower() for w in re.findall(r"\b[A-Za-z][\w-]*(?:\d|[a-z][A-Z])[\w.-]*", satz)}
+    # gross geschriebene Woerter ausser dem Satzanfang (Firmen, Produkte, Personen, Benchmarks)
+    namen |= {w.lower() for w in re.findall(r"\b[A-ZÄÖÜ][a-zäöüß]+\b", satz.split(" ", 1)[-1])
+              if len(w) > 3 and w.lower() not in _STOPP}
+    woerter = {w for w in re.findall(r"[a-zäöüß]{5,}", satz.lower()) if w not in _STOPP}
+    return zahlen, namen, woerter
+
+
+def fundstelle(satz, quellen_liste, dp, vorher="", fenster=700, schritt=250, anzahl=3):
+    """Die Ausschnitte der genannten Quellen, die am meisten Zahlen/Namen/Woerter des Satzes
+    enthalten (29.10.26, Daniels Entscheidung A). Jev fand wortgleiche Belege in 6.000 Zeichen
+    Quelltext nicht zuverlaessig (Mistral: "62 Punkten" stand fast woertlich bei The Decoder,
+    p=0,73). Mit dem passenden Ausschnitt muss es nur noch vergleichen, nicht suchen.
+    vorher: der Satz davor, schwach gewichtet ("Das Modell liegt ... vorn" meint das Modell von
+    eben). Liefert "" wenn kein Ausschnitt genug Treffer hat."""
+    zahlen, namen, woerter = _anker(satz, dp)
+    v_zahlen, v_namen, _ = _anker(vorher, dp) if vorher else ([], set(), set())
+    kandidaten = []
+    for q in quellen_liste:
+        t = q["text"]
+        for start in range(0, max(1, len(t) - fenster // 2), schritt):
+            stueck = t[start:start + fenster]
+            sl = stueck.lower()
+            punkte = (3 * sum(any(v in stueck for v in vs) for vs in zahlen)
+                      + 2 * sum(n in sl for n in namen) + sum(w in sl for w in woerter)
+                      + sum(any(v in stueck for v in vs) for vs in v_zahlen) + sum(n in sl for n in v_namen - namen))
+            kandidaten.append((punkte, q["nr"], start, stueck))
+    kandidaten.sort(key=lambda x: -x[0])
+    if not kandidaten or kandidaten[0][0] < 4:
+        return ""
+    gewaehlt = []
+    for punkte, nr, start, stueck in kandidaten:
+        if punkte < max(4, kandidaten[0][0] // 2):
+            break
+        if any(nr == g[0] and abs(start - g[1]) < fenster for g in gewaehlt):
+            continue                      # keine fast gleichen Ausschnitte doppelt
+        gewaehlt.append((nr, start, stueck))
+        if len(gewaehlt) >= anzahl:
+            break
+    nach_nr = {q["nr"]: q for q in quellen_liste}
+    return "\n\n".join(f"[{nr}] {nach_nr[nr]['medium']}: …{stueck}…" for nr, start, stueck in gewaehlt)
+
+
+def pruefe_jev(a, quellen, key, dp=None):
     """Jev je SATZ gegen die vollstaendigen Quellen seines Absatzes (Titel+Anriss: alle Quellen).
     Liefert (fehler, werte).
 
@@ -420,7 +473,9 @@ def pruefe_jev(a, quellen, key):
     Zeichen gekappt (Absatz 1 nannte 6 Quellen a 3.000, Heise mit "vier Wochen" fehlte), und ein
     dichter Absatz mit fuenf Zahlen aus drei Quellen bekommt bei der kleinsten Unsicherheit einen
     niedrigen Wert. Satzweise sieht Jev genau das Material, das auch das Schreibmodell hatte,
-    und der Pruefbericht nennt den Satz, der nicht gedeckt ist. Schwelle bleibt JEV_SCHWELLE."""
+    und der Pruefbericht nennt den Satz, der nicht gedeckt ist. Schwelle bleibt JEV_SCHWELLE.
+    Ab PRUEFUNG_VERSION 3 (Daniels Entscheidung A): statt ganzer Quellen nur die Fundstelle
+    (siehe fundstelle()); satzweise mit ganzen Quellen fand Jev woertliche Belege nicht."""
     if not key:
         return ["Jev: kein TYPESAFE_API_KEY"], []
     nach_nr = {q["nr"]: q for q in quellen}
@@ -429,10 +484,25 @@ def pruefe_jev(a, quellen, key):
         return "\n\n".join(f"[{n}] {nach_nr[n]['medium']}: {nach_nr[n]['titel']}. {nach_nr[n]['text']}"
                            for n in nrs if n in nach_nr)
 
+    def belege(satz, vorher, absatz, nrs):
+        """Fundstelle des Satzes; ohne eigene Zahlen/Namen (reine Einordnung wie "Hier
+        widersprechen sich die Quellen") die Fundstellen des ganzen Absatzes; sonst alles."""
+        if dp is not None:
+            liste = [nach_nr[n] for n in nrs if n in nach_nr]
+            fs = fundstelle(satz, liste, dp, vorher) or fundstelle(absatz, liste, dp, anzahl=4)
+            if fs:
+                return fs
+        return qtext(nrs)
+
+    def zerlegt(text):
+        s = _saetze(text)
+        return zip(s, [""] + s[:-1])
+
     kopf = f"{a['titel']}. {a['anriss']}"
-    teile = [("Titel/Anriss", s, kopf, qtext(list(nach_nr))) for s in _saetze(kopf)]
+    teile = [("Titel/Anriss", s, kopf, belege(s, v, kopf, list(nach_nr))) for s, v in zerlegt(kopf)]
     for i, x in enumerate(a["absaetze"], 1):
-        teile += [(f"Absatz {i}", s, x["text"], qtext(x["quellen"])) for s in _saetze(x["text"])]
+        teile += [(f"Absatz {i}", s, x["text"], belege(s, v, x["text"], x["quellen"]))
+                  for s, v in zerlegt(x["text"])]
     if len(teile) > JEV_MAX_AUFRUFE:
         return [f"Jev: {len(teile)} Sätze, mehr als {JEV_MAX_AUFRUFE} Prüfungen"], []
     fehler, werte = [], []
@@ -646,7 +716,7 @@ def main():
             if not fehler:
                 break
         if artikel and not fehler:
-            fehler, jev_werte = pruefe_jev(artikel, quellen, jev_key)
+            fehler, jev_werte = pruefe_jev(artikel, quellen, jev_key, dp)
             print(f"[RECHERCHE] Jev {jev_werte} -> {'bestanden' if not fehler else fehler}")
         if not artikel or not artikel["titel"]:
             print(f"[RECHERCHE] {k['sid']}: kein verwertbarer Text, {fehler}")
@@ -665,7 +735,8 @@ def main():
                    "titel": artikel["titel"], "anriss": artikel["anriss"], "datum": heute,
                    "status": "veroeffentlicht" if bestanden else "entwurf", "story_id": k["sid"],
                    "quellen": len(quellen), "modell": modell, "jev": jev_werte, "gruende": fehler,
-                   "links": k["links"], "pruefung": PRUEFUNG_VERSION}
+                   "links": k["links"], "pruefung": PRUEFUNG_VERSION,
+                   "artikel": artikel}
         print(f"[RECHERCHE] {eintrag['status']}: {eintrag['pfad']} ({len(quellen)} Quellen)")
         if args.dry_run:
             print(json.dumps(artikel, ensure_ascii=False, indent=1))
