@@ -65,7 +65,8 @@ JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetz
 JEV_MAX_QUELLTEXT = 24000        # 7 Quellen a TEXT_JE_QUELLE + Kopfzeilen, nichts kappen
 # Bumpen, wenn sich die Jev-Pruefung aendert: Entwuerfe, die NUR an Jev gescheitert sind und
 # mit einer aelteren Fassung geprueft wurden, bekommen einmal einen neuen Versuch.
-PRUEFUNG_VERSION = 5              # 3: Fundstelle (29.10.), 4: Pruefer statt Jev, 5: Gemini-Pruefer (30.10.)
+PRUEFUNG_VERSION = 6              # 3: Fundstelle (29.10.), 4: Pruefer statt Jev, 5: Gemini-Pruefer (30.10.),
+                                 # 6: Pruefer-Belege mit Quellentiteln und ganzen Saetzen (31.10.)
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
 MODELLE = ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
@@ -509,6 +510,24 @@ def _pruefer_reasoning(modell):
     return {"enabled": False} if modell.startswith("nvidia/") else {"effort": "low", "exclude": True}
 
 
+_SATZENDE = r"(?<=[^\d\s])[.!?][\"“”’)]?"   # wie _saetze: "4. November" ist kein Satzende
+
+
+def _satzgrenzen(t, von, bis, rand=400):
+    """Bereich auf ganze Saetze erweitern (je hoechstens rand Zeichen). 31.10.: Der Beleg endete bei
+    TechCrunch mitten im Satz ("And Anthropic's planned…", "reached out to …"), Gemini meldete beide
+    Aussagen als nicht gedeckt, obwohl sie im Quelltext standen."""
+    von, bis = max(0, von), min(len(t), bis)
+    if von:
+        enden = [m.end() for m in re.finditer(_SATZENDE + r"\s", t[max(0, von - rand):von])]
+        if enden:
+            von = max(0, von - rand) + enden[-1]
+    m = re.search(_SATZENDE + r"(?=\s|$)", t[bis:bis + rand])
+    if m:
+        bis += m.end()
+    return von, bis
+
+
 def pruefer_material(a, quellen, dp):
     """[(id, text, belege)] - P0 = Titel+Anriss (alle Quellen), P1.. = Absaetze (ihre Quellen)."""
     nach_nr = {q["nr"]: q for q in quellen}
@@ -523,13 +542,17 @@ def pruefer_material(a, quellen, dp):
             roh += (fundstelle(satz, liste, dp, vorher, bereiche=True)
                     or fundstelle(text, liste, dp, anzahl=4, bereiche=True) or [])
         gemerged = []
-        for nr, von, bis in sorted(set(roh)):
+        for nr, von, bis in sorted({(nr, *_satzgrenzen(nach_nr[nr]["text"], von, bis)) for nr, von, bis in roh}):
             if gemerged and gemerged[-1][0] == nr and von <= gemerged[-1][2]:
                 gemerged[-1][2] = max(gemerged[-1][2], bis)
             else:
                 gemerged.append([nr, von, bis])
-        return "\n".join(f"[{nr}] {nach_nr[nr]['medium']}: …{nach_nr[nr]['text'][von:bis]}…"
-                         for nr, von, bis in gemerged)[:grenze]
+        # Titel der Quellen: der Schreiber sieht sie im Prompt, der Pruefer sah sie nicht. 31.10.: "fast
+        # 12 Stunden" stand bei Ars Technica nur in der Ueberschrift, Gemini hielt den Artikel an.
+        titel = [f"[{q['nr']}] {q['medium']}, Titel: {q['titel']}" for q in liste if q.get("titel")]
+        stellen = [f"[{nr}] {nach_nr[nr]['medium']}: {'…' if von else ''}{nach_nr[nr]['text'][von:bis]}"
+                   f"{'…' if bis < len(nach_nr[nr]['text']) else ''}" for nr, von, bis in gemerged]
+        return "\n".join(titel + stellen)[:grenze]
 
     kopf = f"{a['titel']}. {a['anriss']}"
     absaetze = [(f"P{i}", x["text"], belege(x["text"], x["quellen"])) for i, x in enumerate(a["absaetze"], 1)]
