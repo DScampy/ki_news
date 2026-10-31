@@ -263,6 +263,120 @@
   "story_id": "s000",
   "titel": "Google bringt Gemini 4 Carbon zunächst nur für ausgewählte Cyberabwehr-Partner heraus"
  },
+ "manipulierte-claude-code-erweiterung-im-cursor-marktplatz-betraf": {
+  "anriss": "Eine Version 2.1.313 der Claude-Code-Erweiterung enthielt im Cursor-Marktplatz eine SSH-Hintertür. Laut Cursor waren höchstens 5.000 Nutzer betroffen. Wie die Angreifer ins Konto kamen, ist unklar.",
+  "artikel": {
+   "absaetze": [
+    {
+     "quellen": [
+      3,
+      5
+     ],
+     "text": "Im Marktplatz der Entwicklungsumgebung Cursor war eine manipulierte Version der Erweiterung Claude Code for VS Code verfügbar. Laut Cursor betraf der Vorfall höchstens 5.000 Nutzer. Die Version 2.1.313 enthielt eine SSH-Backdoor mit Routinen für Linux, macOS und Windows. Cursor nennt manipulierte Pakete für macOS und Windows."
+    },
+    {
+     "quellen": [
+      1,
+      2,
+      3
+     ],
+     "text": "Die Angaben zur Dauer weichen ab. Heise nennt unter Berufung auf Cursor die Zeit zwischen 10:27 und 21:35 Uhr mitteleuropäischer Zeit am Donnerstag, das wären gut elf Stunden. The Decoder spricht von rund elf Stunden. Ars Technica schreibt dagegen von fast 12 Stunden. Auch zur Herkunft gibt es Differenzen im Detail: Anthropic stellte laut dem Forscher Kevin Beaumont einige Stunden später Version 2.1.314 bereit."
+    },
+    {
+     "quellen": [
+      1,
+      3,
+      5
+     ],
+     "text": "Ob Anthropic die Version gebaut hat, wird unterschiedlich dargestellt. Cursor sagt, der manipulierte Build stamme nicht von Anthropic. Laut Beaumont und Luke Roberts (CTO und Mitgründer Phorian) wurde 2.1.313 jedoch über Anthropics offiziellen Account auf Cursor verteilt. Roberts spricht von einem Supply-Chain-Angriff auf den offiziellen Verteilkanal. Wie Angreifer Zugriff auf das Konto erhielten, haben weder Cursor noch Anthropic erklärt."
+    },
+    {
+     "quellen": [
+      2,
+      3
+     ],
+     "text": "Die Schadwirkung war begrenzt, aber real. Laut Cursor hätte der Fernzugriff auf den meisten Rechnern nicht funktioniert, da Administratorrechte nötig sind. Heise beschreibt unter Berufung auf Phorion einen Logikfehler unter macOS, der die SSH-Aktivierung meist überspringt. Die Malware legt trotzdem SSH-Keys ab, nistet sich dauerhaft ein und schickt Rechnerinformationen an die Angreifer. The Decoder nennt Hostname, Benutzername, Betriebssystem und öffentliche IP-Adresse."
+    },
+    {
+     "quellen": [
+      3,
+      5
+     ],
+     "text": "Cursor entfernte die Version, schaltete den Marketplace vorübergehend ab und öffnete ihn wieder. Andere Erweiterungen seien laut Cursor nicht betroffen. Betroffene sollen auf Version 2.1.314 aktualisieren. Phorion zufolge reicht Deinstallieren nicht: Tunnel-Prozesse, Persistenz-Einträge, Dateien wie „~/.config/.smt“ und der Schlüssel „svc-telemetry“ in „~/.ssh/authorized_keys“ müssen entfernt werden."
+    },
+    {
+     "quellen": [
+      1,
+      3
+     ],
+     "text": "Offen bleibt der Einbruchsweg ins Konto. Ars Technica berichtet zudem, dass Anthropic Kunden bislang nicht öffentlich gewarnt hat. Wer die Erweiterung in dem Zeitfenster installiert hat oder automatisch aktualisieren ließ, muss selbst prüfen, ob die genannten Spuren auf dem Rechner liegen."
+    }
+   ],
+   "anriss": "Eine Version 2.1.313 der Claude-Code-Erweiterung enthielt im Cursor-Marktplatz eine SSH-Hintertür. Laut Cursor waren höchstens 5.000 Nutzer betroffen. Wie die Angreifer ins Konto kamen, ist unklar.",
+   "tags": [
+    "Claude Code",
+    "Cursor",
+    "Supply-Chain"
+   ],
+   "titel": "Manipulierte Claude-Code-Erweiterung im Cursor-Marktplatz betraf höchstens 5.000 Nutzer"
+  },
+  "datum": "2026-10-31",
+  "gruende": [
+   "Prüfer: Absatz 2: Ars Technica schreibt dagegen von fast 12 Stunden: Die Belegstelle von Ars Technica erwähnt keine Dauer von fast 12 Stunden."
+  ],
+  "jev": [
+   0.91,
+   0.95,
+   0.96,
+   0.93,
+   0.96,
+   0.79,
+   0.96,
+   0.95,
+   0.89,
+   0.8,
+   0.96,
+   0.06,
+   0.88,
+   0.88,
+   0.97,
+   0.87,
+   0.96,
+   0.6,
+   0.87,
+   0.83,
+   0.84,
+   0.91,
+   0.59,
+   0.28,
+   0.96,
+   0.95,
+   0.86,
+   0.71,
+   0.92,
+   0.25
+  ],
+  "links": [
+   "https://arstechnica.com/security/2026/10/anthropic-vs-code-extension-on-cursor-backdoored-for-nearly-12-hours/",
+   "https://the-decoder.de/mainpulierte-claude-code-extension-fuer-cursor-sammelte-nutzerdaten-und-richtete-fernzugriff-ein/",
+   "https://www.golem.de/news/claude-code-millionenfach-installierte-vs-code-erweiterung-kompromittiert-2610-214680.html",
+   "https://www.heise.de/news/Claude-Code-Erweiterung-im-Cursor-Marktplatz-mit-Malware-infiziert-11506368.html?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag",
+   "https://x.com/cursor_ai/status/2116074289053175808"
+  ],
+  "modell": "anthropic/claude-sonnet-5.5",
+  "pfad": "/artikel/entwurf/recherche-manipulierte-claude-code-erweiterung-im-cursor-marktplatz-betraf.html",
+  "pruefer": {
+   "ausfaelle": [],
+   "kosten": 0.00713925,
+   "modell": "google/gemini-3.8-flash",
+   "sekunden": 5.0
+  },
+  "pruefung": 5,
+  "quellen": 5,
+  "status": "entwurf",
+  "story_id": "s000",
+  "titel": "Manipulierte Claude-Code-Erweiterung im Cursor-Marktplatz betraf höchstens 5.000 Nutzer"
+ },
  "mistral-stellt-large-4-mit-rund-einer-billion-parametern-als-offenes": {
   "anriss": "Mistral hat die Gewichte von Large 4 alias „Le Chonk“ auf Hugging Face veröffentlicht. Laut Mistral ist es bei Code und Cyberabwehr stark, im Gesamtvergleich liegt es hinter chinesischen Modellen.",
   "datum": "2026-10-29",
