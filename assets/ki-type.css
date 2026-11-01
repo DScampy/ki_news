@@ -28,8 +28,7 @@
 :root:not(#_k):not(#_t) .px-hero-side-title,
 :root:not(#_k):not(#_t) .px-hero-release-title,
 :root:not(#_k):not(#_t) .pxk-section-title,
-:root:not(#_k):not(#_t) .pxk-dossier-title,
-:root:not(#_k):not(#_t) .kl-brand-title {
+:root:not(#_k):not(#_t) .pxk-dossier-title {
   font-family: var(--ki-serif);
   font-optical-sizing: auto;
   font-variation-settings: "SOFT" 40;
@@ -79,7 +78,8 @@
   /* „Beobachtete Entwicklungen“ passte bei 34 px ohne Trennung nicht in die Zeile */
   :root:not(#_k):not(#_t) .pxk-section-title { font-size: var(--ki-fs-h3); }
 }
-:root:not(#_k):not(#_t) .kl-brand-title { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; }
+/* Kopf und Seitenleiste (.kl-*, .sidebar-nav-link) stylt seit 01.11.26 nur noch
+   ki-layout.js, damit sie auf allen Seiten gleich aussehen. */
 
 /* ---------- Themen-Marke: Fraunces kursiv, Akzentfarbe ---------- */
 :root:not(#_k):not(#_t) .pxk-section-kicker,
@@ -87,8 +87,7 @@
 :root:not(#_k):not(#_t) .px-hero-context-label,
 :root:not(#_k):not(#_t) .px-hero-importance,
 :root:not(#_k):not(#_t) .ki-morgenlage-label,
-:root:not(#_k):not(#_t) .c-linie-kopf > span,
-:root:not(#_k):not(#_t) .kl-side-label {
+:root:not(#_k):not(#_t) .c-linie-kopf > span {
   font-family: var(--ki-serif);
   font-style: italic;
   font-weight: 500;
@@ -145,8 +144,6 @@
 :root:not(#_k):not(#_t) .pxk-dossier-meta,
 :root:not(#_k):not(#_t) .pxk-event-meta,
 :root:not(#_k):not(#_t) #pxk-dossier-rail summary,
-:root:not(#_k):not(#_t) .kl-de-badge,
-:root:not(#_k):not(#_t) .kl-side-sub,
 :root:not(#_k):not(#_t) .font-mono {
   font-family: var(--ki-sans);
   font-size: var(--ki-fs-meta);
@@ -162,19 +159,14 @@
 :root:not(#_k):not(#_t) .pxk-tag { border-radius: 3px; box-shadow: none; }
 
 /* ---------- Bedienung: Navigation, Reiter, Knöpfe ---------- */
-:root:not(#_k):not(#_t) .sidebar-nav-link,
-:root:not(#_k):not(#_t) #kl-toplinks a,
 :root:not(#_k):not(#_t) .media-toggle,
-:root:not(#_k):not(#_t) #tts-trigger,
-:root:not(#_k):not(#_t) .kl-side-name {
+:root:not(#_k):not(#_t) #tts-trigger {
   font-family: var(--ki-sans);
   font-size: var(--ki-fs-klein);
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
 }
-:root:not(#_k):not(#_t) .sidebar-nav-link.kl-active,
-:root:not(#_k):not(#_t) #kl-toplinks a.kl-active { font-weight: 600; }
 
 /* ---------- Inline-Styles im SSR-Teil (nur hier !important) ---------- */
 :root:not(#_k):not(#_t) [style*="Space Grotesk"] { font-family: var(--ki-sans) !important; }
