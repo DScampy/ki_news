@@ -22,6 +22,13 @@ verlinkt den Artikel als "Hintergrund" auf der Meldungsseite (ab dem naechsten L
 Nicht bestanden -> artikel/entwurf/recherche-<slug>.html (noindex) mit Pruefbericht, damit
 Daniel sieht, woran es lag. Eine Story wird nur einmal versucht (keine Kostenschleife).
 
+Erweiterung (01.11.26, Daniel: "wie im Dossier"): Berichten zu einem veroeffentlichten Artikel
+UPDATE_MIN_NEUE_MEDIEN weitere Medien, schreibt das Modell ihn mit alten und neuen Quellen neu.
+Dieselben Pruefungen; bestanden -> gleiche Adresse, Vermerk "Aktualisiert am ...", alte Fassung
+im Register (versionen). Nicht bestanden -> die alte Fassung bleibt online, der Versuch landet als
+artikel/entwurf/recherche-<slug>-update.html. Hoechstens ein Versuch je Artikel und Tag, zaehlt
+ins Tageslimit; nach einem Fehlversuch erst wieder, wenn noch weitere Medien dazukommen.
+
 Einziger Schreiber von recherche/ und artikel/entwurf/recherche-*.html (I5).
 Laeuft als eigener Workflow-Schritt nach hersteller_feed.py, continue-on-error (I8).
 Kill-Switch: RECHERCHE_AKTIV = False.
@@ -57,8 +64,10 @@ except Exception:  # Windows ohne tzdata (lokaler Test)
 MIN_QUELLEN = 3                  # verschiedene Medien je Story
 MIN_QUELLEN_MIT_HERSTELLER = 2   # ... oder 2, wenn die Herstellerseite dazukommt
 MIN_TEXTQUELLEN = 2              # davon mit lesbarem Text (>= 600 Zeichen)
-MAX_PRO_TAG = 4                  # zaehlt auch Entwuerfe; 01.11. von 2 auf 4 (Daniel)
+MAX_PRO_TAG = 4                  # zaehlt auch Entwuerfe und Erweiterungen; 01.11. von 2 auf 4 (Daniel)
 MAX_PRO_LAUF = 1
+UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
+MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
 JEV_SCHWELLE = 0.8
 JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetze, real ~25-30)
@@ -144,13 +153,70 @@ def kandidaten(news, releases, register, nur_story=None):
         if links & erledigt:
             continue
         medien = {(g.get("source") or "").strip().lower() for g in glieder} - {""}
-        rel = next((r for r in releases if r.get("story_id") == sid or r.get("news_link") in links), None)
+        rel = _release_zu(releases, {sid}, links)
         if not (len(medien) >= MIN_QUELLEN or (rel and len(medien) >= MIN_QUELLEN_MIT_HERSTELLER)):
             continue
         rep = max(glieder, key=lambda x: _zahl(x.get("score")))
         out.append({"sid": sid, "rep": rep, "glieder": glieder, "links": sorted(links), "release": rel})
     out.sort(key=lambda k: _zahl(k["rep"].get("score")), reverse=True)
     return out
+
+
+def _release_zu(releases, sids, links):
+    return next((r for r in releases if r.get("story_id") in sids or r.get("news_link") in links), None)
+
+
+def _medien(glieder):
+    return {(g.get("source") or "").strip() for g in glieder} - {""}
+
+
+def erweiterungen(news, archiv, releases, register, heute):
+    """Veroeffentlichte Artikel, zu deren Story inzwischen weitere Medien berichten. Die Story wird
+    ueber die Links im Register gefunden: Das Clustering teilt sie spaeter oft anders auf (01.11.:
+    die Cursor-Quellen lagen in s058 und s109, Golem nur noch im Archiv)."""
+    nach_link = {}
+    for n in archiv + news:              # news zuletzt: aktuellere Felder gewinnen
+        for l in ms._links(n):
+            nach_link[l] = n
+    storys = {}
+    for n in news:
+        if n.get("story_id"):
+            storys.setdefault(n["story_id"], []).append(n)
+    out = []
+    for slug, e in register.items():
+        fv = e.get("fehlversuch") or {}
+        if e.get("status") != "veroeffentlicht" or heute in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
+            continue
+        alt = set(e.get("links") or [])
+        glieder, ids, sids = [], set(), set()
+        treffer = [nach_link[l] for l in sorted(alt) if l in nach_link]
+        for sid, g in storys.items():
+            if any(l in alt for n in g for l in ms._links(n)):
+                treffer += g
+                sids.add(sid)
+        for n in treffer:
+            if id(n) not in ids:
+                ids.add(id(n))
+                glieder.append(n)
+        medien_alt = {m.lower() for m in (e.get("medien") or
+                                          _medien(g for g in glieder if set(ms._links(g)) & alt))}
+        neu = sorted(m for m in _medien(glieder) if m.lower() not in medien_alt)
+        versucht = {m.lower() for m in fv.get("medien") or []}   # nach Fehlversuch: weitere Medien noetig
+        if sum(m.lower() not in versucht for m in neu) < UPDATE_MIN_NEUE_MEDIEN:
+            continue
+        links = {l for g in glieder for l in ms._links(g)}
+        rep = max((g for g in glieder if g.get("story_id") in sids) or glieder, key=lambda x: _zahl(x.get("score")))
+        out.append({"sid": rep.get("story_id") or e.get("story_id"), "rep": rep, "glieder": glieder,
+                    "links": sorted(links), "release": _release_zu(releases, sids, links),
+                    "update": slug, "alt_links": alt, "neu": neu})
+    out.sort(key=lambda k: -len(k["neu"]))
+    return out
+
+
+def heute_verbraucht(register, heute):
+    """Neue Artikel, Entwuerfe, Erweiterungen und gescheiterte Erweiterungen von heute."""
+    return sum((e.get("datum") == heute) + (e.get("aktualisiert") == heute)
+               + ((e.get("fehlversuch") or {}).get("datum") == heute) for e in register.values())
 
 
 def _absaetze(seite):
@@ -193,17 +259,21 @@ def _zustimmseite(t):
 
 
 def material(k, dp):
-    """Nummerierte Quellen: je Medium die Meldung mit dem laengsten Text, dazu die Herstellerseite."""
+    """Nummerierte Quellen: je Medium die Meldung mit dem laengsten Text, dazu die Herstellerseite.
+    Bei einer Erweiterung zuerst die Meldungen der bisherigen Fassung (alt_links)."""
     quellen, gesehen = [], set()
-    for g in sorted(k["glieder"], key=lambda x: -len(x.get("full_text") or "")):
+    alt = k.get("alt_links") or set()
+    neu = {m.lower() for m in k.get("neu") or []}
+    for g in sorted(k["glieder"], key=lambda x: (not set(ms._links(x)) & alt, -len(x.get("full_text") or ""))):
         medium = (g.get("source") or "").strip()
-        if not medium or medium.lower() in gesehen:
+        if not medium or medium.lower() in gesehen or len(gesehen) >= MAX_MEDIEN_JE_ARTIKEL:
             continue
         gesehen.add(medium.lower())
         text = _quelltext(g, dp)
         quellen.append({"medium": medium, "titel": _sauber(g.get("title")), "link": g.get("link_verlag") or g.get("link"),
                         "text": _sauber(" ".join(x for x in (g.get("summary"), text) if x))[:TEXT_JE_QUELLE],
-                        "hat_text": len(text) >= dp.MIN_QUELLTEXT, "hersteller": False})
+                        "hat_text": len(text) >= dp.MIN_QUELLTEXT, "hersteller": False,
+                        "neu": medium.lower() in neu})
     r = k["release"]
     if r and r.get("url"):
         text = _quelltext({"link": r["url"]}, dp)
@@ -233,11 +303,25 @@ def karte_zur_story(k, base=BASE):
 
 # ── Schreiben ────────────────────────────────────────────────────────────────
 
-def prompt(quellen):
+def prompt(quellen, alt=None):
+    """alt: die veroeffentlichte Fassung (Register "artikel"), wenn der Artikel erweitert wird."""
     teile = []
     for q in quellen:
         art = "Offizielle Herstellerseite" if q["hersteller"] else "Medienbericht"
+        if q.get("neu"):
+            art += ", neu"
         teile.append(f"[{q['nr']}] {q['medium']} ({art})\nTitel: {q['titel']}\nText: {q['text']}")
+    erweiterung = ""
+    if alt:
+        erweiterung = (
+            "Es gibt schon eine veröffentlichte Fassung dieses Artikels (unten). Inzwischen berichten weitere "
+            "Medien, ihre Quellen sind mit „neu“ markiert. Schreibe den Artikel neu: Ergänze, was die neuen "
+            "Quellen hinzufügen, korrigiere, was sie überholen, und behalte, was weiterhin in den Quellen steht. "
+            "Hat sich die Hauptnachricht geändert, darf sich auch der Titel ändern. Für die bisherige Fassung "
+            "gelten dieselben Regeln: Nichts daraus übernehmen, was nicht in den Quellen steht. Die "
+            "Quellennummern beziehen sich nur auf die Liste unten.\n\nBisherige Fassung:\n"
+            f"Titel: {alt.get('titel', '')}\nAnriss: {alt.get('anriss', '')}\n"
+            + "\n".join(x.get("text", "") for x in alt.get("absaetze") or []) + "\n\n")
     return (
         "Du schreibst für ki-news.live einen deutschen Hintergrundartikel zu einer KI-Meldung. "
         "Grundlage sind AUSSCHLIESSLICH die nummerierten Quellen unten.\n\n"
@@ -265,7 +349,7 @@ def prompt(quellen):
         '"anriss": "1 bis 2 Sätze, höchstens 260 Zeichen", '
         '"absaetze": [{"text": "250 bis 700 Zeichen", "quellen": [1, 2]}], '
         '"tags": ["höchstens 3 Schlagwörter"]}\n'
-        "4 bis 6 Absätze.\n\nQuellen:\n\n" + "\n\n".join(teile)
+        "4 bis 6 Absätze.\n\n" + erweiterung + "Quellen:\n\n" + "\n\n".join(teile)
     )
 
 
@@ -692,7 +776,8 @@ def _youtube_id(u):
     return m.group(1) if m else ""
 
 
-def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht):
+def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None, vermerk=""):
+    """erschienen: Zeitpunkt der ersten Fassung (bei einer Erweiterung), vermerk: "Aktualisiert ..."."""
     esc = html.escape
     rep, r = k["rep"], k["release"]
     pfad = f"/recherche/{slug}.html"
@@ -700,9 +785,10 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht):
     bild = rep.get("image_local_gross") or rep.get("image_local") or (r or {}).get("poster") or ""
     robots = "noindex, nofollow" if entwurf else "index, follow, max-image-preview:large"
     n_medien = sum(1 for q in quellen if not q["hersteller"])
-    datum = stand[:10]
+    erschienen = erschienen or stand
+    datum = erschienen[:10]
     ld = {"@context": "https://schema.org", "@type": "NewsArticle", "headline": a["titel"][:110],
-          "description": a["anriss"][:200], "inLanguage": "de", "datePublished": stand, "dateModified": stand,
+          "description": a["anriss"][:200], "inLanguage": "de", "datePublished": erschienen, "dateModified": stand,
           "mainEntityOfPage": url, "isBasedOn": [q["link"] for q in quellen if q.get("link")],
           "author": {"@type": "Organization", "name": "KI News", "url": SITE + "/"},
           "publisher": {"@type": "Organization", "name": "KI News", "url": SITE + "/",
@@ -747,7 +833,8 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht):
                      "".join(f"<li>{esc(b)}</li>" for b in bericht) + "</ul></div>")
     teile += [
         f'<p class="kicker">Recherche · {n_medien} Quellen' + (" + Herstellerseite" if r else "") + "</p>",
-        f'<p class="meta"><time datetime="{datum}">{ms._datum_de(datum)}</time></p>',
+        f'<p class="meta"><time datetime="{datum}">{ms._datum_de(datum)}</time>'
+        + (f" · {esc(vermerk)}" if vermerk else "") + "</p>",
         f"<h1>{esc(a['titel'])}</h1>",
         f'<p class="anriss">{esc(a["anriss"])}</p>',
     ]
@@ -809,12 +896,42 @@ def sitemap(register):
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for e in sorted(register.values(), key=lambda x: x["pfad"]):
         if e.get("status") == "veroeffentlicht":
-            zeilen.append(f"  <url><loc>{SITE}{e['pfad']}</loc><lastmod>{e['datum']}</lastmod></url>")
+            zeilen.append(f"  <url><loc>{SITE}{e['pfad']}</loc>"
+                          f"<lastmod>{e.get('aktualisiert') or e['datum']}</lastmod></url>")
     zeilen += ["</urlset>", ""]
     ms._schreiben_wenn_neu(ORDNER / "sitemap.xml", "\n".join(zeilen))
 
 
 # ── Ablauf ───────────────────────────────────────────────────────────────────
+
+def erweitere(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_werte, stand, heute, dry_run=False):
+    """Erweiterung eines veroeffentlichten Artikels (e = sein Registereintrag, wird geaendert).
+    Bestanden: gleiche Adresse, alte Fassung nach e["versionen"]. Sonst bleibt die Seite, wie sie ist."""
+    slug = k["update"]
+    neu = [q["medium"] for q in quellen if q.get("neu")]
+    vermerk = f"Aktualisiert am {ms._datum_de(heute)}, weitere Quellen: {', '.join(neu)}"
+    seite = rendere(artikel, k, quellen, karte_zur_story(k), slug, stand, not bestanden,
+                    fehler or ["Testlauf mit --nur-entwurf"], erschienen=e.get("stand") or e.get("datum"),
+                    vermerk=vermerk)
+    ziel = (ORDNER / f"{slug}.html") if bestanden else (ENTWURF_DIR / f"recherche-{slug}-update.html")
+    print(f"[RECHERCHE] Erweiterung {'veroeffentlicht' if bestanden else 'entwurf'}: "
+          f"{ziel.relative_to(BASE).as_posix()} (+{len(neu)} Medien: {', '.join(neu)}, {len(quellen)} Quellen)")
+    if dry_run:
+        print(json.dumps(artikel, ensure_ascii=False, indent=1))
+        return
+    ms._schreiben_wenn_neu(ziel, seite)
+    if not bestanden:
+        e["fehlversuch"] = {"datum": heute, "medien": k["neu"], "gruende": fehler,
+                            "pfad": f"/artikel/entwurf/recherche-{slug}-update.html"}
+        return
+    e["versionen"] = (e.get("versionen") or []) + [
+        {f: e.get(f) for f in ("datum", "aktualisiert", "titel", "anriss", "quellen", "modell", "links", "artikel")}]
+    e.update(titel=artikel["titel"], anriss=artikel["anriss"], artikel=artikel, aktualisiert=heute,
+             quellen=len(quellen), medien=[q["medium"] for q in quellen if not q["hersteller"]],
+             links=sorted(set(k["links"]) | set(e.get("links") or [])), modell=modell, pruefer=pinfo,
+             jev=jev_werte, gruende=[], pruefung=PRUEFUNG_VERSION, stand_aktualisiert=stand)
+    e.pop("fehlversuch", None)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -837,17 +954,21 @@ def main():
     register = _lade(REGISTER, {})
     jetzt = datetime.now(timezone.utc).replace(microsecond=0)
     heute = jetzt.astimezone(BERLIN).strftime("%Y-%m-%d")
-    frei = MAX_PRO_TAG - sum(1 for e in register.values() if e.get("datum") == heute)
+    frei = MAX_PRO_TAG - heute_verbraucht(register, heute)
     if frei <= 0 and not args.story:
         print(f"[RECHERCHE] Tageslimit {MAX_PRO_TAG} erreicht")
         return 0
 
     dp = _deckung()
     kand = kandidaten(news, releases, register, args.story)
+    archiv = _lade(BASE / "archive.json", [])
+    erw = [] if args.story else erweiterungen(news, archiv if isinstance(archiv, list) else [],
+                                               releases, register, heute)
     print(f"[RECHERCHE] {len(kand)} Kandidaten (>= {MIN_QUELLEN} Medien oder Herstellerseite + "
-          f"{MIN_QUELLEN_MIT_HERSTELLER}), frei heute: {frei}")
+          f"{MIN_QUELLEN_MIT_HERSTELLER}), {len(erw)} Erweiterungen "
+          f"({', '.join(k['update'][:40] + ' +' + '/'.join(k['neu']) for k in erw)}), frei heute: {frei}")
     versucht = 0
-    for k in kand:
+    for k in kand + erw:                 # neue Storys zuerst
         if versucht >= (1 if args.story else min(MAX_PRO_LAUF, frei)):
             break
         quellen = material(k, dp)
@@ -857,7 +978,8 @@ def main():
                   f"({ms._titel(k['rep'])[:60]})")
             continue
         versucht += 1
-        p = prompt(quellen)
+        alt = register[k["update"]] if k.get("update") else None
+        p = prompt(quellen, alt and alt.get("artikel"))
         artikel, fehler, modell, jev_werte, pinfo = None, ["kein Modell lieferte Text"], "", [], {}
         for modell in MODELLE[:MAX_SCHREIBVERSUCHE]:
             try:
@@ -879,14 +1001,20 @@ def main():
                 print(f"[RECHERCHE] Jev (Schatten) {jev_werte}: {len(jev_fehler)} Saetze unter {JEV_SCHWELLE}")
         if not artikel or not artikel["titel"]:
             print(f"[RECHERCHE] {k['sid']}: kein verwertbarer Text, {fehler}")
+            if alt and not args.dry_run:
+                alt["fehlversuch"] = {"datum": heute, "medien": k["neu"], "gruende": fehler}
             continue
 
         bestanden = not fehler and not args.nur_entwurf
+        stand = jetzt.isoformat()
+        if alt:
+            erweitere(alt, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_werte, stand, heute,
+                      args.dry_run)
+            continue
         slug = ms._slug(artikel["titel"])
         while slug in register:
             slug += "-2"
         karte = karte_zur_story(k)
-        stand = jetzt.isoformat()
         seite = rendere(artikel, k, quellen, karte, slug, stand, not bestanden,
                         fehler or ["Testlauf mit --nur-entwurf"])
         ziel = (ORDNER / f"{slug}.html") if bestanden else (ENTWURF_DIR / f"recherche-{slug}.html")
@@ -894,8 +1022,8 @@ def main():
                    "titel": artikel["titel"], "anriss": artikel["anriss"], "datum": heute,
                    "status": "veroeffentlicht" if bestanden else "entwurf", "story_id": k["sid"],
                    "quellen": len(quellen), "modell": modell, "jev": jev_werte, "pruefer": pinfo, "gruende": fehler,
-                   "links": k["links"], "pruefung": PRUEFUNG_VERSION,
-                   "artikel": artikel}
+                   "links": k["links"], "pruefung": PRUEFUNG_VERSION, "stand": stand,
+                   "medien": [q["medium"] for q in quellen if not q["hersteller"]], "artikel": artikel}
         print(f"[RECHERCHE] {eintrag['status']}: {eintrag['pfad']} ({len(quellen)} Quellen)")
         if args.dry_run:
             print(json.dumps(artikel, ensure_ascii=False, indent=1))
