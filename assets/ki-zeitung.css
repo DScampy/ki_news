@@ -3,7 +3,7 @@
    Gleiche Typografie wie meldung/* und recherche/*: Überschriften Fraunces 600,
    Text Work Sans, ruhige Grautöne, ein Akzent. Kein Mono, keine Versalien mit
    Sperrung, kein Leuchten.
-   Eingebunden von: Impressum, Datenschutz, suche, woche, dossiers.
+   Eingebunden von: Impressum, Datenschutz, suche, woche, dossiers, Archiv.
    Greift nur innerhalb von <main class="z-inhalt">; Kopf und Seitenleiste
    stylt ki-layout.js. Präfix :root:not(#_k) überstimmt die Seitenregeln
    (gleicher Trick wie ki-type.css).
@@ -30,8 +30,13 @@ html.dark{--z-papier:#15181b;--z-tinte:#ecebe7;--z-grau:#a7acb3;--z-linie:#2a2e3
   --px-line-strong:color-mix(in srgb,var(--z-grau) 45%,transparent);
   --px-border-strong:color-mix(in srgb,var(--z-grau) 45%,transparent);
   --px-shadow:none; --px-shadow-soft:none;
+  /* Archiv */
+  --px-panel-strong:var(--z-papier); --px-field:var(--z-grund);
+  --px-border-hover:color-mix(in srgb,var(--z-grau) 45%,transparent); --px-glow:none;
 }
-:root:not(#_k) body.z-seite, :root:not(#_k).z-html{background:var(--z-grund) !important;color:var(--z-tinte);}
+:root:not(#_k) body.z-seite, :root:not(#_k):has(body.z-seite){background:var(--z-grund) !important;color:var(--z-tinte);}
+/* Archiv: Raster im Hintergrund aus */
+:root:not(#_k) body.px-body.z-seite::before{display:none;}
 
 /* Schrift: alles im Inhalt Work Sans, ohne Versalien, ohne Sperrung, ohne Leuchten */
 :root:not(#_k) .z-inhalt, :root:not(#_k) .z-inhalt *{
@@ -42,11 +47,19 @@ html.dark{--z-papier:#15181b;--z-tinte:#ecebe7;--z-grau:#a7acb3;--z-linie:#2a2e3
 }
 :root:not(#_k) .z-inhalt *:focus-visible{outline:2px solid var(--z-akzent);outline-offset:2px;}
 
-/* Überschriften und Titel: Fraunces 600 */
+/* Überschriften und Titel: Fraunces 600 (auch für Text in Unterelementen, z. B. Links im Titel) */
 :root:not(#_k) .z-inhalt :is(h1,h2,h3,h4,
   .px-title,.px-hero-title,.px-card-title,.px-week-title,.px-section-title,.px-focus-title,
   .px-side-title,.px-story-title,.px-day-heading,.px-lead-title,.px-tile-title,
-  .px-stat-value,.px-index-row strong,.px-section-number,.px-empty-symbol){
+  .px-stat-value,.px-index-row strong,.px-section-number,.px-empty-symbol,
+  .px-result-title,.px-entity-name,.px-topic-name,.px-embed-titel,.px-footer strong,.px-stat strong,
+  .px-entity-count),
+:root:not(#_k) .z-inhalt :is(h1,h2,h3,h4,
+  .px-title,.px-hero-title,.px-card-title,.px-week-title,.px-section-title,.px-focus-title,
+  .px-side-title,.px-story-title,.px-day-heading,.px-lead-title,.px-tile-title,
+  .px-stat-value,.px-index-row strong,.px-section-number,.px-empty-symbol,
+  .px-result-title,.px-entity-name,.px-topic-name,.px-embed-titel,.px-footer strong,.px-stat strong,
+  .px-entity-count) *{
   font-family:var(--z-serif);font-weight:600;letter-spacing:-0.005em;
 }
 :root:not(#_k) .z-inhalt :is(h1,.px-title,.px-hero-title){
@@ -66,15 +79,28 @@ html.dark{--z-papier:#15181b;--z-tinte:#ecebe7;--z-grau:#a7acb3;--z-linie:#2a2e3
   .px-week-label,.px-section-count,.px-source,.px-dossier-label,.px-day-count,.px-day-more,.px-load-status,
   .px-footer,.px-map-label,.px-field-label,.px-filter-label,.px-control-meta,.px-card-id,.px-metric-label,
   .px-source-strip-label,.px-mini-label,.px-mini-caption,.px-card-foot,.px-error,.px-mono,.px-index,
-  .px-stat span,.px-index-row span){
+  .px-stat span,.px-index-row span,
+  .px-coordinate,.px-section-label,.px-entity-type,.px-entity-count-label,.px-map-top,.px-map-data span,
+  .px-filterbar-label,.px-section-meta,.px-heat-detail,.px-heat-hint,.px-legend,.px-media-type,
+  .px-media-message,.px-embed-kopf,.px-result-index){
   font-size:13px !important;font-weight:500;
 }
 :root:not(#_k) .z-inhalt :is(.px-tag,.px-pill,.px-rank,.px-button,.px-share,.px-load-month,.px-week-button,
   .px-video-label,.px-video-duration,.px-video-hint,.px-video-missing,.px-lead-cta,.px-card-link,
-  .px-metric-value){
+  .px-metric-value,.px-chip,.px-badge,.px-node-button){
   font-size:12px !important;font-weight:500;
 }
-:root:not(#_k) .z-inhalt :is(.px-eyebrow,.px-kicker,.px-lead-kicker){color:var(--z-grau);}
+:root:not(#_k) .z-inhalt :is(.px-eyebrow,.px-kicker,.px-lead-kicker,.px-section-label){color:var(--z-grau);}
+
+/* Archiv: Eingabefelder in normaler Lesegröße */
+:root:not(#_k) .z-inhalt :is(.px-select,.px-field input){font-size:14px;}
+
+/* Einbettungs-Platzhalter (ki-embed.js setzt Inline-Styles, deshalb !important) */
+:root:not(#_k) .z-inhalt .ki-embed-ph, :root:not(#_k) .z-inhalt .ki-embed-ph *{font-family:var(--z-sans) !important;text-transform:none !important;letter-spacing:normal !important;}
+
+/* Von Skripten erzeugte Inline-Styles mit alter Schrift */
+:root:not(#_k) .z-inhalt [style*="Space Grotesk"], :root:not(#_k) .z-inhalt [style*="monospace"]{font-family:var(--z-sans) !important;}
+:root:not(#_k) .z-inhalt [style*="uppercase"]{text-transform:none !important;letter-spacing:normal !important;}
 
 /* Schaltflächen: Akzent mit weißer Schrift wie im Artikel-Overlay */
 :root:not(#_k) .z-inhalt :is(.px-share,.px-load-month){background:var(--z-akzent);color:var(--z-papier);border-color:transparent;}
