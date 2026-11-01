@@ -57,7 +57,7 @@ except Exception:  # Windows ohne tzdata (lokaler Test)
 MIN_QUELLEN = 3                  # verschiedene Medien je Story
 MIN_QUELLEN_MIT_HERSTELLER = 2   # ... oder 2, wenn die Herstellerseite dazukommt
 MIN_TEXTQUELLEN = 2              # davon mit lesbarem Text (>= 600 Zeichen)
-MAX_PRO_TAG = 2
+MAX_PRO_TAG = 4                  # zaehlt auch Entwuerfe; 01.11. von 2 auf 4 (Daniel)
 MAX_PRO_LAUF = 1
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
 JEV_SCHWELLE = 0.8
@@ -65,8 +65,9 @@ JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetz
 JEV_MAX_QUELLTEXT = 24000        # 7 Quellen a TEXT_JE_QUELLE + Kopfzeilen, nichts kappen
 # Bumpen, wenn sich die Jev-Pruefung aendert: Entwuerfe, die NUR an Jev gescheitert sind und
 # mit einer aelteren Fassung geprueft wurden, bekommen einmal einen neuen Versuch.
-PRUEFUNG_VERSION = 6              # 3: Fundstelle (29.10.), 4: Pruefer statt Jev, 5: Gemini-Pruefer (30.10.),
-                                 # 6: Pruefer-Belege mit Quellentiteln und ganzen Saetzen (31.10.)
+PRUEFUNG_VERSION = 7             # 3: Fundstelle (29.10.), 4: Pruefer statt Jev, 5: Gemini-Pruefer (30.10.),
+                                 # 6: Pruefer-Belege mit Quellentiteln und ganzen Saetzen (31.10.),
+                                 # 7: Entitaeten-Aliasse als Wortanfang (01.11.)
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
 MODELLE = ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
@@ -127,10 +128,10 @@ def _sauber(s):
 # ── Auswahl ──────────────────────────────────────────────────────────────────
 
 def kandidaten(news, releases, register, nur_story=None):
-    # Entwuerfe, die nur an einer aelteren Jev-Pruefung scheiterten, zaehlen nicht als erledigt
+    # Entwuerfe, die nur an einer aelteren Jev-/Pruefer-/Entitaeten-Pruefung scheiterten, zaehlen nicht als erledigt
     erledigt = {l for e in register.values() for l in e.get("links", [])
                 if not (e.get("status") == "entwurf" and e.get("pruefung", 1) < PRUEFUNG_VERSION
-                        and e.get("gruende") and all(g.startswith(("Jev", "Prüfer")) for g in e["gruende"]))}
+                        and e.get("gruende") and all(g.startswith(("Jev", "Prüfer", "Entität")) for g in e["gruende"]))}
     storys = {}
     for n in news:
         if n.get("link") and n.get("story_id"):
@@ -394,7 +395,9 @@ def pruefe_text(a, quellen, dp, entities):
         if name.split()[-1].lower() not in mat_l:
             fehler.append(f'Person "{name}" nicht in den Quellen')
     for e in entities:
-        muster = [re.compile(r"(?i)\b" + al + r"\b") for al in e.get("aliasse") or []]
+        # Aliasse sind Wortanfaenge ("rechenzentr|data cent"). 01.11.: Mit \b am Ende fand "data cent"
+        # kein "data centers", der OpenAI-Entwurf scheiterte an "Rechenzentren".
+        muster = [re.compile(r"(?i)\b(?:" + al + r")") for al in e.get("aliasse") or []]
         if any(m.search(voll) for m in muster) and not any(m.search(mat) for m in muster):
             fehler.append(f'Entität "{e.get("id")}" nicht in den Quellen')
     return fehler
