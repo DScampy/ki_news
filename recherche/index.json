@@ -377,6 +377,113 @@
   "story_id": "s000",
   "titel": "Manipulierte Claude-Code-Erweiterung im Cursor-Marktplatz betraf höchstens 5.000 Nutzer"
  },
+ "manipulierte-claude-code-erweiterung-im-cursor-marktplatz-betraf-bis": {
+  "anriss": "Version 2.1.313 der Erweiterung Claude Code for VS Code enthielt eine SSH-Backdoor. Laut Cursor sind höchstens 5000 Nutzer betroffen. Wie die Angreifer ins Konto kamen, ist unklar.",
+  "artikel": {
+   "absaetze": [
+    {
+     "quellen": [
+      1,
+      2
+     ],
+     "text": "Im Cursor-Marktplatz war die offizielle Erweiterung Claude Code for VS Code mit einer SSH-Backdoor versehen. Die manipulierte Version 2.1.313 betraf laut Cursor „at most 5,000 users“. Heise nennt unter Berufung auf Reuters ebenfalls bis zu 5000 Nutzer. Eine bereinigte Fassung ist verfügbar, Admins sollten mindestens auf Version 2.1.314 aktualisieren."
+    },
+    {
+     "quellen": [
+      1,
+      2
+     ],
+     "text": "Die Version lief laut Heise nach Angaben von Cursor zwischen 10:27 und 21:35 Uhr mitteleuropäischer Zeit am Donnerstag im Marktplatz. Ars Technica spricht von fast 12 Stunden. Anthropic lieferte laut dem unabhängigen Forscher Kevin Beaumont einige Stunden nach der schädlichen Version die Fassung 2.1.314 aus. Cursor-Erweiterungen aktualisieren sich standardmäßig automatisch, was in den Einstellungen änderbar ist."
+    },
+    {
+     "quellen": [
+      1,
+      2
+     ],
+     "text": "Unklar ist die Herkunft. Luke Roberts (CTO und Mitgründer Phorion) sagt, die Version sei über den offiziellen Anthropic-Account verteilt worden und habe 2.1.312 ersetzt. Heise zitiert dagegen Cursor mit der Aussage, die Version stamme nicht von Anthropic. Wie die Angreifer die Kontrolle über das Konto erlangten, haben laut Ars Technica weder Cursor noch Anthropic erklärt."
+    },
+    {
+     "quellen": [
+      1,
+      2
+     ],
+     "text": "Laut Cursor versucht die Erweiterung, eine dauerhafte SSH-Hintertür einzurichten. Dafür dient ein Schlüssel der Angreifer, der lokale SSH-Dienst wird aktiviert und ein Reverse-SSH-Tunnel geöffnet. Der Code läuft auf Windows, macOS und Linux, Cursor nennt manipulierte Pakete für macOS und Windows. Da Erweiterungen mit den Rechten der IDE laufen, sind lokale Dateien, Quellcode und Entwickler-Tools erreichbar. Phorion zufolge half der Diebstahl von Variablennamen, Cloud-Zugangsdaten und API-Tokens zu inventarisieren."
+    },
+    {
+     "quellen": [
+      1,
+      2
+     ],
+     "text": "Ein Logikfehler verhinderte laut Heise meist die Aktivierung von SSH unter macOS, weil der Befehl ohne Admin-Rechte keinen „Off“-Status liefert. Dennoch legt die Malware Schlüssel ab, nistet sich ein und meldet Rechnerdaten an die Angreifer. Phorion nennt sie weiterhin eine erhebliche Bedrohung. Deinstallieren genügt nicht: Tunnel-Prozesse beenden, Persistenz entfernen und den Schlüssel „svc-telemetry“ aus „~/.ssh/authorized_keys“ löschen."
+    },
+    {
+     "quellen": [
+      1,
+      2,
+      3
+     ],
+     "text": "Offen bleibt, wie der Account übernommen wurde und warum Anthropic Kunden laut Ars Technica bislang nicht öffentlich warnte. Wer die Version 2.1.313 installiert hatte, sollte die Bereinigung nach Phorions Anleitung durchführen und gespeicherte Cloud-Zugangsdaten sowie Tokens prüfen. Golem spricht von Tausenden betroffenen Systemen und von millionenfach installierter Erweiterung, die tatsächliche Betroffenenzahl nennt aber nur die 5000-Obergrenze."
+    }
+   ],
+   "anriss": "Version 2.1.313 der Erweiterung Claude Code for VS Code enthielt eine SSH-Backdoor. Laut Cursor sind höchstens 5000 Nutzer betroffen. Wie die Angreifer ins Konto kamen, ist unklar.",
+   "tags": [
+    "Claude Code",
+    "Cursor",
+    "Supply-Chain-Angriff"
+   ],
+   "titel": "Manipulierte Claude-Code-Erweiterung im Cursor-Marktplatz betraf bis zu 5000 Nutzer"
+  },
+  "datum": "2026-11-01",
+  "gruende": [],
+  "jev": [
+   0.88,
+   0.93,
+   0.55,
+   0.9,
+   0.94,
+   0.9,
+   0.89,
+   0.92,
+   0.74,
+   0.45,
+   0.91,
+   0.95,
+   0.86,
+   0.76,
+   0.89,
+   0.53,
+   0.66,
+   0.8,
+   0.93,
+   0.96,
+   0.9,
+   0.76,
+   0.94,
+   0.23,
+   0.83,
+   0.81,
+   0.58,
+   0.26
+  ],
+  "links": [
+   "https://arstechnica.com/security/2026/10/anthropic-vs-code-extension-on-cursor-backdoored-for-nearly-12-hours/",
+   "https://www.golem.de/news/claude-code-millionenfach-installierte-vs-code-erweiterung-kompromittiert-2610-214680.html",
+   "https://www.heise.de/news/Claude-Code-Erweiterung-im-Cursor-Marktplatz-mit-Malware-infiziert-11506368.html?wt_mc=rss.red.ho.ho.rdf.beitrag.beitrag"
+  ],
+  "modell": "anthropic/claude-sonnet-5.5",
+  "pfad": "/recherche/manipulierte-claude-code-erweiterung-im-cursor-marktplatz-betraf-bis.html",
+  "pruefer": {
+   "ausfaelle": [],
+   "kosten": 0.006663,
+   "modell": "google/gemini-3.8-flash",
+   "sekunden": 4.1
+  },
+  "pruefung": 6,
+  "quellen": 3,
+  "status": "veroeffentlicht",
+  "story_id": "s000",
+  "titel": "Manipulierte Claude-Code-Erweiterung im Cursor-Marktplatz betraf bis zu 5000 Nutzer"
+ },
  "mistral-stellt-large-4-mit-rund-einer-billion-parametern-als-offenes": {
   "anriss": "Mistral hat die Gewichte von Large 4 alias „Le Chonk“ auf Hugging Face veröffentlicht. Laut Mistral ist es bei Code und Cyberabwehr stark, im Gesamtvergleich liegt es hinter chinesischen Modellen.",
   "datum": "2026-10-29",
