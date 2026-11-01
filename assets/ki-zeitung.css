@@ -1,0 +1,120 @@
+/* ==========================================================================
+   KI-News – Nachrichten-Look für Inhaltsseiten (01.11.26)
+   Gleiche Typografie wie meldung/* und recherche/*: Überschriften Fraunces 600,
+   Text Work Sans, ruhige Grautöne, ein Akzent. Kein Mono, keine Versalien mit
+   Sperrung, kein Leuchten.
+   Eingebunden von: Impressum, Datenschutz, suche, woche, dossiers.
+   Greift nur innerhalb von <main class="z-inhalt">; Kopf und Seitenleiste
+   stylt ki-layout.js. Präfix :root:not(#_k) überstimmt die Seitenregeln
+   (gleicher Trick wie ki-type.css).
+   ========================================================================== */
+
+/* Tokens: dieselben Werte wie ki-layout.js und meldungsseiten.py _CSS.
+   Hier nochmal, weil Impressum/Datenschutz ki-layout.js nicht laden. */
+:root{--z-papier:#fff;--z-tinte:#16181b;--z-grau:#565c65;--z-linie:#dde2e8;--z-grund:#f0f4f8;--z-akzent:#0b6e88;
+  --z-serif:'Fraunces',Georgia,'Times New Roman',serif;--z-sans:'Work Sans',system-ui,-apple-system,'Segoe UI',sans-serif;}
+html.dark{--z-papier:#15181b;--z-tinte:#ecebe7;--z-grau:#a7acb3;--z-linie:#2a2e33;--z-grund:#0d0f11;--z-akzent:#55c3de;}
+
+/* Seitenvariablen von suche/woche/dossiers auf die Tokens legen.
+   Die Datenfarben (violett, grün, orange, rot) bleiben, ebenso --neon-rgb
+   (Farbschema aus ki-layout.js). */
+:root:not(#_k), :root:not(#_k) body{
+  --px-bg:var(--z-grund); --px-page:var(--z-grund); --px-bg-deep:var(--z-grund);
+  --px-panel:var(--z-papier); --px-card:var(--z-papier); --px-card-strong:var(--z-papier);
+  --px-panel-2:var(--z-grund); --px-panel-3:var(--z-grund); --px-card-soft:var(--z-grund);
+  --px-ink:var(--z-tinte); --px-text:var(--z-tinte);
+  --px-muted:var(--z-grau); --px-faint:var(--z-grau);
+  --px-cyan:var(--z-akzent); --px-cyan-ink:var(--z-akzent); --px-action:var(--z-akzent);
+  --px-line:var(--z-linie); --px-border:var(--z-linie);
+  --px-line-2:color-mix(in srgb,var(--z-grau) 45%,transparent);
+  --px-line-strong:color-mix(in srgb,var(--z-grau) 45%,transparent);
+  --px-border-strong:color-mix(in srgb,var(--z-grau) 45%,transparent);
+  --px-shadow:none; --px-shadow-soft:none;
+}
+:root:not(#_k) body.z-seite, :root:not(#_k).z-html{background:var(--z-grund) !important;color:var(--z-tinte);}
+
+/* Schrift: alles im Inhalt Work Sans, ohne Versalien, ohne Sperrung, ohne Leuchten */
+:root:not(#_k) .z-inhalt, :root:not(#_k) .z-inhalt *{
+  font-family:var(--z-sans);text-transform:none;letter-spacing:normal;text-shadow:none;box-shadow:none;
+}
+:root:not(#_k) .z-inhalt *::before, :root:not(#_k) .z-inhalt *::after{
+  font-family:var(--z-sans);text-transform:none;letter-spacing:normal;text-shadow:none;box-shadow:none;
+}
+:root:not(#_k) .z-inhalt *:focus-visible{outline:2px solid var(--z-akzent);outline-offset:2px;}
+
+/* Überschriften und Titel: Fraunces 600 */
+:root:not(#_k) .z-inhalt :is(h1,h2,h3,h4,
+  .px-title,.px-hero-title,.px-card-title,.px-week-title,.px-section-title,.px-focus-title,
+  .px-side-title,.px-story-title,.px-day-heading,.px-lead-title,.px-tile-title,
+  .px-stat-value,.px-index-row strong,.px-section-number,.px-empty-symbol){
+  font-family:var(--z-serif);font-weight:600;letter-spacing:-0.005em;
+}
+:root:not(#_k) .z-inhalt :is(h1,.px-title,.px-hero-title){
+  font-size:clamp(2rem,1.4rem + 2.4vw,2.75rem);line-height:1.15;
+}
+:root:not(#_k) .z-inhalt :is(.px-section-title,.px-day-heading,.px-section-head h2,.px-group-title h2){
+  font-size:clamp(1.5rem,1.25rem + 1vw,1.875rem);line-height:1.2;
+}
+/* Akzentwort im Seitentitel: einfarbig statt Kontur/Leuchten */
+:root:not(#_k) .z-inhalt :is(.px-title-accent,.px-hero-title span,.px-hero h1 span){
+  color:var(--z-akzent);-webkit-text-stroke:0;-webkit-text-fill-color:currentColor;background:none;
+}
+
+/* Kleine Auszeichnungen (früher 8–10 px Mono in Versalien): lesbare Sans */
+:root:not(#_k) .z-inhalt :is(.px-eyebrow,.px-kicker,.px-lead-kicker,.px-tile-kicker,.px-label,.px-meta,
+  .px-card-meta,.px-status,.px-index-head,.px-empty-label,.px-group-count,.px-original,.px-stat-label,
+  .px-week-label,.px-section-count,.px-source,.px-dossier-label,.px-day-count,.px-day-more,.px-load-status,
+  .px-footer,.px-map-label,.px-field-label,.px-filter-label,.px-control-meta,.px-card-id,.px-metric-label,
+  .px-source-strip-label,.px-mini-label,.px-mini-caption,.px-card-foot,.px-error,.px-mono,.px-index,
+  .px-stat span,.px-index-row span){
+  font-size:13px !important;font-weight:500;
+}
+:root:not(#_k) .z-inhalt :is(.px-tag,.px-pill,.px-rank,.px-button,.px-share,.px-load-month,.px-week-button,
+  .px-video-label,.px-video-duration,.px-video-hint,.px-video-missing,.px-lead-cta,.px-card-link,
+  .px-metric-value){
+  font-size:12px !important;font-weight:500;
+}
+:root:not(#_k) .z-inhalt :is(.px-eyebrow,.px-kicker,.px-lead-kicker){color:var(--z-grau);}
+
+/* Schaltflächen: Akzent mit weißer Schrift wie im Artikel-Overlay */
+:root:not(#_k) .z-inhalt :is(.px-share,.px-load-month){background:var(--z-akzent);color:var(--z-papier);border-color:transparent;}
+
+/* Deko-Kreise, Raster und Verläufe aus */
+:root:not(#_k) .z-inhalt .px-hero::before,:root:not(#_k) .z-inhalt .px-hero::after{display:none;}
+:root:not(#_k) .z-inhalt :is(.px-index,.px-group-head,.px-empty,.px-map,.px-dossier-card,.px-result-card:hover){
+  background:var(--z-papier);
+}
+:root:not(#_k) .px-dossier-page .z-inhalt .px-hero{background:var(--z-papier);border-color:var(--z-linie);}
+:root:not(#_k) .z-inhalt .px-radar{background:var(--z-grund);}
+
+/* Impressum und Datenschutz: schlichte Seite wie meldung/* (Kopf, Papier-Spalte, Fuß) */
+.z-recht{margin:0;background:var(--z-grund);color:var(--z-tinte);font:1.0625rem/1.65 var(--z-sans);-webkit-font-smoothing:antialiased;}
+.z-recht a{color:var(--z-akzent);text-decoration:none;}
+.z-recht a:hover{text-decoration:underline;}
+.z-recht .topbar,.z-recht .wrap,.z-recht footer{max-width:46rem;margin:0 auto;padding-left:16px;padding-right:16px;}
+.z-recht .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px;padding-bottom:14px;border-bottom:1px solid var(--z-linie);}
+.z-recht .brand{display:flex;align-items:center;gap:10px;color:var(--z-tinte);text-decoration:none;}
+.z-recht .brand img{width:26px;height:26px;border-radius:5px;}
+.z-recht .brand span{font:600 1.25rem var(--z-serif);color:var(--z-tinte);}
+.z-recht .back{display:inline-flex;align-items:center;gap:6px;font-size:.9375rem;color:var(--z-grau);}
+.z-recht .back:hover{color:var(--z-tinte);text-decoration:none;}
+.z-recht .wrap{background:var(--z-papier);margin-top:20px;padding-top:28px;padding-bottom:36px;border-radius:4px;}
+.z-recht h1{font:600 clamp(1.75rem,1.2rem + 2vw,2.5rem)/1.15 var(--z-serif);margin:.4rem 0 .75rem;}
+.z-recht .lead{color:var(--z-grau);font-size:.9375rem;margin:0 0 2rem;}
+.z-recht h2{font:600 1.3125rem/1.3 var(--z-serif);margin:1.75rem 0 .5rem;padding-top:1rem;border-top:1px solid var(--z-linie);}
+.z-recht h3{font:600 1.0625rem var(--z-serif);margin:1.25rem 0 .4rem;}
+.z-recht p{margin:0 0 .85rem;}
+.z-recht ul{margin:0 0 .85rem 1.3rem;padding:0;}
+.z-recht li{margin-bottom:.35rem;}
+.z-recht p.label{color:var(--z-grau);font-size:.8125rem;margin:0 0 .15rem;}
+.z-recht .muted{color:var(--z-grau);}
+.z-recht .box{background:var(--z-grund);border-left:3px solid var(--z-akzent);padding:.75rem 1rem;margin:1rem 0;border-radius:0 4px 4px 0;}
+.z-recht .ok{display:block;border-left:3px solid var(--z-akzent);padding:.25rem 0 .25rem 1rem;margin:1rem 0;font-size:.9375rem;color:var(--z-tinte);}
+.z-recht .todo{display:block;border-left:3px solid #b7791f;padding:.25rem 0 .25rem 1rem;margin:1rem 0;font-size:.9375rem;}
+.z-recht .fill{color:inherit;background:var(--z-grund);padding:1px 6px;border-radius:3px;}
+.z-recht table{width:100%;border-collapse:collapse;font-size:.875rem;margin:.85rem 0;}
+.z-recht th,.z-recht td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--z-linie);vertical-align:top;}
+.z-recht th{color:var(--z-grau);font-weight:600;}
+.z-recht footer{padding-top:18px;padding-bottom:32px;font-size:.8125rem;color:var(--z-grau);text-align:center;}
+.z-recht footer a{color:var(--z-grau);margin:0 8px;}
+@media (max-width:480px){.z-recht .back{font-size:.875rem}}
