@@ -66,10 +66,11 @@ html.light body { background: #dfeaf0; }
 }
 @media (prefers-reduced-motion: reduce) { #kw-panel { transition: none; } }
 </style>
+<link rel="stylesheet" href="assets/ki-zeitung.css"><!-- Nachrichten-Look 01.11.26 -->
 </head>
-<body class="font-body-lg">
+<body class="font-body-lg z-seite">
 <script src="assets/ki-layout.js"></script>
-<main class="kw" id="main-content">
+<main class="kw z-inhalt" id="main-content">
   <canvas id="kw-3d" aria-label="Voxel-Stadt der KI-Nachrichten. Hersteller als Viertel, Gebäude als Tage. Details über die Legende rechts."></canvas>
   <div class="kw-kopf">
     <p class="kw-mono" style="color:var(--accent,#00d4ff)">KI News / Voxel-Stadt</p>
@@ -90,7 +91,7 @@ html.light body { background: #dfeaf0; }
   <div class="kw-karte" id="kw-tip"></div>
   <div id="kw-fehler"></div>
 </main>
-<aside class="kw-karte" id="kw-panel" aria-live="polite" aria-label="Meldungen">
+<aside class="kw-karte z-inhalt" id="kw-panel" aria-live="polite" aria-label="Meldungen">
   <div class="kw-panel-kopf">
     <button class="kw-knopf" id="kw-zu" type="button" aria-label="Schließen">×</button>
     <span class="kw-mono" id="kw-p-ober"></span>
@@ -273,8 +274,8 @@ html.light body { background: #dfeaf0; }
     var c = document.createElement("canvas"), x = c.getContext("2d"), w = 512, h = zeile ? 180 : 110; c.width = w; c.height = h;
     x.fillStyle = "rgba(4,10,16,.82)"; x.fillRect(0, 0, w, h);
     x.fillStyle = "#" + new T.Color(farbe).getHexString(); x.fillRect(0, 0, 10, h);
-    x.font = "700 44px 'Space Grotesk', sans-serif"; x.fillStyle = "#ffffff"; x.fillText(ueber, 30, 56);
-    if (zahl) { x.font = "600 26px ui-monospace, monospace"; x.fillStyle = "#9fb3bf"; x.fillText(zahl + " Meldungen / 7 Tage", 30, 94); }
+    x.font = "600 44px 'Work Sans', system-ui, sans-serif"; x.fillStyle = "#ffffff"; x.fillText(ueber, 30, 56);
+    if (zahl) { x.font = "500 26px 'Work Sans', system-ui, sans-serif"; x.fillStyle = "#9fb3bf"; x.fillText(zahl + " Meldungen / 7 Tage", 30, 94); }
     if (zeile) {
       x.font = "600 26px 'Work Sans', sans-serif"; x.fillStyle = "#dff6ff";
       var worte = zeile.split(" "), l = "", y = 96, n = 0;
