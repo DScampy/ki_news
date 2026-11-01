@@ -307,7 +307,8 @@ def prompt(quellen, alt=None):
     """alt: die veroeffentlichte Fassung (Register "artikel"), wenn der Artikel erweitert wird."""
     teile = []
     for q in quellen:
-        art = "Offizielle Herstellerseite" if q["hersteller"] else "Medienbericht"
+        # 01.11.: Bei "Medienbericht" schrieb Sonnet "Ein Medienbericht zitiert ..." statt des Mediums
+        art = "Offizielle Herstellerseite" if q["hersteller"] else "Medium"
         if q.get("neu"):
             art += ", neu"
         teile.append(f"[{q['nr']}] {q['medium']} ({art})\nTitel: {q['titel']}\nText: {q['text']}")
@@ -328,7 +329,11 @@ def prompt(quellen, alt=None):
         "Regeln:\n"
         "- Nur Fakten, die in mindestens einer Quelle stehen. Kein Vorwissen, keine Vermutung. Keine Zahl, "
         "kein Datum, kein Name, keine Rolle, die nicht in den Quellen steht.\n"
-        "- Zahlen als Ziffern und genau wie in der Quelle, nicht umrechnen, nicht runden.\n"
+        "- Zahlen als Ziffern, der Wert genau wie in der Quelle, nicht umrechnen, nicht runden. Aber deutsch "
+        "geschrieben: Komma statt Dezimalpunkt, \"88,2 Prozent\" statt \"88.2%\", \"2 Dollar\" statt \"$2\", "
+        "\"doppelt so hoch\" statt \"2x\", \"89 Punkte mehr\" statt \"+89\".\n"
+        "- Das Medium immer beim Namen nennen (\"laut TechRepublic\"), nie \"ein Medienbericht\" oder \"ein Bericht\".\n"
+        "- Keine englischen Zitate. Englische Aussagen sinngemäß auf Deutsch wiedergeben, ohne Anführungszeichen.\n"
         "- Jede Person beim ersten Auftauchen mit Rolle in Klammern, z. B. \"Sundar Pichai (Chef Google)\", "
         "aber nur mit einer Rolle, die in einer Quelle steht. Zusätze wie \"ehemalig\", \"früher\", "
         "\"bisherig\", \"designiert\" nur, wenn die Quelle sie nennt.\n"
@@ -415,11 +420,36 @@ def schreibe(p, modell, key):
     if not a:
         print(f"[RECHERCHE] {modell}: kein JSON. finish_reason={wahl.get('finish_reason')}, "
               f"{len(antwort)} Zeichen, usage={roh.get('usage')}, Anfang: {antwort[:160]!r}")
-    absaetze = [{"text": _sauber(x.get("text")), "quellen": [int(q) for q in x.get("quellen") or []
-                                                             if str(q).isdigit()]}
+    absaetze = [{"text": _zahlformat(_sauber(x.get("text"))), "quellen": [int(q) for q in x.get("quellen") or []
+                                                                          if str(q).isdigit()]}
                 for x in a.get("absaetze") or [] if isinstance(x, dict)]
-    return {"titel": _sauber(a.get("titel")).rstrip("."), "anriss": _sauber(a.get("anriss")),
+    return {"titel": _zahlformat(_sauber(a.get("titel"))).rstrip("."), "anriss": _zahlformat(_sauber(a.get("anriss"))),
             "absaetze": absaetze, "tags": [_sauber(t) for t in (a.get("tags") or [])][:3]}
+
+
+_ZAHL = r"\d+(?:[.,]\d+)*"
+_GROESSE = r"(?:\s+(?:Millionen|Milliarden|Billionen|Mio\.|Mrd\.))?"
+
+
+def _de_zahl(z):
+    """88.2 -> 88,2 und 1,000 -> 1.000. Mehrdeutiges wie 1.500 bleibt stehen."""
+    if re.fullmatch(r"\d{1,3}(?:,\d{3})+", z):
+        return z.replace(",", ".")
+    if re.fullmatch(r"\d+\.\d+", z) and not re.fullmatch(r"\d{1,3}\.\d{3}", z):
+        return z.replace(".", ",")
+    return z
+
+
+def _zahlformat(t):
+    """Prozent und Dollar deutsch schreiben, bevor geprueft wird (01.11.: Sonnet uebernahm "88.2%" und
+    "$2" aus den Quellen). Die Deckungspruefung findet "88,2" auch als "88.2" in der Quelle.
+    Versionen ("v5.0", "GPT-5.5") bleiben, weil kein % oder $ daran haengt."""
+    t = re.sub(r"(?<![\w.,])(" + _ZAHL + r")\s?%", lambda m: _de_zahl(m.group(1)) + " Prozent", t)
+    t = re.sub(r"(?<![\w$])(?:US)?\$\s?(" + _ZAHL + r")(" + _GROESSE + ")",
+               lambda m: _de_zahl(m.group(1)) + m.group(2) + " Dollar", t)
+    t = re.sub(r"(?<![\w.,])(" + _ZAHL + r")(" + _GROESSE + r")\s?\$",
+               lambda m: _de_zahl(m.group(1)) + m.group(2) + " Dollar", t)
+    return t
 
 
 # ── Pruefen ──────────────────────────────────────────────────────────────────
