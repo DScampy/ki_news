@@ -125,7 +125,9 @@
     '@media(min-width:768px){#kl-toplinks{display:flex;}}',
     '#kl-toplinks a{font-family:var(--z-sans);font-size:15px;font-weight:500;color:var(--z-grau);text-decoration:none;transition:color .15s;}',
     '#kl-toplinks a:hover{color:var(--z-tinte);}',
-    '#kl-toplinks a.kl-active{color:var(--z-tinte);border-bottom:2px solid var(--z-akzent);padding-bottom:4px;font-weight:600;}',
+    /* Strich unter dem aktiven Menüpunkt in der Farbe des gewählten Farbschemas
+       (Daniel 01.11.26: „Ja, Strich dazu“), damit das Umschalten im Kopf sichtbar bleibt. */
+    '#kl-toplinks a.kl-active{color:var(--z-tinte);border-bottom:3px solid var(--accent,var(--z-akzent));padding-bottom:3px;font-weight:600;}',
     '#kl-nav .kl-right{display:flex;align-items:center;gap:16px;flex-shrink:0;}',
     '#kl-contrast{background:none;border:none;cursor:pointer;color:var(--z-grau);display:flex;align-items:center;padding:0;}',
     '#kl-contrast:hover{color:var(--z-akzent);}',
@@ -154,7 +156,7 @@
     '.kl-side-nav{display:flex;flex-direction:column;gap:2px;padding:12px 8px 0;flex-shrink:0;}',
     ':root:not(#_k) .sidebar-nav-link{display:flex;align-items:center;gap:12px;padding:9px 16px;font-size:15px;font-family:var(--z-sans);font-weight:500;letter-spacing:0;text-transform:none;transition:background .15s,color .15s;border-left:2px solid transparent;color:var(--z-grau);text-decoration:none;}',
     ':root:not(#_k) #sidebar a.sidebar-nav-link:hover{background:var(--z-papier) !important;color:var(--z-tinte) !important;border-left-color:var(--z-akzent);}',
-    ':root:not(#_k) .sidebar-nav-link.kl-active{color:var(--z-tinte);font-weight:600;border-left-color:var(--z-akzent);background:var(--z-papier);}',
+    ':root:not(#_k) .sidebar-nav-link.kl-active{color:var(--z-tinte);font-weight:600;border-left:3px solid var(--accent,var(--z-akzent));padding-left:15px;background:var(--z-papier);}',
     '.sidebar-nav-link .material-symbols-outlined{font-size:16px;}',
     '.kl-side-extra{padding:0 16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;margin-top:8px;min-height:0;}',
     '.kl-side-spacer{flex:1 1 auto;}',
