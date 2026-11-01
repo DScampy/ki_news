@@ -129,11 +129,14 @@
     '#kl-nav .kl-right{display:flex;align-items:center;gap:16px;flex-shrink:0;}',
     '#kl-contrast{background:none;border:none;cursor:pointer;color:var(--z-grau);display:flex;align-items:center;padding:0;}',
     '#kl-contrast:hover{color:var(--z-akzent);}',
-    '#genesis-dots{display:flex;align-items:center;gap:5px;}',
-    '.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;padding:0;}',
-    '.gdot:hover{transform:scale(1.25);}',
-    '.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}',
-    'html.light .gdot.active{border-color:rgba(0,0,0,0.6);}',
+    /* Theme-Punkte (01.11.26, Daniel: „Punkte dezenter“): kleiner und blasser, der aktive
+       bekommt einen feinen Ring. Farben und Umschaltung bleiben wie sie sind.
+       "#genesis-dots" vorn, weil index.html eigene .gdot-Kopien trägt. */
+    '#genesis-dots{display:flex;align-items:center;gap:7px;}',
+    '#genesis-dots .gdot{width:10px;height:10px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,0.12);transition:opacity .15s;flex-shrink:0;padding:0;opacity:.55;transform:none;}',
+    '#genesis-dots .gdot:hover{opacity:1;transform:none;}',
+    '#genesis-dots .gdot.active{opacity:1;transform:none;border-color:transparent;outline:1.5px solid var(--z-tinte);outline-offset:2px;}',
+    '#genesis-dots .gdot:focus-visible{opacity:1;outline:2px solid var(--z-akzent);outline-offset:2px;}',
     '.gdot[data-t="genesis"]{background:#00d4ff;}',
     '.gdot[data-t="karst"]{background:#34d399;}',
     '.gdot[data-t="aurora"]{background:#a78bfa;}',
