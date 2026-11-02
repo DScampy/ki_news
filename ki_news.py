@@ -3408,6 +3408,14 @@ ALIGNEDNEWS_FILTER_KATEGORIEN = {
 # tieferes Scan-Fenster als spezialisierte AI-Feeds, siehe Kommentar in fetch_feed().
 DEEP_SCAN_SOURCES = {"Heise", "Golem", "NYT Technology", "CNet", "TechRepublic"}
 
+# Feed-Items vor dem Scan-Fenster nach Datum sortieren (02.11.26). Google-News-
+# Suchfeeds (Reuters AI, Digg AI, China AI Labs, ...) sind nach Relevanz sortiert,
+# nicht nach Zeit: Bei Reuters waren 19 der ersten 20 Items 55-575 h alt, die 3 h
+# alte Meldung "South Korea's Lee vows bold AI investment" stand auf Position 43.
+# Ueber alle Google-News-Feeds lagen 38 frische KI-Treffer (48 h) hinter dem
+# Fenster, nur 28 darin. Kill-Switch: False = alte Feed-Reihenfolge.
+FEED_NACH_DATUM = True
+
 # Bug-Fix (02.07.26): Atom-Feeds (z.B. The Verge) deklarieren einen XML-Namespace -
 # ElementTree-Tags heissen dann "{http://www.w3.org/2005/Atom}entry", und
 # root.iter("entry") findet NICHTS. Folge: The Verge lieferte seit Einfuehrung
@@ -3482,6 +3490,25 @@ def _feed_bild(item):
     return ""
 
 
+def _item_zeitstempel(item):
+    """Unix-Zeit aus pubDate (RSS) bzw. published/updated (Atom), sonst None."""
+    for feld in ("pubDate", "published", "updated"):
+        roh = _first_child_text(item, feld)
+        if not roh:
+            continue
+        try:
+            dt = parsedate_to_datetime(roh)
+        except Exception:
+            try:
+                dt = datetime.fromisoformat(roh.strip().replace("Z", "+00:00"))
+            except Exception:
+                continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    return None
+
+
 def fetch_feed(name, url):
     # The Decoder braucht mehr Zeit – Server langsam für GitHub Actions IPs
     timeout = 20 if "the-decoder" in url else 12
@@ -3503,6 +3530,10 @@ def fetch_feed(name, url):
     candidates = [el for el in root.iter() if _tag_local(el.tag) in ("item", "entry")]
     if not candidates:
         logger.warning("[%s] Feed geparst, aber 0 Items/Entries gefunden (Formatwechsel?)", name)
+    if FEED_NACH_DATUM:
+        # Neueste zuerst; Items ohne lesbares Datum behalten ihre Reihenfolge dahinter
+        # (sort ist auch mit reverse stabil). Siehe Kommentar bei FEED_NACH_DATUM.
+        candidates.sort(key=lambda el: _item_zeitstempel(el) or 0, reverse=True)
     # Tiefer in den Feed schauen (war 10): aktive Feeds wie TechCrunch haben 15-20
     # Items, wichtige Modell-News stehen oft erst ab Position 11.
     # Bug-Fix (01.07.26): 20 reicht bei generischen Hochvolumen-Newstickern (Heise,
@@ -3512,6 +3543,12 @@ def fetch_feed(name, url):
     # alle Themen) - fiel komplett aus dem 20er-Fenster, kam nie bei
     # _is_ki_relevant() an. Fuer diese Quellen tiefer scannen.
     scan_depth = 60 if name in DEEP_SCAN_SOURCES else 20
+    if FEED_NACH_DATUM:
+        # Sortiert reicht 20 nicht: bei Reuters sind die neuesten 20 fast nur Nicht-KI-
+        # Meldungen (Welt, Politik), dann kaeme nur 1 Treffer statt 8 und aeltere KI-
+        # Storys (bis MAX_AGE_DAYS) fielen frueher aus news.json. Tiefer scannen kostet
+        # nichts (kein Netz), Altinhalt-Filter und output_cap begrenzen die Menge.
+        scan_depth = max(scan_depth, 100)
     for item in candidates[:scan_depth]:
         title = _first_child_text(item, "title")
         if "&" in title:        # 25.09.26: doppelt kodierte Entitaeten ("Google&#8217;s") aufloesen
