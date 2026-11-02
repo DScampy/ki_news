@@ -191,6 +191,8 @@
     '  #sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}',
     '}',
     '#main-content{transition:margin-left .25s ease;}',
+    /* Archiv und Modelle haben .px-main{width:100%}: Mit dem 240-px-Rand der offenen Leiste lief der Inhalt rechts aus dem Fenster. */
+    '#main-content.px-main{width:auto;}',
     '@media(max-width:1023px){#main-content{margin-left:0 !important;}}',
     '.spy-eye{display:block;overflow:visible;}',
     '.spy-eye .eye-shape{transform-box:fill-box;transform-origin:center;animation:spyBlink 9s ease-in-out infinite;}',
