@@ -212,3 +212,10 @@ html.dark { --ki-papier: #15181b; --ki-linie: #2a2e33; --ki-akzent: #55c3de; }
 :root:not(#_k):not(#_t) a[href="artikel.html"][style*="--accent"],
 :root:not(#_k):not(#_t) [aria-labelledby="neueste-analysen"] span[style*="--accent"] { color: var(--ki-akzent) !important; }
 :root:not(#_k):not(#_t) [aria-labelledby="neueste-analysen"] .ki-card { border-radius: 4px !important; box-shadow: none !important; }
+
+/* Sprung beim Laden: Die Pipeline schreibt nur den Text in die Hauptkarte, Bild und Linie setzt das Skript nach rund 1 s ein
+   (219 auf 795 px bei 1440). Der Platz wird vorab reserviert, damit die Schlagzeilen darunter nicht wegspringen. */
+:root:not(#_k):not(#_t) #px-hero .px-hero-main-card:has(> [data-px-main-slide] > .c-text) { min-height: clamp(640px, 50vw, 760px); }
+@media (max-width: 767px) {
+  :root:not(#_k):not(#_t) #px-hero .px-hero-main-card:has(> [data-px-main-slide] > .c-text) { min-height: 760px; }
+}
