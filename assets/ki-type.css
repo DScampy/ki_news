@@ -185,3 +185,30 @@
   text-transform: none !important;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Ruhige Reste (Nachrichten-Look Schritt 5, 01.11.26) ----------
+   Woche-Streifen, "Neueste Analysen" und das Label "Schlagzeilen" hatten noch Neon-Türkis,
+   Versalien oder runde Kacheln mit Schatten. Werte wie --pz-* im Aufmacher und ki-zeitung.css.
+   Woche-Streifen und Analysen setzen Inline-Styles (Skript bzw. SSR), deshalb !important. */
+:root { --ki-papier: #fff; --ki-linie: #dde2e8; --ki-akzent: #0b6e88; }
+html.dark { --ki-papier: #15181b; --ki-linie: #2a2e33; --ki-akzent: #55c3de; }
+
+:root:not(#_k):not(#_t) #px-hero .px-sz-kopf { text-transform: none; letter-spacing: 0; }
+
+:root:not(#_k):not(#_t) #kiw-woche {
+  background: var(--ki-papier) !important;
+  border-color: var(--ki-linie) !important;
+  border-radius: 4px !important;
+}
+:root:not(#_k):not(#_t) #kiw-liste a { border-color: var(--ki-linie) !important; border-radius: 4px !important; }
+:root:not(#_k):not(#_t) #kiw-liste a > span:last-child,
+:root:not(#_k):not(#_t) [aria-labelledby="neueste-analysen"] h4[style*="Space Grotesk"] {
+  font-family: var(--ki-serif) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.005em;
+}
+:root:not(#_k):not(#_t) #kiw-liste a > span:first-child,
+:root:not(#_k):not(#_t) #kiw-woche > div > a,
+:root:not(#_k):not(#_t) a[href="artikel.html"][style*="--accent"],
+:root:not(#_k):not(#_t) [aria-labelledby="neueste-analysen"] span[style*="--accent"] { color: var(--ki-akzent) !important; }
+:root:not(#_k):not(#_t) [aria-labelledby="neueste-analysen"] .ki-card { border-radius: 4px !important; box-shadow: none !important; }
