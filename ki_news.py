@@ -3525,6 +3525,10 @@ def fetch_feed(name, url):
         return []
 
     items = []
+    # Altinhalt sammeln statt je Item loggen (02.11.26): seit FEED_NACH_DATUM 100 Items
+    # je Feed gescannt werden, waren das 1057 von 1306 Zeilen eines Laufs (150 von 178 KB
+    # in ki_news.log). Eine Summenzeile je Feed nach der Schleife reicht.
+    altinhalt = []
     # Namespace-agnostisch: findet RSS-<item> UND Atom-<entry> (auch mit Namespace),
     # siehe Bug-Fix-Kommentar bei _tag_local() oben.
     candidates = [el for el in root.iter() if _tag_local(el.tag) in ("item", "entry")]
@@ -3589,8 +3593,7 @@ def fetch_feed(name, url):
                     pubdate = pubdate.replace(tzinfo=timezone.utc)
                 alter_tage = (datetime.now(timezone.utc) - pubdate).days
                 if alter_tage > MAX_AGE_DAYS:
-                    logger.info("[%s] Altinhalt uebersprungen (%d Tage alt): %s",
-                                name, alter_tage, (title or "")[:70])
+                    altinhalt.append((alter_tage, (title or "")[:70]))
                     continue
             except Exception:
                 pass  # Datum nicht parsebar -> wie bisher behandeln, nicht raten
@@ -3607,6 +3610,10 @@ def fetch_feed(name, url):
             if bild:
                 eintrag["feed_image"] = bild
             items.append(eintrag)
+    if altinhalt:
+        jung = min(altinhalt, key=lambda a: a[0])
+        logger.info("[%s] Altinhalt uebersprungen: %d Items, %d bis %d Tage alt, juengstes: %s",
+                    name, len(altinhalt), jung[0], max(a[0] for a in altinhalt), jung[1])
     # War [:3] – das warf ~70% der relevanten News pro Feed weg (The Decoder liefert
     # 10 KI-relevante, nur 3 kamen durch). Höher = bessere Abdeckung neuer Modelle,
     # das Scoring + der Zeit-Verfall sortieren die Masse danach.
