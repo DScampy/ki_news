@@ -872,7 +872,9 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
     if video:
         p = (karte or {}).get("poster_url") or ""
         pp = f' poster="{esc(p)}"' if p else ""
-        teile.append(f'<figure><video controls playsinline preload="none"{pp}>'
+        # Kartenformat: width/height reservieren den Platz, bis das Poster geladen ist. Sonst springt
+        # der Text darunter beim ersten Aufruf weg (Layout-Sprung 0,22).
+        teile.append(f'<figure><video controls playsinline preload="none" width="840" height="1320"{pp}>'
                      f'<source src="{esc(video)}" type="video/mp4"/></video></figure>')
     elif bild:
         teile.append(f'<figure><img src="{esc(bild)}" alt="" loading="lazy"/></figure>')

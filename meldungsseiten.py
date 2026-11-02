@@ -255,7 +255,9 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
         teile.append(f'<p class="anriss">{esc(anriss)}</p>')
     if video:
         p = f' poster="{esc(poster)}"' if poster else ""
-        teile.append(f'<figure><video controls playsinline preload="none"{p}>'
+        # Kartenformat: width/height reservieren den Platz, bis das Poster geladen ist. Sonst springt
+        # der Text darunter beim ersten Aufruf weg (Layout-Sprung 0,22).
+        teile.append(f'<figure><video controls playsinline preload="none" width="840" height="1320"{p}>'
                      f'<source src="{esc(video)}" type="video/mp4"/></video></figure>')
     elif bild:
         teile.append(f'<figure><img src="{esc(bild)}" alt="{esc(titel)}" loading="lazy"/></figure>')
