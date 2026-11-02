@@ -847,6 +847,8 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
                   '<meta name="twitter:card" content="summary_large_image"/>']
     teile += [
         '<meta name="twitter:site" content="@ScampyKI"/>',
+        '<link rel="preload" href="/assets/fonts/Fraunces-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
+        '<link rel="preload" href="/assets/fonts/WorkSans-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
         '<link rel="stylesheet" href="/assets/ki-fonts.css"/>',
         f"<script>{ms._THEME_JS}</script>",
         f"<style>{ms._CSS}\n{_CSS_EXTRA}</style>",
