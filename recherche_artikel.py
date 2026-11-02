@@ -801,6 +801,23 @@ ol.quellen li{margin:.35rem 0}
 """.strip()
 
 
+_CSS_LISTE = """
+ul.recherchen{list-style:none;padding:0;margin:1.5rem 0}
+ul.recherchen li{border-top:1px solid var(--linie);padding:1rem 0}
+ul.recherchen .meta{margin:0}
+ul.recherchen h2{margin:.25rem 0 .35rem}
+ul.recherchen h2 a{color:var(--tinte);text-decoration:none}
+ul.recherchen h2 a:hover{color:var(--akzent)}
+ul.recherchen p.text{margin:0}
+""".strip()
+
+_KOPF = ('<header class="kopf"><a class="marke" href="/">KI News</a>'
+         '<nav class="nav"><a href="/">Startseite</a><a href="/dossiers.html">Dossiers</a>'
+         '<a class="weg" href="/Archiv.html">Archiv</a></nav></header>')
+_FUSS = ('<footer class="fuss"><a href="/">ki-news.live</a><a href="/Impressum.html">Impressum</a>'
+         '<a href="/Datenschutz.html">Datenschutz</a></footer>')
+
+
 def _youtube_id(u):
     m = re.search(r"(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([\w-]{11})", u or "")
     return m.group(1) if m else ""
@@ -852,9 +869,7 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
         f"<style>{ms._CSS}\n{_CSS_EXTRA}</style>",
         f'<script type="application/ld+json">{ld_txt}</script>',
         "</head>", "<body>",
-        '<header class="kopf"><a class="marke" href="/">KI News</a>'
-        '<nav class="nav"><a href="/">Startseite</a><a href="/dossiers.html">Dossiers</a>'
-        '<a class="weg" href="/Archiv.html">Archiv</a></nav></header>',
+        _KOPF,
         "<main>", "<article>",
     ]
     if entwurf:
@@ -911,8 +926,7 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
         'gedeckt ist. Fehler sind trotzdem möglich, maßgeblich sind die Originalquellen.</p>')
     teile += [
         "</main>",
-        '<footer class="fuss"><a href="/">ki-news.live</a><a href="/Impressum.html">Impressum</a>'
-        '<a href="/Datenschutz.html">Datenschutz</a></footer>',
+        _FUSS,
         '<script src="/assets/ki-embed.js"></script>',
         "<script>(function(){if(!window.KIEmbed)return;document.querySelectorAll('[data-yt]').forEach("
         "function(el){el.innerHTML=KIEmbed.youtube(el.getAttribute('data-yt'),{label:'VIDEO'});});})();</script>",
@@ -924,12 +938,75 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
 def sitemap(register):
     zeilen = ['<?xml version="1.0" encoding="UTF-8"?>',
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    daten = [e.get("aktualisiert") or e["datum"] for e in register.values() if e.get("status") == "veroeffentlicht"]
+    if daten:
+        zeilen.append(f"  <url><loc>{SITE}/recherche/</loc><lastmod>{max(daten)}</lastmod></url>")
     for e in sorted(register.values(), key=lambda x: x["pfad"]):
         if e.get("status") == "veroeffentlicht":
             zeilen.append(f"  <url><loc>{SITE}{e['pfad']}</loc>"
                           f"<lastmod>{e.get('aktualisiert') or e['datum']}</lastmod></url>")
     zeilen += ["</urlset>", ""]
     ms._schreiben_wenn_neu(ORDNER / "sitemap.xml", "\n".join(zeilen))
+
+
+def uebersicht(register):
+    """recherche/index.html: die veroeffentlichten Artikel, neueste zuerst. Entwuerfe stehen hier nie."""
+    esc = html.escape
+    fertig = sorted((e for e in register.values() if e.get("status") == "veroeffentlicht"),
+                    key=lambda e: e.get("stand_aktualisiert") or e.get("stand") or e.get("datum") or "", reverse=True)
+    beschreibung = ("Hintergrundtexte zu Nachrichten, über die mehrere Medien berichtet haben. "
+                    "Jeder Text nennt seine Quellen.")
+    zeilen = []
+    for e in fertig:
+        medien = len(e.get("medien") or [])
+        quellen = e.get("quellen") or 0
+        meta = f'<time datetime="{esc(e["datum"][:10])}">{ms._datum_de(e["datum"])}</time> · '
+        meta += f"{medien} Quellen + Herstellerseite" if 0 < medien < quellen else f"{quellen} Quellen"
+        if e.get("aktualisiert"):
+            meta += f' · aktualisiert am {ms._datum_de(e["aktualisiert"])}'
+        zeilen.append(f'<li><p class="meta">{meta}</p><h2><a href="{esc(e["pfad"])}">{esc(e["titel"])}</a></h2>'
+                      f'<p class="text">{esc(e.get("anriss") or "")}</p></li>')
+    seite = [
+        "<!DOCTYPE html>", '<html lang="de">', "<head>", '<meta charset="utf-8"/>',
+        '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
+        "<title>Recherche · KI News</title>",
+        f'<meta name="description" content="{beschreibung}"/>',
+        '<meta name="robots" content="index, follow"/>',
+        f'<link rel="canonical" href="{SITE}/recherche/"/>',
+        '<link rel="icon" type="image/png" href="/s-logo.png"/>',
+        '<meta property="og:type" content="website"/>',
+        '<meta property="og:title" content="Recherche · KI News"/>',
+        f'<meta property="og:description" content="{beschreibung}"/>',
+        f'<meta property="og:url" content="{SITE}/recherche/"/>', '<meta property="og:locale" content="de_DE"/>',
+        '<meta name="twitter:site" content="@ScampyKI"/>',
+        '<link rel="preload" href="/assets/fonts/Fraunces-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
+        '<link rel="preload" href="/assets/fonts/WorkSans-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
+        '<link rel="stylesheet" href="/assets/ki-fonts.css"/>',
+        f"<script>{ms._THEME_JS}</script>",
+        f"<style>{ms._CSS}\n{_CSS_EXTRA}\n{_CSS_LISTE}</style>",
+        "</head>", "<body>", _KOPF, "<main>",
+        "<h1>Recherche</h1>",
+        f'<p class="anriss">{beschreibung}</p>',
+        '<ul class="recherchen">' + "".join(zeilen) + "</ul>" if zeilen
+        else "<p>Noch keine Recherche veröffentlicht.</p>",
+        '<p class="pruefung">So entstehen diese Texte: Ein Sprachmodell fasst die im Artikel verlinkten Quellen '
+        'zusammen. Vor der Veröffentlichung wird automatisch geprüft, dass jede Zahl, jedes Datum und jeder Name '
+        'in mindestens einer Quelle steht und dass jeder Absatz durch die genannten Quellen gedeckt ist. Fehler '
+        'sind trotzdem möglich, maßgeblich sind die Originalquellen.</p>',
+        "</main>", _FUSS, "</body>", "</html>", "",
+    ]
+    ms._schreiben_wenn_neu(ORDNER / "index.html", "\n".join(seite))
+
+
+def oeffentliche_listen(register):
+    """Uebersicht und Sitemap. Laeuft auch ohne neuen Artikel, ein Fehler hier kostet keinen Artikel."""
+    if not register:
+        return
+    try:
+        sitemap(register)
+        uebersicht(register)
+    except Exception as e:
+        print(f"[RECHERCHE] Uebersicht/Sitemap: {type(e).__name__} {e}")
 
 
 # ── Ablauf ───────────────────────────────────────────────────────────────────
@@ -982,6 +1059,8 @@ def main():
     releases = _lade(BASE / "hersteller.json", {}).get("releases") or []
     entities = _lade(BASE / "entities.json", {}).get("entities") or []
     register = _lade(REGISTER, {})
+    if not args.dry_run:
+        oeffentliche_listen(register)
     jetzt = datetime.now(timezone.utc).replace(microsecond=0)
     heute = jetzt.astimezone(BERLIN).strftime("%Y-%m-%d")
     frei = MAX_PRO_TAG - heute_verbraucht(register, heute)
@@ -1064,7 +1143,7 @@ def main():
     if not args.dry_run and versucht:
         ORDNER.mkdir(exist_ok=True)
         ms._schreiben_wenn_neu(REGISTER, json.dumps(register, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
-        sitemap(register)
+        oeffentliche_listen(register)
     return 0
 
 

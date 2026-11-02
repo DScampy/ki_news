@@ -40,6 +40,7 @@
     { key: 'archiv',    label: 'Archiv',           href: 'Archiv.html', icon: 'archive' },
     { key: 'dossiers',  label: 'Dossiers',         href: 'dossiers.html', icon: 'view_list' },
     { key: 'artikel',   label: 'Artikel',          href: 'artikel.html', icon: 'menu_book' },
+    { key: 'recherche', label: 'Recherche',        href: 'recherche/',   icon: 'search', sidebarOnly: true },
     { key: 'modelle',   label: 'Modelle',          href: 'modelle.html', icon: 'smart_toy' },
     { key: 'woche',     label: 'Wochen-Rückblick', href: 'woche.html',   icon: 'schedule', sidebarOnly: true },
     { key: 'podcast',   label: 'Podcast',          href: 'https://soundcloud.com/dscampy/sets/podcast-wissen', ext: true, icon: 'mic' },
