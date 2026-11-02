@@ -127,7 +127,7 @@
     '#kl-toplinks a:hover{color:var(--z-tinte);}',
     /* Strich unter dem aktiven Menüpunkt in der Farbe des gewählten Farbschemas
        (Daniel 01.11.26: „Ja, Strich dazu“), damit das Umschalten im Kopf sichtbar bleibt. */
-    '#kl-toplinks a.kl-active{color:var(--z-tinte);border-bottom:3px solid var(--accent,var(--z-akzent));padding-bottom:3px;font-weight:600;}',
+    '#kl-toplinks a.kl-active{color:var(--z-tinte);border-bottom:3px solid var(--accent,var(--z-akzent));padding-bottom:3px;margin-bottom:-6px;font-weight:600;}',
     '#kl-nav .kl-right{display:flex;align-items:center;gap:16px;flex-shrink:0;}',
     '#kl-contrast{background:none;border:none;cursor:pointer;color:var(--z-grau);display:flex;align-items:center;padding:0;}',
     '#kl-contrast:hover{color:var(--z-akzent);}',
@@ -135,6 +135,8 @@
        bekommt einen feinen Ring. Farben und Umschaltung bleiben wie sie sind.
        "#genesis-dots" vorn, weil index.html eigene .gdot-Kopien trägt. */
     '#genesis-dots{display:flex;align-items:center;gap:7px;}',
+    /* Platz fuer sechs Punkte: Startseite, Statistik und Profil zeigen zusaetzlich das eigene Schema, sonst springt der Hell/Dunkel-Schalter um 17 px. */
+    '@media(min-width:768px){#genesis-dots{min-width:95px;}}',
     '#genesis-dots .gdot{width:10px;height:10px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,0.12);transition:opacity .15s;flex-shrink:0;padding:0;opacity:.55;transform:none;}',
     '#genesis-dots .gdot:hover{opacity:1;transform:none;}',
     '#genesis-dots .gdot.active{opacity:1;transform:none;border-color:transparent;outline:1.5px solid var(--z-tinte);outline-offset:2px;}',
