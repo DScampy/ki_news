@@ -236,12 +236,15 @@
       box-shadow: 0 0 12px rgba(139, 92, 246, .35);
     }
 
+    /* Schriftgrößen und Spalten richten sich nach dem freien Platz (cqi, @container), nicht nach dem
+       Fenster: Mit offener Seitenleiste fehlen dem Inhalt 240 px, das Fenster bleibt gleich breit. */
     .px-shell {
       position: relative;
       z-index: 2;
       width: min(1480px, 100%);
       margin: 0 auto;
-      padding: 28px 28px 72px;
+      padding: 72px 28px 72px;
+      container: px-inhalt / inline-size;
     }
 
     .px-hero {
@@ -289,7 +292,6 @@
     .px-score,
     .px-video-label,
     .px-video-duration,
-    .px-video-hint,
     .px-card-meta,
     .px-day-count,
     .px-dossier-label,
@@ -323,7 +325,7 @@
       max-width: 900px;
       margin: 0;
       font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(48px, 5.2vw, 72px);
+      font-size: clamp(48px, 5.2cqi, 72px);
       font-weight: 760;
       letter-spacing: -.07em;
       line-height: .94;
@@ -526,7 +528,7 @@
       display: block;
       max-width: 100%;
       color: var(--px-ink);
-      font-size: clamp(25px, 2.7vw, 34px);
+      font-size: clamp(25px, 2.7cqi, 34px);
       font-weight: 820;
       letter-spacing: -.065em;
       line-height: 1.04;
@@ -535,7 +537,7 @@
 
     .px-stat-value.px-stat-text {
       font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(21px, 2.2vw, 29px);
+      font-size: clamp(21px, 2.2cqi, 29px);
       letter-spacing: -.04em;
     }
 
@@ -591,7 +593,7 @@
     .px-section-title {
       margin: 0;
       font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(27px, 3vw, 40px);
+      font-size: clamp(27px, 3cqi, 40px);
       font-weight: 720;
       letter-spacing: -.055em;
       line-height: 1;
@@ -686,6 +688,7 @@
     .px-rank {
       flex: 0 0 auto;
       color: var(--px-story-color, var(--px-cyan));
+      color: color-mix(in srgb, var(--px-story-color, var(--px-cyan)) 55%, var(--px-ink));
       font-size: 8px;
       font-weight: 900;
       letter-spacing: .12em;
@@ -693,16 +696,17 @@
     }
 
     .px-pill {
-      display: inline-flex;
+      display: inline-block;
       min-width: 0;
       min-height: 24px;
       max-width: 100%;
-      align-items: center;
       padding: 4px 9px;
       overflow: hidden;
       border: 1px solid var(--px-line);
       border-radius: 999px;
+      line-height: 14px;
       color: var(--px-story-color, var(--px-cyan));
+      color: color-mix(in srgb, var(--px-story-color, var(--px-cyan)) 55%, var(--px-ink));
       background: rgba(var(--px-neon-rgb), .045);
       font-size: 8px;
       font-weight: 850;
@@ -729,18 +733,20 @@
       letter-spacing: -.045em;
       line-height: 1.08;
       overflow-wrap: anywhere;
+      hyphens: auto;
+      hyphenate-limit-chars: 10 4 4;
     }
 
     .px-focus-title {
-      font-size: clamp(28px, 2.7vw, 40px);
+      font-size: clamp(28px, 2.7cqi, 40px);
     }
 
     .px-side-title {
       display: -webkit-box;
       overflow: hidden;
-      font-size: clamp(17px, 1.45vw, 22px);
+      font-size: clamp(17px, 1.45cqi, 22px);
       -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 5;
     }
 
     .px-story-title {
@@ -753,6 +759,9 @@
       display: -webkit-box;
       min-width: 0;
       overflow: hidden;
+      overflow-wrap: anywhere;
+      hyphens: auto;
+      hyphenate-limit-chars: 10 4 4;
       color: var(--px-muted);
       line-height: 1.48;
       -webkit-box-orient: vertical;
@@ -823,6 +832,13 @@
       min-width: 0;
       grid-template-columns: minmax(0, 1fr) 150px;
       gap: 0;
+    }
+
+    .px-focus-lead.px-ohne-video,
+    .px-side-story.px-ohne-video,
+    .px-story-card.px-ohne-video {
+      min-height: 0;
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .px-side-story .px-video-figure {
@@ -985,20 +1001,6 @@
       cursor: not-allowed;
     }
 
-    .px-video-hint {
-      position: absolute;
-      z-index: 4;
-      right: 10px;
-      bottom: 9px;
-      left: 10px;
-      color: #cad6e8;
-      font-size: 8px;
-      letter-spacing: .05em;
-      text-align: right;
-      text-transform: uppercase;
-      pointer-events: none;
-    }
-
     .px-video-missing {
       position: absolute;
       z-index: 0;
@@ -1159,7 +1161,7 @@
     .px-day-heading {
       margin: 0;
       font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(23px, 2.5vw, 34px);
+      font-size: clamp(23px, 2.5cqi, 34px);
       font-weight: 710;
       letter-spacing: -.05em;
       line-height: 1.05;
@@ -1410,7 +1412,9 @@
       .px-fallback-nav {
         gap: 15px;
       }
+    }
 
+    @container px-inhalt (max-width: 1104px) {
       .px-top-layout {
         grid-template-columns: 1fr;
       }
@@ -1431,9 +1435,11 @@
       }
 
       .px-shell {
-        padding: 26px 18px 62px;
+        padding: 70px 18px 62px;
       }
+    }
 
+    @container px-inhalt (max-width: 904px) {
       .px-hero {
         grid-template-columns: 1fr;
         gap: 16px;
@@ -1528,7 +1534,7 @@
       }
 
       .px-shell {
-        padding: 18px 12px 48px;
+        padding: 66px 12px 48px;
       }
 
       .px-hero {
@@ -1586,9 +1592,13 @@
       }
 
       .px-stat-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
         margin-bottom: 25px;
+      }
+
+      .px-stat:last-child {
+        grid-column: 1 / -1;
       }
 
       .px-stat {
@@ -1796,8 +1806,8 @@
         <p class="px-eyebrow">Sieben Tage KI-Nachrichten</p>
         <h1 class="px-title" id="px-page-title">Wochen-<span class="px-title-accent">Rückblick</span></h1>
         <p class="px-deck">
-          Die stärksten Geschichten der ausgewählten Woche, verdichtet aus lokalen Nachrichten,
-          Dossier-Daten und thematisch passenden Video-Cards.
+          Die stärksten Geschichten der ausgewählten Woche, mit Quellen und, wo vorhanden,
+          dem Video zur Meldung.
         </p>
       </div>
 
@@ -1836,7 +1846,7 @@
       <article class="px-stat">
         <span class="px-stat-label">Meistgenannter Hersteller</span>
         <strong class="px-stat-value px-stat-text">offen</strong>
-        <span class="px-stat-note">Aus der Entity-Registry</span>
+        <span class="px-stat-note">wird ermittelt</span>
       </article>
     </section>
 
@@ -1847,7 +1857,6 @@
           <p class="px-kicker">Rangliste nach Datenwerten</p>
           <h2 class="px-section-title" id="px-top-heading">Drei Stories im Fokus</h2>
         </div>
-        <span class="px-section-count">Poster zuerst, MP4 nur nach Hover oder Tippen</span>
       </div>
 
       <div class="px-top-layout" id="px-top-layout" aria-live="polite">
@@ -1855,8 +1864,7 @@
           <div>
             <div class="px-empty-symbol">...</div>
             <h2>Woche wird geladen</h2>
-            <p>Die lokalen Dateien werden geprüft und nach Kalenderwochen gruppiert.</p>
-            <p class="px-load-status">news.json, archive.json, cards.json und entities.json werden gelesen</p>
+            <p>Die Meldungen werden nach Kalenderwochen sortiert.</p>
           </div>
         </div>
       </div>
@@ -1869,7 +1877,6 @@
           <p class="px-kicker">Chronologische Spur</p>
           <h2 class="px-section-title" id="px-days-heading">Die übrigen Meldungen</h2>
         </div>
-        <span class="px-section-count">Video-Poster aus cards.json</span>
       </div>
 
       <div class="px-days" id="px-days" aria-live="polite">
@@ -1885,16 +1892,15 @@
 
     <footer class="px-footer">
       <span>ki-news.live von Scampy</span>
-      <span>Alle Inhalte stammen aus relativen lokalen JSON-Dateien.</span>
       <span><a href="Impressum.html">Impressum</a> · <a href="Datenschutz.html">Datenschutz</a></span>
     </footer>
   </main>
-
   <div class="px-live-message" id="px-live-message" role="status" aria-live="polite"></div>
+
 
   <noscript>
     <div class="px-noscript">
-      Für diesen Wochen-Rückblick wird JavaScript benötigt. Die Daten werden ausschließlich über relative lokale Dateien geladen.
+      Für diesen Wochen-Rückblick wird JavaScript benötigt.
     </div>
   </noscript>
 
@@ -2187,7 +2193,7 @@
 
       function formatDuration(value) {
         const seconds = number(value, 0);
-        if (seconds <= 0) return "Video";
+        if (seconds <= 0) return "";
 
         const minutes = Math.floor(seconds / 60);
         const rest = seconds % 60;
@@ -2270,24 +2276,22 @@
           const entries = Array.isArray(line.e) ? line.e : [];
           const title = clean(dossier.titel)
             || clean(line.titel)
-            || "Themencluster";
+            || "Themenlinie";
           const description = clean(dossier.worum) || clean(line.worum);
-          const entryText = entries
-            .map(entry => clean(entry && (entry.t || entry.z)))
-            .filter(Boolean)
-            .join(" ");
 
           return {
             id: clean(id) || "linie-" + normalizeKey(title),
             title,
             description,
-            terms: terms(title + " " + description + " " + entryText),
+            links: new Set(entries
+              .map(entry => canonicalUrl(entry && entry.l))
+              .filter(Boolean)),
             entryDates: entries
               .map(entry => parseDate(entry && entry.d))
               .filter(Boolean),
             color: lineColor(clean(id) + " " + title)
           };
-        }).filter(line => line.terms.length);
+        }).filter(line => line.links.size);
       }
 
       function mergeLines(primary, secondary) {
@@ -2426,7 +2430,7 @@
 
           seenDubLinks.add(url);
           dubLinks.push({
-            source: clean(article.source) || "Dub-Quelle",
+            source: clean(article.source) || "Weitere Quelle",
             url
           });
         });
@@ -2445,6 +2449,7 @@
           links,
           dubLinks,
           canonicalLinks: links.map(item => canonicalUrl(item.url)).filter(Boolean),
+          dubCanonicalLinks: dubLinks.map(item => canonicalUrl(item.url)).filter(Boolean),
           fullText: clean((fullArticles[0] || {}).full_text),
           paywalled: articles.some(article => article.paywalled === true),
           color: safeColor(representative.color, palette.cyan),
@@ -2498,7 +2503,7 @@
         {
           id: "chips-infrastruktur",
           title: "Chips und Infrastruktur",
-          test: /chip|gpu|prozessor|rechenzentrum|nvidia|amd|intel|tensor|hardware|server|cloud|speicher|rechenleistung/
+          test: /chip|gpu|prozessor|rechenzentrum|nvidia|\bamd\b|\bintel\b|tensor|hardware|server|cloud|speicher|rechenleistung/
         },
         {
           id: "sicherheit-kontrolle",
@@ -2508,12 +2513,12 @@
         {
           id: "recht-politik",
           title: "Recht und Politik",
-          test: /gericht|gesetz|regierung|behörde|autorität|europa|usa|senat|vertrag|politisch|politik|entscheidung|rechtsstreit/
+          test: /gericht|gesetz|regierung|behörde|autorität|europa|\busa\b|senat|vertrag|politisch|politik|entscheidung|rechtsstreit/
         },
         {
           id: "agenten-anwendungen",
           title: "Agenten und Anwendungen",
-          test: /agent|assistant|chatbot|suchmaschine|app|application|automation|shopping|browser|arbeitsagent/
+          test: /agent|assistant|chatbot|suchmaschine|\bapps?\b|application|automation|shopping|browser|arbeitsagent/
         },
         {
           id: "forschung-modelle",
@@ -2528,7 +2533,7 @@
         {
           id: "unternehmen-maerkte",
           title: "Unternehmen und Märkte",
-          test: /unternehmen|investition|markt|aktie|umsatz|gewinn|plattform|kund|amazon|microsoft|google|openai|anthropic|meta|xai/
+          test: /unternehmen|investition|markt|aktie|umsatz|gewinn|plattform|\bkund|amazon|microsoft|google|openai|anthropic|\bmeta\b|\bxai\b/
         }
       ];
 
@@ -2542,28 +2547,23 @@
         return {
           id: found.id,
           title: found.title,
-          description: "Für diese Meldung liegt keine eindeutige Dossier-Zuordnung im lokalen Datensatz vor.",
+          description: "Diese Meldung gehört zu keinem Dossier.",
           color: lineColor(found.id)
         };
       }
 
+      // 03.11.26: Eine Meldung gehört nur noch zu einer Themenlinie, wenn ihr Link oder ihr
+      // Dub-Ziel dort als Eintrag steht oder der genaue Titel der Linie im Text vorkommt.
+      // Der Wortvergleich traf über Wörter wie "Milliarden" 6 von 12 Top-Storys falsch.
       function assignLines() {
         state.stories.forEach(story => {
           const storyText = normalizeWord(story.title + " " + story.summary);
-          const storyTermSet = new Set(terms(storyText));
-          let best = null;
-          let bestScore = 0;
-
-          state.lines.forEach(line => {
-            const overlap = line.terms.filter(term => storyTermSet.has(term)).length;
+          const storyLinks = [...story.canonicalLinks, ...story.dubCanonicalLinks];
+          const best = state.lines.find(line => {
+            return storyLinks.some(link => line.links.has(link));
+          }) || state.lines.find(line => {
             const normalizedTitle = normalizeWord(line.title);
-            const exact = normalizedTitle.length > 8 && storyText.includes(normalizedTitle);
-            const score = overlap + (exact ? 8 : 0);
-
-            if (score > bestScore && (score >= 2 || exact)) {
-              best = line;
-              bestScore = score;
-            }
+            return normalizedTitle.length > 8 && storyText.includes(normalizedTitle);
           });
 
           if (best) {
@@ -2571,7 +2571,7 @@
               id: best.id,
               title: best.title,
               description: best.description
-                || "Für diese Themenlinie liegt im lokalen Datensatz keine Beschreibung vor.",
+                || "Zu dieser Themenlinie gibt es noch keine Beschreibung.",
               color: best.color
             };
             story.dossier = true;
@@ -2581,6 +2581,7 @@
           }
 
           story.color = safeColor(story.color, story.line.color);
+          if (story.color === "#555555") story.color = story.line.color;
         });
       }
 
@@ -2627,7 +2628,7 @@
           .map((card, index) => ({
             index,
             raw: card,
-            headline: clean(card.headline) || "Video-Card",
+            headline: clean(card.headline) || "Video",
             posterUrl: safeUrl(card.poster_url),
             mp4Url: safeUrl(card.mp4_url),
             date: parseDate(card.date),
@@ -2638,15 +2639,21 @@
           .filter(card => card.posterUrl);
       }
 
+      // 03.11.26: Video nur bei gemeinsamem Link (alle Karten tragen Links) oder wörtlich gleichem
+      // Titel. Der Wortvergleich gab der Marvell-Meldung die DoorDash-Karte. Lieber kein Video als
+      // ein falsches. Eigene Links gehen vor Dub-Links, damit die Karte bei der Hauptmeldung landet.
       function matchInfo(story, card, week) {
         const direct = card.canonicalLinks.some(link => {
           return story.canonicalLinks.includes(link);
         });
+        const viaDub = !direct && card.canonicalLinks.some(link => {
+          return story.dubCanonicalLinks.includes(link);
+        });
 
         const storyTitle = normalizeWord(story.title);
         const cardTitle = normalizeWord(card.headline);
-        const exactPhrase = storyTitle.length > 5
-          && cardTitle.length > 5
+        const exactPhrase = storyTitle.length > 24
+          && cardTitle.length > 24
           && (cardTitle.includes(storyTitle) || storyTitle.includes(cardTitle));
 
         const text = similarity(
@@ -2671,13 +2678,10 @@
           else dateScore = -5;
         }
 
-        const qualifies = direct
-          || exactPhrase
-          || (text.overlap >= 2 && text.containment >= .35)
-          || (text.overlap >= 3 && text.jaccard >= .16)
-          || (text.overlap >= 1 && text.containment >= .7 && sourceMatch);
+        const qualifies = direct || viaDub || exactPhrase;
 
         const score = (direct ? 10000 : 0)
+          + (viaDub ? 5000 : 0)
           + (exactPhrase ? 80 : 0)
           + text.overlap * 7
           + text.jaccard * 24
@@ -2950,7 +2954,7 @@
               : "nicht ermittelbar",
             note: manufacturers.length
               ? numberFormatter.format(manufacturers[0].count) + " Artikel mit Treffern"
-              : "Keine belastbare Zuordnung",
+              : "Kein Hersteller erkannt",
             text: true
           }
         ];
@@ -2989,11 +2993,7 @@
         const card = story.videoCard;
         const figure = element("figure", "px-video-figure");
         const frame = element("div", "px-video-frame");
-        const missing = element(
-          "div",
-          "px-video-missing",
-          card ? "Video-Card" : "Keine belastbare Zuordnung"
-        );
+        const missing = element("div", "px-video-missing", "Video");
 
         frame.append(missing);
 
@@ -3005,7 +3005,7 @@
           image = document.createElement("img");
           image.className = "px-video-image";
           image.src = card.posterUrl;
-          image.alt = "Poster der zugeordneten Video-Card";
+          image.alt = "Vorschaubild zum Video";
           image.loading = featured ? "eager" : "lazy";
           image.decoding = "async";
           image.referrerPolicy = "no-referrer";
@@ -3016,7 +3016,7 @@
 
           image.addEventListener("error", () => {
             image.hidden = true;
-            missing.textContent = "Poster nicht verfügbar";
+            missing.textContent = "Vorschaubild nicht verfügbar";
           }, { once: true });
 
           frame.append(image);
@@ -3024,20 +3024,12 @@
 
         const top = element("div", "px-video-top");
 
-        top.append(
-          element("span", "px-video-label", card ? "Video-Card" : "Ohne Karte"),
-          element(
-            "span",
-            "px-video-duration",
-            card ? formatDuration(card.raw.duration) : "Hinweis"
-          )
-        );
+        const duration = formatDuration(card.raw.duration);
 
-        const hint = featured
-          ? "Desktop: Hover, Mobil: Tippen"
-          : "Tippen für stummen Loop";
+        top.append(element("span", "px-video-label", "Video"));
+        if (duration) top.append(element("span", "px-video-duration", duration));
 
-        const playButton = element("button", "px-video-play", card ? "▶" : "-");
+        const playButton = element("button", "px-video-play", "▶");
         playButton.type = "button";
         playButton.disabled = !card || !card.mp4Url;
         playButton.setAttribute("aria-pressed", "false");
@@ -3045,10 +3037,10 @@
           "aria-label",
           card && card.mp4Url
             ? "Stummes Video abspielen oder pausieren"
-            : "Für diese Zuordnung ist kein MP4 verfügbar"
+            : "Zu dieser Meldung gibt es gerade kein Video"
         );
 
-        frame.append(top, playButton, element("span", "px-video-hint", hint));
+        frame.append(top, playButton);
 
         function syncButton() {
           const playing = Boolean(video && !video.paused && !video.ended);
@@ -3081,7 +3073,7 @@
           video.setAttribute("playsinline", "");
           video.setAttribute("muted", "");
           video.setAttribute("loop", "");
-          video.setAttribute("aria-label", "Stumme Video-Card");
+          video.setAttribute("aria-label", "Stummes Video zur Meldung");
 
           const source = document.createElement("source");
           source.src = card.mp4Url;
@@ -3190,7 +3182,7 @@
         figure.append(element(
           "figcaption",
           "px-video-caption",
-          card ? card.headline : "Keine passende Video-Card gefunden"
+          card.headline
         ));
 
         return figure;
@@ -3208,23 +3200,14 @@
 
         if (story.fullText) {
           body.append(
-            element("p", "px-dossier-label", "Lokaler Volltext"),
+            element("p", "px-dossier-label", "Volltext"),
             element("p", "px-dossier-text", story.fullText.slice(0, 4500))
-          );
-        } else {
-          body.append(
-            element("p", "px-dossier-label", "Datenhinweis"),
-            element(
-              "p",
-              "px-dossier-text",
-              "Der lokale Datensatz enthält keinen Volltext. Die verlinkte Originalquelle bleibt verfügbar."
-            )
           );
         }
 
         if (story.videoCard) {
           body.append(
-            element("p", "px-dossier-label", "Video-Card"),
+            element("p", "px-dossier-label", "Video"),
             element("p", "px-dossier-text", story.videoCard.headline)
           );
         }
@@ -3281,10 +3264,16 @@
 
         copy.append(footer, createDossier(story));
 
-        const media = element("div", "px-focus-media");
-        media.append(createVideoFigure(story, true));
+        card.append(copy);
 
-        card.append(copy, media);
+        if (story.videoCard) {
+          const media = element("div", "px-focus-media");
+          media.append(createVideoFigure(story, true));
+          card.append(media);
+        } else {
+          card.classList.add("px-ohne-video");
+        }
+
         return card;
       }
 
@@ -3308,7 +3297,14 @@
           createDossier(story)
         );
 
-        card.append(copy, createVideoFigure(story, false));
+        card.append(copy);
+
+        if (story.videoCard) {
+          card.append(createVideoFigure(story, false));
+        } else {
+          card.classList.add("px-ohne-video");
+        }
+
         return card;
       }
 
@@ -3372,10 +3368,16 @@
 
         copy.append(meta, createDossier(story));
 
-        const media = element("div", "px-story-media");
-        media.append(createVideoFigure(story, false));
+        card.append(copy);
 
-        card.append(copy, media);
+        if (story.videoCard) {
+          const media = element("div", "px-story-media");
+          media.append(createVideoFigure(story, false));
+          card.append(media);
+        } else {
+          card.classList.add("px-ohne-video");
+        }
+
         return card;
       }
 
@@ -3386,7 +3388,10 @@
         const featuredIds = new Set(state.topStories.map(story => story.id));
         const remaining = state.stories.filter(story => !featuredIds.has(story.id));
 
-        buildWeekDates(week).forEach(day => {
+        // 03.11.26: Tage, die noch nicht waren, zeigen wir nicht als leere Abschnitte.
+        const today = dateKey(new Date());
+
+        buildWeekDates(week).filter(day => day.key <= today).forEach(day => {
           const section = element("section", "px-day");
           section.id = "px-day-" + day.key;
           section.setAttribute("aria-labelledby", "px-day-heading-" + day.key);
@@ -3414,7 +3419,7 @@
           if (!stories.length) {
             section.append(createEmpty(
               "Keine weiteren Meldungen",
-              "Für dieses Datum enthält der lokale Datensatz keine weitere lesbare Story.",
+              "An diesem Tag gab es keine weiteren Meldungen.",
               "px-empty-day"
             ));
           } else {
@@ -3631,7 +3636,7 @@
 
       function setUnavailable() {
         nodes.weekTitle.textContent = "Keine Woche verfügbar";
-        nodes.weekRange.textContent = "Der lokale Datenpfad ist nicht erreichbar.";
+        nodes.weekRange.textContent = "Die Daten konnten nicht geladen werden.";
         nodes.weekStand.textContent = "Datenstand: offen";
         nodes.weekPulse.hidden = true;
         nodes.weekPulse.replaceChildren();
@@ -3641,7 +3646,7 @@
         const fragment = document.createDocumentFragment();
         const values = ["0", "0", "nicht ermittelbar"];
         const labels = ["Meldungen", "Dossiers", "Meistgenannter Hersteller"];
-        const notes = ["keine lokalen Daten", "keine lokalen Daten", "keine Entity-Registry"];
+        const notes = ["keine Daten", "keine Daten", "keine Daten"];
 
         for (let index = 0; index < values.length; index += 1) {
           const card = element("article", "px-stat");
@@ -3663,12 +3668,12 @@
 
         nodes.topLayout.replaceChildren(createEmpty(
           "Daten nicht verfügbar",
-          "news.json und archive.json konnten nicht geladen werden. Bitte prüfe die relativen Pfade und starte die Seite über einen Webserver."
+          "Die Meldungen konnten nicht geladen werden. Bitte später noch einmal versuchen."
         ));
 
         nodes.days.replaceChildren(createEmpty(
           "Keine Wochenübersicht",
-          "Die lokale Datendatei ist nicht erreichbar oder enthält kein unterstütztes Format."
+          "Die Daten konnten nicht geladen werden."
         ));
       }
 
@@ -3745,8 +3750,7 @@
 
           if (failed.length) {
             showMessage(
-              "Nicht verfügbar: " + failed.join(", ")
-                + ". Die übrigen lokalen Daten werden weiter genutzt."
+              "Ein Teil der Daten konnte nicht geladen werden. Die Seite zeigt, was vorhanden ist."
             );
           }
         } catch (_) {

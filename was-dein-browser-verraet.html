@@ -18,6 +18,9 @@
 <meta property="og:site_name" content="KI News"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:site" content="@ScampyKI"/>
+<link rel="stylesheet" href="assets/ki-fonts.css"/>
+<script src="assets/ki-icons.js" defer></script>
+<link rel="stylesheet" href="assets/ki-zeitung.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -43,23 +46,10 @@ html.light{
 }
 
 /* Theme dots + Hell/Dunkel-Toggle */
-.nav-sep{width:1px;height:18px;background:var(--hairline);flex-shrink:0;}
-.theme-toggle{background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;padding:0;transition:color .15s;}
-.theme-toggle:hover{color:var(--text);}
-.theme-toggle svg{width:17px;height:17px;display:block;}
-#genesis-dots{display:flex;align-items:center;gap:5px;}
-.gdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;padding:0;}
-.gdot:hover{transform:scale(1.25);}
-.gdot.active{border-color:rgba(255,255,255,0.85);transform:scale(1.15);}
-html.light .gdot.active{border-color:rgba(0,0,0,0.6);}
-.gdot[data-t="genesis"]{background:#00d4ff;}
-.gdot[data-t="karst"]{background:#34d399;}
-.gdot[data-t="aurora"]{background:#a78bfa;}
-.gdot[data-t="meridian"]{background:#fb923c;}
-.gdot[data-t="blanc"]{background:#e2e8f0;border:2px solid rgba(0,0,0,0.2);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{
+  padding-top:56px;
   background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6;
   -webkit-font-smoothing:antialiased;
   background-image:
@@ -80,16 +70,6 @@ a{color:inherit;}
 .wrap{max-width:920px;margin:0 auto;padding:0 24px;}
 
 /* ── Top bar ── */
-.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
-  height:56px;padding:0 24px;border-bottom:1px solid var(--hairline);
-  background:var(--topbar-bg);backdrop-filter:blur(14px);}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
-.brand img{width:26px;height:26px;border-radius:6px;filter:drop-shadow(0 0 8px rgba(var(--neon-rgb),0.45));}
-.brand span{font-family:var(--grotesk);font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:var(--accent);font-size:16px;}
-.topbar nav{display:flex;align-items:center;gap:16px;}
-.topbar nav a{font-family:var(--grotesk);font-size:13px;color:var(--muted);text-decoration:none;transition:color .15s;}
-.topbar nav a:hover{color:var(--text);}
-@media(max-width:560px){.topbar nav a.hide-sm{display:none;}}
 
 /* ── Eyebrow / labels ── */
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--accent);
@@ -228,25 +208,7 @@ footer.f a:hover{color:var(--accent);}
 </script>
 <script src="assets/ki-custom-theme.js"></script>
 
-<header class="topbar">
-  <a class="brand" href="/"><img src="s-logo.png" alt=""/><span>KI News</span></a>
-  <nav>
-    <a href="/" class="hide-sm">Aktuell</a>
-    <a href="artikel.html" class="hide-sm">Artikel</a>
-    <a href="Datenschutz.html">Datenschutz</a>
-    <span class="nav-sep"></span>
-    <button class="theme-toggle" onclick="cycleTheme()" title="Hell / Dunkel" aria-label="Hell- oder Dunkelmodus umschalten">
-      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor"/></svg>
-    </button>
-    <div id="genesis-dots" title="Design-Theme">
-      <button class="gdot" data-t="genesis" onclick="setGenesisTheme('genesis')" title="Genesis" aria-label="Theme Genesis"></button>
-      <button class="gdot" data-t="karst" onclick="setGenesisTheme('karst')" title="Karst" aria-label="Theme Karst"></button>
-      <button class="gdot" data-t="aurora" onclick="setGenesisTheme('aurora')" title="Aurora" aria-label="Theme Aurora"></button>
-      <button class="gdot" data-t="meridian" onclick="setGenesisTheme('meridian')" title="Meridian" aria-label="Theme Meridian"></button>
-      <button class="gdot" data-t="blanc" onclick="setGenesisTheme('blanc')" title="Blanc" aria-label="Theme Blanc"></button>
-    </div>
-  </nav>
-</header>
+<script src="assets/ki-layout.js"></script>
 
 <main>
   <!-- HERO -->
