@@ -1,16 +1,21 @@
 <!doctype html>
 <html lang="de">
 <head>
+  <script>
+    // 03.11.26: Dossiers haben ihre eigene Seite, alte Direktlinks auf ein Dossier gehen dorthin weiter.
+    // #px-dossiers bleibt bewusst hier: Die alte Seite schrieb diesen Anker bei jedem Aufruf selbst in die URL,
+    // er steckt also auch in Lesezeichen von Leuten, die die Artikel wollten.
+    if ((location.hash || "").indexOf("#d=") === 0) location.replace("linie.html#l=" + location.hash.slice(3));
+  </script>
     <script src="assets/ki-fetchcache.js"></script>
     <script src="assets/ki-bilder.js"></script>
-  <script src="assets/ki-logos.js"></script>
 <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Aktive KI-Dossiers und redaktionelle Longform-Artikel von KI-News.">
+  <meta name="description" content="Eigene Analysen und Longform-Artikel von Daniel S. / Scampy bei KI-News.">
   <meta name="author" content="Daniel S.">
   <meta name="robots" content="index, follow">
   <meta name="color-scheme" content="light dark">
-  <title>Artikel und Dossiers | KI News</title>
+  <title>Artikel | KI News</title>
 
   <link rel="stylesheet" href="assets/ki-fonts.css">
   <link rel="stylesheet" href="assets/ki-tw.css">
@@ -184,18 +189,8 @@
     .px-masthead,
     .px-masthead-grid,
     .px-masthead-copy,
-    .px-masthead-stats,
     .px-section,
     .px-section-heading,
-    .px-dossier-grid,
-    .px-dossier-card,
-    .px-dossier-copy,
-    .px-dossier-top,
-    .px-dossier-lower,
-    .px-event-strip,
-    .px-event-track,
-    .px-dossier-detail,
-    .px-timeline,
     .px-longform-grid,
     .px-longform-card,
     .px-longform-copy {
@@ -266,7 +261,7 @@
 
     .px-masthead-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(290px, 350px);
+      grid-template-columns: minmax(0, 1fr);
       align-items: end;
       gap: clamp(28px, 5vw, 64px);
       padding: 10px 0 18px;
@@ -274,18 +269,12 @@
     }
 
     .px-kicker,
-    .px-meta,
     .px-section-kicker,
-    .px-stat-label,
     .px-pill,
     .px-message,
     .px-update-line,
     .px-visual-caption,
-    .px-event-label,
-    .px-event-date,
-    .px-timeline-meta,
     .px-longform-meta,
-    .px-empty-code,
     .px-footer {
       font-family: var(--px-mono);
     }
@@ -319,51 +308,6 @@
       color: var(--px-muted);
       font-size: 0.9rem;
       line-height: 1.48;
-      overflow-wrap: anywhere;
-    }
-
-    .px-masthead-stats {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      overflow: hidden;
-      border: 1px solid var(--px-line);
-      border-radius: var(--px-radius);
-      background: var(--px-card-strong);
-      box-shadow: var(--px-glow);
-    }
-
-    .px-stat {
-      min-width: 0;
-      padding: 10px 13px;
-    }
-
-    .px-stat:nth-child(odd) {
-      border-right: 1px solid var(--px-line);
-    }
-
-    .px-stat:nth-child(-n+2) {
-      border-bottom: 1px solid var(--px-line);
-    }
-
-    .px-stat-label {
-      display: block;
-      margin-bottom: 3px;
-      color: var(--px-faint);
-      font-size: 0.48rem;
-      font-weight: 800;
-      line-height: 1.4;
-      letter-spacing: 0.075em;
-      text-transform: uppercase;
-    }
-
-    .px-stat-value {
-      display: block;
-      color: var(--px-text);
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1rem;
-      font-weight: 620;
-      letter-spacing: -0.025em;
-      line-height: 1.2;
       overflow-wrap: anywhere;
     }
 
@@ -456,75 +400,6 @@
       line-height: 1.5;
     }
 
-    .px-dossier-grid {
-      display: grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .px-dossier-card {
-      --px-card-rgb: var(--neon-rgb);
-      position: relative;
-      display: grid;
-      grid-column: span 6;
-      grid-template-columns: minmax(0, 1.18fr) minmax(210px, 0.82fr);
-      grid-template-rows: minmax(0, 1fr) auto;
-      min-height: 360px;
-      overflow: hidden;
-      border: 1px solid rgba(var(--px-card-rgb), 0.2);
-      border-radius: var(--px-radius);
-      background: var(--px-card-strong);
-      box-shadow: var(--px-glow);
-      transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
-    }
-
-    .px-dossier-card.px-dossier-lead {
-      grid-column: 1 / -1;
-      grid-template-columns: minmax(0, 1.2fr) minmax(370px, 0.8fr);
-      min-height: 426px;
-    }
-
-    .px-dossier-card[data-tone="violet"] {
-      --px-card-rgb: var(--px-violet-rgb);
-    }
-
-    .px-dossier-card[data-tone="green"] {
-      --px-card-rgb: var(--px-green-rgb);
-    }
-
-    .px-dossier-card[data-tone="orange"] {
-      --px-card-rgb: var(--px-orange-rgb);
-    }
-
-    .px-dossier-card:hover,
-    .px-dossier-card:focus-within,
-    .px-dossier-card.px-dossier-open {
-      border-color: rgba(var(--px-card-rgb), 0.44);
-      box-shadow: var(--px-glow-strong);
-    }
-
-    .px-dossier-copy {
-      grid-column: 1;
-      grid-row: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 20px;
-    }
-
-    .px-dossier-lead .px-dossier-copy {
-      padding: clamp(24px, 3vw, 34px);
-    }
-
-    .px-dossier-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      width: 100%;
-      margin-bottom: 11px;
-    }
-
     .px-pill {
       display: inline-flex;
       align-items: center;
@@ -543,83 +418,11 @@
       overflow-wrap: anywhere;
     }
 
-    .px-dossier-index {
-      flex: 0 0 auto;
-      color: var(--px-faint);
-      font: 800 0.55rem/1.3 var(--px-mono);
-      letter-spacing: 0.08em;
-    }
-
-    .px-dossier-title {
-      max-width: 760px;
-      margin: 0;
-      color: var(--px-text);
-      font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(1.25rem, 1.75vw, 1.58rem);
-      font-weight: 620;
-      letter-spacing: -0.034em;
-      line-height: 1.09;
-      overflow-wrap: anywhere;
-      text-wrap: balance;
-    }
-
-    .px-dossier-lead .px-dossier-title {
-      font-size: clamp(1.8rem, 2.75vw, 2.48rem);
-      line-height: 1.04;
-    }
-
-    .px-dossier-title a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    .px-dossier-title a:hover {
-      color: var(--accent);
-    }
-
-    .px-dossier-description {
-      display: -webkit-box;
-      max-width: 760px;
-      margin: 9px 0 0;
-      overflow: hidden;
-      color: var(--px-muted);
-      font-size: 0.77rem;
-      line-height: 1.44;
-      overflow-wrap: anywhere;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
-    }
-
-    .px-dossier-lead .px-dossier-description {
-      font-size: 0.84rem;
-      -webkit-line-clamp: 4;
-    }
-
-    .px-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px 12px;
-      margin: 12px 0 0;
-      color: var(--px-faint);
-      font-size: 0.5rem;
-      font-weight: 700;
-      line-height: 1.45;
-      text-transform: uppercase;
-      letter-spacing: 0.045em;
-      overflow-wrap: anywhere;
-    }
-
-    .px-dossier-visual,
     .px-longform-visual {
       position: relative;
       min-width: 0;
       overflow: hidden;
       background: var(--px-bg-soft);
-    }
-
-    .px-dossier-visual {
-      grid-column: 2;
-      grid-row: 1 / 3;
     }
 
     .px-dossier-visual-link {
@@ -632,7 +435,6 @@
       text-decoration: none;
     }
 
-    .px-dossier-visual::before,
     .px-longform-visual::before {
       position: absolute;
       z-index: 1;
@@ -675,7 +477,6 @@
       line-height: 0.98;
     }
 
-    .px-dossier-image,
     .px-longform-image {
       position: absolute;
       z-index: 2;
@@ -688,15 +489,12 @@
       transition: transform 420ms ease, filter 420ms ease;
     }
 
-    .px-dossier-card:hover .px-dossier-image,
-    .px-dossier-card:focus-within .px-dossier-image,
     .px-longform-card:hover .px-longform-image,
     .px-longform-card:focus-within .px-longform-image {
       transform: scale(1.025);
       filter: saturate(0.98) contrast(1.03);
     }
 
-    .px-dossier-visual::after,
     .px-longform-visual::after {
       position: absolute;
       z-index: 3;
@@ -722,245 +520,6 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95);
-    }
-
-    .px-dossier-lower {
-      display: grid;
-      grid-column: 1;
-      grid-row: 2;
-      min-width: 0;
-      border-top: 1px solid var(--px-line);
-    }
-
-    .px-dossier-card:not(.px-dossier-lead) .px-dossier-lower {
-      grid-column: 1 / -1;
-    }
-
-    .px-event-strip {
-      padding: 9px 11px 10px;
-      background: rgba(var(--px-card-rgb), 0.025);
-    }
-
-    .px-event-label {
-      display: block;
-      margin-bottom: 7px;
-      color: var(--px-faint);
-      font-size: 0.47rem;
-      font-weight: 700;
-      line-height: 1.4;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .px-event-track {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px;
-    }
-
-    .px-dossier-lead .px-event-track {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .px-event-item {
-      min-width: 0;
-      padding: 7px 8px;
-      border: 1px solid var(--px-line);
-      border-radius: 7px;
-      background: var(--px-card-strong);
-    }
-
-    .px-event-item:last-child:nth-child(odd) {
-      grid-column: 1 / -1;
-    }
-
-    .px-event-title {
-      display: -webkit-box;
-      margin: 0;
-      overflow: hidden;
-      color: var(--px-text);
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 0.58rem;
-      font-weight: 600;
-      line-height: 1.3;
-      overflow-wrap: anywhere;
-      text-decoration: none;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-    }
-
-    a.px-event-title:hover {
-      color: var(--accent);
-    }
-
-    .px-event-date {
-      display: block;
-      margin-top: 4px;
-      overflow: hidden;
-      color: var(--accent);
-      font-size: 0.44rem;
-      line-height: 1.3;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .px-dossier-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 7px;
-      padding: 9px 11px;
-      border-top: 1px solid var(--px-line);
-      background: rgba(var(--px-card-rgb), 0.02);
-    }
-
-    .px-dossier-toggle,
-    .px-dossier-page-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      min-height: 32px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      font: 750 0.62rem/1.2 "Space Grotesk", sans-serif;
-      text-decoration: none;
-      cursor: pointer;
-    }
-
-    .px-dossier-toggle {
-      border: 1px solid rgba(var(--px-card-rgb), 0.36);
-      color: var(--px-text);
-      background: rgba(var(--px-card-rgb), 0.08);
-    }
-
-    .px-dossier-page-link {
-      border: 1px solid var(--px-line);
-      color: var(--px-muted);
-      background: transparent;
-    }
-
-    .px-dossier-toggle:hover,
-    .px-dossier-toggle:focus-visible,
-    .px-dossier-page-link:hover,
-    .px-dossier-page-link:focus-visible {
-      color: var(--accent);
-      border-color: rgba(var(--px-card-rgb), 0.6);
-      background: rgba(var(--px-card-rgb), 0.13);
-    }
-
-    .px-dossier-detail {
-      grid-column: 1 / -1;
-      grid-row: 3;
-      padding: 16px;
-      border-top: 1px solid var(--px-line);
-      background:
-        linear-gradient(rgba(var(--px-card-rgb), 0.035), rgba(var(--px-card-rgb), 0.035)),
-        var(--px-card);
-    }
-
-    .px-detail-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 12px;
-    }
-
-    .px-detail-head h4 {
-      margin: 0;
-      color: var(--px-text);
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 0.92rem;
-      font-weight: 620;
-      letter-spacing: -0.02em;
-    }
-
-    .px-back-link {
-      flex: 0 0 auto;
-      padding: 6px 9px;
-      border: 1px solid var(--px-line);
-      border-radius: 999px;
-      color: var(--accent);
-      background: var(--px-tint);
-      cursor: pointer;
-      font: 750 0.59rem/1.3 "Space Grotesk", sans-serif;
-    }
-
-    .px-back-link:hover {
-      border-color: var(--px-line-strong);
-    }
-
-    .px-timeline {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      max-height: 520px;
-      margin: 0;
-      padding: 0 3px 3px 0;
-      overflow-y: auto;
-      list-style: none;
-      scrollbar-color: rgba(var(--px-card-rgb), 0.35) transparent;
-      scrollbar-width: thin;
-    }
-
-    .px-timeline-item {
-      position: relative;
-      min-width: 0;
-      padding: 12px 12px 12px 15px;
-      border: 1px solid var(--px-line);
-      border-radius: var(--px-radius-small);
-      background: var(--px-card-strong);
-    }
-
-    .px-timeline-item::before {
-      position: absolute;
-      top: 13px;
-      bottom: 13px;
-      left: 0;
-      width: 2px;
-      border-radius: 999px;
-      background: var(--accent);
-      box-shadow: 0 0 9px rgba(var(--neon-rgb), 0.3);
-      content: "";
-    }
-
-    .px-timeline-title {
-      display: block;
-      color: var(--px-text);
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 0.74rem;
-      font-weight: 600;
-      line-height: 1.33;
-      text-decoration: none;
-      overflow-wrap: anywhere;
-    }
-
-    a.px-timeline-title:hover {
-      color: var(--accent);
-    }
-
-    .px-timeline-summary {
-      display: -webkit-box;
-      margin: 6px 0 0;
-      overflow: hidden;
-      color: var(--px-muted);
-      font-size: 0.68rem;
-      line-height: 1.42;
-      overflow-wrap: anywhere;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 4;
-    }
-
-    .px-timeline-meta {
-      margin-top: 7px;
-      color: var(--px-faint);
-      font-size: 0.47rem;
-      font-weight: 700;
-      line-height: 1.4;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      overflow-wrap: anywhere;
     }
 
     .px-longform-grid {
@@ -1098,16 +657,6 @@
       text-decoration: underline;
     }
 
-    .px-empty-code {
-      display: inline-block;
-      margin-bottom: 9px;
-      color: var(--accent);
-      font-size: 0.55rem;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
     .px-footer {
       padding: 19px 20px 25px;
       border-top: 1px solid var(--px-line);
@@ -1133,15 +682,9 @@
     }
 
     @media (max-width: 900px) {
-      .px-dossier-card,
-      .px-dossier-card.px-dossier-lead,
       .px-longform-card,
       .px-longform-card.px-longform-lead {
         grid-column: 1 / -1;
-      }
-
-      .px-dossier-card.px-dossier-lead {
-        grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
       }
 
       .px-longform-card.px-longform-lead {
@@ -1158,11 +701,6 @@
       .px-masthead-grid {
         align-items: start;
         gap: 19px;
-      }
-
-      .px-masthead-stats {
-        width: 100%;
-        max-width: 480px;
       }
 
       .px-section-heading {
@@ -1184,9 +722,6 @@
         display: none;
       }
 
-      .px-timeline {
-        grid-template-columns: 1fr;
-      }
     }
 
     @media (max-width: 620px) {
@@ -1229,14 +764,6 @@
         line-height: 1.45;
       }
 
-      .px-stat {
-        padding: 9px 11px;
-      }
-
-      .px-stat-value {
-        font-size: 0.91rem;
-      }
-
       .px-update-line {
         align-items: flex-start;
         flex-direction: column;
@@ -1253,61 +780,6 @@
 
       .px-section-heading p:last-child {
         font-size: 0.74rem;
-      }
-
-      .px-dossier-card,
-      .px-dossier-card.px-dossier-lead {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 205px auto auto;
-        min-height: 0;
-      }
-
-      .px-dossier-copy,
-      .px-dossier-lead .px-dossier-copy {
-        grid-column: 1;
-        grid-row: 1;
-        padding: 15px;
-      }
-
-      .px-dossier-title,
-      .px-dossier-lead .px-dossier-title {
-        font-size: clamp(1.22rem, 6vw, 1.52rem);
-        line-height: 1.08;
-      }
-
-      .px-dossier-description,
-      .px-dossier-lead .px-dossier-description {
-        font-size: 0.76rem;
-        -webkit-line-clamp: 3;
-      }
-
-      .px-dossier-visual,
-      .px-dossier-lead .px-dossier-visual {
-        grid-column: 1;
-        grid-row: 2;
-        min-height: 205px;
-      }
-
-      .px-dossier-lower,
-      .px-dossier-card:not(.px-dossier-lead) .px-dossier-lower,
-      .px-dossier-lead .px-dossier-lower {
-        grid-column: 1;
-        grid-row: 3;
-      }
-
-      .px-dossier-card:not(.px-dossier-lead) .px-dossier-lower {
-        grid-column: 1;
-      }
-
-      .px-dossier-detail {
-        grid-column: 1;
-        grid-row: 4;
-        padding: 14px;
-      }
-
-      .px-dossier-toggle,
-      .px-dossier-page-link {
-        flex: 1 1 135px;
       }
 
       .px-longform-card,
@@ -1349,40 +821,6 @@
         font-size: 2.03rem;
       }
 
-      .px-event-strip {
-        padding: 8px;
-      }
-
-      .px-event-track,
-      .px-dossier-lead .px-event-track {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .px-event-item:nth-child(3) {
-        display: none;
-      }
-
-      .px-event-item:last-child:nth-child(odd) {
-        grid-column: auto;
-      }
-
-      .px-dossier-index {
-        display: none;
-      }
-
-      .px-detail-head {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .px-back-link {
-        width: 100%;
-      }
-
-      .px-timeline {
-        max-height: 500px;
-      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1394,9 +832,7 @@
         animation: none;
       }
 
-      .px-dossier-card,
       .px-longform-card,
-      .px-dossier-image,
       .px-longform-image {
         transition-duration: 0.01ms;
       }
@@ -1407,28 +843,22 @@
       }
     }
 
-    /* Bis die Daten da sind, liegt der Abschnitt darunter ausserhalb des Fensters. Sonst springt er beim Laden weg. */
-    #px-dossiers[aria-busy="true"] {
+    /* Bis die Liste da ist, liegt die Fusszeile ausserhalb des Fensters. Sonst springt sie beim Laden weg. */
+    #longform-list[aria-busy="true"] {
       min-height: 100vh;
     }
   </style>
   <link rel="icon" type="image/png" href="s-logo.png"/>
   <style>
-    /* 29.09.26: Bildrahmen der Dossier-Karten war 0 px hoch */
+    /* 29.09.26: Bildrahmen der Karten war 0 px hoch */
     .px-dossier-visual-link { grid-column: 2; grid-row: 1 / 3; min-height: 220px; }
-    .px-dossier-visual-link .px-dossier-visual { height: 100%; min-height: 220px; }
     @media (max-width: 760px) {
       .px-dossier-visual-link { grid-column: auto; grid-row: auto; min-height: 190px; }
-      .px-dossier-visual-link .px-dossier-visual { min-height: 190px; }
     }
     /* 26.10.26 (Daniel-Screenshots): die Regel oben traf auch die Longform-Karten (gleiche Link-
-       Klasse) - Bild in einer 80-px-Zusatzspalte, darunter 250 px leer. Und in den kleinen Dossier-
-       Karten lief die Meldungszeile (volle Breite) unter dem Bild durch, das Bild verdeckte sie. */
+       Klasse) - Bild in einer 80-px-Zusatzspalte, darunter 250 px leer. */
     .px-longform-card:not(.px-longform-lead) .px-dossier-visual-link { grid-column: auto; grid-row: auto; min-height: 218px; }
     .px-longform-card:not(.px-longform-lead) .px-dossier-visual-link .px-longform-visual { height: 100%; }
-    @media (min-width: 761px) {
-      .px-dossier-card:not(.px-dossier-lead) .px-dossier-visual-link { grid-row: 1; }
-    }
   </style>
 </head>
 
@@ -1440,10 +870,9 @@
 
   <main class="px-main" id="px-main" tabindex="-1">
     <div class="px-shell">
-      <nav class="px-context-nav" aria-label="Bereiche dieser Seite">
+      <nav class="px-context-nav" aria-label="Verwandte Bereiche">
         <div class="px-context-links">
-          <a class="px-context-link" href="#px-dossiers">Dossiers</a>
-          <a class="px-context-link" href="#longform-list">Longform</a>
+          <a class="px-context-link" href="dossiers.html">Dossiers</a>
           <a class="px-context-link" href="Archiv.html">Archiv</a>
         </div>
         <a class="px-home-link" href="index.html">Startseite ↗</a>
@@ -1453,59 +882,21 @@
         <div class="px-masthead-grid">
           <div class="px-masthead-copy">
             <p class="px-kicker">KI-News / Redaktion</p>
-            <h1>Aus Meldungen werden Linien.</h1>
+            <h1>Eigene Artikel.</h1>
             <p class="px-masthead-intro">
-              Aktive Dossiers verbinden mehrere Quellen zu einem fortlaufenden Verlauf.
-              Einzelmeldungen und automatische Nachrichtenkarten bleiben dafür im Archiv.
+              Hier stehen nur die eigenen Texte. Themen, die über mehrere Meldungen laufen, liegen unter
+              Dossiers, einzelne Meldungen im Archiv.
             </p>
-          </div>
-
-          <div class="px-masthead-stats" aria-label="Umfang der Seite">
-            <div class="px-stat">
-              <span class="px-stat-label">Aktive Linien</span>
-              <span class="px-stat-value" id="px-dossier-count">Wird geladen</span>
-            </div>
-            <div class="px-stat">
-              <span class="px-stat-label">Verknüpfte Meldungen</span>
-              <span class="px-stat-value" id="px-event-count">Wird geladen</span>
-            </div>
-            <div class="px-stat">
-              <span class="px-stat-label">Quellen</span>
-              <span class="px-stat-value" id="px-source-count">Wird geladen</span>
-            </div>
-            <div class="px-stat">
-              <span class="px-stat-label">Longform</span>
-              <span class="px-stat-value" id="px-longform-count">Wird geladen</span>
-            </div>
           </div>
         </div>
 
         <div class="px-update-line">
           <span class="px-update-state" id="px-page-status" role="status" aria-live="polite">
-            Dossiers und Artikel werden vorbereitet.
+            Artikel werden vorbereitet.
           </span>
-          <span id="px-stand">Aktueller Stand offen</span>
+          <span id="px-stand">Neuester Artikel wird ermittelt</span>
         </div>
       </header>
-
-      <section class="px-section" id="px-dossiers" aria-labelledby="px-dossiers-title" aria-busy="true">
-        <header class="px-section-heading">
-          <div>
-            <span class="px-section-kicker">Fortlaufend beobachtet</span>
-            <h2 id="px-dossiers-title">Aktive Dossiers</h2>
-          </div>
-          <p>
-            Jede Karte zeigt einen verdichteten Verlauf. Das Titelbild stammt aus einer
-            verknüpften Quellenmeldung, nicht aus einer Nachrichtenkarte.
-          </p>
-        </header>
-
-        <p class="px-message" id="px-dossier-message">
-          Die aktiven Linien und ihre Quellenbilder werden geladen.
-        </p>
-
-        <div class="px-dossier-grid" id="px-dossier-grid" hidden></div>
-      </section>
 
       <section class="px-section" id="longform-list" aria-labelledby="px-longform-title" aria-busy="true">
         <header class="px-section-heading">
@@ -1538,7 +929,7 @@
 
   <noscript>
     <p class="px-shell px-message">
-      Für die automatisch geladenen Dossiers und Artikel muss JavaScript aktiviert sein.
+      Für die automatisch geladene Artikelliste muss JavaScript aktiviert sein.
     </p>
   </noscript>
 
@@ -1636,20 +1027,6 @@
         return /^https?:\/\//i.test(clean(value));
       };
 
-      var setExternalLink = function (anchor, value) {
-        var url = safeURL(value);
-
-        if (!url) {
-          return false;
-        }
-
-        anchor.href = url;
-        anchor.target = "_blank";
-        anchor.rel = "noopener noreferrer";
-        anchor.referrerPolicy = "no-referrer";
-        return true;
-      };
-
       var setArticleLink = function (anchor, value) {
         var url = safeURL(value);
 
@@ -1718,28 +1095,6 @@
             day: "2-digit",
             month: includeYear ? "long" : "2-digit",
             year: includeYear ? "numeric" : undefined,
-            timeZone: "UTC"
-          }).format(new Date(time));
-        } catch (error) {
-          return text;
-        }
-      };
-
-      var formatStand = function (value) {
-        var text = clean(value);
-        var time = timestamp(value);
-
-        if (!time) {
-          return text || "Aktueller Stand offen";
-        }
-
-        try {
-          return new Intl.DateTimeFormat("de-DE", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
             timeZone: "UTC"
           }).format(new Date(time));
         } catch (error) {
@@ -2081,141 +1436,6 @@
         return bestScore >= 0.18 ? best : null;
       };
 
-      var dossierEntries = function (value) {
-        if (Array.isArray(value)) {
-          return value.map(function (item, index) {
-            var source = object(item);
-            return [
-              field(source, ["id", "key", "linie", "slug"]) || "linie-" + (index + 1),
-              source
-            ];
-          });
-        }
-
-        if (value && typeof value === "object") {
-          return Object.entries(value);
-        }
-
-        return [];
-      };
-
-      var dossierCollection = function (news) {
-        var candidates = [
-          news.linien,
-          news.dossiers,
-          news["aktive-linien"],
-          news.aktive_linien,
-          news.aktiveLinien
-        ];
-
-        for (var index = 0; index < candidates.length; index += 1) {
-          var entries = dossierEntries(candidates[index]);
-
-          if (entries.length) {
-            return entries;
-          }
-        }
-
-        return [];
-      };
-
-      var eventRecord = function (event, catalog) {
-        var directImage = imageFrom(event);
-        var match = directImage ? null : findImageMatch(event, catalog);
-        var eventSource = field(event, ["q", "source", "quelle"]);
-
-        return {
-          event: event,
-          title: titleFor(event) || (match ? titleFor(match.raw) : ""),
-          summary: summaryFor(event) || (match ? summaryFor(match.raw) : ""),
-          source: eventSource || (match ? match.source : "Quelle offen"),
-          date: dateFor(event) || (match ? match.date : ""),
-          link: linkFor(event) || (match ? linkFor(match.raw) : ""),
-          image: directImage || (match ? match.image : ""),
-          imageSource: eventSource || (match ? match.source : "Quelle offen")
-        };
-      };
-
-      var extractDossiers = function (newsData, catalog) {
-        var news = object(newsData);
-
-        return dossierCollection(news).map(function (pair) {
-          var id = clean(pair[0]);
-          var line = object(pair[1]);
-          var dossier = object(line.dossier);
-          var rawEvents = objects(line.e).length
-            ? objects(line.e)
-            : objects(line.meldungen).length
-              ? objects(line.meldungen)
-              : objects(line.items).length
-                ? objects(line.items)
-                : objects(dossier.e);
-          var records = rawEvents
-            .map(function (event, index) {
-              var record = eventRecord(event, catalog);
-
-              return {
-                record: record,
-                time: timestamp(record.date),
-                index: index
-              };
-            })
-            .sort(function (a, b) {
-              return b.time - a.time || a.index - b.index;
-            })
-            .map(function (entry) {
-              return entry.record;
-            });
-
-          var title = field(dossier, ["titel", "title", "name"]) ||
-            field(line, ["titel", "title", "name", "thema"]) ||
-            (records.length ? records[0].title : "");
-          var description = field(dossier, ["worum", "summary", "beschreibung", "description"]) ||
-            field(line, ["worum", "summary", "beschreibung", "description"]) ||
-            (records.length ? records[0].summary : "");
-          var image = "";
-          var imageSource = "";
-
-          for (var index = 0; index < records.length; index += 1) {
-            if (records[index].image) {
-              image = records[index].image;
-              imageSource = records[index].imageSource;
-              break;
-            }
-          }
-
-          if (!image) {
-            var dossierMatch = findImageMatch({
-              title: title,
-              summary: description
-            }, catalog);
-
-            if (dossierMatch) {
-              image = dossierMatch.image;
-              imageSource = dossierMatch.source;
-            }
-          }
-
-          if (!title && !records.length) {
-            return null;
-          }
-
-          return {
-            id: id || "dossier",
-            title: title || "Aktive Linie",
-            description: description || "Eine fortlaufend beobachtete Entwicklung mit verknüpften Meldungen.",
-            events: records,
-            count: Math.max(records.length, number(line.n, 0), 1),
-            since: field(line, ["seit", "since", "start"]),
-            time: records.length
-              ? timestamp(records[0].date)
-              : timestamp(field(line, ["seit", "since", "start"])),
-            image: image,
-            imageSource: imageSource
-          };
-        }).filter(Boolean);
-      };
-
       var createImage = function (url, className, eager) {
         var image = create("img", className);
 
@@ -2248,373 +1468,6 @@
 
         image.src = gross;
         return image;
-      };
-
-      var dossierPageHref = function (id) {
-        var path = window.location.pathname.split("/").pop() || "artikel.html";
-        var returnTarget = path + "#px-dossiers";
-
-        return "linie.html?back=" + encodeURIComponent(returnTarget) +
-          "#l=" + encodeURIComponent(id);
-      };
-
-      var createDossierVisual = function (dossier, index, href) {
-        var link = create("a", "px-dossier-visual-link");
-        var figure = create("figure", "px-dossier-visual");
-        var fallback = create("div", "px-image-fallback");
-        var caption = create(
-          "figcaption",
-          "px-visual-caption",
-          dossier.image
-            ? "Quellenbild · " + (dossier.imageSource || "verknüpfte Meldung")
-            : "Direktes Quellenbild noch nicht verfügbar"
-        );
-
-        link.href = href;
-        link.setAttribute("aria-label", dossier.title + " als ganze Linie öffnen");
-
-        fallback.append(
-          create("span", "px-fallback-index", "Linie " + String(index + 1).padStart(2, "0")),
-          create("span", "px-fallback-title", dossier.image ? "Quellenbild" : "Bild offen")
-        );
-
-        figure.append(fallback);
-
-        if (dossier.image) {
-          figure.append(
-            createImage(dossier.image, "px-dossier-image", index === 0),
-            caption
-          );
-        } else {
-          figure.append(caption);
-        }
-
-        link.append(figure);
-        return link;
-      };
-
-      var createEventStrip = function (dossier, isLead) {
-        var strip = create("div", "px-event-strip");
-        var track = create("div", "px-event-track");
-        var visibleCount = isLead ? 3 : 2;
-
-        strip.append(
-          create(
-            "span",
-            "px-event-label",
-            dossier.events.length + " verknüpfte Meldungen · jüngster Verlauf"
-          )
-        );
-
-        if (!dossier.events.length) {
-          track.append(create("span", "px-event-title", "Noch keine Einzelmeldungen erfasst."));
-        } else {
-          dossier.events.slice(0, visibleCount).forEach(function (event) {
-            var item = create("div", "px-event-item");
-            var title = create(
-              "a",
-              "px-event-title",
-              compactText(event.title || "Weiterer Stand", 72)
-            );
-
-            setExternalLink(title, event.link);
-            item.append(
-              title,
-              create("span", "px-event-date", formatDate(event.date))
-            );
-            track.append(item);
-          });
-        }
-
-        strip.append(track);
-        return strip;
-      };
-
-      var createTimeline = function (dossier) {
-        var detail = create("div", "px-dossier-detail");
-        var head = create("div", "px-detail-head");
-        var back = create("button", "px-back-link", "Zur Dossier-Übersicht ↑");
-        var timeline = create("ol", "px-timeline");
-
-        back.type = "button";
-        head.append(create("h4", "", "Entwicklung der Linie"), back);
-
-        dossier.events.forEach(function (event) {
-          var item = create("li", "px-timeline-item");
-          var title = create(
-            "a",
-            "px-timeline-title",
-            event.title || "Weiterer Stand"
-          );
-          var meta = create("div", "px-timeline-meta");
-
-          if (setExternalLink(title, event.link)) {
-            item.append(title);
-          } else {
-            item.append(
-              create("span", "px-timeline-title", event.title || "Weiterer Stand")
-            );
-          }
-
-          if (event.summary) {
-            item.append(create("p", "px-timeline-summary", event.summary));
-          }
-
-          meta.append(
-            create("span", "", event.source || "Quelle offen"),
-            create("span", "", " · " + formatDate(event.date, true))
-          );
-
-          item.append(meta);
-          timeline.append(item);
-        });
-
-        if (!timeline.children.length) {
-          var empty = create("li", "px-timeline-item");
-          empty.append(create("p", "px-timeline-summary", "Zu dieser Linie sind noch keine Meldungen erfasst."));
-          timeline.append(empty);
-        }
-
-        detail.append(head, timeline);
-        return { detail: detail, back: back };
-      };
-
-      var cardTones = ["cyan", "violet", "green", "orange"];
-
-      var createDossier = function (dossier, index) {
-        var card = create("article", "px-dossier-card");
-        var copy = create("div", "px-dossier-copy");
-        var top = create("div", "px-dossier-top");
-        var lower = create("div", "px-dossier-lower");
-        var actions = create("div", "px-dossier-actions");
-        var toggle = create("button", "px-dossier-toggle");
-        var pageLink = create("a", "px-dossier-page-link", "Ganze Linie ↗");
-        var timelineParts = createTimeline(dossier);
-        var detail = timelineParts.detail;
-        var back = timelineParts.back;
-        var href = dossierPageHref(dossier.id);
-        var numberLabel = dossier.count === 1 ? "Meldung" : "Meldungen";
-        var since = dossier.since || (dossier.events.length ? dossier.events[0].date : "");
-        var titleID = "px-dossier-title-" + String(index + 1);
-        var detailID = "px-dossier-detail-" + String(index + 1);
-        var heading = create("h3", "px-dossier-title");
-        var titleLink = create("a", "", dossier.title);
-
-        card.id = "px-dossier-" + String(index + 1);
-        card.dataset.dossierId = dossier.id;
-        card.dataset.tone = cardTones[index % cardTones.length];
-        card.setAttribute("aria-labelledby", titleID);
-
-        if (index === 0) {
-          card.classList.add("px-dossier-lead");
-        }
-
-        titleLink.href = href;
-        heading.id = titleID;
-        heading.append(titleLink);
-
-        top.append(
-          create("span", "px-pill", index === 0 ? "Leitdossier" : "Aktive Linie"),
-          create("span", "px-dossier-index", "D-" + String(index + 1).padStart(2, "0"))
-        );
-
-        var meta = create("div", "px-meta");
-        meta.append(
-          create("span", "", dossier.count + " " + numberLabel),
-          create("span", "", "seit " + (since || "unbekannt"))
-        );
-
-        copy.append(
-          top,
-          heading,
-          create("p", "px-dossier-description", dossier.description),
-          meta
-        );
-
-        toggle.type = "button";
-        toggle.setAttribute("aria-expanded", "false");
-        toggle.setAttribute("aria-controls", detailID);
-        toggle.append(
-          create("span", "px-toggle-symbol", "+"),
-          create("span", "px-toggle-text", "Verlauf anzeigen")
-        );
-
-        pageLink.href = href;
-        actions.append(toggle, pageLink);
-        lower.append(createEventStrip(dossier, index === 0), actions);
-
-        detail.id = detailID;
-        detail.hidden = true;
-
-        card.append(
-          copy,
-          createDossierVisual(dossier, index, href),
-          lower,
-          detail
-        );
-
-        var closeCard = function (scroll, focusToggle) {
-          detail.hidden = true;
-          card.classList.remove("px-dossier-open");
-          toggle.setAttribute("aria-expanded", "false");
-          toggle.querySelector(".px-toggle-symbol").textContent = "+";
-          toggle.querySelector(".px-toggle-text").textContent = "Verlauf anzeigen";
-
-          try {
-            history.replaceState(null, "", "#px-dossiers");
-          } catch (error) {
-            location.hash = "px-dossiers";
-          }
-
-          if (scroll) {
-            card.scrollIntoView({ block: "start", behavior: "smooth" });
-          }
-
-          if (focusToggle) {
-            try {
-              toggle.focus({ preventScroll: true });
-            } catch (error) {
-              toggle.focus();
-            }
-          }
-        };
-
-        var openCard = function (scroll) {
-          var allCards = Array.from(byId("px-dossier-grid").children);
-
-          allCards.forEach(function (entry) {
-            if (entry !== card && typeof entry.pxClose === "function") {
-              entry.pxClose(false, false);
-            }
-          });
-
-          detail.hidden = false;
-          card.classList.add("px-dossier-open");
-          toggle.setAttribute("aria-expanded", "true");
-          toggle.querySelector(".px-toggle-symbol").textContent = "−";
-          toggle.querySelector(".px-toggle-text").textContent = "Verlauf einklappen";
-
-          try {
-            history.replaceState(null, "", "#d=" + encodeURIComponent(dossier.id));
-          } catch (error) {
-            location.hash = "d=" + encodeURIComponent(dossier.id);
-          }
-
-          if (scroll) {
-            window.requestAnimationFrame(function () {
-              card.scrollIntoView({ block: "start", behavior: "smooth" });
-            });
-          }
-        };
-
-        card.pxClose = closeCard;
-
-        toggle.addEventListener("click", function () {
-          if (detail.hidden) {
-            openCard(true);
-          } else {
-            closeCard(true, true);
-          }
-        });
-
-        back.addEventListener("click", function () {
-          closeCard(true, true);
-        });
-
-        return card;
-      };
-
-      var openDossierFromHash = function (scroll) {
-        var hash = location.hash || "";
-        var grid = byId("px-dossier-grid");
-
-        if (!grid) {
-          return;
-        }
-
-        if (hash.indexOf("#d=") !== 0) {
-          Array.from(grid.children).forEach(function (card) {
-            if (typeof card.pxClose === "function") {
-              card.pxClose(false, false);
-            }
-          });
-          return;
-        }
-
-        var id = "";
-
-        try {
-          id = decodeURIComponent(hash.slice(3));
-        } catch (error) {
-          id = hash.slice(3);
-        }
-
-        var card = Array.from(grid.children).find(function (entry) {
-          return entry.dataset.dossierId === id;
-        });
-
-        if (!card || typeof card.pxOpen !== "function") {
-          return;
-        }
-
-        card.pxOpen(Boolean(scroll));
-      };
-
-      var renderDossiers = function (newsData, archiveData, failed) {
-        var grid = byId("px-dossier-grid");
-        var message = byId("px-dossier-message");
-        var section = byId("px-dossiers");
-        var catalog = buildImageCatalog(newsData, archiveData);
-        var dossiers = failed
-          ? []
-          : extractDossiers(newsData, catalog);
-        var eventTotal = 0;
-        var sources = new Set();
-
-        dossiers.sort(function (a, b) {
-          return Number(Boolean(b.image)) - Number(Boolean(a.image)) ||
-            b.time - a.time ||
-            b.events.length - a.events.length;
-        });
-
-        dossiers = dossiers.slice(0, 6);
-
-        dossiers.forEach(function (dossier) {
-          eventTotal += dossier.events.length;
-
-          dossier.events.forEach(function (event) {
-            if (event.source) {
-              sources.add(event.source);
-            }
-          });
-        });
-
-        byId("px-dossier-count").textContent = String(dossiers.length);
-        byId("px-event-count").textContent = String(eventTotal);
-        byId("px-source-count").textContent = String(sources.size);
-        grid.replaceChildren();
-
-        if (!dossiers.length) {
-          message.textContent = failed
-            ? "Die aktiven Dossiers konnten gerade nicht geladen werden. Bitte später erneut versuchen."
-            : "Derzeit sind keine aktiven Dossiers verfügbar. Einzelmeldungen bleiben dafür im Archiv.";
-          message.hidden = false;
-          grid.hidden = true;
-          section.setAttribute("aria-busy", "false");
-          return;
-        }
-
-        dossiers.forEach(function (dossier, index) {
-          grid.append(createDossier(dossier, index));
-        });
-
-        message.hidden = true;
-        grid.hidden = false;
-        section.setAttribute("aria-busy", "false");
-
-        window.setTimeout(function () {
-          openDossierFromHash(true);
-        }, 0);
       };
 
       var localArticleURL = function (item) {
@@ -2803,6 +1656,8 @@
         }).slice(0, 8);
       };
 
+      var cardTones = ["cyan", "violet", "green", "orange"];
+
       var createLongformVisual = function (entry, isLead, href) {
         var link = create("a", "px-dossier-visual-link");
         var figure = create("figure", "px-longform-visual");
@@ -2878,23 +1733,22 @@
         return card;
       };
 
-      var renderLongforms = function (newsData, archiveData, archiveFailed, catalog) {
+      var renderLongforms = function (newsData, archiveData, loadFailed, catalog) {
         var section = byId("longform-list");
         var grid = byId("px-longform-grid");
         var message = byId("px-longform-message");
         var entries = collectLongforms(newsData, archiveData, catalog);
 
-        byId("px-longform-count").textContent = String(entries.length);
         grid.replaceChildren();
         section.setAttribute("aria-busy", "false");
 
         if (!entries.length) {
-          message.textContent = archiveFailed
-            ? "Die verfügbaren Artikeldaten enthalten gerade keine eigenen Longform-Artikel. Einzelmeldungen bleiben im Archiv."
+          message.textContent = loadFailed
+            ? "Die Artikelliste konnte gerade nicht geladen werden. Einzelmeldungen bleiben im Archiv."
             : "In den verfügbaren Daten liegen derzeit keine eigenen Longform-Artikel vor. Einzelmeldungen und automatische Karten erscheinen bewusst nur im Archiv.";
           message.hidden = false;
           grid.hidden = true;
-          return;
+          return entries;
         }
 
         entries.forEach(function (entry, index) {
@@ -2903,19 +1757,20 @@
 
         message.hidden = true;
         grid.hidden = false;
+        return entries;
       };
 
       var initialize = async function () {
-        var results = await Promise.all([
-          settle(fetchJSON("news.json")),
-          settle(fetchJSON("archive.json")),
-          settle(fetchJSON("artikel/artikel-index.json"))
-        ]);
+        // 03.11.26: Nur noch der Artikel-Index. news.json und archive.json lieferten keinen einzigen Artikel,
+        // nur einen Bildabgleich über Titelwörter, und der traf daneben: "Für wen ist der RTX Spark wirklich?"
+        // bekam das Bild einer TechCrunch-Meldung zu Anthropic.
+        var indexResult = await settle(fetchJSON("artikel/artikel-index.json"));
         // Einbau 28.09.26: eigene Artikel aus artikel/artikel-index.json (pflegt tools/neuer-artikel.py)
-        var ARTIKEL_BILDER = {"anthropic-missbrauchsbericht-september-2026": "artikel/anthropic-missbrauchsbericht-september-2026-og.png", "alphagenome-atlas": "artikel/alphagenome-atlas-og.png", "dsewiki-leseluecke": "artikel/dsewiki-leseluecke-og.png", "agenten-schwaerme-betrueger-whistleblower": "", "llm-zufallszahl-fingerprint": "artikel/llm-zufallszahl-fingerprint-og.png", "rtx-spark-im-check": "artikel/rtx-spark-im-check-og.png", "rtx-spark-fuer-wen": "", "nvidia-rtx-spark": "artikel/nvidia-rtx-spark.png", "peking-gericht": ""};
-        if (results[2].ok && Array.isArray(results[2].value) && results[0].ok) {
-          var nd = object(results[0].value);
-          nd.artikel = results[2].value.map(function (e) {
+        var ARTIKEL_BILDER = {"anthropic-missbrauchsbericht-september-2026": "artikel/anthropic-missbrauchsbericht-september-2026-og.png", "alphagenome-atlas": "artikel/alphagenome-atlas-og.png", "dsewiki-leseluecke": "artikel/dsewiki-leseluecke-og.png", "agenten-schwaerme-betrueger-whistleblower": "", "llm-zufallszahl-fingerprint": "artikel/llm-zufallszahl-fingerprint-og.png", "rtx-spark-im-check": "artikel/rtx-spark-im-check-og.png", "rtx-spark-fuer-wen": "artikel/nvidia-rtx-spark.png", "nvidia-rtx-spark": "artikel/nvidia-rtx-spark.png", "peking-gericht": ""};
+        var newsData = {};
+
+        if (indexResult.ok && Array.isArray(indexResult.value)) {
+          newsData.artikel = indexResult.value.map(function (e) {
             return {
               longform: true, title: e.titel, summary: e.desc, date: e.datum, tags: e.tags,
               local_url: "artikel/" + e.slug + ".html", image: e.bild || ARTIKEL_BILDER[e.slug] || ""   // 02.10.26: "bild" aus dem Index (tools/neuer-artikel.py)
@@ -2923,48 +1778,22 @@
           });
         }
 
-        var newsResult = results[0];
-        var archiveResult = results[1];
-        var newsData = newsResult.ok ? object(newsResult.value) : {};
-        var archiveData = archiveResult.ok ? archiveResult.value : [];
-        var catalog = buildImageCatalog(newsData, archiveData);
-        var stand = field(newsData, ["stand", "updated", "timestamp"]);
+        var entries = renderLongforms(newsData, [], !indexResult.ok, buildImageCatalog({}, []));
 
-        renderDossiers(newsData, archiveData, !newsResult.ok);
-        renderLongforms(
-          newsData,
-          archiveData,
-          !archiveResult.ok,
-          catalog
-        );
-
-        byId("px-stand").textContent = newsResult.ok
-          ? "Stand " + formatStand(stand)
-          : "Datenstand derzeit nicht erreichbar";
-
-        if (newsResult.ok) {
-          var dossierCount = Number(byId("px-dossier-count").textContent) || 0;
-          var eventCount = Number(byId("px-event-count").textContent) || 0;
-          var longformCount = Number(byId("px-longform-count").textContent) || 0;
-
-          byId("px-page-status").textContent =
-            dossierCount + " aktive Dossiers aus " + eventCount +
-            " verknüpften Meldungen · " + longformCount +
-            " eigene Longform-Artikel";
+        if (entries.length) {
+          byId("px-page-status").textContent = entries.length + " Artikel";
+          byId("px-stand").textContent = "Neuester Artikel vom " + formatDate(dateFor(entries[0].item), true);
         } else {
-          byId("px-page-status").textContent =
-            "Die Dossiers konnten nicht geladen werden. Vorhandene Longform-Artikel bleiben unabhängig davon verfügbar.";
+          byId("px-page-status").textContent = indexResult.ok
+            ? "Derzeit liegen keine eigenen Artikel vor."
+            : "Die Artikelliste konnte gerade nicht geladen werden.";
+          byId("px-stand").textContent = "Datenstand nicht verfügbar";
         }
       };
-
-      window.addEventListener("hashchange", function () {
-        openDossierFromHash(false);
-      });
 
       window.addEventListener("DOMContentLoaded", function () {
         initialize()
           .catch(function () {
-            renderDossiers({}, [], true);
             renderLongforms({}, [], true, buildImageCatalog({}, []));
             byId("px-page-status").textContent =
               "Die Seite konnte die aktuellen Inhalte gerade nicht vollständig vorbereiten.";
@@ -2976,6 +1805,5 @@
       });
     })();
   </script>
-  <script>window.kiLogosAuto && window.kiLogosAuto('#px-dossiers h3, #px-dossiers h2.px-dossier-title, .px-dossier-title');</script>
 </body>
 </html>

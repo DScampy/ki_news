@@ -27,7 +27,8 @@
   if (inSub || file === 'artikel.html') ACTIVE = 'artikel';
   else if (file === 'archiv.html' || file === 'suche.html') ACTIVE = 'archiv';
   else if (file === 'dossiers.html' || file === 'linie.html' || file === 'belege.html') ACTIVE = 'dossiers';
-  else if (file === 'modelle.html' || file === 'landkarte.html') ACTIVE = 'modelle';
+  else if (file === 'modelle.html') ACTIVE = 'modelle';
+  else if (file === 'landkarte.html') ACTIVE = 'landkarte';
   else if (file === 'woche.html') ACTIVE = 'woche';
   else if (file === 'stats.html') ACTIVE = 'statistik';
   else if (file === 'profil.html' || file === 'cockpit-neu.html') ACTIVE = 'profil';
@@ -42,6 +43,7 @@
     { key: 'artikel',   label: 'Artikel',          href: 'artikel.html', icon: 'menu_book' },
     { key: 'recherche', label: 'Recherche',        href: 'recherche/',   icon: 'search', sidebarOnly: true },
     { key: 'modelle',   label: 'Modelle',          href: 'modelle.html', icon: 'smart_toy' },
+    { key: 'landkarte', label: 'KI-Landkarte',     href: 'landkarte.html', icon: 'share', sidebarOnly: true },
     { key: 'woche',     label: 'Wochen-Rückblick', href: 'woche.html',   icon: 'schedule', sidebarOnly: true },
     { key: 'podcast',   label: 'Podcast',          href: 'https://soundcloud.com/dscampy/sets/podcast-wissen', ext: true, icon: 'mic' },
     { key: 'youtube',   label: 'YouTube',          href: 'https://youtube.com/@ScampyKI', ext: true, icon: 'play_circle', sidebarOnly: true },
