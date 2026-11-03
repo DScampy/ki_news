@@ -156,7 +156,9 @@
       transform: translateY(0);
     }
 
+    /* Umbruch nach freiem Platz, nicht nach Fensterbreite: Die offene Seitenleiste nimmt 240 px weg. */
     .px-main {
+      container: px-inhalt / inline-size;
       position: relative;
       z-index: 2;
       min-width: 0;
@@ -681,7 +683,7 @@
       50% { opacity: 0.38; }
     }
 
-    @media (max-width: 900px) {
+    @container px-inhalt (max-width: 900px) {
       .px-longform-card,
       .px-longform-card.px-longform-lead {
         grid-column: 1 / -1;
@@ -692,7 +694,7 @@
       }
     }
 
-    @media (max-width: 820px) {
+    @container px-inhalt (max-width: 820px) {
       .px-masthead-grid,
       .px-section-heading {
         grid-template-columns: 1fr;

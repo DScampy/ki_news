@@ -18,3 +18,16 @@ jobs:
           node-version: '20'
       - name: Drift-Check ausführen
         run: python3 tools/site_check.py
+
+  # Nur bei PRs: Die Pipeline schreibt mehrmals täglich nach main, dort genügt der Drift-Check.
+  layout-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Browser installieren
+        run: |
+          pip install playwright
+          python3 -m playwright install --with-deps chromium
+      - name: Leisten im Browser prüfen
+        run: python3 tools/layout_check.py

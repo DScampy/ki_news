@@ -215,10 +215,12 @@
       text-transform: uppercase;
     }
 
+    /* Umbruch nach freiem Platz, nicht nach Fensterbreite: Die offene Seitenleiste nimmt 240 px weg. */
     .px-shell {
       width: min(1500px, calc(100% - 44px));
       margin-inline: auto;
       padding: 22px 0 60px;
+      container: px-inhalt / inline-size;
     }
 
     .px-hero {
@@ -1111,7 +1113,7 @@
       }
     }
 
-    @media (max-width: 1000px) {
+    @container px-inhalt (max-width: 956px) {
       .px-hero {
         grid-template-columns: minmax(0, 1fr) 290px;
         gap: 25px;
