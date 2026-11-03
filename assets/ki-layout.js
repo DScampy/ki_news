@@ -5,6 +5,7 @@
    Einbindung (eine Zeile, direkt nach <body>):
      <script src="assets/ki-layout.js"></script>        (Root)
      <script src="../assets/ki-layout.js"></script>     (artikel/)
+     Erzeugte Seiten (meldung/, recherche/): siehe meldungsseiten.py _KOPF
    Aktive Seite wird automatisch aus der URL erkannt.
    Seiten-spezifischer Sidebar-Inhalt: vorher window.KI_SIDEBAR_EXTRA setzen.
    Referenz-Design: index.html (Stand 10.06.2026)
@@ -31,6 +32,8 @@
   else if (file === 'woche.html') ACTIVE = 'woche';
   else if (file === 'stats.html') ACTIVE = 'statistik';
   else if (file === 'profil.html' || file === 'cockpit-neu.html') ACTIVE = 'profil';
+  else if (/\/recherche\//.test(path)) ACTIVE = 'recherche';
+  else if (/\/meldung\//.test(path)) ACTIVE = 'aktuell';
   else if (file === '' || file === 'index.html') ACTIVE = 'aktuell';
   else ACTIVE = 'none';
 

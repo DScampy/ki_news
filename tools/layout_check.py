@@ -15,6 +15,11 @@ Links nur in einer Leiste, Entwicklertexte, leere Zukunftstage) waren dort alle 
   5. Im sichtbaren Text stehen keine Entwicklertexte
   6. Wochen-Rückblick: keine abgeschnittenen Video-Labels, keine Tage in der Zukunft, keine Karten mit der
      grauen Standardfarbe als Akzent
+  7. Erzeugte Seiten (Stichprobe aus meldung/ und recherche/): alles oben außer Punkt 5, dazu der richtige
+     aktive Menüpunkt und erreichbare Ziele. Keine einzige erzeugte Seite trägt noch den alten eigenen Kopf
+
+Vor dem ersten Pipeline-Lauf nach dem Umbau tragen die erzeugten Seiten noch den alten Kopf. Der CI-Job
+stellt sie deshalb vorher im Testordner um, lokal: python -c "import meldungsseiten as m; m._leisten_nachziehen('.')"
 
 Aufruf:   python tools/layout_check.py
 Braucht:  pip install playwright && python -m playwright install chromium
@@ -30,6 +35,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 errors = []
 leisten_bild = {}
+erzeugte = []
 
 ENTWICKLERTEXT = re.compile(
     r"\b[\w-]+\.json\b|lokale[nrs]? (Daten|Datei|Volltext)|relative[nr]? (Pfad|lokale)|"
@@ -106,7 +112,9 @@ LEISTEN_BILD_JS = r"""() => {
     'Schrift oben': stil('#kl-toplinks a', 'fontSize'),
     'Unterstrich Marke': stil('#brand-link', 'textDecorationLine'),
     'Unterstrich Link oben': stil('#kl-toplinks a', 'textDecorationLine'),
-    'Unterstrich Menüzeile': stil('#sidebar .sidebar-nav-link', 'textDecorationLine')
+    'Unterstrich Menüzeile': stil('#sidebar .sidebar-nav-link', 'textDecorationLine'),
+    'Farbe Link oben': stil('#kl-toplinks a:not(.kl-active)', 'color'),
+    'Farbe Menüzeile': stil('#sidebar .sidebar-nav-link:not(.kl-active)', 'color')
   };
 }"""
 
@@ -163,12 +171,16 @@ WORTBRUCH_JS = r"""() => {
 
 LEISTEN_JS = r"""() => {
   const sichtbar = a => getComputedStyle(a).display !== 'none';
-  const ziel = a => a.getAttribute('href');
+  // Erzeugte Seiten verlinken ab der Wurzel (/index.html), die anderen relativ (index.html).
+  const ziel = a => a.getAttribute('href').replace(/^\//, '');
   const nav = document.getElementById('kl-nav');
   return {
     nav: !!nav && nav.getBoundingClientRect().height > 0,
     oben: [...document.querySelectorAll('#kl-toplinks a')].filter(sichtbar).map(ziel),
-    seite: [...document.querySelectorAll('#sidebar .sidebar-nav-link')].map(ziel)
+    seite: [...document.querySelectorAll('#sidebar .sidebar-nav-link')].map(ziel),
+    // Ohne assets/ki-icons.js steht dort der Name des Symbols als Text.
+    symbolname: [...document.querySelectorAll('.material-symbols-outlined')]
+      .filter(e => !e.querySelector('svg') && e.textContent.trim()).map(e => e.textContent.trim())
   };
 }"""
 
@@ -286,10 +298,13 @@ def seite_pruefen(browser, adresse, seite):
     fehlt = [ziel for ziel in NAVIGATION if ziel not in leisten["oben"] or ziel not in leisten["seite"]]
     if fehlt:
         errors.append("%s: Navigationspunkt fehlt in einer Leiste: %s" % (seite, ", ".join(fehlt)))
+    if leisten["symbolname"]:
+        errors.append("%s: Symbolnamen als Text sichtbar: %s" % (seite, ", ".join(leisten["symbolname"][:4])))
     pruefe_ueberlauf(page, seite, "geschlossen, 1440 px")
     pruefe_text(page, seite, "geschlossen, 1440 px")
     treffer = ENTWICKLERTEXT.search(page.evaluate("() => document.body.innerText"))
-    if treffer and seite not in ENTWICKLERTEXT_OFFEN:
+    # Meldungen dürfen Dateinamen zitieren, zum Beispiel package.json.
+    if treffer and seite not in ENTWICKLERTEXT_OFFEN and seite not in erzeugte:
         errors.append("%s: Entwicklertext sichtbar: %s" % (seite, treffer.group(0)))
     if page.query_selector("#sidebar-toggle") and page.is_visible("#sidebar-toggle"):
         page.click("#sidebar-toggle")
@@ -313,6 +328,32 @@ def seite_pruefen(browser, adresse, seite):
         pruefe_unter_nav(page, seite, wann)
         if page.evaluate(SCHATTEN_JS) != "none":
             errors.append("%s: Das geschlossene Menü wirft einen Schatten auf die Seite (%s)" % (seite, wann))
+        ctx.close()
+
+
+def erzeugte_pruefen(browser, adresse, stichprobe):
+    alt = [p for p in seiten.erzeugte_seiten() if 'class="kopf"' in open(p, encoding="utf-8").read()]
+    if alt:
+        errors.append("%d erzeugte Seiten tragen noch den alten Kopf, z.B. %s" % (len(alt), alt[0]))
+    for seite in stichprobe:
+        aktiv = "Recherche" if seite.startswith("recherche/") else "Aktuell"
+        ctx = laden(browser, adresse, 1440, False)
+        page = ctx.new_page()
+        page.goto(adresse + seite, wait_until="load")
+        gefunden = page.evaluate("() => [...document.querySelectorAll('#kl-toplinks a.kl-active')].map(a => a.textContent)")
+        if gefunden != [aktiv]:
+            errors.append("%s: aktiver Menüpunkt ist %s, erwartet %s" % (seite, gefunden, aktiv))
+        ctx.close()
+    # Die Navigation hängt hier an KI_ROOT: Einmal je Bereich reicht, die Seiten teilen sich die Einstellung.
+    for seite in {stichprobe[0], stichprobe[-1]}:
+        ctx = laden(browser, adresse, 1440, False)
+        page = ctx.new_page()
+        page.goto(adresse + seite, wait_until="load")
+        ziele = page.evaluate("() => [...document.querySelectorAll('#kl-nav a,#sidebar a,.fuss a')].map(a => a.href)")
+        for ziel in sorted({z for z in ziele if z.startswith(adresse)}):
+            status = ctx.request.get(ziel).status
+            if status != 200:
+                errors.append("%s: Link führt ins Leere: %s (%d)" % (seite, ziel.replace(adresse, "/"), status))
         ctx.close()
 
 
@@ -357,7 +398,8 @@ def main():
     server = Testserver(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     adresse = "http://127.0.0.1:%d/" % server.server_address[1]
-    liste = seiten.oeffentliche_seiten()
+    erzeugte.extend(seiten.erzeugte_stichprobe())
+    liste = seiten.oeffentliche_seiten() + erzeugte
     with sync_playwright() as p:
         browser = p.chromium.launch()
         for seite in liste:
@@ -365,6 +407,7 @@ def main():
         leisten_vergleichen()
         obere_leiste_pruefen(browser, adresse)
         woche_pruefen(browser, adresse)
+        erzeugte_pruefen(browser, adresse, erzeugte)
         browser.close()
     server.shutdown()
     if errors:
@@ -372,7 +415,7 @@ def main():
         for e in errors:
             print("  ✗", e)
         sys.exit(1)
-    print("✓ Layout-Check bestanden: %d Seiten." % len(liste))
+    print("✓ Layout-Check bestanden: %d Seiten, davon %d erzeugte." % (len(liste), len(erzeugte)))
 
 
 if __name__ == "__main__":

@@ -16,6 +16,8 @@ Regeln:
   sonst aendern sich bei jedem Lauf alle Seiten.
 - Ausnahme: Der Player eines geloeschten Karten-Videos wird entfernt, auch auf Seiten
   ausserhalb des Laufs und unter recherche/ (_tote_player_entfernen).
+- Ausnahme: Seiten mit dem alten eigenen Kopf bekommen die gemeinsamen Leisten, ebenfalls
+  ausserhalb des Laufs und unter recherche/ (_leisten_nachziehen).
 
 Einziger Schreiber aller Dateien unter meldung/ und der beiden Sitemaps (I5).
 Aufruf aus ki_news.py VOR dem Schreiben von news.json: setzt dort je Meldung das Feld
@@ -43,6 +45,7 @@ SUBSTANZ_MIT_ANRISS = 250       # Zusammenfassung + Anriss
 WEITERE_MAX = 5
 VIDEO_FRISCH_TAGE = 2           # wie --min-tage in medien_aufraeumen.py: juenger bleibt immer
 VIDEO_TOT_MAX_ANTEIL = 0.7      # mehr Tote deuten auf einen Ausfall, dann nichts aendern
+LEISTEN_NACHZIEHEN = True       # Kill-Switch fuer _leisten_nachziehen
 
 _UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "ae", "Ö": "oe",
                           "Ü": "ue", "ß": "ss"})
@@ -153,11 +156,8 @@ html.dark{--papier:#15181b;--tinte:#ecebe7;--grau:#a7acb3;--linie:#2a2e33;--grun
 *{box-sizing:border-box}
 body{margin:0;background:var(--grund);color:var(--tinte);font:1.0625rem/1.65 var(--sans)}
 a{color:var(--akzent)}
-.kopf,.fuss,main{max-width:46rem;margin:0 auto;padding:0 16px}
-.kopf{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:18px;padding-bottom:14px;border-bottom:1px solid var(--linie)}
-.marke{font:600 1.25rem var(--serif);color:var(--tinte);text-decoration:none}
-.nav a{margin-left:14px;font-size:.9375rem;color:var(--grau);text-decoration:none}
-main{background:var(--papier);padding-top:28px;padding-bottom:36px;margin-top:20px;border-radius:4px}
+.fuss,main{max-width:46rem;margin:0 auto;padding:0 16px}
+main{background:var(--papier);padding-top:28px;padding-bottom:36px;margin-top:76px;border-radius:4px}
 .meta{font-size:.8125rem;color:var(--grau);text-transform:uppercase;letter-spacing:.04em}
 h1{font:600 clamp(1.75rem,1.2rem + 2vw,2.5rem)/1.15 var(--serif);margin:.4rem 0 1rem;hyphens:none;overflow-wrap:break-word}
 .anriss{font-size:1.1875rem;line-height:1.55;margin:0 0 1.25rem}
@@ -172,9 +172,9 @@ ul.weitere li{border-top:1px solid var(--linie);padding:.6rem 0}
 ul.weitere a{color:var(--tinte);text-decoration:none;font-family:var(--serif);font-size:1.0625rem}
 ul.weitere a:hover{color:var(--akzent)}
 .hinweis{font-size:.8125rem;color:var(--grau);margin-top:2rem}
-.fuss{padding-top:18px;padding-bottom:32px;font-size:.8125rem;color:var(--grau)}
-.fuss a{color:var(--grau);margin-right:14px}
-@media (max-width:480px){.nav a{margin-left:10px}.nav a.weg{display:none}}
+.fuss{display:flex;flex-wrap:wrap;gap:4px 14px;padding-top:18px;padding-bottom:32px;font-size:.8125rem;color:var(--grau)}
+.fuss a{color:var(--grau)}
+@media (min-width:1024px){html.kl-leiste-offen body{padding-left:240px}}
 """.strip()
 
 # Gleiche Einstellung wie die Startseite (localStorage ki_theme: auto/light/dark).
@@ -182,6 +182,19 @@ _THEME_JS = ("(function(){var s='auto';try{s=localStorage.getItem('ki_theme')||'
              "var d=s==='dark'||(s!=='light'&&window.matchMedia&&"
              "matchMedia('(prefers-color-scheme: dark)').matches);"
              "if(d)document.documentElement.classList.add('dark');})();")
+
+# Gemeinsame Leisten (03.11.26): Obere Leiste und Seitenleiste kommen wie auf allen anderen Seiten aus
+# assets/ki-layout.js. KI_ROOT, weil die Seiten tiefer liegen als die Ziele der Navigation.
+# defer, weil das Skript sonst den Inhalt blockiert (Handy, Erstbesuch: LCP 1.012 statt 528 ms). Die Klasse steht
+# vorab im Inline-Teil, die Regel dazu in _CSS: So rueckt der Text bei offener Leiste schon vor dem ersten Bild ein.
+_ICONS = '<script src="/assets/ki-icons.js" defer></script>'
+_KOPF = ('<script>window.KI_ROOT = "/";try{if(localStorage.getItem("ki_sidebar_open")==="1")'
+         'document.documentElement.classList.add("kl-leiste-offen")}catch(e){}</script>\n'
+         '<script src="/assets/ki-layout.js" defer></script>')
+# Dossiers und Archiv standen frueher im Kopf. Im Fuss bleiben sie ohne JavaScript erreichbar.
+_FUSS = ('<footer class="fuss"><a href="/">ki-news.live</a><a href="/dossiers.html">Dossiers</a>'
+         '<a href="/Archiv.html">Archiv</a><a href="/Impressum.html">Impressum</a>'
+         '<a href="/Datenschutz.html">Datenschutz</a></footer>')
 
 
 def _seite(e, n, karte, linie, weitere, recherche=None):
@@ -244,14 +257,13 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
     teile += [
         '<meta name="twitter:site" content="@ScampyKI"/>',
         '<link rel="stylesheet" href="/assets/ki-fonts.css"/>',
+        _ICONS,
         f"<script>{_THEME_JS}</script>",
         f"<style>{_CSS}</style>",
         f'<script type="application/ld+json">{ld_txt}</script>',
         "</head>",
         "<body>",
-        '<header class="kopf"><a class="marke" href="/">KI News</a>'
-        '<nav class="nav"><a href="/">Startseite</a><a href="/dossiers.html">Dossiers</a>'
-        '<a class="weg" href="/Archiv.html">Archiv</a></nav></header>',
+        _KOPF,
         "<main>",
         "<article>",
         f'<p class="meta">{esc(quelle)} · <time datetime="{e["datum"]}">{_datum_de(e["datum"])}</time></p>',
@@ -296,8 +308,7 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
         '<p class="hinweis">Zusammenfassung aus der englischsprachigen Originalquelle, '
         'automatisch übersetzt und von KI News ausgewählt.</p>',
         "</main>",
-        '<footer class="fuss"><a href="/">ki-news.live</a><a href="/Impressum.html">Impressum</a>'
-        '<a href="/Datenschutz.html">Datenschutz</a></footer>',
+        _FUSS,
         "</body>",
         "</html>",
         "",
@@ -407,6 +418,60 @@ def _tote_player_entfernen(base, heute):
     logger.info("Player-Pruefung: %d Videos geprueft, %d tot, Player auf %d Seiten entfernt",
                 len(videos), len(tot), entfernt)
     return entfernt
+
+
+# Eingefrorene Seiten: von diesem Aufbau zum neuen. Jede Stelle muss genau einmal vorkommen.
+_LEISTEN_UMBAU = [
+    ('<header class="kopf"><a class="marke" href="/">KI News</a><nav class="nav"><a href="/">Startseite</a>'
+     '<a href="/dossiers.html">Dossiers</a><a class="weg" href="/Archiv.html">Archiv</a></nav></header>', _KOPF),
+    ('<footer class="fuss"><a href="/">ki-news.live</a><a href="/Impressum.html">Impressum</a>'
+     '<a href="/Datenschutz.html">Datenschutz</a></footer>', _FUSS),
+    ('<link rel="stylesheet" href="/assets/ki-fonts.css"/>\n',
+     '<link rel="stylesheet" href="/assets/ki-fonts.css"/>\n' + _ICONS + '\n'),
+    ('.kopf,.fuss,main{', '.fuss,main{'),
+    ('.kopf{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:18px;'
+     'padding-bottom:14px;border-bottom:1px solid var(--linie)}\n'
+     '.marke{font:600 1.25rem var(--serif);color:var(--tinte);text-decoration:none}\n'
+     '.nav a{margin-left:14px;font-size:.9375rem;color:var(--grau);text-decoration:none}\n', ''),
+    ('margin-top:20px;border-radius:4px}', 'margin-top:76px;border-radius:4px}'),
+    ('.fuss{padding-top:18px;', '.fuss{display:flex;flex-wrap:wrap;gap:4px 14px;padding-top:18px;'),
+    ('.fuss a{color:var(--grau);margin-right:14px}\n@media (max-width:480px){.nav a{margin-left:10px}.nav a.weg{display:none}}',
+     '.fuss a{color:var(--grau)}\n@media (min-width:1024px){html.kl-leiste-offen body{padding-left:240px}}'),
+]
+
+
+def _leisten_umbauen(text):
+    """Der neue Text. None, wenn die Seite den erwarteten alten Aufbau nicht hat."""
+    if any(text.count(alt) != 1 for alt, _ in _LEISTEN_UMBAU):
+        return None
+    for alt, neu in _LEISTEN_UMBAU:
+        text = text.replace(alt, neu)
+    return text
+
+
+def _leisten_nachziehen(base):
+    """Gibt eingefrorenen Seiten die gemeinsamen Leisten (03.11.26).
+
+    Eine Seite wird sonst nur neu geschrieben, solange ihre Story im Lauf ist. Messung 03.11.: 1.010
+    Seiten mit eigenem Kopf. Wie bei _tote_player_entfernen bleiben Register, Hash und dateModified,
+    weil sich am Inhalt nichts aendert. Laeuft in der Pipeline, damit der grosse Commit nicht mit
+    ihren eigenen Commits kollidiert. Seiten im neuen Aufbau bleiben unberuehrt.
+    """
+    base = Path(base)
+    umgestellt = unbekannt = 0
+    for pfad in [*base.glob(f"{ORDNER}/*/*.html"), *base.glob("recherche/*.html")]:
+        text = pfad.read_text(encoding="utf-8")
+        if 'class="kopf"' not in text:
+            continue
+        neu = _leisten_umbauen(text)
+        if neu is None:
+            unbekannt += 1
+            logger.warning("Leisten nicht nachgezogen, unbekannter Aufbau: %s", pfad)
+        elif _schreiben_wenn_neu(pfad, neu):
+            umgestellt += 1
+    if umgestellt or unbekannt:
+        logger.info("Leisten: %d Seiten umgestellt, %d mit unbekanntem Aufbau", umgestellt, unbekannt)
+    return umgestellt
 
 
 def erzeuge(base_dir, news_json_data, jetzt=None):
@@ -520,5 +585,10 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         _tote_player_entfernen(base, heute)
     except Exception:
         logger.exception("Player-Pruefung fehlgeschlagen")
+    if LEISTEN_NACHZIEHEN:
+        try:
+            _leisten_nachziehen(base)
+        except Exception:
+            logger.exception("Leisten nachziehen fehlgeschlagen")
     return {"storys": len(eintraege), "neu": neu, "geschrieben": geschrieben,
             "indexierbar": len(indexierbar), "news_sitemap": frisch}

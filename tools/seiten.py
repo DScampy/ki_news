@@ -5,7 +5,7 @@ seiten.py: Welche Seiten müssen obere Leiste und Seitenleiste aus assets/ki-lay
 Jede HTML-Datei im Hauptordner, außer sie steht auf noindex oder in OHNE_LEISTE. Eine neue Seite
 fällt also von selbst unter die Prüfung, statt wie früher still herauszufallen.
 
-Noch nicht erfasst: meldung/ und recherche/ werden erzeugt und haben einen eigenen Kopf.
+meldung/ und recherche/ werden erzeugt und teilen sich je eine Vorlage. Dort genügt eine Stichprobe.
 """
 import glob, io, re
 
@@ -23,6 +23,9 @@ OHNE_LEISTE = {
 
 _NOINDEX = re.compile(r'name="robots"[^>]*noindex', re.I)
 
+# Je eine Seite mit diesem Baustein, damit die Stichprobe jeden Aufbau der Vorlage abdeckt.
+_BAUSTEINE = ("<video", "<figure><img", "Teil einer Entwicklung", ">Hintergrund", "Weitere Meldungen", "Einordnung</h2>")
+
 
 def oeffentliche_seiten():
     """Liefert die Seiten relativ zum Repo-Ordner. Erwartet, dass dieser das Arbeitsverzeichnis ist."""
@@ -34,3 +37,27 @@ def oeffentliche_seiten():
             continue
         seiten.append(pfad)
     return seiten
+
+
+def _pfade(muster):
+    return sorted(p.replace("\\", "/") for p in glob.glob(muster))
+
+
+def erzeugte_seiten():
+    return _pfade("meldung/*/*.html") + _pfade("recherche/*.html")
+
+
+def erzeugte_stichprobe():
+    """Die ältesten passenden Seiten. Seiten werden nie gelöscht, die Auswahl bleibt also stabil und
+    eine neue Meldung macht keinen fremden PR rot. Dazu der längste Titel als Belastungsprobe."""
+    stichprobe = ["recherche/"] + [p for p in _pfade("recherche/*.html") if p != "recherche/index.html"][:5]
+    meldungen = {p: io.open(p, encoding="utf-8").read() for p in _pfade("meldung/*/*.html")}
+    for baustein in _BAUSTEINE:
+        treffer = next((p for p, text in meldungen.items() if baustein in text), None)
+        if treffer and treffer not in stichprobe:
+            stichprobe.append(treffer)
+    if meldungen:
+        laengster = max(meldungen, key=lambda p: len(re.search(r"<h1>(.*?)</h1>", meldungen[p], re.S).group(1)))
+        if laengster not in stichprobe:
+            stichprobe.append(laengster)
+    return stichprobe
