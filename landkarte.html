@@ -1379,7 +1379,7 @@
             Die <span class="px-title-accent">KI-Landkarte</span>
           </h1>
           <p class="px-intro">
-            Hersteller, Modelle, Personen und Themen werden zu einer aktuellen Graphansicht.
+            Hersteller, Modelle, Personen und Themen werden zu einer aktuellen Karte.
             Ein Knoten zeigt den Kontext, die drei neuesten Meldungen und einen verifizierten Release.
           </p>
         </div>
@@ -1387,14 +1387,14 @@
         <aside class="px-data-column" aria-label="Datenstatus">
           <p class="px-status">Datenstand</p>
           <p class="px-stand" id="px-stand">Wird geladen</p>
-          <p class="px-source-status" id="px-source-status">Lokale JSON-Quellen werden vorbereitet.</p>
+          <p class="px-source-status" id="px-source-status">Daten werden geladen.</p>
         </aside>
       </section>
 
       <section class="px-card px-map-card" aria-labelledby="px-map-heading">
         <div class="px-map-head">
           <div>
-            <h2 class="px-map-title" id="px-map-heading">Entities im aktuellen KI-Nachrichtenraum</h2>
+            <h2 class="px-map-title" id="px-map-heading">Wer und was gerade in den KI-Nachrichten vorkommt</h2>
             <p class="px-map-subtitle" id="px-map-subtitle">Knoten anklicken. Zusammenhang prüfen. Release öffnen.</p>
             <!-- 01.10.26 (Daniel): Karte braucht eine Lesehilfe -->
             <p class="px-map-erklaerung">
@@ -1415,7 +1415,7 @@
           class="px-tab-strip"
           id="px-tabs"
           role="tablist"
-          aria-label="Cluster auswählen"
+          aria-label="Bereich auswählen"
         ></div>
 
         <div class="px-map-stage">
@@ -1424,7 +1424,7 @@
             id="px-map-svg"
             viewBox="0 0 1200 680"
             role="group"
-            aria-label="Interaktive Karte der KI-Entities"
+            aria-label="Interaktive Karte der KI-Akteure und Themen"
           >
             <title>KI-Landkarte mit zentralem Aktualitätsknoten und farbigen Clustern</title>
           </svg>
@@ -1542,7 +1542,7 @@
 
       <footer class="px-footnote">
         <p><strong>KI-NEWS.LIVE</strong> | Interaktive KI-Landkarte</p>
-        <p id="px-foot-sources">Lokale Quellen werden geladen</p>
+        <p id="px-foot-sources">Quellen werden geladen</p>
       </footer>
     </main>
 
@@ -1608,7 +1608,7 @@
           kind: "Hersteller",
           label: "Qwen",
           color: "#64a8ff",
-          description: "Qwen ordnet Modellvarianten, Veröffentlichungen und die chinesische KI-Entwicklung im Graphen ein."
+          description: "Qwen ordnet Modellvarianten, Veröffentlichungen und die chinesische KI-Entwicklung auf der Karte ein."
         },
         {
           id: "m-deepseek",
@@ -1881,7 +1881,7 @@
           key: `${cluster.id}::${normalise(label)}`,
           id: label,
           label,
-          kind: cleanText(kind) || "Entity",
+          kind: cleanText(kind) || "Eintrag",
           cluster,
           score: Number.isFinite(Number(score)) ? Number(score) : 0,
           count: Number.isFinite(Number(count)) ? Number(count) : 0,
@@ -1907,7 +1907,7 @@
         };
 
         const input = normalise(value);
-        return labels[input] || cleanText(value) || "Entity";
+        return labels[input] || cleanText(value) || "Eintrag";
       }
 
       function buildClusters() {
@@ -2763,7 +2763,7 @@
           : "Gesamter Nachrichtenraum";
 
         elements.detailCopy.textContent = selection
-          ? `${selection.label} ist im Cluster ${selection.cluster.label} verortet. ${selection.cluster.description}`
+          ? `${selection.label} gehört zum Bereich ${selection.cluster.label}. ${selection.cluster.description}`
           : "Die Karte verbindet aktuelle Nachrichten mit Modellen, Produkten und Personen. Ein Klick auf einen Knoten grenzt Meldungen, Release und Verlauf auf diesen Kontext ein.";
 
         elements.newsCount.textContent = `${matches.length} Treffer`;
@@ -2775,8 +2775,8 @@
             "p",
             "px-empty",
             selection
-              ? "Für diesen Knoten liegen aktuell keine passenden Meldungen vor. Weitere Cluster können neue Hinweise liefern."
-              : "Es wurden noch keine Meldungen geladen. Die Landkarte bleibt mit Clustern und Release-Hinweisen nutzbar."
+              ? "Für diesen Knoten liegen aktuell keine passenden Meldungen vor. Weitere Bereiche können neue Hinweise liefern."
+              : "Es wurden noch keine Meldungen geladen. Die Landkarte bleibt mit Bereichen und Release-Hinweisen nutzbar."
           ));
         } else {
           matches.slice(0, 3).forEach(item => {
@@ -3230,12 +3230,12 @@
         elements.stand.textContent = state.standText || "Stand nicht angegeben";
 
         elements.sourceStatus.textContent = state.loadedSources >= state.coreSources
-          ? `${state.loadedSources} Kernquellen geladen. Release-Register ist optional.`
-          : `${state.loadedSources}/${state.coreSources} Kernquellen verfügbar. Die Karte bleibt eingeschränkt nutzbar.`;
+          ? "Alle Daten geladen."
+          : "Nicht alle Daten verfügbar. Die Karte bleibt eingeschränkt nutzbar.";
 
         elements.footSources.textContent = state.releaseSource
-          ? `Lokale Quellen: news.json, entities.json, graph.json und ${state.releaseSource}`
-          : "Lokale Quellen: news.json, entities.json, graph.json und dashboard_config.json";
+          ? "Grundlage: die Meldungen von KI News und eine Liste der Modell-Veröffentlichungen"
+          : "Grundlage: die Meldungen von KI News";
       }
 
       function updateMapSubtitle() {

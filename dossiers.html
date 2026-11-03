@@ -344,7 +344,7 @@
       right: 13px;
       bottom: 10px;
       left: 13px;
-      content: "Lokaler Datenbestand / news.json";
+      content: "Story-Linien aus dem Archiv";
       color: var(--px-faint);
       font: 8px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       letter-spacing: 0.08em;
@@ -1583,7 +1583,7 @@
 
           <div class="px-hero-tags">
             <span id="px-stand" class="px-tag">Datenstand wird geladen</span>
-            <span class="px-tag px-tag-violet">Quelle: news.json</span>
+            <span class="px-tag px-tag-violet">Quelle: Nachrichtenarchiv</span>
           </div>
         </div>
 
@@ -1809,7 +1809,7 @@
 
         <div class="px-control-meta">
           <span id="px-result" aria-live="polite">Dossiers werden geladen</span>
-          <span id="px-data-status" role="status">Verbindung zu news.json</span>
+          <span id="px-data-status" role="status">Daten werden abgerufen</span>
         </div>
       </section>
 
@@ -1883,8 +1883,8 @@
           <div class="px-state-mark">!</div>
           <h3>Dossierdaten nicht erreichbar</h3>
           <p>
-            Die Datei news.json fehlt oder konnte nicht gelesen werden.
-            Bitte den relativen Serverpfad prüfen.
+            Die Dossiers konnten gerade nicht geladen werden.
+            Bitte gleich noch einmal versuchen.
           </p>
 
           <button
@@ -1898,8 +1898,8 @@
       </section>
 
       <p class="px-footer">
-        Datenquelle: news.json / Objekt linien / Jede Karte verweist auf die
-        zugehörige Story-Linie. Gestaltung und Betrieb: KI News.live / Scampy.
+        Jede Karte verweist auf die zugehörige Story-Linie.
+        Gestaltung und Betrieb: KI News.live / Scampy.
         <a href="Impressum.html">Impressum</a> · <a href="Datenschutz.html">Datenschutz</a>
       </p>
 
@@ -1907,7 +1907,7 @@
         <div class="px-state">
           <div class="px-state-inner">
             <h3>JavaScript wird benötigt</h3>
-            <p>Die Dossier-Übersicht lädt ihre Daten direkt aus news.json.</p>
+            <p>Die Dossier-Übersicht lädt ihre Daten erst im Browser.</p>
           </div>
         </div>
       </noscript>
@@ -3317,7 +3317,7 @@
         ui.mapLabel.textContent = "Liniennetz nicht verfügbar";
         setFinishedState();
 
-        ui.status.textContent = "news.json konnte nicht gelesen werden";
+        ui.status.textContent = "Dossiers konnten nicht geladen werden";
         ui.result.textContent = "Daten nicht verfügbar";
         ui.stand.textContent = "Datenstand unbekannt";
 
@@ -3333,9 +3333,9 @@
         ui.error.hidden = true;
         setFinishedState();
 
-        ui.status.textContent = "news.json geladen, keine Linien enthalten";
+        ui.status.textContent = "Aktuell keine Story-Linien vorhanden";
         ui.result.textContent = "0 Dossiers";
-        ui.stand.textContent = "Datenstand geladen, Bestand leer";
+        ui.stand.textContent = "Noch keine Dossiers vorhanden";
 
         renderRegionPills();
         renderPillCounts();
@@ -3616,8 +3616,7 @@
           setFinishedState();
 
           ui.status.textContent =
-            `news.json geladen / ` +
-            `${numberFormat.format(dossiers.length)} Linien`;
+            `${numberFormat.format(dossiers.length)} Linien geladen`;
         } catch (error) {
           console.warn(
             "Dossier-Übersicht konnte nicht geladen werden.",

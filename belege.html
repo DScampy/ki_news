@@ -237,7 +237,6 @@
     .px-chip,
     .px-button,
     .px-section-kicker,
-    .px-index-id,
     .px-index-score,
     .px-index-foot,
     .px-node-role,
@@ -466,15 +465,6 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-    }
-
-    .px-index-id {
-      min-width: 0;
-      overflow: hidden;
-      color: var(--px-cyan);
-      font-size: 8px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .px-index-score {
@@ -1404,7 +1394,7 @@
       </div>
 
       <aside class="px-trace-signature" aria-label="Legende des Belegstrangs">
-        <span class="px-trace-signature-label">Connection map / lokal geprüft</span>
+        <span class="px-trace-signature-label">Quellen und Verbindungen</span>
         <svg viewBox="0 0 300 64" role="img" aria-label="Linie mit Original-, Quellen- und Medienknoten">
           <path class="px-trace-line" d="M8 34 C72 5, 105 63, 158 31 S230 8, 292 36"></path>
           <circle class="px-trace-dot" cx="8" cy="34" r="5"></circle>
@@ -1413,13 +1403,13 @@
           <circle class="px-trace-dot" cx="224" cy="25" r="4"></circle>
           <circle class="px-trace-dot" cx="292" cy="36" r="5"></circle>
         </svg>
-        <p>Story-ID, dokumentierte Dubletten und exakte Quellenlinks tragen feste Kanten. Ähnliche Titel bleiben ungeprüft.</p>
+        <p>Feste Verbindungen entstehen nur über dieselbe Story, dokumentierte Dubletten oder exakte Quellenlinks. Ähnliche Titel bleiben ungeprüft.</p>
       </aside>
     </section>
 
     <div id="px-status-bar" class="px-status-bar" role="status" aria-live="polite">
       <span class="px-status-dot" aria-hidden="true"></span>
-      <span id="px-status-copy">Lokale Datensätze werden geladen.</span>
+      <span id="px-status-copy">Meldungen werden geladen.</span>
     </div>
 
     <div class="px-workspace">
@@ -1434,13 +1424,13 @@
             id="px-search"
             class="px-search"
             type="search"
-            placeholder="Story, Quelle oder ID suchen"
+            placeholder="Story oder Quelle suchen"
             autocomplete="off"
           >
         </div>
         <div id="px-story-list" class="px-story-list"></div>
         <div class="px-sidebar-foot">
-          Sortiert nach story_cluster_score. Ohne belastbare Zuordnung bleibt der lokale Einzelfall getrennt.
+          Sortiert nach Score. Meldungen ohne sichere Zuordnung bleiben einzeln.
         </div>
       </aside>
 
@@ -1451,13 +1441,13 @@
 
     <footer class="px-footer">
       <span>KI NEWS / BELEGSTRANG / BETREIBER DANIEL "SCAMPY"</span>
-      <span id="px-footer-data">Nur relative JSON-Pfade, keine Datenübermittlung an Dritte.</span>
+      <span id="px-footer-data">Daten werden geladen.</span>
     </footer>
   </main>
 
   <noscript>
     <p class="px-shell px-empty">
-      Für den Belegstrang muss JavaScript aktiviert sein. Die JSON-Dateien werden im Browser verarbeitet.
+      Für den Belegstrang muss JavaScript aktiviert sein.
     </p>
   </noscript>
 
@@ -1466,6 +1456,7 @@
       "use strict";
 
       const FILES = ["news.json", "archive.json", "cards.json"];
+      const FILE_LABELS = { "news.json": "aktuelle Meldungen", "archive.json": "Archiv", "cards.json": "Videokarten" };
       const THEME_KEY = "ki-news-belegstrang-theme";
       const INITIAL_THREAD_LIMIT = 10;
 
@@ -1988,7 +1979,7 @@
           sourceText: "",
           sourceTextField: "",
           link: record.dubVon,
-          source: "Quelle im Ausgangsdatensatz nicht benannt",
+          source: "Quelle nicht benannt",
           date: record.date || record.firstSeen,
           firstSeen: record.firstSeen,
           image: "",
@@ -2061,7 +2052,7 @@
             threadRole: "original",
             relation: original.virtual
               ? "Die Ursprungsquelle ist nur über einen dokumentierten Dublettenlink bekannt."
-              : "Höchstpriorisierter nicht als Dublette markierter Datensatz des festen Falls."
+              : "Die wichtigste Meldung dieser Story, die nicht als Dublette markiert ist."
           }];
 
           groupRecords
@@ -2079,7 +2070,7 @@
                 relation: record.duplicate || record.dubVon
                   ? "Feste Verbindung über einen dokumentierten Dublettenverweis."
                   : sameId
-                    ? "Feste Verbindung über dieselbe story_id."
+                    ? "Feste Verbindung: gehört zur selben Story."
                     : "Feste Verbindung über eine bereits verbundene Dublettenkette."
               });
             });
@@ -2106,14 +2097,6 @@
             || lead.ownSummary
             || lead.shortSummary;
 
-          const editorialField = dossierSummary
-            ? "dossier.worum"
-            : lead.ownSummaryField
-              ? lead.ownSummaryField
-              : lead.shortSummary
-                ? "summary"
-                : "";
-
           // 29.10.26: auch jeder Meldungslink fuehrt zur Story (#link=..., stabil ueber Laeufe).
           const aliases = unique([id, fallback, ...storyIds, ...groupRecords.map(record => record.link).filter(Boolean)]);
           const search = normalized([
@@ -2129,7 +2112,6 @@
             aliases,
             title: lead.title,
             editorialSummary,
-            editorialField,
             score: Math.max(lead.score, ...groupRecords.map(record => record.score), 0),
             articleCount: Math.max(...groupRecords.map(record => record.articleCount), groupRecords.length),
             sourceCount: sources.length,
@@ -2198,7 +2180,7 @@
           const cardDuplicate = canonicalUrl(card.duplicateOf);
 
           if (card.storyId && storyIds.has(card.storyId)) {
-            reasons.push("gleiche story_id");
+            reasons.push("gleiche Story");
           }
 
           if (cardDuplicate && duplicateLinks.has(cardDuplicate)) {
@@ -2207,7 +2189,7 @@
 
           const exactArticleLink = cardLinks.find(link => articleLinks.has(link));
           if (exactArticleLink) {
-            reasons.push("Originalquelle in card.links");
+            reasons.push("Originalquelle in der Videokarte verlinkt");
           }
 
           if (reasons.length) {
@@ -2224,7 +2206,7 @@
             unverified.push({
               card,
               score,
-              reason: "Nur Titel- und Textähnlichkeit. Es fehlt eine feste story_id, ein Dublettenverweis oder ein exakter Quellenlink."
+              reason: "Nur Titel- und Textähnlichkeit. Es fehlt eine feste Story-Zuordnung, ein Dublettenverweis oder ein exakter Quellenlink."
             });
           }
         });
@@ -2251,7 +2233,7 @@
         const paths = unique(story.records.flatMap(record => record.coveragePaths || []));
         if (!paths.length) return "";
 
-        return `Im Ausgangsdatensatz ist mindestens ein Deckungs- oder Deckungsprüfungsfeld vorhanden. Gefundene Feldpfade: ${paths.join(" / ")}. Die Abdeckung muss redaktionell geprüft werden.`;
+        return "Zu dieser Story liegen Angaben zur Abdeckung vor. Die Abdeckung muss redaktionell geprüft werden.";
       }
 
       function sourceHasRule(sourceText, rule) {
@@ -2339,7 +2321,7 @@
           media.append(node(
             "div",
             "px-image-fallback",
-            "Für diese Originalquelle ist lokal kein Quellbild hinterlegt."
+            "Für diese Originalquelle ist kein Quellbild hinterlegt."
           ));
           return media;
         }
@@ -2396,7 +2378,7 @@
               node(
                 "span",
                 "px-node-date",
-                item.storyId ? `story_id: ${item.storyId}` : "Über Dublettenverweis verbunden"
+                item.storyId ? "Teil dieser Story" : "Über Dublettenverweis verbunden"
               )
             );
 
@@ -2407,7 +2389,7 @@
             const summary = node(
               "p",
               "",
-              excerpt(itemText, 1100) || "Keine verwertbare Zusammenfassung im Datensatz."
+              excerpt(itemText, 1100) || "Keine Zusammenfassung vorhanden."
             );
 
             const meta = node("div", "px-card-meta");
@@ -2447,7 +2429,7 @@
               copy.append(node(
                 "div",
                 "px-image-fallback",
-                "Für die Originalquelle fehlen lokal full_text und description."
+                "Für die Originalquelle liegt kein Quelltext vor."
               ));
             }
 
@@ -2490,7 +2472,6 @@
 
         const compare = node("div", "px-compare");
         const sourceText = story.original.sourceText || "";
-        const sourceField = story.original.sourceTextField || "kein Quelltextfeld";
 
         const sourceSide = node("div", "px-compare-side");
         sourceSide.append(
@@ -2500,12 +2481,12 @@
             "p",
             "px-compare-text",
             excerpt(sourceText, 2200)
-              || "Im lokalen Datensatz sind weder full_text noch description vorhanden."
+              || "Für diese Quelle liegt kein Text vor."
           ),
           node(
             "p",
             "px-claim-note",
-            `${story.original.source || "Quelle unbekannt"} / ${formatDate(story.original.date)} / Datenfeld: ${sourceField}`
+            `${story.original.source || "Quelle unbekannt"} / ${formatDate(story.original.date)}`
           ),
           externalLink("Originalquelle öffnen", story.original.link)
         );
@@ -2530,18 +2511,14 @@
         let comparisonNote;
 
         if (!sourceText) {
-          comparisonNote = "Der Wortabgleich war nicht möglich, weil full_text und description lokal fehlen. Rollen und Wertungen wurden deshalb nicht als unbelegt markiert.";
+          comparisonNote = "Der Wortabgleich war nicht möglich, weil kein Quelltext vorliegt. Rollen und Wertungen wurden deshalb nicht als unbelegt markiert.";
         } else if (claimResult.labels.length) {
           comparisonNote = "Markiert wurde nur, wenn der jeweilige Rollen- oder Wertungsbegriff im einfachen Wortabgleich nicht im verfügbaren Quelltext vorkommt. Verneinung, Zeitbezug und mehrere Bedeutungen werden nicht ausgewertet.";
         } else {
           comparisonNote = "Im einfachen Wortabgleich wurden keine zusätzlichen Rollen- oder Wertungsbegriffe gefunden. Der Vergleich ersetzt keine inhaltliche Prüfung.";
         }
 
-        ourSide.append(node(
-          "p",
-          "px-claim-note",
-          `${comparisonNote}${story.editorialField ? ` Verwendetes Datenfeld: ${story.editorialField}.` : ""}`
-        ));
+        ourSide.append(node("p", "px-claim-note", comparisonNote));
 
         compare.append(sourceSide, ourSide);
         panel.append(compare);
@@ -2568,7 +2545,7 @@
 
         button.dataset.loading = "true";
         button.disabled = true;
-        button.textContent = "Videodatei wird geladen";
+        button.textContent = "Video wird geladen";
 
         const wrapper = node("div", "px-video-player");
         const video = document.createElement("video");
@@ -2584,7 +2561,7 @@
           wrapper.append(node(
             "p",
             "px-video-error",
-            "Videodatei nicht verfügbar. Metadaten und Zuordnungsgrund bleiben sichtbar."
+            "Video nicht verfügbar. Die Angaben dazu bleiben sichtbar."
           ));
         }, { once: true });
 
@@ -2604,7 +2581,7 @@
           panel.append(node(
             "div",
             "px-panel-body",
-            node("div", "px-empty", "cards.json ist nicht verfügbar. Es wird keine Videokarte behauptet.")
+            node("div", "px-empty", "Die Videokarten sind gerade nicht verfügbar. Es wird keine Videokarte behauptet.")
           ));
           return panel;
         }
@@ -2616,7 +2593,7 @@
             node(
               "div",
               "px-empty",
-              "Keine Videokarte ist über story_id, Dublettenverweis oder einen exakten Quellenlink fest zugeordnet."
+              "Keine Videokarte ist über die Story, einen Dublettenverweis oder einen exakten Quellenlink fest zugeordnet."
             )
           ));
           return panel;
@@ -2647,17 +2624,17 @@
 
           const meta = node("div", "px-card-meta");
           meta.append(
-            node("span", "", `Datensatzfester Zuordnungsgrund: ${relation.reasons.join(" + ")}`),
+            node("span", "", `Zuordnung: ${relation.reasons.join(" + ")}`),
             node("span", "", `Dauer: ${relation.card.duration || "unbekannt"}`),
-            node("span", "", `llm_used: ${relation.card.llm || "offen"}`),
-            node("span", "", `voice_used: ${relation.card.voice || "offen"}`)
+            node("span", "", `KI-Modell: ${relation.card.llm || "nicht angegeben"}`),
+            node("span", "", `Stimme: ${relation.card.voice || "nicht angegeben"}`)
           );
 
           const actions = node("div", "px-thread-actions");
           const button = node(
             "button",
             "px-button cyan",
-            relation.card.mediaUrl ? "Videokarte laden" : "Keine Videodatei hinterlegt"
+            relation.card.mediaUrl ? "Videokarte laden" : "Kein Video hinterlegt"
           );
           button.type = "button";
           button.disabled = !relation.card.mediaUrl;
@@ -2665,7 +2642,7 @@
 
           actions.append(
             button,
-            node("span", "px-note", "MP4 und Vorschaubild werden erst nach diesem Klick geladen.")
+            node("span", "px-note", "Video und Vorschaubild werden erst nach diesem Klick geladen.")
           );
 
           item.append(top, title, summary, meta, actions);
@@ -2701,7 +2678,7 @@
 
         addWarning(
           body,
-          "Die folgenden Treffer stammen nur aus Titel- oder Textähnlichkeit. Sie haben keine feste story_id, keinen Dublettenverweis und keinen exakten Quellenlink."
+          "Die folgenden Treffer stammen nur aus Titel- oder Textähnlichkeit. Sie haben keine feste Story-Zuordnung, keinen Dublettenverweis und keinen exakten Quellenlink."
         );
 
         const candidateList = node("div", "px-candidate-list");
@@ -2717,7 +2694,7 @@
           candidate.append(
             top,
             node("h3", "", item.story.title),
-            node("p", "", `Story-ID: ${item.story.id}. Diese Verbindung wurde nicht geprüft.`)
+            node("p", "", "Diese Verbindung wurde nicht geprüft.")
           );
           candidateList.append(candidate);
         });
@@ -2759,7 +2736,7 @@
         if (story.sourceCount < 2) {
           add(
             "Eindimensionale Quellenlage",
-            "Im sichtbaren Cluster liegt nur ein klar benannter Quellenname vor. Eine unabhängige Bestätigung ist damit nicht belegt.",
+            "In dieser Story liegt nur ein klar benannter Quellenname vor. Eine unabhängige Bestätigung ist damit nicht belegt.",
             true
           );
         }
@@ -2767,7 +2744,7 @@
         if (fullTextMissing) {
           add(
             `${fullTextMissing} Quelltextlücke${fullTextMissing === 1 ? "" : "n"}`,
-            "Für diese Datensätze fehlt full_text oder description. Titel und Kurzbeschreibung ersetzen keinen vollständigen Quelltext."
+            "Für diese Meldungen liegt kein Quelltext vor. Titel und Kurzbeschreibung ersetzen keinen vollständigen Quelltext."
           );
         }
 
@@ -2781,7 +2758,7 @@
         if (story.original.virtual) {
           add(
             "Ursprungsquelle nur als Link vorhanden",
-            "Ein Dublettenverweis zeigt auf die Ursprungsquelle, aber Quelle, Datum und Quellbild dieses Zieldatensatzes fehlen lokal.",
+            "Ein Dublettenverweis zeigt auf die Ursprungsquelle, aber Quelle, Datum und Quellbild dazu fehlen.",
             true
           );
         }
@@ -2806,7 +2783,7 @@
           target.append(node(
             "div",
             "px-empty",
-            "Keine verwertbare Story gefunden. Suchbegriff ändern oder news.json und archive.json prüfen."
+            "Keine passende Story gefunden. Bitte den Suchbegriff ändern."
           ));
           return;
         }
@@ -2814,21 +2791,18 @@
         const head = node("section", "px-story-head");
         const headTop = node("div", "px-head-top");
 
-        headTop.append(
-          node("span", "px-head-id", `${story.id} / Deep-Link #story=${encodeURIComponent(story.id)}`),
-          node("span", "px-card-meta", `story_cluster_score: ${story.score}`)
-        );
+        headTop.append(node("span", "px-head-id", "Ausgewählte Story"));
 
         const chips = node("div", "px-story-chips");
         chips.append(
-          chip(`${story.records.length} lokale Datensätze`, "cyan"),
+          chip(`${story.records.length} Meldungen`, "cyan"),
           chip(`${story.sourceCount} Quellennamen`, "violet"),
           chip(`Score ${story.score}`, "yellow"),
           chip(`${story.thread.length} feste Stationen`)
         );
 
         if (story.articleCount > story.records.length) {
-          chips.append(chip(`${story.articleCount} Artikel laut Datensatz`));
+          chips.append(chip(`${story.articleCount} Artikel insgesamt`));
         }
         if (story.region) chips.append(chip(story.region));
 
@@ -2882,10 +2856,7 @@
           button.setAttribute("aria-current", state.selected?.id === story.id ? "true" : "false");
 
           const top = node("div", "px-index-top");
-          top.append(
-            node("span", "px-index-id", story.id),
-            node("span", "px-index-score", `Score ${story.score}`)
-          );
+          top.append(node("span", "px-index-score", `Score ${story.score}`));
 
           const foot = node("div", "px-index-foot");
           foot.append(
@@ -2957,7 +2928,7 @@
           setStatus(
             /^https?:/.test(requested)
               ? "Diese Meldung ist im aktuellen Datenstand nicht mehr enthalten. Die höchste priorisierte Story ist geöffnet."
-              : `Story-ID ${requested} wurde nicht gefunden. Die höchste priorisierte Story ist geöffnet.`,
+              : "Diese Story wurde nicht gefunden. Die höchste priorisierte Story ist geöffnet.",
             true
           );
         }
@@ -3083,9 +3054,9 @@
 
       function updateDataFooter(prepared) {
         $("#px-footer-data").textContent = [
-          `${state.loaded.length} von ${FILES.length} Dateien geladen`,
-          prepared.stand ? `news: ${prepared.stand}` : "",
-          `${state.records.length} Artikeldatensätze`,
+          state.loaded.length < FILES.length ? "Nicht alle Daten geladen" : "",
+          prepared.stand ? `Stand: ${prepared.stand}` : "",
+          `${state.records.length} Meldungen`,
           `${state.cards.length} Videokarten`
         ].filter(Boolean).join(" / ");
       }
@@ -3103,7 +3074,7 @@
           if (state.stories.length) routeHash(false);
         });
 
-        setStatus("news.json, archive.json und cards.json werden relativ geladen.");
+        setStatus("Meldungen und Videokarten werden geladen.");
 
         const results = await Promise.allSettled(FILES.map(async file => ({
           file,
@@ -3138,7 +3109,7 @@
 
         if (!state.stories.length) {
           setStatus(
-            "Keine verwertbaren Story-Datensätze gefunden. Suchfilter, Dateipfade und JSON-Felder prüfen.",
+            "Gerade konnten keine Stories geladen werden. Bitte die Seite neu laden.",
             true
           );
           renderStoryList();
@@ -3148,12 +3119,12 @@
 
         if (state.failed.length) {
           setStatus(
-            `${state.stories.length} Stories geladen. Nicht verfügbar: ${state.failed.join(", ")}.`,
+            `${state.stories.length} Stories geladen. Nicht verfügbar: ${state.failed.map(file => FILE_LABELS[file]).join(", ")}.`,
             true
           );
         } else {
           setStatus(
-            `${state.stories.length} Stories aus news.json und archive.json, ${state.cards.length} Videokarten aus cards.json.`
+            `${state.stories.length} Stories und ${state.cards.length} Videokarten geladen.`
           );
         }
 
@@ -3162,8 +3133,8 @@
 
       window.addEventListener("DOMContentLoaded", () => {
         boot().catch(error => {
-          const message = error instanceof Error ? error.message : "Unbekannter Ladefehler";
-          setStatus(`Datenverarbeitung abgefangen: ${message}`, true);
+          console.warn("Belegstrang konnte nicht verarbeitet werden.", error);
+          setStatus("Die Daten konnten nicht verarbeitet werden. Bitte die Seite neu laden.", true);
           renderStoryList();
           renderStory();
         });

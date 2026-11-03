@@ -424,7 +424,7 @@
 
     var mitF = alle.filter(function (x) { return x && x.link && F[x.link]; }).length;
     $("rg-acnt").textContent = treffer.length + " von " + alle.length +
-      " · " + mitF + " mit Facetten";
+      " · " + mitF + " mit Themenangaben";
     // Nicht alles auf einmal: 1200 Zeilen am Stueck kosten auf dem Handy
     // spuerbar Zeit, und niemand liest so weit.
     $("rg-liste").innerHTML = treffer.length
