@@ -14,6 +14,8 @@ Regeln:
   sonst noindex,follow (Seite bleibt erreichbar, Google listet sie nicht).
 - "Weitere Meldungen" wird beim Anlegen festgehalten und spaeter nicht umgebaut,
   sonst aendern sich bei jedem Lauf alle Seiten.
+- Ausnahme: Der Player eines geloeschten Karten-Videos wird entfernt, auch auf Seiten
+  ausserhalb des Laufs und unter recherche/ (_tote_player_entfernen).
 
 Einziger Schreiber aller Dateien unter meldung/ und der beiden Sitemaps (I5).
 Aufruf aus ki_news.py VOR dem Schreiben von news.json: setzt dort je Meldung das Feld
@@ -26,7 +28,9 @@ import html
 import json
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+import urllib.error
+import urllib.request
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 logger = logging.getLogger("ki_news.meldungen")
@@ -37,6 +41,8 @@ NEWS_SITEMAP_STUNDEN = 48
 SUBSTANZ_ZEICHEN = 300          # Zusammenfassung allein
 SUBSTANZ_MIT_ANRISS = 250       # Zusammenfassung + Anriss
 WEITERE_MAX = 5
+VIDEO_FRISCH_TAGE = 2           # wie --min-tage in medien_aufraeumen.py: juenger bleibt immer
+VIDEO_TOT_MAX_ANTEIL = 0.7      # mehr Tote deuten auf einen Ausfall, dann nichts aendern
 
 _UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "ae", "Ö": "oe",
                           "Ü": "ue", "ß": "ss"})
@@ -345,6 +351,62 @@ def _sitemaps(base, register, jetzt):
     return len(frisch)
 
 
+_KARTEN_PLAYER = re.compile(
+    r'<figure><video\b[^>]*><source src="(https://dscampy\.github\.io/ki_news_media/cards/'
+    r'(\d{4}-\d{2}-\d{2})-[^"]+\.mp4)"[^>]*/></video></figure>\n?')
+
+
+def _video_status(url):
+    """HTTP-Status der Datei, None bei Netzfehler."""
+    anfrage = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "ki-news-meldungsseiten"})
+    try:
+        with urllib.request.urlopen(anfrage, timeout=15) as antwort:
+            return antwort.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception:
+        return None
+
+
+def _tote_player_entfernen(base, heute):
+    """Entfernt den Player, wenn das Karten-Video live 404 liefert (03.11.26).
+
+    medien_aufraeumen.py loescht Videos nach wenigen Tagen, die Seite ist dann laengst aus dem
+    Lauf und eingefroren. Messung 03.11.: 38 Seiten mit leerem Player. cards.json taugt nicht als
+    Pruefquelle: 7 lebende Videos standen nicht darin. Register, Hash und dateModified bleiben.
+    Bei Netzfehler oder unplausibel vielen Toten bleibt alles, der naechste Lauf versucht es neu.
+    """
+    grenze = (date.fromisoformat(heute) - timedelta(days=VIDEO_FRISCH_TAGE)).isoformat()
+    seiten = {}
+    videos = set()
+    for pfad in [*base.glob(f"{ORDNER}/*/*.html"), *base.glob("recherche/*.html")]:
+        text = pfad.read_text(encoding="utf-8")
+        alt = {m.group(1) for m in _KARTEN_PLAYER.finditer(text) if m.group(2) < grenze}
+        if alt:
+            seiten[pfad] = text
+            videos |= alt
+    tot = set()
+    for url in sorted(videos):
+        status = _video_status(url)
+        if status == 404:
+            tot.add(url)
+        elif status != 200:
+            logger.warning("Player-Pruefung abgebrochen, nichts geaendert: %s liefert %s", url, status)
+            return 0
+    if len(tot) > VIDEO_TOT_MAX_ANTEIL * len(videos):
+        logger.warning("Player-Pruefung abgebrochen, nichts geaendert: %d von %d Videos tot",
+                       len(tot), len(videos))
+        return 0
+    entfernt = 0
+    for pfad, text in seiten.items():
+        neu = _KARTEN_PLAYER.sub(lambda m: "" if m.group(1) in tot else m.group(0), text)
+        if _schreiben_wenn_neu(pfad, neu):
+            entfernt += 1
+    logger.info("Player-Pruefung: %d Videos geprueft, %d tot, Player auf %d Seiten entfernt",
+                len(videos), len(tot), entfernt)
+    return entfernt
+
+
 def erzeuge(base_dir, news_json_data, jetzt=None):
     base = Path(base_dir)
     jetzt = jetzt or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -452,5 +514,9 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
     logger.info("Meldungsseiten: %d Storys, %d neu, %d geaendert, %d Dateien geschrieben, "
                 "%d indexierbar, %d in der News-Sitemap",
                 len(eintraege), neu, geaendert, geschrieben, len(indexierbar), frisch)
+    try:
+        _tote_player_entfernen(base, heute)
+    except Exception:
+        logger.exception("Player-Pruefung fehlgeschlagen")
     return {"storys": len(eintraege), "neu": neu, "geschrieben": geschrieben,
             "indexierbar": len(indexierbar), "news_sitemap": frisch}
