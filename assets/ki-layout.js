@@ -35,16 +35,18 @@
   else ACTIVE = 'none';
 
   /* ── Navigation: EINE Definition für Topbar + Sidebar ──────── */
+  /* Jeder Eintrag steht in beiden Leisten (Daniel 03.11.26). breit: in der oberen Leiste erst
+     ab 1280 px, darunter reicht der Platz nicht und der Link bleibt in der Seitenleiste. */
   var NAV = [
     { key: 'aktuell',   label: 'Aktuell',         href: 'index.html',  icon: 'bolt' },
     { key: 'archiv',    label: 'Archiv',           href: 'Archiv.html', icon: 'archive' },
     { key: 'dossiers',  label: 'Dossiers',         href: 'dossiers.html', icon: 'view_list' },
     { key: 'artikel',   label: 'Artikel',          href: 'artikel.html', icon: 'menu_book' },
-    { key: 'recherche', label: 'Recherche',        href: 'recherche/',   icon: 'search', sidebarOnly: true },
+    { key: 'recherche', label: 'Recherche',        href: 'recherche/',   icon: 'search', breit: true },
     { key: 'modelle',   label: 'Modelle',          href: 'modelle.html', icon: 'smart_toy' },
-    { key: 'woche',     label: 'Wochen-Rückblick', href: 'woche.html',   icon: 'schedule', sidebarOnly: true },
+    { key: 'woche',     label: 'Wochen-Rückblick', href: 'woche.html',   icon: 'schedule', breit: true, topLabel: 'Woche' },
     { key: 'podcast',   label: 'Podcast',          href: 'https://soundcloud.com/dscampy/sets/podcast-wissen', ext: true, icon: 'mic' },
-    { key: 'youtube',   label: 'YouTube',          href: 'https://youtube.com/@ScampyKI', ext: true, icon: 'play_circle', sidebarOnly: true },
+    { key: 'youtube',   label: 'YouTube',          href: 'https://youtube.com/@ScampyKI', ext: true, icon: 'play_circle', breit: true },
     { key: 'statistik', label: 'Statistik',        href: 'stats.html',  icon: 'bar_chart' },
     { key: 'profil',    label: 'Profil & Design',  href: 'profil.html', icon: 'person', topLabel: 'Profil' }
   ];
@@ -113,19 +115,24 @@
     'html.light{--bg:#f0f4f8;--surface:rgba(var(--neon-rgb),0.06);--sidebar-bg:#e8edf4;--nav-bg:rgba(255,255,255,0.88);--card:#ffffff;--field:#eef3fa;--hairline:#e2e8f0;--text:#0f172a;--muted:rgba(30,80,140,0.55);}',
     '*,*::before,*::after{box-sizing:border-box;}',
     '#kl-nav{position:fixed;top:0;left:0;width:100%;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:0 16px;height:56px;background:var(--z-papier);border-bottom:1px solid var(--z-linie);font-family:var(--z-sans);}',
+    '#kl-nav,#sidebar{line-height:normal;}',
+    '#kl-nav a,#sidebar a{text-decoration:none;}',
+    '#sidebar p{margin:0;}',
     '#kl-nav .kl-left{display:flex;align-items:center;gap:32px;min-width:0;}',
     '#kl-brand{display:flex;align-items:center;gap:10px;text-decoration:none;}',
     '#kl-brand img{width:28px;height:28px;border-radius:4px;flex-shrink:0;}',
     '#kl-brand .kl-brand-col{display:flex;flex-direction:column;justify-content:center;line-height:1.02;}',
     '#kl-brand .kl-brand-title{font-family:var(--z-serif);font-size:21px;font-weight:600;letter-spacing:-0.01em;color:var(--z-tinte);}',
     '#brand-menu-hint{display:none;font-size:12px;font-family:var(--z-sans);color:var(--z-grau);margin-top:2px;}',
-    '@media(max-width:767px){#brand-menu-hint{display:inline-flex;align-items:center;gap:4px;}#kl-brand{cursor:pointer;}}',
+    '@media(max-width:1023px){#brand-menu-hint{display:inline-flex;align-items:center;gap:4px;}#kl-brand{cursor:pointer;}}',
     '.kl-de-badge{font-size:11px;font-family:var(--z-sans);font-weight:500;color:var(--z-grau);border:1px solid var(--z-linie);border-radius:3px;padding:1px 5px;display:none;}',
     '@media(min-width:640px){.kl-de-badge{display:inline;}}',
-    '#kl-toplinks{display:none;align-items:center;gap:24px;}',
-    '@media(min-width:768px){#kl-toplinks{display:flex;}}',
+    '#kl-toplinks{display:none;align-items:center;gap:20px;}',
+    '@media(min-width:1024px){#kl-toplinks{display:flex;}}',
     '#kl-toplinks a{font-family:var(--z-sans);font-size:15px;font-weight:500;color:var(--z-grau);text-decoration:none;transition:color .15s;}',
     '#kl-toplinks a:hover{color:var(--z-tinte);}',
+    /* Der aktive Link bleibt auch im schmalen Fenster sichtbar. */
+    '@media(max-width:1279px){#kl-toplinks a.kl-breit:not(.kl-active){display:none;}}',
     /* Strich unter dem aktiven Menüpunkt in der Farbe des gewählten Farbschemas
        (Daniel 01.11.26: „Ja, Strich dazu“), damit das Umschalten im Kopf sichtbar bleibt. */
     '#kl-toplinks a.kl-active{color:var(--z-tinte);border-bottom:3px solid var(--accent,var(--z-akzent));padding-bottom:3px;margin-bottom:-6px;font-weight:600;}',
@@ -189,14 +196,21 @@
     '#sidebar-backdrop.open{opacity:1;visibility:visible;}',
     '@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}',
     '@media(max-width:1023px){',
-    '  #sidebar{display:flex !important;width:284px !important;max-width:84vw;transform:translateX(-100%);transition:transform .28s ease;opacity:1 !important;z-index:60;pointer-events:none;box-shadow:8px 0 40px rgba(0,0,0,0.55);}',
+    '  #sidebar{display:flex !important;width:284px !important;max-width:84vw;transform:translateX(-100%);transition:transform .28s ease;opacity:1 !important;z-index:60;pointer-events:none;}',
     '  #sidebar.collapsed{width:284px !important;max-width:84vw;opacity:1 !important;transform:translateX(-100%);pointer-events:none;}',
-    '  #sidebar.drawer-open{transform:translateX(0);pointer-events:auto;}',
+    '  #sidebar.drawer-open{transform:translateX(0);pointer-events:auto;box-shadow:8px 0 40px rgba(0,0,0,0.55);}',
+    '  #sidebar:not(.drawer-open){box-shadow:none !important;}',
     '}',
-    '#main-content{transition:margin-left .25s ease;}',
-    /* Archiv und Modelle haben .px-main{width:100%}: Mit dem 240-px-Rand der offenen Leiste lief der Inhalt rechts aus dem Fenster. */
-    '#main-content.px-main{width:auto;}',
     '@media(max-width:1023px){#main-content{margin-left:0 !important;}}',
+    /* Platz für die offene Leiste (Daniel 03.11.26). Der alte Rand saß nur auf #main-content: Das
+       haben die meisten Seiten nicht, beim Laden steht <main> oft noch nicht im DOM, und auf der
+       Startseite und linie.html liegt Inhalt außerhalb davon. Jetzt rückt der ganze body ein. */
+    '@media(min-width:1024px){',
+    '  html.kl-leiste-offen body{padding-left:240px;box-sizing:border-box;}',
+    '  html.kl-leiste-offen #main-content{margin-left:0 !important;}',
+    '}',
+    'html.kl-leiste-animiert body{transition:padding-left .25s ease;}',
+    '@media(min-width:1024px){html:not(.kl-leiste-animiert) #sidebar,html:not(.kl-leiste-animiert) #sidebar-toggle{transition:none !important;}}',
     '.spy-eye{display:block;overflow:visible;}',
     '.spy-eye .eye-shape{transform-box:fill-box;transform-origin:center;animation:spyBlink 9s ease-in-out infinite;}',
     '.spy-eye .eye-pupil{transform-box:fill-box;transform-origin:center;animation:spyGlance 11s ease-in-out infinite;}',
@@ -270,9 +284,10 @@
 
   /* ── Chrome-HTML ────────────────────────────────────────────── */
   function navLinksHtml() {
-    return NAV.filter(function (n) { return !n.sidebarOnly; }).map(function (n) {
+    return NAV.map(function (n) {
       var href = n.ext ? n.href : ROOT + n.href;
-      var cls = n.key === ACTIVE ? ' class="kl-active"' : '';
+      var klassen = (n.key === ACTIVE ? ['kl-active'] : []).concat(n.breit ? ['kl-breit'] : []);
+      var cls = klassen.length ? ' class="' + klassen.join(' ') + '"' : '';
       var tgt = n.ext ? ' target="_blank" rel="noopener"' : '';
       return '<a' + cls + ' href="' + href + '"' + tgt + '>' + (n.topLabel || n.label) + '</a>';
     }).join('');
@@ -400,22 +415,35 @@
   window.toggleSidebar = function () {
     sidebarOpen = !sidebarOpen;
     var sidebar = document.getElementById('sidebar');
-    var main = document.getElementById('main-content');
     var toggle = document.getElementById('sidebar-toggle');
     var icon = document.getElementById('toggle-icon');
     if (sidebarOpen) {
       if (sidebar) sidebar.classList.remove('collapsed');
-      if (main) main.style.marginLeft = '240px';
       if (toggle) toggle.style.left = '240px';
       if (icon) icon.textContent = 'chevron_left';
     } else {
       if (sidebar) sidebar.classList.add('collapsed');
-      if (main) main.style.marginLeft = '0';
       if (toggle) toggle.style.left = '0';
       if (icon) icon.textContent = 'chevron_right';
     }
     try { localStorage.setItem('ki_sidebar_open', sidebarOpen ? '1' : '0'); } catch (e) {}
   };
+  /* Der Platz folgt dem Zustand der Leiste selbst, denn index.html und profil.html haben ein
+     eigenes toggleSidebar(). Danach ein resize, damit sich Karten und Diagramme neu vermessen. */
+  function leisteBeobachten() {
+    var sb = document.getElementById('sidebar'), wurzel = document.documentElement;
+    if (!sb) return;
+    var offen = !sb.classList.contains('collapsed');
+    wurzel.classList.toggle('kl-leiste-offen', offen);
+    new MutationObserver(function () {
+      var jetzt = !sb.classList.contains('collapsed');
+      if (jetzt === offen) return;
+      offen = jetzt;
+      wurzel.classList.add('kl-leiste-animiert');
+      wurzel.classList.toggle('kl-leiste-offen', offen);
+      setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 280);
+    }).observe(sb, { attributes: true, attributeFilter: ['class'] });
+  }
   window.openDrawer = function () {
     var s = document.getElementById('sidebar'), b = document.getElementById('sidebar-backdrop');
     if (s) s.classList.add('drawer-open');
@@ -433,7 +461,7 @@
     if (s && s.classList.contains('drawer-open')) { window.closeDrawer(); } else { window.openDrawer(); }
   };
   window.brandClick = function (e) {
-    if (window.innerWidth < 768) { e.preventDefault(); window.toggleDrawer(); return false; }
+    if (window.innerWidth < 1024) { e.preventDefault(); window.toggleDrawer(); return false; }
     return true;
   };
 
@@ -958,13 +986,13 @@
     document.body.insertAdjacentHTML('afterbegin', chromeHtml());
     if (!document.getElementById('kl-ov')) document.body.insertAdjacentHTML('beforeend', overlayHtml());
     if (sidebarOpen && window.innerWidth >= 1024) {
-      var s = document.getElementById('sidebar'), m = document.getElementById('main-content'),
+      var s = document.getElementById('sidebar'),
           t = document.getElementById('sidebar-toggle'), i = document.getElementById('toggle-icon');
       if (s) s.classList.remove('collapsed');
-      if (m) m.style.marginLeft = '240px';
       if (t) t.style.left = '240px';
       if (i) i.textContent = 'chevron_left';
     }
+    leisteBeobachten();
     applyAll();
     klLoadStand().then(function (stand) {
       var el = document.getElementById('standLabel');
