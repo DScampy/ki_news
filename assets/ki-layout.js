@@ -28,7 +28,8 @@
   if (inSub || file === 'artikel.html') ACTIVE = 'artikel';
   else if (file === 'archiv.html' || file === 'suche.html') ACTIVE = 'archiv';
   else if (file === 'dossiers.html' || file === 'linie.html' || file === 'belege.html') ACTIVE = 'dossiers';
-  else if (file === 'modelle.html' || file === 'landkarte.html') ACTIVE = 'modelle';
+  else if (file === 'modelle.html') ACTIVE = 'modelle';
+  else if (file === 'landkarte.html') ACTIVE = 'landkarte';
   else if (file === 'woche.html') ACTIVE = 'woche';
   else if (file === 'stats.html') ACTIVE = 'statistik';
   else if (file === 'profil.html' || file === 'cockpit-neu.html') ACTIVE = 'profil';
@@ -47,6 +48,7 @@
     { key: 'artikel',   label: 'Artikel',          href: 'artikel.html', icon: 'menu_book' },
     { key: 'recherche', label: 'Recherche',        href: 'recherche/',   icon: 'search', breit: true },
     { key: 'modelle',   label: 'Modelle',          href: 'modelle.html', icon: 'smart_toy' },
+    { key: 'landkarte', label: 'KI-Landkarte',     href: 'landkarte.html', icon: 'share', breit: true, topLabel: 'Landkarte' },
     { key: 'woche',     label: 'Wochen-Rückblick', href: 'woche.html',   icon: 'schedule', breit: true, topLabel: 'Woche' },
     { key: 'podcast',   label: 'Podcast',          href: 'https://soundcloud.com/dscampy/sets/podcast-wissen', ext: true, icon: 'mic' },
     { key: 'youtube',   label: 'YouTube',          href: 'https://youtube.com/@ScampyKI', ext: true, icon: 'play_circle', breit: true },
@@ -175,7 +177,7 @@
     '.kl-side-spacer{flex:1 1 auto;}',
     '.kl-search{display:flex;align-items:center;gap:8px;margin:10px 16px 0;padding:8px 12px;background:var(--z-papier);border:1px solid var(--z-linie);border-radius:4px;flex-shrink:0;}',
     '.kl-search .material-symbols-outlined{font-size:16px;color:var(--z-grau);flex-shrink:0;}',
-    '.kl-search input{background:transparent;border:none;outline:none;font-family:var(--z-sans);font-size:14px;color:var(--z-tinte);width:100%;}',
+    '.kl-search input{background:transparent;border:none;outline:none;padding:0;font-family:var(--z-sans);font-size:14px;color:var(--z-tinte);width:100%;}',
     '.kl-search input::placeholder{color:var(--z-grau);}',
     '.kl-search button{background:none;border:none;padding:0;cursor:pointer;color:var(--z-grau);display:flex;flex-shrink:0;}',
     '.kl-search button:hover{color:var(--z-akzent);}',

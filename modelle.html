@@ -1665,13 +1665,10 @@
         </aside>
       </header>
 
-      <section class="px-karte" aria-labelledby="px-karte-titel" style="margin:18px 0 22px">
-        <h2 id="px-karte-titel" style="margin:0 0 6px;font:700 20px/1.2 'Space Grotesk',sans-serif">KI-Landkarte</h2>
-        <p style="margin:0 0 10px;opacity:.75;font-size:14px">Hersteller oder Modell anklicken: die Registry darunter filtert sich darauf.</p>
-        <iframe id="px-karte-frame" src="landkarte.html?embed=1" title="KI-Landkarte" loading="lazy"
-          style="width:100%;height:760px;border:0;border-radius:12px;display:block;background:transparent"></iframe>
-        <p id="px-karte-hinweis" role="status" style="margin:8px 0 0;font-size:13px;opacity:.8"></p>
-      </section>
+      <div class="px-karte-link" style="margin:18px 0 22px;font-size:14px">
+        <p style="margin:0">Hersteller und Themen als Übersicht: <a href="landkarte.html" style="color:inherit;text-decoration:underline;text-underline-offset:2px">zur KI-Landkarte</a></p>
+        <p id="px-karte-hinweis" role="status" style="margin:4px 0 0;font-size:13px;opacity:.8"></p>
+      </div>
       <section class="px-control-panel" aria-label="Registry durchsuchen und filtern">
         <div class="px-control-grid">
           <div class="px-control px-search-control">
@@ -3003,6 +3000,7 @@
 
           renderStand(data, state.models);
           renderFilters();
+          applyMapFilter();
           renderRegistry();
         } catch (error) {
           if (!error || error.name !== "AbortError") {
@@ -3015,6 +3013,51 @@
             state.controller = null;
           }
         }
+      }
+
+      // Landkarte -> Registry (28.09.26, seit 03.11.26 per Link statt per Einbettung): landkarte.html
+      // verlinkt mit ?hersteller= und ?modell= hierher. Muss nach renderFilters() laufen, weil
+      // loadRegistry() vorher alle Filter zuruecksetzt und die Auswahlfelder neu aufbaut.
+      function applyMapFilter() {
+        const url = new URLSearchParams(location.search);
+        const hersteller = clean(url.get("hersteller"));
+        const modell = clean(url.get("modell"));
+        if (!hersteller && !modell) return;
+
+        const norm = v => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const sel = byId("px-provider-filter");
+        const hinweis = byId("px-karte-hinweis");
+        let wert = "";
+        if (hersteller) {
+          const ziel = norm(hersteller);
+          const opt = [...sel.options].find(o => o.value && (norm(o.value) === ziel || norm(o.textContent).startsWith(ziel) || ziel.startsWith(norm(o.value))));
+          wert = opt ? opt.value : "";
+        }
+        sel.value = wert;
+        state.provider = wert;
+        byId("px-search").value = modell;
+        state.query = modell;
+
+        const teile = [wert && ("Hersteller " + wert), modell && ("Suche \u201e" + modell + "\u201c")].filter(Boolean);
+        hinweis.textContent = teile.length ? "Registry gefiltert: " + teile.join(", ") : hersteller + " führt keine Modelle in der Registry.";
+
+        // Der Hinweis gilt nur, bis jemand selbst filtert. Die Registry-Skripte unten loesen "change" auch per Code aus.
+        const hinweisWeg = event => {
+          if (event.isTrusted) hinweis.textContent = "";
+        };
+        ["px-provider-filter", "px-kind-filter", "px-year-filter", "px-reset"].forEach(id => {
+          byId(id).addEventListener(id === "px-reset" ? "click" : "change", hinweisWeg);
+        });
+        byId("px-search").addEventListener("input", hinweisWeg);
+
+        // Erst nach "load" scrollen: Bis dahin waechst der Kopf noch und das Ziel laege zu weit oben.
+        const zumFilter = () => {
+          const panel = document.querySelector(".px-control-panel");
+          panel.style.scrollMarginTop = "64px";
+          panel.scrollIntoView();
+        };
+        if (document.readyState === "complete") zumFilter();
+        else window.addEventListener("load", zumFilter, { once: true });
       }
 
       function resetFilters() {
@@ -3102,41 +3145,6 @@
       const f = document.getElementById("px-provider-filter");
       if (f) f.dispatchEvent(new Event("change"));
     }).catch(() => {});
-  </script>
-  <script>
-    // Landkarte -> Registry (28.09.26)
-    (function () {
-      const frame = document.getElementById("px-karte-frame");
-      const hinweis = document.getElementById("px-karte-hinweis");
-      const norm = v => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-      // 28.09.26: feste Hoehe. Das Mitwachsen per ResizeObserver schaukelte sich auf
-      // (Landkarte rechnet mit der Rahmenhoehe) und schob die Registry laufend nach unten.
-      function hoehe() {
-        frame.style.height = (window.matchMedia("(max-width: 760px)").matches ? 980 : 860) + "px";
-      }
-      hoehe();
-      window.addEventListener("resize", hoehe);
-      window.addEventListener("message", ev => {
-        if (ev.origin !== location.origin || !ev.data || !ev.data.kiLandkarte) return;
-        const d = ev.data.kiLandkarte;
-        const sel = document.getElementById("px-provider-filter");
-        const such = document.getElementById("px-search");
-        let wert = "";
-        if (d.hersteller && sel) {
-          const ziel = norm(d.hersteller);
-          const opt = [...sel.options].find(o => o.value && (norm(o.value) === ziel || norm(o.textContent).startsWith(ziel) || ziel.startsWith(norm(o.value))));
-          wert = opt ? opt.value : "";
-          sel.value = wert;
-          sel.dispatchEvent(new Event("change"));
-        }
-        if (such) {
-          such.value = d.modell || "";
-          such.dispatchEvent(new Event("input"));
-        }
-        const teile = [wert && ("Hersteller " + wert), d.modell && ("Suche \u201e" + d.modell + "\u201c")].filter(Boolean);
-        hinweis.textContent = teile.length ? "Registry gefiltert: " + teile.join(", ") : (d.hersteller ? d.hersteller + " fuehrt keine Modelle in der Registry." : "");
-      });
-    })();
   </script>
   <script src="assets/registry-panel.js" defer></script>
   <script>

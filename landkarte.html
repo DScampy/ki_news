@@ -4,22 +4,6 @@
     <script src="assets/ki-fetchcache.js"></script>
     <script src="assets/ki-bilder.js"></script>
   <script src="assets/ki-logos.js"></script>
-<script>
-    // Einbettung in modelle.html (28.09.26): ohne Kopf/Navigation, Theme vom Elternfenster
-    window.KI_EMBED = /[?&]embed=1\b/.test(location.search) && window.parent !== window;
-    if (window.KI_EMBED) {
-      document.documentElement.classList.add("ki-embed");
-      try {
-        var pe = window.parent.document.documentElement;
-        pe.classList.forEach(function (c) { document.documentElement.classList.add(c); });
-        if (pe.getAttribute("data-theme")) document.documentElement.setAttribute("data-theme", pe.getAttribute("data-theme"));
-      } catch (e) {}
-    }
-  </script>
-  <style>
-    html.ki-embed #ki-header, html.ki-embed .px-footnote, html.ki-embed .px-skip, html.ki-embed .px-hero { display: none !important; }
-    html.ki-embed body { background: transparent !important; }
-  </style>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
@@ -31,7 +15,7 @@
   <link rel="stylesheet" href="assets/ki-fonts.css">
   <link rel="stylesheet" href="assets/ki-tw.css">
   <script src="assets/ki-icons.js" defer></script>
-  <script>if (!window.KI_EMBED) { var s = document.createElement("script"); s.src = "assets/ki-layout.js"; document.head.appendChild(s); }</script>
+  <script src="assets/ki-layout.js" defer></script>
 
   <style>
     :root {
@@ -1307,8 +1291,7 @@
   <style>/* 29.09.26 Ersatz-Kopf aus */ .px-fallback-header { display: none !important; }</style>
   <style>
     /* 30.09.26 (Daniel: "das weisse Design hat da ein grosses schwarzes Feld"): helle Fassung
-       der Karte, wenn die Seite hell ist (ki-layout.js setzt html.light, die Einbettung in
-       modelle.html uebernimmt die Klassen des Elternfensters). Dunkel bleibt wie bisher. */
+       der Karte, wenn die Seite hell ist (ki-layout.js setzt html.light). Dunkel bleibt wie bisher. */
     html.light .px-map-card {
       border-color: rgba(0, 150, 190, .22);
       background: #f5fafc;
@@ -1455,6 +1438,7 @@
               rel="noopener noreferrer"
               hidden
             ></a>
+            <a class="px-release-link" id="px-list-link" hidden>In der Modell-Liste zeigen</a>
             <button class="px-reset-link" id="px-reset" type="button">
               Zum Zentrum zurück
             </button>
@@ -1689,6 +1673,7 @@
         detailCluster: document.getElementById("px-detail-cluster"),
         detailCopy: document.getElementById("px-detail-copy"),
         release: document.getElementById("px-release-link"),
+        listLink: document.getElementById("px-list-link"),
         releaseStatus: document.getElementById("px-release-status"),
         reset: document.getElementById("px-reset"),
         newsCount: document.getElementById("px-news-count"),
@@ -2603,9 +2588,6 @@
 
         renderDetails();
         renderMetrics();
-        if (window.KI_EMBED && cluster.kind === "Hersteller") {
-          window.parent.postMessage({ kiLandkarte: { hersteller: cluster.label } }, location.origin);
-        }
       }
 
       function selectSelection(selection) {
@@ -2615,14 +2597,6 @@
         applySelectionVisuals();
         renderDetails();
         renderMetrics();
-        if (window.KI_EMBED) {
-          const name = selection && (selection.label || selection.name || "");
-          const istHub = selection === selection.cluster.hub;
-          window.parent.postMessage({ kiLandkarte: istHub && selection.cluster.kind === "Hersteller"
-            ? { hersteller: selection.cluster.label }
-            : { modell: String(name), hersteller: selection.cluster.kind === "Hersteller" ? selection.cluster.label : "" } },
-            location.origin);
-        }
       }
 
       function applySelectionVisuals() {
@@ -2745,6 +2719,28 @@
           })[0] || null;
       }
 
+      // 03.11.26: Link in die Modell-Liste, ersetzt die Filterung aus der Einbettung in modelle.html.
+      // Richtet sich nach der Art des Knotens: Die Satelliten eines Hersteller-Clusters sind andere Anbieter,
+      // "Google" im Cluster OpenAI soll also Googles Modelle zeigen, nicht die Suche "Google" bei OpenAI.
+      // Themen und Personen stehen nicht in der Modell-Liste, dort gibt es keinen Link.
+      function modelListHref(selection) {
+        if (!selection) return "";
+
+        const type = typeLabel(selection.kind);
+        const params = new URLSearchParams();
+
+        if (type === "Anbieter" || type === "Hersteller") {
+          params.set("hersteller", selection.label);
+        } else if (type === "Modell" || type === "Modell oder Produkt") {
+          params.set("modell", selection.label);
+          if (selection.cluster.kind === "Hersteller") params.set("hersteller", selection.cluster.label);
+        } else {
+          return "";
+        }
+
+        return `modelle.html?${params}`;
+      }
+
       function renderDetails() {
         const selection = state.selection;
         const matches = relatedNews(selection);
@@ -2822,6 +2818,16 @@
         }
 
         elements.newsList.replaceChildren(fragment);
+
+        const listHref = modelListHref(selection);
+
+        elements.listLink.hidden = !listHref;
+
+        if (listHref) {
+          elements.listLink.href = listHref;
+        } else {
+          elements.listLink.removeAttribute("href");
+        }
 
         const release = latestRelease(selection);
         const href = release ? safeHref(release.url) : "";
