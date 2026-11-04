@@ -1188,7 +1188,7 @@
   <main class="px-page z-inhalt">
     <section class="px-hero" aria-labelledby="px-title">
       <div>
-        <div class="px-eyebrow">Archivsuche / lokale Daten</div>
+        <div class="px-eyebrow">Archivsuche</div>
         <h1 id="px-title">Dossiers, Meldungen und <span>Modelle durchsuchen.</span></h1>
         <p class="px-hero-copy">
           Direkte Volltextsuche im vorhandenen Newsroom-Bestand. Jede Fundstelle zeigt Quelle,
@@ -1196,9 +1196,9 @@
         </p>
       </div>
 
-      <aside class="px-index" aria-label="Lokaler Datenindex">
+      <aside class="px-index" aria-label="Suchindex">
         <div class="px-index-head">
-          <span>Lokaler Index</span>
+          <span>Suchindex</span>
           <span id="px-index-state">START</span>
         </div>
         <div class="px-index-list">
@@ -1215,13 +1215,13 @@
             <strong id="px-stat-models">Lade</strong>
           </div>
           <div class="px-index-row">
-            <span>Monatsdateien</span>
-            <strong id="px-stat-months">Basis</strong>
+            <span>Ältere Monate</span>
+            <strong id="px-stat-months">keine</strong>
           </div>
         </div>
         <p class="px-index-note">
-          Monatsarchive bis 3 MB werden erst auf Anforderung geladen. Beim Start werden nur
-          news.json, archive.json und registry.json angefordert.
+          Ältere Monate werden erst geladen, wenn du sie auswählst. Beim Start durchsucht die
+          Seite die aktuellen Meldungen, das Archiv und den Modellkatalog.
         </p>
       </aside>
     </section>
@@ -1275,7 +1275,7 @@
       </div>
 
       <div class="px-filter-field">
-        <label class="px-label" for="px-month">Monatsdatei</label>
+        <label class="px-label" for="px-month">Monat</label>
         <select class="px-select" id="px-month">
           <option value="">Monat wählen</option>
         </select>
@@ -1286,7 +1286,7 @@
 
     <div class="px-status-line" aria-live="polite">
       <span class="px-status" id="px-status">Daten werden vorbereitet</span>
-      <span class="px-data-note" id="px-data-note">news.json, archive.json und registry/registry.json</span>
+      <span class="px-data-note" id="px-data-note">Meldungen, Archiv und Modellkatalog</span>
     </div>
 
     <div class="px-workspace">
@@ -1295,7 +1295,7 @@
           <div class="px-empty-inner">
             <div class="px-radar" aria-hidden="true"></div>
             <h2>Ein Suchbegriff genügt.</h2>
-            <p>Die lokalen Daten werden vorbereitet. Großschreibung und Umlaute werden bei der Suche berücksichtigt.</p>
+            <p>Die Daten werden vorbereitet. Großschreibung und Umlaute werden bei der Suche berücksichtigt.</p>
           </div>
         </div>
       </section>
@@ -1329,7 +1329,7 @@
   </main>
 
   <noscript>
-    <p>Diese Archivsuche benötigt JavaScript für das lokale Laden und Durchsuchen der JSON-Dateien.</p>
+    <p>Diese Archivsuche benötigt JavaScript.</p>
   </noscript>
 
   <script>
@@ -2235,12 +2235,12 @@
         list.replaceChildren();
 
         const rows = [
-          [FILES.news, state.loadedFiles.includes(FILES.news) ? "bereit" : "fehlt"],
-          [FILES.archive, state.loadedFiles.includes(FILES.archive) ? "bereit" : "fehlt"],
-          [FILES.registry, state.loadedFiles.includes(FILES.registry) ? "bereit" : "fehlt"],
+          ["Aktuelle Meldungen", state.loadedFiles.includes(FILES.news) ? "bereit" : "fehlt"],
+          ["Archiv", state.loadedFiles.includes(FILES.archive) ? "bereit" : "fehlt"],
+          ["Modellkatalog", state.loadedFiles.includes(FILES.registry) ? "bereit" : "fehlt"],
           [
-            "Monatsarchive",
-            state.loadedMonths.size ? state.loadedMonths.size + " geladen" : "Basis"
+            "Ältere Monate",
+            state.loadedMonths.size ? state.loadedMonths.size + " geladen" : "keine"
           ]
         ];
 
@@ -2260,7 +2260,7 @@
         $("#px-stat-models").textContent = compact(state.models.length);
         $("#px-stat-months").textContent = state.loadedMonths.size
           ? String(state.loadedMonths.size)
-          : "Basis";
+          : "keine";
       }
 
       function renderEmpty(title, message, withPopular) {
@@ -2420,7 +2420,7 @@
         $("#px-data-note").textContent =
           "Treffer: " + compact(total) +
           " | angezeigt: " + compact(visible) +
-          " | Monatsdateien: " + state.loadedMonths.size;
+          " | ältere Monate: " + state.loadedMonths.size;
 
         $("#px-status").textContent = state.errors.length
           ? "Suche mit Teildaten"
@@ -2453,7 +2453,7 @@
         if (news.length) {
           root.append(renderGroup(
             "Meldungen",
-            "Newsroom, Zentralarchiv und geladene Monatsarchive",
+            "Aktuelle Meldungen, Archiv und geladene ältere Monate",
             news.slice(0, RESULT_LIMIT_PER_GROUP),
             news.length,
             "meldung",
@@ -2464,7 +2464,7 @@
         if (models.length) {
           root.append(renderGroup(
             "Modelle",
-            "Einträge aus der lokalen Modell-Registry",
+            "Einträge aus der Modell-Registry",
             models.slice(0, RESULT_LIMIT_PER_GROUP),
             models.length,
             "modell",
@@ -2611,6 +2611,12 @@
         return link;
       }
 
+      function herkunftLabel(origin) {
+        if (origin === FILES.news) return "Aktuell";
+        const monat = origin.match(/(\d{4})-(\d{2})/);
+        return monat ? "Archiv " + monat[2] + "." + monat[1] : "Archiv";
+      }
+
       function renderGroup(title, description, items, totalCount, kind, terms) {
         const section = element("section", "px-group");
         const head = element("div", "px-group-head");
@@ -2662,7 +2668,7 @@
           }
 
           if (kind === "meldung" && item.origin) {
-            tags.append(element("span", "px-tag", item.origin));
+            tags.append(element("span", "px-tag", herkunftLabel(item.origin)));
           }
 
           if (kind === "modell" && item.family) {
@@ -2681,10 +2687,6 @@
             tags.append(element("span", "px-tag", item.label));
           }
 
-          if (item.storyId) {
-            tags.append(element("span", "px-tag", "Story " + item.storyId));
-          }
-
           tags.append(element(
             "span",
             "px-tag",
@@ -2699,7 +2701,7 @@
             element(
               "span",
               "",
-              kind === "dossier" ? "Dossierfundstelle" : "Datensatz geprüft"
+              kind === "dossier" ? "Dossierfundstelle" : kind === "modell" ? "Modelleintrag" : "Meldung"
             ),
             sourceLink(item)
           );
@@ -2763,7 +2765,7 @@
           state.loadedMonths.add(month);
           state.loadedFiles.push(path);
         } else {
-          addError(path + " nicht verfügbar oder nicht lesbar");
+          addError("Monat " + month + " nicht verfügbar");
         }
 
         refreshDerivedData();
@@ -2802,7 +2804,7 @@
             return { month, ok: true };
           }
 
-          addError(path + " nicht verfügbar oder nicht lesbar");
+          addError("Monat " + month + " nicht verfügbar");
           return { month, ok: false };
         }));
 
@@ -2815,8 +2817,8 @@
         ).length;
 
         $("#px-status").textContent = successful
-          ? successful + " von " + pending.length + " Monatsdatei(en) ergänzt"
-          : "Monatsdateien konnten nicht geladen werden";
+          ? successful + " von " + pending.length + " Monat(en) ergänzt"
+          : "Monate konnten nicht geladen werden";
       }
 
       async function copyShareLink() {
@@ -2935,7 +2937,7 @@
 
           button.title = selected
             ? "Ausgewählten Monat laden"
-            : "Monatsdateien von Mai 2026 bis zum Datenstand laden";
+            : "Monate von Mai 2026 bis zum Datenstand laden";
         });
 
         document.addEventListener("keydown", event => {
@@ -2999,13 +3001,13 @@
         );
 
         if (newsResult.ok) state.loadedFiles.push(FILES.news);
-        else addError(FILES.news + " nicht verfügbar");
+        else addError("Aktuelle Meldungen nicht verfügbar");
 
         if (archiveResult.ok) state.loadedFiles.push(FILES.archive);
-        else addError(FILES.archive + " nicht verfügbar");
+        else addError("Archiv nicht verfügbar");
 
         if (registryResult.ok) state.loadedFiles.push(FILES.registry);
-        else addError(FILES.registry + " nicht verfügbar");
+        else addError("Modellkatalog nicht verfügbar");
 
         updateReferenceDate();
         populateManufacturers();
@@ -3024,7 +3026,7 @@
 
       document.addEventListener("DOMContentLoaded", () => {
         init().catch(() => {
-          addError("Die lokalen Daten konnten nicht vollständig verarbeitet werden");
+          addError("Die Daten konnten nicht vollständig verarbeitet werden");
 
           if ($("#px-status")) {
             $("#px-status").textContent = "Suche mit Teildaten";
@@ -3036,8 +3038,8 @@
 
           if ($("#px-results")) {
             renderEmpty(
-              "Der lokale Datenbestand ist nur teilweise verfügbar.",
-              "Die Oberfläche bleibt bedienbar. Prüfe die JSON-Dateien und lade die Seite erneut.",
+              "Der Datenbestand ist nur teilweise verfügbar.",
+              "Die Oberfläche bleibt bedienbar. Lade die Seite bitte neu.",
               true
             );
           }

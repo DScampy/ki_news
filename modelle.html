@@ -1640,7 +1640,7 @@
 
         <aside class="px-stand-card" aria-labelledby="px-stand-heading">
           <div class="px-stand-top">
-            <span class="px-stand-label" id="px-stand-heading">Stand / Pipeline</span>
+            <span class="px-stand-label" id="px-stand-heading">Stand / Katalog</span>
             <span class="px-stand-state" id="px-stand-state" role="status">Wird geprüft</span>
           </div>
 
@@ -1650,12 +1650,12 @@
           </div>
 
           <p class="px-stand-note">
-            Zeitpunkt des letzten Pipeline-Laufs aus registry.json.
-            Das Alter des neuesten Katalogmodells wird separat und ohne Warnung angezeigt.
+            Zeitpunkt der letzten Aktualisierung des Katalogs.
+            Das neueste Modell im Katalog steht darunter.
           </p>
 
           <p class="px-stand-warning" id="px-stand-warning" role="status" hidden>
-            Der Pipeline-Stand ist älter als zwei Tage. Der Katalog kann dadurch unvollständig sein.
+            Die letzte Aktualisierung ist älter als zwei Tage. Der Katalog kann dadurch unvollständig sein.
           </p>
 
           <p class="px-latest">
@@ -1766,7 +1766,7 @@
           <p class="px-empty-code" id="px-empty-code">Kein Ergebnis</p>
           <h2 id="px-empty-title">Die Registry ist gerade nicht verfügbar</h2>
           <p id="px-empty-text">
-            Bitte prüfe die Datei registry/registry.json auf dem Server und versuche den Ladevorgang erneut.
+            Bitte versuche es gleich noch einmal.
           </p>
           <button class="px-button px-button-primary" id="px-empty-action" type="button">
             Erneut versuchen
@@ -1819,7 +1819,7 @@
 
           <!-- Ansicht 2: Artikel nach Facetten -->
           <div id="rg-view-art" role="tabpanel" aria-labelledby="rg-tab-art" tabindex="-1" hidden>
-          <p class="text-[11px] text-gray-500 font-mono mb-3">Zwei Achsen: Anbieter und Modell sagen <em>wer</em>, die Facetten sagen <em>worüber</em>.</p>
+          <p class="text-[11px] text-gray-500 font-mono mb-3">Zwei Achsen: Anbieter und Modell sagen <em>wer</em>, die Filter sagen <em>worüber</em>.</p>
           <div class="rg-bar">
             <input class="rg-inp" id="rg-aq" placeholder="Artikel durchsuchen …" aria-label="Artikel durchsuchen">
             <select class="rg-inp" id="rg-f-re" aria-label="Ressort"><option value="">Ressort: alle</option></select>
@@ -1838,7 +1838,7 @@
       <footer class="px-footer">
         <div>
           <strong>KI NEWS / MODELL-REGISTRY</strong><br>
-          Katalogdaten aus registry.json. Betreiber: Daniel, Scampy.
+          Betreiber: Daniel, Scampy.
         </div>
         <div class="px-footer-links">
           <a href="index.html">Aktuell</a>
@@ -2323,14 +2323,14 @@
           const stale = age > PX_TWO_DAYS;
 
           stateNode.classList.toggle("px-state-stale", stale);
-          stateNode.textContent = stale ? "Pipeline veraltet" : "Aktuell";
+          stateNode.textContent = stale ? "Veraltet" : "Aktuell";
           warningNode.hidden = !stale;
         } else {
           dateNode.textContent = stand || "Nicht angegeben";
           timeNode.hidden = true;
           timeNode.removeAttribute("datetime");
           timeNode.removeAttribute("title");
-          stateNode.textContent = stand ? "Format offen" : "Kein Stand";
+          stateNode.textContent = stand ? "Stand unklar" : "Kein Stand";
         }
 
         const latest = newestDate(models);
@@ -2857,7 +2857,7 @@
             renderEmpty(
               "Ladefehler",
               "Die Registry ist gerade nicht verfügbar",
-              "Die Registry-Datei konnte nicht gelesen werden. Die Seite bleibt bedienbar und kann den Abruf erneut versuchen.",
+              "Die Modelldaten konnten nicht geladen werden. Die Seite bleibt bedienbar und kann den Abruf erneut versuchen.",
               "Erneut versuchen"
             );
           } else if (state.models.length) {

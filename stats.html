@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       <div class="stat-card">
         <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Artikel gesamt</p>
         <p class="font-black text-2xl mb-0.5" style="font-family:'Space Grotesk',sans-serif;color:var(--accent)" id="m-total">—</p>
-        <p class="text-[10px] text-gray-500 font-mono">news.json + archive.json</p>
+        <p class="text-[10px] text-gray-500 font-mono">Aktuell + Archiv</p>
       </div>
       <div class="stat-card">
         <p class="text-[9px] font-mono uppercase tracking-widest mb-1" style="color:rgba(var(--neon-rgb),0.5)">Quellen aktiv</p>
@@ -335,8 +335,8 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
       </div>
 
       <div class="chart-card">
-        <p class="section-title mb-1">Pipeline-Gesundheit</p>
-        <p class="meta-text mb-4">Letzte Läufe · Batches, Sprach-Guard und Warnungs-Gründe aus dem internen Betriebs-Log (die letzten ~10 Läufe)</p>
+        <p class="section-title mb-1">Betriebszustand</p>
+        <p class="meta-text mb-4">Die letzten rund 10 Läufe · erledigte Arbeitspakete, von der Sprachprüfung aussortierte Artikel und Gründe für Warnungen</p>
         <div id="pipeline-health"></div>
       </div>
     </div>
@@ -356,12 +356,6 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.__kiApplyTh
         <p class="section-title mb-1">⚡ Creator Radar</p>
         <p class="meta-text mb-4">Aktuelle News-Session – was ist gerade relevant</p>
         <div id="current-top-list"></div>
-
-        <!-- Tip -->
-        <div class="mt-5 p-4 rounded-lg" style="background:rgba(var(--neon-rgb),0.05);border:1px solid rgba(var(--neon-rgb),0.15)">
-          <p class="text-[10px] font-mono uppercase tracking-widest mb-2" style="color:rgba(var(--neon-rgb),0.5)">💡 Tipp: Besucher-Daten</p>
-          <p class="text-[12px] text-gray-400 leading-relaxed">Diese Statistik zeigt deine <strong style="color:#dfe3ea">Content-Daten</strong>. Für echte Besucher-Zahlen (Seitenaufrufe, Klicks, Herkunft) ist <strong style="color:var(--accent)">Cloudflare Web Analytics</strong> kostenlos – ein Script-Tag reicht, kein Server nötig.</p>
-        </div>
       </div>
     </div>
 
@@ -977,18 +971,18 @@ function categorizeWarnings(chunk) {
 }
 function warnLabel(b) {
   const parts = [];
-  if (b.rateLimit)    parts.push(`${b.rateLimit}&times; Rate-Limit`);
-  if (b.unusable)     parts.push(`${b.unusable}&times; Modell-Ausgabe unbrauchbar`);
+  if (b.rateLimit)    parts.push(`${b.rateLimit}&times; Anfragelimit erreicht`);
+  if (b.unusable)     parts.push(`${b.unusable}&times; KI-Antwort unbrauchbar`);
   if (b.feedBlocked)  parts.push(`${b.feedBlocked}&times; Quelle blockiert`);
   if (b.translation)  parts.push(`${b.translation}&times; &Uuml;bersetzung fehlgeschlagen`);
   if (b.other)        parts.push(`${b.other}&times; Sonstige`);
-  return parts.join(' &middot; ') || 'keine Auffaelligkeiten';
+  return parts.join(' &middot; ') || 'keine Auffälligkeiten';
 }
 
 function renderPipelineHealth(logText) {
   const container = document.getElementById('pipeline-health');
   if (!container) return;
-  if (!logText) { container.innerHTML = '<p class="meta-text">Betriebs-Log nicht erreichbar.</p>'; return; }
+  if (!logText) { container.innerHTML = '<p class="meta-text">Betriebsdaten gerade nicht erreichbar.</p>'; return; }
 
   const chunks = logText.split(/(?===+ LAUF )/).filter(c => /^=+\s*LAUF/.test(c.trim()));
   const runs = chunks.map(chunk => {
@@ -1005,7 +999,7 @@ function renderPipelineHealth(logText) {
     };
   }).filter(r => r.ts).reverse(); // neuester Lauf zuerst
 
-  if (!runs.length) { container.innerHTML = '<p class="meta-text">Keine Lauf-Marker im Log gefunden.</p>'; return; }
+  if (!runs.length) { container.innerHTML = '<p class="meta-text">Noch keine Läufe erfasst.</p>'; return; }
 
   container.innerHTML = runs.map(r => {
     const d = new Date(r.ts);
@@ -1015,8 +1009,8 @@ function renderPipelineHealth(logText) {
     return `<div style="display:flex;flex-direction:column;gap:3px;padding:7px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px;${flagged ? 'background:rgba(249,115,22,0.06)' : ''}">
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
         <span style="font-family:monospace;color:var(--accent);width:100px;flex-shrink:0">${label}</span>
-        <span style="font-family:monospace;color:${incomplete ? '#f97316' : '#6b7280'}">${r.attempted != null ? r.attempted + ' versucht / ' + r.ok + ' OK' : '—'}</span>
-        <span style="font-family:monospace;color:${r.guardRejects ? '#f97316' : '#6b7280'}">Sprach-Guard: ${r.guardRejects ?? '—'}</span>
+        <span style="font-family:monospace;color:${incomplete ? '#f97316' : '#6b7280'}">${r.attempted != null ? r.ok + ' von ' + r.attempted + ' Paketen erledigt' : '-'}</span>
+        <span style="font-family:monospace;color:${r.guardRejects ? '#f97316' : '#6b7280'}">Aussortiert: ${r.guardRejects ?? '-'}</span>
         <span style="font-family:monospace;color:${r.warnCount > 15 ? '#f87171' : '#6b7280'};margin-left:auto">${r.warnCount} Warnungen</span>
       </div>
       <div style="font-family:monospace;font-size:10px;color:#6b7280;padding-left:114px">${warnLabel(r.warnBuckets)}</div>

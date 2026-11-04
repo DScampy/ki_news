@@ -40,8 +40,8 @@ erzeugte = []
 ENTWICKLERTEXT = re.compile(
     r"\b[\w-]+\.json\b|lokale[nrs]? (Daten|Datei|Volltext)|relative[nr]? (Pfad|lokale)|"
     r"Entity-Registry|Video-Card|Keine belastbare Zuordnung", re.I)
-# Bekannt und noch offen (Stand 03.11.26). Wer eine dieser Seiten bereinigt, nimmt sie hier heraus.
-ENTWICKLERTEXT_OFFEN = {"belege.html", "dossiers.html", "landkarte.html", "modelle.html", "stats.html", "suche.html"}
+# Bekannt und noch offen. Wer hier eine Seite einträgt, nennt den Grund im PR.
+ENTWICKLERTEXT_OFFEN = set()
 
 # Sichtbarer Text, der links von der offenen Leiste beginnt. Die Leisten selbst zählen nicht.
 VERDECKT_JS = r"""() => {
