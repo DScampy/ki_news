@@ -1655,7 +1655,7 @@
 
         return results.sort(function (a, b) {
           return timestamp(dateFor(b.item)) - timestamp(dateFor(a.item));
-        }).slice(0, 8);
+        });
       };
 
       var cardTones = ["cyan", "violet", "green", "orange"];
@@ -1768,7 +1768,7 @@
         // bekam das Bild einer TechCrunch-Meldung zu Anthropic.
         var indexResult = await settle(fetchJSON("artikel/artikel-index.json"));
         // Einbau 28.09.26: eigene Artikel aus artikel/artikel-index.json (pflegt tools/neuer-artikel.py)
-        var ARTIKEL_BILDER = {"anthropic-missbrauchsbericht-september-2026": "artikel/anthropic-missbrauchsbericht-september-2026-og.png", "alphagenome-atlas": "artikel/alphagenome-atlas-og.png", "dsewiki-leseluecke": "artikel/dsewiki-leseluecke-og.png", "agenten-schwaerme-betrueger-whistleblower": "", "llm-zufallszahl-fingerprint": "artikel/llm-zufallszahl-fingerprint-og.png", "rtx-spark-im-check": "artikel/rtx-spark-im-check-og.png", "rtx-spark-fuer-wen": "artikel/nvidia-rtx-spark.png", "nvidia-rtx-spark": "artikel/nvidia-rtx-spark.png", "peking-gericht": ""};
+        var ARTIKEL_BILDER = {"anthropic-missbrauchsbericht-september-2026": "artikel/anthropic-missbrauchsbericht-september-2026-og.png", "alphagenome-atlas": "artikel/alphagenome-atlas-og.png", "dsewiki-leseluecke": "artikel/dsewiki-leseluecke-og.png", "agenten-schwaerme-betrueger-whistleblower": "artikel/agenten-schwaerme-og.png", "llm-zufallszahl-fingerprint": "artikel/llm-zufallszahl-fingerprint-og.png", "rtx-spark-im-check": "artikel/rtx-spark-im-check-og.png", "rtx-spark-fuer-wen": "artikel/nvidia-rtx-spark.png", "nvidia-rtx-spark": "artikel/nvidia-rtx-spark.png", "peking-gericht": ""};
         var newsData = {};
 
         if (indexResult.ok && Array.isArray(indexResult.value)) {
