@@ -811,12 +811,6 @@ ul.recherchen h2 a:hover{color:var(--akzent)}
 ul.recherchen p.text{margin:0}
 """.strip()
 
-_KOPF = ('<header class="kopf"><a class="marke" href="/">KI News</a>'
-         '<nav class="nav"><a href="/">Startseite</a><a href="/dossiers.html">Dossiers</a>'
-         '<a class="weg" href="/Archiv.html">Archiv</a></nav></header>')
-_FUSS = ('<footer class="fuss"><a href="/">ki-news.live</a><a href="/Impressum.html">Impressum</a>'
-         '<a href="/Datenschutz.html">Datenschutz</a></footer>')
-
 
 def _youtube_id(u):
     m = re.search(r"(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([\w-]{11})", u or "")
@@ -867,11 +861,12 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
         '<link rel="preload" href="/assets/fonts/Fraunces-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
         '<link rel="preload" href="/assets/fonts/WorkSans-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
         '<link rel="stylesheet" href="/assets/ki-fonts.css"/>',
+        ms._ICONS,
         f"<script>{ms._THEME_JS}</script>",
         f"<style>{ms._CSS}\n{_CSS_EXTRA}</style>",
         f'<script type="application/ld+json">{ld_txt}</script>',
         "</head>", "<body>",
-        _KOPF,
+        ms._KOPF,
         "<main>", "<article>",
     ]
     if entwurf:
@@ -930,7 +925,7 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
         'gedeckt ist. Fehler sind trotzdem möglich, maßgeblich sind die Originalquellen.</p>')
     teile += [
         "</main>",
-        _FUSS,
+        ms._FUSS,
         '<script src="/assets/ki-embed.js"></script>',
         "<script>(function(){if(!window.KIEmbed)return;document.querySelectorAll('[data-yt]').forEach("
         "function(el){el.innerHTML=KIEmbed.youtube(el.getAttribute('data-yt'),{label:'VIDEO'});});})();</script>",
@@ -986,9 +981,10 @@ def uebersicht(register):
         '<link rel="preload" href="/assets/fonts/Fraunces-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
         '<link rel="preload" href="/assets/fonts/WorkSans-Variable.woff2" as="font" type="font/woff2" crossorigin/>',
         '<link rel="stylesheet" href="/assets/ki-fonts.css"/>',
+        ms._ICONS,
         f"<script>{ms._THEME_JS}</script>",
         f"<style>{ms._CSS}\n{_CSS_EXTRA}\n{_CSS_LISTE}</style>",
-        "</head>", "<body>", _KOPF, "<main>",
+        "</head>", "<body>", ms._KOPF, "<main>",
         "<h1>Recherche</h1>",
         f'<p class="anriss">{beschreibung}</p>',
         '<ul class="recherchen">' + "".join(zeilen) + "</ul>" if zeilen
@@ -997,7 +993,7 @@ def uebersicht(register):
         'zusammen. Vor der Veröffentlichung wird automatisch geprüft, dass jede Zahl, jedes Datum und jeder Name '
         'in mindestens einer Quelle steht und dass jeder Absatz durch die genannten Quellen gedeckt ist. Fehler '
         'sind trotzdem möglich, maßgeblich sind die Originalquellen.</p>',
-        "</main>", _FUSS, "</body>", "</html>", "",
+        "</main>", ms._FUSS, "</body>", "</html>", "",
     ]
     ms._schreiben_wenn_neu(ORDNER / "index.html", "\n".join(seite))
 

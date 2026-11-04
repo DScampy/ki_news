@@ -29,5 +29,8 @@ jobs:
         run: |
           pip install playwright
           python3 -m playwright install --with-deps chromium
+      # Die Pipeline stellt erzeugte Seiten im nächsten Lauf um. Hier dasselbe vorab, nur im Testordner.
+      - name: Erzeugte Seiten nachziehen wie die Pipeline
+        run: python3 -c "import meldungsseiten as m; print(m._leisten_nachziehen('.'), 'Seiten umgestellt')"
       - name: Leisten im Browser prüfen
         run: python3 tools/layout_check.py
