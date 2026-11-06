@@ -2132,7 +2132,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   }
   #px-hero .px-hero-buehne .px-hero-importance::before { display: none; }
   #px-hero .px-hero-buehne .px-hero-main-title {
-    max-width: none;
+    max-width: 100%; /* 06.11.26: vorher none, dann wurde der Titel am Handy breiter als die Buehne und rechts abgeschnitten */
     margin: 0;
     color: #fff;
     -webkit-line-clamp: 6;
@@ -3518,6 +3518,8 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
       font-size: clamp(1.375rem, 1rem + 1vw, var(--ki-fs-h3));
       line-height: 1.16;
     }
+    /* 06.11.26: unter 360 px eine Stufe kleiner, damit lange Woerter nicht mitten im Wort brechen */
+    @media (max-width: 359px) { #pxk-kompakt .pxz-auf .pxz-t { font-size: 1.25rem; } }
     #pxk-kompakt .pxz-auf .pxz-teaser { font-size: var(--ki-fs-text); }
     #pxk-kompakt .pxz-neben-liste { display: grid; align-content: start; gap: 22px; }
     #pxk-kompakt .pxz-neben {
@@ -5610,7 +5612,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         <span class="ki-main font-black text-lg tracking-tighter" style="font-family:'Space Grotesk',sans-serif">KI NEWS</span>
         <p class="text-[11px] ki-muted font-mono mt-1">Täglich. Auf Deutsch. Mit Kontext. – von <a href="https://x.com/ScampyKI" target="_blank" class="text-[#1d9bf0] hover:underline">@ScampyKI</a></p>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="flex flex-wrap justify-center items-center gap-4">
         <a href="Archiv.html" class="ki-muted hover:text-white transition-colors text-xs font-mono">Archiv</a>
         <a href="https://x.com/ScampyKI" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">X/Twitter</a>
         <a href="https://soundcloud.com/dscampy/sets/podcast-wissen" target="_blank" class="ki-muted hover:text-white transition-colors text-xs font-mono">Podcast</a>

@@ -212,5 +212,11 @@ html.dark{--z-papier:#15181b;--z-tinte:#ecebe7;--z-grau:#a7acb3;--z-linie:#2a2e3
 .z-recht table{width:100%;border-collapse:collapse;font-size:.875rem;margin:.85rem 0;}
 .z-recht th,.z-recht td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--z-linie);vertical-align:top;}
 .z-recht th{color:var(--z-grau);font-weight:600;}
+/* Schmale Handys (06.11.26): lange Adressen im Text brechen um, die Tabelle wischt seitlich statt die Seite
+   zu verbreitern, die Ueberschrift passt bei 320 px in die Zeile. Kill-Switch: diese sechs Zeilen entfernen. */
+.z-recht p{overflow-wrap:break-word;}
+.z-recht .z-tabelle{overflow-x:auto;margin:.85rem 0;}.z-recht .z-tabelle table{margin:0;}
+@media (max-width:400px){.z-recht th,.z-recht td{padding:8px 5px;}.z-recht th:first-child,.z-recht td:first-child{padding-left:0;}}
+@media (max-width:359px){.z-recht h1{font-size:1.625rem;}}
 .z-recht footer{padding-top:18px;padding-bottom:32px;font-size:.8125rem;color:var(--z-grau);text-align:center;}
 .z-recht footer a{color:var(--z-grau);margin:0 8px;}
