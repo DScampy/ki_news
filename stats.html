@@ -84,12 +84,15 @@
   /* ── Quellen-Ranking (ersetzt Chart.js-Balken) ── */
   .srcrow{display:flex;align-items:center;gap:10px;padding:4px 0;}
   .srcrow-rank{font-family:monospace;font-size:10px;color:rgba(var(--neon-rgb),0.5);width:20px;flex-shrink:0;text-align:right;}
-  .srcrow-name{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;width:128px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .srcrow-name{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;width:128px;flex-shrink:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .srcrow-bar{flex:1;height:14px;border-radius:4px;background:rgba(var(--neon-rgb),0.06);overflow:hidden;position:relative;}
   .srcrow-bar>div{height:100%;border-radius:4px;transition:width .45s cubic-bezier(.22,1,.36,1);box-shadow:0 0 8px rgba(var(--neon-rgb),0.25);}
   .srcrow-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;color:var(--text,#e8f8ff);width:38px;text-align:right;flex-shrink:0;}
   .srcrow-avg{font-family:monospace;font-size:10px;color:var(--muted,#6b7280);width:52px;flex-shrink:0;text-align:right;}
   html.light .srcrow-val{color:#0f172a;}
+  /* Schmale Handys (06.11.26): unter 360 px weniger Rand und kein Balken, damit Wert und Schnitt in der Karte bleiben.
+     Kill-Switch: diese Zeile entfernen. */
+  @media (max-width:359px){.chart-card{padding:16px;}.srcrow-bar{display:none;}}
   .section-title {
     font-family:'Space Grotesk',sans-serif;
     font-weight:700; font-size:18px;
@@ -943,8 +946,8 @@ function renderThemeTrends(all) {
     const trendColor = secondHalf > firstHalf ? '#34d399' : secondHalf < firstHalf ? '#f87171' : '#6b7280';
     const trendIcon  = secondHalf > firstHalf ? '▲' : secondHalf < firstHalf ? '▼' : '▬';
     return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(var(--neon-rgb),0.07);font-size:11px">
-      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;width:100px;flex-shrink:0;color:var(--text,#dfe3ea)" class="truncate">${escapeHtml(r.term)}</span>
-      <svg width="${w}" height="${h}" style="flex-shrink:0;overflow:visible"><polyline points="${points}" fill="none" stroke="var(--accent,#00d4ff)" stroke-width="1.5"/></svg>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;flex:0 1 100px;min-width:0;color:var(--text,#dfe3ea)" class="truncate">${escapeHtml(r.term)}</span>
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="flex:0 1 ${w}px;min-width:0;overflow:visible"><polyline points="${points}" fill="none" stroke="var(--accent,#00d4ff)" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
       <span style="font-family:monospace;color:#6b7280;width:26px;text-align:right;flex-shrink:0">${r.total}</span>
       <span style="color:${trendColor};flex-shrink:0">${trendIcon}</span>
     </div>`;
