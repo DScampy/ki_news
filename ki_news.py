@@ -1260,7 +1260,13 @@ MODELLE = [
     # Erfunden hat keines etwas (Jev-Satzpruefung).
     "meta-llama/llama-3.3-70b-instruct",               # stabilster Partner fuer ultra
     "google/gemini-2.5-flash-lite",                     # schnell, zweite Wahl
-    "poolside/laguna-s-2.1:free",                        # einziger weiterer Gratis-Slot
+    # 06.11.26 entfernt: "poolside/laguna-s-2.1:free" - seit 31.10. 14:01 UTC nicht mehr im
+    # OpenRouter-Katalog (modell_check.py: TOT, Annotation in jedem Lauf). Gegenprobe:
+    # /api/v1/models/poolside/laguna-s-2.1:free/endpoints liefert "endpoints": [] (ohne
+    # :free genauso), im Katalog steht kein Poolside-Modell mehr, also kein Nachfolger.
+    # Produktion 31.10.-06.11.: 57x HTTP 404, 0 Treffer. Letzter Erfolg 29.10.
+    # Damit ist nemotron-ultra oben der einzige Gratis-Slot in MODELLE. Neuen Gratis-Slot
+    # erst nach Produktionsformat-Test aufnehmen, nicht auf Verdacht.
     "google/gemma-3-27b-it",                            # Letzter Fallback
 ]
 NACHZUEGLER_MAX = 12   # 02.10.26: einzeln aussortierte Artikel bekommen eine zweite Runde (0 = aus)
