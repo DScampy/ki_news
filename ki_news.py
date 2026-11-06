@@ -4192,6 +4192,14 @@ def summarize_news(alle_news, summary_cache=None):
     _TITEL_ABKUERZUNG_AM_ENDE = re.compile(
         r"\b(?:Dr|Prof|Nr|St|bzw|ca|vs|Mio|Mrd|Inc|Corp|Ltd|Jr|Sr|z\.\s?B|u\.\s?a|d\.\s?h)\.$")
     _CJK_PATTERN = re.compile(r'[一-鿿぀-ヿ가-힣Ѐ-ӿ]')
+    # 06.11.26: Fuer "Titel mehrsatzig" zaehlen nur echte Satzenden, also Satzzeichen vor Leerzeichen
+    # oder Textende. Vorher zaehlte jeder Punkt, auch in "GPT-6.1", "mink 1.4.0", "itch.io" oder
+    # "Co., Ltd.". Setzte das Modell dahinter den Schlusspunkt, fiel der Titel bei allen Modellen durch
+    # und der Artikel als "unuebersetzt" aus news.json (30.10.-06.11.: 8 von 9 Ausfaellen, 6 nie live).
+    # Kill-Switch: _SATZENDE = re.compile(r"[.!?]") und _ABK_MIT_PUNKT = re.compile(r"(?!)") setzen.
+    _SATZENDE = re.compile(r"[.!?][\"'”“]?(?=\s|$)")
+    _ABK_MIT_PUNKT = re.compile(
+        r"\b(?:Co|Inc|Ltd|Corp|Jr|Sr|Dr|Prof|Nr|St|bzw|ca|vs|Mio|Mrd|U\.S|e\.V|z\.\s?B|u\.\s?a|d\.\s?h)\.")
 
     def _has_foreign_script(text: str) -> bool:
         return bool(_CJK_PATTERN.search(text or ""))
@@ -4407,7 +4415,7 @@ News:
                         # Headline sprengt dort das Flexbox-Layout und verdraengt den
                         # kompletten "Was ist passiert"-Block. Hier an der Wurzel abfangen:
                         # title_de darf nur EIN Satzende-Zeichen enthalten.
-                        if t and len(re.findall(r"[.!?]", t)) > 1:
+                        if t and len(_SATZENDE.findall(_ABK_MIT_PUNKT.sub("", t))) > 1:
                             return "Titel mehrsatzig"
                         # Phase 4 (25.09.26), Watchlist 09.08.: "... vertrauen oft auf Dr." -
                         # ein Titel, der nach einer Abkuerzung abbricht, hat nur EIN Satzzeichen
