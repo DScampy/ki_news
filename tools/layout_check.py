@@ -43,8 +43,38 @@ ENTWICKLERTEXT = re.compile(
 # Bekannt und noch offen. Wer hier eine Seite einträgt, nennt den Grund im PR.
 ENTWICKLERTEXT_OFFEN = set()
 
+# Der sichtbare Teil eines Rechtecks. Ein Bereich mit overflow schneidet ab, was über seinen Rand ragt,
+# zum Beispiel ältere Einträge in einem seitlich scrollenden Band. Ohne diesen Zuschnitt meldeten die
+# Prüfungen solche Einträge als verdeckt, sobald sie links aus dem Band herausgescrollt waren (Startseite,
+# Band „Linie“, 06.11.26). Ein Element mit position:absolute entkommt den Bereichen bis zu seinem
+# Bezugsblock, eines mit position:fixed allen ohne transform. selbst = das Element schneidet sich selbst.
+ZUSCHNITT_JS = r"""
+  const zuschnitt = (r, el, selbst) => {
+    let links = r.left, oben = r.top, rechts = r.right, unten = r.bottom, sucht = null;
+    for (let e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      const s = getComputedStyle(e);
+      const transform = s.transform !== 'none';
+      if (sucht === 'absolute' && (s.position !== 'static' || transform)) sucht = null;
+      if (sucht === 'fixed' && transform) sucht = null;
+      if (!sucht && (selbst || e !== el) && s.display !== 'inline') {
+        const b = e.getBoundingClientRect();
+        if (s.overflowX !== 'visible') {
+          links = Math.max(links, b.left + e.clientLeft);
+          rechts = Math.min(rechts, b.left + e.clientLeft + e.clientWidth);
+        }
+        if (s.overflowY !== 'visible') {
+          oben = Math.max(oben, b.top + e.clientTop);
+          unten = Math.min(unten, b.top + e.clientTop + e.clientHeight);
+        }
+      }
+      if (s.position === 'fixed') sucht = 'fixed';
+      else if (s.position === 'absolute' && sucht !== 'fixed') sucht = 'absolute';
+    }
+    return { left: links, top: oben, right: rechts, bottom: unten, width: rechts - links, height: unten - oben };
+  };"""
+
 # Sichtbarer Text, der links von der offenen Leiste beginnt. Die Leisten selbst zählen nicht.
-VERDECKT_JS = r"""() => {
+VERDECKT_JS = r"""() => {""" + ZUSCHNITT_JS + r"""
   const leiste = document.getElementById('sidebar');
   const rechts = leiste ? leiste.getBoundingClientRect().right : 0;
   if (rechts < 100) return { rechts, treffer: [] };
@@ -58,8 +88,8 @@ VERDECKT_JS = r"""() => {
     if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
     const bereich = document.createRange();
     bereich.selectNodeContents(knoten);
-    const r = bereich.getBoundingClientRect();
-    if (r.width && r.height && r.right > 0 && r.bottom > 0 && r.left < rechts - 1) {
+    const r = zuschnitt(bereich.getBoundingClientRect(), el, true);
+    if (r.width > 0 && r.height > 0 && r.right > 0 && r.bottom > 0 && r.left < rechts - 1) {
       treffer.push(Math.round(rechts - r.left) + ' px: ' + knoten.nodeValue.trim().slice(0, 40));
     }
   }
@@ -67,7 +97,7 @@ VERDECKT_JS = r"""() => {
 }"""
 
 # Sichtbarer Text und Kästen hinter der festen oberen Leiste, gemessen direkt nach dem Laden.
-UNTER_NAV_JS = r"""() => {
+UNTER_NAV_JS = r"""() => {""" + ZUSCHNITT_JS + r"""
   const nav = document.getElementById('kl-nav');
   if (!nav) return [];
   const unten = nav.getBoundingClientRect().bottom;
@@ -81,7 +111,7 @@ UNTER_NAV_JS = r"""() => {
     if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
     const bereich = document.createRange();
     bereich.selectNodeContents(knoten);
-    const r = bereich.getBoundingClientRect();
+    const r = zuschnitt(bereich.getBoundingClientRect(), el, true);
     if (r.width > 1 && r.height > 1 && r.bottom > 0 && r.top < unten - 1) {
       treffer.push(Math.round(unten - r.top) + ' px: ' + knoten.nodeValue.trim().slice(0, 40));
     }
@@ -90,7 +120,7 @@ UNTER_NAV_JS = r"""() => {
     if (el.closest('#kl-nav,#sidebar,#sidebar-toggle,#sidebar-backdrop,#kl-ov')) continue;
     const st = getComputedStyle(el);
     if (st.position === 'fixed' || !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
-    const r = el.getBoundingClientRect();
+    const r = zuschnitt(el.getBoundingClientRect(), el, false);
     if (r.top >= unten - 1 || r.bottom <= unten || r.top < -40 || r.width < 40) continue;
     const rand = parseFloat(st.borderTopWidth) > 0 && !st.borderTopColor.endsWith(', 0)');
     const flaeche = !st.backgroundColor.endsWith(', 0)') && parseFloat(st.borderTopLeftRadius) > 0;
