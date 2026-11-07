@@ -130,6 +130,10 @@ def laeufe(seit, frist):
 def log_zaehler(logs):
     text = "\n".join(t for _, t in logs)
     medien = [int(x) for _, t in logs for x in re.findall(r"medien_aufraeumen \[.*?\((\d+) MB\)", t)[-1:]]
+    # 07.11.26: Karten-Videos im eigenen Repo. Der Karten-Schritt meldet dann "Video-Repo gesamt",
+    # und "Site gesamt" (ki_news.log) ist schon NACH dem Aufraeumen gemessen.
+    video = [int(x) for _, t in logs for x in re.findall(r"Video-Repo gesamt (\d+) MB", t)[-1:]]
+    video_lauf = next(("Video-Repo gesamt" in t for _, t in logs if "medien_aufraeumen [" in t), False)
     return {
         "wortsync_ok": len(re.findall(r"✓ Wort-Sync:", text)),
         "wortsync_aus": len(re.findall(r"\[INFO\] Wort-Sync:", text)),
@@ -138,12 +142,15 @@ def log_zaehler(logs):
         "deckung_nein": len(re.findall(r"JEV-DECKUNG nicht bestanden", text)),
         "medien_weg_mb": sum(medien),
         "medien_weg_letzter": medien[0] if medien else 0,   # logs sind neueste zuerst
+        "video_mb": video[0] if video else None,
+        "video_lauf": video_lauf,   # juengster Lauf mit Aufraeumen hat ins Video-Repo geschrieben
     }
 
 
 def site_mb(log, seit):
     # Die bilder_spiegel-Zeile hat keinen eigenen Zeitstempel -> letzter Zeitstempel davor zaehlt.
-    # Achtung: gemessen VOR dem Aufraeumen der Karten im selben Lauf.
+    # Achtung: gemessen VOR dem Aufraeumen der Karten im selben Lauf (seit 07.11.26 mit Video-Repo:
+    # danach, die Karten liegen dann woanders).
     werte, letzte_zeit = [], ""
     for z in log.splitlines():
         t = ZEIT_RE.match(z)
@@ -251,17 +258,26 @@ def bauen(basis: Path, stunden: int):
     except Exception as e:
         zeilen.append(f"Läufe: n/a ({e.__class__.__name__})")
 
-    # Medien-Repo (Wert aus ki_news.log ist VOR dem Aufraeumen des letzten Laufs gemessen)
+    # Medien-Repo (Wert aus ki_news.log ist VOR dem Aufraeumen des letzten Laufs gemessen,
+    # mit Video-Repo seit 07.11.26 danach) und Video-Repo (Zeile aus dem Job-Log)
     try:
         mb, delta = site_mb(log, seit)
         if mb is None:
             zeilen.append("Medien-Repo: n/a")
         else:
-            nach = mb - (z["medien_weg_letzter"] if z else 0)
             d = f", 24 h: {delta:+d} MB" if delta is not None else ""
-            zeilen.append(f"Medien-Repo: ca. {nach} von 1024 MB (vor Aufräumen {mb}{d})")
+            if z and z["video_lauf"]:
+                nach = mb   # 07.11.26: schon nach dem Aufraeumen gemessen
+                zeilen.append(f"Medien-Repo (Bilder): ca. {nach} von 1024 MB{d}")
+            else:
+                nach = mb - (z["medien_weg_letzter"] if z else 0)
+                zeilen.append(f"Medien-Repo: ca. {nach} von 1024 MB (vor Aufräumen {mb}{d})")
             if nach > WARN_SITE_MB:
                 warn.append(f"Medien-Repo ca. {nach} MB (Grenze 1024)")
+        if z and z["video_mb"] is not None:
+            zeilen.append(f"Video-Repo: ca. {z['video_mb']} von 1024 MB")
+            if z["video_mb"] > WARN_SITE_MB:
+                warn.append(f"Video-Repo ca. {z['video_mb']} MB (Grenze 1024)")
     except Exception as e:
         zeilen.append(f"Medien-Repo: n/a ({e.__class__.__name__})")
 

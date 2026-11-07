@@ -364,8 +364,9 @@ def _sitemaps(base, register, jetzt):
     return len(frisch)
 
 
+# 07.11.26: Karten-Videos liegen seitdem in ki_news_videos, aeltere noch in ki_news_media.
 _KARTEN_PLAYER = re.compile(
-    r'<figure><video\b[^>]*><source src="(https://dscampy\.github\.io/ki_news_media/cards/'
+    r'<figure><video\b[^>]*><source src="(https://dscampy\.github\.io/ki_news_(?:media|videos)/cards/'
     r'(\d{4}-\d{2}-\d{2})-[^"]+\.mp4)"[^>]*/></video></figure>\n?')
 
 
