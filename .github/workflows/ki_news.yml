@@ -82,6 +82,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # 07.11.26 (Daniel): Karten-Videos (MP4 + JPG) in ein eigenes Repo, die Bilder bleiben in
+    # ki_news_media. Grund: beides zusammen lag am 07.11. bei 938 von 1024 MB (Pages-Grenze), die
+    # Pages-Deploys von ki_news_media brachen seit 06.11. sechsmal nach 10 Minuten ab.
+    # Kill-Switch: KARTEN_REPO: ki_news_media = Karten wieder wie bis 07.11. in ki_news_media.
+    env:
+      KARTEN_REPO: ki_news_videos
 
     steps:
       - name: Repository auschecken
@@ -319,9 +325,12 @@ jobs:
       # (ki_news_media/bilder/640 + /1600, Name = Hash der Original-URL) und image_local /
       # image_local_gross in news.json + archive.json. Die Seiten nutzen image_local, sonst das
       # Original - Bilder bleiben so auch erhalten, wenn die Quelle sie loescht.
-      # Gleiches Muster wie "Karten ins Medien-Repo": ein Orphan-Commit, force-push; cards/ aus
-      # dem Klon bleibt unberuehrt. GitHub Pages erlaubt 1 GB je Site -> 1600er nach
-      # BILDER_GROSS_TAGE Tagen weg (640er bleiben). Ohne SECRETS_PAT oder bei Fehler: nichts.
+      # Gleiches Muster wie "Karten ins Medien-Repo": ein Orphan-Commit, force-push. GitHub Pages
+      # erlaubt 1 GB je Site -> 1600er nach BILDER_GROSS_TAGE Tagen weg (640er bleiben).
+      # Ohne SECRETS_PAT oder bei Fehler: nichts.
+      # 07.11.26: Neue Karten gehen nach $KARTEN_REPO. Die alten in ki_news_media/cards raeumt jetzt
+      # dieser Schritt ab (gleiche Regeln wie im Karten-Schritt), bis der Ordner leer ist. Vor
+      # bilder_spiegel.py, damit "Site gesamt" die Groesse NACH dem Aufraeumen zeigt.
       - name: Bilder ins Medien-Repo (image_local)
         env:
           SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
@@ -335,6 +344,10 @@ jobs:
           rm -rf "$M"
           git clone --quiet --depth 1 "$URL" "$M"
           cp news.json archive.json /tmp/ 2>/dev/null || true
+          if [ "$KARTEN_REPO" != "ki_news_media" ] && [ -d "$M/cards" ]; then
+            python3 medien_aufraeumen.py --cards "$M/cards" --min-tage 2 --max-tage 10 --hoch-tage 2 \
+              || echo "::warning::Alte Karten in ki_news_media: medien_aufraeumen.py fehlgeschlagen, naechster Lauf versucht es neu."
+          fi
           python3 bilder_spiegel.py --ziel "$M/bilder" 2>&1 | tee -a ki_news.log
           cd "$M"
           git checkout --quiet --orphan neu
@@ -488,9 +501,11 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
           FORCE_RENDER: ${{ github.event.inputs.force_render == 'true' && '1' || '0' }}
-          # 26.09.26: Medien ins Repo ki_news_media (s. Schritt "Karten ins Medien-Repo").
+          # 26.09.26: Medien in ein eigenes Repo (s. Schritt "Karten ins Medien-Repo").
           # Nur gesetzt, wenn SECRETS_PAT existiert - sonst relative URLs wie bisher.
-          CARD_MEDIA_BASE: ${{ secrets.SECRETS_PAT != '' && 'https://dscampy.github.io/ki_news_media/cards' || '' }}
+          # 07.11.26: Repo aus KARTEN_REPO (Job-env oben). Klappt der Push dorthin nicht, stellt der
+          # Karten-Schritt die URLs dieses Laufs in cards.json auf ki_news_media um.
+          CARD_MEDIA_BASE: ${{ secrets.SECRETS_PAT != '' && format('https://dscampy.github.io/{0}/cards', env.KARTEN_REPO) || '' }}
           # 20.10.26: Hochformat 9:16 ({slug}_hoch.mp4, Feld mp4_hoch_url). "1" = an, "0" = aus (Kill-Switch).
           KARTEN_HOCH: "1"
           KARTEN_HOCH_CRF: "26"
@@ -518,72 +533,146 @@ jobs:
           done
           echo "$deleted MP4-Cards aelter als $cutoff entfernt"
 
-      # 26.09.26: Karten-Medien (MP4 + JPG) liegen im eigenen Repo DScampy/ki_news_media
-      # (GitHub Pages), weil ki_news mit jedem MP4 in der Historie wuchs (1,9 GB).
-      # Das Medien-Repo hat immer genau EINEN Commit (orphan + force-push): es enthaelt nur
-      # die Dateien der letzten 10 Tage und waechst nie. Force-push ist dort unkritisch -
-      # nur dieser Schritt schreibt hinein. Braucht Secret SECRETS_PAT (fine-grained PAT mit
-      # Contents: Read and write auf ki_news_media). Ohne Secret oder bei Fehler: ok=false,
-      # dann committet der naechste Schritt die Medien wie bisher nach ki_news.
+      # 26.09.26: Karten-Medien (MP4 + JPG) liegen in einem eigenen Repo (GitHub Pages), weil
+      # ki_news mit jedem MP4 in der Historie wuchs (1,9 GB). Ein Medien-Repo hat immer genau EINEN
+      # Commit (orphan + force-push): es enthaelt nur die Dateien der letzten 10 Tage und waechst
+      # nie. Force-push ist dort unkritisch - nur dieser Schritt schreibt Karten hinein. Braucht
+      # Secret SECRETS_PAT (fine-grained PAT mit Contents: Read and write auf dem Medien-Repo).
+      # 07.11.26: Ziel ist $KARTEN_REPO (Job-env). Der Schritt bricht nie ab: sonst fehlte
+      # card_state.json im Commit und Telegram postete im naechsten Lauf doppelt. Rueckfall-Kette:
+      #   1. $KARTEN_REPO, wenn dessen Pages schon antwortet (robots.txt), bis zu 3 Versuche
+      #   2. sonst ki_news_media wie bis 07.11. (URLs DIESES Laufs in cards.json werden umgestellt)
+      #   3. sonst ok=false: KEINE Medien nach ki_news (wuchs so auf 1,9 GB). Der naechste Schritt
+      #      nimmt die Karten dieses Laufs aus cards.json, committet card_state.json aber trotzdem.
+      #      Nur ohne SECRETS_PAT (ohne_pat=true) gehen die Medien wie vor 26.09. nach ki_news.
+      # Antwortet Pages noch nicht (neues Repo), legt der Schritt dort .nojekyll + robots.txt an und
+      # nimmt diesmal Stufe 2. Sobald robots.txt erreichbar ist, gilt ab dem naechsten Lauf Stufe 1.
       - name: Karten ins Medien-Repo
         id: media
         env:
           SECRETS_PAT: ${{ secrets.SECRETS_PAT }}
           MEDIEN_NACH_VERWEIS: "1"   # 19.10.26: "0" = nur alte 10-Tage-Regel (medien_aufraeumen.py)
         run: |
+          set +e   # 07.11.26: nie abbrechen, jeder Fehler fuehrt in die naechste Stufe
           if [ -z "$SECRETS_PAT" ]; then
             echo "SECRETS_PAT fehlt - Medien bleiben in ki_news (altes Verhalten)."
-            echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+            echo "ok=false" >> "$GITHUB_OUTPUT"; echo "ohne_pat=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          M=/tmp/ki_news_media
-          URL="https://x-access-token:${SECRETS_PAT}@github.com/DScampy/ki_news_media.git"
-          ok=false
-          for attempt in 1 2 3; do
-            rm -rf "$M"
-            if git clone --quiet --depth 1 "$URL" "$M"; then
-              mkdir -p "$M/cards"
-              cp assets/cards/*.mp4 assets/cards/*.jpg "$M/cards/" 2>/dev/null || true
-              # 19.10.26: nach Verweis aufraeumen - Medien zwischen 2 und 10 Tagen bleiben nur,
-              # wenn cards.json oder artikel/**/*.html sie noch nennt (Messung: 291 von 617 MB
-              # ohne Verweis). Kill-Switch: Env MEDIEN_NACH_VERWEIS=0. Stirbt das Skript,
-              # greift die alte 10-Tage-Schleife.
-              # 20.10.26: Hochkant-Dateien (*_hoch.mp4) nur 2 Tage, auch wenn cards.json sie noch nennt.
-              if ! python3 medien_aufraeumen.py --cards "$M/cards" --min-tage 2 --max-tage 10 --hoch-tage 2; then
-                echo "::warning::medien_aufraeumen.py fehlgeschlagen - alte 10-Tage-Regel."
-                cutoff=$(date -d '10 days ago' +%Y-%m-%d)
-                for f in "$M"/cards/*; do
-                  d=$(basename "$f" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
-                  if [ -n "$d" ] && [ "$d" \< "$cutoff" ]; then rm -f "$f"; fi
-                done
+          PAGES="https://dscampy.github.io"
+          BOT=(-c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com")
+
+          # Wie in ki_news_media: kein Jekyll (schnellerer Deploy), keine Suchmaschinen.
+          grunddateien() {
+            [ -f "$1/.nojekyll" ] || : > "$1/.nojekyll"
+            [ -f "$1/robots.txt" ] || printf 'User-agent: *\nDisallow: /\n' > "$1/robots.txt"
+          }
+
+          # $1 = Repo. Klonen, Karten dieses Laufs dazu, aufraeumen, ein Orphan-Commit, force-push.
+          medien_push() {
+            local M="/tmp/medien_$1" URL="https://x-access-token:${SECRETS_PAT}@github.com/DScampy/$1.git"
+            local attempt f d cutoff
+            for attempt in 1 2 3; do
+              rm -rf "$M"
+              if git clone --quiet --depth 1 "$URL" "$M"; then
+                mkdir -p "$M/cards"
+                cp assets/cards/*.mp4 assets/cards/*.jpg "$M/cards/" 2>/dev/null
+                grunddateien "$M"
+                # 19.10.26: nach Verweis aufraeumen - Medien zwischen 2 und 10 Tagen bleiben nur,
+                # wenn cards.json oder artikel/**/*.html sie noch nennt (Messung: 291 von 617 MB
+                # ohne Verweis). Kill-Switch: Env MEDIEN_NACH_VERWEIS=0. Stirbt das Skript,
+                # greift die alte 10-Tage-Schleife.
+                # 20.10.26: Hochkant-Dateien (*_hoch.mp4) nur 2 Tage, auch wenn cards.json sie noch nennt.
+                if ! python3 medien_aufraeumen.py --cards "$M/cards" --min-tage 2 --max-tage 10 --hoch-tage 2; then
+                  echo "::warning::medien_aufraeumen.py fehlgeschlagen - alte 10-Tage-Regel."
+                  cutoff=$(date -d '10 days ago' +%Y-%m-%d)
+                  for f in "$M"/cards/*; do
+                    d=$(basename "$f" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
+                    if [ -n "$d" ] && [ "$d" \< "$cutoff" ]; then rm -f "$f"; fi
+                  done
+                fi
+                if ( cd "$M" && git checkout --quiet --orphan neu && git add -A \
+                     && git "${BOT[@]}" commit --quiet -m "Karten-Medien $(date -u +%Y-%m-%dT%H:%MZ)" \
+                     && git push --quiet --force origin neu:main ); then
+                  return 0
+                fi
               fi
-              cd "$M"
-              git checkout --quiet --orphan neu
-              git add -A
-              git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
-                commit --quiet -m "Karten-Medien $(date -u +%Y-%m-%dT%H:%MZ)"
-              if git push --quiet --force origin neu:main; then ok=true; cd "$GITHUB_WORKSPACE"; break; fi
-              cd "$GITHUB_WORKSPACE"
+              echo "Medien-Push $1 Versuch $attempt fehlgeschlagen"; sleep 5
+            done
+            return 1
+          }
+
+          # Neues Repo, Pages antwortet noch nicht: .nojekyll + robots.txt anlegen (normaler Push).
+          vorbereiten() {
+            local M="/tmp/medien_$1"
+            rm -rf "$M"
+            if ! git clone --quiet --depth 1 "https://x-access-token:${SECRETS_PAT}@github.com/DScampy/$1.git" "$M"; then
+              echo "::warning::$1 nicht erreichbar: Repo fehlt oder SECRETS_PAT hat keinen Zugriff darauf."
+              return 1
             fi
-            echo "Medien-Push Versuch $attempt fehlgeschlagen"; sleep 5
-          done
-          echo "Medien-Repo: $(ls "$M"/cards 2>/dev/null | wc -l) Dateien, ok=$ok"
-          if [ "$ok" != "true" ]; then
-            echo "::warning::Medien-Repo nicht erreichbar - Karten-Medien werden diesmal nach ki_news committet."
+            if [ -f "$M/.nojekyll" ] && [ -f "$M/robots.txt" ]; then
+              echo "::warning::$1: Dateien da, aber GitHub Pages antwortet nicht. Settings > Pages pruefen."
+              return 1
+            fi
+            grunddateien "$M"
+            ( cd "$M" && git add .nojekyll robots.txt \
+              && git "${BOT[@]}" commit --quiet -m "Grunddateien fuer GitHub Pages" \
+              && git push --quiet origin HEAD:main ) && echo "$1: .nojekyll und robots.txt angelegt."
+          }
+
+          ok=false; ziel=""; stufe2=true
+          if [ "$KARTEN_REPO" != "ki_news_media" ]; then
+            if curl -sfI -o /dev/null --max-time 20 "$PAGES/$KARTEN_REPO/robots.txt"; then
+              medien_push "$KARTEN_REPO" && { ok=true; ziel="$KARTEN_REPO"; }
+            else
+              echo "$KARTEN_REPO: GitHub Pages liefert noch kein robots.txt."
+              vorbereiten "$KARTEN_REPO"
+            fi
+            if [ "$ok" != "true" ]; then
+              echo "::warning::Video-Repo $KARTEN_REPO nicht nutzbar - Karten dieses Laufs gehen nach ki_news_media."
+              python3 karten_urls.py umstellen "$KARTEN_REPO" ki_news_media || stufe2=false
+            fi
+          fi
+          if [ "$ok" != "true" ] && [ "$stufe2" = "true" ]; then
+            medien_push ki_news_media && { ok=true; ziel=ki_news_media; }
+          fi
+
+          if [ "$ok" = "true" ]; then
+            M="/tmp/medien_$ziel"
+            mb=$(( $(du -sb --exclude=.git "$M" | cut -f1) / 1048576 ))
+            echo "Medien-Repo: $(ls "$M"/cards | wc -l) Dateien, ok=true, Ziel $ziel, gesamt $mb MB"
+            if [ "$ziel" != "ki_news_media" ]; then
+              # Fuer lagebild.py. Grenzen wie bilder_spiegel.py: ab 700 Warnung, ab 900 Fehler.
+              echo "Video-Repo gesamt $mb MB ($ziel)"
+              if [ "$mb" -gt 900 ]; then echo "::error::Video-Repo $ziel: $mb von 1024 MB (GitHub-Pages-Grenze)."
+              elif [ "$mb" -gt 700 ]; then echo "::warning::Video-Repo $ziel: $mb von 1024 MB."; fi
+            fi
+          else
+            echo "Medien-Repo: ok=false"
+            echo "::warning::Kein Medien-Repo erreichbar - Karten dieses Laufs bleiben ohne Video (nicht nach ki_news)."
           fi
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
 
       - name: Commit generated cards
         env:
           MEDIA_OK: ${{ steps.media.outputs.ok }}
+          OHNE_PAT: ${{ steps.media.outputs.ohne_pat }}
         run: |
-          # 26.09.26: Medien im Repo ki_news_media? Dann assets/cards aus ki_news entfernen
+          # 26.09.26: Medien im Medien-Repo? Dann assets/cards aus ki_news entfernen
           # (einmalige Umstellung passiert beim ersten erfolgreichen Lauf von selbst).
-          # Sonst: URLs in cards.json zurueck auf relativ und Medien wie bisher committen.
-          if [ "$MEDIA_OK" != "true" ] && [ -f cards.json ]; then
-            # 20.10.26: Hochkant-Videos nie ins Hauptrepo (Platz) - Dateien und Feld mp4_hoch_url weg
-            rm -f assets/cards/*_hoch.mp4
-            python3 -c "import json;p='cards.json';c=json.load(open(p,encoding='utf-8'));[x.pop('mp4_hoch_url',None) for x in c];json.dump(c,open(p,'w',encoding='utf-8'),ensure_ascii=False,indent=2)"
-            python3 -c "import json;p='cards.json';c=json.load(open(p,encoding='utf-8'));b='https://dscampy.github.io/ki_news_media/cards/';[x.__setitem__(k,'assets/cards/'+x[k][len(b):]) for x in c for k in ('mp4_url','poster_url') if str(x.get(k,'')).startswith(b)];json.dump(c,open(p,'w',encoding='utf-8'),ensure_ascii=False,indent=2)"
+          # 07.11.26: Medien kommen nur noch OHNE SECRETS_PAT nach ki_news (Verhalten vor 26.09.).
+          # Hat der Karten-Schritt kein Medien-Repo erreicht, bleiben sie draussen: die Karten dieses
+          # Laufs fallen aus cards.json (ihr Video liegt nirgends). card_state.json wird trotzdem
+          # committet, sonst postet Telegram dieselben Karten im naechsten Lauf noch einmal.
+          MEDIEN_INS_HAUPTREPO=false
+          if [ "$MEDIA_OK" != "true" ]; then
+            if [ "$OHNE_PAT" = "true" ]; then
+              MEDIEN_INS_HAUPTREPO=true
+              rm -f assets/cards/*_hoch.mp4   # 20.10.26: Hochkant-Videos nie ins Hauptrepo (Platz)
+            elif [ -f cards.json ]; then
+              echo "::warning::Kein Medien-Repo erreichbar - Karten dieses Laufs ohne Video, nicht in cards.json."
+              python3 karten_urls.py entfernen ki_news_media "$KARTEN_REPO" \
+                || echo "::warning::karten_urls.py fehlgeschlagen - cards.json unveraendert."
+            fi
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -607,11 +696,11 @@ jobs:
             # cards.json, card_state.json, MP4s). Folge: PR #25 (Merge d1aea25, 15:14 UTC) wurde
             # vom Karten-Commit ff397f6 (15:29 UTC) des bereits um 15:00 gestarteten Laufs mit dem
             # alten generate_news_cards.py still zurueckgedreht. Quelldateien kommen nur per PR.
-            if [ "$MEDIA_OK" = "true" ]; then
+            if [ "$MEDIEN_INS_HAUPTREPO" = "true" ]; then
+              git add assets/cards/ cards.json card_state.json
+            else
               git rm -r --cached --quiet --ignore-unmatch assets/cards
               git add cards.json card_state.json
-            else
-              git add assets/cards/ cards.json card_state.json
             fi
             # Auch hier, sonst ueberlebt die Registry keinen Push-Konflikt-Retry:
             # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.
