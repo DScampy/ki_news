@@ -85,7 +85,7 @@ jobs:
     # 07.11.26 (Daniel): Karten-Videos (MP4 + JPG) in ein eigenes Repo, die Bilder bleiben in
     # ki_news_media. Grund: beides zusammen lag am 07.11. bei 938 von 1024 MB (Pages-Grenze), die
     # Pages-Deploys von ki_news_media brachen seit 06.11. sechsmal nach 10 Minuten ab.
-    # Kill-Switch: KARTEN_REPO: ki_news_media = Verhalten bis 07.11. (alles in einem Repo).
+    # Kill-Switch: KARTEN_REPO: ki_news_media = Karten wieder wie bis 07.11. in ki_news_media.
     env:
       KARTEN_REPO: ki_news_videos
 
@@ -542,7 +542,9 @@ jobs:
       # card_state.json im Commit und Telegram postete im naechsten Lauf doppelt. Rueckfall-Kette:
       #   1. $KARTEN_REPO, wenn dessen Pages schon antwortet (robots.txt), bis zu 3 Versuche
       #   2. sonst ki_news_media wie bis 07.11. (URLs DIESES Laufs in cards.json werden umgestellt)
-      #   3. sonst ok=false: der naechste Schritt committet die Medien nach ki_news (wie bisher)
+      #   3. sonst ok=false: KEINE Medien nach ki_news (wuchs so auf 1,9 GB). Der naechste Schritt
+      #      nimmt die Karten dieses Laufs aus cards.json, committet card_state.json aber trotzdem.
+      #      Nur ohne SECRETS_PAT (ohne_pat=true) gehen die Medien wie vor 26.09. nach ki_news.
       # Antwortet Pages noch nicht (neues Repo), legt der Schritt dort .nojekyll + robots.txt an und
       # nimmt diesmal Stufe 2. Sobald robots.txt erreichbar ist, gilt ab dem naechsten Lauf Stufe 1.
       - name: Karten ins Medien-Repo
@@ -554,7 +556,7 @@ jobs:
           set +e   # 07.11.26: nie abbrechen, jeder Fehler fuehrt in die naechste Stufe
           if [ -z "$SECRETS_PAT" ]; then
             echo "SECRETS_PAT fehlt - Medien bleiben in ki_news (altes Verhalten)."
-            echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+            echo "ok=false" >> "$GITHUB_OUTPUT"; echo "ohne_pat=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           PAGES="https://dscampy.github.io"
           BOT=(-c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com")
@@ -646,25 +648,31 @@ jobs:
             fi
           else
             echo "Medien-Repo: ok=false"
-            echo "::warning::Medien-Repo nicht erreichbar - Karten-Medien werden diesmal nach ki_news committet."
+            echo "::warning::Kein Medien-Repo erreichbar - Karten dieses Laufs bleiben ohne Video (nicht nach ki_news)."
           fi
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
 
       - name: Commit generated cards
         env:
           MEDIA_OK: ${{ steps.media.outputs.ok }}
+          OHNE_PAT: ${{ steps.media.outputs.ohne_pat }}
         run: |
-          # 26.09.26: Medien im Repo ki_news_media? Dann assets/cards aus ki_news entfernen
+          # 26.09.26: Medien im Medien-Repo? Dann assets/cards aus ki_news entfernen
           # (einmalige Umstellung passiert beim ersten erfolgreichen Lauf von selbst).
-          # Sonst: URLs in cards.json zurueck auf relativ und Medien wie bisher committen.
-          if [ "$MEDIA_OK" != "true" ] && [ -f cards.json ]; then
-            # 20.10.26: Hochkant-Videos nie ins Hauptrepo (Platz) - Dateien und Feld mp4_hoch_url weg
-            # 07.11.26: nur bei Karten DIESES Laufs (Datei liegt in assets/cards), fuer beide
-            # Medien-Repos. Bisher stellte der Einzeiler ALLE Medien-URLs auf assets/cards/ um, auch
-            # aeltere, deren Dateien gar nicht in ki_news liegen (bis zum naechsten Lauf kaputt).
-            python3 karten_urls.py relativ ki_news_media "$KARTEN_REPO" \
-              || echo "::warning::karten_urls.py fehlgeschlagen - URLs in cards.json unveraendert."
-            rm -f assets/cards/*_hoch.mp4
+          # 07.11.26: Medien kommen nur noch OHNE SECRETS_PAT nach ki_news (Verhalten vor 26.09.).
+          # Hat der Karten-Schritt kein Medien-Repo erreicht, bleiben sie draussen: die Karten dieses
+          # Laufs fallen aus cards.json (ihr Video liegt nirgends). card_state.json wird trotzdem
+          # committet, sonst postet Telegram dieselben Karten im naechsten Lauf noch einmal.
+          MEDIEN_INS_HAUPTREPO=false
+          if [ "$MEDIA_OK" != "true" ]; then
+            if [ "$OHNE_PAT" = "true" ]; then
+              MEDIEN_INS_HAUPTREPO=true
+              rm -f assets/cards/*_hoch.mp4   # 20.10.26: Hochkant-Videos nie ins Hauptrepo (Platz)
+            elif [ -f cards.json ]; then
+              echo "::warning::Kein Medien-Repo erreichbar - Karten dieses Laufs ohne Video, nicht in cards.json."
+              python3 karten_urls.py entfernen ki_news_media "$KARTEN_REPO" \
+                || echo "::warning::karten_urls.py fehlgeschlagen - cards.json unveraendert."
+            fi
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -688,11 +696,11 @@ jobs:
             # cards.json, card_state.json, MP4s). Folge: PR #25 (Merge d1aea25, 15:14 UTC) wurde
             # vom Karten-Commit ff397f6 (15:29 UTC) des bereits um 15:00 gestarteten Laufs mit dem
             # alten generate_news_cards.py still zurueckgedreht. Quelldateien kommen nur per PR.
-            if [ "$MEDIA_OK" = "true" ]; then
+            if [ "$MEDIEN_INS_HAUPTREPO" = "true" ]; then
+              git add assets/cards/ cards.json card_state.json
+            else
               git rm -r --cached --quiet --ignore-unmatch assets/cards
               git add cards.json card_state.json
-            else
-              git add assets/cards/ cards.json card_state.json
             fi
             # Auch hier, sonst ueberlebt die Registry keinen Push-Konflikt-Retry:
             # der mixed reset weiter unten wirft alles weg, was nicht gestagt wird.
