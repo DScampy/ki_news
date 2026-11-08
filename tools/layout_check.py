@@ -174,6 +174,10 @@ GESCHNITTEN_JS = r"""() => {
 # Überschriften: Ein Wort bis 22 Zeichen muss in die Spalte passen. Längere dürfen umbrechen, sonst
 # hinge das Ergebnis an einzelnen Wortungetümen in den Tagesdaten. Trennung ist dabei aus, weil der
 # Browser im Test das Trennwörterbuch nicht immer hat.
+# Ein Wort endet auch an Zeichen, nach denen der Browser umbrechen darf (08.11.26): senkrechter Strich |,
+# breiter Strich ｜ (U+FF5C), Halbgeviert- und Geviertstrich. Vorher galt "Gerstner｜BG2Pod" aus einem
+# Podcast-Titel im Archiv als ein Wort, der Umbruch am Strich als Wortbruch. Archiv.html und belege.html
+# waren damit bei jedem PR rot, auch auf unveraendertem main.
 WORTBRUCH_JS = r"""() => {
   const stil = document.createElement('style');
   stil.textContent = '*{hyphens:manual !important}';
@@ -185,7 +189,7 @@ WORTBRUCH_JS = r"""() => {
     const lauf = document.createTreeWalker(kopf, NodeFilter.SHOW_TEXT);
     while (lauf.nextNode()) {
       const knoten = lauf.currentNode;
-      for (const m of knoten.nodeValue.matchAll(/[^\s\-/]+/g)) {
+      for (const m of knoten.nodeValue.matchAll(/[^\s\-/|｜–—]+/g)) {
         if (m[0].length > 22) continue;
         const bereich = document.createRange();
         bereich.setStart(knoten, m.index);
