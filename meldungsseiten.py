@@ -18,6 +18,8 @@ Regeln:
   ausserhalb des Laufs und unter recherche/ (_tote_player_entfernen).
 - Ausnahme: Seiten mit dem alten eigenen Kopf bekommen die gemeinsamen Leisten, ebenfalls
   ausserhalb des Laufs und unter recherche/ (_leisten_nachziehen).
+- Ausnahme: Eine Seite ausserhalb des Laufs bekommt den Player, sobald ihre Karte in cards.json
+  steht und das Video live ist (_player_nachtragen).
 
 Einziger Schreiber aller Dateien unter meldung/ und der beiden Sitemaps (I5).
 Aufruf aus ki_news.py VOR dem Schreiben von news.json: setzt dort je Meldung das Feld
@@ -46,6 +48,7 @@ WEITERE_MAX = 5
 VIDEO_FRISCH_TAGE = 2           # wie --min-tage in medien_aufraeumen.py: juenger bleibt immer
 VIDEO_TOT_MAX_ANTEIL = 0.7      # mehr Tote deuten auf einen Ausfall, dann nichts aendern
 LEISTEN_NACHZIEHEN = True       # Kill-Switch fuer _leisten_nachziehen
+PLAYER_NACHTRAGEN = True        # Kill-Switch fuer _player_nachtragen
 
 _UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "ae", "Ö": "oe",
                           "Ü": "ue", "ß": "ss"})
@@ -197,6 +200,16 @@ _FUSS = ('<footer class="fuss"><a href="/">ki-news.live</a><a href="/dossiers.ht
          '<a href="/Datenschutz.html">Datenschutz</a></footer>')
 
 
+def _player_html(video, poster):
+    """Der Karten-Player. Eine Quelle fuer _seite und _player_nachtragen."""
+    esc = html.escape
+    p = f' poster="{esc(poster)}"' if poster else ""
+    # Kartenformat: width/height reservieren den Platz, bis das Poster geladen ist. Sonst springt
+    # der Text darunter beim ersten Aufruf weg (Layout-Sprung 0,22).
+    return (f'<figure><video controls playsinline preload="none" width="840" height="1320"{p}>'
+            f'<source src="{esc(video)}" type="video/mp4"/></video></figure>')
+
+
 def _seite(e, n, karte, linie, weitere, recherche=None):
     esc = html.escape
     titel = e["titel"]
@@ -272,11 +285,7 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
     if anriss:
         teile.append(f'<p class="anriss">{esc(anriss)}</p>')
     if video:
-        p = f' poster="{esc(poster)}"' if poster else ""
-        # Kartenformat: width/height reservieren den Platz, bis das Poster geladen ist. Sonst springt
-        # der Text darunter beim ersten Aufruf weg (Layout-Sprung 0,22).
-        teile.append(f'<figure><video controls playsinline preload="none" width="840" height="1320"{p}>'
-                     f'<source src="{esc(video)}" type="video/mp4"/></video></figure>')
+        teile.append(_player_html(video, poster))
     elif bild:
         teile.append(f'<figure><img src="{esc(bild)}" alt="{esc(titel)}" loading="lazy"/></figure>')
     if summary and summary != anriss:
@@ -475,6 +484,81 @@ def _leisten_nachziehen(base):
     return umgestellt
 
 
+_KARTEN_VIDEO = re.compile(r'https://dscampy\.github\.io/ki_news_(?:media|videos)/cards/'
+                           r'\d{4}-\d{2}-\d{2}-[^"<>\s]+\.mp4')
+
+
+def _player_einbauen(text, player):
+    """Der Text mit Player an der Stelle, an die _seite ihn setzt: nach Titel und Anriss, statt des
+    Bildes. None, wenn die Seite nicht den erwarteten Aufbau hat."""
+    zeilen = text.split("\n")
+    h1 = [i for i, z in enumerate(zeilen) if z.startswith("<h1>")]
+    if len(h1) != 1 or not zeilen[h1[0]].endswith("</h1>"):
+        return None
+    i = h1[0] + 1
+    if i < len(zeilen) and zeilen[i].startswith('<p class="anriss">'):
+        if not zeilen[i].endswith("</p>"):
+            return None
+        i += 1
+    if i < len(zeilen) and zeilen[i].startswith("<figure>"):
+        if not (zeilen[i].startswith("<figure><img ") and zeilen[i].endswith("</figure>")):
+            return None
+        zeilen[i] = player
+    else:
+        zeilen.insert(i, player)
+    return "\n".join(zeilen)
+
+
+def _player_nachtragen(base, register, im_lauf):
+    """Setzt den Karten-Player auf Seiten ausserhalb des Laufs (08.11.26).
+
+    Die Karte entsteht erst nach der Seite (generate_news_cards.py laeuft nach ki_news.py). Ihr
+    Video kam bisher erst im naechsten Lauf auf die Seite und nur, wenn die Story dann noch im
+    Lauf war. Fiel sie vorher heraus, blieb die Seite ohne Player. Messung 08.11.: 3 von 33 neuen
+    Karten (Theseus, BioBasicsBench, Kaggle Orbit Wars). Seiten des Laufs bleiben unberuehrt, die
+    schreibt _seite. Eingetragen wird nur bei live 200, sonst nimmt _tote_player_entfernen den
+    Player spaeter wieder heraus. Wie bei den anderen Nachzieh-Schritten bleiben Register, Hash
+    und dateModified. Bei Netzfehler bleibt die Seite, der naechste Lauf versucht es neu.
+    """
+    roh = _json_lesen(base / "cards.json", [])
+    karten = roh if isinstance(roh, list) else roh.get("cards", [])
+    nach_link = {l: e for reg in register.values() for e in reg.values() for l in e.get("links", [])}
+    offen = {}
+    for k in karten:
+        video = k.get("mp4_url") or ""
+        if not _KARTEN_VIDEO.fullmatch(video):
+            continue
+        links = k.get("links") or []
+        if isinstance(links, str):
+            links = [links]
+        e = next((nach_link[l] for l in links if l in nach_link), None)
+        if not e or e["pfad"] in im_lauf or e["pfad"] in offen:
+            continue
+        pfad = base / e["pfad"].lstrip("/")
+        if not pfad.exists():
+            continue
+        text = pfad.read_text(encoding="utf-8")
+        if "<video" not in text:
+            offen[e["pfad"]] = (pfad, text, video, k.get("poster_url") or "")
+    eingetragen = nicht_live = unbekannt = 0
+    for pfad, text, video, poster in offen.values():
+        status = _video_status(video)
+        if status != 200:
+            nicht_live += 1
+            logger.info("Player nicht nachgetragen, %s liefert %s", video, status)
+            continue
+        neu = _player_einbauen(text, _player_html(video, poster))
+        if neu is None:
+            unbekannt += 1
+            logger.warning("Player nicht nachgetragen, unbekannter Aufbau: %s", pfad)
+        elif _schreiben_wenn_neu(pfad, neu):
+            eingetragen += 1
+    if offen:
+        logger.info("Player nachgetragen: %d Seiten, %d ohne Live-Video, %d mit unbekanntem Aufbau",
+                    eingetragen, nicht_live, unbekannt)
+    return eingetragen
+
+
 def erzeuge(base_dir, news_json_data, jetzt=None):
     base = Path(base_dir)
     jetzt = jetzt or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -586,6 +670,11 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         _tote_player_entfernen(base, heute)
     except Exception:
         logger.exception("Player-Pruefung fehlgeschlagen")
+    if PLAYER_NACHTRAGEN:
+        try:
+            _player_nachtragen(base, register, {e["pfad"] for e, *_ in eintraege})
+        except Exception:
+            logger.exception("Player nachtragen fehlgeschlagen")
     if LEISTEN_NACHZIEHEN:
         try:
             _leisten_nachziehen(base)
