@@ -79,7 +79,13 @@ PRUEFUNG_VERSION = 7             # 3: Fundstelle (29.10.), 4: Pruefer statt Jev,
                                  # 7: Entitaeten-Aliasse als Wortanfang (01.11.)
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
-MODELLE = ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
+# 09.11.26 (Daniel): DeepSeek zuerst, Sonnet als Ersatz. Sonnet war seit 29.10. der groesste
+# Posten bei OpenRouter (2 $/10 $ je Mio. Tokens, DeepSeek v4.1 Flash 0,05 $/0,57 $). Bis dahin
+# 32 Versuche, 10 veroeffentlicht, alle von Sonnet. Gemini als zweites Modell hat in 8 Faellen
+# keinen Artikel gerettet und fliegt deshalb raus. DeepSeek stand vorher an dritter Stelle und
+# kam wegen MAX_SCHREIBVERSUCHE = 2 nie dran. Welches Modell schrieb, steht im Register (modell).
+# Rueckweg: alte Liste ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
+MODELLE = ["deepseek/deepseek-v4.1-flash", "anthropic/claude-sonnet-5.5"]
 MAX_SCHREIBVERSUCHE = 2
 
 VERBOTEN = ["revolutionär", "bahnbrechend", "game-changer", "gamechanger", "disruptiv",
