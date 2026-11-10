@@ -36,6 +36,9 @@ fortgeschrieben. Nach KETTE_MAX_TAGE beginnt ein neuer Teil, der auf
 den alten verweist. Dazu eine Zeitleiste aus den Ereignissen der Linie.
 Schalter KETTEN ("schatten" = nur ins Log, "an", "aus").
 
+Format (10.11.26, Daniel, Plan R4): kleine Quellennummern statt dauernd "laut X", Quellen unten kompakt,
+immer ein Bild mit "Bild: Quelle", Kasten "Auf einen Blick" mit den harten Zahlen. Schalter FORMAT_R4.
+
 Einziger Schreiber von recherche/ und artikel/entwurf/recherche-*.html (I5).
 Laeuft als eigener Workflow-Schritt nach hersteller_feed.py, continue-on-error (I8).
 Kill-Switch: RECHERCHE_AKTIV = False.
@@ -96,6 +99,20 @@ KETTE_MAX_TAGE = 7               # so lange wird ein Artikel fortgeschrieben, da
                                  # themen wie Rechenzentren bringen aber jeden Tag etwas Neues.
 ZEITLEISTE_MAX = 10              # Ereignisse in der Zeitleiste (das erste bleibt immer drin)
 KETTE_NEUE_QUELLEN = 3           # so viele Plaetze im Prompt bleiben bei langen Faellen fuer neue Medien frei
+# Format (10.11.26, Daniel, Plan R4). Gemessen 10.11.: "laut X" 2 bis 12 Mal je Artikel, 7 von 13
+# veroeffentlichten Artikeln ohne Bild, obwohl jeder davon eine Quelle mit gespiegeltem Bild hatte.
+# - Medien nur noch im Satz, wenn sich Quellen widersprechen oder nur ein Medium etwas meldet.
+# - Quellen unten als eine Zeile mit Nummern (Vorbild Notebookcheck), Pruefhinweis kleiner.
+# - Bild: Karte, sonst Bild der Hauptmeldung, sonst Bild einer anderen Meldung desselben Falls, sonst
+#   Herstellerbild. Nur gespiegelte Bilder (ki_news_media), darunter "Bild: <Medium>".
+# - Kasten "Auf einen Blick": 3 bis 5 Zeilen mit harten Zahlen, je mit Quellennummer. Code und Pruefer
+#   pruefen jede Zeile. Ein Fehler darin haelt den Artikel nicht an, dann faellt nur der Kasten weg.
+# False = Kill-Switch, Prompt und Seite wie vor R4.
+FORMAT_R4 = True
+BLICK_MIN, BLICK_MAX = 3, 5      # Zeilen im Kasten, sonst kein Kasten
+BLICK_ZEICHEN = 140              # hoechstens je Zeile
+# Feeds ohne eigenen Verlag, wie SAMMEL_FEEDS in insta_caption.py. Ihr Bild nur, wenn kein Medium eins hat.
+BILD_SAMMEL = {"AlignedNews", "Digg AI", "China AI Labs"}
 UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
 MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
@@ -107,6 +124,9 @@ JEV_MAX_QUELLTEXT = 24000        # 7 Quellen a TEXT_JE_QUELLE + Kopfzeilen, nich
 PRUEFUNG_VERSION = 7             # 3: Fundstelle (29.10.), 4: Pruefer statt Jev, 5: Gemini-Pruefer (30.10.),
                                  # 6: Pruefer-Belege mit Quellentiteln und ganzen Saetzen (31.10.),
                                  # 7: Entitaeten-Aliasse als Wortanfang (01.11.)
+                                 # R4 (10.11.) prueft zusaetzlich den Kasten "Auf einen Blick", bleibt aber
+                                 # bei 7: Eine hoehere Zahl holte alte Entwuerfe wieder in die Kandidaten
+                                 # (siehe kandidaten), und fuer den Artikeltext aendert sich nichts.
 # 29.10.26 im OpenRouter-Katalog geprueft. Sonnet zuerst (Deutsch, haelt Regeln), ~0,03 $ je
 # Artikel bei <= 2 Artikeln am Tag. Hoechstens MAX_SCHREIBVERSUCHE Modelle je Story.
 # 09.11.26 (Daniel): DeepSeek zuerst, Sonnet als Ersatz. Sonnet war seit 29.10. der groesste
@@ -536,6 +556,30 @@ def karte_zur_story(k, base=BASE):
     return None
 
 
+def bild_zur_story(k, quellen):
+    """R4: (gross, klein, Medium) des Bildes. Zuerst die Hauptmeldung, dann andere Meldungen desselben Falls,
+    deren Medium als Quelle im Artikel steht (in Quellenreihenfolge), dann die uebrigen, zuletzt das Bild der
+    Herstellerseite. Nur gespiegelte Bilder, keine fremden Adressen. 640er bleiben dauerhaft liegen, 1600er
+    loescht bilder_spiegel.py nach BILDER_GROSS_TAGE.
+    Sammel-Feeds (BILD_SAMMEL) kommen zuletzt: Ihr Bild stammt von einem fremden Verlag, den wir nicht kennen
+    (Digg: link_verlag ist wieder digg.com). Darum dort "Bild: via Digg AI"."""
+    nr = {q["medium"].strip().lower(): q["nr"] for q in quellen if not q["hersteller"]}
+    sammel = {s.lower() for s in BILD_SAMMEL}
+    kandidaten = [k["rep"]] + [g for g in k["glieder"] if g is not k["rep"]]
+    def rang(g):
+        s = (g.get("source") or "").strip().lower()
+        return (s in sammel, g is not k["rep"], nr.get(s, 99))
+    for g in sorted(kandidaten, key=rang):
+        klein, gross = g.get("image_local") or "", g.get("image_local_gross") or ""
+        if klein.startswith("https://") or gross.startswith("https://"):
+            von = (g.get("source") or "").strip()
+            return gross or klein, klein or gross, ("via " + von) if von.lower() in sammel else von
+    r = k["release"] or {}
+    if (r.get("poster") or "").startswith("https://"):
+        return r["poster"], r["poster"], r.get("hersteller") or ""
+    return "", "", ""
+
+
 # ── Schreiben ────────────────────────────────────────────────────────────────
 
 def prompt(quellen, alt=None, fall=False):
@@ -567,6 +611,21 @@ def prompt(quellen, alt=None, fall=False):
             "Datum geordnet, die letzte ist die neueste. Der erste Absatz nennt die neueste Entwicklung. "
             "Danach erzählst du der Reihe nach, wie es dazu kam. Ein Datum nur, wenn es in einer Quelle "
             "steht.\n\n") + erweiterung
+    medium_regel = "- Das Medium immer beim Namen nennen (\"laut TechRepublic\"), nie \"ein Medienbericht\" oder \"ein Bericht\".\n"
+    blick_feld, blick_regel = "}\n", ""
+    if FORMAT_R4:
+        # R4: Die Nummern hinter dem Absatz zeigen die Herkunft. Namen nur, wo der Leser sie braucht.
+        medium_regel = (
+            "- Medien nicht im Satz nennen, die Quellennummern hinter dem Absatz zeigen die Herkunft. Den Namen nur, "
+            "wenn sich Quellen widersprechen (\"Heise nennt 5 Dollar, Golem 4,99 Dollar\") oder wenn nur ein Medium "
+            "etwas meldet, das die anderen nicht bestätigen, zum Beispiel mit eigenen Informanten (\"laut Reuters\"). "
+            "Nie \"ein Medienbericht\" oder \"ein Bericht\".\n")
+        blick_feld = (', "blick": [{"text": "kurze Zeile mit einer harten Zahl, höchstens 120 Zeichen", '
+                      '"quellen": [1]}]}\n')
+        blick_regel = (f" \"blick\": {BLICK_MIN} bis {BLICK_MAX} Zeilen mit den wichtigsten Zahlen (Preis, Betrag, "
+                       "Datum, Anzahl), kein ganzer Satz nötig, zum Beispiel „Preis: 8 Dollar je Million Tokens“. "
+                       "Jede Zahl genau wie in der Quelle, jede Zeile mit ihrer Quellennummer. Gibt es keine "
+                       f"{BLICK_MIN} solchen Zahlen, eine leere Liste.")
     return (
         "Du schreibst für ki-news.live einen deutschen Hintergrundartikel zu einer KI-Meldung. "
         "Grundlage sind AUSSCHLIESSLICH die nummerierten Quellen unten.\n\n"
@@ -576,7 +635,7 @@ def prompt(quellen, alt=None, fall=False):
         "- Zahlen als Ziffern, der Wert genau wie in der Quelle, nicht umrechnen, nicht runden. Aber deutsch "
         "geschrieben: Komma statt Dezimalpunkt, \"88,2 Prozent\" statt \"88.2%\", \"2 Dollar\" statt \"$2\", "
         "\"doppelt so hoch\" statt \"2x\", \"89 Punkte mehr\" statt \"+89\".\n"
-        "- Das Medium immer beim Namen nennen (\"laut TechRepublic\"), nie \"ein Medienbericht\" oder \"ein Bericht\".\n"
+        + medium_regel +
         "- Keine englischen Zitate. Englische Aussagen sinngemäß auf Deutsch wiedergeben, ohne Anführungszeichen.\n"
         "- Jede Person beim ersten Auftauchen mit Rolle in Klammern, z. B. \"Sundar Pichai (Chef Google)\", "
         "aber nur mit einer Rolle, die in einer Quelle steht. Zusätze wie \"ehemalig\", \"früher\", "
@@ -597,8 +656,8 @@ def prompt(quellen, alt=None, fall=False):
         '{"titel": "ein Aussagesatz, höchstens 90 Zeichen, ohne Schlusspunkt", '
         '"anriss": "1 bis 2 Sätze, höchstens 260 Zeichen", '
         '"absaetze": [{"text": "250 bis 700 Zeichen", "quellen": [1, 2]}], '
-        '"tags": ["höchstens 3 Schlagwörter"]}\n'
-        "4 bis 6 Absätze.\n\n" + erweiterung + "Quellen:\n\n" + "\n\n".join(teile)
+        '"tags": ["höchstens 3 Schlagwörter"]'
+        + blick_feld + "4 bis 6 Absätze." + blick_regel + "\n\n" + erweiterung + "Quellen:\n\n" + "\n\n".join(teile)
     )
 
 
@@ -682,8 +741,11 @@ def schreibe(p, modell, key):
     absaetze = [{"text": _zahlformat(_sauber(x.get("text"))), "quellen": [int(q) for q in x.get("quellen") or []
                                                                           if str(q).isdigit()]}
                 for x in a.get("absaetze") or [] if isinstance(x, dict)]
+    blick = [{"text": _zahlformat(_sauber(x.get("text"))).rstrip("."),
+              "quellen": [int(q) for q in x.get("quellen") or [] if str(q).isdigit()]}
+             for x in (a.get("blick") or [] if FORMAT_R4 else []) if isinstance(x, dict)]
     return {"titel": _zahlformat(_sauber(a.get("titel"))).rstrip("."), "anriss": _zahlformat(_sauber(a.get("anriss"))),
-            "absaetze": absaetze, "tags": [_sauber(t) for t in (a.get("tags") or [])][:3]}
+            "absaetze": absaetze, "tags": [_sauber(t) for t in (a.get("tags") or [])][:3], "blick": blick}
 
 
 _ZAHL = r"\d+(?:[.,]\d+)*"
@@ -736,7 +798,14 @@ def pruefe_text(a, quellen, dp, entities):
             fehler.append(f"Absatz {i}: {len(x['text'])} Zeichen")
         if not x["quellen"] or not set(x["quellen"]) <= gueltig:
             fehler.append(f"Absatz {i}: Quellenangabe fehlt oder ungültig ({x['quellen']})")
+    return fehler + _inhalt_fehler(voll, a["titel"], " ".join([a["anriss"]] + [x["text"] for x in a["absaetze"]]),
+                                   mat, dp, entities)
 
+
+def _inhalt_fehler(voll, titel, rest, mat, dp, entities):
+    """Zeichen, Woerter, Zahlen, Namen, Personen und Entitaeten gegen das Material (aus pruefe_text, R4)."""
+    fehler = []
+    mat_l = mat.lower()
     for zeichen, name in (("—", "Gedankenstrich"), ("–", "Halbgeviertstrich"), (";", "Semikolon"),
                           ("!", "Ausrufezeichen"), ("#", "Hashtag")):
         if zeichen in voll:
@@ -749,7 +818,7 @@ def pruefe_text(a, quellen, dp, entities):
         fehler.append("Wir-Perspektive")
 
     # Zahlen, Daten, Rollen, Personen: dieselbe Pruefung wie fuer die Einordnungen
-    for t in dp.pruefe({"title": a["titel"], "summary": " ".join([a["anriss"]] + [x["text"] for x in a["absaetze"]])}, mat):
+    for t in dp.pruefe({"title": titel, "summary": rest}, mat):
         fehler.append(f"{t['art']}: {t['befund']}")
     # Produkt-/Firmennamen mit Ziffer oder Binnen-Grossbuchstabe (GPT-6, DeepMind, H100). Deutsche
     # Kompositum-Endungen ("GPT-6-Modell", "H100-Chips") werden abgeschnitten, Bindestrich = Leerzeichen.
@@ -774,6 +843,34 @@ def pruefe_text(a, quellen, dp, entities):
         if any(m.search(voll) for m in muster) and not any(m.search(mat) for m in muster):
             fehler.append(f'Entität "{e.get("id")}" nicht in den Quellen')
     return fehler
+
+
+def pruefe_blick(a, quellen, dp, entities):
+    """R4: Kasten "Auf einen Blick" mit denselben Code-Pruefungen wie der Text. Liefert die Verstoesse.
+    Der Kasten ist eine Zugabe: Ein Verstoss haelt nicht den Artikel an, der Aufrufer laesst den Kasten weg."""
+    blick = a.get("blick") or []
+    if not blick:
+        return []
+    fehler = []
+    if not BLICK_MIN <= len(blick) <= BLICK_MAX:
+        fehler.append(f"{len(blick)} Zeilen statt {BLICK_MIN} bis {BLICK_MAX}")
+    gueltig = {q["nr"] for q in quellen}
+    for i, x in enumerate(blick, 1):
+        if not x["text"] or len(x["text"]) > BLICK_ZEICHEN:
+            fehler.append(f"Zeile {i}: {len(x['text'])} Zeichen")
+        if not re.search(r"\d", x["text"]):
+            fehler.append(f"Zeile {i}: keine Zahl")
+        if not x["quellen"] or not set(x["quellen"]) <= gueltig:
+            fehler.append(f"Zeile {i}: Quellenangabe fehlt oder ungültig ({x['quellen']})")
+    text = ". ".join(x["text"] for x in blick)
+    mat = " ".join(f"{q['medium']} {q['titel']} {q['text']}" for q in quellen)
+    # Die Deckungspruefung laesst einstellige Zahlen aus (im Fliesstext meist Aufzaehlung). Im Kasten ist
+    # jede Zahl die Aussage ("Preis: 8 Dollar"), darum hier auch die einstelligen gegen das Material.
+    for i, x in enumerate(blick, 1):
+        for m in re.finditer(r"(?<![\w.,-])\d(?![\w-]|[.,]\d)", x["text"]):
+            if not re.search(r"(?<![\d.,])" + m.group(0) + r"(?![\d]|[.,]\d)", mat):
+                fehler.append(f"Zeile {i}: {m.group(0)} nicht im Quelltext")
+    return fehler + _inhalt_fehler(text, "", text, mat, dp, entities)
 
 
 def _jev(text, kontext, quellen_text, key):
@@ -935,7 +1032,9 @@ def pruefer_material(a, quellen, dp):
     # Titel/Anriss fassen den Artikel zusammen ("die Preisangaben widersprechen sich"): eigene
     # Fundstellen plus die aller Absaetze. 30.10.: Ohne das fehlten die Preise, Fehlalarm bei 4 Modellen.
     alles = " ".join([kopf] + [x["text"] for x in a["absaetze"]])
-    return [("P0", kopf, belege(alles, list(nach_nr), 2 * PRUEFER_BELEG_JE_ABSATZ))] + absaetze
+    # R4: jede Zeile des Kastens "Auf einen Blick" gegen die Belege ihrer Quellen
+    blick = [(f"B{i}", x["text"], belege(x["text"], x["quellen"])) for i, x in enumerate(a.get("blick") or [], 1)]
+    return [("P0", kopf, belege(alles, list(nach_nr), 2 * PRUEFER_BELEG_JE_ABSATZ))] + absaetze + blick
 
 
 def pruefer_prompt(teile):
@@ -965,10 +1064,12 @@ def pruefer_urteil(teile, modell, key):
         urteil = json.loads(text[text.index("{"): text.rindex("}") + 1])
     except ValueError:
         raise ValueError(f"kein JSON (finish_reason={wahl.get('finish_reason')}, Anfang {text[:120]!r})")
-    fehlt = [i for i, _, _ in teile if not isinstance(urteil.get(i), list)]
+    # R4: Fehlt eine Kastenzeile (B..), gilt das Urteil trotzdem, nur der Kasten faellt weg
+    fehlt = [i for i, _, _ in teile if not isinstance(urteil.get(i), list) and not i.startswith("B")]
     if fehlt:
         raise ValueError(f"unvollständig, fehlt {fehlt}")
-    return {i: [_sauber(x) for x in urteil[i] if _sauber(x)] for i, _, _ in teile}, roh.get("usage") or {}
+    return {i: ([_sauber(x) for x in urteil[i] if _sauber(x)] if isinstance(urteil.get(i), list)
+                else ["vom Prüfer nicht beurteilt"]) for i, _, _ in teile}, roh.get("usage") or {}
 
 
 def pruefe_llm(a, quellen, dp, key, modelle=None):
@@ -987,7 +1088,13 @@ def pruefe_llm(a, quellen, dp, key, modelle=None):
             continue
         info.update(modell=modell, sekunden=round(time.time() - start, 1), kosten=usage.get("cost"))
         namen = {"P0": "Titel/Anriss"}
-        fehler = [f"Prüfer: {namen.get(i, 'Absatz ' + i[1:])}: {x[:200]}" for i, liste in urteil.items() for x in liste]
+        fehler = [f"Prüfer: {namen.get(i, 'Absatz ' + i[1:])}: {x[:200]}" for i, liste in urteil.items()
+                  if not i.startswith("B") for x in liste]
+        kasten = [f"Zeile {i[1:]}: {x[:200]}" for i, liste in urteil.items() if i.startswith("B") for x in liste]
+        if kasten:                       # R4: nur der Kasten faellt weg, der Artikel nicht
+            a["blick"] = []
+            info["blick_weg"] = kasten
+            print(f"[RECHERCHE] Kasten Auf einen Blick faellt weg (Prüfer): {kasten[:3]}")
         return fehler, info
     return ["Prüfer: kein Modell lieferte ein Urteil"], info
 
@@ -1062,6 +1169,15 @@ ol.zeitleiste li{position:relative;margin:0 0 1rem;font-size:.9375rem}
 ol.zeitleiste li::before{content:"";position:absolute;left:calc(-1.25rem - 6px);top:.3rem;width:10px;height:10px;border-radius:50%;background:var(--akzent)}
 ol.zeitleiste time{display:block;font-size:.8125rem;font-weight:600;color:var(--akzent)}
 ol.zeitleiste .meta{display:block;margin:0;font-size:.8125rem}
+.blick{border-left:3px solid var(--akzent);background:var(--grund);border-radius:0 4px 4px 0;padding:.65rem 1rem;margin:1rem 0 1.25rem}
+.blick h2{margin:0 0 .35rem;font-size:1rem}
+.blick ul{margin:0;padding-left:1.1rem}
+.blick li{margin:.2rem 0;font-size:.9375rem}
+figure figcaption{font-size:.75rem;color:var(--grau);margin-top:.3rem}
+ol.quellen.kompakt{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:.25rem 1.1rem;font-size:.875rem}
+ol.quellen.kompakt li{margin:0}
+ol.quellen.kompakt .nr{color:var(--grau)}
+.pruefung.klein{font-size:.8125rem;padding:.5rem .75rem}
 """.strip()
 
 
@@ -1088,6 +1204,9 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
     pfad = f"/recherche/{slug}.html"
     url = SITE + pfad
     bild = rep.get("image_local_gross") or rep.get("image_local") or (r or {}).get("poster") or ""
+    bild_klein, bild_von = bild, ""
+    if FORMAT_R4:
+        bild, bild_klein, bild_von = bild_zur_story(k, quellen)
     robots = "noindex, nofollow" if entwurf else "index, follow, max-image-preview:large"
     n_medien = sum(1 for q in quellen if not q["hersteller"])
     erschienen = erschienen or stand
@@ -1148,6 +1267,12 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
     vg = k.get("vorgaenger_info") or {}
     if vg.get("pfad"):
         teile.append(f'<p class="quelle">Vorgeschichte: <a href="{esc(vg["pfad"])}">{esc(vg.get("titel") or "")}</a></p>')
+    blick = (a.get("blick") or []) if FORMAT_R4 else []
+    if blick:
+        # R4: Zahlen und Nummern kommen aus dem geprueften Artikel (pruefe_blick, Pruefer B1..)
+        teile.append('<aside class="blick"><h2>Auf einen Blick</h2><ul>' + "".join(
+            f"<li>{esc(x['text'])}" + "".join(f'<sup><a href="#q{n}">[{n}]</a></sup>' for n in x["quellen"])
+            + "</li>" for x in blick) + "</ul></aside>")
     video = (karte or {}).get("mp4_url") or ""
     if video:
         p = (karte or {}).get("poster_url") or ""
@@ -1156,6 +1281,12 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
         # der Text darunter beim ersten Aufruf weg (Layout-Sprung 0,22).
         teile.append(f'<figure><video controls playsinline preload="none" width="840" height="1320"{pp}>'
                      f'<source src="{esc(video)}" type="video/mp4"/></video></figure>')
+    elif bild and FORMAT_R4:
+        # R4: 640er als src, weil er dauerhaft bleibt. Fehlt der 1600er spaeter, faellt das Bild auf src zurueck.
+        ss = (f' srcset="{esc(bild_klein)} 640w, {esc(bild)} 1600w" sizes="(max-width: 46rem) 100vw, 46rem"'
+              ' onerror="this.onerror=null;this.removeAttribute(\'srcset\')"') if bild != bild_klein else ""
+        cap = f"<figcaption>Bild: {esc(bild_von)}</figcaption>" if bild_von else ""
+        teile.append(f'<figure><img src="{esc(bild_klein)}"{ss} alt="" loading="lazy"/>{cap}</figure>')
     elif bild:
         teile.append(f'<figure><img src="{esc(bild)}" alt="" loading="lazy"/></figure>')
     for x in a["absaetze"]:
@@ -1193,17 +1324,30 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
         teile.append("</ol></section>")
 
     teile.append("<h2>Quellen</h2>")
-    teile.append('<ol class="quellen">' + "".join(
-        f'<li id="q{q["nr"]}">{esc(q["medium"])}: <a href="{esc(q["link"] or "")}" rel="noopener" '
-        f'target="_blank">{esc(q["titel"])}</a></li>' for q in quellen) + "</ol>")
+    if FORMAT_R4:
+        # R4: eine Zeile wie bei Notebookcheck, der Titel steht im title-Attribut
+        teile.append('<ol class="quellen kompakt">' + "".join(
+            f'<li id="q{q["nr"]}"><span class="nr">[{q["nr"]}]</span> <a href="{esc(q["link"] or "")}" '
+            f'title="{esc(q["titel"])}" rel="noopener" target="_blank">{esc(q["medium"])}</a></li>'
+            for q in quellen) + "</ol>")
+    else:
+        teile.append('<ol class="quellen">' + "".join(
+            f'<li id="q{q["nr"]}">{esc(q["medium"])}: <a href="{esc(q["link"] or "")}" rel="noopener" '
+            f'target="_blank">{esc(q["titel"])}</a></li>' for q in quellen) + "</ol>")
     if rep.get("seite"):
         teile.append(f'<p class="quelle">Zur Kurzmeldung: <a href="{esc(rep["seite"])}">{esc(ms._titel(rep))}</a></p>')
     teile.append("</article>")
-    teile.append(
-        '<p class="pruefung">So entsteht dieser Text: Ein Sprachmodell hat die oben verlinkten Quellen '
-        'zusammengefasst. Vor der Veröffentlichung wurde automatisch geprüft, dass jede Zahl, jedes Datum '
-        'und jeder Name in mindestens einer Quelle steht und dass jeder Absatz durch die genannten Quellen '
-        'gedeckt ist. Fehler sind trotzdem möglich, maßgeblich sind die Originalquellen.</p>')
+    if FORMAT_R4:
+        teile.append(
+            '<p class="pruefung klein">So entsteht dieser Text: Ein Sprachmodell fasst die verlinkten Quellen '
+            'zusammen. Vorher prüft die Automatik, dass jede Zahl, jedes Datum und jeder Name in einer Quelle steht '
+            'und jeder Absatz von seinen Quellen gedeckt ist. Maßgeblich sind die Originalquellen.</p>')
+    else:
+        teile.append(
+            '<p class="pruefung">So entsteht dieser Text: Ein Sprachmodell hat die oben verlinkten Quellen '
+            'zusammengefasst. Vor der Veröffentlichung wurde automatisch geprüft, dass jede Zahl, jedes Datum '
+            'und jeder Name in mindestens einer Quelle steht und dass jeder Absatz durch die genannten Quellen '
+            'gedeckt ist. Fehler sind trotzdem möglich, maßgeblich sind die Originalquellen.</p>')
     teile += [
         "</main>",
         ms._FUSS,
@@ -1465,6 +1609,10 @@ def main():
                 continue
             fehler = pruefe_text(artikel, quellen, dp, entities)
             print(f"[RECHERCHE] {modell}: {len(fehler)} Verstoesse {fehler[:4]}")
+            kasten = pruefe_blick(artikel, quellen, dp, entities)
+            if kasten:                   # R4: nur der Kasten faellt weg
+                artikel["blick"] = []
+                print(f"[RECHERCHE] {modell}: Kasten Auf einen Blick faellt weg {kasten[:4]}")
             if not fehler:
                 break
         if artikel and not fehler:
