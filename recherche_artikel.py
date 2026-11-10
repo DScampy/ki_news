@@ -29,6 +29,13 @@ im Register (versionen). Nicht bestanden -> die alte Fassung bleibt online, der 
 artikel/entwurf/recherche-<slug>-update.html. Hoechstens ein Versuch je Artikel und Tag, zaehlt
 ins Tageslimit; nach einem Fehlversuch erst wieder, wenn noch weitere Medien dazukommen.
 
+Laufende Faelle (10.11.26, Daniel, Plan R3): Ein Fall, der sich ueber Tage hinzieht, bekommt EINEN
+Artikel, der fortgeschrieben wird. Anker ist die Linie (n["linie"] in news.json, dazu Thema-Zuordnungen
+aus themenketten.json), nicht die story_id, die jeden Lauf neu vergeben wird. Auch ein Entwurf wird
+fortgeschrieben. Nach KETTE_MAX_TAGE beginnt ein neuer Teil, der auf
+den alten verweist. Dazu eine Zeitleiste aus den Ereignissen der Linie.
+Schalter KETTEN ("schatten" = nur ins Log, "an", "aus").
+
 Einziger Schreiber von recherche/ und artikel/entwurf/recherche-*.html (I5).
 Laeuft als eigener Workflow-Schritt nach hersteller_feed.py, continue-on-error (I8).
 Kill-Switch: RECHERCHE_AKTIV = False.
@@ -36,6 +43,7 @@ Kill-Switch: RECHERCHE_AKTIV = False.
 Aufruf: python3 recherche_artikel.py [--story SID] [--nur-entwurf] [--dry-run]
 """
 import argparse
+import hashlib
 import html
 import importlib.util
 import json
@@ -74,6 +82,20 @@ MAX_PRO_LAUF = 1
 # ersetzen keine Medien (Daniel: "mindestens drei oder vier Quellen").
 X_BELEGE = "schatten"
 X_SCHATTEN_ZEIT_S = 45           # Zeitgrenze fuer alle Kandidaten eines Laufs zusammen (Test 10.11.: 6 in 19 s)
+# Laufende Faelle (10.11.26, Daniel, Plan R3): "ich möchte gerne, dass es endlich zusammenhängende
+# Recherche-Artikel gibt, auch wenn die sich über Tage hinziehen". Anlass: Der Huang-Fall lag am 10.11.
+# mit 39 Meldungen in 13 Storys, die story_id wechselt jeden Lauf, und es gab 3 Entwuerfe (08., 09.,
+# 10.11.), weil nur veroeffentlichte Artikel erweitert wurden. Anker ist jetzt die Linie aus
+# themenkette_shadow.linien_fuer_anzeige (HuggingNews-Kettenfamilie ab 3 Ereignissen, Zuordnungen mit
+# Zwei-Modell-Votum), siehe linien_zuordnung. Meldungen ohne Linie laufen wie bisher ueber die story_id.
+# "schatten" = nur ins Log, was R3 taete, sonst alles wie vorher. "an" = ein Artikel je Linie.
+# "aus" = Kill-Switch, auch keine Log-Zeile.
+KETTEN = "schatten"
+KETTE_MAX_TAGE = 7               # so lange wird ein Artikel fortgeschrieben, dann beginnt ein neuer Teil.
+                                 # Daniel 10.11.: Meldungen bleiben etwa eine Woche in der Pipeline, Dauer-
+                                 # themen wie Rechenzentren bringen aber jeden Tag etwas Neues.
+ZEITLEISTE_MAX = 10              # Ereignisse in der Zeitleiste (das erste bleibt immer drin)
+KETTE_NEUE_QUELLEN = 3           # so viele Plaetze im Prompt bleiben bei langen Faellen fuer neue Medien frei
 UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
 MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
@@ -233,6 +255,170 @@ def heute_verbraucht(register, heute):
                + ((e.get("fehlversuch") or {}).get("datum") == heute) for e in register.values())
 
 
+# ── Laufende Faelle (Plan R3) ────────────────────────────────────────────────
+
+def _tage(von, bis):
+    try:
+        return (datetime.strptime(str(bis)[:10], "%Y-%m-%d") - datetime.strptime(str(von)[:10], "%Y-%m-%d")).days
+    except (TypeError, ValueError):
+        return 0
+
+
+def zeitleiste(linie):
+    """Ereignisse der Linie von alt nach neu, ohne die, die das Dossier als abseits markiert hat.
+    Hoechstens ZEITLEISTE_MAX, das erste Ereignis bleibt immer drin. Nur unsere eigenen Titel."""
+    weg = set((linie.get("dossier") or {}).get("abseits") or [])
+    liste = sorted((e for e in linie.get("e") or [] if e.get("k") not in weg and e.get("t") and e.get("d")),
+                   key=lambda e: e["d"])
+    if len(liste) > ZEITLEISTE_MAX:
+        liste = liste[:1] + liste[-(ZEITLEISTE_MAX - 1):]
+    return [{"d": e["d"][:10], "t": _sauber(e["t"]), "q": _sauber(e.get("q")), "l": e.get("l") or ""} for e in liste]
+
+
+def _eintrag_zur_linie(register, lid, links, vergeben):
+    """Registereintrag, der die Linie fortsetzt. Zuerst einer mit derselben Linie (der neueste Teil).
+    Sonst einer von vor R3 mit gemeinsamen Links, mindestens 2 (bei Eintraegen mit 1 Link dieser),
+    damit ein einzelner geerbter Link keinen fremden Artikel kapert. Dabei veroeffentlichte vor
+    Entwuerfen, dann die meisten gemeinsamen Links, dann der neueste."""
+    eigene = [(s, e) for s, e in register.items() if e.get("linie") == lid and s not in vergeben]
+    if eigene:
+        return max(eigene, key=lambda x: x[1].get("datum") or "")[0]
+    alte = []
+    for s, e in register.items():
+        alt = set(e.get("links") or [])
+        if s in vergeben or e.get("linie") or not alt:
+            continue
+        gemeinsam = len(alt & links)
+        if gemeinsam >= min(2, len(alt)):
+            alte.append(((e.get("status") == "veroeffentlicht", gemeinsam, e.get("datum") or ""), s))
+    return max(alte)[1] if alte else None
+
+
+def linien_zuordnung(news, linien, themen):
+    """Welche Meldung gehoert zu welcher Linie: {link: lid} und je Linie alle Links ihrer Kettenfamilie.
+    n["linie"] kennt nur Ereignis-Zuordnungen und deren Cluster-Geschwister. Am 10.11. fehlte so die
+    Huang-Story s017 (Reuters, FT, Economist), obwohl themenketten.json sie derselben Familie als
+    "thema" zuordnet (auch Zwei-Modell-Votum). Darum zaehlt hier auch die eigene Thema-Zuordnung, und
+    Cluster-Geschwister ohne eigene Zuordnung erben sie, wie in themenkette_shadow.linien_fuer_anzeige.
+    Die Familien-Links finden ausserdem alte Artikel, deren Quellen schon im Archiv liegen."""
+    zu = themen.get("zuordnung") or {}
+    fv = themen.get("familie_von") or {}
+    fam = {l: hashlib.md5(fv.get(z["kette"], z["kette"]).encode("utf-8")).hexdigest()[:8]
+           for l, z in zu.items() if z.get("kette")}
+    familie = {}
+    for l, lid in fam.items():
+        if lid in linien:
+            familie.setdefault(lid, set()).add(l)
+    zug, storys = {}, {}
+    for n in news:
+        if not n.get("link"):
+            continue
+        storys.setdefault(n.get("story_id"), []).append(n)
+        if n.get("linie") in linien:
+            zug[n["link"]] = n["linie"]
+            continue
+        eigene = {fam[l] for l in ms._links(n) if l in fam}
+        if len(eigene) == 1 and next(iter(eigene)) in linien:
+            zug[n["link"]] = next(iter(eigene))
+    for sid, glieder in storys.items():
+        lids = {zug[g["link"]] for g in glieder if g["link"] in zug}
+        if sid and len(lids) == 1:
+            for g in glieder:
+                if g["link"] not in zug and not any(l in fam for l in ms._links(g)):
+                    zug[g["link"]] = next(iter(lids))
+    return zug, familie
+
+
+def linien_plan(news, linien, releases, register, heute, zug, familie):
+    """Plan R3: ein Eintrag je Linie mit Meldungen in news.json. "kandidat" ist der Kandidat fuer
+    die Schreibschleife (neu oder Fortschreibung) oder None, dann sagt "grund" warum nicht.
+    zug, familie: aus linien_zuordnung. Liest nichts aus dem Netz."""
+    gruppen = {}
+    for n in news:
+        if n.get("link") in zug:
+            gruppen.setdefault(zug[n["link"]], []).append(n)
+    plan, vergeben = [], set()
+    for lid, glieder in sorted(gruppen.items(), key=lambda x: (-len(x[1]), x[0])):
+        linie = linien[lid]
+        links = {l for g in glieder for l in ms._links(g)}
+        bekannte = links | familie.get(lid, set()) | {e.get("l") for e in linie.get("e") or [] if e.get("l")}
+        medien = _medien(glieder)
+        sids = sorted({g.get("story_id") for g in glieder if g.get("story_id")})
+        rel = _release_zu(releases, set(sids), links)
+        rep = max(glieder, key=lambda x: _zahl(x.get("score")))
+        p = {"lid": lid, "titel": (linie.get("dossier") or {}).get("titel") or ms._titel(rep),
+             "ereignisse": linie.get("n") or len(linie.get("e") or []), "seit": linie.get("seit") or "",
+             "sids": sids, "meldungen": len(glieder), "medien": sorted(medien), "slug": None,
+             "aktion": "", "grund": "", "neu": [], "kandidat": None}
+        plan.append(p)
+        k = {"sid": "Linie " + lid, "rep": rep, "glieder": glieder, "links": sorted(links), "release": rel,
+             "linie": lid, "zeitleiste": zeitleiste(linie), "medien_linie": sorted(medien)}
+        slug = _eintrag_zur_linie(register, lid, bekannte, vergeben)
+        e = register.get(slug) if slug else None
+        if e and _tage(e.get("datum"), heute) > KETTE_MAX_TAGE:
+            vergeben.add(slug)
+            k["vorgaenger"] = slug
+            if e.get("status") == "veroeffentlicht":
+                k["vorgaenger_info"] = {"pfad": e.get("pfad"), "titel": e.get("titel")}
+            p["slug"], p["aktion"] = slug, "neuer Teil"
+            e = None
+        if e:
+            vergeben.add(slug)
+            p["slug"] = slug
+            fv = e.get("fehlversuch") or {}
+            if heute in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
+                p["grund"] = "heute schon geschrieben"
+                continue
+            bekannt = {m.lower() for m in (e.get("medien") or []) + (e.get("medien_linie") or [])}
+            neu = sorted(m for m in medien if m.lower() not in bekannt)
+            versucht = {m.lower() for m in fv.get("medien") or []}
+            p["neu"] = neu
+            if sum(m.lower() not in versucht for m in neu) < UPDATE_MIN_NEUE_MEDIEN:
+                p["grund"] = f"nur {len(neu)} neue Medien"
+                continue
+            if e.get("status") == "veroeffentlicht":
+                k.update(update=slug, alt_links=set(e.get("links") or []), neu=neu)
+            else:
+                # Entwurf: wird frisch geschrieben, ohne "neu"-Marken und ohne Vorrang fuer alte Quellen
+                k.update(update=slug, alt_links=set(), neu=neu, entwurf=True)
+            p["aktion"], p["kandidat"] = "fortschreiben", k
+            continue
+        if not (len(medien) >= MIN_QUELLEN or (rel and len(medien) >= MIN_QUELLEN_MIT_HERSTELLER)):
+            p["grund"] = f"nur {len(medien)} Medien"
+            continue
+        p["aktion"], p["kandidat"] = p["aktion"] or "neu", k
+    return plan
+
+
+def _in_linie(k, zug):
+    return any(g.get("link") in zug for g in k["glieder"])
+
+
+def ketten_logzeilen(plan, kand, erw, register, zug):
+    """Was R3 taete, fuer den Schattenbetrieb. Je Linie eine Zeile."""
+    zeilen = []
+    for p in plan:
+        einzel = [k["update"][:40] if k.get("update") else k["sid"]
+                  for k in kand + erw if any(zug.get(g.get("link")) == p["lid"] for g in k["glieder"])]
+        kopf = (f"[RECHERCHE] Ketten-Schatten {p['lid']} ({p['titel'][:60]}): {p['ereignisse']} Ereignisse seit "
+                f"{ms._datum_de(p['seit'])}, {p['meldungen']} Meldungen in {len(p['sids'])} Storys, "
+                f"{len(p['medien'])} Medien -> ")
+        e = register.get(p["slug"]) if p["slug"] else {}
+        wer = (f"{p['slug'][:50]} ({'Entwurf' if e.get('status') == 'entwurf' else 'Artikel'} vom "
+               f"{ms._datum_de(e.get('datum') or '')})") if p["slug"] else ""
+        if p["aktion"] == "fortschreiben":
+            was = f"wuerde fortschreiben: {wer}, +{len(p['neu'])} Medien ({', '.join(p['neu'][:6])})"
+        elif p["aktion"] == "neuer Teil" and p["kandidat"]:
+            was = f"wuerde neuen Teil schreiben, {wer} ist aelter als {KETTE_MAX_TAGE} Tage"
+        elif p["aktion"] == "neu":
+            was = "wuerde neuen Artikel schreiben"
+        else:
+            was = f"nichts zu tun, {p['grund']}" + (f" ({wer})" if wer else "")
+        was += f", statt {len(einzel)} Einzelkandidaten ({', '.join(einzel)})" if einzel else ""
+        zeilen.append(kopf + was)
+    return zeilen
+
+
 def _absaetze(seite):
     """Nur Fliesstext-Absaetze (<p> ab 60 Zeichen, ohne Dubletten), keine Menues/Listen."""
     s = re.sub(r"(?is)<(script|style|noscript|svg|nav|footer|header|aside|form)[^>]*>.*?</\1>", " ", seite)
@@ -272,13 +458,48 @@ def _zustimmseite(t):
     return sum(kopf.count(w) for w in ("cookie", "zustimm", "einwillig", "tracking", "consent", "privacy center")) >= 4
 
 
+def _lesbar(g):
+    """Hat die Meldung eine Adresse, von der _quelltext lesen kann (nicht nur news.google.com)?"""
+    return any(u and "news.google.com" not in u for u in (g.get("link_verlag"), g.get("link")))
+
+
+def _reihe_linie(k, reihe, alt, neu):
+    """R3: je Medium eine Meldung (die bisherige Quelle, sonst die neueste lesbare). Gibt
+    es mehr Medien als MAX_MEDIEN_JE_ARTIKEL, behalten die bisherigen Quellen ihre Plaetze bis auf
+    KETTE_NEUE_QUELLEN, die fuer neue Medien frei bleiben. Sonst kamen neue Medien bei langen Faellen
+    nie in den Prompt. Lesbare Medien vor solchen, die nur ueber news.google.com kommen (Test 10.11.:
+    Huang-Linie mit 15 Medien, 5 der 7 gewaehlten ohne Text), dann die neueren Meldungen. Ergebnis nach
+    Datum, damit die Quellennummern dem Verlauf folgen."""
+    def zeit(g):
+        return g.get("first_seen") or g.get("date") or ""
+    beste = {}
+    neueste = sorted(reihe, key=zeit, reverse=True)
+    for g in sorted(neueste, key=lambda x: (not set(ms._links(x)) & alt, not _lesbar(x))):
+        m = (g.get("source") or "").strip().lower()
+        if m and m not in beste:
+            beste[m] = g
+    def vorne(medien):                   # lesbar zuerst, darin die neueste Meldung zuerst
+        medien = sorted(medien, key=lambda m: zeit(beste[m]), reverse=True)
+        return sorted(medien, key=lambda m: not _lesbar(beste[m]))
+    bisher = [m for m, g in beste.items() if set(ms._links(g)) & alt]
+    neue = vorne(m for m in beste if m in neu and m not in bisher)
+    frei = min(len(neue), KETTE_NEUE_QUELLEN)
+    wahl = bisher[:MAX_MEDIEN_JE_ARTIKEL - frei] + neue[:frei]
+    wahl += vorne(m for m in beste if m not in wahl)[:MAX_MEDIEN_JE_ARTIKEL - len(wahl)]
+    return sorted((beste[m] for m in wahl),
+                  key=lambda g: (g.get("first_seen") or g.get("date") or "", -_zahl(g.get("score"))))
+
+
 def material(k, dp):
     """Nummerierte Quellen: je Medium die Meldung mit dem laengsten Text, dazu die Herstellerseite.
     Bei einer Erweiterung zuerst die Meldungen der bisherigen Fassung (alt_links)."""
     quellen, gesehen = [], set()
     alt = k.get("alt_links") or set()
     neu = {m.lower() for m in k.get("neu") or []}
-    for g in sorted(k["glieder"], key=lambda x: (not set(ms._links(x)) & alt, -len(x.get("full_text") or ""))):
+    reihe = sorted(k["glieder"], key=lambda x: (not set(ms._links(x)) & alt, -len(x.get("full_text") or "")))
+    if k.get("linie"):
+        reihe = _reihe_linie(k, reihe, alt, neu)
+    for g in reihe:
         medium = (g.get("source") or "").strip()
         if not medium or medium.lower() in gesehen or len(gesehen) >= MAX_MEDIEN_JE_ARTIKEL:
             continue
@@ -287,7 +508,7 @@ def material(k, dp):
         quellen.append({"medium": medium, "titel": _sauber(g.get("title")), "link": g.get("link_verlag") or g.get("link"),
                         "text": _sauber(" ".join(x for x in (g.get("summary"), text) if x))[:TEXT_JE_QUELLE],
                         "hat_text": len(text) >= dp.MIN_QUELLTEXT, "hersteller": False,
-                        "neu": medium.lower() in neu})
+                        "neu": medium.lower() in neu and not k.get("entwurf")})   # R3: Entwurf ohne Marke
     r = k["release"]
     if r and r.get("url"):
         text = _quelltext({"link": r["url"]}, dp)
@@ -317,8 +538,9 @@ def karte_zur_story(k, base=BASE):
 
 # ── Schreiben ────────────────────────────────────────────────────────────────
 
-def prompt(quellen, alt=None):
-    """alt: die veroeffentlichte Fassung (Register "artikel"), wenn der Artikel erweitert wird."""
+def prompt(quellen, alt=None, fall=False):
+    """alt: die veroeffentlichte Fassung (Register "artikel"), wenn der Artikel erweitert wird.
+    fall: Quellen einer Linie (Plan R3), nach Datum geordnet."""
     teile = []
     for q in quellen:
         # 01.11.: Bei "Medienbericht" schrieb Sonnet "Ein Medienbericht zitiert ..." statt des Mediums
@@ -337,6 +559,14 @@ def prompt(quellen, alt=None):
             "Quellennummern beziehen sich nur auf die Liste unten.\n\nBisherige Fassung:\n"
             f"Titel: {alt.get('titel', '')}\nAnriss: {alt.get('anriss', '')}\n"
             + "\n".join(x.get("text", "") for x in alt.get("absaetze") or []) + "\n\n")
+    if fall:
+        # R3: Fall ueber mehrere Tage. Daten stehen bewusst nicht im Quellenkopf, denn die Pruefung
+        # sucht jede Zahl im Quelltext, ein Datum aus dem Kopf galte dort als nicht belegt.
+        erweiterung = (
+            "Die Quellen gehören zu einem Fall, der sich über mehrere Tage entwickelt hat. Sie sind nach "
+            "Datum geordnet, die letzte ist die neueste. Der erste Absatz nennt die neueste Entwicklung. "
+            "Danach erzählst du der Reihe nach, wie es dazu kam. Ein Datum nur, wenn es in einer Quelle "
+            "steht.\n\n") + erweiterung
     return (
         "Du schreibst für ki-news.live einen deutschen Hintergrundartikel zu einer KI-Meldung. "
         "Grundlage sind AUSSCHLIESSLICH die nummerierten Quellen unten.\n\n"
@@ -827,6 +1057,11 @@ ol.quellen li{margin:.35rem 0}
 .pruefung{background:var(--grund);border:1px solid var(--linie);border-radius:4px;padding:.75rem 1rem;font-size:.875rem}
 .entwurf{border:2px solid #b45309;border-radius:4px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.9375rem}
 .yt{margin:0 0 1rem}
+ol.zeitleiste{list-style:none;margin:1rem 0 1.5rem .35rem;padding:0 0 0 1.25rem;border-left:2px solid var(--linie)}
+ol.zeitleiste li{position:relative;margin:0 0 1rem;font-size:.9375rem}
+ol.zeitleiste li::before{content:"";position:absolute;left:calc(-1.25rem - 6px);top:.3rem;width:10px;height:10px;border-radius:50%;background:var(--akzent)}
+ol.zeitleiste time{display:block;font-size:.8125rem;font-weight:600;color:var(--akzent)}
+ol.zeitleiste .meta{display:block;margin:0;font-size:.8125rem}
 """.strip()
 
 
@@ -903,12 +1138,16 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
                      'Prüfung hat diesen Text angehalten:<ul>' +
                      "".join(f"<li>{esc(b)}</li>" for b in bericht) + "</ul></div>")
     teile += [
-        f'<p class="kicker">Recherche · {n_medien} Quellen' + (" + Herstellerseite" if r else "") + "</p>",
+        f'<p class="kicker">Recherche · ' + ("Laufender Fall · " if k.get("linie") else "")
+        + f'{n_medien} Quellen' + (" + Herstellerseite" if r else "") + "</p>",
         f'<p class="meta"><time datetime="{datum}">{ms._datum_de(datum)}</time>'
         + (f" · {esc(vermerk)}" if vermerk else "") + "</p>",
         f"<h1>{esc(a['titel'])}</h1>",
         f'<p class="anriss">{esc(a["anriss"])}</p>',
     ]
+    vg = k.get("vorgaenger_info") or {}
+    if vg.get("pfad"):
+        teile.append(f'<p class="quelle">Vorgeschichte: <a href="{esc(vg["pfad"])}">{esc(vg.get("titel") or "")}</a></p>')
     video = (karte or {}).get("mp4_url") or ""
     if video:
         p = (karte or {}).get("poster_url") or ""
@@ -939,6 +1178,19 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
             teile.append(f'<blockquote class="twitter-tweet"><a href="{esc(r["x_url"])}">'
                          f'Beitrag von {esc(r.get("hersteller") or "")} auf X</a></blockquote>')
         teile.append("</section>")
+
+    leiste = k.get("zeitleiste") or []
+    if len(leiste) >= 2:
+        # R3: Zeitleiste aus den Ereignissen der Linie. Titel, Datum und Medium kommen aus news.json und
+        # archive.json (wie im Dossier), nicht vom Sprachmodell.
+        teile.append('<section class="verlauf"><h2>So hat sich der Fall entwickelt</h2><ol class="zeitleiste">')
+        for e in leiste:
+            t = esc(e["t"])
+            if e["l"].startswith("https://"):
+                t = f'<a href="{esc(e["l"])}" rel="noopener" target="_blank">{t}</a>'
+            teile.append(f'<li><time datetime="{esc(e["d"])}">{ms._datum_de(e["d"])}</time>{t}'
+                         + (f'<span class="meta">{esc(e["q"])}</span>' if e["q"] else "") + "</li>")
+        teile.append("</ol></section>")
 
     teile.append("<h2>Quellen</h2>")
     teile.append('<ol class="quellen">' + "".join(
@@ -1056,6 +1308,8 @@ def erweitere(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_wert
         print(json.dumps(artikel, ensure_ascii=False, indent=1))
         return
     ms._schreiben_wenn_neu(ziel, seite)
+    if k.get("linie"):
+        e["linie"] = k["linie"]          # R3: ab jetzt haengt der Artikel an der Linie
     if not bestanden:
         e["fehlversuch"] = {"datum": heute, "medien": k["neu"], "gruende": fehler,
                             "pfad": f"/artikel/entwurf/recherche-{slug}-update.html"}
@@ -1066,6 +1320,44 @@ def erweitere(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_wert
              quellen=len(quellen), medien=[q["medium"] for q in quellen if not q["hersteller"]],
              links=sorted(set(k["links"]) | set(e.get("links") or [])), modell=modell, pruefer=pinfo,
              jev=jev_werte, gruende=[], pruefung=PRUEFUNG_VERSION, stand_aktualisiert=stand)
+    if k.get("medien_linie"):
+        e["medien_linie"] = k["medien_linie"]
+    e.pop("fehlversuch", None)
+
+
+def entwurf_fortschreiben(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_werte, stand, heute,
+                          dry_run=False):
+    """R3: Ein Entwurf derselben Linie wird mit allen Quellen neu geschrieben, unter derselben Adresse.
+    Bestanden: wird veroeffentlicht (recherche/<slug>.html). Sonst ersetzt der neue Entwurf den alten,
+    und der naechste Versuch braucht wieder UPDATE_MIN_NEUE_MEDIEN weitere Medien (medien_linie).
+    Die alte Fassung kommt nach e["versionen"]."""
+    slug = k["update"]
+    weitere = {m.lower() for m in k.get("neu") or []}
+    neu = [q["medium"] for q in quellen if q["medium"].lower() in weitere]
+    seite = rendere(artikel, k, quellen, karte_zur_story(k), slug, stand, not bestanden,
+                    fehler or ["Testlauf mit --nur-entwurf"])
+    ziel = (ORDNER / f"{slug}.html") if bestanden else (ENTWURF_DIR / f"recherche-{slug}.html")
+    print(f"[RECHERCHE] Entwurf fortgeschrieben, {'veroeffentlicht' if bestanden else 'weiter Entwurf'}: "
+          f"{ziel.relative_to(BASE).as_posix()} (+{len(neu)} Medien" + (f": {', '.join(neu)}" if neu else "")
+          + f", {len(quellen)} Quellen)")
+    if dry_run:
+        print(json.dumps(artikel, ensure_ascii=False, indent=1))
+        return
+    ms._schreiben_wenn_neu(ziel, seite)
+    e["versionen"] = (e.get("versionen") or []) + [
+        {f: e.get(f) for f in ("datum", "aktualisiert", "status", "titel", "anriss", "quellen", "modell",
+                               "links", "gruende", "artikel")}]
+    e.update(titel=artikel["titel"], anriss=artikel["anriss"], artikel=artikel, aktualisiert=heute,
+             quellen=len(quellen), medien=[q["medium"] for q in quellen if not q["hersteller"]],
+             medien_linie=k.get("medien_linie") or [], links=sorted(set(k["links"]) | set(e.get("links") or [])),
+             modell=modell, pruefer=pinfo, jev=jev_werte, gruende=fehler, pruefung=PRUEFUNG_VERSION, stand=stand)
+    if k.get("linie"):
+        e["linie"] = k["linie"]
+    if bestanden:
+        # Erscheinungsdatum = heute (Uebersicht, Sitemap, KETTE_MAX_TAGE). "aktualisiert" faellt weg,
+        # sonst zaehlte der Artikel im Tageslimit doppelt. Das Datum des Entwurfs steht in versionen.
+        e.update(status="veroeffentlicht", pfad=f"/recherche/{slug}.html", datum=heute)
+        e.pop("aktualisiert", None)
     e.pop("fehlversuch", None)
 
 
@@ -1103,7 +1395,9 @@ def main():
         print("[RECHERCHE] kein OPENROUTER_KEY, nichts zu tun")
         return 0
 
-    news = _lade(BASE / "news.json", {}).get("news") or []
+    news_doc = _lade(BASE / "news.json", {})
+    news = news_doc.get("news") or []
+    linien = news_doc.get("linien") or {}
     releases = _lade(BASE / "hersteller.json", {}).get("releases") or []
     entities = _lade(BASE / "entities.json", {}).get("entities") or []
     register = _lade(REGISTER, {})
@@ -1121,6 +1415,25 @@ def main():
     archiv = _lade(BASE / "archive.json", [])
     erw = [] if args.story else erweiterungen(news, archiv if isinstance(archiv, list) else [],
                                                releases, register, heute)
+    if KETTEN in ("schatten", "an") and not args.story:
+        try:
+            zug, familie = linien_zuordnung(news, linien, _lade(BASE / "themenketten.json", {}))
+            plan = linien_plan(news, linien, releases, register, heute, zug, familie)
+        except Exception as e:          # I8: R3 darf den Schritt nie aufhalten
+            print(f"[RECHERCHE] Ketten: Fehler {type(e).__name__}, weiter ohne")
+            plan = None
+        if plan is not None and KETTEN == "schatten":
+            for zeile in ketten_logzeilen(plan, kand, erw, register, zug):
+                print(zeile)
+        elif plan is not None:
+            # Storys und Erweiterungen, die zu einer Linie gehoeren, laufen nur noch ueber die Linie.
+            # Laufende Faelle zuerst (Daniel 10.11.), je Linie hoechstens einmal am Tag.
+            vergeben = {p["slug"] for p in plan if p["slug"]}
+            lk = [p["kandidat"] for p in plan if p["kandidat"]]
+            for zeile in ketten_logzeilen(plan, kand, erw, register, zug):
+                print(zeile.replace("Ketten-Schatten", "Kette").replace("wuerde ", ""))
+            kand = lk + [k for k in kand if not _in_linie(k, zug)]
+            erw = [k for k in erw if not _in_linie(k, zug) and k["update"] not in vergeben]
     print(f"[RECHERCHE] {len(kand)} Kandidaten (>= {MIN_QUELLEN} Medien oder Herstellerseite + "
           f"{MIN_QUELLEN_MIT_HERSTELLER}), {len(erw)} Erweiterungen "
           f"({', '.join(k['update'][:40] + ' +' + '/'.join(k['neu']) for k in erw)}), frei heute: {frei}")
@@ -1139,7 +1452,9 @@ def main():
             continue
         versucht += 1
         alt = register[k["update"]] if k.get("update") else None
-        p = prompt(quellen, alt and alt.get("artikel"))
+        # Ein Entwurf (R3) wird frisch geschrieben: Sein Text hat die Pruefung nicht bestanden.
+        p = prompt(quellen, alt.get("artikel") if alt and alt.get("status") == "veroeffentlicht" else None,
+                   fall=bool(k.get("linie")))
         artikel, fehler, modell, jev_werte, pinfo = None, ["kein Modell lieferte Text"], "", [], {}
         for modell in MODELLE[:MAX_SCHREIBVERSUCHE]:
             try:
@@ -1168,8 +1483,9 @@ def main():
         bestanden = not fehler and not args.nur_entwurf
         stand = jetzt.isoformat()
         if alt:
-            erweitere(alt, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_werte, stand, heute,
-                      args.dry_run)
+            weiter = erweitere if alt.get("status") == "veroeffentlicht" else entwurf_fortschreiben
+            weiter(alt, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_werte, stand, heute,
+                   args.dry_run)
             continue
         slug = ms._slug(artikel["titel"])
         while slug in register:
@@ -1184,6 +1500,10 @@ def main():
                    "quellen": len(quellen), "modell": modell, "jev": jev_werte, "pruefer": pinfo, "gruende": fehler,
                    "links": k["links"], "pruefung": PRUEFUNG_VERSION, "stand": stand,
                    "medien": [q["medium"] for q in quellen if not q["hersteller"]], "artikel": artikel}
+        if k.get("linie"):              # R3: Anker fuer das Fortschreiben
+            eintrag.update(linie=k["linie"], medien_linie=k.get("medien_linie") or [])
+            if k.get("vorgaenger"):
+                eintrag["vorgaenger"] = k["vorgaenger"]
         print(f"[RECHERCHE] {eintrag['status']}: {eintrag['pfad']} ({len(quellen)} Quellen)")
         if args.dry_run:
             print(json.dumps(artikel, ensure_ascii=False, indent=1))
