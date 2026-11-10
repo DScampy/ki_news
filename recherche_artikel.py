@@ -42,6 +42,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -66,6 +67,13 @@ MIN_QUELLEN_MIT_HERSTELLER = 2   # ... oder 2, wenn die Herstellerseite dazukomm
 MIN_TEXTQUELLEN = 2              # davon mit lesbarem Text (>= 600 Zeichen)
 MAX_PRO_TAG = 4                  # zaehlt auch Entwuerfe und Erweiterungen; 01.11. von 2 auf 4 (Daniel)
 MAX_PRO_LAUF = 1
+# X-Belege (10.11.26, Daniel, Plan R1): X-Posts der HuggingNews-Kette (themenketten.json, Rolle
+# source/support) plus darin verlinkte Originalseiten als weitere Belege, Modul x_belege.py.
+# "schatten" = nur messen und ins Log schreiben, kein Artikel aendert sich. "aus" = Kill-Switch.
+# "an" kommt erst mit R2, nach 3 Tagen Schatten-Auswertung. MIN_QUELLEN gilt weiter: X-Posts
+# ersetzen keine Medien (Daniel: "mindestens drei oder vier Quellen").
+X_BELEGE = "schatten"
+X_SCHATTEN_ZEIT_S = 45           # Zeitgrenze fuer alle Kandidaten eines Laufs zusammen (Test 10.11.: 6 in 19 s)
 UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
 MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
@@ -1061,6 +1069,25 @@ def erweitere(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_wert
     e.pop("fehlversuch", None)
 
 
+def _x_schatten(k, mit_text, dp, xs):
+    """Plan R1: misst, was X-Belege an den Textquellen aendern wuerden, und schreibt es nur ins Log.
+    Fehler und Zeitgrenze blockieren nie (I8)."""
+    try:
+        import x_belege
+        if xs.get("ende") is None:
+            xs["ende"] = time.monotonic() + X_SCHATTEN_ZEIT_S
+            xs["themen"] = _lade(BASE / "themenketten.json", {})
+        if time.monotonic() > xs["ende"]:
+            print(f"[RECHERCHE] X-Schatten {k['sid']}: Zeitgrenze {X_SCHATTEN_ZEIT_S} s erreicht")
+            return
+        erg = x_belege.sammeln(k, xs["themen"], os.environ.get("HUGGINGNEWS_API_KEY", "").strip(),
+                               dp, _quelltext, xs["ende"], xs["cache"])
+        print(x_belege.logzeile(k["sid"], erg, mit_text,
+                                x_belege.bewertung(erg, mit_text, MIN_TEXTQUELLEN, dp.MIN_QUELLTEXT)))
+    except Exception as e:
+        print(f"[RECHERCHE] X-Schatten {k.get('sid')}: Fehler {type(e).__name__}, weiter ohne")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--story", help="nur diese story_id (Test)")
@@ -1098,11 +1125,14 @@ def main():
           f"{MIN_QUELLEN_MIT_HERSTELLER}), {len(erw)} Erweiterungen "
           f"({', '.join(k['update'][:40] + ' +' + '/'.join(k['neu']) for k in erw)}), frei heute: {frei}")
     versucht = 0
+    xs = {"ende": None, "cache": {}}   # X-Schatten (Plan R1), ein Zeitbudget je Lauf
     for k in kand + erw:                 # neue Storys zuerst
         if versucht >= (1 if args.story else min(MAX_PRO_LAUF, frei)):
             break
         quellen = material(k, dp)
         mit_text = sum(1 for q in quellen if q["hat_text"])
+        if X_BELEGE == "schatten":
+            _x_schatten(k, mit_text, dp, xs)
         if mit_text < MIN_TEXTQUELLEN:
             print(f"[RECHERCHE] {k['sid']} uebersprungen: nur {mit_text} Quellen mit Text "
                   f"({ms._titel(k['rep'])[:60]})")
