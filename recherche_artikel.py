@@ -395,13 +395,22 @@ def _fehlertext(e):
     return e.text
 
 
+def _schreib_reasoning(modell):
+    # 10.11.26: DeepSeek v4.1 Flash haelt sich nicht an effort "low". Am 09.11. hat es zweimal alle
+    # 8000 Tokens zum Denken verbraucht (reasoning_tokens 8000, finish_reason=length, 0 Zeichen Text),
+    # dann musste Sonnet ran. Im OpenRouter-Katalog steht fuer DeepSeek reasoning.mandatory False,
+    # fuer Sonnet True. Darum nur bei DeepSeek Denken aus, mit demselben Schalter wie Nemotron im
+    # Pruefer. Rueckweg: hier wieder fuer alle {"effort": "low", "exclude": True} zurueckgeben.
+    return {"enabled": False} if modell.startswith("deepseek/") else {"effort": "low", "exclude": True}
+
+
 def schreibe(p, modell, key):
     # 29.10.26, erster Live-Lauf: Sonnet und Gemini lieferten keinen auswertbaren Text (0 Zeichen
     # Titel). Wie bei Nemotron/gpt-oss in ki_news.py: denkende Modelle verbrauchen das Budget fuers
     # Denken. Darum Denken drosseln und mehr Budget; lehnt ein Endpunkt den Parameter ab (HTTP 400),
     # einmal ohne. Leere/kaputte Antworten werden mit Grund protokolliert statt still verworfen.
     try:
-        roh = _anfrage(p, modell, key, {"effort": "low", "exclude": True})
+        roh = _anfrage(p, modell, key, _schreib_reasoning(modell))
     except urllib.error.HTTPError as e:
         _fehlertext(e)
         if e.code != 400:
@@ -426,6 +435,12 @@ def schreibe(p, modell, key):
     if not a:
         print(f"[RECHERCHE] {modell}: kein JSON. finish_reason={wahl.get('finish_reason')}, "
               f"{len(antwort)} Zeichen, usage={roh.get('usage')}, Anfang: {antwort[:160]!r}")
+    else:
+        # 10.11.26: Auch bei Erfolg Verbrauch zeigen. Bisher stand er nur im Fehlerfall im Log, so war
+        # nicht zu sehen, wie knapp ein Artikel am 8000er-Budget lag und was der Schreiber kostet.
+        u = roh.get("usage") or {}
+        print(f"[RECHERCHE] {modell}: {u.get('completion_tokens')} Tokens Ausgabe, davon "
+              f"{(u.get('completion_tokens_details') or {}).get('reasoning_tokens')} Denken, {u.get('cost')} $")
     absaetze = [{"text": _zahlformat(_sauber(x.get("text"))), "quellen": [int(q) for q in x.get("quellen") or []
                                                                           if str(q).isdigit()]}
                 for x in a.get("absaetze") or [] if isinstance(x, dict)]
