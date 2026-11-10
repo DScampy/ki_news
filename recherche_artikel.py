@@ -39,6 +39,9 @@ Schalter KETTEN ("schatten" = nur ins Log, "an", "aus").
 Format (10.11.26, Daniel, Plan R4): kleine Quellennummern statt dauernd "laut X", Quellen unten kompakt,
 immer ein Bild mit "Bild: Quelle", Kasten "Auf einen Blick" mit den harten Zahlen. Schalter FORMAT_R4.
 
+Anker (10.11.26, Digg-Fund): Ein veroeffentlichter Artikel haengt an den Quellen, die er zitiert, nicht an
+allen Links seines Clusters. Eine heutige Story braucht 2 gemeinsame Links. Schalter ANKER_ZITIERT.
+
 Einziger Schreiber von recherche/ und artikel/entwurf/recherche-*.html (I5).
 Laeuft als eigener Workflow-Schritt nach hersteller_feed.py, continue-on-error (I8).
 Kill-Switch: RECHERCHE_AKTIV = False.
@@ -113,6 +116,16 @@ BLICK_MIN, BLICK_MAX = 3, 5      # Zeilen im Kasten, sonst kein Kasten
 BLICK_ZEICHEN = 140              # hoechstens je Zeile
 # Feeds ohne eigenen Verlag, wie SAMMEL_FEEDS in insta_caption.py. Ihr Bild nur, wenn kein Medium eins hat.
 BILD_SAMMEL = {"AlignedNews", "Digg AI", "China AI Labs"}
+# Anker (10.11.26, Digg-Fund). Das Register haelt unter "links" alle Links des Clusters beim Schreiben, nicht
+# nur die zitierten Quellen. Am 10.11. mischte der Cluster Fable 5.2 mit Meta Muse Ember (WCCFtech schreibt
+# ueber beide): 16 Links, 8 zitiert. Die Erweiterung am 11.11. haette 3 von 7 Quellen zu Meta genommen, und
+# Digg und TechCrunch zaehlten als neu, obwohl sie schon im Cluster waren. Darum, nur fuer veroeffentlichte
+# Artikel: Anker = zitierte Quellen ("quellen_links", bei aelteren Artikeln aus der Quellenliste der Seite),
+# eine heutige Story braucht ANKER_MIN_LINKS gemeinsame Links (wie R3 in _eintrag_zur_linie), und ein Medium
+# aus dem alten Cluster zaehlt nicht als neu. Entwuerfe bleiben bei allen Links.
+# False = Kill-Switch, Verhalten wie vorher ("quellen_links" wird trotzdem gespeichert, liest dann keiner).
+ANKER_ZITIERT = True
+ANKER_MIN_LINKS = 2
 UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
 MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
@@ -226,10 +239,40 @@ def _medien(glieder):
     return {(g.get("source") or "").strip() for g in glieder} - {""}
 
 
+def zitierte_links(slug, e):
+    """Woran ein Registereintrag haengt. Veroeffentlicht und ANKER_ZITIERT: die Links der zitierten Quellen,
+    aus dem Register ("quellen_links") oder aus der Quellenliste der Seite. Sonst alle Links des Clusters."""
+    alle = set(e.get("links") or [])
+    if not ANKER_ZITIERT or e.get("status") != "veroeffentlicht":
+        return alle
+    if e.get("quellen_links"):
+        return set(e["quellen_links"])
+    try:
+        seite = (ORDNER / f"{slug}.html").read_text(encoding="utf-8")
+    except OSError:
+        return alle
+    ol = re.search(r'<ol class="quellen[^"]*">(.*?)</ol>', seite, re.S)
+    zitiert = {html.unescape(h) for h in re.findall(r'href="([^"]+)"', ol.group(1))} if ol else set()
+    return zitiert or alle
+
+
+def _mind_links(alt):
+    """Gemeinsame Links, ab denen eine heutige Story zu einem Artikel gehoert (vorher: einer)."""
+    return max(1, min(ANKER_MIN_LINKS, len(alt))) if ANKER_ZITIERT else 1
+
+
+def _cluster_medien(e, nach_link):
+    """Medien, die beim Schreiben schon im Cluster waren, auch nicht zitierte. Sie zaehlen nicht als neu."""
+    if not ANKER_ZITIERT or e.get("status") != "veroeffentlicht":
+        return set()
+    return {m.lower() for m in _medien(nach_link[l] for l in e.get("links") or [] if l in nach_link)}
+
+
 def erweiterungen(news, archiv, releases, register, heute):
     """Veroeffentlichte Artikel, zu deren Story inzwischen weitere Medien berichten. Die Story wird
     ueber die Links im Register gefunden: Das Clustering teilt sie spaeter oft anders auf (01.11.:
-    die Cursor-Quellen lagen in s058 und s109, Golem nur noch im Archiv)."""
+    die Cursor-Quellen lagen in s058 und s109, Golem nur noch im Archiv). Seit 10.11. ueber die
+    zitierten Quellen, je Story ANKER_MIN_LINKS gemeinsame Links (siehe ANKER_ZITIERT)."""
     nach_link = {}
     for n in archiv + news:              # news zuletzt: aktuellere Felder gewinnen
         for l in ms._links(n):
@@ -243,11 +286,12 @@ def erweiterungen(news, archiv, releases, register, heute):
         fv = e.get("fehlversuch") or {}
         if e.get("status") != "veroeffentlicht" or heute in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
             continue
-        alt = set(e.get("links") or [])
+        alt = zitierte_links(slug, e)
+        mind = _mind_links(alt)
         glieder, ids, sids = [], set(), set()
         treffer = [nach_link[l] for l in sorted(alt) if l in nach_link]
         for sid, g in storys.items():
-            if any(l in alt for n in g for l in ms._links(n)):
+            if len({l for n in g for l in ms._links(n)} & alt) >= mind:
                 treffer += g
                 sids.add(sid)
         for n in treffer:
@@ -256,6 +300,7 @@ def erweiterungen(news, archiv, releases, register, heute):
                 glieder.append(n)
         medien_alt = {m.lower() for m in (e.get("medien") or
                                           _medien(g for g in glieder if set(ms._links(g)) & alt))}
+        medien_alt |= _cluster_medien(e, nach_link)
         neu = sorted(m for m in _medien(glieder) if m.lower() not in medien_alt)
         versucht = {m.lower() for m in fv.get("medien") or []}   # nach Fehlversuch: weitere Medien noetig
         if sum(m.lower() not in versucht for m in neu) < UPDATE_MIN_NEUE_MEDIEN:
@@ -305,7 +350,7 @@ def _eintrag_zur_linie(register, lid, links, vergeben):
         return max(eigene, key=lambda x: x[1].get("datum") or "")[0]
     alte = []
     for s, e in register.items():
-        alt = set(e.get("links") or [])
+        alt = zitierte_links(s, e)
         if s in vergeben or e.get("linie") or not alt:
             continue
         gemeinsam = len(alt & links)
@@ -349,10 +394,11 @@ def linien_zuordnung(news, linien, themen):
     return zug, familie
 
 
-def linien_plan(news, linien, releases, register, heute, zug, familie):
+def linien_plan(news, linien, releases, register, heute, zug, familie, archiv=()):
     """Plan R3: ein Eintrag je Linie mit Meldungen in news.json. "kandidat" ist der Kandidat fuer
     die Schreibschleife (neu oder Fortschreibung) oder None, dann sagt "grund" warum nicht.
-    zug, familie: aus linien_zuordnung. Liest nichts aus dem Netz."""
+    zug, familie: aus linien_zuordnung. archiv nur fuer _cluster_medien. Liest nichts aus dem Netz."""
+    nach_link = {l: n for n in list(archiv) + list(news) for l in ms._links(n)}
     gruppen = {}
     for n in news:
         if n.get("link") in zug:
@@ -390,6 +436,7 @@ def linien_plan(news, linien, releases, register, heute, zug, familie):
                 p["grund"] = "heute schon geschrieben"
                 continue
             bekannt = {m.lower() for m in (e.get("medien") or []) + (e.get("medien_linie") or [])}
+            bekannt |= _cluster_medien(e, nach_link)
             neu = sorted(m for m in medien if m.lower() not in bekannt)
             versucht = {m.lower() for m in fv.get("medien") or []}
             p["neu"] = neu
@@ -397,7 +444,7 @@ def linien_plan(news, linien, releases, register, heute, zug, familie):
                 p["grund"] = f"nur {len(neu)} neue Medien"
                 continue
             if e.get("status") == "veroeffentlicht":
-                k.update(update=slug, alt_links=set(e.get("links") or []), neu=neu)
+                k.update(update=slug, alt_links=zitierte_links(slug, e), neu=neu)
             else:
                 # Entwurf: wird frisch geschrieben, ohne "neu"-Marken und ohne Vorrang fuer alte Quellen
                 k.update(update=slug, alt_links=set(), neu=neu, entwurf=True)
@@ -1463,7 +1510,8 @@ def erweitere(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_wert
     e.update(titel=artikel["titel"], anriss=artikel["anriss"], artikel=artikel, aktualisiert=heute,
              quellen=len(quellen), medien=[q["medium"] for q in quellen if not q["hersteller"]],
              links=sorted(set(k["links"]) | set(e.get("links") or [])), modell=modell, pruefer=pinfo,
-             jev=jev_werte, gruende=[], pruefung=PRUEFUNG_VERSION, stand_aktualisiert=stand)
+             jev=jev_werte, gruende=[], pruefung=PRUEFUNG_VERSION, stand_aktualisiert=stand,
+             quellen_links=[q["link"] for q in quellen if q.get("link")])
     if k.get("medien_linie"):
         e["medien_linie"] = k["medien_linie"]
     e.pop("fehlversuch", None)
@@ -1494,7 +1542,8 @@ def entwurf_fortschreiben(e, k, artikel, quellen, fehler, bestanden, modell, pin
     e.update(titel=artikel["titel"], anriss=artikel["anriss"], artikel=artikel, aktualisiert=heute,
              quellen=len(quellen), medien=[q["medium"] for q in quellen if not q["hersteller"]],
              medien_linie=k.get("medien_linie") or [], links=sorted(set(k["links"]) | set(e.get("links") or [])),
-             modell=modell, pruefer=pinfo, jev=jev_werte, gruende=fehler, pruefung=PRUEFUNG_VERSION, stand=stand)
+             modell=modell, pruefer=pinfo, jev=jev_werte, gruende=fehler, pruefung=PRUEFUNG_VERSION, stand=stand,
+             quellen_links=[q["link"] for q in quellen if q.get("link")])
     if k.get("linie"):
         e["linie"] = k["linie"]
     if bestanden:
@@ -1562,7 +1611,8 @@ def main():
     if KETTEN in ("schatten", "an") and not args.story:
         try:
             zug, familie = linien_zuordnung(news, linien, _lade(BASE / "themenketten.json", {}))
-            plan = linien_plan(news, linien, releases, register, heute, zug, familie)
+            plan = linien_plan(news, linien, releases, register, heute, zug, familie,
+                               archiv if isinstance(archiv, list) else [])
         except Exception as e:          # I8: R3 darf den Schritt nie aufhalten
             print(f"[RECHERCHE] Ketten: Fehler {type(e).__name__}, weiter ohne")
             plan = None
@@ -1647,7 +1697,8 @@ def main():
                    "status": "veroeffentlicht" if bestanden else "entwurf", "story_id": k["sid"],
                    "quellen": len(quellen), "modell": modell, "jev": jev_werte, "pruefer": pinfo, "gruende": fehler,
                    "links": k["links"], "pruefung": PRUEFUNG_VERSION, "stand": stand,
-                   "medien": [q["medium"] for q in quellen if not q["hersteller"]], "artikel": artikel}
+                   "medien": [q["medium"] for q in quellen if not q["hersteller"]], "artikel": artikel,
+                   "quellen_links": [q["link"] for q in quellen if q.get("link")]}
         if k.get("linie"):              # R3: Anker fuer das Fortschreiben
             eintrag.update(linie=k["linie"], medien_linie=k.get("medien_linie") or [])
             if k.get("vorgaenger"):
