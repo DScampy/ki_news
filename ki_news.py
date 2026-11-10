@@ -3472,6 +3472,20 @@ _FEED_IMG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']([^>]*)>', re.I)
 _BILD_ENDUNG = (".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif")
 
 
+# 10.11.26 (Daniels Video, Fuellmotiv statt Foto): Bildadressen aus HTML (<img src> im
+# Feed-Text, og:image im <head>) sind HTML-kodiert, "&" steht dort als "&amp;". So
+# gespeichert laedt das Bild nicht (Beispiel pbs.twimg.com ...?format=jpg&amp;name=large)
+# und bilder_spiegel.py konnte es nicht spiegeln. Nur das Und-Zeichen wird zurueckgewandelt,
+# kein html.unescape: das wuerde "&reg" oder "&copy" in echten Adressen verfaelschen.
+def _bild_adresse(url):
+    alt = None
+    while url and alt != url:
+        alt = url
+        for kodiert in ("&amp;", "&#38;", "&#x26;", "&#X26;"):
+            url = url.replace(kodiert, "&")
+    return url
+
+
 def _feed_bild(item):
     try:
         for ch in item:
@@ -3481,16 +3495,16 @@ def _feed_bild(item):
                 continue
             typ = (ch.get("type") or ch.get("medium") or "").lower()
             if tag == "enclosure" and typ.startswith("image"):
-                return url
+                return _bild_adresse(url)
             if tag in ("content", "thumbnail") and (typ.startswith("image") or
                                                     url.lower().split("?")[0].endswith(_BILD_ENDUNG)):
-                return url
+                return _bild_adresse(url)
         for ch in item:
             if _tag_local(ch.tag) in ("description", "encoded", "content", "summary") and ch.text:
                 for m in _FEED_IMG_RE.finditer(ch.text):
                     url, rest = m.group(1).strip(), m.group(2)
                     if url.startswith("https://") and not re.search(r'width=["\']1["\']', rest):
-                        return url
+                        return _bild_adresse(url)
     except Exception:
         pass
     return ""
@@ -3673,7 +3687,7 @@ def fetch_og_image(url):
                     p = urlparse(url)
                     img = f"{p.scheme}://{p.netloc}{img}"
                 if img.startswith(("http://", "https://")):
-                    return img
+                    return _bild_adresse(img)
     except Exception as e:
         logger.debug("og:image-Abruf fehlgeschlagen für %s: %s", url, e)
     return ""
