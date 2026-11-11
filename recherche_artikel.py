@@ -136,6 +136,12 @@ ANKER_MIN_LINKS = 2
 # False = Kill-Switch, Verhalten wie vorher.
 KARTE_NUR_ZITIERT = True
 SEITEN_NACHZIEHEN = True
+# Bild aus dem Archiv (11.11.26). Nach dem Merge blieb der Boersengang-Artikel trotzdem ohne Bild. Ursache:
+# ki_news.py schreibt news.json in jedem Lauf neu, ohne image_local. Das setzt erst bilder_spiegel.py am Ende
+# des Laufs. Nur archive.json behaelt die Felder. Meldungen der letzten 5 Tage hatten darum bei der Recherche
+# nie ein gespiegeltes Bild, aeltere schon. bilder_aus_archiv() uebernimmt die Felder aus dem Archiv.
+# False = Kill-Switch, Verhalten wie vorher.
+BILD_AUS_ARCHIV = True
 UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
 MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
@@ -619,6 +625,27 @@ def karte_zur_story(k, base=BASE, quellen=None):
         if links and links[0] in erlaubt and (c.get("date") or "")[:10] >= ab:
             return c
     return None
+
+
+def bilder_aus_archiv(news, archiv):
+    """BILD_AUS_ARCHIV (11.11.26): image_local und image_local_gross aus archive.json in die geladenen Meldungen
+    von news.json uebernehmen, wenn sie dort fehlen. Aendert nur die Daten im Speicher, news.json bleibt."""
+    if not BILD_AUS_ARCHIV or not isinstance(archiv, list):
+        return 0
+    nach = {}
+    for a in archiv:
+        if a.get("link") and (a.get("image_local") or "").startswith("https://"):
+            nach.setdefault(a["link"], a)
+    n = 0
+    for e in news:
+        a = nach.get(e.get("link"))
+        if a is None or (e.get("image_local") or "").startswith("https://"):
+            continue
+        e["image_local"] = a["image_local"]
+        if (a.get("image_local_gross") or "").startswith("https://"):
+            e["image_local_gross"] = a["image_local_gross"]
+        n += 1
+    return n
 
 
 def bild_zur_story(k, quellen):
@@ -1565,7 +1592,9 @@ def seiten_nachziehen(register, base=BASE):
         roh = _lade(base / "cards.json", [])
         karten = roh if isinstance(roh, list) else roh.get("cards", [])
         archiv = _lade(base / "archive.json", [])
-        meldungen = (_lade(base / "news.json", {}).get("news") or []) + (archiv if isinstance(archiv, list) else [])
+        aktuell = _lade(base / "news.json", {}).get("news") or []
+        bilder_aus_archiv(aktuell, archiv)
+        meldungen = aktuell + (archiv if isinstance(archiv, list) else [])
         nach_link = {}
         for n in meldungen:
             for l in ms._links(n):
@@ -1716,6 +1745,9 @@ def main():
     news_doc = _lade(BASE / "news.json", {})
     news = news_doc.get("news") or []
     linien = news_doc.get("linien") or {}
+    archiv = _lade(BASE / "archive.json", [])
+    if BILD_AUS_ARCHIV:
+        print(f"[RECHERCHE] Bilder aus dem Archiv: {bilder_aus_archiv(news, archiv)} Meldungen")
     releases = _lade(BASE / "hersteller.json", {}).get("releases") or []
     entities = _lade(BASE / "entities.json", {}).get("entities") or []
     register = _lade(REGISTER, {})
@@ -1731,7 +1763,6 @@ def main():
 
     dp = _deckung()
     kand = kandidaten(news, releases, register, args.story)
-    archiv = _lade(BASE / "archive.json", [])
     erw = [] if args.story else erweiterungen(news, archiv if isinstance(archiv, list) else [],
                                                releases, register, heute)
     if KETTEN in ("schatten", "an") and not args.story:
