@@ -126,6 +126,16 @@ BILD_SAMMEL = {"AlignedNews", "Digg AI", "China AI Labs"}
 # False = Kill-Switch, Verhalten wie vorher ("quellen_links" wird trotzdem gespeichert, liest dann keiner).
 ANKER_ZITIERT = True
 ANKER_MIN_LINKS = 2
+# Nachzug (10.11.26, Daniels Video). Die Fable-5.2-Seite zeigte das Video der Meta-Muse-Ember-Karte. Deren
+# Hauptlink (TechCrunch zu Meta) stand im gemischten Cluster, zitiert hat der Artikel ihn nicht. Darum zaehlt
+# fuer die Karte nur noch, was der Artikel als Quelle nennt (KARTE_NUR_ZITIERT). Ausserdem stand dort der
+# 09.11., weil "stand" UTC ist (00:55 Uhr Berliner Zeit = 23:55 UTC am Vortag). Und der Boersengang-Artikel
+# vom 10.11. hatte kein Bild: Die Recherche laeuft im Workflow vor bilder_spiegel.py, neue Meldungen haben
+# dann noch kein image_local. seiten_nachziehen() prueft darum zu Beginn jedes Laufs die fertigen Seiten:
+# Datum, Video einer nicht zitierten Karte, fehlendes Bild (SEITEN_NACHZIEHEN).
+# False = Kill-Switch, Verhalten wie vorher.
+KARTE_NUR_ZITIERT = True
+SEITEN_NACHZIEHEN = True
 UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
 MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
@@ -588,17 +598,25 @@ def material(k, dp):
     return quellen
 
 
-def karte_zur_story(k, base=BASE):
+def karte_zur_story(k, base=BASE, quellen=None):
     """Karte nur, wenn ihr HAUPTlink zur Story gehoert und sie nicht aelter als die Story ist.
     Ueber Zusatz-Links haengen alte Karten an neuen Storys (29.10.: Chrome-Karte vom 25.10. am
-    Gemini-4-Carbon-Link), darum nicht ms._karten_nach_link."""
+    Gemini-4-Carbon-Link), darum nicht ms._karten_nach_link.
+    Mit quellen (10.11.26, KARTE_NUR_ZITIERT): nur Meldungen, die der Artikel als Quelle nennt. Ein Cluster
+    kann zwei Themen mischen, dann gehoert nicht jeder Hauptlink zum Artikel (Fable 5.2 mit Meta Muse Ember)."""
     roh = _lade(base / "cards.json", [])
     karten = roh if isinstance(roh, list) else roh.get("cards", [])
+    if not k["glieder"]:
+        return None
+    erlaubt = set(k["links"])
+    if quellen is not None and KARTE_NUR_ZITIERT:
+        zitiert = {q["link"] for q in quellen if q.get("link")}
+        erlaubt = zitiert | {l for g in k["glieder"] if set(ms._links(g)) & zitiert for l in ms._links(g)}
     ab = min((g.get("first_seen") or g.get("date") or "9999")[:10] for g in k["glieder"])
     for c in karten:
         links = c.get("links") or []
         links = [links] if isinstance(links, str) else links
-        if links and links[0] in k["links"] and (c.get("date") or "")[:10] >= ab:
+        if links and links[0] in erlaubt and (c.get("date") or "")[:10] >= ab:
             return c
     return None
 
@@ -1244,6 +1262,41 @@ def _youtube_id(u):
     return m.group(1) if m else ""
 
 
+def _tag_berlin(zeit):
+    """Kalendertag in Berlin (10.11.26). "stand" ist UTC: 23:55 UTC am 09.11. ist in Berlin schon der 10.11.,
+    so steht der Tag auch im Register ("datum"), in der Uebersicht und in der Sitemap."""
+    s = zeit or ""
+    if len(s) > 10:
+        try:
+            t = datetime.fromisoformat(s.replace("Z", "+00:00"))
+            if t.tzinfo is None:
+                t = t.replace(tzinfo=timezone.utc)
+            return t.astimezone(BERLIN).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+    return s[:10]
+
+
+def _figur(karte, bild, bild_klein, bild_von):
+    """Video der Karte, sonst Bild (R4). Leer, wenn es beides nicht gibt. Auch fuer seiten_nachziehen()."""
+    esc = html.escape
+    video = (karte or {}).get("mp4_url") or ""
+    if video:
+        p = (karte or {}).get("poster_url") or ""
+        pp = f' poster="{esc(p)}"' if p else ""
+        # Kartenformat: width/height reservieren den Platz, bis das Poster geladen ist. Sonst springt
+        # der Text darunter beim ersten Aufruf weg (Layout-Sprung 0,22).
+        return (f'<figure><video controls playsinline preload="none" width="840" height="1320"{pp}>'
+                f'<source src="{esc(video)}" type="video/mp4"/></video></figure>')
+    if bild:
+        # R4: 640er als src, weil er dauerhaft bleibt. Fehlt der 1600er spaeter, faellt das Bild auf src zurueck.
+        ss = (f' srcset="{esc(bild_klein)} 640w, {esc(bild)} 1600w" sizes="(max-width: 46rem) 100vw, 46rem"'
+              ' onerror="this.onerror=null;this.removeAttribute(\'srcset\')"') if bild != bild_klein else ""
+        cap = f"<figcaption>Bild: {esc(bild_von)}</figcaption>" if bild_von else ""
+        return f'<figure><img src="{esc(bild_klein)}"{ss} alt="" loading="lazy"/>{cap}</figure>'
+    return ""
+
+
 def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None, vermerk=""):
     """erschienen: Zeitpunkt der ersten Fassung (bei einer Erweiterung), vermerk: "Aktualisiert ..."."""
     esc = html.escape
@@ -1257,7 +1310,7 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
     robots = "noindex, nofollow" if entwurf else "index, follow, max-image-preview:large"
     n_medien = sum(1 for q in quellen if not q["hersteller"])
     erschienen = erschienen or stand
-    datum = erschienen[:10]
+    datum = _tag_berlin(erschienen)
     ld = {"@context": "https://schema.org", "@type": "NewsArticle", "headline": a["titel"][:110],
           "description": a["anriss"][:200], "inLanguage": "de", "datePublished": erschienen, "dateModified": stand,
           "mainEntityOfPage": url, "isBasedOn": [q["link"] for q in quellen if q.get("link")],
@@ -1320,20 +1373,10 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
         teile.append('<aside class="blick"><h2>Auf einen Blick</h2><ul>' + "".join(
             f"<li>{esc(x['text'])}" + "".join(f'<sup><a href="#q{n}">[{n}]</a></sup>' for n in x["quellen"])
             + "</li>" for x in blick) + "</ul></aside>")
-    video = (karte or {}).get("mp4_url") or ""
-    if video:
-        p = (karte or {}).get("poster_url") or ""
-        pp = f' poster="{esc(p)}"' if p else ""
-        # Kartenformat: width/height reservieren den Platz, bis das Poster geladen ist. Sonst springt
-        # der Text darunter beim ersten Aufruf weg (Layout-Sprung 0,22).
-        teile.append(f'<figure><video controls playsinline preload="none" width="840" height="1320"{pp}>'
-                     f'<source src="{esc(video)}" type="video/mp4"/></video></figure>')
-    elif bild and FORMAT_R4:
-        # R4: 640er als src, weil er dauerhaft bleibt. Fehlt der 1600er spaeter, faellt das Bild auf src zurueck.
-        ss = (f' srcset="{esc(bild_klein)} 640w, {esc(bild)} 1600w" sizes="(max-width: 46rem) 100vw, 46rem"'
-              ' onerror="this.onerror=null;this.removeAttribute(\'srcset\')"') if bild != bild_klein else ""
-        cap = f"<figcaption>Bild: {esc(bild_von)}</figcaption>" if bild_von else ""
-        teile.append(f'<figure><img src="{esc(bild_klein)}"{ss} alt="" loading="lazy"/>{cap}</figure>')
+    if (karte or {}).get("mp4_url") or FORMAT_R4:
+        figur = _figur(karte, bild, bild_klein, bild_von)
+        if figur:
+            teile.append(figur)
     elif bild:
         teile.append(f'<figure><img src="{esc(bild)}" alt="" loading="lazy"/></figure>')
     for x in a["absaetze"]:
@@ -1470,6 +1513,88 @@ def uebersicht(register):
     ms._schreiben_wenn_neu(ORDNER / "index.html", "\n".join(seite))
 
 
+# Kopf einer Recherche-Seite bis zur Stelle, an der rendere() Video oder Bild einsetzt
+_KOPF_SEITE = re.compile(r'<p class="anriss">.*?</p>(?:\n<p class="quelle">Vorgeschichte: .*?</p>)?'
+                         r'(?:\n<aside class="blick">.*?</aside>)?', re.S)
+
+
+def _bild_nachziehen(seite, e, karten, nach_link):
+    """Eine fertige Seite (R4): Video einer Karte, deren Hauptlink nicht zitiert ist, kommt raus. Fehlt Video
+    oder Bild, kommt es rein, so wie rendere() es heute waehlen wuerde. Sonst bleibt die Seite gleich."""
+    m = _KOPF_SEITE.search(seite)
+    if not m:
+        return seite
+    fig = re.match(r'\n<figure>.*?</figure>', seite[m.end():], re.S)
+    if fig and "<video" not in fig.group(0):
+        return seite                                  # Bild ist da
+    ol = re.search(r'<ol class="quellen[^"]*">(.*?)</ol>', seite, re.S)
+    reihe = ([html.unescape(h) for h in re.findall(r'href="([^"]+)"', ol.group(1))] if ol
+             else list(e.get("quellen_links") or []))
+    if fig:
+        src = re.search(r'<source src="([^"]+)"', fig.group(0))
+        alt = next((c for c in karten if src and c.get("mp4_url") == html.unescape(src.group(1))), None)
+        haupt = (alt or {}).get("links") or [""]
+        haupt = [haupt] if isinstance(haupt, str) else haupt
+        if alt is None or haupt[0] in reihe:
+            return seite                              # Karte unbekannt oder zitiert: bleibt
+    glieder, quellen = [], []
+    for l in reihe:
+        g = nach_link.get(l)
+        if g is None or any(g is x for x in glieder):
+            continue
+        glieder.append(g)
+        quellen.append({"medium": (g.get("source") or "").strip(), "nr": len(glieder), "hersteller": False,
+                        "link": l})
+    figur = ""
+    if glieder:
+        k = {"rep": glieder[0], "glieder": glieder, "release": None,
+             "links": sorted({l for g in glieder for l in ms._links(g)})}
+        figur = _figur(karte_zur_story(k, quellen=quellen), *bild_zur_story(k, quellen))
+        if "figure figcaption{" not in seite:      # Seite von vor R4: ohne CSS fuer die Bildzeile, darum ohne
+            figur = re.sub(r"<figcaption>.*?</figcaption>", "", figur)
+    rest = seite[m.end() + (fig.end() if fig else 0):]
+    return seite[:m.end()] + ("\n" + figur if figur else "") + rest
+
+
+def seiten_nachziehen(register, base=BASE):
+    """Zu Beginn jedes Laufs (SEITEN_NACHZIEHEN): fertige Seiten bekommen das Berliner Datum aus dem Register
+    und, mit FORMAT_R4, Video oder Bild wie oben. Schreibt nur geaenderte Seiten, ein Fehler blockiert nie (I8)."""
+    if not SEITEN_NACHZIEHEN or not register:
+        return 0
+    try:
+        roh = _lade(base / "cards.json", [])
+        karten = roh if isinstance(roh, list) else roh.get("cards", [])
+        archiv = _lade(base / "archive.json", [])
+        meldungen = (_lade(base / "news.json", {}).get("news") or []) + (archiv if isinstance(archiv, list) else [])
+        nach_link = {}
+        for n in meldungen:
+            for l in ms._links(n):
+                nach_link.setdefault(l, n)
+        geaendert = 0
+        for slug, e in sorted(register.items()):
+            if e.get("status") != "veroeffentlicht":
+                continue
+            pfad = base / "recherche" / f"{slug}.html"
+            try:
+                seite = pfad.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            neu = seite
+            tag = (e.get("datum") or "")[:10]
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", tag):
+                neu = re.sub(r'<p class="meta"><time datetime="[^"]*">[^<]*</time>',
+                             f'<p class="meta"><time datetime="{tag}">{ms._datum_de(tag)}</time>', neu, count=1)
+            if FORMAT_R4:
+                neu = _bild_nachziehen(neu, e, karten, nach_link)
+            if neu != seite and ms._schreiben_wenn_neu(pfad, neu):
+                geaendert += 1
+                print(f"[RECHERCHE] Seite nachgezogen: recherche/{slug}.html")
+        return geaendert
+    except Exception as ex:
+        print(f"[RECHERCHE] Nachzug: {type(ex).__name__} {ex}")
+        return 0
+
+
 def oeffentliche_listen(register):
     """Uebersicht und Sitemap. Laeuft auch ohne neuen Artikel, ein Fehler hier kostet keinen Artikel."""
     if not register:
@@ -1489,7 +1614,7 @@ def erweitere(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_wert
     slug = k["update"]
     neu = [q["medium"] for q in quellen if q.get("neu")]
     vermerk = f"Aktualisiert am {ms._datum_de(heute)}, weitere Quellen: {', '.join(neu)}"
-    seite = rendere(artikel, k, quellen, karte_zur_story(k), slug, stand, not bestanden,
+    seite = rendere(artikel, k, quellen, karte_zur_story(k, quellen=quellen), slug, stand, not bestanden,
                     fehler or ["Testlauf mit --nur-entwurf"], erschienen=e.get("stand") or e.get("datum"),
                     vermerk=vermerk)
     ziel = (ORDNER / f"{slug}.html") if bestanden else (ENTWURF_DIR / f"recherche-{slug}-update.html")
@@ -1526,7 +1651,7 @@ def entwurf_fortschreiben(e, k, artikel, quellen, fehler, bestanden, modell, pin
     slug = k["update"]
     weitere = {m.lower() for m in k.get("neu") or []}
     neu = [q["medium"] for q in quellen if q["medium"].lower() in weitere]
-    seite = rendere(artikel, k, quellen, karte_zur_story(k), slug, stand, not bestanden,
+    seite = rendere(artikel, k, quellen, karte_zur_story(k, quellen=quellen), slug, stand, not bestanden,
                     fehler or ["Testlauf mit --nur-entwurf"])
     ziel = (ORDNER / f"{slug}.html") if bestanden else (ENTWURF_DIR / f"recherche-{slug}.html")
     print(f"[RECHERCHE] Entwurf fortgeschrieben, {'veroeffentlicht' if bestanden else 'weiter Entwurf'}: "
@@ -1595,6 +1720,7 @@ def main():
     entities = _lade(BASE / "entities.json", {}).get("entities") or []
     register = _lade(REGISTER, {})
     if not args.dry_run:
+        seiten_nachziehen(register)
         oeffentliche_listen(register)
     jetzt = datetime.now(timezone.utc).replace(microsecond=0)
     heute = jetzt.astimezone(BERLIN).strftime("%Y-%m-%d")
@@ -1688,7 +1814,7 @@ def main():
         slug = ms._slug(artikel["titel"])
         while slug in register:
             slug += "-2"
-        karte = karte_zur_story(k)
+        karte = karte_zur_story(k, quellen=quellen)
         seite = rendere(artikel, k, quellen, karte, slug, stand, not bestanden,
                         fehler or ["Testlauf mit --nur-entwurf"])
         ziel = (ORDNER / f"{slug}.html") if bestanden else (ENTWURF_DIR / f"recherche-{slug}.html")
