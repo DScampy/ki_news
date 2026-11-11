@@ -460,6 +460,66 @@ def topics_match(a: set, b: set, ent_a: set = None, ent_b: set = None, threshold
     return False
 
 
+# 10.11.26 (Daniels Video): Zusatzlinks einer Karte (links[1:]) bekommen auf der
+# Website dasselbe Video. Der Themen-Dedup oben haengt aber auch fremde Meldungen an
+# (Beispiel: Anthropic-Boersengang an der OpenAI-Finanzierungskarte, fuenf
+# "Open Source"-Meldungen an der Swarms-Karte). ALIAS_STRENG prueft darum jeden
+# Zusatzlink beim Speichern von cards.json, auch die schon vorhandenen:
+#   1. Haben Meldung und Karte je eine Linie, muss es dieselbe sein.
+#   2. Mindestens ein gemeinsamer Eigenname, Allerweltswoerter zaehlen nicht.
+# Meldungen, die weder in news.json noch in archive.json stehen, bleiben.
+# Kill-Switch: ALIAS_STRENG = False (altes Verhalten, alles bleibt haengen).
+# Gemessen 10.11. auf cards.json: 58 Zusatzlinks, 51 bleiben, 7 fallen weg.
+ALIAS_STRENG = True
+_ALIAS_KEINE = {
+    "bewertung", "billionen", "aktie", "aktien", "umsatz", "gewinn", "prozent",
+    "nutzer", "daten", "agenten", "agent", "chef", "chefin", "regierung", "analyse",
+    "markt", "anleger", "investoren", "long", "context", "training", "open", "source",
+    "model", "models", "agents", "data", "cloud", "chip", "chips", "code", "search",
+    "app", "apps", "tool", "tools", "the", "and", "for", "with",
+}
+
+
+def _alias_passt(titel: str, linie, karte_headline: str, karte_linie) -> bool:
+    """True, wenn eine Meldung als Zusatzlink an diese Karte passt (Regeln oben)."""
+    if linie and karte_linie and linie != karte_linie:
+        return False
+    gemeinsam = (entity_words(titel) & entity_words(karte_headline)) - _ALIAS_KEINE
+    return bool(gemeinsam)
+
+
+def _alias_filtern(karten: list, artikel: list) -> None:
+    """Entfernt unpassende Zusatzlinks aus karten (in place) und loggt jeden Fall."""
+    bekannt = {}
+    try:
+        for a in json.loads((ROOT_DIR / "archive.json").read_text(encoding="utf-8")):
+            if isinstance(a, dict) and a.get("link"):
+                bekannt[a["link"]] = a
+    except Exception as e:  # noqa: BLE001
+        print(f"  [ALIAS] archive.json nicht lesbar ({e.__class__.__name__}), nur news.json")
+    for a in artikel:
+        if isinstance(a, dict) and a.get("link"):
+            bekannt[a["link"]] = a
+    weg = 0
+    for k in karten:
+        links = k.get("links") or []
+        if len(links) < 2 or not k.get("headline"):
+            continue
+        eigen = bekannt.get(links[0]) or {}
+        behalten = [links[0]]
+        for l in links[1:]:
+            a = bekannt.get(l)
+            if a is None or _alias_passt(a.get("title", ""), a.get("linie"),
+                                         k["headline"], eigen.get("linie")):
+                behalten.append(l)
+            else:
+                weg += 1
+                print(f"  [ALIAS weg] {a.get('title', '')[:60]!r} passt nicht zu Karte "
+                      f"{k.get('id', '')} ({k['headline'][:50]!r})")
+        k["links"] = behalten
+    print(f"  [ALIAS] {weg} unpassende Zusatzlink(s) entfernt")
+
+
 def random_theme_css() -> str:
     """Baut einen <style>:root{...}</style>-Block mit zufaellig gewaehlter Palette,
     der nach dem Haupt-<style> im Template eingefuegt wird und dessen Defaults
@@ -1462,7 +1522,8 @@ def main() -> None:
             prev_date = prev_info["date"]
             prev_ent  = set(prev_info.get("entities", []))
             if topics_match(kw, set(prev_kw_str.split()), ent, prev_ent):
-                print(f"  [SKIP] Artikel {i}: Thema bereits am {prev_date} abgedeckt (Headline-Overlap) — keine neue Karte.")
+                print(f"  [SKIP] Artikel {i}: Thema bereits am {prev_date} abgedeckt (Headline-Overlap) — keine neue Karte. "
+                      f"{headline[:60]!r} -> Karte {prev_info.get('card') or '-'}")
                 duplicate_topic = True
                 if link and prev_info.get("card"):
                     alias_links.setdefault(prev_info["card"], []).append(link)
@@ -1752,6 +1813,8 @@ def main() -> None:
         if cid in merged:
             merged[cid]["links"] = list(dict.fromkeys(merged[cid].get("links", []) + ls))[:12]
             print(f"  ↪ {len(ls)} Link(s) an vorhandene Karte gehaengt: {cid}")
+    if ALIAS_STRENG:
+        _alias_filtern(list(merged.values()), articles)
     cards_final = sorted(merged.values(), key=lambda c: c.get("date", ""), reverse=True)[:MAX_CARDS_DISPLAY]
     # 26.09.26: alle Eintraege (auch alte) auf das Medien-Repo zeigen lassen, wenn aktiv
     _hoch_grenze = (date.today() - timedelta(days=KARTEN_HOCH_TAGE)).isoformat()

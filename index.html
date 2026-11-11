@@ -2190,6 +2190,9 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
   #px-hero .px-hero-buehne .px-hero-vplay-icon::after { left: 8px; top: 6px; border-width: 5px 0 5px 8px; border-color: transparent transparent transparent #111; }
   #px-hero .px-hero-buehne .px-hero-vplay-text { font: 500 14px/1 var(--ki-sans, "Work Sans", sans-serif); letter-spacing: 0; text-transform: none; text-shadow: none; }
   #px-hero .px-hero-buehne .px-hero-card-video { z-index: 5; }
+  #px-hero .px-hero-card-video-thema { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 6; padding: 6px 10px 0; border-bottom: 6px solid transparent;
+    background: rgba(0, 0, 0, 0.66); color: #fff; font: 600 13px/1.35 var(--ki-sans, "Work Sans", sans-serif); pointer-events: none;
+    overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   #px-hero .px-hero-buehne:has(.px-hero-card-video) .px-hero-main-copy { visibility: hidden; }
 
   /* Ohne Foto: dunkle Textfläche links, Motiv der News-Karte rechts (Poster 840×1320,
@@ -2349,11 +2352,17 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     text-decoration:none;overflow-wrap:break-word;hyphens:none}
   #px-hero .px-sz-liste a:hover,#px-hero .px-sz-liste a:focus-visible{color:var(--pz-akzent);text-decoration:underline}
   #px-hero .px-sz-quelle{font:.8125rem/1.3 var(--ki-sans,system-ui,sans-serif);color:var(--pz-grau)}
-  /* Gleiche Hoehe der Top-Storys: der Platz, den hoeheAngleichen() reserviert,
-     geht in die Buehne (Desktop: Foto groesser, Handy: dunkle Textflaeche). */
+  /* Gleiche Hoehe der Top-Storys: hoeheAngleichen() reserviert Buehne und Unterteil
+     getrennt, je mit der groessten gemessenen Hoehe aller Storys. */
   #px-hero [data-px-main-slide]{display:flex;flex-direction:column}
   #px-hero [data-px-main-slide] > .px-hero-slide{flex:1 0 auto;display:flex;flex-direction:column}
-  #px-hero .px-hero-slide > .px-hero-buehne{flex:1 0 auto}
+  #px-hero .px-hero-slide > .px-hero-buehne{flex:0 0 auto}
+  /* 10.11.26: Rest geht ins Unterteil (Linie + Kontext), nicht mehr in die Buehne.
+     So bleiben die Pfeile beim Blaettern an derselben Stelle. */
+  #px-hero .px-hero-slide > .px-hero-unten{flex:1 0 auto;display:flex;flex-direction:column}
+  #px-hero .px-hero-unten > .px-hero-linie-leer{flex:1 0 auto;display:flex;flex-direction:column}
+  #px-hero .px-hero-linie-leer-text{flex:1 0 auto;display:flex;align-items:center;margin:0;padding:12px 16px;
+    border:1px dashed var(--pz-linie);color:var(--pz-grau);font:400 14px/1.45 var(--ki-sans,"Work Sans",sans-serif)}
   @media (max-width:760px){
     #px-hero .px-hero-buehne{display:flex;flex-direction:column}
     /* alte Regel order:2 wuerde das Foto unter den Text schieben. Reservierte Hoehe
@@ -6017,7 +6026,9 @@ function heroLinie(feat, s) {
       var akt = e.k === s.linie_k;
       return '<button type="button" class="c-linie-glied' + (akt ? ' aktuell' : '') + '" data-i="' + i + '">' +
         '<span class="c-linie-datum">' + (i === 0 ? 'Start &middot; ' : '') + escapeHtml(datum(e.d)) + (akt ? ' &middot; diese Meldung' : '') + '</span>' +
-        '<span class="c-linie-titel">' + escapeHtml(e.t) + '</span></button>';
+        // 10.11.26 (Daniels Video): ein Eintrag steht fuer mehrere Meldungen, e.t ist der
+        // Titel nur einer davon. Der eigene Eintrag zeigt darum den Titel dieser Top-Story.
+        '<span class="c-linie-titel">' + escapeHtml(akt ? (s.schlagzeile || s.title || e.t) : e.t) + '</span></button>';
     }).join('') + '</div>';
   box.hidden = false;
   var band = box.querySelector('.c-linie-band'), akt = box.querySelector('.c-linie-glied.aktuell');
@@ -6764,6 +6775,16 @@ window.addEventListener('resize',()=>{
     let touchStartX = null;
     let touchStartY = null;
     let hoeheBreite = 0;
+    // Gleiche Hoehe (10.11.26): gemessene Hoechstwerte, siehe hoeheAngleichen()
+    let hoeheBuehne = 0, hoeheUnten = 0, hoeheSeite = 0, hoeheLinieDa = false, hoeheMessen = false;
+    // Nebenmeldungen (Reihe unter der Hauptflaeche) wechseln mit: gleiche Mindesthoehe,
+    // sonst springt alles darunter um ein paar Pixel (gemessen 338 bis 381 px am Handy).
+    const seitenHoeheSetzen = () => {
+      if (hoeheMessen || !hoeheSeite) return;
+      [sideOne, sideTwo].forEach(s => {
+        if (s && s.firstElementChild) s.firstElementChild.style.minHeight = `${hoeheSeite}px`;
+      });
+    };
     let destroyed = false;
     let resizeObserver = null;
     let resizeHandler = null;
@@ -7219,7 +7240,17 @@ window.addEventListener('resize',()=>{
       return einordnung ? ersteSaetze(einordnung, 2) : "";
     };
 
+    // 10.11.26 (Daniels Video): Meldungen tragen nur die Kennung "linie", die Linien
+    // selbst stehen in window.KI_LINIEN. Frueher las die Seite story.linien, das gibt es
+    // nicht, darum stand seit 31.10. ueberall "Freistehende Meldung". Wie heroLinie():
+    // erst ab 2 Ereignissen, Name = Dossier-Titel der Linie.
     const dossierData = story => {
+      const id = story && typeof story === "object" ? cleanText(story.linie) : "";
+      const linie = id && window.KI_LINIEN ? window.KI_LINIEN[id] : null;
+      if (linie && Array.isArray(linie.e) && linie.e.length >= 2) {
+        const titel = linie.dossier ? cleanText(linie.dossier.titel) : "";
+        return { hasDossier: true, names: titel ? [titel] : [] };
+      }
       const raw =
         story && typeof story === "object"
           ? story.linien
@@ -7502,20 +7533,70 @@ window.addEventListener('resize',()=>{
     // Gleiche Hoehe fuer alle Top-Storys (28.10.26, Daniel): jede Story einmal
     // rendern (synchron, ohne Bild dazwischen) und die groesste Hoehe als
     // min-height setzen. Sonst springt beim Weiterblaettern alles darunter.
+    // 10.11.26 (Daniel: "jede der Top-Meldungen hat eine andere Groesse"): Frueher ging
+    // der ganze Rest in die Buehne. Bei einer Story ohne Linie rutschten so die Pfeile um
+    // die Hoehe der Linie nach unten (PC 147 px, Handy 181 px). Jetzt bekommen Buehne und
+    // Unterteil (Linie + Kontext) je ihre eigene groesste Hoehe. Story ohne Linie zeigt
+    // einen ruhigen Platzhalter an derselben Stelle, wenn eine andere Story eine Linie hat.
+    // Aufgerundet, sonst bleibt ein Rest unter 1 px und alles darunter zittert um 1 px
+    const hoch = el => Math.ceil(el.getBoundingClientRect().height);
     const hoeheAngleichen = () => {
       if (destroyed || stories.length < 2 || !mainSlide.offsetWidth) return;
       const merk = currentStory;
-      let max = 0;
+      let maxB = 0, maxMit = 0, maxOhne = 0, maxS = 0, linieDa = false;
       mainSlide.style.minHeight = "";
-      for (let i = 0; i < stories.length; i++) {
-        currentStory = i;
-        renderMainStory();
-        max = Math.max(max, mainSlide.offsetHeight);
+      // Pfeile und Punkte zuerst zeichnen: sie stehen in der Buehne (Handy: unter dem
+      // Text). Ohne sie war die Messung 25 px zu klein und die Flaeche wuchs beim Blaettern.
+      renderControls();
+      hoeheMessen = true;
+      try {
+        for (let i = 0; i < stories.length; i++) {
+          currentStory = i;
+          renderMainStory();
+          [sideOne, sideTwo].forEach(s => {
+            if (s && s.firstElementChild) maxS = Math.max(maxS, hoch(s.firstElementChild));
+          });
+          const b = mainSlide.querySelector(".px-hero-buehne");
+          const l = mainSlide.querySelector("#c-linie");
+          const leer = mainSlide.querySelector(".px-hero-linie-leer");
+          const k = mainSlide.querySelector(".px-hero-main-context");
+          const kh = k ? hoch(k) : 0;
+          if (b) maxB = Math.max(maxB, hoch(b));
+          if (l && !l.hidden) { linieDa = true; maxMit = Math.max(maxMit, hoch(l) + kh); }
+          else maxMit = Math.max(maxMit, (leer ? hoch(leer) : 0) + kh);
+          maxOhne = Math.max(maxOhne, kh);
+        }
+      } finally {
+        hoeheMessen = false;
       }
+      hoeheBuehne = maxB;
+      hoeheSeite = maxS;
+      hoeheLinieDa = linieDa;
+      hoeheUnten = linieDa ? maxMit : maxOhne;
       currentStory = merk;
       renderMainStory();
-      mainSlide.style.minHeight = `${max}px`;
       hoeheBreite = window.innerWidth;
+    };
+    // Sperrklinke: faellt ein Foto nachtraeglich aus oder ist eine Story doch hoeher als
+    // gemessen, waechst die Reservierung einmal mit. Kleiner wird sie nie.
+    const hoeheNachziehen = () => {
+      if (!hoeheBuehne) return;
+      [[".px-hero-buehne", "b"], [".px-hero-unten", "u"]].forEach(([sel, art]) => {
+        const el = mainSlide.querySelector(sel);
+        if (!el) return;
+        el.style.minHeight = "";
+        const h = hoch(el);
+        if (art === "b") hoeheBuehne = Math.max(hoeheBuehne, h);
+        else hoeheUnten = Math.max(hoeheUnten, h);
+        el.style.minHeight = `${art === "b" ? hoeheBuehne : hoeheUnten}px`;
+      });
+      [sideOne, sideTwo].forEach(s => {
+        const el = s && s.firstElementChild;
+        if (!el || !hoeheSeite) return;
+        el.style.minHeight = "";
+        hoeheSeite = Math.max(hoeheSeite, hoch(el));
+      });
+      seitenHoeheSetzen();
     };
 
     window.addEventListener("resize", () => {
@@ -7530,13 +7611,7 @@ window.addEventListener('resize',()=>{
 
       currentStory = (index + stories.length) % stories.length;
       renderMainStory();
-      // Sperrklinke: faellt ein Foto nachtraeglich aus, ist die Story ohne Foto hoeher
-      // als gemessen. Dann waechst die Reservierung einmal mit, kleiner wird sie nie.
-      const reserviert = parseFloat(mainSlide.style.minHeight) || 0;
-      if (reserviert) {
-        mainSlide.style.minHeight = "";
-        mainSlide.style.minHeight = `${Math.max(reserviert, mainSlide.offsetHeight)}px`;
-      }
+      hoeheNachziehen();
       renderControls();
       startCarousel();
     };
@@ -7579,10 +7654,15 @@ window.addEventListener('resize',()=>{
         if (!card || !card.mp4) return;
 
         media.classList.add("px-hero-media--video");
+        // 10.11.26 (Daniels Video): Video einer anderen Meldung zum selben Thema ehrlich benennen
+        const knopfText = card.alias ? "Video zum Thema" : "Video abspielen";
         const play = make("button", "px-hero-vplay");
         play.type = "button";
-        play.setAttribute("aria-label", "Karten-Video mit Ton abspielen");
-        play.append(make("span", "px-hero-vplay-icon"), make("span", "px-hero-vplay-text", "Video abspielen"));
+        play.setAttribute("aria-label", card.alias
+          ? `Video zu einer anderen Meldung zum selben Thema abspielen: ${card.headline}`
+          : "Karten-Video mit Ton abspielen");
+        if (card.alias && card.headline) play.title = `Video zu: ${card.headline}`;
+        play.append(make("span", "px-hero-vplay-icon"), make("span", "px-hero-vplay-text", knopfText));
         media.append(play);
 
         const start = event => {
@@ -7603,6 +7683,7 @@ window.addEventListener('resize',()=>{
           mute.type = "button";
           mute.setAttribute("aria-label", "Ton aus");
           wrap.append(video, loader, mute);
+          if (card.alias && card.headline) wrap.append(make("div", "px-hero-card-video-thema", `Video zum Thema: ${card.headline}`));
           media.append(wrap);
           play.hidden = true;
 
@@ -7620,7 +7701,7 @@ window.addEventListener('resize',()=>{
             const text = play.querySelector(".px-hero-vplay-text");
             if (!text) return;
             text.textContent = "Video nicht verfügbar";
-            window.setTimeout(() => { text.textContent = "Video abspielen"; }, 3500);
+            window.setTimeout(() => { text.textContent = knopfText; }, 3500);
           };
           video.addEventListener("playing", () => wrap.classList.remove("px-hero-card-video--laedt"));
           video.addEventListener("waiting", () => wrap.classList.add("px-hero-card-video--laedt"));
@@ -7775,13 +7856,29 @@ window.addEventListener('resize',()=>{
         )
       );
 
-      slide.append(stage, linieBox, context);
+      // Linie und Kontext im eigenen Unterteil, damit hoeheAngleichen() die Buehne
+      // (mit den Pfeilen) und den Rest getrennt reservieren kann (10.11.26).
+      const unten = make("div", "px-hero-unten");
+      unten.append(linieBox, context);
+      slide.append(stage, unten);
       mainSlide.append(slide);
       renderSides();
 
       if (typeof window.heroLinie === "function") {
         try { window.heroLinie(mainCard, story); } catch (error) { linieBox.hidden = true; }
       }
+      if (linieBox.hidden && (hoeheMessen || hoeheLinieDa)) {
+        const leer = make("div", "c-linie px-hero-linie px-hero-linie-leer");
+        const kopf = make("div", "c-linie-kopf");
+        kopf.append(make("span", "", "Linie"));
+        leer.append(kopf, make("p", "px-hero-linie-leer-text", "Zu diesem Thema gibt es noch keine früheren Meldungen."));
+        unten.insertBefore(leer, context);
+      }
+      if (!hoeheMessen && hoeheBuehne) {
+        stage.style.minHeight = `${hoeheBuehne}px`;
+        unten.style.minHeight = `${hoeheUnten}px`;
+      }
+      seitenHoeheSetzen();
 
       if (!reducedMotion.matches) {
         requestAnimationFrame(() => {

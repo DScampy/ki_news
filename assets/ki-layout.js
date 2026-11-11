@@ -241,6 +241,8 @@
     '.kl-ov-img-bg{position:absolute;inset:-12px;background-size:cover;background-position:center;filter:blur(18px) brightness(0.45);transform:scale(1.06);}',
     '.kl-ov-video-mute{position:absolute;right:10px;bottom:10px;z-index:2;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;pointer-events:none;}',
     '.kl-ov-video-mute.kl-ov-ton-an{width:auto;height:auto;padding:9px 15px;border-radius:20px;background:var(--z-akzent);color:#fff;font:600 13px/1 var(--z-sans);box-shadow:0 4px 16px rgba(0,0,0,0.35);}',
+    /* 10.11.26 (Daniels Video): Video einer anderen Meldung zum selben Thema kennzeichnen */
+    '.kl-ov-video-thema{position:absolute;left:10px;right:46px;top:10px;z-index:2;padding:6px 10px 0;border-bottom:6px solid transparent;border-radius:6px;background:rgba(0,0,0,0.66);color:#fff;font:600 12px/1.35 var(--z-sans);pointer-events:none;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}',
     '.kl-ov-body{padding:22px 24px 24px;}',
     /* Overlay zweispaltig (26.10.26, Daniel: "seh fast gar nicht, dass da was zum Scrollen ist"):
        ab 1100 px steht Bild/Karte links fest, nur der Text rechts scrollt, unten blendet er aus. */
@@ -374,6 +376,7 @@
              eine echte Karte (cards.json), ersetzt klShowCard() diesen Slot. */
           '<video id="kl-ov-video" muted loop playsinline preload="none" hidden></video>' +
           '<button type="button" id="kl-ov-video-mute" class="kl-ov-video-mute" aria-hidden="true" tabindex="-1" hidden>🔇</button>' +
+          '<div id="kl-ov-video-thema" class="kl-ov-video-thema" hidden></div>' +
         '</div>' +
         '<div class="kl-ov-body">' +
           '<div id="kl-ov-meta" class="kl-ov-meta"></div>' +
@@ -649,11 +652,16 @@
     var li = eintraege.map(function (e, i) {
       var aktuell = e.k === data.linie_k;
       var start = i === eintraege.length - 1;
+      // 10.11.26 (Daniels Video): Ein Eintrag steht fuer mehrere Meldungen, e.t ist
+      // der Titel nur einer davon. Der eigene Eintrag zeigt darum Titel und Quelle
+      // der offenen Meldung, sonst stand dort eine fremde Ueberschrift.
+      var titel = (aktuell && data.title) || e.t;
+      var quelle = (aktuell && data.source) || e.q;
       return '<li' + (aktuell ? ' class="aktuell"' : '') + '>' +
-        '<div class="kl-ov-linie-meta">' + klLinieDatum(e.d) + (e.q ? ' &middot; ' + klEsc(e.q) : '') +
+        '<div class="kl-ov-linie-meta">' + klLinieDatum(e.d) + (quelle ? ' &middot; ' + klEsc(quelle) : '') +
           (start ? ' &middot; <span class="kl-ov-linie-start">Hier fing es an</span>' : '') + '</div>' +
         '<button type="button" class="kl-ov-linie-titel" data-i="' + i + '"' + (aktuell ? ' disabled' : '') + '>' +
-          klEsc(e.t) + '</button></li>';
+          klEsc(titel) + '</button></li>';
     }).join('');
     // Ganzes Dossier ansehen (27.09.26): nur ab 3 Ereignissen, verlinkt auf linie.html.
     var dossierLink = eintraege.length >= 3
@@ -709,7 +717,7 @@
         klCardIdx = [];
         (list || []).forEach(function (c) {
           if (c && c.mp4_url && c.headline) {
-            klCardIdx.push({ key: klFoldKey(c.headline), links: c.links || [], mp4: c.mp4_url, poster: c.poster_url || null, duration: c.duration || null, einordnung: c.einordnung || null });
+            klCardIdx.push({ key: klFoldKey(c.headline), headline: c.headline, links: c.links || [], mp4: c.mp4_url, poster: c.poster_url || null, duration: c.duration || null, einordnung: c.einordnung || null });
           }
         });
         return klCardIdx;
@@ -728,8 +736,13 @@
     var title = item && typeof item === 'object' ? item.title : item;
     if (link) {
       for (var j = 0; j < klCardIdx.length; j++) {
-        if (klCardIdx[j].links.indexOf(link) !== -1) {
-          return { mp4: klCardIdx[j].mp4, poster: klCardIdx[j].poster, duration: klCardIdx[j].duration, einordnung: klCardIdx[j].einordnung };
+        var pos = klCardIdx[j].links.indexOf(link);
+        if (pos !== -1) {
+          // 10.11.26: links[0] ist die eigene Meldung der Karte, alles danach sind
+          // andere Meldungen zum selben Thema. Dann ist es nicht "ihr" Video, die
+          // Seite sagt das dazu (alias + headline der Karte).
+          return { mp4: klCardIdx[j].mp4, poster: klCardIdx[j].poster, duration: klCardIdx[j].duration, einordnung: klCardIdx[j].einordnung,
+                   alias: pos > 0, headline: klCardIdx[j].headline || '' };
         }
       }
     }
@@ -796,6 +809,11 @@
     });
     imgWrap.onclick = klOvVideoTap;
     if (muteBtn) { muteBtn.hidden = false; klOvTonKnopf(muteBtn); }
+    var themaEl = document.getElementById('kl-ov-video-thema');
+    if (themaEl) {
+      themaEl.textContent = card.alias ? 'Video zum Thema: ' + card.headline : '';
+      themaEl.hidden = !card.alias;
+    }
     imgWrap.hidden = false;
   }
   window.klOpenArticle = function (data) {
@@ -821,6 +839,8 @@
     imgWrap.classList.remove('kl-ov-card-mode');
     var muteBtn0 = document.getElementById('kl-ov-video-mute');
     if (muteBtn0) muteBtn0.hidden = true;
+    var thema0 = document.getElementById('kl-ov-video-thema');
+    if (thema0) { thema0.hidden = true; thema0.textContent = ''; }
     var bg0 = document.getElementById('kl-ov-img-bg');
     if (bg0) { bg0.hidden = true; bg0.style.backgroundImage = ''; }
     var title = data.title || '', summary = data.summary || '';

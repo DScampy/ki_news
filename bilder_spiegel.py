@@ -40,6 +40,19 @@ def schluessel(url):
     return hashlib.sha1(url.encode("utf-8")).hexdigest()[:20]
 
 
+def abruf_adresse(url):
+    """10.11.26: aeltere Eintraege tragen HTML-kodierte Adressen ("&amp;" statt "&"),
+    so laedt das Bild nicht. Geladen wird darum die bereinigte Adresse, der Dateiname
+    (schluessel) bleibt aber der Hash der gespeicherten Adresse. So passt image_local
+    zum Eintrag und vorhandene Dateien werden nicht doppelt angelegt."""
+    alt = None
+    while url and alt != url:
+        alt = url
+        for kodiert in ("&amp;", "&#38;", "&#x26;", "&#X26;"):
+            url = url.replace(kodiert, "&")
+    return url
+
+
 def lade(url, timeout=20):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "image/*,*/*;q=0.5"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -57,7 +70,7 @@ def spiegeln(url, ziel):
     if not fehlt:
         return True
     try:
-        bild = Image.open(io.BytesIO(lade(url)))
+        bild = Image.open(io.BytesIO(lade(abruf_adresse(url))))
         bild.load()
     except Exception:
         return (ziel / "640" / f"{h}.webp").exists()
