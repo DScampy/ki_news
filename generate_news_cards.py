@@ -488,9 +488,11 @@ def _alias_passt(titel: str, linie, karte_headline: str, karte_linie) -> bool:
     return bool(gemeinsam)
 
 
-# 14.11.26 (Daniels Fund): Sammelsendungen von Heise (Heise-Show, KI-Update kompakt)
+# 14.11.26 (Daniels Fund): Heise-Sendungen und Heise-Podcasts (Heise-Show, KI-Update in
+# allen Formen, Bit-Rauschen, c't uplink, Mac & i, Passwort usw., dazu Post zum Freitag)
 # bekommen keine Karte. ki_news.py trennt sie seit heute als Roundup ab (gleiches
-# Link-Muster dort in _ROUNDUP_HEISE_LINK). Eine schon vorhandene Karte dazu fliegt aus
+# Link-Muster dort in _ROUNDUP_HEISE_LINK, beide gleich halten). Eine schon vorhandene
+# Karte dazu fliegt aus
 # cards.json, ihr Thema aus sent_topics und ihre Zusatzlinks aus sent_links. Die
 # Zusatzlinks waren echte Meldungen, die nur wegen dieser Karte keine eigene bekamen
 # (Heise-Show 12.11.: 5 Huang-Meldungen). Sie duerfen ab dem naechsten Lauf wieder
@@ -498,7 +500,11 @@ def _alias_passt(titel: str, linie, karte_headline: str, karte_linie) -> bool:
 # besteht, den Player auf Meldungsseiten entfernt danach meldungsseiten.py.
 # Kill-Switch: SAMMEL_KARTEN_WEG = False (altes Verhalten).
 SAMMEL_KARTEN_WEG = True
-_SAMMEL_LINK = re.compile(r'heise\.de/[^?#]*/(heiseshow|KI-Update-kompakt)-', re.I)
+_SAMMEL_LINK = re.compile(
+    r'heise\.de/[^?#]*/(?:'
+    r'(?:heiseshow|KI-Update|Bit-Rauschen|c-t-Podcast|Passwort-Folge|Digital-Health-Podcast'
+    r'|software-architektur-tv|heise-meets|Post-zum-Freitag)-'
+    r'|[^/?#]*-(?:c-t-uplink|Mac-i-Podcast)-\d+\.html)', re.I)
 
 
 def _ist_sammelsendung(link: str) -> bool:
