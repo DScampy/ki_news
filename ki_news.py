@@ -1098,13 +1098,29 @@ def _is_social_echo(news_item) -> bool:
     t = (news_item.get("title", "") or "").lower()
     return any(m in t for m in _SOCIAL_ECHO_MUSTER)
 
+# 14.11.26 (Daniels Wunsch): Werbung von Heise fuer eigene Webinare, Workshops und
+# Konferenzen (iX-Workshop, c't-Webinar, betterCode, secIT, OOP Focus Day ...). Im
+# Heise-RSS beginnt jeder solche Titel mit "heise-Angebot:" (summary-cache.json: 30 von
+# 30 Werbe-Links, kein Werbe-Link ohne). Die Uebersetzung laesst das Praefix oft weg
+# ("Heise bietet iX-Workshop ..."), darum zaehlt der Rohtitel: hier in _is_ad und fuers
+# Archiv ueber title_orig aus summary-cache.json (update_archive).
+# Kill-Switch: WERBUNG_HEISE = False (altes Verhalten).
+WERBUNG_HEISE = True
+
+
+def _ist_heise_angebot(titel) -> bool:
+    """True, wenn der (Roh-)Titel mit 'heise-Angebot' beginnt, siehe oben."""
+    return WERBUNG_HEISE and (titel or "").strip().lower().startswith("heise-angebot")
+
+
 def _is_ad(news_item) -> bool:
     """Werbung/Sponsored erkennen – z.B. Golem 'Anzeige: ...'. Nur Titel, die DAMIT
     ANFANGEN, damit echte News wie 'Immobilienanzeigen' nicht getroffen werden."""
     t = (news_item.get("title", "") or "").strip().lower()
     return (t.startswith("anzeige:") or t.startswith("anzeige ")
             or t.startswith("[anzeige]") or t.startswith("sponsored")
-            or t.startswith("werbung:"))
+            or t.startswith("werbung:")
+            or _ist_heise_angebot(t))
 
 FEEDS = [
     # Deutsch
@@ -7185,6 +7201,17 @@ def main():
         existing = [e for e in existing if not _ist_heise_sammelsendung(e)]
         if len(existing) < _vorher:
             logger.info("Archiv: %d Heise-Sammelsendung(en) entfernt", _vorher - len(existing))
+
+        # 14.11.26: heise-Angebote (Werbung), die vor dem Filter ins Archiv kamen. Der
+        # Archiv-Titel ist uebersetzt, darum zusaetzlich der Rohtitel aus summary-cache.json.
+        if WERBUNG_HEISE:
+            _roh = load_summary_cache(base_dir)
+            _vorher = len(existing)
+            existing = [e for e in existing
+                        if not (_ist_heise_angebot(e.get("title"))
+                                or _ist_heise_angebot((_roh.get(e.get("link")) or {}).get("title_orig")))]
+            if len(existing) < _vorher:
+                logger.info("Archiv: %d heise-Angebot(e) (Werbung) entfernt", _vorher - len(existing))
 
         # Scoring-Fix (02.07.26): base_score-Heilung erreicht jetzt auch das
         # ARCHIV. Vorher heilte nur news.json (max(hist, raw) dort), aber
