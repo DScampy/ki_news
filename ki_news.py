@@ -1028,9 +1028,52 @@ _ROUNDUP_PATTERN = re.compile(
 )
 _ROUNDUP_SOURCES = {"The Batch"}
 
+# 14.11.26 (Daniels Fund): Sammelsendungen von Heise. "#heiseshow: Jensen Huang,
+# US-Wahlergebnisse und KI-Wasserstoff" und "KI-Update kompakt: Nvidia-Affaere,
+# Coding-Agenten, ..." fassen mehrere Themen zusammen. Die Heise-Show vom 12.11. bekam
+# eine Karte und zog danach im Themen-Dedup von generate_news_cards.py fuenf echte
+# Huang-Meldungen an sich (NYT, Reuters, Golem, 2x WCCFtech), die darum keine eigene
+# Karte bekamen und auf der Seite das Heise-Show-Video zeigten. Erkannt am Link (bleibt
+# gleich, der Titel wird uebersetzt) und am Titel.
+# Am selben Tag auf Daniels Wunsch erweitert: alle Heise-Podcasts, auch mit nur einem
+# Thema. KI-Update in allen Formen (kompakt, Deep-Dive, Wochenausgabe "KI-Update: ..."),
+# Bit-Rauschen (Podcast und Kolumne), c't uplink, c't-Podcast, Mac & i-Podcast, Passwort,
+# Digital-Health-Podcast, software-architektur.tv, heise meets. Dazu der Sammelbeitrag
+# "Post zum Freitag". Bewusst nicht: c't 3003 (Videos), Missing Link (Essays).
+# Wirkt an zwei Stellen: neue Meldungen werden als Roundup abgetrennt, schon vorhandene
+# fliegen aus archive.json (update_archive). Gleiches Link-Muster in generate_news_cards.py.
+# Kill-Switch: ROUNDUP_HEISE = False (altes Verhalten).
+ROUNDUP_HEISE = True
+# Link-Slug: Sendungsname vorn (heiseshow-..., KI-Update-...) oder hinten (...-c-t-uplink-<id>.html).
+_ROUNDUP_HEISE_LINK = re.compile(
+    r'heise\.de/[^?#]*/(?:'
+    r'(?:heiseshow|KI-Update|Bit-Rauschen|c-t-Podcast|Passwort-Folge|Digital-Health-Podcast'
+    r'|software-architektur-tv|heise-meets|Post-zum-Freitag)-'
+    r'|[^/?#]*-(?:c-t-uplink|Mac-i-Podcast)-\d+\.html)', re.I)
+_ROUNDUP_HEISE_TITEL = re.compile(
+    r'#heiseshow|\bheise-?show\b|^KI-Update(?: kompakt| Deep-Dive)?:|\bKI-Update (?:kompakt|Deep-Dive)\b'
+    r'|Bit-Rauschen|\bc.t uplink\b|\bc.t-Podcast\b|Mac & i-Podcast|^Podcast:|^Post zum Freitag', re.I)
+
+
+def _ist_heise_sammelsendung(news_item) -> bool:
+    """True fuer Heise-Sendungen, Heise-Podcasts und Post zum Freitag (Link oder Titel), siehe oben."""
+    if not ROUNDUP_HEISE:
+        return False
+    link = news_item.get("link") or ""
+    if _ROUNDUP_HEISE_LINK.search(link):
+        return True
+    # Titel nur bei Heise-Links (oder ganz ohne Link): "KI-Update" oder "Podcast:" kann
+    # auch bei anderen Quellen vorn stehen.
+    if link and "heise.de" not in link:
+        return False
+    return bool(_ROUNDUP_HEISE_TITEL.search(news_item.get("title") or ""))
+
+
 def _is_roundup(news_item) -> bool:
     """True wenn der Eintrag eine Wochenzusammenfassung ist (Titel-Muster oder Quelle)."""
     if news_item.get("source") in _ROUNDUP_SOURCES:
+        return True
+    if _ist_heise_sammelsendung(news_item):
         return True
     return bool(_ROUNDUP_PATTERN.search(news_item.get("title", "")))
 
@@ -1055,13 +1098,29 @@ def _is_social_echo(news_item) -> bool:
     t = (news_item.get("title", "") or "").lower()
     return any(m in t for m in _SOCIAL_ECHO_MUSTER)
 
+# 14.11.26 (Daniels Wunsch): Werbung von Heise fuer eigene Webinare, Workshops und
+# Konferenzen (iX-Workshop, c't-Webinar, betterCode, secIT, OOP Focus Day ...). Im
+# Heise-RSS beginnt jeder solche Titel mit "heise-Angebot:" (summary-cache.json: 30 von
+# 30 Werbe-Links, kein Werbe-Link ohne). Die Uebersetzung laesst das Praefix oft weg
+# ("Heise bietet iX-Workshop ..."), darum zaehlt der Rohtitel: hier in _is_ad und fuers
+# Archiv ueber title_orig aus summary-cache.json (update_archive).
+# Kill-Switch: WERBUNG_HEISE = False (altes Verhalten).
+WERBUNG_HEISE = True
+
+
+def _ist_heise_angebot(titel) -> bool:
+    """True, wenn der (Roh-)Titel mit 'heise-Angebot' beginnt, siehe oben."""
+    return WERBUNG_HEISE and (titel or "").strip().lower().startswith("heise-angebot")
+
+
 def _is_ad(news_item) -> bool:
     """Werbung/Sponsored erkennen – z.B. Golem 'Anzeige: ...'. Nur Titel, die DAMIT
     ANFANGEN, damit echte News wie 'Immobilienanzeigen' nicht getroffen werden."""
     t = (news_item.get("title", "") or "").strip().lower()
     return (t.startswith("anzeige:") or t.startswith("anzeige ")
             or t.startswith("[anzeige]") or t.startswith("sponsored")
-            or t.startswith("werbung:"))
+            or t.startswith("werbung:")
+            or _ist_heise_angebot(t))
 
 FEEDS = [
     # Deutsch
@@ -7135,6 +7194,24 @@ def main():
             existing = []
 
         _cap_inflated_base_scores(existing)  # Einmal-Migration 04.07.26, s. Funktion
+
+        # 14.11.26: Heise-Sammelsendungen, die vor dem Filter ins Archiv kamen, wieder
+        # raus (nur dieses Muster, die alten Roundup-Muster koennten uebersetzte Titel treffen).
+        _vorher = len(existing)
+        existing = [e for e in existing if not _ist_heise_sammelsendung(e)]
+        if len(existing) < _vorher:
+            logger.info("Archiv: %d Heise-Sammelsendung(en) entfernt", _vorher - len(existing))
+
+        # 14.11.26: heise-Angebote (Werbung), die vor dem Filter ins Archiv kamen. Der
+        # Archiv-Titel ist uebersetzt, darum zusaetzlich der Rohtitel aus summary-cache.json.
+        if WERBUNG_HEISE:
+            _roh = load_summary_cache(base_dir)
+            _vorher = len(existing)
+            existing = [e for e in existing
+                        if not (_ist_heise_angebot(e.get("title"))
+                                or _ist_heise_angebot((_roh.get(e.get("link")) or {}).get("title_orig")))]
+            if len(existing) < _vorher:
+                logger.info("Archiv: %d heise-Angebot(e) (Werbung) entfernt", _vorher - len(existing))
 
         # Scoring-Fix (02.07.26): base_score-Heilung erreicht jetzt auch das
         # ARCHIV. Vorher heilte nur news.json (max(hist, raw) dort), aber

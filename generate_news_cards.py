@@ -488,6 +488,50 @@ def _alias_passt(titel: str, linie, karte_headline: str, karte_linie) -> bool:
     return bool(gemeinsam)
 
 
+# 14.11.26 (Daniels Fund): Heise-Sendungen und Heise-Podcasts (Heise-Show, KI-Update in
+# allen Formen, Bit-Rauschen, c't uplink, Mac & i, Passwort usw., dazu Post zum Freitag)
+# bekommen keine Karte. ki_news.py trennt sie seit heute als Roundup ab (gleiches
+# Link-Muster dort in _ROUNDUP_HEISE_LINK, beide gleich halten). Eine schon vorhandene
+# Karte dazu fliegt aus
+# cards.json, ihr Thema aus sent_topics und ihre Zusatzlinks aus sent_links. Die
+# Zusatzlinks waren echte Meldungen, die nur wegen dieser Karte keine eigene bekamen
+# (Heise-Show 12.11.: 5 Huang-Meldungen). Sie duerfen ab dem naechsten Lauf wieder
+# antreten. Das Video selbst loescht medien_aufraeumen.py, sobald kein Verweis mehr
+# besteht, den Player auf Meldungsseiten entfernt danach meldungsseiten.py.
+# Kill-Switch: SAMMEL_KARTEN_WEG = False (altes Verhalten).
+SAMMEL_KARTEN_WEG = True
+_SAMMEL_LINK = re.compile(
+    r'heise\.de/[^?#]*/(?:'
+    r'(?:heiseshow|KI-Update|Bit-Rauschen|c-t-Podcast|Passwort-Folge|Digital-Health-Podcast'
+    r'|software-architektur-tv|heise-meets|Post-zum-Freitag)-'
+    r'|[^/?#]*-(?:c-t-uplink|Mac-i-Podcast)-\d+\.html)', re.I)
+
+
+def _ist_sammelsendung(link: str) -> bool:
+    return SAMMEL_KARTEN_WEG and bool(_SAMMEL_LINK.search(link or ""))
+
+
+def _sammel_karten_entfernen(karten: list, sent_topics: dict, card_sent: dict):
+    """Entfernt Karten zu Sammelsendungen. Gibt (uebrige Karten, entfernte IDs) zurueck.
+
+    sent_topics und card_sent werden in place bereinigt (Thema der Karte, Zusatzlinks).
+    """
+    weg = [k for k in karten if isinstance(k, dict)
+           and _ist_sammelsendung((k.get("links") or [""])[0])]
+    if not weg:
+        return karten, set()
+    ids = {k.get("id") for k in weg}
+    for k in weg:
+        frei = [l for l in (k.get("links") or [])[1:] if card_sent.pop(l, None) is not None]
+        print(f"  [SAMMEL weg] Karte {k.get('id', '')} entfernt, {len(frei)} Zusatzlink(s) "
+              f"wieder frei")
+        for l in frei:
+            print(f"      frei: {l}")
+    for t in [t for t, v in sent_topics.items() if isinstance(v, dict) and v.get("card") in ids]:
+        del sent_topics[t]
+    return [k for k in karten if not (isinstance(k, dict) and k.get("id") in ids)], ids
+
+
 def _alias_filtern(karten: list, artikel: list) -> None:
     """Entfernt unpassende Zusatzlinks aus karten (in place) und loggt jeden Fall."""
     bekannt = {}
@@ -1481,6 +1525,10 @@ def main() -> None:
         existing_cards = json.loads(CARDS_JSON.read_text(encoding="utf-8"))
     except Exception:
         pass
+    # 14.11.26: Karten zu Sammelsendungen raus, bevor der Themen-Dedup sie als Ziel nimmt.
+    existing_cards, _sammel_ids = _sammel_karten_entfernen(existing_cards, sent_topics, card_sent)
+    if _sammel_ids:
+        _letzte_karten = [x for x in _letzte_karten if x[2] not in _sammel_ids]
 
     cards_meta = []
 
@@ -1492,6 +1540,10 @@ def main() -> None:
 
         if not headline:
             print(f"  [SKIP] Artikel {i}: kein Titel.")
+            continue
+
+        if _ist_sammelsendung(link):
+            print(f"  [SKIP] Artikel {i}: Sammelsendung ({headline[:60]!r}) — keine Karte.")
             continue
 
         # ── Sprach-Check (08.07.26, ZML-Fund): title_de-Uebersetzung in ki_news.py
