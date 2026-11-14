@@ -1028,9 +1028,35 @@ _ROUNDUP_PATTERN = re.compile(
 )
 _ROUNDUP_SOURCES = {"The Batch"}
 
+# 14.11.26 (Daniels Fund): Sammelsendungen von Heise. "#heiseshow: Jensen Huang,
+# US-Wahlergebnisse und KI-Wasserstoff" und "KI-Update kompakt: Nvidia-Affaere,
+# Coding-Agenten, ..." fassen mehrere Themen zusammen. Die Heise-Show vom 12.11. bekam
+# eine Karte und zog danach im Themen-Dedup von generate_news_cards.py fuenf echte
+# Huang-Meldungen an sich (NYT, Reuters, Golem, 2x WCCFtech), die darum keine eigene
+# Karte bekamen und auf der Seite das Heise-Show-Video zeigten. Erkannt am Link (bleibt
+# gleich, der Titel wird uebersetzt) und am Titel. Einzelthemen-Podcasts (Bit-Rauschen,
+# c't uplink, KI-Update Deep-Dive) zaehlen nicht dazu.
+# Wirkt an zwei Stellen: neue Meldungen werden als Roundup abgetrennt, schon vorhandene
+# fliegen aus archive.json (update_archive). Gleiches Link-Muster in generate_news_cards.py.
+# Kill-Switch: ROUNDUP_HEISE = False (altes Verhalten).
+ROUNDUP_HEISE = True
+_ROUNDUP_HEISE_LINK = re.compile(r'heise\.de/[^?#]*/(heiseshow|KI-Update-kompakt)-', re.I)
+_ROUNDUP_HEISE_TITEL = re.compile(r'#heiseshow|\bheise-?show\b|\bKI-Update kompakt\b', re.I)
+
+
+def _ist_heise_sammelsendung(news_item) -> bool:
+    """True fuer Heise-Show und KI-Update kompakt (Link oder Titel), siehe oben."""
+    if not ROUNDUP_HEISE:
+        return False
+    return bool(_ROUNDUP_HEISE_LINK.search(news_item.get("link") or "")
+                or _ROUNDUP_HEISE_TITEL.search(news_item.get("title") or ""))
+
+
 def _is_roundup(news_item) -> bool:
     """True wenn der Eintrag eine Wochenzusammenfassung ist (Titel-Muster oder Quelle)."""
     if news_item.get("source") in _ROUNDUP_SOURCES:
+        return True
+    if _ist_heise_sammelsendung(news_item):
         return True
     return bool(_ROUNDUP_PATTERN.search(news_item.get("title", "")))
 
@@ -7135,6 +7161,13 @@ def main():
             existing = []
 
         _cap_inflated_base_scores(existing)  # Einmal-Migration 04.07.26, s. Funktion
+
+        # 14.11.26: Heise-Sammelsendungen, die vor dem Filter ins Archiv kamen, wieder
+        # raus (nur dieses Muster, die alten Roundup-Muster koennten uebersetzte Titel treffen).
+        _vorher = len(existing)
+        existing = [e for e in existing if not _ist_heise_sammelsendung(e)]
+        if len(existing) < _vorher:
+            logger.info("Archiv: %d Heise-Sammelsendung(en) entfernt", _vorher - len(existing))
 
         # Scoring-Fix (02.07.26): base_score-Heilung erreicht jetzt auch das
         # ARCHIV. Vorher heilte nur news.json (max(hist, raw) dort), aber
