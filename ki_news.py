@@ -2948,16 +2948,25 @@ def _dub_kw(titel):
 # Titelvergleich-Paaren dieses Laufs waren nur 2 bis 3 wirklich dieselbe Meldung.
 # Jetzt fragt Jev bei jedem Paar, das der Titelvergleich verdecken will, "dasselbe konkrete
 # Ereignis?" (dieselbe Frage wie _jev_veto). Liegt p unter DUB_JEV_SCHWELLE, bleibt die
-# Meldung sichtbar und der Vergleich sucht beim naechsten Kandidaten weiter. Die Schwelle ist
-# die von JEV_VETO_SCHWELLE (gemessen 25.09.: ab 0,2 blieben 106 von 106 echten Paaren
-# zusammen). Registry-Treffer (Stufe 2) fragt Jev nicht, die hat schon ein LLM geprueft.
+# Meldung sichtbar und der Vergleich sucht beim naechsten Kandidaten weiter. Registry-Treffer
+# (Stufe 2) fragt Jev nicht, die hat schon ein LLM geprueft.
+# Schwelle 0,5 seit 15.11.26 (Daniel "Ja, Dubletten"). Vorher 0,2 wie JEV_VETO_SCHWELLE. Die
+# 0,2 war fuer Cluster gemessen (Meldungen derselben Story), beim Titelvergleich ist sie zu
+# niedrig. Messung: 106 Paare, auf die der Titelvergleich zutrifft und zu denen Jev ein Urteil
+# hat, aus news.json und archive.json von 14 Laeufen (14.11. 09 UTC bis 15.11. 14 UTC). Von
+# Hand bewertet: 44 echte Dubletten, 61 verschiedene Ereignisse, 1 unklar. Bei 0,2 blieben 27
+# verschiedene Ereignisse verdeckt, zum Beispiel "Anthropic gefaehrdet NVIDIAs CUDA-Burggraben"
+# als Dublette von "Anthropic stellt Claude Fable 5.2 vor" (p 0,21). Bei 0,5 sind es noch 13,
+# fast alle aus der Nvidia-Huang-Story, die Jev am Titel allein nicht trennt. Dafuer bleiben 3
+# echte Dubletten sichtbar (p 0,37 bis 0,49).
 # Urteile: jev_urteile.json (gleicher Cache wie _jev_veto, belege.html liest ihn mit), jedes
 # gefragte Paar steht in news.json unter "dub_jev" und im Log als [DUB-JEV ...].
 # Fail-open: ohne Key, bei Fehlern, nach DUB_JEV_MAX Aufrufen oder DUB_JEV_ZEIT_S Sekunden
 # gilt der Titelvergleich wie bisher.
 # Kill-Switch: DUB_JEV_MODUS = "schatten" (nur fragen und loggen) oder "aus".
+# Kill-Switch nur fuer die neue Schwelle: DUB_JEV_SCHWELLE = 0.2 (Stand vor dem 15.11.).
 DUB_JEV_MODUS = "scharf"
-DUB_JEV_SCHWELLE = 0.2
+DUB_JEV_SCHWELLE = 0.5
 DUB_JEV_MAX = 25
 DUB_JEV_ZEIT_S = 60
 
@@ -2974,13 +2983,18 @@ ARCHIV_DUB_NACHZIEHEN = True
 # Clustering hatten viel Fremdes verbunden. Messung 15.11.: 440 solche Vermerke mit vorhandenem
 # Ziel. Fuer 212 hatte Jev schon geurteilt, 17 davon unter 0,2 (zum Beispiel "Alice Huangs
 # Firmen investieren in DeepSeek" als Dublette von "Jensen Huang tritt als NVIDIA-CEO zurueck").
-# update_archive() fragt Jev darum bei diesen Vermerken (Meldung gegen Ziel, gleiche Frage und
-# Schwelle wie oben) und streicht den Vermerk unter DUB_JEV_SCHWELLE. Je Lauf hoechstens
+# update_archive() fragt Jev darum bei diesen Vermerken (Meldung gegen Ziel, gleiche Frage wie
+# oben) und streicht den Vermerk unter ARCHIV_DUB_JEV_SCHWELLE. Je Lauf hoechstens
 # ARCHIV_DUB_JEV_MAX neue Fragen, der Rest kommt in den naechsten Laeufen dran. Zeigt ein
 # Vermerk auf eine Heise-Sammelsendung (fliegt seit 14.11. aus dem Archiv), wird er ohne Frage
 # gestrichen (3 am 15.11.). DUB_JEV_MODUS gilt auch hier ("schatten" = nur loggen).
+# Die Archiv-Schwelle bleibt 0,2 und ist bewusst nicht DUB_JEV_SCHWELLE: Im Archiv stehen auch
+# Vermerke aus dem Clustering (eine Karte je Story, gewollt) und aus der Registry. Die waren
+# nicht Teil der Messung zu 0,5. Alte Titelvergleich-Vermerke zwischen 0,2 und 0,5 altern mit
+# dem Archiv raus, Meldungen in news.json bekommen ihren Vermerk ohnehin neu (NACHZIEHEN).
 # Kill-Switch: ARCHIV_DUB_JEV_MAX = 0.
 ARCHIV_DUB_JEV_MAX = 40
+ARCHIV_DUB_JEV_SCHWELLE = 0.2
 
 
 class _JevPaarUrteile:
@@ -3343,7 +3357,7 @@ def _archiv_dub_nachpruefen(archiv, news_links, base_dir):
     veto = 0
     for e, z in paare:
         p = erg.get(pruefer.schluessel(e, z))
-        if p is None or p >= DUB_JEV_SCHWELLE:
+        if p is None or p >= ARCHIV_DUB_JEV_SCHWELLE:
             continue
         veto += 1
         logger.info("[ARCHIV-DUB-JEV %s veto p=%.2f] %r ~ %r", DUB_JEV_MODUS, p,
