@@ -1459,6 +1459,19 @@
       const FILE_LABELS = { "news.json": "aktuelle Meldungen", "archive.json": "Archiv", "cards.json": "Videokarten" };
       const THEME_KEY = "ki-news-belegstrang-theme";
       const INITIAL_THREAD_LIMIT = 10;
+      // 15.11.26 (Daniel: Lutnick-Story zeigte nur einen Platzhalter als Original, unter
+      // "Vermutlich verwandt" stand Fremdes neben Zugehoerigem).
+      // NEWS_DUB_GEWINNT: Der Dublettenvermerk aus news.json (aktueller Lauf) gilt, auch ein
+      // leerer. Vorher blieb ein alter Vermerk aus archive.json stehen. Zeigen alle Meldungen
+      // einer Story als Dublette aufeinander, wird die Meldung Original, auf die verwiesen wird.
+      // JEV_HINWEISE: Jev-Urteile "gleiches Ereignis" aus jev_urteile.json (schreibt
+      // ki_news.py) stehen als Hinweis an den Treffern unter "Vermutlich verwandt".
+      // Kill-Switch: beide auf false = altes Verhalten.
+      const NEWS_DUB_GEWINNT = true;
+      const JEV_HINWEISE = true;
+      const JEV_FILE = "jev_urteile.json";
+      const JEV_GLEICH_AB = .7;
+      const JEV_ANDERS_UNTER = .2;
 
       const OWN_SUMMARY_FIELDS = [
         "our_summary",
@@ -1519,6 +1532,7 @@
         query: "",
         loaded: [],
         failed: [],
+        jev: null,
         activeVideos: []
       };
 
@@ -1916,9 +1930,17 @@
           previous.storyId = entry.storyId || previous.storyId;
           previous.firstSeen = earliest(previous.firstSeen, entry.firstSeen);
           previous.date = earliest(previous.date, entry.date);
-          previous.dubVon = entry.dubVon || previous.dubVon;
-          previous.dubQuellen = unique([...previous.dubQuellen, ...entry.dubQuellen]);
-          previous.duplicate = previous.duplicate || entry.duplicate;
+          if (NEWS_DUB_GEWINNT && entry.file === "news.json") {
+            // news.json kommt nach archive.json und ist der aktuelle Lauf. Sein Vermerk gilt,
+            // auch ein leerer: dann ist die Meldung in diesem Lauf keine Dublette mehr.
+            previous.dubVon = entry.dubVon;
+            previous.dubQuellen = entry.dubQuellen;
+            previous.duplicate = entry.duplicate;
+          } else {
+            previous.dubVon = entry.dubVon || previous.dubVon;
+            previous.dubQuellen = unique([...previous.dubQuellen, ...entry.dubQuellen]);
+            previous.duplicate = previous.duplicate || entry.duplicate;
+          }
           previous.score = Math.max(previous.score, entry.score);
           previous.articleCount = Math.max(previous.articleCount, entry.articleCount);
           previous.region = previous.region || entry.region;
@@ -2021,6 +2043,23 @@
 
         if (direct) return direct;
 
+        // 15.11.26: Alle Meldungen sind als Dublette markiert (zum Beispiel zwei Meldungen,
+        // die aufeinander zeigen). Dann wird die Meldung Original, auf die verwiesen wird.
+        // Den Platzhalter gibt es nur noch, wenn das Ziel in der Story wirklich fehlt.
+        if (NEWS_DUB_GEWINNT) {
+          const targets = new Set(records.map(record => canonicalUrl(record.dubVon)).filter(Boolean));
+          const target = [...records]
+            .filter(record => targets.has(canonicalUrl(record.link)))
+            .sort((left, right) => {
+              if (left.uid === lead.uid) return -1;
+              if (right.uid === lead.uid) return 1;
+              return right.score - left.score
+                || dateStamp(left.date) - dateStamp(right.date);
+            })[0];
+
+          if (target) return target;
+        }
+
         const duplicate = [...records]
           .filter(record => record.dubVon)
           .sort((left, right) => dateStamp(left.date) - dateStamp(right.date))[0];
@@ -2065,7 +2104,9 @@
             threadRole: "original",
             relation: original.virtual
               ? "Die Ursprungsquelle ist nur über einen dokumentierten Dublettenlink bekannt."
-              : "Die wichtigste Meldung dieser Story, die nicht als Dublette markiert ist."
+              : original.duplicate
+                ? "Alle Meldungen dieser Story sind als Dublette markiert. Auf diese Meldung verweisen die anderen."
+                : "Die wichtigste Meldung dieser Story, die nicht als Dublette markiert ist."
           }];
 
           groupRecords
@@ -2230,6 +2271,66 @@
         };
       }
 
+      function jevMap(payload) {
+        const urteile = payload && typeof payload === "object" ? payload.urteile : null;
+        if (!urteile || typeof urteile !== "object") return null;
+        return new Map(Object.entries(urteile));
+      }
+
+      // Hoechstes Jev-Urteil ueber alle Meldungspaare der beiden Storys. Schluessel wie in
+      // ki_news.py (_JevPaarUrteile.schluessel): beide Links sortiert, mit "|" verbunden.
+      function jevUrteil(left, right) {
+        if (!state.jev) return null;
+        const leftLinks = unique(left.records.map(record => record.link).filter(Boolean));
+        const rightLinks = unique(right.records.map(record => record.link).filter(Boolean));
+        let best = null;
+
+        leftLinks.forEach(a => {
+          rightLinks.forEach(b => {
+            if (a === b) return;
+            const entry = state.jev.get(a < b ? `${a}|${b}` : `${b}|${a}`);
+            const p = Number(entry && entry.p);
+            if (entry && Number.isFinite(p) && (best === null || p > best)) best = p;
+          });
+        });
+
+        return best;
+      }
+
+      function jevRang(p) {
+        if (p === null || p === undefined) return 1;
+        if (p >= JEV_GLEICH_AB) return 0;
+        if (p < JEV_ANDERS_UNTER) return 2;
+        return 1;
+      }
+
+      function jevHinweis(p) {
+        if (p === null || p === undefined) return null;
+        const prozent = `${Math.round(p * 100)} Prozent`;
+
+        if (p >= JEV_GLEICH_AB) {
+          return {
+            label: "Jev: dasselbe Ereignis",
+            variant: "cyan",
+            text: `Jev hat die Titel verglichen und hält beide für dasselbe Ereignis (${prozent}). Fest verbunden ist die Story damit noch nicht.`
+          };
+        }
+
+        if (p < JEV_ANDERS_UNTER) {
+          return {
+            label: "Jev: anderes Ereignis",
+            variant: "",
+            text: `Jev hat die Titel verglichen und hält das für ein anderes Ereignis (${prozent}). Hier ähneln sich nur die Wörter.`
+          };
+        }
+
+        return {
+          label: "Jev: unklar",
+          variant: "violet",
+          text: `Jev hat die Titel verglichen und ist sich nicht sicher (${prozent}). Diese Verbindung wurde nicht geprüft.`
+        };
+      }
+
       function likelyStories(story) {
         return state.stories
           .filter(candidate => candidate.id !== story.id)
@@ -2239,7 +2340,10 @@
           }))
           .filter(item => item.score >= .38)
           .sort((left, right) => right.score - left.score)
-          .slice(0, 5);
+          .slice(0, 5)
+          // 15.11.26: gleiche Treffer, Jev ordnet nur um (dasselbe Ereignis oben, anderes unten).
+          .map(item => ({ ...item, jev: JEV_HINWEISE ? jevUrteil(story, item.story) : null }))
+          .sort((left, right) => jevRang(left.jev) - jevRang(right.jev) || right.score - left.score);
       }
 
       function coverageSummary(story) {
@@ -2705,6 +2809,9 @@
         addWarning(
           body,
           "Die folgenden Treffer stammen nur aus Titel- oder Textähnlichkeit. Sie haben keine feste Story-Zuordnung, keinen Dublettenverweis und keinen exakten Quellenlink."
+            + (relatedStories.some(item => item.jev !== null && item.jev !== undefined)
+              ? " Wo das Sprachmodell Jev die Titel verglichen hat, steht sein Urteil dabei. Das ist ein Hinweis, kein Beleg."
+              : "")
         );
 
         const candidateList = node("div", "px-candidate-list");
@@ -2713,14 +2820,21 @@
         relatedStories.forEach(item => {
           const candidate = node("article", "px-candidate");
           const top = node("div", "px-candidate-top");
+          const jev = jevHinweis(item.jev);
+          const chips = node("span");
+          chips.style.display = "inline-flex";
+          chips.style.flexWrap = "wrap";
+          chips.style.gap = "6px";
+          chips.append(chip("Story-Textähnlichkeit", "yellow"));
+          if (jev) chips.append(chip(jev.label, jev.variant));
           top.append(
-            chip("Story-Textähnlichkeit", "yellow"),
+            chips,
             node("span", "px-candidate-index", `${Math.round(item.score * 100)} Prozent`)
           );
           candidate.append(
             top,
             node("h3", "", item.story.title),
-            node("p", "", "Diese Verbindung wurde nicht geprüft.")
+            node("p", "", jev ? jev.text : "Diese Verbindung wurde nicht geprüft.")
           );
           candidateList.append(candidate);
         });
@@ -3102,6 +3216,12 @@
 
         setStatus("Meldungen und Videokarten werden geladen.");
 
+        // 15.11.26: Jev-Urteile laden parallel mit. Sie sind freiwillig: fehlt die Datei,
+        // bleibt die Seite wie vorher.
+        const jevPromise = JEV_HINWEISE
+          ? fetchJSON(JEV_FILE).catch(() => null)
+          : Promise.resolve(null);
+
         const results = await Promise.allSettled(FILES.map(async file => ({
           file,
           value: await fetchJSON(file)
@@ -3122,6 +3242,7 @@
         const prepared = mergePayloads(fulfilledResults);
         state.records = prepared.records;
         state.cards = prepared.cards;
+        state.jev = jevMap(await jevPromise);
 
         try {
           buildStories(state.records);
