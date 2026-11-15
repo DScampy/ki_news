@@ -49,6 +49,8 @@ VIDEO_FRISCH_TAGE = 2           # wie --min-tage in medien_aufraeumen.py: juenge
 VIDEO_TOT_MAX_ANTEIL = 0.7      # mehr Tote deuten auf einen Ausfall, dann nichts aendern
 LEISTEN_NACHZIEHEN = True       # Kill-Switch fuer _leisten_nachziehen
 PLAYER_NACHTRAGEN = True        # Kill-Switch fuer _player_nachtragen
+# 15.11.26: X-Beitrag als Fundstelle (AlignedNews), siehe x_ursprung.py
+_X_POST_RE = re.compile(r"^https?://(?:www\.|mobile\.)?(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/\d+")
 
 _UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "ae", "Ö": "oe",
                           "Ü": "ue", "ß": "ss"})
@@ -241,8 +243,10 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
     }
     if bild:
         ld["image"] = [bild]
-    if q_link:
-        ld["isBasedOn"] = q_link
+    # 15.11.26: Ursprungsquelle aus x_ursprung.py (nur AlignedNews und Digg AI)
+    u_link = n.get("link_ursprung") or ""
+    if u_link or q_link:
+        ld["isBasedOn"] = u_link or q_link
     ld_txt = json.dumps(ld, ensure_ascii=False).replace("</", "<\\/")
 
     teile = [
@@ -306,8 +310,19 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
     if q_link:
         auch = [q for q in (n.get("dub_quellen") or []) if isinstance(q, str) and q != quelle]
         a = f" Auch berichtet von: {esc(', '.join(auch))}." if auch else ""
-        teile.append(f'<p class="quelle">Originalquelle: <a href="{esc(q_link)}" rel="noopener" '
-                     f'target="_blank">{esc(quelle)}</a>.{a}</p>')
+        if u_link:
+            # AlignedNews: "Gefunden über einen X-Beitrag von @handle (AlignedNews)."
+            # Digg AI: "Gefunden über Digg AI."
+            u_name = n.get("ursprung_name") or u_link
+            m = _X_POST_RE.match(q_link)
+            ueber = f"einen X-Beitrag von @{m.group(1)}" if m else quelle
+            zusatz = f" ({esc(quelle)})" if m else ""
+            teile.append(f'<p class="quelle">Originalquelle: <a href="{esc(u_link)}" rel="noopener" '
+                         f'target="_blank">{esc(u_name)}</a>. Gefunden über <a href="{esc(q_link)}" '
+                         f'rel="noopener" target="_blank">{esc(ueber)}</a>{zusatz}.{a}</p>')
+        else:
+            teile.append(f'<p class="quelle">Originalquelle: <a href="{esc(q_link)}" rel="noopener" '
+                         f'target="_blank">{esc(quelle)}</a>.{a}</p>')
     teile.append("</article>")
     if weitere:
         teile.append("<h2>Weitere Meldungen</h2>")
@@ -333,6 +348,8 @@ def _inhalt_hash(n, karte, linie, titel, index, recherche=None):
              ",".join(n.get("dub_quellen") or []), str(index)]
     if recherche:                         # ohne Recherche bleibt der Hash wie bisher
         teile.append(json.dumps(recherche, sort_keys=True))
+    if n.get("link_ursprung"):            # ohne Ursprungsquelle bleibt der Hash wie bisher
+        teile += [n["link_ursprung"], n.get("ursprung_name") or ""]
     return hashlib.sha1("\x1f".join(teile).encode("utf-8")).hexdigest()[:12]
 
 

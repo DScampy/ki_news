@@ -1709,6 +1709,13 @@
         return found;
       }
 
+      // 15.11.26 (Daniel: Agile Robots, Kitesurf-Browser): Bei AlignedNews und Digg AI sucht
+      // ki_news.py die eigentliche Quelle (x_ursprung.py) und schreibt link_ursprung,
+      // ursprung_name, ursprung_art. Hier steht sie als Knopf am Eintrag. ACHTUNG: Das Feld
+      // "ursprung" ist ein Dublettenverweis (siehe dubVon), darum andere Feldnamen.
+      // Kill-Switch: URSPRUNG_ZEIGEN = false.
+      const URSPRUNG_ZEIGEN = true;
+
       function normalizeArticle(raw, file, index) {
         if (!raw || typeof raw !== "object") return null;
 
@@ -1742,6 +1749,8 @@
           date: firstDate(raw),
           firstSeen: clean(raw.first_seen || raw.date),
           image: clean(raw.image || raw.image_url || raw.thumbnail),
+          ursprungLink: URSPRUNG_ZEIGEN ? clean(raw.link_ursprung) : "",
+          ursprungName: URSPRUNG_ZEIGEN ? clean(raw.ursprung_name) : "",
           // 28.10.26 (Daniel: OpenAI-Meldung im DeepSeek-Strang): story_id ist nur die
           // Platznummer im jeweiligen Lauf (s000 = Top-Story DIESES Laufs) und wird jeden
           // Lauf neu vergeben. Im Archiv tragen darum fremde Storys dieselbe Nummer. Nur
@@ -1900,6 +1909,10 @@
             : previous.sourceText;
           previous.sourceTextField = entry.sourceTextField || previous.sourceTextField;
           previous.image = previous.image || entry.image;
+          if (entry.ursprungLink) {
+            previous.ursprungLink = entry.ursprungLink;
+            previous.ursprungName = entry.ursprungName;
+          }
           previous.storyId = entry.storyId || previous.storyId;
           previous.firstSeen = earliest(previous.firstSeen, entry.firstSeen);
           previous.date = earliest(previous.date, entry.date);
@@ -2402,6 +2415,9 @@
             if (item.dubQuellen.length) {
               meta.append(node("span", "", `Dublettenquellen: ${item.dubQuellen.join(" / ")}`));
             }
+            if (item.ursprungLink) {
+              meta.append(node("span", "", `Ursprung: ${item.ursprungName || "verlinkte Quelle"}`));
+            }
             if (item.paywalled === true) meta.append(node("span", "", "Paywall markiert"));
 
             const actions = node("div", "px-thread-actions");
@@ -2411,6 +2427,10 @@
                 item.link
               )
             );
+
+            if (item.ursprungLink && !item.virtual) {
+              actions.append(externalLink("Ursprung öffnen", item.ursprungLink));
+            }
 
             if (item.dubVon && !item.virtual) {
               actions.append(externalLink("Dubletten-Vorgang öffnen", item.dubVon));
@@ -2490,6 +2510,12 @@
           ),
           externalLink("Originalquelle öffnen", story.original.link)
         );
+        if (story.original.ursprungLink) {
+          sourceSide.append(externalLink(
+            `Ursprung öffnen: ${story.original.ursprungName || "verlinkte Quelle"}`,
+            story.original.ursprungLink
+          ));
+        }
 
         const ourSide = node("div", "px-compare-side is-ours");
         ourSide.append(node("span", "px-compare-label", "Unsere redaktionelle Fassung"));

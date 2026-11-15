@@ -6166,6 +6166,13 @@ def _linien_kapitel(linien, post_cache, news_list, archiv, feed_texte):
 SCHLAGZEILEN_AKTIV = True
 # Meldungsseiten (28.10.26): meldung/JJJJ-MM/<slug>.html + Sitemaps. Kill-Switch: False.
 MELDUNGSSEITEN_AKTIV = True
+# Ursprungsquelle fuer X-Sammler (15.11.26, Daniel): AlignedNews liefert nur den X-Beitrag,
+# Digg AI nur seine Sammelseite. x_ursprung.py sucht die eigentliche Quelle (Link im Beitrag
+# oder in der Antwort des Autors, bei Digg die hervorgehobene Quelle) und setzt die Felder
+# link_ursprung, ursprung_name, ursprung_art. Meldungsseiten und belege.html zeigen sie.
+# Speicher x_ursprung.json. Kill-Switch: X_URSPRUNG_AKTIV = False.
+X_URSPRUNG_AKTIV = True
+_X_URSPRUNG_FELDER = ("link_ursprung", "ursprung_name", "ursprung_art")
 SCHLAGZEILEN_KANDIDATEN = 8        # Hero zeigt 5 (+ gepinnte); Puffer fuer Umsortierung im Lauf
 SCHLAGZEILEN_MAX_SEKUNDEN = 120
 SCHLAGZEILE_MAX_ZEICHEN = 70
@@ -7062,6 +7069,14 @@ def main():
     except Exception as e:                      # Invariante: nie die Pipeline blockieren
         logger.warning("Belegarchiv-Schritt fehlgeschlagen (%s) - Pipeline laeuft weiter", e)
         beleg_stat = {"aktiv": False, "fehler_schritt": str(e)[:120]}
+    # Ursprungsquelle fuer AlignedNews- und Digg-Meldungen (15.11.26, siehe X_URSPRUNG_AKTIV).
+    # Hoechstens 20 Abrufe und 60 Sekunden je Lauf. Darf den Lauf nie kippen.
+    if X_URSPRUNG_AKTIV:
+        try:
+            import x_ursprung
+            x_ursprung.nachtragen(proj_dir if proj_dir.exists() else Path("."), news_list)
+        except Exception as e:
+            logger.exception("X-Ursprung uebersprungen (Pipeline unbeeinflusst): %s", e)
     # ── Themenkette (14.09.26 Schatten, 19.09.26 Anzeige): ordnet Artikel den
     #    Entwicklungslinien von HuggingNews zu und schreibt themenketten.json.
     #    19.09.: laeuft jetzt VOR news.json, damit die Linien fuer die Anzeige aus
@@ -7232,6 +7247,10 @@ def main():
                         entry["label"] = h["label"]
             except (TypeError, ValueError):
                 pass
+            # 15.11.26: Ursprungsquelle (siehe X_URSPRUNG_AKTIV) auch an alte Archiv-Eintraege.
+            if h.get("link_ursprung"):
+                for _feld in _X_URSPRUNG_FELDER:
+                    entry[_feld] = h.get(_feld) or ""
             # Bild-Heilung (09.09.26): update_archive() legt nur NEUE Links an,
             # bestehende Eintraege wurden nie aktualisiert. Ein per Nachfass
             # gefundenes Bild landete deshalb zwar in news.json, aber nie im
