@@ -361,6 +361,36 @@ SYSTEM_PROMPT = (
     "Fokus immer: Was bedeutet das wirklich, und warum sollte es meinen Kollegen interessieren?"
 )
 
+# 15.11.26 (Daniel, Vorschlag E): Die Einordnung kannte nur Titel und Zusammenfassung der einen
+# Meldung. Beispiel Karte 12.11. "Gemini 4 Hydrogen ... in Vals AIs Top 6": Den Namen Vals AI
+# kennt kaum jemand, vorgelesen klang er falsch. Dass es das dritte, guenstigere Modell der
+# Gemini-4-Familie ist, stand nur in anderen Meldungen derselben Story (stadt-bremerhaven,
+# SiliconAngle). Jetzt bekommt die Einordnung die Kurztexte der anderen Meldungen derselben
+# Story als Hintergrund: gleiche Registry-Story (story_registry_shadow.json) oder gleiche
+# story_id in news.json, hoechstens EINORDNUNG_STORY_TAGE Tage auseinander, hoechstens
+# EINORDNUNG_STORY_MAX Meldungen, verschiedene Quellen zuerst. Die Jev-Deckungspruefung bekommt
+# denselben Hintergrund, sonst gaelte ein Fakt daraus als erfunden. Dazu zwei Zusatzregeln im
+# Prompt (EINORDNUNG_ZUSATZ), die auch fuer Karten ohne weitere Meldungen gelten.
+# Kill-Switch: EINORDNUNG_STORY_AKTIV = False (Prompt, Anfrage und Jev-Frage genau wie vorher).
+EINORDNUNG_STORY_AKTIV   = True
+EINORDNUNG_STORY_MAX     = 4
+EINORDNUNG_STORY_TAGE    = 2
+EINORDNUNG_STORY_ZEICHEN = 300   # je weitere Meldung (Titel und Kurztext), satzsicher gekuerzt
+EINORDNUNG_ZUSATZ = (
+    "\n\nZusatzregeln:\n"
+    "- Manchmal bekommst du unter 'Weitere Meldungen zur selben Story' die Kurztexte anderer "
+    "Quellen. Die HAUPTREGEL gilt dann für alle Meldungen zusammen. Fakten daraus darfst du "
+    "nutzen, wenn sie die Hauptmeldung einordnen (welches Modell einer Reihe es ist, was es "
+    "ersetzt, was es kostet). Widerspricht eine weitere Meldung der Hauptmeldung, gilt die "
+    "Hauptmeldung. Erzähl keine zweite Geschichte, es geht um die Hauptmeldung.\n"
+    "- Namen von Testlaboren, Ranglisten, Benchmarks oder kleinen Firmen, die ein Laie nicht "
+    "kennt (zum Beispiel 'Vals AI' oder 'Artificial Analysis Index'), sagen dem Kollegen nichts "
+    "und klingen vorgelesen oft falsch. Erklär so einen Namen in wenigen Worten, wenn die "
+    "Meldungen sagen, was er ist. Sonst lass ihn weg und sag nur, was die Aussage bedeutet "
+    "(statt 'Platz 1 im Ranking von Vals AI' lieber 'in einem Vergleichstest vorn'). Plätze wie "
+    "'Top 6' nennst du nur, wenn klar ist, wessen Rangliste das ist."
+)
+
 # ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
 def slugify(text: str, max_len: int = 50) -> str:
@@ -804,18 +834,21 @@ def generate_tts(ssml: str, slug: str, voice_name: str, voice_gender: str) -> tu
 
 # ─── Groq ─────────────────────────────────────────────────────────────────────
 
-def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, note: str = "") -> str | None:
+def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, note: str = "",
+              story: str = "") -> str | None:
     """Generischer LLM-Aufruf. Gibt Text zurück oder None bei Fehler.
     note (27.06.26): optionale Ton-/Angle-Vorgabe vom Admin-Panel (force_cards),
     z.B. "ernst bleiben, keine Kindersprache" - steuert nur den Stil, ersetzt
     den Kartentext nicht (das LLM schreibt ihn weiterhin selbst)."""
     user_content = f"News: {headline}\n\nZusammenfassung: {summary}"
+    if story:   # 15.11.26 (Vorschlag E), siehe EINORDNUNG_STORY_AKTIV
+        user_content += f"\n\nWeitere Meldungen zur selben Story (nur Hintergrund):\n{story}"
     if note:
         user_content += f"\n\nHinweis vom Nutzer (bitte bei Ton/Einordnung beachten): {note}"
     payload = json.dumps({
         "model": model,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": SYSTEM_PROMPT + (EINORDNUNG_ZUSATZ if EINORDNUNG_STORY_AKTIV else "")},
             {"role": "user",   "content": user_content}
         ],
         # 02.07.26: 120 -> 220. 120 Tokens reichten fuer 3 deutsche Saetze oft
@@ -901,7 +934,7 @@ def _looks_invalid(text: str) -> str | None:
     return None
 
 
-def _jev_gedeckt(headline: str, summary: str, text: str) -> float | None:
+def _jev_gedeckt(headline: str, summary: str, text: str, story: str = "") -> float | None:
     """Jev-Deckungspruefung (TypeSafe, 26.09.26): Wahrscheinlichkeit (0..1), dass
     `text` (die generierte Einordnung) eine Tatsachenbehauptung enthaelt - Grund,
     Ursache, Motiv, Zahl, Folge als Fakt -, die weder in `headline` noch in
@@ -915,11 +948,9 @@ def _jev_gedeckt(headline: str, summary: str, text: str) -> float | None:
     blockiert NIE eine Karte - der Aufrufer behandelt None wie "nicht geprueft"."""
     if not TYPESAFE_API_KEY:
         return None
-    body = json.dumps({
-        "model": "jev-latest",
-        "state": {"titel": headline or "", "zusammenfassung": (summary or "")[:600],
-                  "einordnung": text or ""},
-        "questions": {"erfunden": {
+    state = {"titel": headline or "", "zusammenfassung": (summary or "")[:600],
+             "einordnung": text or ""}
+    frage = {
             "type": "noul",
             "instructions": "Enthaelt `einordnung` eine Tatsachenbehauptung (Grund, Ursache, "
                             "Motiv, Zahl, Folge als Fakt), die weder in `titel` noch in "
@@ -933,7 +964,19 @@ def _jev_gedeckt(headline: str, summary: str, text: str) -> float | None:
                          "Alltagsbeispiele (\"das ist so, als ob...\") zaehlen NICHT als erfunden, "
                          "ebenso wenig Aussagen, die `einordnung` selbst ausdruecklich als offen "
                          "oder unbekannt markiert (z.B. \"warum, steht nicht in der Meldung\").",
-            }}}
+            }}
+    if story:   # 15.11.26 (Vorschlag E): Fakten aus derselben Story gelten als gedeckt
+        state["weitere_meldungen"] = story[:1500]
+        frage["instructions"] = frage["instructions"].replace(
+            "noch in `zusammenfassung`", "noch in `zusammenfassung` noch in `weitere_meldungen`")
+        frage["criteria"]["true"] = frage["criteria"]["true"].replace(
+            "in `titel` und `zusammenfassung`", "in `titel`, `zusammenfassung` und `weitere_meldungen`")
+        frage["criteria"]["false"] = frage["criteria"]["false"].replace(
+            "`titel`/`zusammenfassung`", "`titel`/`zusammenfassung`/`weitere_meldungen`")
+    body = json.dumps({
+        "model": "jev-latest",
+        "state": state,
+        "questions": {"erfunden": frage}
     }).encode("utf-8")
     req = urllib.request.Request(JEV_API, data=body, headers={
         "Authorization": "Bearer " + TYPESAFE_API_KEY, "Content-Type": "application/json"})
@@ -979,13 +1022,84 @@ def _jev_gleiches_ereignis(neu: str, vorher: str) -> float | None:
         return None
 
 
-def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, str]:
+_ARCHIV_NACH_LINK = None
+
+
+def _archiv_nach_link() -> dict:
+    """archive.json als link -> Meldung, einmal je Lauf gelesen. Fehler = leer."""
+    global _ARCHIV_NACH_LINK
+    if _ARCHIV_NACH_LINK is None:
+        _ARCHIV_NACH_LINK = {}
+        try:
+            for a in json.loads((ROOT_DIR / "archive.json").read_text(encoding="utf-8")):
+                if isinstance(a, dict) and a.get("link"):
+                    _ARCHIV_NACH_LINK[a["link"]] = a
+        except Exception:
+            pass
+    return _ARCHIV_NACH_LINK
+
+
+def _story_kontext(article: dict, artikel: list, l2s: dict) -> str:
+    """Kurztexte der anderen Meldungen derselben Story als Hintergrund fuer die Einordnung
+    (Vorschlag E, siehe EINORDNUNG_STORY_AKTIV). Leer, wenn aus oder nichts Brauchbares da."""
+    if not EINORDNUNG_STORY_AKTIV:
+        return ""
+    link = (article.get("link") or "").strip()
+    reg = l2s.get(link)
+    lauf = article.get("story_id") or ""
+    if not reg and not lauf:
+        return ""
+
+    def _tag(a):
+        try:
+            return date.fromisoformat(str(a.get("first_seen") or a.get("date") or "")[:10])
+        except ValueError:
+            return None
+
+    def _norm(s):
+        return re.sub(r"\W+", " ", str(s or "").lower()).strip()
+
+    # news.json zuerst (story_id gilt nur dort), dann archive.json (nur ueber die Registry)
+    im_feed = {a["link"]: a for a in artikel if isinstance(a, dict) and a.get("link")}
+    mitglieder = [a for l, a in im_feed.items()
+                  if l != link and ((reg and l2s.get(l) == reg) or (lauf and a.get("story_id") == lauf))]
+    if reg:
+        mitglieder += sorted((a for l, a in _archiv_nach_link().items()
+                              if l != link and l not in im_feed and l2s.get(l) == reg),
+                             key=lambda a: str(a.get("first_seen") or a.get("date") or ""), reverse=True)
+    t0 = _tag(article)
+    gesehen = {_norm(article.get("summary")), _norm(article.get("title"))} - {""}
+    erste, rest, quellen = [], [], set()
+    for a in mitglieder:
+        kurz = str(a.get("summary") or "").strip()
+        titel = str(a.get("title") or "").strip()
+        if not kurz or _norm(kurz) in gesehen:
+            continue
+        t = _tag(a)
+        if t0 and t and abs((t - t0).days) > EINORDNUNG_STORY_TAGE:
+            continue
+        gesehen.add(_norm(kurz))
+        if titel and _norm(titel) not in gesehen and not _norm(kurz).startswith(_norm(titel)):
+            kurz = titel + ("" if titel[-1] in ".!?:" else ".") + " " + kurz
+        quelle = str(a.get("source") or "").strip()
+        zeile = "- " + (quelle + ": " if quelle else "") + limit_chars_sentence_safe(kurz, EINORDNUNG_STORY_ZEICHEN)
+        (rest if quelle in quellen else erste).append((zeile, quelle))
+        quellen.add(quelle)
+    auswahl = (erste + rest)[:EINORDNUNG_STORY_MAX]
+    if auswahl:
+        print(f"  [STORY-KONTEXT] {len(auswahl)} weitere Meldung(en): "
+              + ", ".join(q or "?" for _, q in auswahl))
+    return "\n".join(z for z, _ in auswahl)
+
+
+def groq_einordnung(headline: str, summary: str, note: str = "", story: str = "") -> tuple[str, str]:
     """Groq → OpenRouter Fallback für ScampyKI-Einordnung.
     Gibt (text, model_label) zurueck. model_label dokumentiert, welches
     Modell/Provider den Text tatsaechlich geliefert hat — wird mit in
     cards.json geschrieben, damit Groq-vs-OpenRouter-Nutzung sichtbar bleibt,
     ohne auf (nicht committete) CI-Logs angewiesen zu sein.
-    note: optionale Admin-Vorgabe (force_cards, siehe main()) fuer Ton/Angle."""
+    note: optionale Admin-Vorgabe (force_cards, siehe main()) fuer Ton/Angle.
+    story: Kurztexte anderer Meldungen derselben Story (_story_kontext, Vorschlag E)."""
     # 26.09.26: feste Kette EINORDNUNG_KETTE statt "erst alle Groq, dann alle OpenRouter"
     headers_je_anbieter = {
         "groq": {"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_API_KEY}"},
@@ -1007,14 +1121,14 @@ def groq_einordnung(headline: str, summary: str, note: str = "") -> tuple[str, s
         if not key_je_anbieter[anbieter]:
             continue
         result = _llm_call(url_je_anbieter[anbieter], headers_je_anbieter[anbieter],
-                           model, headline, summary, note)
+                           model, headline, summary, note, story)
         if result:
             invalid_reason = _looks_invalid(result)
             if invalid_reason:
                 print(f"  [WARN] {anbieter}/{model} verworfen ({invalid_reason}): {result[:100]!r}")
                 continue
             if JEV_DECKUNG_AKTIV:
-                p = _jev_gedeckt(headline, summary, result)
+                p = _jev_gedeckt(headline, summary, result, story)
                 if p is not None and p >= JEV_DECKUNG_SCHWELLE:
                     print(f"  [WARN] {anbieter}/{model} JEV-DECKUNG nicht bestanden "
                           f"(p={p:.2f}): {result[:100]!r}")
@@ -1629,7 +1743,13 @@ def main() -> None:
         print(f"\n[{i}/{len(articles_sorted)}]{tag} {headline[:60]}...")
 
         # Einordnung via Groq → OpenRouter Fallback (mit Inhalts-Validierung)
-        einordnung, llm_used = groq_einordnung(headline, summary, force_note)
+        # 15.11.26 (Vorschlag E): mit den Kurztexten der anderen Meldungen derselben Story
+        story_kontext = ""
+        try:
+            story_kontext = _story_kontext(article, articles, _l2s)
+        except Exception as e:  # noqa: BLE001
+            print(f"  [WARN] STORY-KONTEXT uebersprungen ({e.__class__.__name__}: {e})")
+        einordnung, llm_used = groq_einordnung(headline, summary, force_note, story_kontext)
         # 05.07.26: satzsicherer Cut statt summary[:280] (siehe limit_chars_sentence_safe)
         kontext    = limit_chars_sentence_safe(summary, 320) if summary else "–"
 
