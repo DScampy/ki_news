@@ -1075,6 +1075,8 @@ def _is_roundup(news_item) -> bool:
         return True
     if _ist_heise_sammelsendung(news_item):
         return True
+    if _ist_podcast_newsletter(news_item):   # 15.11.26, Titel hier noch im Original
+        return True
     return bool(_ROUNDUP_PATTERN.search(news_item.get("title", "")))
 
 # Social-Echo (03.09.26): AlignedNews aggregiert X-Beitraege. Neben echten
@@ -1131,16 +1133,90 @@ def _ist_cnbc_club(news_item) -> bool:
     return WERBUNG_CNBC_CLUB and bool(_CNBC_CLUB_LINK.search(news_item.get("link") or ""))
 
 
+# 15.11.26 (Durchsicht nach Lauf 43708137799): Werbung, die nur am Link erkennbar ist.
+# - Sponsored: TechRepublic "/a/sponsored/", Popular Science "/sponsored-content/", Sifted
+#   "...-sponsored-by-...". Die TechRepublic-Meldung "Sandbox to Scale" bekam am 15.11. eine
+#   Videokarte und ging nach Telegram.
+# - Kaufberatung und Rabatte: CNet "/deals/", Heise "/bestenlisten/", Gutscheine
+#   ("promo-code", "/coupons/"), WCCFtech-Angebote ("amazon-deal", "-30-off").
+# - OpenAI-Kundenberichte ("/customer-stories/", "/customers/"): Werbetexte fuer Kunden.
+# - Golem und Caschy: Anzeigen mit "/anzeige-" im Link.
+# Gemessen am 15.11. an 20.861 Meldungen (archiv-monate, archive.json, news.json), kein
+# Fehltreffer. Bewusst nicht "-deal-" allein (trifft echte Firmen-Deals wie "cloud-deal")
+# und nicht "sponsor" allein (trifft Meldungen ueber gesponserte ChatGPT-Antworten).
+# Bei Google-News-Links (TechRepublic) zeigt erst die Verlagsadresse (link_verlag), dass
+# es Werbung ist. Darum zaehlt link_verlag mit: vor Telegram fuer die Top-Meldungen, beim
+# Bau von news.json und im Archiv. Die so gefundenen Links stehen in news.json unter
+# "werbung_links", damit generate_news_cards.py eine schon vorhandene Karte entfernen kann.
+# Gleiches Link-Muster in generate_news_cards.py (_WERBE_LINK, beide gleich halten).
+# Kill-Switch: WERBUNG_LINKS = False (altes Verhalten).
+WERBUNG_LINKS = True
+_WERBE_LINK = re.compile(
+    r'/(?:a/)?sponsored(?:-content)?/|-sponsored-by-'
+    r'|cnet\.com/deals/'
+    r'|heise\.de/bestenlisten/'
+    r'|promo-codes?(?:[/-]|$)|/coupons?/'
+    r'|openai\.com/(?:[a-z-]+/)*(?:customer-stories|customers)/'
+    r'|(?:amazon|laptop|pc|retail)-deals?(?:[/-]|$)|-\d+-off(?:[/-]|$)|-off-on-amazon'
+    r'|/anzeige-', re.I)
+
+
+def _ist_werbe_link(news_item) -> bool:
+    """True, wenn link oder link_verlag auf Werbung zeigt, siehe oben."""
+    if not WERBUNG_LINKS:
+        return False
+    return any(_WERBE_LINK.search(news_item.get(f) or "") for f in ("link", "link_verlag"))
+
+
+_WERBUNG_GEFUNDEN = set()   # Links, die dieser Lauf als Werbe-Link erkannt hat (news.json "werbung_links")
+
+
+# 15.11.26: Podcasts und Newsletter sind Sammelmaterial, keine Einzelmeldung. Beispiel:
+# NYT "Hard Fork" lief als "Jensen Huang tritt bei Nvidia zurueck" im Belegstrang (Daniels
+# Screenshot vom 15.11.). Erkannt am Link (Verge, TechCrunch und BigGo "/podcast/", NYT
+# "/podcasts/", Wired "...-podcast", MIT "The Download", CNBC "5 things to know before the
+# market opens") und am ROH-Titel (Economist "World in Brief", FT "FirstFT", Reuters
+# "Morning Bid" und "NEWSLETTER:", WSJ "PODCAST:"). Der uebersetzte Titel zaehlt nie, denn
+# "The Download:" steht auch vor falsch uebersetzten NYT-Titeln. Wirkt wie bei den
+# Heise-Sendungen: neue Meldungen werden als Roundup abgetrennt (Material, nicht sichtbar),
+# schon archivierte fliegen aus archive.json (Rohtitel dort aus summary-cache.json).
+# Bewusst nicht: Meldungen UEBER Podcasts (Spotify), Bloomberg "Markets Wrap", Reuters
+# "Wall St Week Ahead". Gleiche Muster in generate_news_cards.py (beide gleich halten).
+# Kill-Switch: ROUNDUP_PODCAST_NEWSLETTER = False (altes Verhalten).
+ROUNDUP_PODCAST_NEWSLETTER = True
+_ROUNDUP_PN_LINK = re.compile(
+    r'(?:techcrunch\.com|theverge\.com|biggo\.com)/podcast/'
+    r'|nytimes\.com/[^?#]*/podcasts/'
+    r'|wired\.com/story/[^/?#]*-podcast(?:[-/]|$)'
+    r'|technologyreview\.com/[^?#]*/the-download-'
+    r'|cnbc\.com/[^?#]*/5-things-to-know-before-the-(?:stock-)?market-opens', re.I)
+_ROUNDUP_PN_TITEL = re.compile(
+    r'^(?:World in Brief|FirstFT|Morning Bid|NEWSLETTER|PODCAST|The Download):'
+    r'|\bnewsletter:|\bWSJ Podcasts\b', re.I)
+
+
+def _ist_podcast_newsletter(news_item, roh_titel=None) -> bool:
+    """True fuer Podcasts und Newsletter, siehe oben. roh_titel: Originaltitel, wenn
+    news_item["title"] schon uebersetzt ist. "" heisst: Titel nicht pruefen."""
+    if not ROUNDUP_PODCAST_NEWSLETTER:
+        return False
+    if any(_ROUNDUP_PN_LINK.search(news_item.get(f) or "") for f in ("link", "link_verlag")):
+        return True
+    titel = news_item.get("title") if roh_titel is None else roh_titel
+    return bool(_ROUNDUP_PN_TITEL.search((titel or "").strip()))
+
+
 def _is_ad(news_item) -> bool:
     """Werbung/Sponsored erkennen – z.B. Golem 'Anzeige: ...'. Nur Titel, die DAMIT
     ANFANGEN, damit echte News wie 'Immobilienanzeigen' nicht getroffen werden.
-    Dazu Depot-Tipps des CNBC Investing Club, erkannt am Link (siehe oben)."""
+    Dazu Depot-Tipps des CNBC Investing Club und Werbe-Links, erkannt am Link (siehe oben)."""
     t = (news_item.get("title", "") or "").strip().lower()
     return (t.startswith("anzeige:") or t.startswith("anzeige ")
             or t.startswith("[anzeige]") or t.startswith("sponsored")
             or t.startswith("werbung:")
             or _ist_heise_angebot(t)
-            or _ist_cnbc_club(news_item))
+            or _ist_cnbc_club(news_item)
+            or _ist_werbe_link(news_item))
 
 FEEDS = [
     # Deutsch
@@ -4163,6 +4239,7 @@ GESPERRTE_VERLAGE = ("bloomberg.com", "reuters.com", "wsj.com", "ft.com",
                      "economist.com", "saechsische.de", "nytimes.com",
                      "techrepublic.com", "openai.com")
 _gn_stat = {"neu": 0, "archiv": 0, "fehler": 0, "premium": 0, "budget": 0}
+_gn_lauf = {}       # link -> (link_verlag, neu_aufgeloest), nur fuer diesen Lauf
 
 
 def _ist_gesperrt(url):
@@ -4209,9 +4286,20 @@ def _gn_aufloesen(link):
 
 def verlagslink(link, source, history_entry):
     """(link_verlag, neu_aufgeloest). Nur fuer news.google.com-Links; fuer alle
-    anderen ("", False). Erst Archiv, dann - im Budget - ein neuer Abruf."""
+    anderen ("", False). Erst Archiv, dann - im Budget - ein neuer Abruf.
+    15.11.26: Ergebnis je Link fuer den Lauf gemerkt. Die Werbe-Pruefung vor Telegram
+    fragt die Top-Meldungen frueher, der Bau von news.json bekommt dann dasselbe Ergebnis
+    ohne zweiten Abruf und ohne doppelte Zaehlung."""
     if "news.google.com" not in (link or ""):
         return "", False
+    if link in _gn_lauf:
+        return _gn_lauf[link]
+    erg = _verlagslink_holen(link, source, history_entry)
+    _gn_lauf[link] = erg
+    return erg
+
+
+def _verlagslink_holen(link, source, history_entry):
     alt = (history_entry or {}).get("link_verlag")
     if alt:
         _gn_stat["archiv"] += 1
@@ -6865,11 +6953,19 @@ def main():
     alle_news     = [n for n in alle_news if not _is_roundup(n)]
     if roundup_items:
         logger.info("%d Wochenzusammenfassung(en) abgetrennt (Material, nicht sichtbar)", len(roundup_items))
+    for _r in roundup_items:   # 15.11.26: Podcasts und Newsletter einzeln zeigen
+        if _ist_podcast_newsletter(_r):
+            logger.info("[PODCAST/NEWSLETTER] als Roundup: %s | %s", (_r.get("title") or "")[:70],
+                        (_r.get("link") or "")[:100])
 
     # Werbung/Sponsored ('Anzeige: ...') komplett raus – kein Material, keine Anzeige.
     _club = sum(1 for n in alle_news if _ist_cnbc_club(n))
     if _club:
         logger.info("CNBC Investing Club: %d Depot-Tipp(s) entfernt (zaehlt unten als Werbung mit)", _club)
+    for _n in alle_news:       # 15.11.26: Werbe-Links einzeln zeigen (zaehlen unten als Werbung mit)
+        if _ist_werbe_link(_n):
+            _WERBUNG_GEFUNDEN.add(_n.get("link") or "")
+            logger.info("[WERBUNG weg] %s | %s", (_n.get("title") or "")[:70], (_n.get("link") or "")[:100])
     _before_ads = len(alle_news)
     alle_news = [n for n in alle_news if not _is_ad(n)]
     if _before_ads != len(alle_news):
@@ -6929,6 +7025,12 @@ def main():
     # nur ueber die frischen RSS-Eintraege, archive.json und die vorige news.json koennen
     # noch Alt-Eintraege von vor einem neuen Filter enthalten).
     recalled_items = [r for r in recalled_items if not _is_ad(r)]
+    # 15.11.26: dasselbe fuer Podcasts und Newsletter. Der Titel ist hier schon uebersetzt,
+    # darum zaehlt der Rohtitel aus summary-cache.json (siehe ROUNDUP_PODCAST_NEWSLETTER).
+    if ROUNDUP_PODCAST_NEWSLETTER and recalled_items:
+        _roh_recall = load_summary_cache(_early_cfg_base)
+        recalled_items = [r for r in recalled_items if not _ist_podcast_newsletter(
+            r, (_roh_recall.get(r.get("link")) or {}).get("title_orig") or "")]
     if recalled_items:
         logger.info(
             "%d Artikel zurueckgeholt (Pin/regional aus archive.json, Feed-Ausfall aus voriger news.json): %s",
@@ -7038,6 +7140,21 @@ def main():
         alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links,
         existing_archive=_existing_archive, already_sent=_tg_sent_links_early,
     )
+    # 15.11.26: Google-News-Links zeigen Werbung erst ueber die Verlagsadresse (siehe
+    # WERBUNG_LINKS). Fuer die Top-Meldungen darum schon hier aufloesen, damit Werbung
+    # weder einen Post noch eine Telegram-Nachricht bekommt ("Sandbox to Scale" ging am
+    # 15.11. raus). Kein Extra-Abruf: beim Bau von news.json gilt dasselbe Ergebnis weiter.
+    if WERBUNG_LINKS:
+        _top_ohne_werbung = []
+        for _t in top_news:
+            _lv, _ = verlagslink(_t.get("link", ""), _t.get("source", ""), history.get(_t.get("link")))
+            if _lv and _WERBE_LINK.search(_lv):
+                _WERBUNG_GEFUNDEN.add(_t.get("link") or "")
+                logger.info("[WERBUNG weg] Top-Meldung vor Telegram: %s | %s",
+                            (_t.get("title") or "")[:70], _lv[:100])
+            else:
+                _top_ohne_werbung.append(_t)
+        top_news = _top_ohne_werbung
     logger.info("%d News an LLM uebergeben (nach Scoring)", len(top_news))
 
     # Post-Cache laden – LLM nur für noch nicht analysierte Stories aufrufen
@@ -7275,6 +7392,12 @@ def main():
         base_score = max(hist["base_score"], raw_score) if hist and hist["base_score"] <= HEAL_THRESHOLD else raw_score
         # Google-News-Link aufloesen (14.09.26, siehe GN_AUFLOESEN_BUDGET)
         link_verlag, gn_neu = verlagslink(link, n.get("source", ""), hist)
+        # 15.11.26: Werbung, die erst die Verlagsadresse zeigt (siehe WERBUNG_LINKS)
+        if WERBUNG_LINKS and link_verlag and _WERBE_LINK.search(link_verlag):
+            _WERBUNG_GEFUNDEN.add(link)
+            logger.info("[WERBUNG weg] news.json: %s | %s",
+                        (s.get("title_de") or n.get("title") or "")[:70], link_verlag[:100])
+            continue
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen.
         # Frisch aufgeloest und noch ohne Bild: SOFORT ueber die Verlagsadresse
         # versuchen, nicht erst nach IMG_RETRY_DAYS - bisher gab es fuer diese
@@ -7518,6 +7641,13 @@ def main():
         save_post_cache(_cfg_base, post_cache)
     except Exception as e:
         logger.exception("Schlagzeilen uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # 15.11.26: Werbe-Links fuer generate_news_cards.py, damit eine schon vorhandene Karte
+    # rausfliegt. Dazu Archiv-Eintraege, deren Verlagsadresse Werbung zeigt: update_archive
+    # nimmt sie gleich danach raus, danach weiss sonst niemand mehr davon.
+    if WERBUNG_LINKS:
+        for _l, _h in history.items():
+            if _ist_werbe_link({"link": _l, "link_verlag": (_h or {}).get("link_verlag")}):
+                _WERBUNG_GEFUNDEN.add(_l)
     news_json_data = {
         "stand":    datum,
         "news":     news_list,
@@ -7531,6 +7661,7 @@ def main():
                                    heute, datum),
         "cluster_schatten": _cluster_treffer,
         "dub_jev": _dub_jev,
+        "werbung_links": sorted(l for l in _WERBUNG_GEFUNDEN if l),
     }
 
     # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.
@@ -7600,6 +7731,34 @@ def main():
         existing = [e for e in existing if not _ist_cnbc_club(e)]
         if len(existing) < _vorher:
             logger.info("Archiv: %d CNBC-Investing-Club-Beitrag/Beitraege entfernt", _vorher - len(existing))
+
+        # 15.11.26: Werbe-Links (auch ueber link_verlag) und Podcasts/Newsletter, die vor dem
+        # Filter ins Archiv kamen. Fuer Newsletter zaehlt nur der Rohtitel aus
+        # summary-cache.json, nie der uebersetzte Archiv-Titel. archiv-monate bleibt unangetastet.
+        _links_vorher = {e.get("link") for e in existing if isinstance(e, dict)}
+        if WERBUNG_LINKS:
+            _vorher = len(existing)
+            existing = [e for e in existing if not _ist_werbe_link(e)]
+            if len(existing) < _vorher:
+                logger.info("Archiv: %d Werbe-Link(s) entfernt", _vorher - len(existing))
+        if ROUNDUP_PODCAST_NEWSLETTER:
+            _roh = load_summary_cache(base_dir)
+            _vorher = len(existing)
+            existing = [e for e in existing if not _ist_podcast_newsletter(
+                e, (_roh.get(e.get("link")) or {}).get("title_orig") or "")]
+            if len(existing) < _vorher:
+                logger.info("Archiv: %d Podcast(s)/Newsletter entfernt", _vorher - len(existing))
+        # Dublettenvermerke auf eine gerade entfernte Meldung streichen. Sonst zeigt der
+        # Belegstrang fuer die echte Meldung einen Platzhalter statt der Meldung selbst
+        # (15.11.: 14 Archiv-Meldungen zeigten auf "World in Brief", "Morning Bid" usw.).
+        _entfernt = _links_vorher - {e.get("link") for e in existing if isinstance(e, dict)}
+        _gestrichen = 0
+        for e in existing:
+            if isinstance(e, dict) and e.get("dub_von") and e["dub_von"] in _entfernt:
+                e.pop("dub_von", None)
+                _gestrichen += 1
+        if _gestrichen:
+            logger.info("Archiv: %d Dublettenvermerk(e) auf entfernte Meldungen gestrichen", _gestrichen)
 
         # Scoring-Fix (02.07.26): base_score-Heilung erreicht jetzt auch das
         # ARCHIV. Vorher heilte nur news.json (max(hist, raw) dort), aber
