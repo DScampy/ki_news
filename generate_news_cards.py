@@ -23,6 +23,7 @@ import random
 import re
 import subprocess
 import sys
+import time
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -120,6 +121,24 @@ JEV_DUBLETTE_SCHWELLE = 0.7
 JEV_DUBLETTE_LOG_AB   = 0.3   # 18.10.26: Antworten ab p=0.3 (unter der Schwelle) als "knapp" loggen
 DUBLETTE_TAGE         = 2
 DUBLETTE_MAX_ABFRAGEN = 6
+# 15.11.26 (Daniel, Vorschlag D): Jev prueft den Themenabgleich gegen. topics_match zaehlt schon
+# 2 gemeinsame grossgeschriebene Woerter als dasselbe Thema. Auf Deutsch sind alle Nomen gross,
+# "Nvidia" und "Huangs" reichen also. Messung cards.json 15.11.: 83 Zusatzlinks, 69 davon nur
+# ueber diese Namensregel (Petition fuer Huangs Rueckkehr hing am Video "Demokraten starten
+# Nvidia-Untersuchung", Gemini Decisions an Gemini 4 Carbon). Gefragt wird nur bei Treffern,
+# die NUR ueber die Namensregel kamen. Der Wort-Overlap (Jaccard) bleibt ungefragt.
+#   1. Themen-Dedup: Jev "dasselbe konkrete Ereignis?" unter THEMA_JEV_VETO -> kein Treffer,
+#      die Meldung laeuft weiter (Stufe 3, sonst eigene Karte).
+#   2. Vorhandene Zusatzlinks in cards.json: dieselbe Frage, das Urteil steht an der Karte in
+#      "links_jev". Unter THEMA_JEV_VETO fliegt der Link von der Karte und aus sent_links und
+#      darf wieder antreten (wie bei den Sammelsendungen).
+# Ohne Key, bei Fehlern, nach dem Budget oder nach THEMA_JEV_ZEIT_S gilt das alte Verhalten.
+# Kill-Switch: THEMA_JEV_MODUS = "schatten" (nur fragen und loggen) oder "aus".
+THEMA_JEV_MODUS     = "veto"
+THEMA_JEV_VETO      = 0.2   # gleiche Schwelle wie DUB-JEV in ki_news.py
+THEMA_JEV_MAX       = 25    # Jev-Fragen je Lauf fuer 1. und 2. zusammen
+THEMA_JEV_ALIAS_MAX = 15    # davon hoechstens so viele fuer 2.
+THEMA_JEV_ZEIT_S    = 90
 
 GOOGLE_TTS_KEY   = os.environ.get("GOOGLE_TTS_KEY", "")
 # Zwei Studio-Stimmen, pro Karte zufaellig gewaehlt (random.choice in main()) —
@@ -488,6 +507,125 @@ def topics_match(a: set, b: set, ent_a: set = None, ent_b: set = None, threshold
     if ent_a and ent_b and len(ent_a & ent_b) >= 2:
         return True
     return False
+
+
+def _nur_namen_treffer(a: set, b: set, ent_a: set, ent_b: set, threshold: float = 0.45) -> bool:
+    """True, wenn topics_match NUR ueber die Namensregel (mind. 2 gemeinsame Eigennamen) anschlaegt."""
+    if a and b and len(a & b) / len(a | b) >= threshold:
+        return False
+    return bool(ent_a and ent_b and len(ent_a & ent_b) >= 2)
+
+
+# Jev-Urteile dieses Laufs: (neu, vorher) -> p oder None. Themen-Dedup, Stufe 3 und die
+# Zusatzlink-Pruefung fragen sonst dasselbe Paar mehrmals.
+_JEV_GLEICH_GEMERKT = {}
+_ALIAS_URTEILE = {}   # Zusatzlink -> p, landet beim Speichern in "links_jev" der Karte
+_THEMA_JEV = {"fragen": 0, "alias_fragen": 0, "sek": 0.0, "veto": 0, "bleibt": 0,
+              "ohne_antwort": 0, "alias_weg": 0}
+
+
+def _jev_gleich_gemerkt(neu: str, vorher: str) -> float | None:
+    k = (neu or "", vorher or "")
+    if k not in _JEV_GLEICH_GEMERKT:
+        _JEV_GLEICH_GEMERKT[k] = _jev_gleiches_ereignis(neu, vorher)
+    return _JEV_GLEICH_GEMERKT[k]
+
+
+def _thema_jev(neu: str, vorher: str, alias: bool = False) -> float | None:
+    """p fuer "dasselbe Ereignis" oder None (Modus aus, kein Key, Budget/Zeit weg, Fehler)."""
+    if THEMA_JEV_MODUS == "aus" or not TYPESAFE_API_KEY or not neu or not vorher:
+        return None
+    if (neu, vorher) in _JEV_GLEICH_GEMERKT:
+        return _JEV_GLEICH_GEMERKT[(neu, vorher)]
+    if _THEMA_JEV["fragen"] >= THEMA_JEV_MAX or _THEMA_JEV["sek"] >= THEMA_JEV_ZEIT_S:
+        return None
+    if alias and _THEMA_JEV["alias_fragen"] >= THEMA_JEV_ALIAS_MAX:
+        return None
+    t = time.monotonic()
+    p = _jev_gleich_gemerkt(neu, vorher)
+    _THEMA_JEV["sek"] += time.monotonic() - t
+    _THEMA_JEV["fragen"] += 1
+    if alias:
+        _THEMA_JEV["alias_fragen"] += 1
+    return p
+
+
+def _thema_jev_veto(headline: str, kw: set, prev_kw: set, ent: set, prev_ent: set,
+                    prev_headline: str) -> bool:
+    """Teil 1 (siehe THEMA_JEV_MODUS): True = Jev widerspricht einem reinen Namens-Treffer,
+    die Meldung gilt NICHT als gleiches Thema. Sonst False (altes Verhalten)."""
+    if THEMA_JEV_MODUS == "aus" or not prev_headline or not _nur_namen_treffer(kw, prev_kw, ent, prev_ent):
+        return False
+    p = _thema_jev(headline, prev_headline)
+    if p is None:
+        _THEMA_JEV["ohne_antwort"] += 1
+        return False
+    if p < THEMA_JEV_VETO:
+        _THEMA_JEV["veto"] += 1
+        print(f"  [THEMA-JEV {THEMA_JEV_MODUS} p={p:.2f}] anderes Ereignis: {headline[:60]!r} "
+              f"~ {prev_headline[:60]!r}")
+        return THEMA_JEV_MODUS == "veto"
+    _THEMA_JEV["bleibt"] += 1
+    print(f"  [THEMA-JEV bleibt p={p:.2f}] {headline[:60]!r} ~ {prev_headline[:60]!r}")
+    return False
+
+
+def _alias_urteil_merken(link: str, neu: str, vorher: str) -> None:
+    p = _JEV_GLEICH_GEMERKT.get((neu or "", vorher or ""))
+    if link and p is not None:
+        _ALIAS_URTEILE[link] = round(p, 2)
+
+
+def _alias_jev_pruefen(karten: list, artikel: list, card_sent: dict) -> None:
+    """Teil 2 (siehe THEMA_JEV_MODUS): Zusatzlinks, die nur ueber die Namensregel an einer Karte
+    haengen, von Jev pruefen lassen. Neueste Karten zuerst. Aendert karten und card_sent in place."""
+    if THEMA_JEV_MODUS == "aus":
+        return
+    bekannt = {}
+    try:
+        for a in json.loads((ROOT_DIR / "archive.json").read_text(encoding="utf-8")):
+            if isinstance(a, dict) and a.get("link"):
+                bekannt[a["link"]] = a
+    except Exception:
+        pass
+    for a in artikel:
+        if isinstance(a, dict) and a.get("link"):
+            bekannt[a["link"]] = a
+    weg = []
+    for k in sorted((k for k in karten if isinstance(k, dict)),
+                    key=lambda k: str(k.get("date", "")), reverse=True):
+        links = k.get("links") or []
+        kh = k.get("headline") or ""
+        if len(links) < 2 or not kh:
+            continue
+        urteile = dict(k["links_jev"]) if isinstance(k.get("links_jev"), dict) else {}
+        behalten = [links[0]]
+        for l in links[1:]:
+            p = urteile.get(l)
+            if p is None:
+                h = cap_headline(str((bekannt.get(l) or {}).get("title") or "").strip())
+                if h and _nur_namen_treffer(topic_keywords(h), topic_keywords(kh),
+                                            entity_words(h), entity_words(kh)):
+                    p = _thema_jev(h, kh, alias=True)
+                    if p is not None:
+                        urteile[l] = round(p, 2)
+                        print(f"  [ALIAS-JEV p={p:.2f}] {h[:60]!r} an Karte {kh[:50]!r}")
+            if p is not None and p < THEMA_JEV_VETO and THEMA_JEV_MODUS == "veto":
+                weg.append(l)
+                continue
+            behalten.append(l)
+        k["links"] = behalten
+        urteile = {l: p for l, p in urteile.items() if l in behalten}
+        if urteile:
+            k["links_jev"] = urteile
+        else:
+            k.pop("links_jev", None)
+    noch = {l for k in karten if isinstance(k, dict) for l in (k.get("links") or [])}
+    for l in weg:
+        if l not in noch:
+            card_sent.pop(l, None)
+        print(f"  [ALIAS-JEV weg] {l}")
+    _THEMA_JEV["alias_weg"] += len(weg)
 
 
 # 10.11.26 (Daniels Video): Zusatzlinks einer Karte (links[1:]) bekommen auf der
@@ -1643,6 +1781,12 @@ def main() -> None:
     existing_cards, _sammel_ids = _sammel_karten_entfernen(existing_cards, sent_topics, card_sent)
     if _sammel_ids:
         _letzte_karten = [x for x in _letzte_karten if x[2] not in _sammel_ids]
+    # 15.11.26: vorhandene Zusatzlinks von Jev gegenpruefen (THEMA_JEV_MODUS, Teil 2)
+    try:
+        _alias_jev_pruefen(existing_cards, articles, card_sent)
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] ALIAS-JEV uebersprungen ({e.__class__.__name__}: {e})")
+    _karten_titel = {k.get("id"): k.get("headline") for k in existing_cards if isinstance(k, dict)}
 
     cards_meta = []
 
@@ -1688,19 +1832,26 @@ def main() -> None:
             prev_date = prev_info["date"]
             prev_ent  = set(prev_info.get("entities", []))
             if topics_match(kw, set(prev_kw_str.split()), ent, prev_ent):
+                _ph = _karten_titel.get(prev_info.get("card"))
+                if _thema_jev_veto(headline, kw, set(prev_kw_str.split()), ent, prev_ent, _ph):
+                    continue   # 15.11.26: Jev sagt anderes Ereignis (THEMA_JEV_MODUS)
                 print(f"  [SKIP] Artikel {i}: Thema bereits am {prev_date} abgedeckt (Headline-Overlap) — keine neue Karte. "
                       f"{headline[:60]!r} -> Karte {prev_info.get('card') or '-'}")
                 duplicate_topic = True
                 if link and prev_info.get("card"):
                     alias_links.setdefault(prev_info["card"], []).append(link)
+                    _alias_urteil_merken(link, headline, _ph)
                 break
         if not duplicate_topic:
             for prev_kw, prev_ent, prev_headline, prev_slug in seen_topics_this_run:
                 if topics_match(kw, prev_kw, ent, prev_ent):
+                    if _thema_jev_veto(headline, kw, prev_kw, ent, prev_ent, prev_headline):
+                        continue
                     print(f"  [SKIP] Artikel {i}: gleiches Thema wie bereits in diesem Lauf verarbeitet (\"{prev_headline[:50]}\") — keine neue Karte.")
                     duplicate_topic = True
                     if link:
                         alias_links.setdefault(prev_slug, []).append(link)
+                        _alias_urteil_merken(link, headline, prev_headline)
                     break
         # Stufe 3 (17.10.26): gleiches Ereignis wie eine Karte der letzten Tage? (Jev)
         if not duplicate_topic and JEV_DUBLETTE_MODUS != "aus":
@@ -1712,7 +1863,7 @@ def main() -> None:
                     print(f"  [DUBLETTE-JEV Deckel {DUBLETTE_MAX_ABFRAGEN} erreicht] {headline[:60]!r}")
                     break
                 _abfragen += 1
-                p = _jev_gleiches_ereignis(headline, _h)
+                p = _jev_gleich_gemerkt(headline, _h)
                 if p is None:
                     if TYPESAFE_API_KEY:   # ohne Key ist None der Normalfall, nicht loggen
                         print(f"  [DUBLETTE-JEV keine Antwort] {headline[:60]!r} ~ {_h[:60]!r}")
@@ -1725,6 +1876,7 @@ def main() -> None:
                         # damit Website/Overlay auch fuer die ausgelassene Meldung ein Video findet
                         if link and _kid:
                             alias_links.setdefault(_kid, []).append(link)
+                            _alias_urteil_merken(link, headline, _h)
                     break
                 if p >= JEV_DUBLETTE_LOG_AB:
                     print(f"  [DUBLETTE-JEV knapp p={p:.2f}] {headline[:60]!r} ~ {_h[:60]!r}")
@@ -1985,8 +2137,18 @@ def main() -> None:
         if cid in merged:
             merged[cid]["links"] = list(dict.fromkeys(merged[cid].get("links", []) + ls))[:12]
             print(f"  ↪ {len(ls)} Link(s) an vorhandene Karte gehaengt: {cid}")
+            for _l in ls:
+                if _l in _ALIAS_URTEILE:
+                    merged[cid].setdefault("links_jev", {})[_l] = _ALIAS_URTEILE[_l]
     if ALIAS_STRENG:
         _alias_filtern(list(merged.values()), articles)
+    # 15.11.26: Jev-Urteile nur fuer Links behalten, die noch an der Karte haengen
+    for _c in merged.values():
+        if isinstance(_c.get("links_jev"), dict):
+            _c["links_jev"] = {l: p for l, p in _c["links_jev"].items() if l in (_c.get("links") or [])}
+            if not _c["links_jev"]:
+                _c.pop("links_jev")
+    print(f"  THEMA-JEV: {json.dumps({**_THEMA_JEV, 'sek': round(_THEMA_JEV['sek'], 1)})}")
     cards_final = sorted(merged.values(), key=lambda c: c.get("date", ""), reverse=True)[:MAX_CARDS_DISPLAY]
     # 26.09.26: alle Eintraege (auch alte) auf das Medien-Repo zeigen lassen, wenn aktiv
     _hoch_grenze = (date.today() - timedelta(days=KARTEN_HOCH_TAGE)).isoformat()
