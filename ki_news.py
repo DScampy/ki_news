@@ -1113,14 +1113,34 @@ def _ist_heise_angebot(titel) -> bool:
     return WERBUNG_HEISE and (titel or "").strip().lower().startswith("heise-angebot")
 
 
+# 15.11.26 (Daniels Fund): Der CNBC Investing Club ist der Depot-Dienst von Jim Cramer
+# ("Nvidias Fuehrungskrise erschuettert den KI-Handel. So passen wir unser Portfolio
+# an"). Das sind Kauf- und Verkaufstipps fuer Club-Mitglieder, keine Nachricht, und
+# Handelsempfehlungen gehoeren nicht auf die Seite. Der uebersetzte Titel verraet das
+# nicht sicher, der Link schon: alle Beitraege liegen unter cnbc.com/investingclub/.
+# Stand 15.11.: 2 in news.json + archive.json (05.11., 14.11.), 6 in archiv-monate
+# (09.10. bis 03.11.). Wirkt in _is_ad (neue Meldungen) und in update_archive (schon
+# archivierte). Gleiches Link-Muster in generate_news_cards.py (_CNBC_CLUB_LINK).
+# Kill-Switch: WERBUNG_CNBC_CLUB = False (altes Verhalten).
+WERBUNG_CNBC_CLUB = True
+_CNBC_CLUB_LINK = re.compile(r'cnbc\.com/investingclub/', re.I)
+
+
+def _ist_cnbc_club(news_item) -> bool:
+    """True fuer Beitraege des CNBC Investing Club (Link-Pfad), siehe oben."""
+    return WERBUNG_CNBC_CLUB and bool(_CNBC_CLUB_LINK.search(news_item.get("link") or ""))
+
+
 def _is_ad(news_item) -> bool:
     """Werbung/Sponsored erkennen – z.B. Golem 'Anzeige: ...'. Nur Titel, die DAMIT
-    ANFANGEN, damit echte News wie 'Immobilienanzeigen' nicht getroffen werden."""
+    ANFANGEN, damit echte News wie 'Immobilienanzeigen' nicht getroffen werden.
+    Dazu Depot-Tipps des CNBC Investing Club, erkannt am Link (siehe oben)."""
     t = (news_item.get("title", "") or "").strip().lower()
     return (t.startswith("anzeige:") or t.startswith("anzeige ")
             or t.startswith("[anzeige]") or t.startswith("sponsored")
             or t.startswith("werbung:")
-            or _ist_heise_angebot(t))
+            or _ist_heise_angebot(t)
+            or _ist_cnbc_club(news_item))
 
 FEEDS = [
     # Deutsch
@@ -6507,6 +6527,9 @@ def main():
         logger.info("%d Wochenzusammenfassung(en) abgetrennt (Material, nicht sichtbar)", len(roundup_items))
 
     # Werbung/Sponsored ('Anzeige: ...') komplett raus – kein Material, keine Anzeige.
+    _club = sum(1 for n in alle_news if _ist_cnbc_club(n))
+    if _club:
+        logger.info("CNBC Investing Club: %d Depot-Tipp(s) entfernt (zaehlt unten als Werbung mit)", _club)
     _before_ads = len(alle_news)
     alle_news = [n for n in alle_news if not _is_ad(n)]
     if _before_ads != len(alle_news):
@@ -6562,6 +6585,10 @@ def main():
         for _q in sorted(_FEED_AUSFAELLE):
             logger.warning("Feed-Ausfall [%s]: %d Artikel aus voriger news.json uebernommen",
                            _q, feed_uebernahme.get(_q, 0))
+    # 15.11.26: Werbung auch beim Zurueckholen draussen lassen (der Werbe-Filter oben lief
+    # nur ueber die frischen RSS-Eintraege, archive.json und die vorige news.json koennen
+    # noch Alt-Eintraege von vor einem neuen Filter enthalten).
+    recalled_items = [r for r in recalled_items if not _is_ad(r)]
     if recalled_items:
         logger.info(
             "%d Artikel zurueckgeholt (Pin/regional aus archive.json, Feed-Ausfall aus voriger news.json): %s",
@@ -7212,6 +7239,13 @@ def main():
                                 or _ist_heise_angebot((_roh.get(e.get("link")) or {}).get("title_orig")))]
             if len(existing) < _vorher:
                 logger.info("Archiv: %d heise-Angebot(e) (Werbung) entfernt", _vorher - len(existing))
+
+        # 15.11.26: Depot-Tipps des CNBC Investing Club, die vor dem Filter ins Archiv kamen.
+        # archiv-monate bleibt unangetastet (Suche, Abdeckung), wie bei den Heise-Filtern.
+        _vorher = len(existing)
+        existing = [e for e in existing if not _ist_cnbc_club(e)]
+        if len(existing) < _vorher:
+            logger.info("Archiv: %d CNBC-Investing-Club-Beitrag/Beitraege entfernt", _vorher - len(existing))
 
         # Scoring-Fix (02.07.26): base_score-Heilung erreicht jetzt auch das
         # ARCHIV. Vorher heilte nur news.json (max(hist, raw) dort), aber
