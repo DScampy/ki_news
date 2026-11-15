@@ -2844,6 +2844,160 @@ def _dub_kw(titel):
     return {_dub_stamm(w) for w in _title_keywords(titel or "")} - _DUB_FLOSKELN
 
 
+# ── Jev-Gegenprobe fuer den Titelvergleich (15.11.26, Daniel "ja so bauen") ──────
+# Stufe 3 von _markiere_dubletten() (Titelvergleich) ist zu locker: ein Firmenname, zwei
+# gemeinsame Stichwoerter und 38 Prozent Zeichenaehnlichkeit reichen. Am 15.11. (Lauf 06 UTC)
+# hing so "Google-DeepMind-Mitarbeiter wenden sich an die britische Regierung" (Wired,
+# Gewerkschaft) als Dublette an der Gemini-4-Meldung und verschwand von der Startseite. Von 8
+# Titelvergleich-Paaren dieses Laufs waren nur 2 bis 3 wirklich dieselbe Meldung.
+# Jetzt fragt Jev bei jedem Paar, das der Titelvergleich verdecken will, "dasselbe konkrete
+# Ereignis?" (dieselbe Frage wie _jev_veto). Liegt p unter DUB_JEV_SCHWELLE, bleibt die
+# Meldung sichtbar und der Vergleich sucht beim naechsten Kandidaten weiter. Die Schwelle ist
+# die von JEV_VETO_SCHWELLE (gemessen 25.09.: ab 0,2 blieben 106 von 106 echten Paaren
+# zusammen). Registry-Treffer (Stufe 2) fragt Jev nicht, die hat schon ein LLM geprueft.
+# Urteile: jev_urteile.json (gleicher Cache wie _jev_veto, belege.html liest ihn mit), jedes
+# gefragte Paar steht in news.json unter "dub_jev" und im Log als [DUB-JEV ...].
+# Fail-open: ohne Key, bei Fehlern, nach DUB_JEV_MAX Aufrufen oder DUB_JEV_ZEIT_S Sekunden
+# gilt der Titelvergleich wie bisher.
+# Kill-Switch: DUB_JEV_MODUS = "schatten" (nur fragen und loggen) oder "aus".
+DUB_JEV_MODUS = "scharf"
+DUB_JEV_SCHWELLE = 0.2
+DUB_JEV_MAX = 25
+DUB_JEV_ZEIT_S = 60
+
+# 15.11.26 (Daniel, Belegstrang der Lutnick-Story): update_archive() zieht dub_von und
+# dub_quellen aus news.json nach, solange die Meldung dort steht. Vorher blieb im Archiv fuer
+# immer der Vermerk des ERSTEN Laufs stehen. belege.html fand so bei der Lutnick-Story kein
+# Original mehr (alle 6 Meldungen als Dublette, CNBC und NYT zeigten aufeinander) und baute
+# einen Platzhalter "Ursprungsquelle ueber Dublettenverweis". Am 15.11. hatten 10 Meldungen
+# einen veralteten Vermerk. Kill-Switch: ARCHIV_DUB_NACHZIEHEN = False.
+ARCHIV_DUB_NACHZIEHEN = True
+
+# 15.11.26: Meldungen, die nur noch im Archiv stehen, behalten den Vermerk ihres letzten Laufs
+# in news.json. Vor heute war das der Vermerk des ERSTEN Laufs, und Titelvergleich und
+# Clustering hatten viel Fremdes verbunden. Messung 15.11.: 440 solche Vermerke mit vorhandenem
+# Ziel. Fuer 212 hatte Jev schon geurteilt, 17 davon unter 0,2 (zum Beispiel "Alice Huangs
+# Firmen investieren in DeepSeek" als Dublette von "Jensen Huang tritt als NVIDIA-CEO zurueck").
+# update_archive() fragt Jev darum bei diesen Vermerken (Meldung gegen Ziel, gleiche Frage und
+# Schwelle wie oben) und streicht den Vermerk unter DUB_JEV_SCHWELLE. Je Lauf hoechstens
+# ARCHIV_DUB_JEV_MAX neue Fragen, der Rest kommt in den naechsten Laeufen dran. Zeigt ein
+# Vermerk auf eine Heise-Sammelsendung (fliegt seit 14.11. aus dem Archiv), wird er ohne Frage
+# gestrichen (3 am 15.11.). DUB_JEV_MODUS gilt auch hier ("schatten" = nur loggen).
+# Kill-Switch: ARCHIV_DUB_JEV_MAX = 0.
+ARCHIV_DUB_JEV_MAX = 40
+
+
+class _JevPaarUrteile:
+    """Jev-Urteile "dasselbe Ereignis" fuer Meldungspaare (15.11.26), mit dem Cache von
+    _jev_veto (jev_urteile.json, Schluessel: beide Links sortiert). urteil() gibt None
+    zurueck, wenn es kein Urteil gibt (kein Key, Budget oder Zeit erschoepft, Fehler). Der
+    Aufrufer bleibt dann beim bisherigen Verhalten (fail-open)."""
+
+    def __init__(self, base_dir, max_aufrufe, zeit_s, name):
+        import time as _time
+        self._time = _time
+        self.key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+        self.pfad = Path(base_dir) / JEV_URTEILE_DATEI
+        self.max, self.zeit, self.name = max_aufrufe, zeit_s, name
+        self.start = _time.time()
+        self.stat = {"gefragt": 0, "cache": 0, "fehler": 0, "ohne_budget": 0}
+        self.neu = 0
+        self.cache = {}
+        if self.key:
+            try:
+                self.cache = json.loads(self.pfad.read_text(encoding="utf-8")).get("urteile", {})
+            except Exception:
+                self.cache = {}
+
+    @staticmethod
+    def schluessel(a, b):
+        return "|".join(sorted([a.get("link") or "", b.get("link") or ""]))
+
+    def _frei(self):
+        if self._time.time() - self.start > self.zeit:
+            return 0
+        return max(self.max - self.stat["gefragt"], 0)
+
+    def _merken(self, k, p):
+        self.cache[k] = {"p": round(p, 3), "d": datetime.now(timezone.utc).date().isoformat()}
+        self.neu += 1
+
+    def urteil(self, a, b):
+        if not self.key or not a.get("link") or not b.get("link"):
+            return None
+        k = self.schluessel(a, b)
+        if k in self.cache:
+            self.stat["cache"] += 1
+            return self.cache[k].get("p")
+        if not self._frei():
+            self.stat["ohne_budget"] += 1
+            return None
+        self.stat["gefragt"] += 1
+        try:
+            p = _jev_gleich(a.get("title") or "", b.get("title") or "", self.key)
+        except Exception as e:
+            self.stat["fehler"] += 1
+            logger.info("%s: Jev-Aufruf fehlgeschlagen (%s)", self.name, e.__class__.__name__)
+            return None
+        self._merken(k, p)
+        return p
+
+    def urteile(self, paare):
+        """[(a, b)] -> {schluessel: p oder None}. Cache zuerst, der Rest parallel (6 Faeden)."""
+        erg, offen = {}, {}
+        for a, b in paare:
+            if not self.key or not a.get("link") or not b.get("link"):
+                continue
+            k = self.schluessel(a, b)
+            if k in self.cache:
+                self.stat["cache"] += 1
+                erg[k] = self.cache[k].get("p")
+            elif k not in offen:
+                offen[k] = (a, b)
+        frei = self._frei()
+        self.stat["ohne_budget"] += max(len(offen) - frei, 0)
+        offen = list(offen.items())[:frei]
+        if not offen:
+            return erg
+        from concurrent.futures import ThreadPoolExecutor
+
+        def frage(x):
+            k, (a, b) = x
+            try:
+                return k, _jev_gleich(a.get("title") or "", b.get("title") or "", self.key)
+            except Exception as e:
+                logger.info("%s: Jev-Aufruf fehlgeschlagen (%s)", self.name, e.__class__.__name__)
+                return k, None
+        with ThreadPoolExecutor(6) as pool:
+            for k, p in pool.map(frage, offen):
+                self.stat["gefragt"] += 1
+                if p is None:
+                    self.stat["fehler"] += 1
+                else:
+                    self._merken(k, p)
+                erg[k] = p
+        return erg
+
+    def speichern(self):
+        """Neue Urteile in jev_urteile.json mischen (frisch gelesen, gleiche Form wie _jev_veto)."""
+        if not self.neu:
+            return
+        grenze = (datetime.now(timezone.utc) - timedelta(days=JEV_URTEILE_TAGE)).date().isoformat()
+        try:
+            try:
+                alle = json.loads(self.pfad.read_text(encoding="utf-8")).get("urteile", {})
+            except Exception:
+                alle = {}
+            alle.update(self.cache)
+            self.pfad.write_text(json.dumps(
+                {"_hinweis": "Jev-Urteile 'gleiches Ereignis' (ki_news.py _jev_veto), Cache %d Tage"
+                             % JEV_URTEILE_TAGE,
+                 "urteile": {k: v for k, v in alle.items() if v.get("d", "") >= grenze}},
+                ensure_ascii=False), encoding="utf-8")
+        except Exception as e:
+            logger.info("%s: Cache nicht geschrieben (%s)", self.name, e)
+
+
 def _markiere_dubletten(news_list, base_dir=None):
     """Setzt dub_von / dub_quellen. Aendert sonst nichts am Bestand.
 
@@ -2855,7 +3009,10 @@ def _markiere_dubletten(news_list, base_dir=None):
          jede Titelrechnung verdeckt; sagt sie fuer BEIDE Artikel aktiv
          etwas Verschiedenes (je eine Story mit mehreren Mitgliedern), ist
          das ein Veto gegen das Verdecken.
-      3. Titel-Heuristik -- nur noch dort, wo die Registry schweigt.
+      3. Titel-Heuristik -- nur noch dort, wo die Registry schweigt. Seit
+         15.11.26 mit Jev-Gegenprobe (DUB_JEV_MODUS, siehe oben).
+
+    Gibt die Jev-Urteile der Stufe 3 zurueck (fuer news.json "dub_jev").
 
     Warum in dieser Reihenfolge: ueber 8 news.json-Staende und 1232 Karten
     gemessen bestaetigt die Registry 20 der 124 Heuristik-Paare, spricht in
@@ -2879,6 +3036,9 @@ def _markiere_dubletten(news_list, base_dir=None):
     except Exception as e:
         logger.info("Entdopplung ohne Registry (%s) - nur Cluster und Titelvergleich", e)
     sortiert = sorted(news_list, key=lambda n: -(n.get("score") or 0))
+    jev = (_JevPaarUrteile(base_dir or Path("."), DUB_JEV_MAX, DUB_JEV_ZEIT_S, "DUB-JEV")
+           if DUB_JEV_MODUS in ("scharf", "schatten") else None)
+    dub_jev = []
 
     # Stufe 1: innerhalb eines Clusters fuehrt der bestbewertete Artikel.
     cluster_kopf = {}
@@ -2915,6 +3075,19 @@ def _markiere_dubletten(news_list, base_dir=None):
             if difflib.SequenceMatcher(None, f_norm, norm).ratio() < _GRID_MIN_SIM:
                 continue
             if _ist_dublette(f.get("title") or "", titel, _GRID_MIN_SIM):
+                p = jev.urteil(f, n) if jev else None
+                if p is not None:
+                    veto = p < DUB_JEV_SCHWELLE
+                    stufe = "veto" if veto else "ok"
+                    print(f"[DUB-JEV {DUB_JEV_MODUS} {stufe} p={p:.2f}] {titel[:60]!r} ~ "
+                          f"{(f.get('title') or '')[:60]!r}")
+                    logger.info("DUB-JEV %s %s p=%.2f: %r ~ %r", DUB_JEV_MODUS, stufe, p,
+                                titel[:80], (f.get("title") or "")[:80])
+                    dub_jev.append({"a": f.get("link") or "", "b": n.get("link") or "",
+                                    "p": round(p, 3), "veto": veto,
+                                    "titel_a": f.get("title") or "", "titel_b": titel})
+                    if veto and DUB_JEV_MODUS == "scharf":
+                        continue     # Jev sagt: andere Meldung, weiter beim naechsten Kandidaten
                 treffer = f
                 break
         if treffer is None:
@@ -2940,6 +3113,166 @@ def _markiere_dubletten(news_list, base_dir=None):
 
     n_weg = sum(1 for n in news_list if n.get("dub_von"))
     logger.info("Startseite: %d von %d Karten als Dublette markiert", n_weg, len(news_list))
+    if jev and jev.key:
+        jev.speichern()
+        msg = ("DUB-JEV %s: %d Titelvergleich-Paare mit Urteil, %d Veto, %s"
+               % (DUB_JEV_MODUS, len(dub_jev), sum(1 for d in dub_jev if d["veto"]),
+                  json.dumps(jev.stat)))
+        print(msg)
+        logger.info(msg)
+    return dub_jev
+
+
+# ── Jev-Hinweise fuer "Vermutlich verwandt" in belege.html (15.11.26) ──────────────
+# belege.html zeigt unter jeder Story bis zu 5 andere Storys als "Vermutlich verwandt, nicht
+# geprueft", allein nach Wortueberschneidung von Titel und Kurztext (ab 38 Prozent, Funktion
+# likelyStories). Daniel 15.11.: bei der Blackwell-Story standen dort "Hardware-Fingerabdruecke
+# von Blackwell-Chips" und "Export-verbotene Nvidia-Chips" (gehoeren fest dazu) gleichrangig
+# neben "Wer ist Alice Huang" (gehoert nicht dazu), Aehnlichkeit 68 und 70 Prozent.
+# Hier wird dieselbe Rechnung fuer die VERWANDT_JEV_TOP staerksten Storys aus news.json
+# nachgebaut (Kandidaten: news.json und archive.json) und Jev fragt jedes Kandidatenpaar.
+# Die Urteile landen in jev_urteile.json, belege.html zeigt sie an jedem Eintrag als Hinweis.
+# Verbunden wird noch nichts: erst an den Hinweisen messen, dann fest machen.
+# Fail-open wie oben. Kill-Switch: VERWANDT_JEV_AKTIV = False.
+VERWANDT_JEV_AKTIV = True
+VERWANDT_JEV_TOP = 20
+VERWANDT_JEV_JE_STORY = 5
+VERWANDT_JEV_AB = 0.38
+VERWANDT_JEV_MAX = 40
+VERWANDT_JEV_ZEIT_S = 60
+# Wortliste und Normalisierung wie STOP_WORDS/normalized()/tokens() in belege.html
+# (bewusst gleich, auch "für"/"über" mit Umlaut, die dort nach dem Entfernen der Akzente
+# nie greifen). Bei Aenderungen dort hier nachziehen.
+_BELEGE_STOPP = {
+    "aber", "als", "auch", "auf", "aus", "bei", "das", "dass", "dem", "den", "der", "des", "die",
+    "ein", "eine", "einen", "einer", "für", "gegen", "im", "in", "ist", "mit", "nach", "oder",
+    "sich", "sie", "über", "und", "von", "vor", "wird", "zu", "zum", "zur", "mehr", "neue", "neuen",
+    "soll", "sollen", "the", "and", "for", "with", "from", "into", "this", "that"}
+
+
+def _belege_tokens(text):
+    import unicodedata
+    t = unicodedata.normalize("NFD", (text or "").replace("\u2014", "-").replace("\u2013", "-").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c)).replace("ß", "ss")
+    t = re.sub(r"[^a-z0-9\s-]", " ", t)
+    return {w for w in re.split(r"[\s-]+", t) if len(w) >= 3 and w not in _BELEGE_STOPP}
+
+
+def _jev_verwandt_hinweise(news_list, base_dir):
+    """Fragt Jev bei den "Vermutlich verwandt"-Paaren der staerksten Storys (siehe oben).
+    Schreibt nur in jev_urteile.json. Gibt die Zahl der Paare mit Urteil zurueck."""
+    if not VERWANDT_JEV_AKTIV:
+        return 0
+    pruefer = _JevPaarUrteile(base_dir, VERWANDT_JEV_MAX, VERWANDT_JEV_ZEIT_S, "VERWANDT-JEV")
+    if not pruefer.key:
+        return 0
+    storys = {}
+    for n in news_list:
+        k = (n.get("story_id") or "").strip() or n.get("link") or ""
+        if k:
+            storys.setdefault(k, []).append(n)
+    in_news = {n.get("link") for n in news_list}
+    try:
+        archiv = json.loads((Path(base_dir) / "archive.json").read_text(encoding="utf-8"))
+    except Exception:
+        archiv = []
+    for e in archiv if isinstance(archiv, list) else []:
+        if isinstance(e, dict) and e.get("link") and e["link"] not in in_news:
+            storys.setdefault("archiv:" + e["link"], [e])
+    leads = {}
+    for k, mitglieder in storys.items():
+        lead = max(mitglieder, key=lambda m: m.get("score") or 0)
+        tok = _belege_tokens((lead.get("title") or "") + " " + (lead.get("summary") or ""))
+        if tok:
+            leads[k] = (lead, tok)
+    oben = sorted((k for k in leads if not k.startswith("archiv:")),
+                  key=lambda k: -(leads[k][0].get("score") or 0))[:VERWANDT_JEV_TOP]
+    paare, gesehen = [], set()
+    for k in oben:
+        lead, tok = leads[k]
+        kand = []
+        for k2, (lead2, tok2) in leads.items():
+            if k2 == k:
+                continue
+            sim = len(tok & tok2) / min(len(tok), len(tok2))
+            if sim >= VERWANDT_JEV_AB:
+                kand.append((sim, k2))
+        kand.sort(key=lambda x: (-x[0], x[1]))
+        for sim, k2 in kand[:VERWANDT_JEV_JE_STORY]:
+            s = pruefer.schluessel(lead, leads[k2][0])
+            if s not in gesehen:
+                gesehen.add(s)
+                paare.append((lead, leads[k2][0], sim))
+    erg = pruefer.urteile([(a, b) for a, b, _ in paare])
+    zaehl = {"gleich": 0, "unklar": 0, "anders": 0}
+    for a, b, sim in paare:
+        p = erg.get(pruefer.schluessel(a, b))
+        if p is None:
+            continue
+        stufe = ("gleich" if p >= CLUSTER_JEV_SCHWELLE
+                 else "anders" if p < JEV_VETO_SCHWELLE else "unklar")
+        zaehl[stufe] += 1
+        logger.info("VERWANDT-JEV %s p=%.2f text=%.2f: %r ~ %r", stufe, p, sim,
+                    (a.get("title") or "")[:70], (b.get("title") or "")[:70])
+    pruefer.speichern()
+    msg = ("VERWANDT-JEV: %d Paare aus %d Storys, %s, %s"
+           % (len(paare), len(oben), json.dumps(zaehl), json.dumps(pruefer.stat)))
+    print(msg)
+    logger.info(msg)
+    return sum(zaehl.values())
+
+
+def _archiv_dub_nachpruefen(archiv, news_links, base_dir):
+    """Prueft alte Dublettenvermerke der Meldungen, die nur noch im Archiv stehen (siehe
+    ARCHIV_DUB_JEV_MAX). Aendert archiv in place. Gibt die Zahl der gestrichenen Vermerke zurueck."""
+    if ARCHIV_DUB_JEV_MAX <= 0 or DUB_JEV_MODUS not in ("scharf", "schatten"):
+        return 0
+    scharf = DUB_JEV_MODUS == "scharf"
+    nach_link = {e.get("link"): e for e in archiv if isinstance(e, dict) and e.get("link")}
+    paare, weg = [], []
+    sammel = 0
+    for e in archiv:
+        if not isinstance(e, dict) or not e.get("dub_von") or e.get("link") in news_links:
+            continue
+        z = nach_link.get(e["dub_von"])
+        if z is not None:
+            paare.append((e, z))
+        elif _ist_heise_sammelsendung({"link": e["dub_von"]}):
+            sammel += 1
+            logger.info("[ARCHIV-DUB %s] Ziel ist eine Heise-Sammelsendung: %r", DUB_JEV_MODUS,
+                        (e.get("title") or "")[:70])
+            weg.append((e, None))
+    pruefer = _JevPaarUrteile(base_dir, ARCHIV_DUB_JEV_MAX, DUB_JEV_ZEIT_S, "ARCHIV-DUB-JEV")
+    erg = pruefer.urteile(paare)
+    veto = 0
+    for e, z in paare:
+        p = erg.get(pruefer.schluessel(e, z))
+        if p is None or p >= DUB_JEV_SCHWELLE:
+            continue
+        veto += 1
+        logger.info("[ARCHIV-DUB-JEV %s veto p=%.2f] %r ~ %r", DUB_JEV_MODUS, p,
+                    (e.get("title") or "")[:70], (z.get("title") or "")[:70])
+        weg.append((e, z))
+    pruefer.speichern()
+    if scharf:
+        for e, _ in weg:
+            e.pop("dub_von", None)
+            e.pop("dub_quellen", None)
+        # Quelle aus der Liste des Ziels nehmen, wenn keine andere Dublette sie noch traegt.
+        traeger = {(o.get("dub_von"), (o.get("source") or "").strip())
+                   for o in archiv if isinstance(o, dict) and o.get("dub_von")}
+        for e, z in weg:
+            quelle = (e.get("source") or "").strip()
+            if (z is not None and quelle in (z.get("dub_quellen") or [])
+                    and (z.get("link"), quelle) not in traeger):
+                z["dub_quellen"] = [q for q in z["dub_quellen"] if q != quelle]
+                if not z["dub_quellen"]:
+                    z.pop("dub_quellen", None)
+    msg = ("ARCHIV-DUB-JEV %s: %d alte Vermerke mit Ziel, %d Veto, %d mit Heise-Sammelziel, %s"
+           % (DUB_JEV_MODUS, len(paare), veto, sammel, json.dumps(pruefer.stat)))
+    print(msg)
+    logger.info(msg)
+    return len(weg) if scharf else 0
 
 
 def _top_ohne_dubletten(scored, n):
@@ -7099,7 +7432,12 @@ def main():
     except Exception as e:
         _cluster_treffer = []
         logger.exception("CLUSTER-JEV uebersprungen (Pipeline unbeeinflusst): %s", e)
-    _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
+    _dub_jev = _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
+    # 15.11.26: Jev-Hinweise fuer "Vermutlich verwandt" in belege.html, siehe VERWANDT_JEV_AKTIV.
+    try:
+        _jev_verwandt_hinweise(news_list, proj_dir if proj_dir.exists() else Path("."))
+    except Exception as e:
+        logger.exception("VERWANDT-JEV uebersprungen (Pipeline unbeeinflusst): %s", e)
     # Linien fuer Startseite/Overlay (19.09.26): setzt n["linie"], liefert die Linien
     # als eigenes Feld. Nur lesen, nie blockieren. Kill-Switch: linien = {} setzen.
     try:
@@ -7150,6 +7488,7 @@ def main():
         "briefing": _tagesbriefing(news_list, proj_dir if proj_dir.exists() else Path("."),
                                    heute, datum),
         "cluster_schatten": _cluster_treffer,
+        "dub_jev": _dub_jev,
     }
 
     # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.
@@ -7244,6 +7583,20 @@ def main():
                 entry["img_try"] = h["img_try"]
             if h.get("link_verlag") and not entry.get("link_verlag"):
                 entry["link_verlag"] = h["link_verlag"]
+            # 15.11.26: Dublettenvermerk des aktuellen Laufs gilt, siehe ARCHIV_DUB_NACHZIEHEN.
+            if ARCHIV_DUB_NACHZIEHEN:
+                for _feld in ("dub_von", "dub_quellen"):
+                    if h.get(_feld):
+                        entry[_feld] = h[_feld]
+                    else:
+                        entry.pop(_feld, None)
+
+        # 15.11.26: alte Vermerke der Meldungen, die nur noch im Archiv stehen, mit Jev
+        # nachpruefen (siehe ARCHIV_DUB_JEV_MAX). Darf den Lauf nie kippen.
+        try:
+            _archiv_dub_nachpruefen(existing, set(healed_by_link), base_dir)
+        except Exception as e:
+            logger.warning("Archiv-Dublettenpruefung uebersprungen: %s", e)
 
         seen_links = {n["link"] for n in existing if n.get("link")}
         new_entries = [n for n in news_list if n.get("link") and n["link"] not in seen_links]
