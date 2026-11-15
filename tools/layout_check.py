@@ -178,6 +178,9 @@ GESCHNITTEN_JS = r"""() => {
 # breiter Strich ｜ (U+FF5C), Halbgeviert- und Geviertstrich. Vorher galt "Gerstner｜BG2Pod" aus einem
 # Podcast-Titel im Archiv als ein Wort, der Umbruch am Strich als Wortbruch. Archiv.html und belege.html
 # waren damit bei jedem PR rot, auch auf unveraendertem main.
+# Auch ein Emoji beendet ein Wort (15.11.26). Vor einem Emoji darf der Browser umbrechen. Die Meldung
+# "Nvidias Jacob Freeman widerlegt GeForce-Untergangsgerede mit „Nope😁“" brach auf belege.html
+# zwischen "Nope" und dem Emoji um, die Pruefung meldete das als Wortbruch. PR 150 war damit rot.
 WORTBRUCH_JS = r"""() => {
   const stil = document.createElement('style');
   stil.textContent = '*{hyphens:manual !important}';
@@ -189,7 +192,7 @@ WORTBRUCH_JS = r"""() => {
     const lauf = document.createTreeWalker(kopf, NodeFilter.SHOW_TEXT);
     while (lauf.nextNode()) {
       const knoten = lauf.currentNode;
-      for (const m of knoten.nodeValue.matchAll(/[^\s\-/|｜–—]+/g)) {
+      for (const m of knoten.nodeValue.matchAll(/[^\s\-/|｜–—\p{Extended_Pictographic}]+/gu)) {
         if (m[0].length > 22) continue;
         const bereich = document.createRange();
         bereich.setStart(knoten, m.index);
