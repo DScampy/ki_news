@@ -694,18 +694,92 @@ def _ist_cnbc_club(link: str) -> bool:
     return CNBC_CLUB_KARTEN_WEG and bool(_CNBC_CLUB_LINK.search(link or ""))
 
 
+# 15.11.26 (Durchsicht nach Lauf 43708137799): Werbung sowie Podcasts und Newsletter
+# bekommen keine Karte. Die Karte "Sandbox to Scale" (TechRepublic, /a/sponsored/) vom
+# 15.11. war Werbung, dazu 3 OpenAI-Kundenberichte, ein Verge-Podcast, FT "FirstFT" und
+# Economist "World in Brief". ki_news.py filtert Werbung seit heute ganz raus und trennt
+# Podcasts und Newsletter als Roundup ab (gleiche Muster dort: _WERBE_LINK, _ROUNDUP_PN_LINK,
+# _ROUNDUP_PN_TITEL, beide gleich halten). Eine schon vorhandene Karte fliegt raus wie die
+# Sammelsendungen oben (_sammel_karten_entfernen).
+# Bei Google-News-Links reicht der Link nicht. Dann zaehlen link_verlag aus news.json und
+# archive.json, die Liste "werbung_links" aus news.json (ki_news.py nimmt solche Meldungen
+# im selben Lauf aus dem Archiv) und der Rohtitel aus summary-cache.json.
+# Kill-Switch: WERBUNG_KARTEN_WEG = False bzw. PODCAST_KARTEN_WEG = False (altes Verhalten).
+WERBUNG_KARTEN_WEG = True
+PODCAST_KARTEN_WEG = True
+_WERBE_LINK = re.compile(
+    r'/(?:a/)?sponsored(?:-content)?/|-sponsored-by-'
+    r'|cnet\.com/deals/'
+    r'|heise\.de/bestenlisten/'
+    r'|promo-codes?(?:[/-]|$)|/coupons?/'
+    r'|openai\.com/(?:[a-z-]+/)*(?:customer-stories|customers)/'
+    r'|(?:amazon|laptop|pc|retail)-deals?(?:[/-]|$)|-\d+-off(?:[/-]|$)|-off-on-amazon'
+    r'|/anzeige-', re.I)
+_ROUNDUP_PN_LINK = re.compile(
+    r'(?:techcrunch\.com|theverge\.com|biggo\.com)/podcast/'
+    r'|nytimes\.com/[^?#]*/podcasts/'
+    r'|wired\.com/story/[^/?#]*-podcast(?:[-/]|$)'
+    r'|technologyreview\.com/[^?#]*/the-download-'
+    r'|cnbc\.com/[^?#]*/5-things-to-know-before-the-(?:stock-)?market-opens', re.I)
+_ROUNDUP_PN_TITEL = re.compile(
+    r'^(?:World in Brief|FirstFT|Morning Bid|NEWSLETTER|PODCAST|The Download):'
+    r'|\bnewsletter:|\bWSJ Podcasts\b', re.I)
+_UNERWUENSCHT_NACH_LINK = {}   # link -> "WERBUNG"/"PODCAST", von _unerwuenscht_vorbereiten()
+
+
+def _unerwuenscht_vorbereiten(news_raw) -> None:
+    """Merkt sich Links, die erst ueber link_verlag, die Werbe-Liste von ki_news.py oder
+    den Rohtitel als Werbung bzw. Podcast/Newsletter erkennbar sind. Fehler: nur WARN."""
+    _UNERWUENSCHT_NACH_LINK.clear()
+    if not (WERBUNG_KARTEN_WEG or PODCAST_KARTEN_WEG):
+        return
+    eintraege = []
+    if isinstance(news_raw, dict):
+        eintraege += [e for e in (news_raw.get("news") or []) + (news_raw.get("roundups") or [])
+                      if isinstance(e, dict)]
+        if WERBUNG_KARTEN_WEG:
+            for l in news_raw.get("werbung_links") or []:
+                if isinstance(l, str) and l:
+                    _UNERWUENSCHT_NACH_LINK[l] = "WERBUNG"
+    try:
+        eintraege += [e for e in json.loads((ROOT_DIR / "archive.json").read_text(encoding="utf-8"))
+                      if isinstance(e, dict)]
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] Werbe-Pruefung: archive.json nicht lesbar ({e.__class__.__name__})")
+    for e in eintraege:
+        lv = e.get("link_verlag") or ""
+        if not (lv and e.get("link")):
+            continue
+        if WERBUNG_KARTEN_WEG and _WERBE_LINK.search(lv):
+            _UNERWUENSCHT_NACH_LINK[e["link"]] = "WERBUNG"
+        elif PODCAST_KARTEN_WEG and _ROUNDUP_PN_LINK.search(lv):
+            _UNERWUENSCHT_NACH_LINK.setdefault(e["link"], "PODCAST")
+    if PODCAST_KARTEN_WEG:
+        try:
+            roh = json.loads((ROOT_DIR / "summary-cache.json").read_text(encoding="utf-8"))
+            for l, v in (roh.items() if isinstance(roh, dict) else []):
+                if isinstance(v, dict) and _ROUNDUP_PN_TITEL.search((v.get("title_orig") or "").strip()):
+                    _UNERWUENSCHT_NACH_LINK.setdefault(l, "PODCAST")
+        except Exception as e:  # noqa: BLE001
+            print(f"  [WARN] Podcast-Pruefung: summary-cache.json nicht lesbar ({e.__class__.__name__})")
+
+
 def _karte_unerwuenscht(link: str) -> str:
     """Kurzer Grund, warum dieser Link keine Karte bekommt, sonst ''."""
     if _ist_sammelsendung(link):
         return "SAMMEL"
     if _ist_cnbc_club(link):
         return "CNBC-CLUB"
-    return ""
+    if WERBUNG_KARTEN_WEG and _WERBE_LINK.search(link or ""):
+        return "WERBUNG"
+    if PODCAST_KARTEN_WEG and _ROUNDUP_PN_LINK.search(link or ""):
+        return "PODCAST"
+    return _UNERWUENSCHT_NACH_LINK.get(link or "", "")
 
 
 def _sammel_karten_entfernen(karten: list, sent_topics: dict, card_sent: dict):
-    """Entfernt Karten zu Sammelsendungen und CNBC-Club-Beitraegen. Gibt (uebrige Karten,
-    entfernte IDs) zurueck.
+    """Entfernt Karten zu Sammelsendungen, CNBC-Club-Beitraegen, Werbung, Podcasts und
+    Newslettern (_karte_unerwuenscht). Gibt (uebrige Karten, entfernte IDs) zurueck.
 
     sent_topics und card_sent werden in place bereinigt (Thema der Karte, Zusatzlinks).
     """
@@ -1616,6 +1690,7 @@ def main() -> None:
         raw = json.load(f)
 
     articles = raw if isinstance(raw, list) else raw.get("news", raw.get("articles", []))
+    _unerwuenscht_vorbereiten(raw)   # 15.11.26, Werbung und Podcasts/Newsletter
 
     articles_by_score = sorted(
         articles,
@@ -1832,6 +1907,11 @@ def main() -> None:
 
         if _ist_cnbc_club(link):
             print(f"  [SKIP] Artikel {i}: CNBC Investing Club ({headline[:60]!r}), keine Karte.")
+            continue
+
+        _grund = _karte_unerwuenscht(link)   # 15.11.26: WERBUNG oder PODCAST
+        if _grund:
+            print(f"  [SKIP] Artikel {i}: {_grund} ({headline[:60]!r}), keine Karte.")
             continue
 
         # ── Sprach-Check (08.07.26, ZML-Fund): title_de-Uebersetzung in ki_news.py
