@@ -679,19 +679,45 @@ def _ist_sammelsendung(link: str) -> bool:
     return SAMMEL_KARTEN_WEG and bool(_SAMMEL_LINK.search(link or ""))
 
 
+# 15.11.26 (Daniels Fund): Depot-Tipps des CNBC Investing Club (Jim Cramer) bekommen keine
+# Karte. Die Karte "Nvidias Fuehrungskrise erschuettert den KI-Handel" vom 15.11. war so
+# ein Beitrag ("So passen wir unser Portfolio an"), also eine Handelsempfehlung.
+# ki_news.py filtert sie seit heute als Werbung (gleiches Link-Muster dort in
+# _CNBC_CLUB_LINK, beide gleich halten). Eine schon vorhandene Karte fliegt raus wie die
+# Sammelsendungen oben (_sammel_karten_entfernen).
+# Kill-Switch: CNBC_CLUB_KARTEN_WEG = False (altes Verhalten).
+CNBC_CLUB_KARTEN_WEG = True
+_CNBC_CLUB_LINK = re.compile(r'cnbc\.com/investingclub/', re.I)
+
+
+def _ist_cnbc_club(link: str) -> bool:
+    return CNBC_CLUB_KARTEN_WEG and bool(_CNBC_CLUB_LINK.search(link or ""))
+
+
+def _karte_unerwuenscht(link: str) -> str:
+    """Kurzer Grund, warum dieser Link keine Karte bekommt, sonst ''."""
+    if _ist_sammelsendung(link):
+        return "SAMMEL"
+    if _ist_cnbc_club(link):
+        return "CNBC-CLUB"
+    return ""
+
+
 def _sammel_karten_entfernen(karten: list, sent_topics: dict, card_sent: dict):
-    """Entfernt Karten zu Sammelsendungen. Gibt (uebrige Karten, entfernte IDs) zurueck.
+    """Entfernt Karten zu Sammelsendungen und CNBC-Club-Beitraegen. Gibt (uebrige Karten,
+    entfernte IDs) zurueck.
 
     sent_topics und card_sent werden in place bereinigt (Thema der Karte, Zusatzlinks).
     """
     weg = [k for k in karten if isinstance(k, dict)
-           and _ist_sammelsendung((k.get("links") or [""])[0])]
+           and _karte_unerwuenscht((k.get("links") or [""])[0])]
     if not weg:
         return karten, set()
     ids = {k.get("id") for k in weg}
     for k in weg:
         frei = [l for l in (k.get("links") or [])[1:] if card_sent.pop(l, None) is not None]
-        print(f"  [SAMMEL weg] Karte {k.get('id', '')} entfernt, {len(frei)} Zusatzlink(s) "
+        grund = _karte_unerwuenscht((k.get("links") or [""])[0])
+        print(f"  [{grund} weg] Karte {k.get('id', '')} entfernt, {len(frei)} Zusatzlink(s) "
               f"wieder frei")
         for l in frei:
             print(f"      frei: {l}")
@@ -1802,6 +1828,10 @@ def main() -> None:
 
         if _ist_sammelsendung(link):
             print(f"  [SKIP] Artikel {i}: Sammelsendung ({headline[:60]!r}) — keine Karte.")
+            continue
+
+        if _ist_cnbc_club(link):
+            print(f"  [SKIP] Artikel {i}: CNBC Investing Club ({headline[:60]!r}), keine Karte.")
             continue
 
         # ── Sprach-Check (08.07.26, ZML-Fund): title_de-Uebersetzung in ki_news.py
