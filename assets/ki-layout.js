@@ -34,6 +34,7 @@
   else if (file === 'stats.html') ACTIVE = 'statistik';
   else if (file === 'profil.html' || file === 'cockpit-neu.html') ACTIVE = 'profil';
   else if (/\/recherche\//.test(path)) ACTIVE = 'recherche';
+  else if (/\/personen\//.test(path)) ACTIVE = 'personen';
   else if (/\/meldung\//.test(path)) ACTIVE = 'aktuell';
   else if (file === '' || file === 'index.html') ACTIVE = 'aktuell';
   else ACTIVE = 'none';
@@ -45,6 +46,9 @@
     { key: 'aktuell',   label: 'Aktuell',         href: 'index.html',  icon: 'bolt' },
     { key: 'archiv',    label: 'Archiv',           href: 'Archiv.html', icon: 'archive' },
     { key: 'dossiers',  label: 'Dossiers',         href: 'dossiers.html', icon: 'view_list' },
+    // Personen-Übersicht (15.11.26): Seiten schreibt personen_automat.py nach personen/.
+    // sehrBreit: oben erst ab 1400 px, bei 1280 px überlappte der Link sonst die Farbknöpfe.
+    { key: 'personen',  label: 'Personen',         href: 'personen/',    icon: 'person', breit: true, sehrBreit: true },
     { key: 'artikel',   label: 'Artikel',          href: 'artikel.html', icon: 'menu_book' },
     { key: 'recherche', label: 'Recherche',        href: 'recherche/',   icon: 'search', breit: true },
     { key: 'modelle',   label: 'Modelle',          href: 'modelle.html', icon: 'smart_toy' },
@@ -138,6 +142,9 @@
     '#kl-toplinks a:hover{color:var(--z-tinte);}',
     /* Der aktive Link bleibt auch im schmalen Fenster sichtbar. */
     '@media(max-width:1279px){#kl-toplinks a.kl-breit:not(.kl-active){display:none;}}',
+    /* Personen (15.11.26): zwischen 1280 und 1399 px stehen alle breiten Links oben, dann fehlt
+       der Platz. Dort steht Personen nur in der Seitenleiste, auch auf den Personen-Seiten. */
+    '@media(min-width:1280px) and (max-width:1399px){#kl-toplinks a.kl-sehr-breit{display:none;}}',
     /* Strich unter dem aktiven Menüpunkt in der Farbe des gewählten Farbschemas
        (Daniel 01.11.26: „Ja, Strich dazu“), damit das Umschalten im Kopf sichtbar bleibt. */
     '#kl-toplinks a.kl-active{color:var(--z-tinte);border-bottom:3px solid var(--accent,var(--z-akzent));padding-bottom:3px;margin-bottom:-6px;font-weight:600;}',
@@ -261,6 +268,8 @@
     '.kl-ov-related-chips{display:flex;flex-wrap:wrap;gap:6px;}',
     '.kl-chip{font-size:13px;font-family:var(--z-sans);padding:2px 9px;border-radius:20px;border:1px solid var(--z-linie);color:var(--z-grau);white-space:nowrap;}',
     '.kl-chip-hit{color:var(--z-akzent);border-color:var(--z-akzent);}',
+    'a.kl-chip-person{color:var(--z-tinte);text-decoration:none;}',
+    'a.kl-chip-person:hover{color:var(--z-akzent);border-color:var(--z-akzent);}',
     '.kl-ov-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--z-sans);font-size:15px;font-weight:600;color:#fff;background:var(--z-akzent);padding:10px 18px;border-radius:4px;text-decoration:none;}',
     '.kl-ov-link:hover{filter:brightness(1.1);}',
     '.kl-ov-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
@@ -293,7 +302,8 @@
   function navLinksHtml() {
     return NAV.map(function (n) {
       var href = n.ext ? n.href : ROOT + n.href;
-      var klassen = (n.key === ACTIVE ? ['kl-active'] : []).concat(n.breit ? ['kl-breit'] : []);
+      var klassen = (n.key === ACTIVE ? ['kl-active'] : []).concat(n.breit ? ['kl-breit'] : [])
+        .concat(n.sehrBreit ? ['kl-sehr-breit'] : []);
       var cls = klassen.length ? ' class="' + klassen.join(' ') + '"' : '';
       var tgt = n.ext ? ' target="_blank" rel="noopener"' : '';
       return '<a' + cls + ' href="' + href + '"' + tgt + '>' + (n.topLabel || n.label) + '</a>';
@@ -382,6 +392,7 @@
           '<div id="kl-ov-meta" class="kl-ov-meta"></div>' +
           '<h2 id="kl-ov-title" class="kl-ov-title"></h2>' +
           '<p id="kl-ov-summary" class="kl-ov-summary"></p>' +
+          '<div id="kl-ov-personen" class="kl-ov-related" hidden></div>' +
           '<div id="kl-ov-related" class="kl-ov-related" hidden></div>' +
           '<div id="kl-ov-analyse" class="kl-ov-analyse" hidden></div>' +
           '<div id="kl-ov-linie" class="kl-ov-linie" hidden></div>' +
@@ -548,6 +559,62 @@
       chips = chips.slice(0, 6);
       if (!chips.length) return '';
       return '<div class="kl-ov-related-label">Verwandte Themen</div>' +
+        '<div class="kl-ov-related-chips">' + chips.join('') + '</div>';
+    }).catch(function () { return ''; });
+  }
+  /* Personen-Chips (15.11.26): personen/index.json von personen_automat.py, EINMAL geladen.
+     Gleiche Regeln wie Abgleich.trifft() in personen_automat.py: Ausschluesse entfernen,
+     dann voller Name, oder Nachname nur mit Kontext im selben Text. Fehlt die Datei oder
+     steht dort "aktiv": false (Kill-Switch), bleibt der Bereich leer. */
+  var klPersonenP = null;
+  function klLoadPersonen() {
+    if (!klPersonenP) {
+      klPersonenP = fetch(ROOT + 'personen/index.json').then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      }).then(function (d) {
+        if (!d || !d.aktiv || !d.personen) return [];
+        function rx(s, g) { try { return new RegExp(s, g || ''); } catch (e) { return null; } }
+        function liste(a, g) { return (a || []).map(function (s) { return rx(s, g); }).filter(Boolean); }
+        return d.personen.map(function (p) {
+          var kontext = p.kontext ? rx(p.kontext) : null;
+          // Kaputter Kontext: Nachname allein zaehlt dann nie, nur der volle Name.
+          var kurz = (p.kontext && !kontext) ? [] : liste(p.kurz);
+          return { p: p, muster: liste(p.muster), kurz: kurz, kontext: kontext, aus: liste(p.ausschluss, 'g') };
+        });
+      }).catch(function () { return []; });
+    }
+    return klPersonenP;
+  }
+  function klPersonTrifft(a, text) {
+    a.aus.forEach(function (r) { text = text.replace(r, ' '); });
+    if (a.muster.some(function (r) { return r.test(text); })) return true;
+    if (a.kurz.some(function (r) { return r.test(text); })) return !a.kontext || a.kontext.test(text);
+    return false;
+  }
+  /* Ziel des Chips: eigene Seite (pfad) oder bei "fall" (keine eigene Seite, Privatperson)
+     der Fall selbst: Entwicklungslinie ab 3 Ereignissen, sonst der Belegstrang der Meldung. */
+  function klPersonenHtml(data, text) {
+    return klLoadPersonen().then(function (alle) {
+      var chips = [];
+      alle.forEach(function (a) {
+        if (chips.length >= 6 || !klPersonTrifft(a, text)) return;
+        var p = a.p, href = '', titel = '';
+        if (p.pfad) {
+          href = ROOT + String(p.pfad).replace(/^\//, '');
+          titel = 'Kurzprofil mit Belegen';
+        } else if (p.fall) {
+          var linie = data.linie && window.KI_LINIEN ? window.KI_LINIEN[data.linie] : null;
+          var sid = data.story_id || (window.__pxkStory && window.__pxkStory[data.link]) || '';
+          if (linie && linie.e && linie.e.length >= 3) href = ROOT + 'linie.html#l=' + encodeURIComponent(data.linie);
+          else if (sid && data.link) href = ROOT + 'belege.html#link=' + encodeURIComponent(data.link);
+          titel = 'Zum Fall, keine eigene Seite';
+        }
+        if (!href) return;
+        chips.push('<a class="kl-chip kl-chip-person" href="' + klEsc(href) + '" title="' + klEsc(titel) + '">' + klEsc(p.name) + '</a>');
+      });
+      if (!chips.length) return '';
+      return '<div class="kl-ov-related-label">Personen in dieser Meldung</div>' +
         '<div class="kl-ov-related-chips">' + chips.join('') + '</div>';
     }).catch(function () { return ''; });
   }
@@ -934,6 +1001,8 @@
     klLinieRender(data);
     relatedEl.hidden = true;
     relatedEl.innerHTML = '';
+    var personenEl = document.getElementById('kl-ov-personen');
+    if (personenEl) { personenEl.hidden = true; personenEl.innerHTML = ''; }
     ov.style.display = 'flex';
     document.documentElement.style.overflow = 'hidden';
     klOvOpen = true;
@@ -955,6 +1024,10 @@
       klRelatedHtml(title + ' ' + summary).then(function (html) {
         if (!klOvOpen || reqId !== klOvReqId) return; // Overlay inzwischen zu/gewechselt
         if (html) { relatedEl.innerHTML = html; relatedEl.hidden = false; }
+      });
+      if (personenEl) klPersonenHtml(data, title + ' \n ' + summary).then(function (html) {
+        if (!klOvOpen || reqId !== klOvReqId) return;
+        if (html) { personenEl.innerHTML = html; personenEl.hidden = false; }
       });
     } catch (e) {}
   };
