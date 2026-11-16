@@ -2375,14 +2375,45 @@ def _jev_werbung_pruefen(news_list):
 # "scharf": _jev_cluster_zusammenlegen() gibt den Meldungen des schwaecheren Clusters die
 # story_id des staerkeren, VOR _markiere_dubletten, Morgenlage und SSR. Treffer weiter in news.json
 # unter "cluster_schatten". Kill-Switch: "schatten" (nur loggen) oder "aus".
+# 16.11.26 (Fund 5, Daniel "weiter im Plan"): Jev gibt fuer dasselbe Titelpaar nicht immer dieselbe
+# Zahl. Golem "Petition: Mitarbeiter und Musk wollen Huang zurueck" ~ WCCFtech "100.000 fordern
+# Rueckkehr" kam in 7 Laeufen auf 0,67 bis 0,70 und wurde nur in 3 davon zusammengelegt. Das
+# Paar Siliconangle "Abgang" ~ WCCFtech "100.000" bekam am 15.11. hier 0,65 und im Cache 0,84.
+# Darum fragt der Cluster-Abgleich jetzt ueber _JevPaarUrteile: gleicher Cache jev_urteile.json wie
+# DUB-JEV (7 Tage), ein Urteil je Linkpaar, die Storys springen nicht mehr von Lauf zu Lauf.
+# CLUSTER_JEV_MAX zaehlt jetzt nur neue Fragen, Cache-Treffer sind frei.
+# Zweite Frage mit Kurztext (CLUSTER_JEV_TEXT_MODUS): liegt das Titel-Urteil zwischen
+# CLUSTER_JEV_TEXT_VON und _BIS, fragt Jev noch einmal mit Titel plus Kurztext beider Meldungen.
+# Bis 0,9, weil verschiedene Ereignisse der Huang-Affaere im Cache auch 0,81 und 0,84 bekamen.
+# Ob das trennschaerfer ist als der Titel allein, ist noch nicht gemessen. Darum zuerst
+# "schatten": nur loggen ("text=0.xx" in der CLUSTER-JEV-Zeile), entschieden wird wie bisher
+# nach dem Titel. "scharf": das Kurztext-Urteil entscheidet. "aus": keine zweite Frage.
+# Schwelle 0,7 und Top 12 bleiben: Messung 14.-16.11. (21 Laeufe) in der PR-Beschreibung.
 CLUSTER_JEV_MODUS = "scharf"
 CLUSTER_JEV_TOP = 12
 CLUSTER_JEV_MAX = 20
+CLUSTER_JEV_ZEIT_S = 60
 CLUSTER_JEV_SCHWELLE = 0.7
 CLUSTER_JEV_LOG_AB = 0.3
+CLUSTER_JEV_TEXT_MODUS = "schatten"
+CLUSTER_JEV_TEXT_VON = 0.5
+CLUSTER_JEV_TEXT_BIS = 0.9
+CLUSTER_JEV_TEXT_MAX = 6
+CLUSTER_JEV_TEXT_ZEICHEN = 400
 
 
-def _jev_cluster_schatten(news_list):
+def _jev_meldung_text(n):
+    """Titel plus Kurztext (hoechstens CLUSTER_JEV_TEXT_ZEICHEN) fuer die zweite Jev-Frage."""
+    titel = (n.get("title") or "").strip()
+    kurz = re.sub(r"\s+", " ", n.get("summary") or "").strip()[:CLUSTER_JEV_TEXT_ZEICHEN]
+    return titel + "\n" + kurz if kurz else titel
+
+
+def _jev_gleich_text(a, b, key):
+    return _jev_gleich(_jev_meldung_text(a), _jev_meldung_text(b), key)
+
+
+def _jev_cluster_schatten(news_list, base_dir=None):
     key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     if CLUSTER_JEV_MODUS == "aus" or not key:
         return []
@@ -2392,25 +2423,52 @@ def _jev_cluster_schatten(news_list):
     reps = list(beste.items())[:CLUSTER_JEV_TOP]
     ent = {sid: _jev_namen(n.get("title", "")) for sid, n in reps}
     paare = [(a, b) for i, a in enumerate(reps) for b in reps[i + 1:] if ent[a[0]] & ent[b[0]]]
-    treffer, gefragt = [], 0
-    for (sa, a), (sb, b) in paare[:CLUSTER_JEV_MAX]:
-        try:
-            p = _jev_gleich(a.get("title", ""), b.get("title", ""), key)
-            gefragt += 1
-        except Exception as e:
-            logger.info("CLUSTER-JEV: Aufruf fehlgeschlagen (%s)", e.__class__.__name__)
+    basis = base_dir or Path(".")
+    jev = _JevPaarUrteile(basis, CLUSTER_JEV_MAX, CLUSTER_JEV_ZEIT_S, "CLUSTER-JEV")
+    erg = jev.urteile([(a, b) for (_, a), (_, b) in paare])
+    text, erg_text, grau = None, {}, []
+    if CLUSTER_JEV_TEXT_MODUS in ("scharf", "schatten"):
+        grau = [(a, b) for (_, a), (_, b) in paare
+                if erg.get(jev.schluessel(a, b)) is not None
+                and CLUSTER_JEV_TEXT_VON <= erg[jev.schluessel(a, b)] < CLUSTER_JEV_TEXT_BIS]
+        if grau:
+            text = _JevPaarUrteile(basis, CLUSTER_JEV_TEXT_MAX, CLUSTER_JEV_ZEIT_S,
+                                   "CLUSTER-JEV-TEXT", frage=_jev_gleich_text, praefix="text|")
+            erg_text = text.urteile(grau)
+    treffer = []
+    for (sa, a), (sb, b) in paare:
+        k = jev.schluessel(a, b)
+        p = erg.get(k)
+        if p is None:
             continue
-        if p >= CLUSTER_JEV_LOG_AB:
-            stufe = "gleich" if p >= CLUSTER_JEV_SCHWELLE else "knapp"
-            print(f"[CLUSTER-JEV {CLUSTER_JEV_MODUS} {stufe} p={p:.2f}] {sa} {a.get('title', '')[:55]!r}"
-                  f" ~ {sb} {b.get('title', '')[:55]!r}")
-            logger.info("CLUSTER-JEV %s %s p=%.2f: %s %r ~ %s %r", CLUSTER_JEV_MODUS, stufe, p,
-                        sa, a.get("title", "")[:80], sb, b.get("title", "")[:80])
-        if p >= CLUSTER_JEV_SCHWELLE:
-            treffer.append({"a": sa, "b": sb, "p": round(p, 3),
-                            "titel_a": a.get("title", ""), "titel_b": b.get("title", "")})
-    print(f"CLUSTER-JEV {CLUSTER_JEV_MODUS}: {gefragt} von {len(paare)} Paaren gefragt "
-          f"(Top {len(reps)} Storys), {len(treffer)} gleiche Ereignisse")
+        pt = erg_text.get("text|" + k)
+        p_ent = pt if (pt is not None and CLUSTER_JEV_TEXT_MODUS == "scharf") else p
+        if max(p, pt or 0) >= CLUSTER_JEV_LOG_AB:
+            stufe = "gleich" if p_ent >= CLUSTER_JEV_SCHWELLE else "knapp"
+            zusatz = f" text={pt:.2f}" if pt is not None else ""
+            print(f"[CLUSTER-JEV {CLUSTER_JEV_MODUS} {stufe} p={p:.2f}{zusatz}] {sa} "
+                  f"{a.get('title', '')[:55]!r} ~ {sb} {b.get('title', '')[:55]!r}")
+            logger.info("CLUSTER-JEV %s %s p=%.2f%s: %s %r ~ %s %r", CLUSTER_JEV_MODUS, stufe, p,
+                        zusatz, sa, a.get("title", "")[:80], sb, b.get("title", "")[:80])
+        if p_ent >= CLUSTER_JEV_SCHWELLE:
+            t = {"a": sa, "b": sb, "p": round(p, 3),
+                 "titel_a": a.get("title", ""), "titel_b": b.get("title", "")}
+            if pt is not None:
+                t["p_text"] = round(pt, 3)
+            treffer.append(t)
+    jev.speichern()
+    if text:
+        text.speichern()
+    st = jev.stat
+    msg = (f"CLUSTER-JEV {CLUSTER_JEV_MODUS}: {len(paare)} Paare (Top {len(reps)} Storys), "
+           f"{st['gefragt']} gefragt, {st['cache']} aus Cache, {st['fehler']} Fehler, "
+           f"{st['ohne_budget']} ohne Budget, {len(treffer)} gleiche Ereignisse")
+    if text:
+        msg += (f" | Kurztext {CLUSTER_JEV_TEXT_MODUS}: {len(grau)} Paare, "
+                f"{text.stat['gefragt']} gefragt, {text.stat['cache']} aus Cache, "
+                f"{text.stat['ohne_budget']} ohne Budget")
+    print(msg)
+    logger.info(msg)
     return treffer
 
 
@@ -3083,14 +3141,17 @@ class _JevPaarUrteile:
     """Jev-Urteile "dasselbe Ereignis" fuer Meldungspaare (15.11.26), mit dem Cache von
     _jev_veto (jev_urteile.json, Schluessel: beide Links sortiert). urteil() gibt None
     zurueck, wenn es kein Urteil gibt (kein Key, Budget oder Zeit erschoepft, Fehler). Der
-    Aufrufer bleibt dann beim bisherigen Verhalten (fail-open)."""
+    Aufrufer bleibt dann beim bisherigen Verhalten (fail-open).
+    16.11.26: frage (a, b, key) -> p ersetzt den Titelvergleich, praefix trennt solche Urteile
+    im Cache von den Titel-Urteilen (Cluster-Abgleich mit Kurztext: "text|")."""
 
-    def __init__(self, base_dir, max_aufrufe, zeit_s, name):
+    def __init__(self, base_dir, max_aufrufe, zeit_s, name, frage=None, praefix=""):
         import time as _time
         self._time = _time
         self.key = os.environ.get("TYPESAFE_API_KEY", "").strip()
         self.pfad = Path(base_dir) / JEV_URTEILE_DATEI
         self.max, self.zeit, self.name = max_aufrufe, zeit_s, name
+        self.frage, self.praefix = frage, praefix
         self.start = _time.time()
         self.stat = {"gefragt": 0, "cache": 0, "fehler": 0, "ohne_budget": 0}
         self.neu = 0
@@ -3105,6 +3166,14 @@ class _JevPaarUrteile:
     def schluessel(a, b):
         return "|".join(sorted([a.get("link") or "", b.get("link") or ""]))
 
+    def _k(self, a, b):
+        return self.praefix + self.schluessel(a, b)
+
+    def _jev(self, a, b):
+        if self.frage:
+            return self.frage(a, b, self.key)
+        return _jev_gleich(a.get("title") or "", b.get("title") or "", self.key)
+
     def _frei(self):
         if self._time.time() - self.start > self.zeit:
             return 0
@@ -3117,7 +3186,7 @@ class _JevPaarUrteile:
     def urteil(self, a, b):
         if not self.key or not a.get("link") or not b.get("link"):
             return None
-        k = self.schluessel(a, b)
+        k = self._k(a, b)
         if k in self.cache:
             self.stat["cache"] += 1
             return self.cache[k].get("p")
@@ -3126,7 +3195,7 @@ class _JevPaarUrteile:
             return None
         self.stat["gefragt"] += 1
         try:
-            p = _jev_gleich(a.get("title") or "", b.get("title") or "", self.key)
+            p = self._jev(a, b)
         except Exception as e:
             self.stat["fehler"] += 1
             logger.info("%s: Jev-Aufruf fehlgeschlagen (%s)", self.name, e.__class__.__name__)
@@ -3140,7 +3209,7 @@ class _JevPaarUrteile:
         for a, b in paare:
             if not self.key or not a.get("link") or not b.get("link"):
                 continue
-            k = self.schluessel(a, b)
+            k = self._k(a, b)
             if k in self.cache:
                 self.stat["cache"] += 1
                 erg[k] = self.cache[k].get("p")
@@ -3156,7 +3225,7 @@ class _JevPaarUrteile:
         def frage(x):
             k, (a, b) = x
             try:
-                return k, _jev_gleich(a.get("title") or "", b.get("title") or "", self.key)
+                return k, self._jev(a, b)
             except Exception as e:
                 logger.info("%s: Jev-Aufruf fehlgeschlagen (%s)", self.name, e.__class__.__name__)
                 return k, None
@@ -7719,7 +7788,8 @@ def main():
     # Cluster-Zusammenlegung per Jev (23.10.26 scharf, s. CLUSTER_JEV_MODUS): vor den Dubletten-
     # Markierungen, der Morgenlage und dem SSR, damit alle mit den zusammengelegten Storys arbeiten.
     try:
-        _cluster_treffer = _jev_cluster_schatten(news_list)
+        _cluster_treffer = _jev_cluster_schatten(news_list,
+                                                 proj_dir if proj_dir.exists() else Path("."))
         _jev_cluster_zusammenlegen(news_list, _cluster_treffer)
     except Exception as e:
         _cluster_treffer = []
