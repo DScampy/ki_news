@@ -1405,6 +1405,8 @@
       var activeChapter = -2;
       var updateTimer = 0;
       var scrollBound = false;
+      var introTitel = null;
+      var titelBreite = 0;
       var newsData = null;
       var newsPromise = null;
       var enrichmentStarted = false;
@@ -1875,6 +1877,7 @@
         var quellen = evs.map(function (e) { return cleanText(e.q || ""); }).filter(function (q, i, a) { return q && a.indexOf(q) === i; });
         var ersatzLead = evs.length ? evs.length + " Meldungen" + (quellen.length ? " aus " + quellen.slice(0, 4).join(", ") : "") + ", fortlaufend verfolgt." : "";
         var title = make("h1", "", dossier.titel || ersatzTitel || "Dossier");
+        introTitel = title;
         var lead = make("p", "px-dossier-lead", dossier.worum || ersatzLead || "Mehrere Meldungen zu einem fortlaufenden Thema.");
         var meta = make("div", "px-dossier-meta");
         var start = make("button", "px-dossier-start", "Zum ersten Ereignis");
@@ -2068,10 +2071,61 @@
         });
       }
 
+      // 16.11.26: Ein langes Wort im Dossier-Titel ("Bewertungsdiskussionen") war bei 375 px und bei
+      // 1024 px mit offener Leiste breiter als die Zeile und brach ohne Trennstrich mitten im Wort.
+      // Silbentrennung bleibt in Überschriften aus (Daniel 27.10.). Darum wird die Schrift kleiner,
+      // bis jedes Wort in eine Zeile passt, höchstens bis 60 Prozent der normalen Größe. Ein noch
+      // längeres Wort darf danach wie bisher umbrechen. Wortgrenzen wie in tools/layout_check.py.
+      function wortBricht(el) {
+        var lauf = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        while (lauf.nextNode()) {
+          var knoten = lauf.currentNode;
+          var muster = /[^\s\-\/|｜–—\p{Extended_Pictographic}]+/gu;
+          var treffer;
+          while ((treffer = muster.exec(knoten.nodeValue))) {
+            var bereich = document.createRange();
+            bereich.setStart(knoten, treffer.index);
+            bereich.setEnd(knoten, treffer.index + treffer[0].length);
+            var zeilen = {};
+            var anzahl = 0;
+            Array.prototype.forEach.call(bereich.getClientRects(), function (rechteck) {
+              var oben = Math.round(rechteck.top);
+              if (rechteck.width > 1 && !zeilen[oben]) {
+                zeilen[oben] = true;
+                anzahl += 1;
+              }
+            });
+            if (anzahl > 1) return true;
+          }
+        }
+        return false;
+      }
+
+      function titelEinpassen() {
+        var el = introTitel;
+        if (!el || !el.isConnected || !el.clientWidth) return;
+        el.style.fontSize = "";
+        titelBreite = el.clientWidth;
+        var groesse = parseFloat(window.getComputedStyle(el).fontSize) || 0;
+        var minimum = Math.max(18, Math.round(groesse * 0.6));
+        while (groesse > minimum && wortBricht(el)) {
+          groesse -= 1;
+          el.style.fontSize = groesse + "px";
+        }
+      }
+
       function bindReaderTracking() {
         if (!scrollBound) {
           window.addEventListener("scroll", requestReaderUpdate, { passive: true });
           window.addEventListener("resize", requestReaderUpdate, { passive: true });
+          // Die Seitenleiste ändert die Spaltenbreite ohne resize-Ereignis.
+          if (window.ResizeObserver) {
+            new ResizeObserver(function () {
+              if (introTitel && introTitel.clientWidth !== titelBreite) titelEinpassen();
+            }).observe(main);
+          } else {
+            window.addEventListener("resize", titelEinpassen, { passive: true });
+          }
           scrollBound = true;
         }
         requestReaderUpdate();
@@ -2227,6 +2281,9 @@
         if (randEvents.length) fragment.appendChild(createRand(randEvents));
         fragment.appendChild(createEnd());
         main.replaceChildren(fragment);
+        titelEinpassen();
+        // Die Schrift lädt später und ist breiter als die Ersatzschrift.
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(titelEinpassen);
 
         readerCount.textContent = "00 / " + String(chapterRefs.length).padStart(2, "0");
         refreshEnhancements();
