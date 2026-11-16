@@ -697,11 +697,73 @@ def _ssr_briefing_block(briefing):
 SCHLAGZEILEN_LEISTE = 8
 SCHLAGZEILEN_AB = 3   # die ersten drei Storys stehen schon als Aufmacher und Seitenkarten da
 
+# Top-Plaetze der Startseite (16.11.26, Daniel): Die Nvidia-Huang-Affaere belegte am 16.11. um
+# 06 UTC alle 5 Plaetze. Die Regel "eine Meldung je Linie" in index.html griff nicht, weil die
+# Affaere auf sechs Linien verteilt ist und zwei der Meldungen gar keine Linie hatten.
+# Neu: hoechstens TOP_JE_ANBIETER Top-Plaetze je Anbieter aus entities.json. Modelle und Produkte
+# zaehlen fuer ihren Anbieter (Claude fuer Anthropic). Gepinnte Meldungen zaehlen mit und bleiben.
+# ki_news.py schreibt je Meldung das Feld "anbieter" und die Grenze als "top_je_anbieter" in
+# news.json, index.html waehlt danach aus. Im News-Raster darunter bleiben alle Meldungen stehen.
+# Gemessen an 20 Laeufen (14.11. 09 UTC bis 16.11. 06 UTC): 14 Mal aendert sich die Auswahl,
+# jedes Mal fallen 1 bis 3 Nvidia-Meldungen heraus. Kill-Switch: TOP_JE_ANBIETER = 0.
+TOP_JE_ANBIETER = 2
+TOP_PLAETZE = 5       # wie index.html (Aufmacher plus Karussell)
+
+
+def _top_anbieter(titel, _cache={}):
+    """Anbieter einer Meldung fuer die Top-Plaetze. Modelle und Produkte zaehlen fuer ihren
+    Anbieter. Genitiv ("Nvidias") zaehlt mit, wie bei den Ersatz-Eigennamen."""
+    if "eltern" not in _cache:
+        eltern = {}
+        try:
+            p = Path(__file__).resolve().parent / "entities.json"
+            for e in json.loads(p.read_text(encoding="utf-8")).get("entities", []):
+                if e.get("typ") == "anbieter":
+                    eltern[e["id"]] = e["id"]
+                elif e.get("typ") in ("modell", "produkt") and e.get("gehoert_zu"):
+                    eltern[e["id"]] = e["gehoert_zu"]
+        except Exception as ex:
+            logger.warning("Top-Anbieter: entities.json nicht lesbar (%s) - keine Grenze", ex)
+        _cache["eltern"] = eltern
+    eltern = _cache["eltern"]
+    ids = set(_dub_entitaeten(titel)) | set(_dub_entitaeten(_GENITIV_S.sub(r"\1", titel or "")))
+    return sorted({eltern[i] for i in ids if i in eltern})
+
+
+def _top_auswahl(news, anzahl=TOP_PLAETZE):
+    """Top-Plaetze wie index.html: je Story die staerkste sichtbare Meldung, eine je Linie,
+    hoechstens TOP_JE_ANBIETER je Anbieter. Gepinnte Meldungen kennt nur index.html."""
+    beste = {}
+    for n in news:
+        sid = n.get("story_id")
+        if sid and (sid not in beste or (n.get("score") or 0) > (beste[sid].get("score") or 0)):
+            beste[sid] = n
+    sichtbar = [n for n in news if not n.get("dub_von")
+                and (not n.get("story_id") or beste.get(n["story_id"]) is n)]
+    top, linien, zahl = [], set(), {}
+    for n in sorted(sichtbar, key=lambda x: x.get("score") or 0, reverse=True):
+        if len(top) >= anzahl:
+            break
+        linie, anbieter = n.get("linie"), n.get("anbieter") or []
+        if linie and linie in linien:
+            continue
+        if TOP_JE_ANBIETER and any(zahl.get(a, 0) >= TOP_JE_ANBIETER for a in anbieter):
+            continue
+        if linie:
+            linien.add(linie)
+        for a in anbieter:
+            zahl[a] = zahl.get(a, 0) + 1
+        top.append(n)
+    return top
+
 
 def _ssr_schlagzeilen_block(news):
     """Schlagzeilen-Leiste unter dem Aufmacher (28.10.26): die naechsten Storys nach
     Aufmacher und Seitenkarten als Liste, verlinkt auf die Meldungsseiten. Nur vorgerendert (kein JS): Crawler sehen die
     Links, und der Stand ist derselbe wie news.json, weil beide im selben Lauf entstehen."""
+    # 16.11.26: Aufmacher und Seitenkarten sind die ersten Plaetze aus _top_auswahl() (eine je
+    # Linie, hoechstens TOP_JE_ANBIETER je Anbieter), nicht mehr einfach die drei staerksten.
+    oben = {n.get("link") for n in _top_auswahl(news)[:SCHLAGZEILEN_AB]}
     zeilen, gesehen = [], set()
     for n in news:
         sid = n.get("story_id") or n.get("link")
@@ -709,7 +771,7 @@ def _ssr_schlagzeilen_block(news):
             continue
         gesehen.add(sid)
         titel = (n.get("schlagzeile") or n.get("title") or "").strip().rstrip(".")
-        if not titel or len(gesehen) <= SCHLAGZEILEN_AB:
+        if not titel or n.get("link") in oben:
             continue
         if n.get("seite"):
             a = f'<a href="{_html.escape(n["seite"], quote=True)}">'
@@ -6870,6 +6932,12 @@ def _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache):
         if sid:
             storys.add(sid)
         kandidaten.append(n)
+    # 16.11.26: Die Top-Plaetze nach _top_auswahl() gehoeren immer dazu. Mit der Anbieter-Grenze
+    # rueckt dort eine Meldung nach, die nach Punkten nicht unter den ersten acht steht.
+    schon = {id(n) for n in kandidaten}
+    for n in _top_auswahl(sichtbar):
+        if id(n) not in schon:
+            kandidaten.append(n)
 
     zaehler = {"cache": 0, "neu": 0, "verworfen": 0}
     offen = []
@@ -7649,6 +7717,20 @@ def main():
         save_post_cache(_cfg_base, post_cache)
     except Exception as e:
         logger.exception("Linien-Kapitel uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Anbieter je Meldung fuer die Top-Plaetze (16.11.26), siehe TOP_JE_ANBIETER. Vor den
+    # Schlagzeilen, weil deren Kandidaten die Top-Plaetze enthalten. Nie blockierend.
+    try:
+        for _n in news_list:
+            _n.pop("anbieter", None)
+            _a = _top_anbieter(_n.get("title")) if TOP_JE_ANBIETER else []
+            if _a:
+                _n["anbieter"] = _a
+        _oben = _top_auswahl(news_list)
+        logger.info("Top-Plaetze (je Anbieter hoechstens %d): %s", TOP_JE_ANBIETER,
+                    " | ".join("%s [%s]" % ((n.get("title") or "")[:50], ",".join(n.get("anbieter") or []))
+                               for n in _oben))
+    except Exception as e:
+        logger.exception("Top-Anbieter uebersprungen (Pipeline unbeeinflusst): %s", e)
     # Schlagzeile + Anriss fuer die Hero-Kandidaten (27.10.26), nie blockierend
     try:
         _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache)
@@ -7676,6 +7758,7 @@ def main():
         "cluster_schatten": _cluster_treffer,
         "dub_jev": _dub_jev,
         "werbung_links": sorted(l for l in _WERBUNG_GEFUNDEN if l),
+        "top_je_anbieter": TOP_JE_ANBIETER,
     }
 
     # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.

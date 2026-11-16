@@ -6280,12 +6280,26 @@ Promise.all([
   // und belegten beide Top-Plaetze. Die aeltere Entwicklung steht ohnehin im
   // Linienband der Top-Story; der naechste Kandidat rueckt nach. Gepinnte Artikel
   // zaehlen immer. Im News-Raster bleiben alle stehen.
+  // Hoechstens data.top_je_anbieter Top-Plaetze je Anbieter (16.11.26, Daniel): Die Nvidia-
+  // Huang-Affaere belegte alle 5 Plaetze, verteilt auf sechs Linien. n.anbieter setzt
+  // ki_news.py aus entities.json. Ohne die Felder (aelterer Stand) gilt keine Grenze.
+  // Kill-Switch: TOP_JE_ANBIETER = 0 in ki_news.py. ki_news.py::_top_auswahl() rechnet
+  // dieselbe Auswahl fuer die Schlagzeilen-Leiste nach.
+  var _jeAnbieter = Number(data.top_je_anbieter) || 0, _anbieterTop = {};
+  function _anbieterVoll(n){
+    return _jeAnbieter > 0 && (n.anbieter || []).some(function(a){ return (_anbieterTop[a] || 0) >= _jeAnbieter; });
+  }
+  function _anbieterZaehlen(n){
+    (n.anbieter || []).forEach(function(a){ _anbieterTop[a] = (_anbieterTop[a] || 0) + 1; });
+  }
   var top = featured.slice(0,5), _linienTop = {};
-  top.forEach(function(n){ if (n.linie) _linienTop[n.linie] = 1; });
+  top.forEach(function(n){ if (n.linie) _linienTop[n.linie] = 1; _anbieterZaehlen(n); });
   nonFeatured.forEach(function(n){
     if (top.length >= 5) return;
     if (n.linie && _linienTop[n.linie]) return;
+    if (_anbieterVoll(n)) return;
     if (n.linie) _linienTop[n.linie] = 1;
+    _anbieterZaehlen(n);
     top.push(n);
   });
   topLinks = top.map(function(n){return n.link;}).filter(Boolean);
