@@ -2384,6 +2384,81 @@ def _jev_werbung_pruefen(news_list):
     return treffer
 
 
+# Plauderei-Pruefung fuer Digg per Jev (16.11.26, Daniel: "Bei Digg AI wuerde ich nicht das
+# Geplauder nehmen, sondern die Verlinkung auf X und dann den X-Post anschauen und auswerten").
+# Digg macht aus X-Beitraegen eigene Seiten, auch aus Witzen, Meinungen und Sammelposts.
+# Messung 16.11. an 145 Digg-Seiten: von 105 hervorgehobenen X-Beitraegen waren 20 Plauderei und
+# 14 Grenzfaelle. Von 23 Digg-Karten seit 08.11. waren 7 Plauderei (Wasserflasche, Gradio-
+# Challenge, Claude-Podium ...), 3 davon ohne hervorgehobenen X-Beitrag. Darum fragt Jev mit
+# Titel, Digg-Zusammenfassung und X-Beitrag samt Autorprofil. Gefragt wird in x_ursprung.py
+# einmal je Meldung, das Urteil ("pl") steht in x_ursprung.json.
+# Modus "schatten": nur loggen ([PLAUDEREI-JEV ...]). "scharf": Digg-Meldungen mit
+# p >= PLAUDEREI_JEV_SCHWELLE verlieren PLAUDEREI_JEV_ABZUG Punkte (Boden 0). Anders als bei der
+# Werbe-Pruefung nur die Digg-Meldung selbst, nicht die ganze Story: berichten andere Quellen
+# dasselbe, ist es keine Plauderei, und die Story behaelt ihren Platz ueber diese Meldungen.
+# "aus": keine Jev-Fragen, x_ursprung.py arbeitet wie vorher.
+PLAUDEREI_JEV_MODUS = "schatten"
+PLAUDEREI_JEV_SCHWELLE = 0.8
+PLAUDEREI_JEV_ABZUG = 30
+_JEV_FRAGE_PLAUDEREI = {
+    "type": "noul",
+    "instructions": "Digg hat aus einem X-Beitrag eine eigene Meldung gemacht. Ist `meldung` nur "
+                    "Plauderei ohne eigenen Nachrichtenwert statt einer echten Nachricht?",
+    "criteria": {
+        "true": "Ja, Plauderei: Kern ist eine Meinung, ein Witz oder Meme, eine persoenliche "
+                "Erfahrung oder Alltagsbeobachtung, ein Tipp oder eine Sammelliste, ein Aufruf "
+                "oder eine Challenge, eine Spekulation oder Frage, oder eine Reaktion auf etwas "
+                "Bekanntes, ohne neue Tatsache.",
+        "false": "Nein, Nachricht: Es wird eine neue Tatsache berichtet, z. B. Produktstart, "
+                 "neues Modell oder Update, Forschungsergebnis, Zahl, Deal, Finanzierung, "
+                 "Personalie, Gesetz, Vorfall oder eine offizielle Aussage einer Firma, Behoerde "
+                 "oder bekannten Person, auch wenn sie locker formuliert ist.",
+    },
+}
+
+
+def _jev_plauderei(meldung, key):
+    body = json.dumps({"model": "jev-latest", "state": {"meldung": meldung},
+                       "questions": {"plauderei": _JEV_FRAGE_PLAUDEREI}}).encode("utf-8")
+    req = urllib.request.Request("https://api.typesafe.ai/v1/systemone", data=body,
+                                 headers={"Authorization": "Bearer " + key,
+                                          "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return float(json.loads(r.read())["answers"]["plauderei"]["noul"])
+
+
+def _plauderei_pruefer():
+    """Pruef-Funktion fuer x_ursprung.nachtragen() oder None (Modus aus oder kein Key)."""
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if PLAUDEREI_JEV_MODUS == "aus" or not key:
+        return None
+    return lambda text: _jev_plauderei(text, key)
+
+
+def _plauderei_anwenden(news_list, urteile):
+    """Loggt die Digg-Meldungen mit Plauderei-Urteil ueber der Schwelle. Im Modus "scharf"
+    Abzug nur fuer diese Meldungen. Gibt die Treffer zurueck."""
+    if PLAUDEREI_JEV_MODUS == "aus" or not urteile:
+        return []
+    treffer = []
+    for n in news_list:
+        p = urteile.get(n.get("link")) if isinstance(n, dict) else None
+        if not isinstance(p, (int, float)) or p < PLAUDEREI_JEV_SCHWELLE:
+            continue
+        treffer.append(n)
+        alt = n.get("score") or 0
+        if PLAUDEREI_JEV_MODUS == "scharf":
+            n["score"] = max(0, alt - PLAUDEREI_JEV_ABZUG)
+            n["plauderei_jev"] = round(p, 3)
+        print(f"[PLAUDEREI-JEV {PLAUDEREI_JEV_MODUS} ja p={p:.2f}] Score {alt} -> {n.get('score')} "
+              f"{(n.get('title') or '')[:70]!r}")
+        logger.info("PLAUDEREI-JEV %s ja p=%.2f: Score %s %s %r", PLAUDEREI_JEV_MODUS, p, alt,
+                    n.get("link", ""), (n.get("title") or "")[:90])
+    print(f"PLAUDEREI-JEV {PLAUDEREI_JEV_MODUS}: {len(urteile)} Digg-Meldungen mit Urteil, "
+          f"{len(treffer)} Plauderei (p >= {PLAUDEREI_JEV_SCHWELLE})")
+    return treffer
+
+
 # Cluster-Zusammenlegung per Jev, SCHATTEN (21.10.26, Daniel). Gegenstueck zum Veto oben, das
 # nur trennt: am 21.10. lag die US-Sperre gegen DeepSeek in s000 (9 Artikel, uebersetzte Quellen)
 # und s002 (The Decoder, Heise), dazu s009/s132 - auf der Seite zweimal unter den Top 3. Hier werden
@@ -7775,7 +7850,10 @@ def main():
     if X_URSPRUNG_AKTIV:
         try:
             import x_ursprung
-            x_ursprung.nachtragen(proj_dir if proj_dir.exists() else Path("."), news_list)
+            # 16.11.26: dazu Plauderei-Pruefung fuer Digg (siehe PLAUDEREI_JEV_MODUS)
+            _xu = x_ursprung.nachtragen(proj_dir if proj_dir.exists() else Path("."), news_list,
+                                        pruefer=_plauderei_pruefer())
+            _plauderei_anwenden(news_list, (_xu or {}).get("urteile") or {})
         except Exception as e:
             logger.exception("X-Ursprung uebersprungen (Pipeline unbeeinflusst): %s", e)
     # ── Themenkette (14.09.26 Schatten, 19.09.26 Anzeige): ordnet Artikel den
