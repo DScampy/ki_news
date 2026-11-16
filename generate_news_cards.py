@@ -430,6 +430,38 @@ EINORDNUNG_ZUSATZ = (
     "'Top 6' nennst du nur, wenn klar ist, wessen Rangliste das ist."
 )
 
+# 16.11.26 (Daniel: "bei Digg AI den X-Post anschauen und auswerten"): Bei Digg-Meldungen kannte
+# die Einordnung nur Titel und Zusammenfassung von Digg. Die sind oft duenn oder schief. Beispiel
+# "KI-Sehstudie": Die Karte sprach von Sehtests, der X-Beitrag handelt von Bild-Encodern in
+# Sprachmodellen. Jetzt holt die Karte den vollen Text des von Digg hervorgehobenen X-Beitrags
+# (x_beitrag aus x_ursprung.py, sonst link_ursprung bei ursprung_art "digg-x") samt Name und
+# Profil des Autors ueber FxTwitter und gibt ihn als "Originalbeitrag auf X" mit. Die Jev-
+# Deckungspruefung bekommt ihn auch, sonst gaelte ein Fakt daraus als erfunden.
+# Nichts davon wird gespeichert. Faellt der Abruf aus, ist die Karte wie vorher.
+# Probe mit Gemini Flash Lite: Bei "Claude dominiert das Podium" handelt der hervorgehobene
+# Beitrag von etwas ganz anderem (ein Agent kuendigt ein Abo). Das Modell erzaehlte trotz Regel
+# diese Geschichte. Darum fragt Jev vorher, ob der Beitrag zur Meldung passt. Nur ab
+# EINORDNUNG_X_PASST_MIN geht er mit. Ohne Jev-Antwort (kein Key, Fehler) bleibt die Karte wie vorher.
+# Kill-Switch: EINORDNUNG_X_AKTIV = False.
+EINORDNUNG_X_AKTIV   = True
+EINORDNUNG_X_ZEICHEN = 900
+EINORDNUNG_X_PASST_MIN = 0.5
+_FX_THREAD = "https://api.fxtwitter.com/2/thread/"
+_X_STATUS_RE = re.compile(
+    r"^https?://(?:www\.|mobile\.)?(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/(\d+)")
+EINORDNUNG_X_REGEL = (
+    "\n\nZum Originalbeitrag:\n"
+    "- Manchmal bekommst du unter 'Originalbeitrag auf X' den X-Beitrag, aus dem die Meldung "
+    "stammt, mit Name und Profil des Autors. Er ist die eigentliche Quelle. Die HAUPTREGEL gilt "
+    "für ihn genauso: Fakten daraus darfst du nutzen, erfinde nichts dazu. Sind Titel oder "
+    "Zusammenfassung ungenauer als der Beitrag, richte dich nach dem Beitrag. Geht es im Beitrag "
+    "um mehrere Themen, nimm nur den Teil, der zur Meldung passt. Passt er gar nicht zur Meldung, "
+    "lass ihn weg und bleib bei Titel und Zusammenfassung. Nennst du den "
+    "Autor, dann mit Namen und Rolle aus dem Profil, nie mit seinem @-Namen. Ist der Beitrag "
+    "nur eine Meinung, ein Witz oder eine Beobachtung, sag das ehrlich, statt eine große "
+    "Nachricht daraus zu machen."
+)
+
 # ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
 def slugify(text: str, max_len: int = 50) -> str:
@@ -1093,12 +1125,14 @@ def generate_tts(ssml: str, slug: str, voice_name: str, voice_gender: str) -> tu
 # ─── Groq ─────────────────────────────────────────────────────────────────────
 
 def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, note: str = "",
-              story: str = "") -> str | None:
+              story: str = "", x_original: str = "") -> str | None:
     """Generischer LLM-Aufruf. Gibt Text zurück oder None bei Fehler.
     note (27.06.26): optionale Ton-/Angle-Vorgabe vom Admin-Panel (force_cards),
     z.B. "ernst bleiben, keine Kindersprache" - steuert nur den Stil, ersetzt
     den Kartentext nicht (das LLM schreibt ihn weiterhin selbst)."""
     user_content = f"News: {headline}\n\nZusammenfassung: {summary}"
+    if x_original:   # 16.11.26, siehe EINORDNUNG_X_AKTIV
+        user_content += f"\n\nOriginalbeitrag auf X, aus dem die Meldung stammt:\n{x_original}"
     if story:   # 15.11.26 (Vorschlag E), siehe EINORDNUNG_STORY_AKTIV
         user_content += f"\n\nWeitere Meldungen zur selben Story (nur Hintergrund):\n{story}"
     if note:
@@ -1106,7 +1140,8 @@ def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, 
     payload = json.dumps({
         "model": model,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT + (EINORDNUNG_ZUSATZ if EINORDNUNG_STORY_AKTIV else "")},
+            {"role": "system", "content": SYSTEM_PROMPT + (EINORDNUNG_ZUSATZ if EINORDNUNG_STORY_AKTIV else "")
+                                         + (EINORDNUNG_X_REGEL if x_original else "")},
             {"role": "user",   "content": user_content}
         ],
         # 02.07.26: 120 -> 220. 120 Tokens reichten fuer 3 deutsche Saetze oft
@@ -1192,7 +1227,8 @@ def _looks_invalid(text: str) -> str | None:
     return None
 
 
-def _jev_gedeckt(headline: str, summary: str, text: str, story: str = "") -> float | None:
+def _jev_gedeckt(headline: str, summary: str, text: str, story: str = "",
+                 x_original: str = "") -> float | None:
     """Jev-Deckungspruefung (TypeSafe, 26.09.26): Wahrscheinlichkeit (0..1), dass
     `text` (die generierte Einordnung) eine Tatsachenbehauptung enthaelt - Grund,
     Ursache, Motiv, Zahl, Folge als Fakt -, die weder in `headline` noch in
@@ -1231,6 +1267,11 @@ def _jev_gedeckt(headline: str, summary: str, text: str, story: str = "") -> flo
             "in `titel` und `zusammenfassung`", "in `titel`, `zusammenfassung` und `weitere_meldungen`")
         frage["criteria"]["false"] = frage["criteria"]["false"].replace(
             "`titel`/`zusammenfassung`", "`titel`/`zusammenfassung`/`weitere_meldungen`")
+    if x_original:   # 16.11.26 (EINORDNUNG_X_AKTIV): der X-Beitrag ist die eigentliche Quelle
+        state["originalbeitrag"] = x_original[:1500]
+        frage["instructions"] += " Was im `originalbeitrag` steht, gilt ebenfalls als gedeckt."
+        frage["criteria"]["true"] += " Fakten aus `originalbeitrag` zaehlen nicht als erfunden."
+        frage["criteria"]["false"] += " Fakten aus `originalbeitrag` gelten ebenfalls als gedeckt."
     body = json.dumps({
         "model": "jev-latest",
         "state": state,
@@ -1276,6 +1317,41 @@ def _jev_gleiches_ereignis(neu: str, vorher: str) -> float | None:
         with urllib.request.urlopen(req, timeout=15) as r:
             antwort = json.loads(r.read())["answers"]
         return float(antwort["gleich"]["noul"])
+    except Exception:
+        return None
+
+
+def _jev_x_passt(headline: str, summary: str, beitrag: str) -> float | None:
+    """Jev-Passt-Pruefung (16.11.26, siehe EINORDNUNG_X_PASST_MIN): Wahrscheinlichkeit (0..1),
+    dass der X-Beitrag `beitrag` von derselben Sache handelt wie die Meldung aus `titel` und
+    `zusammenfassung`. Bei einer Sammelliste reicht ein passender Teil.
+
+    None = Pruefung uebersprungen (kein Key oder irgendein Fehler/Timeout). Der Aufrufer laesst
+    den Beitrag dann weg, die Karte wird wie vor dem 16.11.26 gebaut."""
+    if not TYPESAFE_API_KEY:
+        return None
+    body = json.dumps({
+        "model": "jev-latest",
+        "state": {"titel": headline or "", "zusammenfassung": (summary or "")[:600],
+                  "beitrag": (beitrag or "")[:1500]},
+        "questions": {"passt": {
+            "type": "noul",
+            "instructions": "Handelt `beitrag` (ein X-Beitrag, oft auf Englisch) von derselben "
+                            "Sache wie die Meldung aus `titel` und `zusammenfassung`?",
+            "criteria": {
+                "true": "Ja: `beitrag` berichtet ueber dieselbe Sache wie die Meldung, auch wenn "
+                        "Titel und Zusammenfassung schief uebersetzt oder duenner sind. Bei einer "
+                        "Sammelliste reicht es, wenn ein Punkt davon die Meldung ist.",
+                "false": "Nein: `beitrag` handelt von etwas anderem. Dass dieselbe Firma, dasselbe "
+                         "Produkt oder dasselbe Thema vorkommt, reicht allein nicht.",
+            }}}
+    }).encode("utf-8")
+    req = urllib.request.Request(JEV_API, data=body, headers={
+        "Authorization": "Bearer " + TYPESAFE_API_KEY, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            antwort = json.loads(r.read())["answers"]
+        return float(antwort["passt"]["noul"])
     except Exception:
         return None
 
@@ -1350,14 +1426,69 @@ def _story_kontext(article: dict, artikel: list, l2s: dict) -> str:
     return "\n".join(z for z, _ in auswahl)
 
 
-def groq_einordnung(headline: str, summary: str, note: str = "", story: str = "") -> tuple[str, str]:
+def _x_originalbeitrag(article: dict) -> str:
+    """X-Beitrag hinter einer Digg-Meldung als Text fuer die Einordnung (siehe EINORDNUNG_X_AKTIV).
+    Leer, wenn aus, kein X-Beitrag bekannt oder der Abruf scheitert."""
+    if not EINORDNUNG_X_AKTIV:
+        return ""
+    url = article.get("x_beitrag") or ""
+    if not url and article.get("ursprung_art") == "digg-x":
+        url = article.get("link_ursprung") or ""
+    m = _X_STATUS_RE.match(str(url))
+    if not m:
+        return ""
+    req = urllib.request.Request(_FX_THREAD + m.group(2), headers={
+        "User-Agent": "ki-news.live (+https://ki-news.live)", "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            d = json.loads(r.read(3_000_000))
+    except Exception as e:  # noqa: BLE001
+        print(f"  [WARN] X-ORIGINAL nicht geladen ({e.__class__.__name__}): {url}")
+        return ""
+    st = d.get("status") if isinstance(d, dict) else None
+    if not isinstance(st, dict):
+        return ""
+    text = (st.get("text") or (st.get("raw_text") or {}).get("text") or "").strip()
+    if not text:
+        return ""
+    a = st.get("author") if isinstance(st.get("author"), dict) else {}
+    handle = a.get("screen_name") or m.group(1)
+    wer = "@" + handle
+    if a.get("name") and a["name"] != handle:
+        wer = f"{a['name']} (@{handle})"
+    bio = " ".join(str(a.get("description") or "").split())
+    zeilen = [f"Autor: {wer}"]
+    if bio:
+        zeilen.append(f"Profil des Autors: {bio[:160]}")
+    zeilen.append(f"Beitrag: {limit_chars_sentence_safe(text, EINORDNUNG_X_ZEICHEN)}")
+    q = st.get("quote") if isinstance(st.get("quote"), dict) else {}
+    if (q.get("text") or "").strip():
+        q_von = ((q.get("author") or {}).get("screen_name") or "") if isinstance(q.get("author"), dict) else ""
+        zeilen.append(f"Darin zitiert{' von @' + q_von if q_von else ''}: "
+                      f"{limit_chars_sentence_safe(q['text'].strip(), 400)}")
+    x_text = "\n".join(zeilen)
+    p = _jev_x_passt(article.get("title") or "", article.get("summary") or "", x_text)
+    if p is None:
+        if TYPESAFE_API_KEY:   # ohne Key ist das der Normalfall, nicht loggen
+            print(f"  [X-ORIGINAL] @{handle}: Jev-Passt-Pruefung ohne Antwort, Beitrag weggelassen")
+        return ""
+    if p < EINORDNUNG_X_PASST_MIN:
+        print(f"  [X-ORIGINAL] @{handle}: passt nicht (p={p:.2f}), Beitrag weggelassen")
+        return ""
+    print(f"  [X-ORIGINAL] @{handle}: passt (p={p:.2f}), {len(text)} Zeichen")
+    return x_text
+
+
+def groq_einordnung(headline: str, summary: str, note: str = "", story: str = "",
+                    x_original: str = "") -> tuple[str, str]:
     """Groq → OpenRouter Fallback für ScampyKI-Einordnung.
     Gibt (text, model_label) zurueck. model_label dokumentiert, welches
     Modell/Provider den Text tatsaechlich geliefert hat — wird mit in
     cards.json geschrieben, damit Groq-vs-OpenRouter-Nutzung sichtbar bleibt,
     ohne auf (nicht committete) CI-Logs angewiesen zu sein.
     note: optionale Admin-Vorgabe (force_cards, siehe main()) fuer Ton/Angle.
-    story: Kurztexte anderer Meldungen derselben Story (_story_kontext, Vorschlag E)."""
+    story: Kurztexte anderer Meldungen derselben Story (_story_kontext, Vorschlag E).
+    x_original: X-Beitrag hinter einer Digg-Meldung (_x_originalbeitrag, 16.11.26)."""
     # 26.09.26: feste Kette EINORDNUNG_KETTE statt "erst alle Groq, dann alle OpenRouter"
     headers_je_anbieter = {
         "groq": {"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_API_KEY}"},
@@ -1379,14 +1510,14 @@ def groq_einordnung(headline: str, summary: str, note: str = "", story: str = ""
         if not key_je_anbieter[anbieter]:
             continue
         result = _llm_call(url_je_anbieter[anbieter], headers_je_anbieter[anbieter],
-                           model, headline, summary, note, story)
+                           model, headline, summary, note, story, x_original)
         if result:
             invalid_reason = _looks_invalid(result)
             if invalid_reason:
                 print(f"  [WARN] {anbieter}/{model} verworfen ({invalid_reason}): {result[:100]!r}")
                 continue
             if JEV_DECKUNG_AKTIV:
-                p = _jev_gedeckt(headline, summary, result, story)
+                p = _jev_gedeckt(headline, summary, result, story, x_original)
                 if p is not None and p >= JEV_DECKUNG_SCHWELLE:
                     print(f"  [WARN] {anbieter}/{model} JEV-DECKUNG nicht bestanden "
                           f"(p={p:.2f}): {result[:100]!r}")
@@ -2031,7 +2162,13 @@ def main() -> None:
             story_kontext = _story_kontext(article, articles, _l2s)
         except Exception as e:  # noqa: BLE001
             print(f"  [WARN] STORY-KONTEXT uebersprungen ({e.__class__.__name__}: {e})")
-        einordnung, llm_used = groq_einordnung(headline, summary, force_note, story_kontext)
+        # 16.11.26: bei Digg-Meldungen der X-Beitrag dahinter, siehe EINORDNUNG_X_AKTIV
+        x_original = ""
+        try:
+            x_original = _x_originalbeitrag(article)
+        except Exception as e:  # noqa: BLE001
+            print(f"  [WARN] X-ORIGINAL uebersprungen ({e.__class__.__name__}: {e})")
+        einordnung, llm_used = groq_einordnung(headline, summary, force_note, story_kontext, x_original)
         # 05.07.26: satzsicherer Cut statt summary[:280] (siehe limit_chars_sentence_safe)
         kontext    = limit_chars_sentence_safe(summary, 320) if summary else "–"
 
