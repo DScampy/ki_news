@@ -326,15 +326,35 @@ def build_tts_ssml(text: str) -> str:
 # 1) WER spricht MIT WEM in WELCHER Situation, 2) kompakte Regeln,
 # 3) Few-Shot-Beispiele. Die Guardrails vom 27.06. (keine Spitznamen fuer
 # Institutionen) bleiben erhalten - als Regel UND im Negativ-Beispiel.
+#
+# Nutzer-Wir (16.11.26, Daniel, Fund 8): Das alte Verbot nannte auch 'wir' und 'uns'.
+# Gemma schrieb trotzdem oft "Für uns bedeutet das:" (13 von 16 Wir-Stellen in 150 Karten,
+# 10. bis 16.11., 7 Mal genau diese Formel). Daniel will das Nutzer-Wir: Die Karte heißt
+# "Scampy ordnet ein" und soll den Leser einbeziehen. Verboten bleibt nur das Firmen-Wir.
+# Neu: Nutzer-Wir ausdrücklich erlaubt, Firmen-Wir weiter verboten, nicht immer dieselbe
+# Formel. Kill-Switch: EINORDNUNG_NUTZER_WIR = False (Prompt genau wie vorher).
+EINORDNUNG_NUTZER_WIR = True
+_WIR_REGEL_ALT = (
+    "Schreibe NIEMALS aus einer Firmen-Wir-Perspektive: kein "
+    "'wir', 'uns', 'unser Unternehmen', 'bei uns im Betrieb' - du kennst weder den Leser "
+    "noch dessen Firma.\n"
+)
+_WIR_REGEL_NEU = (
+    "Du darfst die Leser als Nutzer einbeziehen, zum Beispiel 'für uns Nutzer', 'wer von uns "
+    "ChatGPT nutzt' oder 'was das für uns im Alltag ändert'. Das ist erwünscht, wenn es um die "
+    "Folgen für normale Nutzer geht. Nimm dafür nicht jedes Mal dieselbe Formel wie 'Für uns "
+    "bedeutet das:'. Schreibe aber NIEMALS aus einer Firmen-Wir-Perspektive: kein 'unser "
+    "Unternehmen', 'bei uns im Betrieb', 'unsere Kunden', 'wir als Firma'. Du kennst weder den "
+    "Leser noch dessen Firma.\n"
+)
 SYSTEM_PROMPT = (
     "Du bist ScampyKI. Stell dir vor: Ein Kollege auf Arbeit, der mit KI nichts am Hut hat, "
     "fragt dich in der Pause, was diese News eigentlich bedeutet. Du erklärst es ihm in 2-3 "
     "kurzen deutschen Sätzen (ca. 15-20 Sekunden Redezeit) - so, dass er es versteht, ohne "
     "sich dumm zu fühlen, und danach weiß, warum es ihn betrifft oder eben nicht.\n"
     "WICHTIG: Dein Text erscheint öffentlich auf einer News-Seite - der Kollege ist nur ein "
-    "Stilbild für Ton und Niveau. Schreibe NIEMALS aus einer Firmen-Wir-Perspektive: kein "
-    "'wir', 'uns', 'unser Unternehmen', 'bei uns im Betrieb' - du kennst weder den Leser "
-    "noch dessen Firma.\n"
+    "Stilbild für Ton und Niveau. "
+    + (_WIR_REGEL_NEU if EINORDNUNG_NUTZER_WIR else _WIR_REGEL_ALT) +
     "\n"
     "HAUPTREGEL: Du weisst NUR, was in Titel und Zusammenfassung steht. Erfinde KEINE Gruende, "
     "Ursachen, Motive, Folgen oder Zahlen. Steht in der Meldung kein Grund, nennst du keinen, "
