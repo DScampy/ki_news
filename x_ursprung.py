@@ -5,7 +5,8 @@ Anlass (Daniel 15.11.):
 - AlignedNews liefert nur den X-Beitrag. Die eigentliche Quelle steht oft im Beitrag selbst
   oder in der ersten Antwort des Autors. Agile Robots: @roboticomarket schreibt den Text, der
   Link auf robotico.market steht erst in der Antwort darunter.
-- Digg AI fasst X-Beitraege zu einer Seite zusammen. Welcher Beitrag die Quelle ist, hebt Digg
+- Digg AI fasst X-Beitraege zu einer Seite zusammen (unter /ai/, /tech/, /world-business/ und
+  weiteren Bereichen, siehe DIGG_ALLE_BEREICHE). Welcher Beitrag die Quelle ist, hebt Digg
   selbst hervor ("Featured Source", in den Seitendaten hinter "original-post"). Kitesurf-Browser:
   die 15-Punkte-Liste von @gurtej__gill_. LangChain: @LangChain mit Link auf langchain.com.
 Bisher zeigte die Meldungsseite bei beiden nur "Originalquelle: AlignedNews" bzw. "Digg AI".
@@ -69,7 +70,16 @@ _KURZLINKS = {
 }
 _TRACKING = {"fbclid", "gclid", "mc_cid", "mc_eid", "ref_src", "igshid", "si", "linkid", "ncid"}
 _X_RE = re.compile(r"^https?://(?:www\.|mobile\.)?(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/(\d+)")
-_DIGG_RE = re.compile(r"^https?://(?:www\.)?digg\.com/ai/[A-Za-z0-9]+")
+# 16.11.26 (Daniel: Digg zuerst): Digg legt Storys nicht nur unter /ai/ ab, sondern auch unter
+# /tech/, /world-business/, /entertainment/, /gaming/. Im Archiv lagen 83 von 146 Digg-Meldungen
+# in diesen Bereichen und bekamen nie eine Ursprungsquelle. Die Seiten sind gleich aufgebaut,
+# Offline-Probe an 19 Seiten ausserhalb von /ai/: 10 mit hervorgehobener Quelle.
+# /entities/ ist eine Themenseite von Digg selbst, keine Story.
+# Kill-Switch: DIGG_ALLE_BEREICHE = False, dann wieder nur /ai/.
+DIGG_ALLE_BEREICHE = True
+_DIGG_RE = re.compile(r"^https?://(?:www\.)?digg\.com/(?!entities/)[a-z0-9-]+/[A-Za-z0-9]+"
+                      if DIGG_ALLE_BEREICHE else
+                      r"^https?://(?:www\.)?digg\.com/ai/[A-Za-z0-9]+")
 _RSC_MARKE = "self.__next_f.push([1,"
 _DIGG_MARKE = '"original-post",'
 _KURZ_PFAD_RE = re.compile(r"^/[A-Za-z0-9._-]{1,20}/?$")
