@@ -1051,14 +1051,36 @@ KI_KEYWORDS_SUBSTR = {
     "sprachmodell", "chatbot", "machine learning", "neural", "generativ",
 }
 
+# 16.11.26 (Fund 6, Daniel "weiter im Plan"): "google" allein liess jede Google-Meldung durch
+# (Pixel-Angebote, Chrome-Updates, Fitbit, Maps-Urteile, Akkutests). Gemessen an
+# summary-cache.json (30 Tage, 4595 Meldungen): 209 kamen nur ueber "google" durch, davon 29
+# mit KI-Bezug, 13 Grenzfaelle (Rechenzentren, Gmail-Werbung) und 167 ohne KI-Bezug.
+# Neu: "google" zaehlt nicht mehr allein. Dafuer eindeutige KI-Woerter, die in den 29 standen
+# (DeepMind, TPU, AlphaGenome, Weltmodell, Nano Banana ...). Damit bleiben 18 der 29, keiner der
+# 167. Dazu "a.i.": so schreibt die NYT, das bisherige \bai\b trifft das nicht. Feed-Probe
+# 16.11.: 3 NYT-Titel mit "A.I." kamen so neu durch, 10 Google-Titel fielen weg.
+# Kill-Switch: KI_FILTER_GOOGLE_ALLEIN = True (genau das alte Verhalten, ohne die neuen Woerter).
+KI_FILTER_GOOGLE_ALLEIN = False
+KI_KEYWORDS_SUBSTR_NEU = {
+    "deepmind", "a.i.", "world model", "weltmodell", "nano banana", "reinforcement learning",
+    "alphagenome", "alphafold", "alphaproof", "alphaevolve",
+}
+KI_KEYWORDS_WORD_NEU = {"tpu", "tpus"}
+
+
 def _is_ki_relevant(title: str) -> bool:
     """Prüft ob ein Titel KI-relevant ist – mit Wortgrenzen für Kurzkürzel."""
     t = title.lower()
+    if KI_FILTER_GOOGLE_ALLEIN:
+        sub, wort = KI_KEYWORDS_SUBSTR, KI_KEYWORDS_WORD
+    else:
+        sub = (KI_KEYWORDS_SUBSTR - {"google"}) | KI_KEYWORDS_SUBSTR_NEU
+        wort = KI_KEYWORDS_WORD | KI_KEYWORDS_WORD_NEU
     # Substr-Check (unkritische, lange Keywords)
-    if any(k in t for k in KI_KEYWORDS_SUBSTR):
+    if any(k in t for k in sub):
         return True
-    # Wort-Grenze-Check für ki / ai / llm / gpt
-    if any(re.search(r'\b' + re.escape(k) + r'\b', t) for k in KI_KEYWORDS_WORD):
+    # Wort-Grenze-Check für ki / ai / llm / gpt (und tpu)
+    if any(re.search(r'\b' + re.escape(k) + r'\b', t) for k in wort):
         return True
     return False
 
