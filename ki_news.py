@@ -709,6 +709,19 @@ SCHLAGZEILEN_AB = 3   # die ersten drei Storys stehen schon als Aufmacher und Se
 TOP_JE_ANBIETER = 2
 TOP_PLAETZE = 5       # wie index.html (Aufmacher plus Karussell)
 
+# Aufmacher-Wechsel (16.11.26, Daniel): Die China-Meldung "US-Labor ... Blackwell" stand am 15.11.
+# acht Laeufe am Stueck als Aufmacher oben. Neu: Ist dieselbe Story seit AUFMACHER_WECHSEL_LAEUFE
+# Laeufen der Aufmacher und hat die zweite Story mindestens AUFMACHER_WECHSEL_ANTEIL ihrer Punkte,
+# tauschen die beiden den Platz. Die alte Story bleibt als erste Seitenkarte sichtbar. Punkte,
+# Karten und News-Raster bleiben unveraendert. Gepinnte Meldungen gehen immer vor.
+# "Dieselbe Story" heisst: mindestens ein gemeinsamer Link (story_id gilt nur fuer einen Lauf).
+# Gemessen an 69 Laeufen (10.11. 01 UTC bis 16.11. 19 UTC): 5 Wechsel, davon 3 bei der China-Story.
+# ki_news.py schreibt den Verlauf und den Link der pausierten Meldung in news.json, index.html
+# tauscht danach. Kill-Switch: AUFMACHER_WECHSEL_LAEUFE = 0.
+AUFMACHER_WECHSEL_LAEUFE = 3
+AUFMACHER_WECHSEL_ANTEIL = 0.6
+AUFMACHER_VERLAUF_MAX = 6
+
 
 def _top_anbieter(titel, _cache={}):
     """Anbieter einer Meldung fuer die Top-Plaetze. Modelle und Produkte zaehlen fuer ihren
@@ -755,6 +768,40 @@ def _top_auswahl(news, anzahl=TOP_PLAETZE):
             zahl[a] = zahl.get(a, 0) + 1
         top.append(n)
     return top
+
+
+def _aufmacher_wechsel(news, verlauf_alt, gepinnt, zeit):
+    """Aufmacher-Wechsel, siehe AUFMACHER_WECHSEL_LAEUFE. Gibt (pause, serie, verlauf) zurueck:
+    pause ist der Link der Meldung, die den Aufmacher-Platz abgibt (sonst ""), serie die Zahl der
+    Laeufe davor mit derselben Story oben, verlauf die neue Liste fuer news.json. Der Verlauf
+    haelt den natuerlichen Aufmacher fest (ohne Tausch), damit die Pause anhaelt, solange die
+    Story oben steht und der Abstand klein bleibt. Links stehen nur als kurze Pruefsumme drin."""
+    import hashlib
+    verlauf_alt = [v for v in (verlauf_alt or []) if isinstance(v, dict)]
+    oben = _top_auswahl(news, 2)
+    if not oben:
+        return "", 0, verlauf_alt[-AUFMACHER_VERLAUF_MAX:]
+    erster = oben[0]
+    sid, link = erster.get("story_id"), erster.get("link")
+    links = {link}
+    for n in news:
+        if (sid and n.get("story_id") == sid) or (link and n.get("dub_von") == link):
+            links.add(n.get("link"))
+    kurz = sorted(hashlib.sha1(l.encode("utf-8")).hexdigest()[:12] for l in links if l)
+    serie = 0
+    for v in reversed(verlauf_alt):
+        if set(v.get("links") or []) & set(kurz):
+            serie += 1
+        else:
+            break
+    pause = ""
+    if (AUFMACHER_WECHSEL_LAEUFE and not gepinnt and link and len(oben) > 1
+            and serie >= AUFMACHER_WECHSEL_LAEUFE
+            and (oben[1].get("score") or 0) >= AUFMACHER_WECHSEL_ANTEIL * (erster.get("score") or 0)):
+        pause = link
+    eintrag = {"zeit": zeit, "titel": (erster.get("title") or "")[:90],
+               "score": erster.get("score"), "links": kurz}
+    return pause, serie, (verlauf_alt + [eintrag])[-AUFMACHER_VERLAUF_MAX:]
 
 
 def _ssr_schlagzeilen_block(news):
@@ -810,6 +857,13 @@ def inject_ssr(base_dir, news_json_data):
 
     # ── Hero (Top-Story) ──
     top = news[0]
+    # Aufmacher-Wechsel (16.11.26): dieselbe Meldung vorn wie index.html, sonst springt der
+    # Aufmacher beim Laden von der pausierten auf die naechste Story.
+    _pause = news_json_data.get("aufmacher_pause")
+    if _pause and top.get("link") == _pause:
+        _oben = _top_auswahl([n for n in (news_json_data.get("news") or []) if not n.get("dub_von")], 2)
+        if len(_oben) > 1 and _oben[0].get("link") == _pause:
+            top = _oben[1]
     hero = (
         "<!-- SSR:HERO:START -->\n"
         '            <div class="c-text">\n'
@@ -7946,6 +8000,30 @@ def main():
                                for n in _oben))
     except Exception as e:
         logger.exception("Top-Anbieter uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Aufmacher-Wechsel (16.11.26), siehe AUFMACHER_WECHSEL_LAEUFE. Liest den Verlauf aus der
+    # news.json des vorigen Laufs. Nie blockierend: im Fehlerfall bleibt der Aufmacher, wie er ist.
+    _aufmacher_pause, _aufmacher_verlauf = "", []
+    try:
+        _vorige_nj = (proj_dir if proj_dir.exists() else Path(".")) / "news.json"
+        _verlauf_alt = []
+        if _vorige_nj.exists():
+            _verlauf_alt = (json.loads(_vorige_nj.read_text(encoding="utf-8")) or {}).get("aufmacher_verlauf") or []
+        _gepinnt = bool(set(featured_links or []) & {n.get("link") for n in news_list})
+        _aufmacher_pause, _serie, _aufmacher_verlauf = _aufmacher_wechsel(
+            news_list, _verlauf_alt, _gepinnt, datum)
+        _oben2 = _top_auswahl(news_list, 2)
+        if _aufmacher_pause and len(_oben2) > 1:
+            logger.info("AUFMACHER-WECHSEL: Serie %d, '%s' (%s) -> '%s' (%s)", _serie,
+                        (_oben2[0].get("title") or "")[:60], _oben2[0].get("score"),
+                        (_oben2[1].get("title") or "")[:60], _oben2[1].get("score"))
+        elif _oben2:
+            logger.info("Aufmacher: Serie %d, kein Wechsel%s, '%s' (%s)%s", _serie,
+                        " (gepinnt)" if _gepinnt else "", (_oben2[0].get("title") or "")[:60],
+                        _oben2[0].get("score"),
+                        (" vor %s" % _oben2[1].get("score")) if len(_oben2) > 1 else "")
+    except Exception as e:
+        _aufmacher_pause = ""
+        logger.exception("Aufmacher-Wechsel uebersprungen (Pipeline unbeeinflusst): %s", e)
     # Schlagzeile + Anriss fuer die Hero-Kandidaten (27.10.26), nie blockierend
     try:
         _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache)
@@ -7974,6 +8052,8 @@ def main():
         "dub_jev": _dub_jev,
         "werbung_links": sorted(l for l in _WERBUNG_GEFUNDEN if l),
         "top_je_anbieter": TOP_JE_ANBIETER,
+        "aufmacher_pause": _aufmacher_pause,
+        "aufmacher_verlauf": _aufmacher_verlauf,
     }
 
     # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.

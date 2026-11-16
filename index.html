@@ -6302,6 +6302,13 @@ Promise.all([
     _anbieterZaehlen(n);
     top.push(n);
   });
+  // Aufmacher-Wechsel (16.11.26, Daniel): Steht dieselbe Story schon seit einigen Laeufen
+  // oben und liegt die zweite knapp dahinter, setzt ki_news.py data.aufmacher_pause auf ihren
+  // Link. Dann tauschen die ersten beiden Plaetze, die alte Story bleibt erste Seitenkarte.
+  // Gepinnte Meldungen gehen vor. Kill-Switch: AUFMACHER_WECHSEL_LAEUFE = 0 in ki_news.py.
+  if (!featured.length && data.aufmacher_pause && top.length > 1 && top[0].link === data.aufmacher_pause) {
+    top.splice(0, 2, top[1], top[0]);
+  }
   topLinks = top.map(function(n){return n.link;}).filter(Boolean);
   // Scampy-Posts (teaser/erklaerung/thread) den Top-Storys zuordnen – exakt per Link.
   // Kein Treffer -> kein (fremder) Teaser; die Karte faellt im Render auf die eigene
