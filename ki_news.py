@@ -3011,7 +3011,7 @@ def _dub_kw(titel):
 # Jetzt fragt Jev bei jedem Paar, das der Titelvergleich verdecken will, "dasselbe konkrete
 # Ereignis?" (dieselbe Frage wie _jev_veto). Liegt p unter DUB_JEV_SCHWELLE, bleibt die
 # Meldung sichtbar und der Vergleich sucht beim naechsten Kandidaten weiter. Registry-Treffer
-# (Stufe 2) fragt Jev nicht, die hat schon ein LLM geprueft.
+# (Stufe 2) fragt Jev seit 16.11.26 auch, siehe REG_JEV_MODUS weiter unten.
 # Schwelle 0,5 seit 15.11.26 (Daniel "Ja, Dubletten"). Vorher 0,2 wie JEV_VETO_SCHWELLE. Die
 # 0,2 war fuer Cluster gemessen (Meldungen derselben Story), beim Titelvergleich ist sie zu
 # niedrig. Messung: 106 Paare, auf die der Titelvergleich zutrifft und zu denen Jev ein Urteil
@@ -3031,6 +3031,26 @@ DUB_JEV_MODUS = "scharf"
 DUB_JEV_SCHWELLE = 0.5
 DUB_JEV_MAX = 25
 DUB_JEV_ZEIT_S = 60
+
+# ── Jev-Gegenprobe auch fuer Registry-Treffer (16.11.26, Daniel "Ja, Fund 4") ───────────────
+# Stufe 2 von _markiere_dubletten() verdeckte bisher ohne Rueckfrage, sobald zwei Meldungen in
+# derselben Registry-Story stehen. Die Registry ordnet aber ganze Storys zu, nicht einzelne
+# Ereignisse. Am 16.11. (Laeufe 01 und 04 UTC) hingen so "Jensen Huang erwaegt eine Rueckkehr
+# zu NVIDIA" und 14 Meldungen aus seinem Cluster hinter "Bessent sagt, Nvidia brauche einen
+# dramatischen Umbau mit Huang weg". "Runway veroeffentlicht Praxis-1" hing in 9 Laeufen hinter
+# "Robbyant veroeffentlicht LingBot-Touch", obwohl Jev fuer das Paar schon p 0,03 hatte.
+# Messung: 26 Registry-Paare aus 20 Laeufen (14.11. 09 UTC bis 16.11. 06 UTC), von Hand
+# bewertet: 13 echte Dubletten, 9 verschiedene Ereignisse, 4 unklar. Zu 15 Paaren hatte Jev
+# schon ein Urteil: die verschiedenen Ereignisse alle p 0,2 oder weniger, die echten Dubletten
+# alle 0,65 oder mehr. Jede Schwelle dazwischen trennt gleich, 0,5 wie beim Titelvergleich.
+# Jetzt fragt Jev auch hier, mit derselben Frage, demselben Cache und demselben Budget wie der
+# Titelvergleich (DUB_JEV_MAX, DUB_JEV_ZEIT_S). Liegt p unter REG_JEV_SCHWELLE, bleibt die
+# Meldung sichtbar und der Vergleich sucht beim naechsten Kandidaten weiter. Das Paar steht in
+# news.json unter "dub_jev" mit "stufe": "registry" und im Log als [REG-JEV ...].
+# Fail-open: ohne Urteil gilt die Registry wie bisher.
+# Kill-Switch: REG_JEV_MODUS = "schatten" (nur fragen und loggen) oder "aus".
+REG_JEV_MODUS = "scharf"
+REG_JEV_SCHWELLE = 0.5
 
 # 15.11.26 (Daniel, Belegstrang der Lutnick-Story): update_archive() zieht dub_von und
 # dub_quellen aus news.json nach, solange die Meldung dort steht. Vorher blieb im Archiv fuer
@@ -3180,11 +3200,13 @@ def _markiere_dubletten(news_list, base_dir=None):
          Cosinus 0,75, Entitaeten-Gate, LLM-Judge. Sagt sie ja, wird ohne
          jede Titelrechnung verdeckt; sagt sie fuer BEIDE Artikel aktiv
          etwas Verschiedenes (je eine Story mit mehreren Mitgliedern), ist
-         das ein Veto gegen das Verdecken.
+         das ein Veto gegen das Verdecken. Seit 16.11.26 fragt Jev auch
+         bei einem Registry-Ja nach (REG_JEV_MODUS, siehe oben).
       3. Titel-Heuristik -- nur noch dort, wo die Registry schweigt. Seit
          15.11.26 mit Jev-Gegenprobe (DUB_JEV_MODUS, siehe oben).
 
-    Gibt die Jev-Urteile der Stufe 3 zurueck (fuer news.json "dub_jev").
+    Gibt die Jev-Urteile der Stufen 2 und 3 zurueck (fuer news.json "dub_jev",
+    Registry-Paare mit "stufe": "registry").
 
     Warum in dieser Reihenfolge: ueber 8 news.json-Staende und 1232 Karten
     gemessen bestaetigt die Registry 20 der 124 Heuristik-Paare, spricht in
@@ -3208,8 +3230,10 @@ def _markiere_dubletten(news_list, base_dir=None):
     except Exception as e:
         logger.info("Entdopplung ohne Registry (%s) - nur Cluster und Titelvergleich", e)
     sortiert = sorted(news_list, key=lambda n: -(n.get("score") or 0))
+    titel_jev = DUB_JEV_MODUS in ("scharf", "schatten")
+    reg_jev = REG_JEV_MODUS in ("scharf", "schatten")
     jev = (_JevPaarUrteile(base_dir or Path("."), DUB_JEV_MAX, DUB_JEV_ZEIT_S, "DUB-JEV")
-           if DUB_JEV_MODUS in ("scharf", "schatten") else None)
+           if titel_jev or reg_jev else None)
     dub_jev = []
 
     # Stufe 1: innerhalb eines Clusters fuehrt der bestbewertete Artikel.
@@ -3236,6 +3260,20 @@ def _markiere_dubletten(news_list, base_dir=None):
             sid_f = reg_map.get(f.get("link") or "")
             if sid_n and sid_f:
                 if sid_n == sid_f:
+                    p = jev.urteil(f, n) if (jev and reg_jev) else None
+                    if p is not None:
+                        veto = p < REG_JEV_SCHWELLE
+                        stufe = "veto" if veto else "ok"
+                        print(f"[REG-JEV {REG_JEV_MODUS} {stufe} p={p:.2f}] {titel[:60]!r} ~ "
+                              f"{(f.get('title') or '')[:60]!r}")
+                        logger.info("REG-JEV %s %s p=%.2f: %r ~ %r", REG_JEV_MODUS, stufe, p,
+                                    titel[:80], (f.get("title") or "")[:80])
+                        dub_jev.append({"a": f.get("link") or "", "b": n.get("link") or "",
+                                        "p": round(p, 3), "veto": veto,
+                                        "titel_a": f.get("title") or "", "titel_b": titel,
+                                        "stufe": "registry"})
+                        if veto and REG_JEV_MODUS == "scharf":
+                            continue     # gleiche Registry-Story, aber anderes Ereignis
                     treffer = f          # Registry sagt ja - keine Titelrechnung noetig
                     break
                 if sid_n in reg_gross and sid_f in reg_gross:
@@ -3247,7 +3285,7 @@ def _markiere_dubletten(news_list, base_dir=None):
             if difflib.SequenceMatcher(None, f_norm, norm).ratio() < _GRID_MIN_SIM:
                 continue
             if _ist_dublette(f.get("title") or "", titel, _GRID_MIN_SIM):
-                p = jev.urteil(f, n) if jev else None
+                p = jev.urteil(f, n) if (jev and titel_jev) else None
                 if p is not None:
                     veto = p < DUB_JEV_SCHWELLE
                     stufe = "veto" if veto else "ok"
@@ -3287,11 +3325,18 @@ def _markiere_dubletten(news_list, base_dir=None):
     logger.info("Startseite: %d von %d Karten als Dublette markiert", n_weg, len(news_list))
     if jev and jev.key:
         jev.speichern()
+        titel_paare = [d for d in dub_jev if d.get("stufe") != "registry"]
+        reg_paare = [d for d in dub_jev if d.get("stufe") == "registry"]
         msg = ("DUB-JEV %s: %d Titelvergleich-Paare mit Urteil, %d Veto, %s"
-               % (DUB_JEV_MODUS, len(dub_jev), sum(1 for d in dub_jev if d["veto"]),
+               % (DUB_JEV_MODUS, len(titel_paare), sum(1 for d in titel_paare if d["veto"]),
                   json.dumps(jev.stat)))
         print(msg)
         logger.info(msg)
+        if reg_jev:
+            msg = ("REG-JEV %s: %d Registry-Paare mit Urteil, %d Veto (Budget gemeinsam mit DUB-JEV)"
+                   % (REG_JEV_MODUS, len(reg_paare), sum(1 for d in reg_paare if d["veto"])))
+            print(msg)
+            logger.info(msg)
     return dub_jev
 
 
