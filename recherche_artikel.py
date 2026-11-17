@@ -84,9 +84,13 @@ MAX_PRO_LAUF = 1
 # X-Belege (10.11.26, Daniel, Plan R1): X-Posts der HuggingNews-Kette (themenketten.json, Rolle
 # source/support) plus darin verlinkte Originalseiten als weitere Belege, Modul x_belege.py.
 # "schatten" = nur messen und ins Log schreiben, kein Artikel aendert sich. "aus" = Kill-Switch.
-# "an" kommt erst mit R2, nach 3 Tagen Schatten-Auswertung. MIN_QUELLEN gilt weiter: X-Posts
-# ersetzen keine Medien (Daniel: "mindestens drei oder vier Quellen").
-X_BELEGE = "schatten"
+# MIN_QUELLEN gilt weiter: X-Posts ersetzen keine Medien (Daniel: "mindestens drei oder vier Quellen").
+# "an" (R2, 17.11.26): Auswertung 10. bis 17.11., 45 Schatten-Zeilen, 39 mit HuggingNews-Kette, kein Fehler,
+# keine Zeitgrenze. 20 Kandidaten kamen von unter 2 auf mindestens 2 Textquellen. Regel A: Originalseiten mit
+# Text zaehlen als eigene Quelle, alle X-Posts zusammen hoechstens als eine, und mindestens eine
+# klassische Textquelle (Medium oder Originalseite) bleibt Pflicht. X-Posts und Originalseiten stehen in
+# der Quellenliste, zaehlen aber nicht als Medien (Register "medien", Erweiterungen, Medienzahl).
+X_BELEGE = "an"
 X_SCHATTEN_ZEIT_S = 45           # Zeitgrenze fuer alle Kandidaten eines Laufs zusammen (Test 10.11.: 6 in 19 s)
 # Laufende Faelle (10.11.26, Daniel, Plan R3): "ich möchte gerne, dass es endlich zusammenhängende
 # Recherche-Artikel gibt, auch wenn die sich über Tage hinziehen". Anlass: Der Huang-Fall lag am 10.11.
@@ -96,7 +100,17 @@ X_SCHATTEN_ZEIT_S = 45           # Zeitgrenze fuer alle Kandidaten eines Laufs z
 # Zwei-Modell-Votum), siehe linien_zuordnung. Meldungen ohne Linie laufen wie bisher ueber die story_id.
 # "schatten" = nur ins Log, was R3 taete, sonst alles wie vorher. "an" = ein Artikel je Linie.
 # "aus" = Kill-Switch, auch keine Log-Zeile.
-KETTEN = "schatten"
+KETTEN = "an"
+# Ketten-IDs wechseln (17.11.26 gemessen): Der Huang-Fall lief vom 10. bis 17.11. ueber 10 IDs
+# (7388b260, e06153aa, 710e19c7, dc0d1dc3, 4854f00a, 3d77848d, 240b67ce, 69a7170f, 6bfdb08c, f203dca9),
+# weil themenketten.json die Familien jeden Lauf neu bildet. Ein Artikel mit Linie wurde aber nur ueber
+# dieselbe ID gefunden. Replay 15. bis 17.11. (27 Laeufe) mit "an" ohne Fix: 12 Schreibplaetze, 11 davon
+# Nvidia/Huang, verteilt auf 6 Artikel, die Apple-Gesundheitsstudie wartete 5 Laeufe. Mit Fix: 10 Plaetze,
+# 7 davon Nvidia/Huang auf 4 Artikel, Apple, Kalifornien gegen OpenAI und Asiens Boersen kamen dran.
+# KETTEN_UEBER_IDS = True: Ein Artikel wird auch ueber gemeinsame Links gefunden, egal unter welcher ID er
+# entstand. Teilt eine Linie mindestens 2 Links mit einem Artikel, der heute schon geschrieben wurde, wird
+# sie heute nicht noch einmal geschrieben. False = Verhalten wie bisher.
+KETTEN_UEBER_IDS = True
 KETTE_MAX_TAGE = 7               # so lange wird ein Artikel fortgeschrieben, dann beginnt ein neuer Teil.
                                  # Daniel 10.11.: Meldungen bleiben etwa eine Woche in der Pipeline, Dauer-
                                  # themen wie Rechenzentren bringen aber jeden Tag etwas Neues.
@@ -367,12 +381,25 @@ def _eintrag_zur_linie(register, lid, links, vergeben):
     alte = []
     for s, e in register.items():
         alt = zitierte_links(s, e)
-        if s in vergeben or e.get("linie") or not alt:
+        if s in vergeben or (e.get("linie") and not KETTEN_UEBER_IDS) or not alt:
             continue
         gemeinsam = len(alt & links)
         if gemeinsam >= min(2, len(alt)):
             alte.append(((e.get("status") == "veroeffentlicht", gemeinsam, e.get("datum") or ""), s))
     return max(alte)[1] if alte else None
+
+
+def _heute_gleicher_fall(register, links, heute, vergeben):
+    """Ein Artikel, der heute geschrieben oder in diesem Lauf vergeben wurde und mindestens 2 Links
+    (bei 1 Link diesen) mit der Linie teilt. Dann ist es derselbe Fall unter neuer Ketten-ID."""
+    for s, e in register.items():
+        fv = e.get("fehlversuch") or {}
+        if s not in vergeben and heute not in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
+            continue
+        alt = zitierte_links(s, e)
+        if alt and len(alt & links) >= min(2, len(alt)):
+            return s
+    return None
 
 
 def linien_zuordnung(news, linien, themen):
@@ -435,6 +462,11 @@ def linien_plan(news, linien, releases, register, heute, zug, familie, archiv=()
         plan.append(p)
         k = {"sid": "Linie " + lid, "rep": rep, "glieder": glieder, "links": sorted(links), "release": rel,
              "linie": lid, "zeitleiste": zeitleiste(linie), "medien_linie": sorted(medien)}
+        if KETTEN_UEBER_IDS:
+            heute_fall = _heute_gleicher_fall(register, bekannte, heute, vergeben)
+            if heute_fall:
+                p["slug"], p["grund"] = heute_fall, "heute schon geschrieben (gleicher Fall)"
+                continue
         slug = _eintrag_zur_linie(register, lid, bekannte, vergeben)
         e = register.get(slug) if slug else None
         if e and _tage(e.get("datum"), heute) > KETTE_MAX_TAGE:
@@ -681,6 +713,10 @@ def prompt(quellen, alt=None, fall=False):
     for q in quellen:
         # 01.11.: Bei "Medienbericht" schrieb Sonnet "Ein Medienbericht zitiert ..." statt des Mediums
         art = "Offizielle Herstellerseite" if q["hersteller"] else "Medium"
+        if q.get("aus_x") == "posts":   # R2: Aussagen von Konten, nicht von einer Redaktion geprueft
+            art = "Beiträge auf X, nur als Aussage des jeweiligen Kontos wiedergeben"
+        elif q.get("aus_x"):
+            art = "Originalseite, auf X verlinkt"
         if q.get("neu"):
             art += ", neu"
         teile.append(f"[{q['nr']}] {q['medium']} ({art})\nTitel: {q['titel']}\nText: {q['text']}")
@@ -894,6 +930,21 @@ def pruefe_text(a, quellen, dp, entities):
                                    mat, dp, entities)
 
 
+# Englische Gegenstuecke der deutschen Themen-Aliasse, nur fuer die Material-Seite der Entitaetspruefung.
+# 17.11.26 gemessen: 5 von 11 Huang-Versuchen seit 08.11. scheiterten nur an "Entität Exportkontrollen",
+# weil der Artikel deutsch "Exportkontrollen" schreibt und die Quellen englisch "export controls".
+# Bewusst hier und nicht in entities.json, die lesen noch vier andere Module.
+ENTITAET_MATERIAL_EN = {
+    "Exportkontrollen": r"export.?control|export.?restrict|export.?curb|export.?ban|export.?rule",
+    "Energie": r"power.?consum|energy.?demand|power.?demand|electricity.?demand|energy.?consum",
+    "Chips/GPUs": r"semiconductor|gpus",
+    "Rechenzentren": r"datacent",
+    "Robotik": r"robot",
+    "Datenschutz": r"privacy|data.?protection|gdpr",
+    "AGI": r"superintelligence",
+}
+
+
 def _inhalt_fehler(voll, titel, rest, mat, dp, entities):
     """Zeichen, Woerter, Zahlen, Namen, Personen und Entitaeten gegen das Material (aus pruefe_text, R4)."""
     fehler = []
@@ -920,9 +971,14 @@ def _inhalt_fehler(voll, titel, rest, mat, dp, entities):
         while len(teile) > 1 and re.fullmatch(r"[A-ZÄÖÜ][a-zäöüß]{2,}", teile[-1]):
             teile.pop()
         tok = "-".join(teile).rstrip(".")
+        # Zahl mit deutscher Endung ("6-fach", "40-köpfige", "33-jährige"): die Zahl prueft dp.pruefe.
+        if re.fullmatch(r"\d+(?:[.,]\d+)?(?:-[a-zäöüß]+)+", tok):
+            continue
         if not re.search(r"[A-Za-z]", tok) or not (re.search(r"\d", tok) or re.search(r"[a-z][A-Z]", tok)):
             continue
-        if re.sub(r"[-\s]+", " ", tok.lower()) not in mat_n:
+        tl = re.sub(r"[-\s]+", " ", tok.lower())
+        # Genitiv-s ("OpenAIs", "xAIs"): der Name ohne s reicht
+        if tl not in mat_n and not (tl.endswith("s") and len(tl) > 3 and tl[:-1] in mat_n):
             fehler.append(f'Name "{tok}" nicht in den Quellen')
     # Personen mit Kontext-Label: "Vorname Nachname (Rolle)"
     for name in re.findall(r"\b([A-ZÄÖÜ][\w'-]+(?:\s+[A-ZÄÖÜ][\w'-]+){1,2})\s+\(", voll):
@@ -932,7 +988,9 @@ def _inhalt_fehler(voll, titel, rest, mat, dp, entities):
         # Aliasse sind Wortanfaenge ("rechenzentr|data cent"). 01.11.: Mit \b am Ende fand "data cent"
         # kein "data centers", der OpenAI-Entwurf scheiterte an "Rechenzentren".
         muster = [re.compile(r"(?i)\b(?:" + al + r")") for al in e.get("aliasse") or []]
-        if any(m.search(voll) for m in muster) and not any(m.search(mat) for m in muster):
+        en = ENTITAET_MATERIAL_EN.get(e.get("id"))
+        quell = muster + ([re.compile(r"(?i)\b(?:" + en + r")")] if en else [])
+        if any(m.search(voll) for m in muster) and not any(m.search(mat) for m in quell):
             fehler.append(f'Entität "{e.get("id")}" nicht in den Quellen')
     return fehler
 
@@ -1335,7 +1393,7 @@ def rendere(a, k, quellen, karte, slug, stand, entwurf, bericht, erschienen=None
     if FORMAT_R4:
         bild, bild_klein, bild_von = bild_zur_story(k, quellen)
     robots = "noindex, nofollow" if entwurf else "index, follow, max-image-preview:large"
-    n_medien = sum(1 for q in quellen if not q["hersteller"])
+    n_medien = sum(1 for q in quellen if _ist_medium(q))
     erschienen = erschienen or stand
     datum = _tag_berlin(erschienen)
     ld = {"@context": "https://schema.org", "@type": "NewsArticle", "headline": a["titel"][:110],
@@ -1662,7 +1720,7 @@ def erweitere(e, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_wert
     e["versionen"] = (e.get("versionen") or []) + [
         {f: e.get(f) for f in ("datum", "aktualisiert", "titel", "anriss", "quellen", "modell", "links", "artikel")}]
     e.update(titel=artikel["titel"], anriss=artikel["anriss"], artikel=artikel, aktualisiert=heute,
-             quellen=len(quellen), medien=[q["medium"] for q in quellen if not q["hersteller"]],
+             quellen=len(quellen), medien=[q["medium"] for q in quellen if _ist_medium(q)],
              links=sorted(set(k["links"]) | set(e.get("links") or [])), modell=modell, pruefer=pinfo,
              jev=jev_werte, gruende=[], pruefung=PRUEFUNG_VERSION, stand_aktualisiert=stand,
              quellen_links=[q["link"] for q in quellen if q.get("link")])
@@ -1694,7 +1752,7 @@ def entwurf_fortschreiben(e, k, artikel, quellen, fehler, bestanden, modell, pin
         {f: e.get(f) for f in ("datum", "aktualisiert", "status", "titel", "anriss", "quellen", "modell",
                                "links", "gruende", "artikel")}]
     e.update(titel=artikel["titel"], anriss=artikel["anriss"], artikel=artikel, aktualisiert=heute,
-             quellen=len(quellen), medien=[q["medium"] for q in quellen if not q["hersteller"]],
+             quellen=len(quellen), medien=[q["medium"] for q in quellen if _ist_medium(q)],
              medien_linie=k.get("medien_linie") or [], links=sorted(set(k["links"]) | set(e.get("links") or [])),
              modell=modell, pruefer=pinfo, jev=jev_werte, gruende=fehler, pruefung=PRUEFUNG_VERSION, stand=stand,
              quellen_links=[q["link"] for q in quellen if q.get("link")])
@@ -1706,6 +1764,53 @@ def entwurf_fortschreiben(e, k, artikel, quellen, fehler, bestanden, modell, pin
         e.update(status="veroeffentlicht", pfad=f"/recherche/{slug}.html", datum=heute)
         e.pop("aktualisiert", None)
     e.pop("fehlversuch", None)
+
+
+def _ist_medium(q):
+    """Medium im Sinne von MIN_QUELLEN: keine Herstellerseite, kein X-Beleg (R2)."""
+    return not q["hersteller"] and not q.get("aus_x")
+
+
+def _x_quellen(k, quellen, dp, xs):
+    """Plan R2 (X_BELEGE = "an"): haengt verlinkte Originalseiten mit Text als eigene Quellen an und die
+    X-Posts als EINE Sammelquelle. Liefert (quellen, mit_text) nach Regel A. Fehler blockieren nie (I8)."""
+    mit_text = sum(1 for q in quellen if q["hat_text"])
+    try:
+        import x_belege
+        if xs.get("ende") is None:
+            xs["ende"] = time.monotonic() + X_SCHATTEN_ZEIT_S
+            xs["themen"] = _lade(BASE / "themenketten.json", {})
+        if time.monotonic() > xs["ende"]:
+            print(f"[RECHERCHE] X-Belege {k['sid']}: Zeitgrenze {X_SCHATTEN_ZEIT_S} s erreicht")
+            return quellen, mit_text
+        erg = x_belege.sammeln(k, xs["themen"], os.environ.get("HUGGINGNEWS_API_KEY", "").strip(),
+                               dp, _quelltext, xs["ende"], xs["cache"])
+        print(x_belege.logzeile(k["sid"], erg, mit_text,
+                                x_belege.bewertung(erg, mit_text, MIN_TEXTQUELLEN, dp.MIN_QUELLTEXT))
+              .replace("X-Schatten", "X-Belege").replace("wuerde schreiben", "Regeln"))
+    except Exception as e:
+        print(f"[RECHERCHE] X-Belege {k.get('sid')}: Fehler {type(e).__name__}, weiter ohne")
+        return quellen, mit_text
+    neu = list(quellen)
+    for o in erg["originale"]:
+        if o.get("hat_text") and o.get("text"):
+            neu.append({"medium": o.get("domain") or "Originalseite",
+                        "titel": f"verlinkt im X-Beitrag von @{o.get('von')}" if o.get("von") else "verlinkt auf X",
+                        "link": o["link"], "text": _sauber(o["text"])[:TEXT_JE_QUELLE], "hat_text": True,
+                        "hersteller": False, "aus_x": "original", "neu": False})
+    posts = erg["posts"]
+    if posts:
+        konten = list(dict.fromkeys("@" + p["handle"] for p in posts if p.get("handle")))
+        neu.append({"medium": "X", "titel": f"{len(posts)} Beiträge auf X ({', '.join(konten[:4])})",
+                    "link": posts[0].get("url") or "",
+                    "text": _sauber(" ".join(f"@{p['handle']}: {p['text']}" for p in posts))[:TEXT_JE_QUELLE],
+                    "hat_text": erg["zeichen"] >= dp.MIN_QUELLTEXT, "hersteller": False, "aus_x": "posts",
+                    "neu": False})
+    for i, q in enumerate(neu, 1):
+        q["nr"] = i
+    klassisch = sum(1 for q in neu if q["hat_text"] and q.get("aus_x") != "posts")
+    x = 1 if any(q["hat_text"] and q.get("aus_x") == "posts" for q in neu) else 0
+    return neu, klassisch + (x if klassisch >= 1 else 0)
 
 
 def _x_schatten(k, mit_text, dp, xs):
@@ -1797,6 +1902,8 @@ def main():
         mit_text = sum(1 for q in quellen if q["hat_text"])
         if X_BELEGE == "schatten":
             _x_schatten(k, mit_text, dp, xs)
+        elif X_BELEGE == "an":
+            quellen, mit_text = _x_quellen(k, quellen, dp, xs)
         if mit_text < MIN_TEXTQUELLEN:
             print(f"[RECHERCHE] {k['sid']} uebersprungen: nur {mit_text} Quellen mit Text "
                   f"({ms._titel(k['rep'])[:60]})")
@@ -1854,7 +1961,7 @@ def main():
                    "status": "veroeffentlicht" if bestanden else "entwurf", "story_id": k["sid"],
                    "quellen": len(quellen), "modell": modell, "jev": jev_werte, "pruefer": pinfo, "gruende": fehler,
                    "links": k["links"], "pruefung": PRUEFUNG_VERSION, "stand": stand,
-                   "medien": [q["medium"] for q in quellen if not q["hersteller"]], "artikel": artikel,
+                   "medien": [q["medium"] for q in quellen if _ist_medium(q)], "artikel": artikel,
                    "quellen_links": [q["link"] for q in quellen if q.get("link")]}
         if k.get("linie"):              # R3: Anker fuer das Fortschreiben
             eintrag.update(linie=k["linie"], medien_linie=k.get("medien_linie") or [])
