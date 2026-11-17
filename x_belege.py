@@ -179,11 +179,12 @@ def sammeln(k, themen, key="", dp=None, quelltext=None, ende=None, cache=None):
     erg["zeichen"] = sum(len(p["text"]) for p in erg["posts"])
     if quelltext and dp is not None:
         bekannt = {_domain(u) for g in k.get("glieder") or [] for u in (g.get("link_verlag"), g.get("link")) if u}
-        kandidat = []
+        kandidat, von = [], {}
         for p in erg["posts"]:
             for u in p["links"]:
                 if _domain(u) not in bekannt and u not in kandidat:
                     kandidat.append(u)
+                    von[u] = p["handle"]
         for u in kandidat[:MAX_ORIGINALE]:
             if time.monotonic() > ende:
                 break
@@ -191,7 +192,9 @@ def sammeln(k, themen, key="", dp=None, quelltext=None, ende=None, cache=None):
                 t = quelltext({"link": u}, dp)
             except Exception:
                 t = ""
-            erg["originale"].append({"link": u, "zeichen": len(t or ""), "hat_text": bool(t)})
+            # R2: Text und verlinkendes Konto bleiben nur im Speicher (Quelle im Prompt), nie in einer Datei
+            erg["originale"].append({"link": u, "zeichen": len(t or ""), "hat_text": bool(t), "text": t or "",
+                                     "von": von.get(u, ""), "domain": _domain(u)})
     return erg
 
 
