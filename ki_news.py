@@ -2636,9 +2636,11 @@ def _plauderei_anwenden(news_list, urteile):
 # Zweite Frage mit Kurztext (CLUSTER_JEV_TEXT_MODUS): liegt das Titel-Urteil zwischen
 # CLUSTER_JEV_TEXT_VON und _BIS, fragt Jev noch einmal mit Titel plus Kurztext beider Meldungen.
 # Bis 0,9, weil verschiedene Ereignisse der Huang-Affaere im Cache auch 0,81 und 0,84 bekamen.
-# Ob das trennschaerfer ist als der Titel allein, ist noch nicht gemessen. Darum zuerst
-# "schatten": nur loggen ("text=0.xx" in der CLUSTER-JEV-Zeile), entschieden wird wie bisher
-# nach dem Titel. "scharf": das Kurztext-Urteil entscheidet. "aus": keine zweite Frage.
+# "schatten": nur loggen ("text=0.xx" in der CLUSTER-JEV-Zeile), entschieden wird nach dem
+# Titel. "scharf": das Kurztext-Urteil entscheidet. "aus": keine zweite Frage.
+# Schatten 16.11. 11 UTC bis 17.11. 14 UTC (12 Laeufe): 6 Kurztext-Urteile, alle lagen ueber
+# dem Titel-Urteil. 2 haetten die Entscheidung gedreht (Huang-Rueckkehr 0,69 auf 0,75,
+# Boersen in Asien vor den Nvidia-Zahlen 0,63 auf 0,70), beide richtig. Darum seit 17.11. "scharf".
 # Schwelle 0,7 und Top 12 bleiben: Messung 14.-16.11. (21 Laeufe) in der PR-Beschreibung.
 CLUSTER_JEV_MODUS = "scharf"
 CLUSTER_JEV_TOP = 12
@@ -2646,7 +2648,7 @@ CLUSTER_JEV_MAX = 20
 CLUSTER_JEV_ZEIT_S = 60
 CLUSTER_JEV_SCHWELLE = 0.7
 CLUSTER_JEV_LOG_AB = 0.3
-CLUSTER_JEV_TEXT_MODUS = "schatten"
+CLUSTER_JEV_TEXT_MODUS = "scharf"
 CLUSTER_JEV_TEXT_VON = 0.5
 CLUSTER_JEV_TEXT_BIS = 0.9
 CLUSTER_JEV_TEXT_MAX = 6
