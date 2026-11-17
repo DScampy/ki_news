@@ -4075,6 +4075,36 @@ def _monatsarchiv_ablegen(base_dir, eintraege):
         logger.info("Monatsarchiv %s: %d neu abgelegt, %d gesamt", pfad.name, len(neu), len(liste))
 
 
+# 17.11.26 (Daniel): Die Kalender-Heatmap auf Archiv.html zeigte nur die gut 10 Tage aus
+# archive.json, obwohl archiv-monate/ alle Meldungen seit Mai haelt. Daniel will mindestens
+# 4 Wochen sehen. Statt archive.json zu vergroessern (20 Seiten laden sie, 28 Tage waeren
+# rund 6 MB) steht je Tag nur die Zahl der Meldungen in news.json ("archiv_tage", heute 4 KB).
+# Die Archivseite fuellt damit den Kalender und laedt die Monatsdatei erst, wenn jemand
+# einen aelteren Tag waehlt. Gezaehlt wie auf der Seite: Datum aus "date", sonst
+# "first_seen", jeder Link nur einmal. Kill-Switch: ARCHIV_TAGE_EXPORT = False.
+ARCHIV_TAGE_EXPORT = True
+
+
+def _archiv_tage_zaehlen(base_dir, news_list):
+    base = Path(base_dir)
+    dateien = sorted((base / "archiv-monate").glob("*.json")) + [base / "archive.json"]
+    gesehen, tage = set(), Counter()
+    quellen = [news_list]
+    for pfad in dateien:
+        if pfad.exists():
+            quellen.append(json.loads(pfad.read_text(encoding="utf-8")))
+    for liste in quellen:
+        for n in liste if isinstance(liste, list) else []:
+            link = n.get("link") if isinstance(n, dict) else None
+            if not link or link in gesehen:
+                continue
+            gesehen.add(link)
+            tag = str(n.get("date") or n.get("first_seen") or "")[:10]
+            if re.match(r"^\d{4}-\d{2}-\d{2}$", tag):
+                tage[tag] += 1
+    return dict(sorted(tage.items()))
+
+
 def _days_since(date_str):
     """Volle Tage zwischen date_str (YYYY-MM-DD) und heute. Robust gegen Müll."""
     if not date_str:
@@ -8232,6 +8262,14 @@ def main():
         "aufmacher_verlauf": _aufmacher_verlauf,
         "fallschirm": _fallschirm_neu,
     }
+    if ARCHIV_TAGE_EXPORT:
+        try:
+            news_json_data["archiv_tage"] = _archiv_tage_zaehlen(
+                proj_dir if proj_dir.exists() else Path("."), news_list)
+            logger.info("Archiv-Tage: %d Tage, %d Meldungen", len(news_json_data["archiv_tage"]),
+                        sum(news_json_data["archiv_tage"].values()))
+        except Exception as e:
+            logger.warning("Archiv-Tage uebersprungen (Pipeline unbeeinflusst): %s", e)
 
     # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.
     # Laeuft VOR news.json, weil es je Meldung das Feld "seite" setzt (Startseite verlinkt es).
