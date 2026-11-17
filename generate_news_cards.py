@@ -293,6 +293,22 @@ def _caps_sprechbar(m: re.Match) -> str:
     return w.capitalize()
 
 
+# 17.11.26: Dieselbe Regel mit Genitiv-s. "NVIDIAs H200" (31.10.) und "NVIDIAs 49.000 Mitarbeiter"
+# (15.11.) fielen durch, weil _CAPS_WORT nur ganze Grossbuchstaben-Woerter trifft. Jetzt wird daraus
+# "Nvidias". Gemessen an 300 Karten (26.10. bis 17.11.): 4 Karten mit Grossbuchstaben-Genitiv, davon
+# 2 sprechbar (NVIDIAs). LVMHs und ADTs bleiben wie bisher (kein Vokalpaar bzw. zu kurz).
+# Mehrzahl in TTS_SPELL_OUT ("DRAMs") bleibt unberuehrt. Kill-Switch: TTS_CAPS_GENITIV = False.
+TTS_CAPS_GENITIV = True
+_CAPS_GENITIV = re.compile(r"\b([A-ZÄÖÜ]{4,})s\b")
+
+
+def _caps_genitiv_sprechbar(m: re.Match) -> str:
+    w = m.group(1)
+    if w in TTS_SPELL_OUT or w in TTS_CAPS_AUSNAHMEN or sum(ch in "AEIOUÄÖÜ" for ch in w) < 2:
+        return m.group(0)
+    return w.capitalize() + "s"
+
+
 def _xml_escape(text: str) -> str:
     return (text.replace("&", "&amp;").replace("<", "&lt;")
                 .replace(">", "&gt;").replace('"', "&quot;"))
@@ -309,6 +325,8 @@ def build_tts_ssml(text: str) -> str:
     for original, spoken in PRONOUNCE_FIXES.items():
         text = re.sub(rf"\b{re.escape(original)}\b", spoken, text)
     text = _CAPS_WORT.sub(_caps_sprechbar, text)
+    if TTS_CAPS_GENITIV:
+        text = _CAPS_GENITIV.sub(_caps_genitiv_sprechbar, text)
     text = _xml_escape(text)
     for acro in sorted(TTS_SPELL_OUT, key=len, reverse=True):
         text = re.sub(
