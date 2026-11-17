@@ -2088,6 +2088,11 @@
     let PX_SEARCH_TIMER = null;
     let PX_ARCHIVE_READY = false;
     let PX_STAND_TEXT = "Archivdatei";
+    // 17.11.26: Meldungen je Tag ueber das ganze Archiv (news.json "archiv_tage") und die
+    // schon nachgeladenen Monatsdateien aus archiv-monate/.
+    let PX_TAGE = new Map();
+    const PX_MONATE_GELADEN = new Set();
+    let PX_MONAT_LAEDT = "";
 
     const pxById = id => document.getElementById(id);
 
@@ -2219,6 +2224,18 @@
       };
     }
 
+    function pxMergeKey(item) {
+      return item.link || [
+        item.storyId,
+        item.date,
+        pxNormalize(item.title)
+      ].join("|");
+    }
+
+    function pxNewsOrder(a, b) {
+      return String(b.date).localeCompare(String(a.date)) || b.score - a.score;
+    }
+
     function pxMergeNews(...collections) {
       const seen = new Set();
       const merged = [];
@@ -2227,20 +2244,73 @@
         const item = pxNormalizeNews(raw);
         if (!item) return;
 
-        const key = item.link || [
-          item.storyId,
-          item.date,
-          pxNormalize(item.title)
-        ].join("|");
+        const key = pxMergeKey(item);
 
         if (seen.has(key)) return;
         seen.add(key);
         merged.push(item);
       });
 
-      return merged.sort((a, b) => {
-        return String(b.date).localeCompare(String(a.date)) || b.score - a.score;
+      return merged.sort(pxNewsOrder);
+    }
+
+    // Meldungen je Tag: geladene Karten, ergaenzt um die Zaehlung des ganzen Archivs.
+    function pxTageZaehlung() {
+      const counts = new Map();
+
+      PX_ALL_NEWS.forEach(item => {
+        if (item.date) counts.set(item.date, (counts.get(item.date) || 0) + 1);
       });
+
+      PX_TAGE.forEach((count, key) => {
+        counts.set(key, Math.max(counts.get(key) || 0, count));
+      });
+
+      return counts;
+    }
+
+    // 17.11.26: archive.json haelt nur gut 10 Tage. Aeltere Tage liegen in
+    // archiv-monate/JJJJ-MM.json (abgelegt nach first_seen) und werden erst geladen,
+    // wenn ein solcher Tag gewaehlt ist. Fehlen danach noch Meldungen, kommt der
+    // Folgemonat dazu (Datum der Meldung kann vor first_seen liegen).
+    function pxMonatNachladen(key) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(key || "")) || PX_MONAT_LAEDT) return;
+
+      const geladen = PX_ALL_NEWS.filter(item => item.date === key).length;
+      if (geladen >= (PX_TAGE.get(key) || 1)) return;
+
+      const tag = pxDateFromKey(key);
+      const folge = new Date(Date.UTC(tag.getUTCFullYear(), tag.getUTCMonth() + 1, 1));
+      const monat = [key.slice(0, 7), folge.toISOString().slice(0, 7)]
+        .find(m => !PX_MONATE_GELADEN.has(m));
+      if (!monat) return;
+
+      PX_MONATE_GELADEN.add(monat);
+      PX_MONAT_LAEDT = monat;
+      pxRenderResults();
+
+      pxFetchJSON(`archiv-monate/${monat}.json`)
+        .then(data => {
+          const seen = new Set(PX_ALL_NEWS.map(pxMergeKey));
+          const neu = [];
+
+          pxArray(data, "items").forEach(raw => {
+            const item = pxNormalizeNews(raw);
+            if (!item) return;
+            const k = pxMergeKey(item);
+            if (seen.has(k)) return;
+            seen.add(k);
+            neu.push(item);
+          });
+
+          if (neu.length) PX_ALL_NEWS = PX_ALL_NEWS.concat(neu).sort(pxNewsOrder);
+        })
+        .catch(() => {})
+        .finally(() => {
+          PX_MONAT_LAEDT = "";
+          pxRenderAll();
+          if (PX_STATE.date === key) pxMonatNachladen(key);
+        });
     }
 
     function pxSearchText(item) {
@@ -2444,6 +2514,7 @@
       pxRenderFilterBar();
       pxWriteUrl();
       pxRenderResults();
+      pxMonatNachladen(PX_STATE.date);
 
       if (scrollToResults) {
         pxById("px-ergebnisse").scrollIntoView({
@@ -2542,6 +2613,12 @@
       return article;
     }
 
+    // true, wenn der Kalender Tage kennt, deren Meldungen noch nicht geladen sind.
+    function pxAeltereTage() {
+      const geladen = new Set(PX_ALL_NEWS.map(item => item.date));
+      return [...PX_TAGE.keys()].some(key => !geladen.has(key));
+    }
+
     function pxRenderResults() {
       const container = pxById("px-results");
       const empty = pxById("px-empty");
@@ -2562,11 +2639,18 @@
         PX_STATE.date
       ].filter(Boolean).length;
 
+      if (PX_MONAT_LAEDT && !filtered.length) {
+        pxSetText("px-result-count", "Lädt Meldungen aus dem Monatsarchiv");
+        empty.hidden = true;
+        loadWrap.hidden = true;
+        return;
+      }
+
       if (PX_ARCHIVE_READY) {
         pxSetText(
           "px-result-count",
           filtered.length
-            ? `${PX_NUMBER.format(filtered.length)} Meldungen${active ? ` bei ${active} aktiven Kriterien` : " im gesamten Archiv"}`
+            ? `${PX_NUMBER.format(filtered.length)} Meldungen${active ? ` bei ${active} aktiven Kriterien` : pxAeltereTage() ? " geladen, ältere Tage im Kalender wählen" : " im gesamten Archiv"}`
             : "0 Meldungen"
         );
       }
@@ -2648,8 +2732,9 @@
     }
 
     function pxRenderHeatmap() {
+      const tage = pxTageZaehlung();
       const years = [...new Set(
-        PX_ALL_NEWS.map(item => item.date.slice(0, 4)).filter(Boolean)
+        [...tage.keys()].map(key => key.slice(0, 4)).filter(Boolean)
       )].sort().reverse();
 
       if (!years.length) years.push(String(new Date().getUTCFullYear()));
@@ -2671,10 +2756,8 @@
 
       const counts = new Map();
 
-      PX_ALL_NEWS.forEach(item => {
-        if (item.date.startsWith(`${PX_STATE.heatYear}-`)) {
-          counts.set(item.date, (counts.get(item.date) || 0) + 1);
-        }
+      tage.forEach((count, key) => {
+        if (key.startsWith(`${PX_STATE.heatYear}-`)) counts.set(key, count);
       });
 
       const months = pxById("px-months");
@@ -2749,6 +2832,17 @@
         });
 
         grid.appendChild(cell);
+      }
+
+      // 17.11.26: Auf schmalen Bildschirmen zum gewaehlten oder neuesten Tag mit Meldungen
+      // springen, sonst sieht man zuerst die leeren Monate vor Mai.
+      const scroller = grid.closest(".px-heat-scroller");
+      const ziel = grid.querySelector(".px-heat-selected") ||
+        [...grid.querySelectorAll("button.px-heat-cell")].pop();
+
+      if (scroller && ziel && scroller.scrollWidth > scroller.clientWidth) {
+        scroller.scrollLeft += ziel.getBoundingClientRect().left -
+          scroller.getBoundingClientRect().left - scroller.clientWidth / 2;
       }
     }
 
@@ -3041,11 +3135,12 @@
     }
 
     function pxUpdateStats() {
-      pxSetText("px-total-stat", PX_NUMBER.format(PX_ALL_NEWS.length));
+      const tage = pxTageZaehlung();
+      let total = 0;
+      tage.forEach(count => { total += count; });
+      pxSetText("px-total-stat", PX_NUMBER.format(Math.max(total, PX_ALL_NEWS.length)));
 
-      const dates = [...new Set(
-        PX_ALL_NEWS.map(item => item.date).filter(Boolean)
-      )].sort();
+      const dates = [...tage.keys()].sort();
 
       pxSetText("px-days-stat", PX_NUMBER.format(dates.length));
       pxSetText(
@@ -3216,6 +3311,18 @@
         PX_ALL_NEWS = pxMergeNews(freshData, archiveData, cached);
         PX_ARCHIVE_READY = true;
 
+        const archivTage = newsResult.status === "fulfilled" && newsResult.value
+          ? newsResult.value.archiv_tage
+          : null;
+
+        if (archivTage && typeof archivTage === "object" && !Array.isArray(archivTage)) {
+          PX_TAGE = new Map(
+            Object.entries(archivTage)
+              .filter(([key, count]) => /^\d{4}-\d{2}-\d{2}$/.test(key) && Number(count) > 0)
+              .map(([key, count]) => [key, Number(count)])
+          );
+        }
+
         if (
           newsResult.status === "fulfilled" &&
           newsResult.value &&
@@ -3237,19 +3344,24 @@
           return;
         }
 
-        pxPopulateSources();
-        pxPopulateRegions();
-        pxCompileEntities();
-        pxRenderProviders();
-        pxRenderTopics();
-        pxRenderExtraNodes();
-        pxRenderNetwork();
-        pxRenderHeatmap();
-        pxUpdateStats();
-        pxSyncControls();
-        pxRenderFilterBar();
-        pxRenderResults();
+        pxRenderAll();
+        pxMonatNachladen(PX_STATE.date);
       });
+    }
+
+    function pxRenderAll() {
+      pxPopulateSources();
+      pxPopulateRegions();
+      pxCompileEntities();
+      pxRenderProviders();
+      pxRenderTopics();
+      pxRenderExtraNodes();
+      pxRenderNetwork();
+      pxRenderHeatmap();
+      pxUpdateStats();
+      pxSyncControls();
+      pxRenderFilterBar();
+      pxRenderResults();
     }
 
     function pxLoadHashtags() {
