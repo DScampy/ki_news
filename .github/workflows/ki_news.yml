@@ -276,6 +276,19 @@ jobs:
         timeout-minutes: 4
         continue-on-error: true
 
+      # HuggingNews-Finder (17.11.26, Daniel, Plan X1): SCHATTENBETRIEB, nur Beobachtung.
+      # Prueft je Lauf, welche grossen HN-Storys (ab 80 Tweets) uns fehlen, und sucht ihre
+      # Originalquelle (t.co-Ziel der Quell-Posts, sonst Google-News-Suche). Schreibt nur
+      # hn_finder_shadow.json und Logzeilen [HN-FINDER], keine HN-Texte (use=reference).
+      # Braucht themenketten.json und summary-cache.json aus diesem Lauf, darum nach ki_news.py.
+      # Kill-Switch: AKTIV = False in hn_finder_shadow.py oder diesen Schritt entfernen.
+      - name: HuggingNews-Finder Schatten (hn_finder_shadow.py)
+        env:
+          HUGGINGNEWS_API_KEY: ${{ secrets.HUGGINGNEWS_API }}
+        run: python3 hn_finder_shadow.py 2>&1 | tee -a ki_news.log
+        timeout-minutes: 4
+        continue-on-error: true
+
       # Recherche-Artikel (29.10.26, Daniel): Storys mit >= 3 Medien (oder Herstellerseite + 2)
       # bekommen einen eigenen Hintergrundartikel, Fliesstext vom Sprachmodell. Raus geht er nur,
       # wenn alle Pruefungen bestehen (Zahlen/Namen in den Quellen, Stil, Jev "gedeckt"), sonst
@@ -440,6 +453,8 @@ jobs:
             git add x_quellen.json 2>/dev/null || true
             # Ursprungsquelle (15.11.26): Funde fuer AlignedNews/Digg, siehe x_ursprung.py.
             git add x_ursprung.json 2>/dev/null || true
+            # HuggingNews-Finder (17.11.26): Schattendatei, Gedaechtnis der Funde.
+            git add hn_finder_shadow.json 2>/dev/null || true
             # Entwurfs-Automaten (28.09.26): nur der Entwurfsordner, noindex.
             git add artikel/entwurf/ 2>/dev/null || true
             # Recherche-Artikel (29.10.26): Seiten, Register, Sitemap (recherche_artikel.py).
