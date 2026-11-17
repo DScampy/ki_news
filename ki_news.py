@@ -722,6 +722,71 @@ AUFMACHER_WECHSEL_LAEUFE = 3
 AUFMACHER_WECHSEL_ANTEIL = 0.6
 AUFMACHER_VERLAUF_MAX = 6
 
+# Score-Fallschirm (17.11.26, Daniel): Grosse Storys stuerzten zwischen zwei Laeufen ab, weil ihr
+# Cluster zerfiel oder das LLM sie neu und niedriger bewertete. "Jensen Huang tritt als NVIDIA-CEO
+# zurueck" hatte 97 Punkte, im Lauf danach 29. Die 200-Blackwell-Regel hatte 69, dann 8, 54, 23.
+# Gemessen an 72 Laeufen (10.11. 01 UTC bis 17.11. 04 UTC): 44 von 328 Top-5-Meldungen fielen im
+# naechsten Lauf um 25 Punkte oder mehr. Neu: Der base_score einer Meldung (ohne Pin-Bonus) faellt
+# je Lauf hoechstens um SCORE_FALLSCHIRM Punkte. Nach oben bleibt alles frei. Anders als die
+# History-Heilung vor dem 13.07. friert nichts ein, der Wert sinkt weiter, nur langsamer.
+# Der Wert gilt je Link und nicht je Story. Je Story wuerde eine lose angehaengte Meldung den Wert
+# der grossen Story erben ("Hillary Clinton kritisiert US-Beamte" haette am 13.11. die 82 Punkte
+# des Huang-Ruecktritts bekommen). ki_news.py merkt sich die Werte als "fallschirm" in news.json.
+# Simuliert an denselben Laeufen: Abstuerze 46 -> 0, Aufmacher-Wechsel 47 -> 46.
+# Kill-Switch: SCORE_FALLSCHIRM = 0.
+SCORE_FALLSCHIRM = 15
+_FALLSCHIRM_VOR = {}   # Link-Pruefsumme -> base_score ohne Pin-Bonus aus dem vorigen Lauf
+
+
+def _fallschirm_schluessel(link):
+    import hashlib
+    return hashlib.sha1((link or "").encode("utf-8")).hexdigest()[:12]
+
+
+def _fallschirm(link, wert):
+    """Untergrenze aus dem vorigen Lauf, siehe SCORE_FALLSCHIRM. Ohne Vorwert bleibt der Wert."""
+    if not SCORE_FALLSCHIRM or not link or not _FALLSCHIRM_VOR:
+        return wert
+    vor = _FALLSCHIRM_VOR.get(_fallschirm_schluessel(link))
+    if vor is None:
+        return wert
+    return max(wert, vor - SCORE_FALLSCHIRM)
+
+
+def _fallschirm_vor_laden(nj_pfad):
+    """Liest die Werte des vorigen Laufs aus news.json. Nie blockierend."""
+    _FALLSCHIRM_VOR.clear()
+    if not SCORE_FALLSCHIRM:
+        return
+    try:
+        if nj_pfad.exists():
+            werte = (json.loads(nj_pfad.read_text(encoding="utf-8")) or {}).get("fallschirm") or {}
+            _FALLSCHIRM_VOR.update({k: int(v) for k, v in werte.items()
+                                    if isinstance(k, str) and isinstance(v, (int, float))})
+        logger.info("Score-Fallschirm: %d Werte aus dem vorigen Lauf", len(_FALLSCHIRM_VOR))
+    except Exception as e:
+        _FALLSCHIRM_VOR.clear()
+        logger.warning("Score-Fallschirm ohne Vorwerte (Pipeline unbeeinflusst): %s", e)
+
+
+def _fallschirm_eintrag(link, base_score, scoring, gemerkt, gehalten, titel=""):
+    """Score-Fallschirm fuer einen Eintrag in news.json, gibt den base_score zurueck.
+    Den Repraesentanten einer Story haelt schon pick_top_news, die uebrigen Mitglieder erst hier.
+    gemerkt bekommt den Wert ohne Pin-Bonus fuer den naechsten Lauf, gehalten die Meldungen,
+    die der Fallschirm in diesem Lauf stuetzt (fuer das Log)."""
+    if not SCORE_FALLSCHIRM:
+        return base_score
+    ist_rep = "score" in (scoring or {})
+    pin = scoring.get("pin_bonus", 0) if ist_rep else 0
+    ohne_pin = base_score - pin
+    neu = _fallschirm(link, ohne_pin)
+    hub = (scoring.get("fallschirm_hub", 0) if ist_rep else 0) + (neu - ohne_pin)
+    if hub > 0:
+        gehalten.append((hub, neu + pin, titel))
+    if neu > SCORE_FALLSCHIRM:
+        gemerkt[_fallschirm_schluessel(link)] = int(neu)
+    return neu + pin
+
 
 def _top_anbieter(titel, _cache={}):
     """Anbieter einer Meldung fuer die Top-Plaetze. Modelle und Produkte zaehlen fuer ihren
@@ -3813,16 +3878,27 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
             h = history.get(m.get("link", ""))
             return h["first_seen"] if h else _today_iso()
 
-        def _display_score(m, _score=score):
+        def _display_score(m, _score=score, _mit_fallschirm=True):
             h = history.get(m.get("link", ""))
             base = max(h["base_score"], _score) if h and h["base_score"] <= HEAL_THRESHOLD else _score
-            return decay_score(base, _erst(m))
+            wert = decay_score(base, _erst(m))
+            return _fallschirm(m.get("link", ""), wert) if _mit_fallschirm else wert
         # Karte = neuester Artikel der Story (14.09.26, Daniel), bei gleichem Tag
         # der mit dem hoeheren Score. Anker (Cross-Run-Duplikat-Fix) duerfen nie
         # Repraesentant werden; cluster_news() garantiert mind. 1 Nicht-Anker.
         rep = max((m for m in cluster if not m.get("_anchor")),
                   key=lambda m: (str(_erst(m))[:10], _display_score(m)))
+        ohne_fallschirm = _display_score(rep, _mit_fallschirm=False)
+        # Score-Fallschirm (17.11.26): Haelt der Fallschirm eine aeltere Meldung der Story hoeher
+        # als die neueste, wird sie die Karte. Die Startseite zeigt je Story die staerkste Meldung,
+        # so zeigen Telegram und Seite dieselbe. Ohne Vorwerte (Kill-Switch) greift das nie.
+        if SCORE_FALLSCHIRM and _FALLSCHIRM_VOR:
+            gehalten = max((m for m in cluster if not m.get("_anchor")), key=_display_score)
+            if _display_score(gehalten) > _display_score(rep):
+                rep = gehalten
         eff_score = _display_score(rep)
+        fallschirm_hub = max(0, eff_score - ohne_fallschirm)
+        boost = 0
         # Featured-Boost aus dashboard_config.json (mit Zeitverfall)
         if featured_links:
             cluster_links = {item.get("link", "") for item in cluster}
@@ -3841,6 +3917,8 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
             "score_source": score_source,
             "sources_count": len({i["source"] for i in cluster}),
             "members": cluster,   # NEU: alle Artikel im Cluster für Story-Mapping
+            "pin_bonus": boost,
+            "fallschirm_hub": fallschirm_hub,
         })
 
     # Nach verfallenem Score absteigend sortieren (bei Gleichstand: roher Score)
@@ -3900,6 +3978,7 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
         item["rep"]["link"]: {
             "score": item["score"], "eff_score": item["eff_score"], "label": item["label"],
             "score_legacy": item["score_legacy"], "score_source": item["score_source"],
+            "pin_bonus": item["pin_bonus"], "fallschirm_hub": item["fallschirm_hub"],
         }
         for item in scored
     }, link_to_cluster_info
@@ -7482,6 +7561,9 @@ def main():
     except Exception:
         pass
 
+    # Score-Fallschirm (17.11.26), siehe SCORE_FALLSCHIRM: Werte des vorigen Laufs laden
+    _fallschirm_vor_laden(_archive_base / "news.json")
+
     # NEU: Top-3 nach (verfallenem) Scoring wählen statt blindem [:3]
     top_news, score_map, link_to_cluster_info = pick_top_news(
         alle_news, n=MAX_LLM_NEWS, history=history, featured_links=featured_links,
@@ -7675,6 +7757,7 @@ def main():
     # News-Liste mit deutschen Titeln + Zusammenfassungen aufbauen
     # NEU: score + label aus score_map ergänzen, dann Zeit-Verfall anwenden
     news_list = []
+    _fallschirm_neu, _fallschirm_gehalten = {}, []   # 17.11.26, siehe SCORE_FALLSCHIRM
     for i, n in enumerate(alle_news):
         s = summaries.get(i, {})
         link = n.get("link", "")
@@ -7745,6 +7828,12 @@ def main():
             logger.info("[WERBUNG weg] news.json: %s | %s",
                         (s.get("title_de") or n.get("title") or "")[:70], link_verlag[:100])
             continue
+        # Score-Fallschirm (17.11.26), siehe SCORE_FALLSCHIRM. Nie blockierend.
+        try:
+            base_score = _fallschirm_eintrag(link, base_score, scoring, _fallschirm_neu,
+                                             _fallschirm_gehalten, s.get("title_de", n.get("title", "")))
+        except Exception as e:
+            logger.warning("Score-Fallschirm fuer %s uebersprungen: %s", link[:80], e)
         # Vorschaubild (og:image) – aus Cache oder einmalig serverseitig holen.
         # Frisch aufgeloest und noch ohne Bild: SOFORT ueber die Verlagsadresse
         # versuchen, nicht erst nach IMG_RETRY_DAYS - bisher gab es fuer diese
@@ -7790,6 +7879,13 @@ def main():
                 entry["img_try"] = _letzter
 
         news_list.append(entry)
+
+    if SCORE_FALLSCHIRM:
+        _fallschirm_gehalten.sort(key=lambda x: x[0], reverse=True)
+        logger.info("Score-Fallschirm: %d Meldungen gehalten (hoechstens %d Punkte je Lauf)%s",
+                    len(_fallschirm_gehalten), SCORE_FALLSCHIRM,
+                    "".join(" | +%d auf %d '%s'" % (h, w, (t or "")[:50])
+                            for h, w, t in _fallschirm_gehalten[:3]))
 
     # Volltext-Capture Top-5 fuer Chat-Bot-Kontext (Fund 08.07.26, siehe
     # fetch_full_text()-Kommentar oben). Lauf-Zeit-Kosten: max. 5 sequenzielle
@@ -8054,6 +8150,7 @@ def main():
         "top_je_anbieter": TOP_JE_ANBIETER,
         "aufmacher_pause": _aufmacher_pause,
         "aufmacher_verlauf": _aufmacher_verlauf,
+        "fallschirm": _fallschirm_neu,
     }
 
     # Meldungsseiten (28.10.26): eine Seite je Story fuer Google, siehe meldungsseiten.py.
