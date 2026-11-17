@@ -709,6 +709,16 @@ SCHLAGZEILEN_AB = 3   # die ersten drei Storys stehen schon als Aufmacher und Se
 TOP_JE_ANBIETER = 2
 TOP_PLAETZE = 5       # wie index.html (Aufmacher plus Karussell)
 
+# Scampy-Post fuer jeden Top-Platz (17.11.26). Posts entstanden nur fuer pick_top_news(). Die Top-Plaetze
+# der Startseite waehlt aber _top_auswahl() erst am Ende, nach Cluster-Jev, Dubletten, Linien und
+# Anbieter-Grenze. Gemessen 14.11. 16 UTC bis 17.11. 14 UTC: 25 von 145 Top-Plaetzen ohne Post (heute 10
+# von 30). 14 davon hatten einen Post im Cache, der nur nicht exportiert wurde (Export nahm die 15
+# Meldungen mit dem hoechsten Score, die Huang-Dubletten fuellten sie). 11 zeigten eine andere Meldung
+# derselben Story als die, fuer die der Post geschrieben war. Neu: am Ende fehlende Posts fuer die
+# Top-Plaetze nachschreiben (gleicher Prompt, gleiche Pruefungen) und alle Top-Plaetze exportieren.
+# Telegram bleibt unveraendert (nur pick_top_news). Kill-Switch: POSTS_FUER_TOP_PLAETZE = False.
+POSTS_FUER_TOP_PLAETZE = True
+
 # Aufmacher-Wechsel (16.11.26, Daniel): Die China-Meldung "US-Labor ... Blackwell" stand am 15.11.
 # acht Laeufe am Stueck als Aufmacher oben. Neu: Ist dieselbe Story seit AUFMACHER_WECHSEL_LAEUFE
 # Laeufen der Aufmacher und hat die zweite Story mindestens AUFMACHER_WECHSEL_ANTEIL ihrer Punkte,
@@ -7591,7 +7601,10 @@ def main():
     heute_str  = _today_iso()
     uncached   = [n for n in top_news if n.get("link") not in post_cache]
     cached     = [n for n in top_news if n.get("link") in post_cache]
-    if uncached:
+
+    # 17.11.26 als Funktion, siehe POSTS_FUER_TOP_PLAETZE: laeuft fuer top_news und am Ende fuer
+    # Top-Plaetze ohne Post. Schreibt nur in post_cache.
+    def _posts_erzeugen(uncached, cached, _summary_by_link=_summary_by_link):
         posts_raw       = ask_llm(uncached, n=len(uncached), summaries=_summary_by_link)
         parsed_new_dict = parse_posts(posts_raw)  # {nummer: {...}}
         logger.info("%d neue Posts geparst, %d aus Cache", len(parsed_new_dict), len(cached))
@@ -7684,6 +7697,9 @@ def main():
                     "tor":         _tor,
                 }
         save_post_cache(_cfg_base, post_cache)
+
+    if uncached:
+        _posts_erzeugen(uncached, cached)
     else:
         logger.info("Alle %d Top-Stories aus Post-Cache (keine LLM-Kosten)", len(top_news))
 
@@ -8120,6 +8136,43 @@ def main():
     except Exception as e:
         _aufmacher_pause = ""
         logger.exception("Aufmacher-Wechsel uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Scampy-Post fuer jeden Top-Platz (17.11.26), siehe POSTS_FUER_TOP_PLAETZE. Erst hier steht
+    # fest, welche Meldungen oben stehen. Nie blockierend: im Fehlerfall zeigt die Karte wie bisher
+    # ihre eigene Zusammenfassung.
+    if POSTS_FUER_TOP_PLAETZE:
+        try:
+            _oben_alle = [n for n in _top_auswahl(news_list) if n.get("link")]
+            _fehlt = [n for n in _oben_alle if not (post_cache.get(n["link"]) or {}).get("teaser")]
+            if _fehlt:
+                logger.info("Top-Plaetze ohne Scampy-Post: %d, schreibe nach: %s", len(_fehlt),
+                            " | ".join((n.get("title") or "")[:50] for n in _fehlt))
+                # Meldungen aus dem Archiv fehlen in _summary_by_link: Titel und Zusammenfassung aus news_list
+                _summ = dict(_summary_by_link)
+                for n in _fehlt:
+                    if not _summ.get(n["link"]):
+                        _summ[n["link"]] = {"title_de": n.get("title", ""), "summary": n.get("summary", "")}
+                _posts_erzeugen(_fehlt, [], _summ)
+            _exportiert = {p.get("link") for p in posts_list}
+            _neu_export = 0
+            for n in _oben_alle:
+                _pc = post_cache.get(n["link"]) or {}
+                if n["link"] in _exportiert or not _pc.get("teaser"):
+                    continue
+                posts_list.append({
+                    "teaser":     _pc.get("teaser", ""),
+                    "erklaerung": _pc.get("erklaerung", ""),
+                    "thread":     _pc.get("thread", []),
+                    "link":       n["link"],
+                    "story_id":   n.get("story_id") or link_to_cluster_info.get(n["link"], {}).get("story_id", ""),
+                    "tor_ok":     (_pc.get("tor") or {}).get("ok"),
+                })
+                _neu_export += 1
+            _ohne = sum(1 for n in _oben_alle if not (post_cache.get(n["link"]) or {}).get("teaser"))
+            logger.info("Top-Plaetze mit Scampy-Post: %d von %d (%d nachgeschrieben, %d nachexportiert)",
+                        len(_oben_alle) - _ohne, len(_oben_alle), len(_fehlt) - _ohne if _fehlt else 0,
+                        _neu_export)
+        except Exception as e:
+            logger.exception("Top-Platz-Posts uebersprungen (Pipeline unbeeinflusst): %s", e)
     # Schlagzeile + Anriss fuer die Hero-Kandidaten (27.10.26), nie blockierend
     try:
         _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache)
