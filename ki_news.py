@@ -1272,11 +1272,36 @@ def _ist_heise_sammelsendung(news_item) -> bool:
     return bool(_ROUNDUP_HEISE_TITEL.search(news_item.get("title") or ""))
 
 
+# Fund 7 (17.11.26): Tages-Sammelmeldungen mit mehreren Themen landeten oben.
+# - Heise "Dienstag: Schärfere US-Exportregeln für KI-Chips, Störungen bei US-Banken." stand am
+#   17.11. mit 35 Punkten in den Top 5. Heise bringt so jeden Morgen zwei bis drei fremde Themen.
+# - Digg "X-Posts: Nvidia-Führungsumbruch und stärkere KI-Chip-Export-Push." war am 16.11. um
+#   06 UTC mit 59 Punkten Aufmacher. Das ist eine Sammlung von X-Beiträgen, keine Meldung.
+# Archiv 17.11. (1879 Meldungen): 3 Heise-Wochentagsmeldungen, 1 X-Sammlung, sonst kein Treffer.
+# Wirkt wie die Heise-Sendungen: neue Meldungen werden als Roundup abgetrennt (Material bleibt in
+# news.json "roundups"), vorhandene fliegen aus archive.json. Kill-Switch: ROUNDUP_TAGESSAMMEL = False.
+ROUNDUP_TAGESSAMMEL = True
+_TAGESSAMMEL_HEISE = re.compile(r'^\s*(?:Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag)\s*:')
+_TAGESSAMMEL_X = re.compile(r'^\s*X[- ]Posts?\s*:', re.I)
+
+
+def _ist_tagessammlung(news_item) -> bool:
+    """True fuer Heise-Wochentagsmeldungen ("Dienstag: A, B") und X-Sammlungen ("X-Posts: ...")."""
+    if not ROUNDUP_TAGESSAMMEL:
+        return False
+    titel = news_item.get("title") or ""
+    if _TAGESSAMMEL_X.search(titel):
+        return True
+    link = news_item.get("link") or ""
+    # Wochentag vorn nur bei Heise: bei anderen Quellen kann das eine echte Meldung sein
+    return bool(_TAGESSAMMEL_HEISE.search(titel)) and (not link or "heise.de" in link)
+
+
 def _is_roundup(news_item) -> bool:
     """True wenn der Eintrag eine Wochenzusammenfassung ist (Titel-Muster oder Quelle)."""
     if news_item.get("source") in _ROUNDUP_SOURCES:
         return True
-    if _ist_heise_sammelsendung(news_item):
+    if _ist_heise_sammelsendung(news_item) or _ist_tagessammlung(news_item):
         return True
     if _ist_podcast_newsletter(news_item):   # 15.11.26, Titel hier noch im Original
         return True
@@ -8199,9 +8224,9 @@ def main():
         # 14.11.26: Heise-Sammelsendungen, die vor dem Filter ins Archiv kamen, wieder
         # raus (nur dieses Muster, die alten Roundup-Muster koennten uebersetzte Titel treffen).
         _vorher = len(existing)
-        existing = [e for e in existing if not _ist_heise_sammelsendung(e)]
+        existing = [e for e in existing if not _ist_heise_sammelsendung(e) and not _ist_tagessammlung(e)]
         if len(existing) < _vorher:
-            logger.info("Archiv: %d Heise-Sammelsendung(en) entfernt", _vorher - len(existing))
+            logger.info("Archiv: %d Heise-Sammelsendung(en) oder Tagessammlung(en) entfernt", _vorher - len(existing))
 
         # 14.11.26: heise-Angebote (Werbung), die vor dem Filter ins Archiv kamen. Der
         # Archiv-Titel ist uebersetzt, darum zusaetzlich der Rohtitel aus summary-cache.json.
