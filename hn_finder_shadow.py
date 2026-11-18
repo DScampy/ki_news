@@ -16,11 +16,16 @@ keinen Score und keine Karte. Je Lauf:
         (summary-cache.json, title_orig) ab TITEL_SICHER. Seltene Woerter zaehlen mehr als
         haeufige wie Nvidia, Huang oder CEO (Gewicht nach Seltenheit in unseren Titeln).
      Liegt die beste Ueberdeckung zwischen TITEL_UNKLAR und TITEL_SICHER, heisst es "unklar".
-  3. Fehlt sie oder ist sie unklar: Originalquelle suchen, einmal je Story.
+  3. Fehlt sie oder ist sie unklar: Originalquelle suchen.
      Erst die t.co-Links der source/support-Posts. Sie lassen sich ohne Login aufloesen
      (Messung 17.11.: 6 von 10 grossen Storys fuehren so auf eine externe Seite). Der Titel
      kommt aus og:title der Zielseite. Dann eine Google-News-Suche mit den Stichworten der
-     Story, die beste Ueberdeckung zaehlt.
+     Story, die beste Ueberdeckung zaehlt. Der Suchzeitraum zaehlt ab dem Ereignis.
+     Wiederholung (18.11.26): Im ersten echten Lauf fand die Suche fuer die Huang-Anhoerung
+     nichts, lokal kurz danach 10 Treffer. Ein Fehlschlag sah aus wie "keine Quelle" und wurde
+     nie wiederholt. Darum steht jetzt der Suchstatus in der Datei und im Log. Nach einem
+     Fehler sucht der naechste Lauf noch einmal, ohne Treffer erst nach SUCHE_WIEDERHOLEN_H
+     Stunden. Hoechstens SUCHE_VERSUCHE Suchen je Story.
 
 HN-Texte werden nicht gespeichert (robots.txt use=reference). In der Datei stehen nur Slugs,
 Zahlen, Zeiten, unsere Links und Titel der Originalquellen. HN-Titel dienen nur im Speicher
@@ -57,6 +62,9 @@ MAX_STORYS = 30          # hoechstens so viele Storys je Lauf (die groessten zue
 TITEL_SICHER = 0.5       # gewichteter Dice-Wert HN-Titel gegen title_orig, ab hier "bei uns"
 TITEL_UNKLAR = 0.3       # darunter "fehlt"
 SUCHE_MIN = 0.3          # Google-News-Treffer erst ab diesem Dice-Wert
+SUCHE_VERSUCHE = 4       # hoechstens so viele Quellensuchen je Story
+SUCHE_WIEDERHOLEN_H = 6  # ohne Treffer erst nach so vielen Stunden noch einmal suchen
+SUCHE_FENSTER_MAX = 10   # Google-News-Zeitraum in Tagen, ab dem Ereignis gerechnet
 VORLAUF_TAGE = 2         # eigene Titel zaehlen ab 2 Tage vor der Story
 HALTEN_TAGE = 10         # Storys so lange in der Datei halten
 MAX_LAEUFE = 80          # Laufzusammenfassungen (10 Tage bei 8 Laeufen)
@@ -71,6 +79,9 @@ reported new its it into about amid as at by in of on to is are was were be been
 could may might than that this these those their his her them they he she we you our your
 not yes more most less out off down via per plus amp just also how why what when who which
 where while still now has have had get gets got set sets""".split())
+# Nur fuer die Suchwoerter: Kennzeichen von Agenturmeldungen, keine Inhalte (Messung 18.11.:
+# "UPDATE" und "000" aus einer Zahl mit Tausenderkomma verdarben zwei Suchen).
+NICHT_SUCHEN = set("update updated breaking exclusive live watch video opinion analysis".split())
 
 _start = time.monotonic()
 
@@ -162,10 +173,11 @@ def _gewicht(titel):
 
 
 def _suchwoerter(titel, n=8):
+    titel = re.sub(r"(?<=\d),(?=\d{3}\b)", "", str(titel or ""))   # "4,000" bleibt ein Wort
     gesehen, out = set(), []
-    for w in re.findall(r"[A-Za-z0-9$%.]+", str(titel or "")):
+    for w in re.findall(r"[A-Za-z0-9$%.]+", titel):
         k = w.lower().strip(".")
-        if len(k) < 3 or k in STOP or k in gesehen:
+        if len(k) < 3 or k in STOP or k in NICHT_SUCHEN or k in gesehen or set(k) <= set("0."):
             continue
         gesehen.add(k)
         out.append(w.strip("."))
@@ -227,19 +239,23 @@ def _seite(url):
     return ende, code, titel[:200]
 
 
-def _gn_suche(titel):
-    """Google-News-RSS mit den Stichworten der Story. Liefert eine Liste (titel, quelle, link)."""
+def _gn_suche(titel, tage=3):
+    """Google-News-RSS mit den Stichworten der Story, Zeitraum `tage` Tage.
+    Liefert (Liste (titel, quelle, link), Status). Der Status lautet "n Treffer", "HTTP 429",
+    "Fehler <Art>" oder "keine Suchwoerter", damit ein Fehlschlag nicht wie "keine Quelle" aussieht."""
     q = _suchwoerter(titel)
     if not q:
-        return []
-    url = GN_SUCHE + urllib.parse.urlencode({"q": q + " when:3d", "hl": "en-US", "gl": "US",
-                                              "ceid": "US:en"})
+        return [], "keine Suchwoerter"
+    url = GN_SUCHE + urllib.parse.urlencode({"q": "%s when:%dd" % (q, tage), "hl": "en-US",
+                                              "gl": "US", "ceid": "US:en"})
     try:
         req = urllib.request.Request(url, headers={"User-Agent": UA_SEITE})
         with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
             wurzel = ET.fromstring(r.read(2_000_000))
-    except Exception:
-        return []
+    except urllib.error.HTTPError as e:
+        return [], "HTTP %s" % e.code
+    except Exception as e:
+        return [], "Fehler " + type(e).__name__
     out = []
     for item in wurzel.iter("item"):
         t = (item.findtext("title") or "").strip()
@@ -249,7 +265,28 @@ def _gn_suche(titel):
         out.append((t, quelle, (item.findtext("link") or "").strip()))
         if len(out) >= 10:
             break
-    return out
+    return out, "%d Treffer" % len(out)
+
+
+def _fehlschlag(status):
+    """Suche gescheitert (nicht nur ohne Treffer): HTTP-Fehler, Ausnahme oder Zeitbudget leer."""
+    return str(status or "").startswith(("HTTP", "Fehler", "Zeitbudget"))
+
+
+def _nochmal_suchen(vorher, jetzt):
+    """Erste Suche immer. Danach nur, solange kein Suchtreffer und keine frei lesbare t.co-Quelle
+    da ist und Versuche frei sind: nach einem Fehlschlag im naechsten Lauf, ohne Treffer erst
+    nach SUCHE_WIEDERHOLEN_H Stunden. Eintraege von vor dem 18.11. zaehlen als ein Versuch."""
+    if "quelle_geprueft" not in vorher:
+        return True
+    if vorher.get("suche") or (vorher.get("quelle") or {}).get("http") == 200:
+        return False
+    if int(vorher.get("suche_versuche") or 1) >= SUCHE_VERSUCHE:
+        return False
+    if _fehlschlag(vorher.get("suche_status")):
+        return True
+    zuletzt = _zeit(vorher.get("suche_zuletzt") or vorher.get("quelle_geprueft"))
+    return not zuletzt or jetzt - zuletzt >= timedelta(hours=SUCHE_WIEDERHOLEN_H)
 
 
 def _eigene_daten(basis):
@@ -304,8 +341,9 @@ def _bester_titel(woerter, titel, ab, g):
     return best
 
 
-def _quelle_suchen(story, detail, links, titel, g):
-    """Originalquelle einer fehlenden Story: t.co-Ziel und Google-News-Treffer."""
+def _quelle_suchen(story, detail, links, titel, g, zeit):
+    """Originalquelle einer fehlenden Story: t.co-Ziel und Google-News-Treffer.
+    Liefert (quelle, suche, suchstatus)."""
     quelle = None
     for t in detail.get("selectedTweets") or []:
         if t.get("role") not in ("source", "support") or _rest_s() < 20:
@@ -322,11 +360,17 @@ def _quelle_suchen(story, detail, links, titel, g):
             break
         if quelle:
             break
-    suche = None
+    suche, status = None, "Zeitbudget"
     if _rest_s() > 15:
+        # Zeitraum ab dem Ereignis: Am 18.11. lag die Huang-Anhoerung schon 4 Tage zurueck,
+        # "when:3d" haette die ersten Berichte nicht mehr erfasst.
+        tage = 3
+        if zeit:
+            tage = min(SUCHE_FENSTER_MAX, max(3, (_jetzt() - zeit).days + 2))
         hn_w = _woerter(story.get("title"))
         best = None
-        for t, q, link in _gn_suche(story.get("title")):
+        treffer, status = _gn_suche(story.get("title"), tage)
+        for t, q, link in treffer:
             d = _dice(hn_w, _woerter(t))
             if d >= SUCHE_MIN and (not best or d > best["wert"]):
                 best = {"titel": t[:200], "quelle": q, "link": link, "wert": d}
@@ -334,7 +378,9 @@ def _quelle_suchen(story, detail, links, titel, g):
             eigen_d, eigen_link = _bester_titel(_woerter(best["titel"]), titel, None, g)
             best["bei_uns"] = eigen_link if eigen_d >= 0.8 else None
             suche = best
-    return quelle, suche
+        elif treffer:
+            status += ", keiner ab %.1f" % SUCHE_MIN
+    return quelle, suche, status
 
 
 def lauf(basis, ausgabe):
@@ -381,19 +427,23 @@ def lauf(basis, ausgabe):
                          "status": status, "wie": wie, "eigener": eigener, "wert": wert,
                          "kandidat": titel_link})
 
-    # Weg b: t.co-Ziel ist ein Link, den wir haben. Die Quellensuche laeuft nur einmal je
-    # Story und nur fuer die groesste Story je Ereignis-Gruppe.
+    # Weg b: t.co-Ziel ist ein Link, den wir haben. Die Quellensuche laeuft nur fuer die
+    # groesste Story je Ereignis-Gruppe, wiederholt nach den Regeln in _nochmal_suchen.
     erledigt = set()
     for e in ergebnis:
         if e["status"] == "bei_uns" or e["gruppe"] in erledigt:
             continue
         erledigt.add(e["gruppe"])
         vorher = storys.get(e["slug"]) or {}
-        if "quelle_geprueft" in vorher:
-            e["quelle"], e["suche"] = vorher.get("quelle"), vorher.get("suche")
-        elif _rest_s() > 25:
-            e["quelle"], e["suche"] = _quelle_suchen(e["s"], e["d"], links, titel, g_wort)
+        if _nochmal_suchen(vorher, jetzt) and _rest_s() > 25:
+            q, su, st = _quelle_suchen(e["s"], e["d"], links, titel, g_wort, e["zeit"])
+            e["quelle"] = q or vorher.get("quelle")
+            e["suche"] = su or vorher.get("suche")
+            e["suche_status"] = st
+            e["suche_versuche"] = int(vorher.get("suche_versuche") or ("quelle_geprueft" in vorher)) + 1
             e["neu_gesucht"] = True
+        elif "quelle_geprueft" in vorher:
+            e["quelle"], e["suche"] = vorher.get("quelle"), vorher.get("suche")
         q = e.get("quelle") or {}
         if q.get("bei_uns"):
             e["status"], e["wie"], e["eigener"] = "bei_uns", "link", q["bei_uns"]
@@ -433,6 +483,14 @@ def lauf(basis, ausgabe):
             neu["quelle_geprueft"] = alt_e.get("quelle_geprueft") or stempel
             neu["quelle"] = e.get("quelle", alt_e.get("quelle"))
             neu["suche"] = e.get("suche", alt_e.get("suche"))
+            if e.get("neu_gesucht"):
+                neu["suche_status"] = e["suche_status"]
+                neu["suche_versuche"] = e["suche_versuche"]
+                neu["suche_zuletzt"] = stempel
+            else:
+                for k in ("suche_status", "suche_versuche", "suche_zuletzt"):
+                    if k in alt_e:
+                        neu[k] = alt_e[k]
         storys[e["slug"]] = neu
 
     grenze = _iso(jetzt - timedelta(days=HALTEN_TAGE))
@@ -447,8 +505,11 @@ def lauf(basis, ausgabe):
             wege[b["wie"]] = wege.get(b["wie"], 0) + 1
         elif b.get("quelle") or b.get("suche"):
             fehlt_mit_quelle += 1
+    gesucht = [e for e in ergebnis if e.get("neu_gesucht")]
+    such_fehler = sum(1 for e in gesucht if _fehlschlag(e["suche_status"]))
     zusammen = {"zeit": stempel, "feed": len(alle), "gross": len(ergebnis), "ereignisse": len(beste),
                 **zaehl, "wege": wege, "nicht_bei_uns_mit_quelle": fehlt_mit_quelle,
+                "suchen": len(gesucht), "suche_fehler": such_fehler,
                 "dauer_s": round(time.monotonic() - _start, 1)}
     laeufe = (alt.get("laeufe") or []) + [zusammen]
 
@@ -459,6 +520,8 @@ def lauf(basis, ausgabe):
         "stand": stempel,
         "einstellungen": {"min_tweets": MIN_TWEETS, "titel_sicher": TITEL_SICHER,
                           "titel_unklar": TITEL_UNKLAR, "suche_min": SUCHE_MIN,
+                          "suche_versuche": SUCHE_VERSUCHE,
+                          "suche_wiederholen_h": SUCHE_WIEDERHOLEN_H,
                           "titelwert": "Dice nach Wortseltenheit gewichtet"},
         "laeufe": laeufe[-MAX_LAEUFE:],
         "storys": dict(sorted(storys.items(), key=lambda kv: -int(kv[1].get("tweets") or 0))),
@@ -468,21 +531,27 @@ def lauf(basis, ausgabe):
     os.replace(tmp, ausgabe)
 
     _log("Schatten: %d Storys ab %d Tweets (%d Ereignisse), %d bei uns (%s), %d unklar, "
-         "%d fehlen, %d davon mit Quelle, %.0f s"
+         "%d fehlen, %d davon mit Quelle, %d Suchen (%d gescheitert), %.0f s"
          % (len(ergebnis), MIN_TWEETS, len(beste), zaehl["bei_uns"],
             ", ".join("%s %d" % kv for kv in sorted(wege.items())) or "-", zaehl["unklar"],
-            zaehl["fehlt"], fehlt_mit_quelle, time.monotonic() - _start))
+            zaehl["fehlt"], fehlt_mit_quelle, len(gesucht), such_fehler,
+            time.monotonic() - _start))
     for b in sorted(beste.values(), key=lambda e: -(e["s"].get("tweetCount") or 0)):
         if b["status"] == "bei_uns":
             continue
         q, su = b.get("quelle") or {}, b.get("suche") or {}
+        gespeichert = storys.get(b["slug"]) or {}
+        such_info = "%s, Versuch %s%s" % (gespeichert.get("suche_status") or "Status unbekannt",
+                                          gespeichert.get("suche_versuche") or 1,
+                                          "" if b.get("neu_gesucht") else ", aus dem Speicher")
         _log("%s: %d Tweets, Ereignis %s, Titelwert %.2f, Quelle %s, Suche %s"
              % (b["status"], b["s"].get("tweetCount") or 0,
                 b["zeit"].strftime("%d.%m. %H:%M UTC") if b["zeit"] else "?", b["wert"],
                 ("%s (HTTP %s) '%s'" % (q.get("domain"), q.get("http"), q.get("titel", "")[:70]))
                 if q else "-",
-                ("%s '%s' (%.2f)" % (su.get("quelle"), su.get("titel", "")[:70], su.get("wert", 0)))
-                if su else "-"))
+                ("%s '%s' (%.2f) [%s]" % (su.get("quelle"), su.get("titel", "")[:70],
+                                          su.get("wert", 0), such_info))
+                if su else "- [%s]" % such_info))
 
 
 def main():
