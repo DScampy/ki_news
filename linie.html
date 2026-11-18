@@ -1407,6 +1407,8 @@
       var scrollBound = false;
       var introTitel = null;
       var titelBreite = 0;
+      // 18.11.26: Kill-Switch. false passt wie vorher nur den Dossier-Titel ein.
+      var KAPITEL_EINPASSEN = true;
       var newsData = null;
       var newsPromise = null;
       var enrichmentStarted = false;
@@ -1843,6 +1845,7 @@
 
         var ref = {
           section: section,
+          titel: title,
           event: event,
           photo: photo,
           layout: layout,
@@ -2101,17 +2104,23 @@
         return false;
       }
 
-      function titelEinpassen() {
-        var el = introTitel;
+      // 18.11.26: Dasselbe gilt jetzt auch für die Kapitel-Überschriften. Dort brach
+      // "Senatsbankenausschuss" bei 375 px als "Senatsbankenausschus" und "s" um.
+      function einpassen(el) {
         if (!el || !el.isConnected || !el.clientWidth) return;
         el.style.fontSize = "";
-        titelBreite = el.clientWidth;
         var groesse = parseFloat(window.getComputedStyle(el).fontSize) || 0;
         var minimum = Math.max(18, Math.round(groesse * 0.6));
         while (groesse > minimum && wortBricht(el)) {
           groesse -= 1;
           el.style.fontSize = groesse + "px";
         }
+      }
+
+      function titelEinpassen() {
+        einpassen(introTitel);
+        if (introTitel) titelBreite = introTitel.clientWidth;
+        if (KAPITEL_EINPASSEN) chapterRefs.forEach(function (ref) { einpassen(ref.titel); });
       }
 
       function bindReaderTracking() {
