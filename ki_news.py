@@ -161,23 +161,84 @@ _UMLAUT_STAEMME = [
     ("buerger", "bürger"), ("muench", "münch"), ("duesseldorf", "düsseldorf"), ("zuerich", "zürich"),
     ("uebung", "übung"), ("uebrig", "übrig"), ("taet", "tät"), ("ueblich", "üblich"), ("verguet", "vergüt"), ("kraeft", "kräft"),
 ]
+# 18.11.26: Erweiterung der Umlaut-Reparatur. Pruefung 18.11. ueber 927 Uebersetzungen aus 7 Tagen:
+# 6,8 % hatten noch ae/oe/ue oder ss ("Affaere", "Boersengang", "grosse"), 1,5 % gar keinen Umlaut
+# ("fur", "Ruckkehr"). Im ganzen summary-cache standen nach der alten Liste noch 170 Woerter mit
+# 403 Vorkommen. Alle Staemme unten sind dort belegt und aendern keinen der englischen
+# Originaltitel (title_orig). ss wird nur bei sicheren Staemmen zu ß, weil "Masse" und "Maße"
+# verschiedene Woerter sind. Kill-Switch: UMLAUT_REPARATUR_ERWEITERT = False (alte Liste bleibt aktiv).
+UMLAUT_REPARATUR_ERWEITERT = True
+_UMLAUT_STAEMME_NEU = [
+    ("affaer", "affär"), ("boers", "börs"), ("europaeisch", "europäisch"), ("oeffn", "öffn"),
+    ("maerkt", "märkt"), ("schraenk", "schränk"), ("schuetz", "schütz"), ("knuepf", "knüpf"),
+    ("laeng", "läng"), ("ergaenz", "ergänz"), ("stoer", "stör"), ("geschaeft", "geschäft"),
+    ("aengst", "ängst"), ("souveraen", "souverän"), ("schueler", "schüler"), ("schuer", "schür"),
+    ("haelfte", "hälfte"), ("naeh", "näh"), ("kaempf", "kämpf"), ("saech", "säch"), ("zugaeng", "zugäng"),
+    ("ruestet", "rüstet"), ("ruestung", "rüstung"), ("aelter", "älter"), ("schwaech", "schwäch"),
+    ("noetig", "nötig"), ("praes", "präs"), ("praez", "präz"), ("faell", "fäll"), ("staend", "ständ"),
+    ("buero", "büro"), ("waechs", "wächs"), ("enthuell", "enthüll"), ("geruecht", "gerücht"),
+    ("jaehr", "jähr"), ("haeuf", "häuf"), ("fuehl", "fühl"), ("ansaess", "ansäss"), ("stuendig", "stündig"),
+    ("raetsel", "rätsel"), ("hoech", "höch"), ("plaen", "plän"), ("draeng", "dräng"), ("haefen", "häfen"),
+    ("bruech", "brüch"), ("bruessel", "brüssel"), ("taeusch", "täusch"), ("schaeftig", "schäftig"),
+    ("schluessel", "schlüssel"), ("plaetz", "plätz"), ("kuerz", "kürz"),
+    ("fuellt", "füllt"), ("fuellen", "füllen"), ("fuellung", "füllung"), ("erfuell", "erfüll"),
+    ("oekonom", "ökonom"), ("erschuett", "erschütt"), ("ploetzlich", "plötzlich"), ("raeder", "räder"),
+    ("trueb", "trüb"), ("praeg", "präg"), ("flueg", "flüg"), ("stuerz", "stürz"), ("foerder", "förder"),
+    ("kuehl", "kühl"), ("debuet", "debüt"), ("milliardaer", "milliardär"), ("zukuenft", "zukünft"),
+    ("laedt", "lädt"), ("haeng", "häng"), ("gaeng", "gäng"), ("anwaelt", "anwält"), ("stueck", "stück"),
+    ("gewoehn", "gewöhn"), ("franzoes", "französ"), ("haendler", "händler"), ("zueg", "züg"),
+    ("raeum", "räum"), ("gebuehr", "gebühr"), ("schaerf", "schärf"), ("flaech", "fläch"),
+    ("primaer", "primär"), ("schaed", "schäd"), ("gueltig", "gültig"),
+    ("verzoeger", "verzöger"), ("nuetz", "nütz"), ("erwaehn", "erwähn"), ("gedaechtnis", "gedächtnis"),
+    ("urspruen", "ursprün"), ("waeg", "wäg"), ("verbuend", "verbünd"), ("herkoemm", "herkömm"),
+    ("waerts", "wärts"),
+    # ss -> ß nur bei sicheren Staemmen ("gross" steht unten mit Schutz fuer Namen)
+    ("gröss", "größ"), ("mutmass", "mutmaß"), ("stoss", "stoß"), ("massnahm", "maßnahm"),
+    ("massstab", "maßstab"), ("ausser", "außer"), ("schliess", "schließ"), ("liess", "ließ"), ("heiss", "heiß"),
+]
+# Regeln mit Bedingung, sie laufen nach den Staemmen. Zuerst Woerter ganz ohne Umlaut ("fur", "Ruckkehr"):
+# nur Formen, die es ohne Umlaut nicht gibt. "fur" und "uber" nur klein und als ganzes Wort, damit "Uber"
+# (die Firma) bleibt. Danach Staemme, die sonst Namen oder falsche Woerter treffen: "Daniel Gross" und
+# "Grossman" bleiben, "KI-gestuerte" wird nicht zu "gestürte", "Nervoesität" nicht zu "Nervösität".
+_OHNE_UMLAUT = [
+    (r"\bfur\b", "für", 0), (r"\buber\b", "über", 0), (r"ruckk", "rückk", re.I), (r"zuruck", "zurück", re.I),
+    (r"pruf", "prüf", re.I), (r"erklar", "erklär", re.I), (r"verstark", "verstärk", re.I),
+    (r"standig", "ständig", re.I), (r"behord", "behörd", re.I), (r"(?<=-)gestutzt", "gestützt", re.I),
+    (r"\bnachst(?=(e|en|er|es)\b)", "nächst", re.I), (r"\bgrunder(?=(in|innen|n|s)?\b)", "gründer", re.I),
+    (r"gebuhr", "gebühr", re.I), (r"betruger", "betrüger", re.I),
+    (r"(?-i:(?!Gross\b))gross(?!man)", "groß", re.I), (r"großt(?=(e|en|er|es|em)\b)", "größt", re.I),
+    (r"tuer(?=(en)?\b)", "tür", re.I), (r"nervoes(?!it)", "nervös", re.I),
+]
+if UMLAUT_REPARATUR_ERWEITERT:
+    _UMLAUT_STAEMME = _UMLAUT_STAEMME + _UMLAUT_STAEMME_NEU
 _UMLAUT_RE = re.compile("|".join(sorted((s for s, _ in _UMLAUT_STAEMME), key=len, reverse=True)), re.I)
 _UMLAUT_MAP = dict(_UMLAUT_STAEMME)
 # Suedkorea, Suedostasien, sueden ...; englisch "sued"/"suede" bleibt
 _SUED_RE = re.compile(r"\b([Ss])ued(?=(?:kor|ost|west|afr|ame|deut|tirol|europ|asien|see|pol|en\b|lich|seite))")
+_OHNE_UMLAUT_RE = [(re.compile(m, f), e) for m, e, f in _OHNE_UMLAUT]
 
 
 def _umlaute_reparieren(text: str) -> str:
-    if not UMLAUT_REPARATUR or not text or not re.search(r"ae|oe|ue", text, re.I):
+    if not UMLAUT_REPARATUR or not text:
         return text
 
-    def _ersetze(m):
-        t, u = m.group(0), _UMLAUT_MAP[m.group(0).lower()]
+    def _ersetze(m, u=None):
+        t = m.group(0)
+        u = u or _UMLAUT_MAP[t.lower()]
         if t.isupper() and len(t) > 1:
             return u.upper()          # Versalien: KOENNEN -> KÖNNEN
         return u[0].upper() + u[1:] if t[0].isupper() else u
-    text = _UMLAUT_RE.sub(_ersetze, text)
-    return _SUED_RE.sub(lambda m: m.group(1) + "üd", text)
+    if re.search(r"ae|oe|ue|ss", text, re.I):
+        text = _UMLAUT_RE.sub(_ersetze, text)
+        text = _SUED_RE.sub(lambda m: m.group(1) + "üd", text)
+    # Die Regeln mit Bedingung nur in Texten, die schon deutsch aussehen (Umlaut oder deutsches
+    # Signalwort). Ein englischer Titel wie "Nvidia gross margin" bleibt so unveraendert, und die
+    # Sprachpruefung _looks_german() urteilt genau wie vor der Erweiterung.
+    if UMLAUT_REPARATUR_ERWEITERT and (any(c in GERMAN_CHARS for c in text)
+                                       or any(w in f" {text.lower()} " for w in GERMAN_MARKERS)):
+        for muster, ersatz in _OHNE_UMLAUT_RE:
+            text = muster.sub(lambda m, e=ersatz: _ersetze(m, e), text)
+    return text
 
 def _fix_latex_escapes(text: str) -> str:
     """LaTeX-Umlaut-Escapes durch echte Umlaute ersetzen. No-op wenn keine da.
