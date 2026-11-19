@@ -1127,6 +1127,35 @@ def load_post_cache(base_dir):
 # nie echt vor, wohl aber im Zeichensalat eines Modells (28.10.26: "schlie├¤t", "H├Čhere")
 _ZEICHENSALAT = re.compile(r"[─-▟�]")
 
+# 19.11.26: Buchstaben aus fremden Schriften in einer Uebersetzung. Am 19.11. stand live
+# "Suedkoreas Ex" + Zeichen U+120B + "porte", ein aethiopisches Zeichen mitten im Wort
+# (Bloomberg AI). Die alte Pruefung _has_foreign_script() kennt nur CJK, Kana, Hangul und
+# Kyrillisch. In den Monatsarchiven seit Mai (19.723 Eintraege) stehen 21 Faelle, dazu auch
+# Thai und Arabisch. Zwei davon stehen schon im Original ("Sierras τ-Stimmen-Team" und ein
+# ukrainischer Quellenname) und bleiben darum erlaubt: gezaehlt wird nur, was nicht auch in
+# der Quelle steht. Im Cache (5118 Eintraege) und in archive.json (2000) trifft die Regel nur
+# den Fall vom 19.11. Wirkt an zwei Stellen in summarize_news(): eine neue Uebersetzung wird
+# als kaputt aussortiert, ein Cache-Eintrag wird neu uebersetzt.
+# Kill-Switch: FREMDE_BUCHSTABEN_PRUEFEN = False.
+FREMDE_BUCHSTABEN_PRUEFEN = True
+_FREMD_ERLAUBT = {"\u00b5", "\u00aa", "\u00ba"}   # Mikro-Zeichen und Ordinal-Zeichen
+
+
+def _fremde_buchstaben(text, quelle=""):
+    """Buchstaben ausserhalb der lateinischen Schrift, die nicht schon in quelle stehen.
+    Gibt sie als Zeichenkette zurueck. Leer heisst: alles in Ordnung."""
+    if not FREMDE_BUCHSTABEN_PRUEFEN or not text:
+        return ""
+    import unicodedata
+    funde = []
+    for z in text:
+        if z.isascii() or z in _FREMD_ERLAUBT or z in funde or z in (quelle or ""):
+            continue
+        if unicodedata.category(z) in ("Lu", "Ll", "Lt", "Lo") and \
+                not unicodedata.name(z, "").startswith("LATIN"):
+            funde.append(z)
+    return "".join(funde)
+
 
 def load_summary_cache(base_dir):
     """Laedt summary-cache.json - gespeicherte Uebersetzungen (title_de/summary)
@@ -5194,6 +5223,17 @@ def summarize_news(alle_news, summary_cache=None):
     pending = []
     for i, n in enumerate(alle_news):
         c = (summary_cache or {}).get(n.get("link", ""))
+        # 19.11.26: Cache-Eintrag mit fremden Buchstaben neu uebersetzen (siehe
+        # _fremde_buchstaben). Klappt das nicht, faellt der Artikel in diesem Lauf auf den
+        # Originaltitel zurueck. Der alte Eintrag bleibt dann, und der naechste Lauf fragt neu.
+        if c and c.get("title_de"):
+            _fremd = _fremde_buchstaben((c.get("title_de") or "") + " " + (c.get("summary") or ""),
+                                        " ".join((c.get("title_orig") or "", n.get("title") or "",
+                                                  n.get("feed_text") or "")))
+            if _fremd:
+                logger.warning("Fremde Buchstaben %r im Cache, neu uebersetzen: %s", _fremd,
+                               c["title_de"][:80])
+                c = None
         if c and c.get("title_de"):
             # 19.10.26: auch Cache-Eintraege reparieren (Umschrift aus frueheren Laeufen)
             result[i] = {"title_de": _umlaute_reparieren(c["title_de"]),
@@ -5493,6 +5533,13 @@ News:
                             return "Zusammenfassung abgebrochen"
                         if _has_foreign_script(t) or _has_foreign_script(s):
                             return "fremdes Schriftsystem"
+                        # 19.11.26: alle anderen fremden Schriften, mit Abgleich gegen das
+                        # Original (siehe _fremde_buchstaben). Die id ist oben schon geprueft.
+                        _gi = batch_indices[item["id"] - 1]
+                        _fremd = _fremde_buchstaben(t + " " + s, (alle_news[_gi].get("title") or "")
+                                                    + " " + (alle_news[_gi].get("feed_text") or ""))
+                        if _fremd:
+                            return "fremde Buchstaben " + _fremd
                         return None
 
                     kaputte_ids = {}
@@ -8468,6 +8515,21 @@ def main():
                 entry["img_try"] = h["img_try"]
             if h.get("link_verlag") and not entry.get("link_verlag"):
                 entry["link_verlag"] = h["link_verlag"]
+            # 19.11.26: update_archive() uebernimmt den Titel eines bekannten Links sonst nie.
+            # Ein Titel mit fremden Buchstaben (siehe _fremde_buchstaben) bliebe darum im Archiv
+            # und spaeter in archiv-monate stehen, auch wenn news.json laengst die saubere
+            # Uebersetzung zeigt. Getauscht wird nur, wenn der neue Titel samt Text gar keine
+            # fremden Buchstaben hat. Steht ein Zeichen schon im Original (etwa ein griechisches
+            # Tau), hat der neue Titel es auch, und nichts aendert sich. news_list enthaelt nur
+            # Meldungen, die der Sprach-Guard durchgelassen hat, also keinen englischen Rohtitel.
+            if h.get("title") and _fremde_buchstaben((entry.get("title") or "") + " "
+                                                     + (entry.get("summary") or "")) \
+                    and not _fremde_buchstaben(h["title"] + " " + (h.get("summary") or "")):
+                logger.info("Archiv: Titel mit fremden Buchstaben ersetzt: %s -> %s",
+                            (entry.get("title") or "")[:70], h["title"][:70])
+                entry["title"] = h["title"]
+                if h.get("summary"):
+                    entry["summary"] = h["summary"]
             # 15.11.26: Dublettenvermerk des aktuellen Laufs gilt, siehe ARCHIV_DUB_NACHZIEHEN.
             if ARCHIV_DUB_NACHZIEHEN:
                 for _feld in ("dub_von", "dub_quellen"):
