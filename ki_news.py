@@ -2612,8 +2612,13 @@ def _jev_werbung_pruefen(news_list):
 # Werbe-Pruefung nur die Digg-Meldung selbst, nicht die ganze Story: berichten andere Quellen
 # dasselbe, ist es keine Plauderei, und die Story behaelt ihren Platz ueber diese Meldungen.
 # "aus": keine Jev-Fragen, x_ursprung.py arbeitet wie vorher.
-PLAUDEREI_JEV_MODUS = "schatten"
-PLAUDEREI_JEV_SCHWELLE = 0.8
+# 19.11.26 scharf mit Schwelle 0.7 (Daniel). Ausgewertet: alle Laeufe vom 17.11. 06 UTC bis
+# 19.11. 06 UTC, etwa 41 Urteile. Plauderei waren p=0.90 (Meinungsbeitrag zu Nvidias
+# Investitionen, ohne X-Beitrag) und p=0.73 (Aufruf fuer Panelisten zur NeurIPS). Echte
+# Meldungen lagen hoechstens bei 0.33. Mit 0.8 waere der NeurIPS-Aufruf durchgerutscht.
+# Kill-Switch: PLAUDEREI_JEV_MODUS = "schatten" (nur loggen) oder "aus".
+PLAUDEREI_JEV_MODUS = "scharf"
+PLAUDEREI_JEV_SCHWELLE = 0.7
 PLAUDEREI_JEV_ABZUG = 30
 _JEV_FRAGE_PLAUDEREI = {
     "type": "noul",
