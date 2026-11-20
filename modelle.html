@@ -1533,6 +1533,21 @@
       font-size: 12px;
       line-height: 1.4;
     }
+    /* 20.11.26: was das Modell liest und liefert, Link zum Steckbrief bei OpenRouter */
+    .px-gen-io {
+      margin: 0;
+      color: var(--px-text);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .px-gen-or {
+      align-self: flex-start;
+      color: var(--px-muted);
+      font-size: 11.5px;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .px-gen-or:hover { color: var(--px-text); }
     .px-gen-stufen,
     .px-gen-news,
     .px-maker-arten {
@@ -1865,6 +1880,13 @@
         year: "numeric",
         timeZone: "UTC"
       });
+      // 20.11.26: Release nur als Monat bekannt (release_quelle slug_monat, z. B. Pixtral 2502)
+      const PX_MONAT = new Intl.DateTimeFormat("de-DE", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC"
+      });
+
       const PX_TIME = new Intl.DateTimeFormat("de-DE", {
         hour: "2-digit",
         minute: "2-digit",
@@ -2203,6 +2225,12 @@
         if (!name || !provider) return null;
 
         const release = field(item.r);
+        const rq = field(item.rq);
+        const dateInfo = parseDateInfo(release);
+        if (dateInfo && rq === "slug_monat") {
+          dateInfo.label = PX_MONAT.format(new Date(`${dateInfo.key}T00:00:00Z`));
+          dateInfo.nurMonat = true;
+        }
 
         return {
           slug: field(item.s),
@@ -2212,7 +2240,11 @@
           line: field(item.v),     // 30.09.26: Linie innerhalb der Familie ("Sol", "Luna")
           stufe: field(item.st),   // 30.09.26: Stufe ("Pro", "Mini", "Lite")
           release,
-          dateInfo: parseDateInfo(release),
+          dateInfo,
+          rq,
+          io: field(item.io),
+          // Link erst mit den neuen Registry-Daten (io da), sonst fehlt i und der Slug fuehrt oft ins Leere
+          orId: rq && rq !== "meldung" && field(item.io) ? field(item.i) || field(item.s) : "",
           context: field(item.c),
           kind: field(item.k),
           kindKey: normalize(item.k)
@@ -2561,6 +2593,22 @@
         return [...alle];
       }
 
+      // 20.11.26 (Daniel: "unsere Uebersicht konnte mir nicht sagen, was Pixtral ist"): was das
+      // Modell liest und liefert, aus den OpenRouter-Modalitaeten (registry.json "io", z. B. "ti>t")
+      const IO_WORT = { t: "Text", i: "Bilder", f: "Dateien", a: "Audio", v: "Videos" };
+      function ioText(io) {
+        const treffer = /^([tifav]+)>([tifav]+)$/.exec(io || "");
+        if (!treffer) return "";
+        const liste = buchstaben => {
+          const woerter = [...buchstaben].map(c => IO_WORT[c]);
+          return woerter.length > 1
+            ? woerter.slice(0, -1).join(", ") + " und " + woerter[woerter.length - 1]
+            : woerter[0];
+        };
+        return `liest ${liste(treffer[1])}, ` +
+          (treffer[2] === "t" ? "antwortet mit Text" : `erzeugt ${liste(treffer[2])}`);
+      }
+
       function kontextText(model) {
         const zahl = Number(String(model.context || "").replace(/[^0-9]/g, "")) || 0;
         if (zahl >= 1e6) return (zahl / 1e6).toLocaleString("de-DE", { maximumFractionDigits: 2 }) + " Mio. Token";
@@ -2600,7 +2648,8 @@
         knoten.title = [provider, linie, ohneStufe(basis)].filter(Boolean).join(" › ");
 
         const datum = create("time", "px-gen-date", formatDate(basis.dateInfo));
-        if (basis.dateInfo) datum.dateTime = basis.dateInfo.key;
+        if (basis.dateInfo) datum.dateTime = basis.dateInfo.nurMonat ? basis.dateInfo.key.slice(0, 7) : basis.dateInfo.key;
+        if (basis.dateInfo && basis.dateInfo.nurMonat) datum.title = "Monat aus dem Modellnamen, der genaue Tag ist nicht bekannt";
         const name = create("h3", "px-gen-name", ohneStufe(basis));
         const meta = create("p", "px-gen-meta", [
           kindLabel(basis.kind) !== "Sprachmodell" ? kindLabel(basis.kind) : "",
@@ -2608,6 +2657,15 @@
           news.length ? news.length + (news.length === 1 ? " Meldung" : " Meldungen") : ""
         ].filter(Boolean).join(" · ") || "Noch keine Details im Katalog.");
         knoten.append(datum, name, meta);
+        const io = ioText(basis.io);
+        if (io) knoten.appendChild(create("p", "px-gen-io", io));
+        if (basis.orId) {
+          const steckbrief = create("a", "px-gen-or", "Steckbrief bei OpenRouter ↗");
+          steckbrief.href = "https://openrouter.ai/" + basis.orId.split("/").map(encodeURIComponent).join("/");
+          steckbrief.target = "_blank";
+          steckbrief.rel = "noopener noreferrer";
+          knoten.appendChild(steckbrief);
+        }
 
         // 30.09.26: LMArena-Raenge (registry/arena.json, arena_holen.py). Je Kategorie der beste
         // Rang ueber Basis und Stufen der Generation, hoechstens drei Kategorien.

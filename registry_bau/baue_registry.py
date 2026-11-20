@@ -51,8 +51,27 @@ def lade(pfad, vorgabe=None):
         return json.load(f)
 
 
+# Modalitaeten kurz (20.11.26): "ti>t" = liest Text und Bilder, antwortet mit Text.
+# modelle.html macht daraus eine Zeile auf der Modellkachel.
+_IO = {"text": "t", "image": "i", "file": "f", "audio": "a", "video": "v"}
+
+
+def io_kurz(mod):
+    """Ein- und Ausgabe als Buchstaben in fester Reihenfolge, None wenn eine Seite fehlt."""
+    def kurz(liste):
+        da = {_IO.get(x) for x in (liste or [])}
+        return "".join(c for c in "tifav" if c in da)
+    mod = mod or {}
+    ein, aus = kurz(mod.get("input")), kurz(mod.get("output"))
+    return "%s>%s" % (ein, aus) if ein and aus else None
+
+
 def baue_modelle(roh):
-    """Volle Modelldatensaetze auf die elf Felder kuerzen, die das Panel nutzt.
+    """Volle Modelldatensaetze auf die Felder kuerzen, die das Panel nutzt.
+
+    20.11.26: dazu io (Modalitaeten, siehe io_kurz) und i (Modell-ID bei
+    OpenRouter, nur wenn sie vom Slug abweicht) fuer den Steckbrief-Link.
+    Fehlen die Werte, fehlen auch die Schluessel, das haelt die Datei klein.
 
     Die Reihenfolge bleibt wie in modelle.json -- der Generator sortiert dort
     bereits, und das Panel sortiert ohnehin selbst nach Auswahl.
@@ -72,6 +91,12 @@ def baue_modelle(roh):
             "ex": m.get("expiration_date"),
             "k": m.get("kategorie"),
         })
+        io = io_kurz(m.get("modalitaeten"))
+        if io:
+            aus[-1]["io"] = io
+        or_id = (m.get("id") or "").split(":")[0]
+        if or_id and or_id != m.get("slug") and m.get("release_quelle") != "meldung":
+            aus[-1]["i"] = or_id
     return aus
 
 

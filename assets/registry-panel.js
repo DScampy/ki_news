@@ -305,8 +305,10 @@
             (jung ? '<span class="rg-tg n">neu</span>' : '') +
             (tot ? '<span class="rg-tg warn">abgekündigt</span>' : '') +
             '<span title="' + (m.rq === "slug" ? "exaktes Release-Datum aus dem Slug"
+              : m.rq === "slug_monat" ? "Monat aus dem Modellnamen, der genaue Tag ist nicht bekannt"
               : "Listungsdatum bei OpenRouter, kein echtes Release") + '">' +
-            esc(m.r || "?") + (m.rq === "created" ? " ~" : "") + '</span>' +
+            esc(m.rq === "slug_monat" && m.r ? m.r.slice(0, 7) : (m.r || "?")) +
+            (m.rq === "created" ? " ~" : "") + '</span>' +
             (m.c ? '<span>' + Math.round(m.c / 1000) + 'k</span>' : '') +
             (na ? '<span style="color:var(--rg-ak2)">' + na + ' News</span>' : '') +
             '</div></div>';

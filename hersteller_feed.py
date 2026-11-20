@@ -46,7 +46,9 @@ except Exception:  # pragma: no cover - sehr alte Python-Versionen
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "hersteller.json"
 RELEASE_TAGE = 14
-MAX_EINTRAEGE = 12
+# 20.11.26: 12 auf 16. Microsoft stellte am 17.11. vier Modelle auf einmal vor, mit 12 Plaetzen fiel
+# Claude Fable 5.2 (09.11.) schon nach 11 von 14 Tagen heraus.
+MAX_EINTRAEGE = 16
 UA = "Mozilla/5.0 (compatible; ki-news.live hersteller-feed; +https://ki-news.live)"
 
 # (Hersteller, Art, URL). Spiegel-Feeds (Olshansk/rss-feeds) sind 1:1-Abzuege der
@@ -97,14 +99,17 @@ QUELLEN_FAMILIE = {
 
 # Modellfamilien; danach muss eine Versionsnummer folgen (Muse Spark 1.1, GPT-6).
 _FAMILIEN = (
-    r"GPT|o\d|Claude(?:\s+(?:Opus|Sonnet|Haiku|Fable))?|Opus|Sonnet|Haiku|Fable|"
-    r"Gemini|Gemma|Veo|Imagen|Lyria|WeatherNext|Llama|Muse(?:\s+(?:Spark|Image|Video))?|"
+    r"GPT|o\d|Claude(?:\s+(?:Opus|Sonnet|Haiku|Fable|Mythos))?|Opus|Sonnet|Haiku|Fable|"
+    # 20.11.26: Genie 4 (18.11.) und Gemini Robotics 2.5 (09.11.) fehlten in der Kachel
+    r"Gemini(?:\s+Robotics(?:-ER)?)?|Gemma|Genie|Veo|Imagen|Lyria|WeatherNext|Llama|Muse(?:\s+(?:Spark|Image|Video))?|"
     r"Grok(?:\s+Imagine)?|Mistral(?:\s+(?:Large|Medium|Small))?|Magistral|Codestral|Devstral|"
     r"Voxtral|Pixtral|Ministral|Qwen|DeepSeek|Kimi(?:[\s\-]?K)?|GLM|ChatGPT\s+Images|"  # Kimi K3.1 Pro, Kimi-K2.6
     r"Eleven(?:\s+(?:Music|Multilingual|Flash|Turbo))?|Scribe|"
     # 26.10.26 (Daniel): sechs weitere Hersteller - MiniMax M3.1, Seedream 5.0/Seedance 2.0/Seed 2.0,
     # Nemotron 3.5, MAI-Image-2.6/MAI-Base-2, FLUX.2/FLUX 3
-    r"MiniMax(?:[\s\-]?[A-Z]|\s+(?:Music|Speech|Hailuo|Video))?|Seed(?:ream|ance)?|Nemotron|MAI-(?:Image|Base|Voice|Code|Transcribe|DS)|FLUX\.?"
+    # 20.11.26: Microsoft schreibt seit Ignite "MAI Image 2.7" mit Leerzeichen, dazu MAI Cyber/Realtime
+    r"MiniMax(?:[\s\-]?[A-Z]|\s+(?:Music|Speech|Hailuo|Video))?|Seed(?:ream|ance|\s+Audio)?|Nemotron|"
+    r"MAI[\s\-](?:Image|Base|Voice|Code|Transcribe|DS|Cyber|Realtime)|FLUX\.?"
 )
 _ZUSATZ = (
     r"Pro|Flash|Lite|Live|Sol|Luna|Astra|Mini|Nano|Ultra|Max|Plus|Turbo|Thinking|"
@@ -146,7 +151,26 @@ def _text(s, maxlen=260):
 # "One-take Creation ...: Introducing Seedance 2.5" kuendigt erst nach dem Doppelpunkt an.
 _HERSTELLER_PRAEFIX = re.compile(r"^(?:NVIDIA|Microsoft(?:\s+AI)?|ByteDance(?:\s+Seed)?|Black Forest Labs|"
                                  r"Z\.ai|Moonshot AI)\s+", re.IGNORECASE)
-_ANKUENDIGUNG_DAVOR = re.compile(r"\b(?:introducing|announcing|meet)\s*$", re.IGNORECASE)
+_ANKUENDIGUNG_DAVOR = re.compile(r"\b(?:introducing|announcing|meet)(?:\s+the)?\s*$", re.IGNORECASE)
+
+# 20.11.26 (Daniel: "Frisch auf dem Markt scheint nicht mehr hinzuhauen"). Google haengt einen
+# Linien-Namen an die Version: Gemini 4 Argon, Carbon, Hydrogen, Neon. Bisher wurden alle zu
+# "Gemini 4", und nur die frueheste Meldung blieb in der Kachel. Ein grossgeschriebenes Wort direkt
+# nach dem Namen gehoert jetzt dazu, wenn danach der Titel endet oder ":", ",", " - ", " is", " now"
+# oder " and" folgt. So bleibt "Nemotron 3.5 Super VL Powers the ..." beim alten Namen.
+_LINIE_RE = re.compile(r"[ \-‑]([A-Z][a-z]{2,15})(?=$|[:,;!?)]|\s+[-–]\s|\s+(?:is|are|now|and)\b)")
+_LINIE_NEIN = {"Is", "Are", "Now", "Here", "Today", "And", "For", "With", "The", "Update", "Updates",
+               "Release", "Launch", "Model", "Models", "Card", "Report", "Available", "Beta", "Research",
+               "Blog", "Api", "Overview", "Guide", "Paper", "Benchmarks", "Explained", "Family", "Series"}
+
+
+def _modellname(t, m):
+    """Treffer von MODELL_RE plus Linien-Name, MAI-Namen in der Schreibweise von OpenRouter."""
+    name = re.sub(r"\s+", " ", m.group(1)).strip(" -")
+    w = _LINIE_RE.match(t, m.end())
+    if w and w.group(1) not in _LINIE_NEIN and not w.group(1).endswith("ed"):
+        name += " " + w.group(1)
+    return re.sub(r"^MAI[\s\-]+([A-Za-z]+)[\s\-]+(?=\d)", r"MAI-\1-", name)
 
 
 def modell_aus_titel(titel, ueberall=False):
@@ -157,15 +181,14 @@ def modell_aus_titel(titel, ueberall=False):
     if not m:
         return ""
     if ueberall:
-        return re.sub(r"\s+", " ", m.group(1)).strip(" -")
+        return _modellname(t, m)
     ohne = _HERSTELLER_PRAEFIX.sub("", t)
     beginnt_mit_modell = ohne.lower().startswith(m.group(1).lower()[:4])
     if not (START_RE.match(t) or beginnt_mit_modell or _ANKUENDIGUNG_DAVOR.search(t[: m.start()])):
         return ""
     if VERBOTEN_RE.search(t[: m.start()]) and not START_RE.match(t):
         return ""
-    name = re.sub(r"\s+", " ", m.group(1)).strip(" -")
-    return name
+    return _modellname(t, m)
 
 
 def _datum(s):
@@ -212,8 +235,28 @@ def lies_rss(xml_txt):
 
 
 def lies_anthropic(seite):
-    """anthropic.com/news: Karten <a href="/slug"> mit Ueberschrift und <time>."""
-    out = []
+    """anthropic.com/news. Seit November 2026 steht <time> im <header> der Karte und der Titel-Link
+    (<a href="/slug"><h2>Titel</h2>) folgt danach, auch in der Liste. Darum je <time> der naechste
+    Link mit Ueberschrift. Liefert das nichts, gilt der alte Aufbau (<a> mit Ueberschrift und <time>)."""
+    out, gesehen = [], set()
+    zeiten = list(re.finditer(r"<time[^>]*>(.*?)</time>", seite, re.S))
+    for k, t in enumerate(zeiten):
+        ende = zeiten[k + 1].start() if k + 1 < len(zeiten) else len(seite)
+        stueck = seite[t.end():min(ende, t.end() + 4000)]
+        for m in re.finditer(r'<a [^>]*href="(/[a-z0-9][a-z0-9/-]*)"[^>]*>(.*?)</a>', stueck, re.S):
+            h = re.search(r"<h[1-4][^>]*>(.*?)</h[1-4]>", m.group(2), re.S) or \
+                re.search(r'<span[^>]*[Tt]itle[^>]*>(.*?)</span>', m.group(2), re.S)
+            if not h:
+                continue
+            if m.group(1) not in gesehen:
+                gesehen.add(m.group(1))
+                p = re.search(r"<p[^>]*>(.*?)</p>", m.group(2), re.S)
+                out.append({"titel": _text(h.group(1), 200), "url": "https://www.anthropic.com" + m.group(1),
+                            "datum": _datum(_text(t.group(1), 40)), "text": p.group(1) if p else "",
+                            "poster": "", "video_url": ""})
+            break
+    if out:
+        return out
     for m in re.finditer(r'<a href="(/[a-z0-9][a-z0-9/-]*)"[^>]*>(.*?)</a>', seite, re.S):
         inner = m.group(2)
         h = re.search(r"<h[1-4][^>]*>(.*?)</h[1-4]>", inner, re.S) or \
@@ -296,8 +339,17 @@ def _eintrag(titel, url, datum, text="", poster=""):
 def lies_minimax(seite):
     """minimax.io/blog: Karten <a href="/blog/<slug>"><section><img alt="Titel">...
     2026-10-19</span></section><h3>Titel</h3>."""
-    out = []
+    out, gesehen = [], set()
+    # 20.11.26: neuer Aufbau, der alte Leser fand 0 Karten (MiniMax H3-Image vom 10.11. fehlte)
+    for slug, karte in re.findall(r'<a [^>]*href="/blog/([^"]+)"[^>]*>\s*<article[^>]*>(.*?)</article>', seite, re.S):
+        d = re.search(r'<time[^>]*dateTime="([^"]+)"', karte, re.I) or re.search(r"(\d{4}-\d{2}-\d{2})</time>", karte)
+        t = re.search(r"<h[23][^>]*>(.*?)</h[23]>", karte, re.S)
+        if d and t and slug not in gesehen:
+            gesehen.add(slug)
+            out.append(_eintrag(t.group(1), f"https://www.minimax.io/blog/{slug}", d.group(1)))
     for slug, karte in re.findall(r'<a [^>]*href="/blog/([^"]+)"[^>]*><section[^>]*>(.*?)</a>', seite, re.S):
+        if slug in gesehen:
+            continue
         d = re.search(r"(\d{4}-\d{2}-\d{2})</span>", karte)
         t = re.search(r"<h3[^>]*>(.*?)</h3>", karte, re.S) or re.search(r'<img alt="([^"]+)"', karte)
         if d and t:
@@ -339,8 +391,20 @@ MS_MAX_BEITRAEGE = 4
 def lies_microsoft(seite):
     """microsoft.ai/blog: Karten <a title="<Titel> Link" href="https://microsoft.ai/news/<slug>/">,
     ohne Datum. Die neuesten MS_MAX_BEITRAEGE Beitraege werden geoeffnet (datePublished im JSON-LD).
-    Der Feed microsoft.ai/feed/ ist leer (26.10.)."""
+    Der Feed microsoft.ai/feed/ ist leer (26.10.).
+    20.11.26: neue Kacheln <article><a href=".../news/<slug>/"><h2>Titel</h2></a><time datetime>.
+    Das Datum steht direkt in der Uebersicht, kein Beitrag muss geoeffnet werden. Liefert das
+    nichts, gilt der alte Weg darunter."""
     out, gesehen = [], set()
+    for art in re.findall(r"<article[^>]*>(.*?)</article>", seite, re.S):
+        u = re.search(r'href="(https://microsoft\.ai/news/[^"]+)"', art)
+        h = re.search(r"<h[1-4][^>]*>(.*?)</h[1-4]>", art, re.S)
+        t = re.search(r'<time[^>]*datetime="([^"]+)"', art)
+        if u and h and t and u.group(1) not in gesehen:
+            gesehen.add(u.group(1))
+            out.append(_eintrag(re.sub(r"\s+", " ", h.group(1)), u.group(1), t.group(1)))
+    if out:
+        return out
     for titel, url in re.findall(r'title="([^"]+?) Link"\s+href="(https://microsoft\.ai/news/[^"]+)"', seite):
         if url in gesehen:
             continue
@@ -483,6 +547,10 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
                      "elevenlabs": lies_elevenlabs, "kimi": lies_kimi, "minimax": lies_minimax,
                      "seed": lies_seed, "zai": lies_zai, "microsoft": lies_microsoft,
                      "bfl": lies_bfl}[art](roh)
+            # 20.11.26: Microsoft und MiniMax lieferten bis zum 20.11. still 0 Eintraege, weil die
+            # Seiten umgebaut wurden. Jetzt steht das als WARNUNG im Log, und alte Eintraege bleiben.
+            if not items:
+                raise ValueError("0 Eintraege, Seitenaufbau geaendert?")
             ok_hersteller.add(hersteller)
         except Exception as e:
             fehl.append(f"{hersteller} ({url}): {type(e).__name__}: {e}")
