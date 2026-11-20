@@ -1680,9 +1680,10 @@
         </aside>
       </header>
 
-      <div class="px-karte-link" style="margin:18px 0 22px;font-size:14px">
-        <p style="margin:0">Hersteller und Themen als Übersicht: <a href="landkarte.html" style="color:inherit;text-decoration:underline;text-underline-offset:2px">zur KI-Landkarte</a></p>
-        <p id="px-karte-hinweis" role="status" style="margin:4px 0 0;font-size:13px;opacity:.8"></p>
+      <!-- 20.11.26: Link zur KI-Landkarte entfernt (Daniel: bislang kein Mehrwert). Der Hinweis bleibt
+           fuer alte Links mit ?hersteller= und ?modell= und ist nur sichtbar, wenn ein Filter greift. -->
+      <div class="px-karte-link" style="font-size:14px">
+        <p id="px-karte-hinweis" role="status" hidden style="margin:14px 0 18px;font-size:13px;opacity:.8"></p>
       </div>
       <section class="px-control-panel" aria-label="Registry durchsuchen und filtern">
         <div class="px-control-grid">
@@ -3074,7 +3075,7 @@
       }
 
       // Landkarte -> Registry (28.09.26, seit 03.11.26 per Link statt per Einbettung): landkarte.html
-      // verlinkt mit ?hersteller= und ?modell= hierher. Muss nach renderFilters() laufen, weil
+      // verlinkte mit ?hersteller= und ?modell= hierher (seit 20.11.26 abgeschaltet, alte Links gelten weiter). Muss nach renderFilters() laufen, weil
       // loadRegistry() vorher alle Filter zuruecksetzt und die Auswahlfelder neu aufbaut.
       function applyMapFilter() {
         const url = new URLSearchParams(location.search);
@@ -3098,10 +3099,11 @@
 
         const teile = [wert && ("Hersteller " + wert), modell && ("Suche \u201e" + modell + "\u201c")].filter(Boolean);
         hinweis.textContent = teile.length ? "Registry gefiltert: " + teile.join(", ") : hersteller + " führt keine Modelle in der Registry.";
+        hinweis.hidden = false;
 
         // Der Hinweis gilt nur, bis jemand selbst filtert. Die Registry-Skripte unten loesen "change" auch per Code aus.
         const hinweisWeg = event => {
-          if (event.isTrusted) hinweis.textContent = "";
+          if (event.isTrusted) { hinweis.textContent = ""; hinweis.hidden = true; }
         };
         ["px-provider-filter", "px-kind-filter", "px-year-filter", "px-reset"].forEach(id => {
           byId(id).addEventListener(id === "px-reset" ? "click" : "change", hinweisWeg);
