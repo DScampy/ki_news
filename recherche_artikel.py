@@ -150,6 +150,12 @@ ANKER_MIN_LINKS = 2
 # False = Kill-Switch, Verhalten wie vorher.
 KARTE_NUR_ZITIERT = True
 SEITEN_NACHZIEHEN = True
+# Recherche auf der Startseite (20.11.26, Daniel): recherche/neueste.json traegt die zuletzt veroeffentlichte
+# Recherche, index.html haengt sie als sechste Folie hinter die Top 5 (solange juenger als 48 Stunden).
+# Das Register (recherche/index.json, gut 400 KB) ist fuer die Startseite zu gross.
+# False = Kill-Switch: Die Datei wird nicht mehr erneuert, die Startseite laesst die Folie nach 48 Stunden weg.
+# Sofort abschalten geht in index.html (RECHERCHE_FOLIE = false).
+NEUESTE_FOLIE = True
 # Bild aus dem Archiv (11.11.26). Nach dem Merge blieb der Boersengang-Artikel trotzdem ohne Bild. Ursache:
 # ki_news.py schreibt news.json in jedem Lauf neu, ohne image_local. Das setzt erst bilder_spiegel.py am Ende
 # des Laufs. Nur archive.json behaelt die Felder. Meldungen der letzten 5 Tage hatten darum bei der Recherche
@@ -1682,8 +1688,37 @@ def seiten_nachziehen(register, base=BASE):
         return 0
 
 
+def neueste_datei(register, ordner=ORDNER):
+    """recherche/neueste.json fuer die Startseite (NEUESTE_FOLIE): die zuletzt veroeffentlichte oder erweiterte
+    Recherche, gleiche Reihenfolge wie die Uebersicht. Das Bild ist das og:image der Seite (1600 px).
+    True, wenn geschrieben wurde."""
+    fertig = [e for e in register.values() if e.get("status") == "veroeffentlicht" and e.get("pfad")]
+    if not NEUESTE_FOLIE or not fertig:
+        return False
+    e = max(fertig, key=lambda x: x.get("stand_aktualisiert") or x.get("stand") or x.get("datum") or "")
+    bild = ""
+    try:
+        seite = (ordner / Path(e["pfad"]).name).read_text(encoding="utf-8")
+        m = re.search(r'<meta property="og:image" content="([^"]+)"', seite)
+        bild = html.unescape(m.group(1)) if m else ""
+    except OSError:
+        pass
+    daten = {
+        "titel": e.get("titel") or "",
+        "anriss": e.get("anriss") or "",
+        "pfad": e["pfad"],
+        "datum": e.get("aktualisiert") or e.get("datum") or "",
+        "stand": e.get("stand_aktualisiert") or e.get("stand") or "",
+        "quellen": e.get("quellen") or 0,
+        "medien": len(e.get("medien") or []),
+        "linie": e.get("linie") or "",
+        "bild": bild,
+    }
+    return ms._schreiben_wenn_neu(ordner / "neueste.json", json.dumps(daten, ensure_ascii=False, indent=1) + "\n")
+
+
 def oeffentliche_listen(register):
-    """Uebersicht und Sitemap. Laeuft auch ohne neuen Artikel, ein Fehler hier kostet keinen Artikel."""
+    """Uebersicht, Sitemap und neueste.json. Laeuft auch ohne neuen Artikel, ein Fehler hier kostet keinen Artikel."""
     if not register:
         return
     try:
@@ -1691,6 +1726,11 @@ def oeffentliche_listen(register):
         uebersicht(register)
     except Exception as e:
         print(f"[RECHERCHE] Uebersicht/Sitemap: {type(e).__name__} {e}")
+    try:
+        if neueste_datei(register):
+            print("[RECHERCHE] recherche/neueste.json erneuert")
+    except Exception as e:
+        print(f"[RECHERCHE] neueste.json: {type(e).__name__} {e}")
 
 
 # ── Ablauf ───────────────────────────────────────────────────────────────────

@@ -7105,7 +7105,7 @@ window.addEventListener('resize',()=>{
     };
 
     const resolveCard = story => {
-      if (!story || typeof story !== "object") return null;
+      if (!story || typeof story !== "object" || story.recherche) return null;
 
       // Einbau index.html (28.09.26): Zuordnung der Seite (klCardFor, Link dann
       // Titel-Praefix) statt eigenem Aehnlichkeitsvergleich, der NaiveAI die
@@ -7210,6 +7210,41 @@ window.addEventListener('resize',()=>{
 
     // Bildfläche füllen: Foto, sonst Motiv der Karte (oberer Teil des Posters, ohne
     // Kartentitel und Einordnung), sonst Füllmotiv. Gibt true zurück, wenn ein Foto steht.
+    // Recherche als sechste Folie (20.11.26, Daniel): Die neueste eigene Recherche haengt
+    // hinter den Top 5, solange sie juenger als 48 Stunden ist. recherche_artikel.py schreibt
+    // dafuer recherche/neueste.json. Die Folie fuehrt auf die Recherche-Seite, ohne Artikel-
+    // Overlay und ohne Karten-Video. Kill-Switch: RECHERCHE_FOLIE = false.
+    const RECHERCHE_FOLIE = true;
+    const RECHERCHE_STUNDEN = 48;
+    let rechercheStory = null;
+    const rechercheAus = r => {
+      if (!r || typeof r !== "object") return null;
+      const titel = cleanText(r.titel);
+      const pfad = safeHref(r.pfad);
+      const stand = Date.parse(cleanText(r.stand));
+      if (!titel || !pfad || !Number.isFinite(stand)) return null;
+      const alter = Date.now() - stand;
+      if (alter > RECHERCHE_STUNDEN * 3600000 || alter < -6 * 3600000) return null;
+      const gross = safeImage(r.bild);
+      return {
+        recherche: true,
+        title: titel,
+        anriss: cleanText(r.anriss),
+        source: "KI News Recherche",
+        date: cleanText(r.datum) || cleanText(r.stand),
+        seite: pfad,
+        link: pfad,
+        image_local_gross: gross,
+        image_local: gross.replace("/bilder/1600/", "/bilder/640/"),
+        linie: cleanText(r.linie),
+        story_article_count: Number(r.quellen) || 0
+      };
+    };
+    const mitRecherche = list => {
+      const top = (Array.isArray(list) ? list : []).filter(s => !(s && s.recherche));
+      return rechercheStory && top.length ? top.slice(0, 5).concat(rechercheStory) : top;
+    };
+
     const fillMedia = (media, story, card, eager, gross) => {
       media.dataset.pxFuell = fuellmotiv(story);
       const foto = storyPhoto(story, gross);
@@ -7664,6 +7699,7 @@ window.addEventListener('resize',()=>{
     let videoPlaying = false;
     const attachCardVideo = (media, story) => {
       videoPlaying = false;
+      if (story && story.recherche) return;
       if (
         typeof window.klLoadCards !== "function" ||
         typeof window.klCardFor !== "function"
@@ -7809,8 +7845,8 @@ window.addEventListener('resize',()=>{
           "div",
           "px-hero-importance",
           stories.length > 1
-            ? `Im Fokus · ${currentStory + 1} von ${stories.length}`
-            : "Im Fokus"
+            ? `${story.recherche ? "Recherche" : "Im Fokus"} · ${currentStory + 1} von ${stories.length}`
+            : (story.recherche ? "Recherche" : "Im Fokus")
         ),
         make("h1", "px-hero-main-title", anzeigeTitel(cleanText(story.schlagzeile) || title))
       );
@@ -7848,7 +7884,10 @@ window.addEventListener('resize',()=>{
       const contextCopy = make("div", "px-hero-main-context-copy");
       const firstSeen = formatDate(story.first_seen || story.date);
 
-      const contextText = dossier.hasDossier
+      const anzahlQuellen = Number(story.story_article_count) || 0;
+      const contextText = story.recherche
+        ? `Hintergrund aus ${anzahlQuellen > 1 ? `${anzahlQuellen} Quellen` : "mehreren Quellen"}. Zahlen, Daten und Namen sind gegen die Quellen geprüft.`
+        : dossier.hasDossier
         ? dossier.names.join(" / ") ||
           "Die Meldung ist einer laufenden Linie zugeordnet."
         : firstSeen
@@ -7859,7 +7898,9 @@ window.addEventListener('resize',()=>{
         make(
           "div",
           "px-hero-context-label",
-          dossier.hasDossier
+          story.recherche
+            ? "Eigene Recherche"
+            : dossier.hasDossier
             ? "Linie im Dossier"
             : "Meldungskontext"
         ),
@@ -7870,8 +7911,10 @@ window.addEventListener('resize',()=>{
         contextCopy,
         make(
           "span",
-          `px-hero-dossier${dossier.hasDossier ? "" : " px-hero-dossier-single"}`,
-          dossier.hasDossier
+          `px-hero-dossier${dossier.hasDossier || story.recherche ? "" : " px-hero-dossier-single"}`,
+          story.recherche
+            ? "Recherche"
+            : dossier.hasDossier
             ? "Teil eines Dossiers"
             : "Freistehende Meldung"
         )
@@ -8658,9 +8701,14 @@ window.addEventListener('resize',()=>{
         requestPaths.push("hersteller.json");
       }
 
+      const rechercheLaden = RECHERCHE_FOLIE && !demoMode
+        ? fetchJSON("recherche/neueste.json").catch(() => null)
+        : Promise.resolve(null);
+
       const results = await Promise.allSettled(
         requestPaths.map(path => path ? fetchJSON(path) : Promise.resolve(null))
       );
+      rechercheStory = rechercheAus(await rechercheLaden);
 
       if (typeof window.klLoadCards === "function") {
         try {
@@ -8691,6 +8739,7 @@ window.addEventListener('resize',()=>{
       if (Array.isArray(window.__pxHeroTop) && window.__pxHeroTop.length) {
         stories = eindeutig(window.__pxHeroTop).slice(0, 6);
       }
+      stories = mitRecherche(stories);
 
       const releases = sortReleases(
         extractReleases(releasePayload)
@@ -8757,6 +8806,14 @@ window.addEventListener('resize',()=>{
       else if (target.closest("[data-px-side-one]")) story = stories[sideIndex(1)];
       else if (target.closest("[data-px-side-two]")) story = stories[sideIndex(2)];
       if (!story) return;
+      // Recherche-Folie (20.11.26): Seitenkachel ist ein Link und oeffnet sich selbst,
+      // die grosse Folie fuehrt auf dieselbe Seite
+      if (story.recherche) {
+        if (target.closest("a[href]")) return;
+        event.preventDefault();
+        window.location.href = story.seite;
+        return;
+      }
 
       event.preventDefault();
       window.klOpenArticle(story);
@@ -8766,7 +8823,7 @@ window.addEventListener('resize',()=>{
     window.pxHeroSetStories = list => {
       if (destroyed || !Array.isArray(list) || !list.length) return;
       if (hero.getAttribute("aria-busy") !== "false") return;
-      stories = eindeutig(list).slice(0, 6);
+      stories = mitRecherche(eindeutig(list).slice(0, 6));
       statusNode.textContent = `${stories.length} Meldungen im Fokus`;
       if (!releaseIsExample && allReleases.length) {
         releaseData = pickRelease();
