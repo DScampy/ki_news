@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""HuggingNews als Finder, SCHATTENBETRIEB (17.11.26, Plan X1, Daniel).
+"""HuggingNews als Finder (17.11.26 Schatten, Plan X1, ab 20.11.26 Stufe 2 mit Zugaengen, Daniel).
 
 Daniel am 17.11.26: Die groesste Story bei HuggingNews brauchen wir auf jeden Fall, und die
 X-Posts dort sollen helfen, Meldungen zu finden. Am 17.11. fehlte uns HN-Platz 1 (China droht
 Gegenmassnahmen gegen die US-Chipregeln, 1176 Tweets) ganz.
 
-Dieses Skript schreibt NUR hn_finder_shadow.json und Logzeilen. Es aendert keine Meldung,
-keinen Score und keine Karte. Je Lauf:
+Dieses Skript schreibt NUR hn_finder_shadow.json und Logzeilen. Es aendert selbst keine
+Meldung, keinen Score und keine Karte. Seit Stufe 2 liest ki_news.py den Abschnitt "zugaenge"
+wie einen Feed (siehe unten, Schritt 4). Je Lauf:
   1. HN-Feed lesen (3 Tage), Storys ab MIN_TWEETS Tweets, ohne ueberholte Storys.
   2. Haben wir die Story? Der erste Treffer zaehlt:
      a) themenketten.json ordnet einen unserer Artikel als dasselbe Ereignis zu,
@@ -26,14 +27,34 @@ keinen Score und keine Karte. Je Lauf:
      nie wiederholt. Darum steht jetzt der Suchstatus in der Datei und im Log. Nach einem
      Fehler sucht der naechste Lauf noch einmal, ohne Treffer erst nach SUCHE_WIEDERHOLEN_H
      Stunden. Hoechstens SUCHE_VERSUCHE Suchen je Story.
+  4. Stufe 2 (20.11.26, Daniel "Stufe 2 jetzt bauen"): Je Ereignis-Gruppe, die fehlt oder
+     unklar ist, einmal pruefen, ob daraus ein Zugang wird (_zugang_pruefen):
+     a) Quelle: die t.co-Seite, wenn sie frei lesbar ist und ihr og:title zum HN-Titel passt
+        (ab ZUGANG_TCO_MIN). Sonst eine frische Google-News-Suche, Treffer ab
+        ZUGANG_SUCHE_MIN, bekannte Verlage zuerst. Bei der Suche bleibt der Link bei
+        news.google.com und es gibt keinen Text, wie bei unseren Google-News-Feeds.
+     b) Alter: Datum der Quelle, sonst das Ereignis. Aelter als ZUGANG_MAX_ALTER_H, kein Zugang.
+     c) Doppel-Schutz: Link schon bei uns oder schon ein Zugang, kein Zugang. Dann fragt Jev
+        den Quellentitel gegen die aehnlichsten JEV_VERGLEICHE unserer Originaltitel (und
+        gegen die Titel der Zugaenge), dieselbe Frage wie die Entdopplung in ki_news.py.
+        Ab JEV_SCHWELLE ist die Story schon bei uns. Jev-Fehler: dieser Lauf kein Zugang,
+        der naechste Lauf prueft noch einmal.
+     d) Hoechstens ZUGANG_JE_LAUF neue Zugaenge je Lauf und ZUGANG_JE_TAG je UTC-Tag. Jeder
+        Zugang steht ZUGANG_HALTEN_H Stunden in der Datei, denn ki_news.py baut seine
+        Meldungsliste in jedem Lauf frisch aus den Feeds auf.
+     Das Ergebnis steht je Story in "zugang_pruefung" und wird nicht wiederholt. Ausnahme
+     "keine_quelle": erneute Pruefung, sobald die Schattensuche aus Schritt 3 noch einmal sucht.
 
 HN-Texte werden nicht gespeichert (robots.txt use=reference). In der Datei stehen nur Slugs,
-Zahlen, Zeiten, unsere Links und Titel der Originalquellen. HN-Titel dienen nur im Speicher
-zum Abgleich und als Suchwoerter. Eine eigene Meldung entsteht spaeter, wenn Daniel es so
-entscheidet, nur aus der Originalquelle, nie aus HN- oder X-Texten.
+Zahlen, Zeiten, unsere Links sowie Titel und Anrisse (og:description) der Originalquellen.
+HN-Titel dienen nur im Speicher zum Abgleich und als Suchwoerter. Jev bekommt den Titel der
+Originalquelle, nie den HN-Titel. Eine Meldung entsteht nur aus der Originalquelle, nie aus
+HN- oder X-Texten.
 
 Nie blockieren: jeder Fehler wird geloggt, der Exit-Code bleibt 0.
-Kill-Switch: AKTIV = False oder den Workflow-Schritt entfernen.
+Kill-Switches: AKTIV = False oder den Workflow-Schritt entfernen (alles aus). ZUGANG_AKTIV =
+False (keine neuen Zugaenge, vorhandene laufen nach ZUGANG_HALTEN_H aus). Sofort wirksam:
+HN_ZUGANG_AKTIV = False in ki_news.py. Einzelne Zugaenge sperrt Daniel ueber blocked_links.
 
 Aufruf: python3 hn_finder_shadow.py [--basis DIR] [--ausgabe DATEI]
 """
@@ -51,6 +72,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 AKTIV = True
@@ -73,6 +95,46 @@ TIMEOUT_S = 12
 UA_HN = "ki-news.live"
 UA_SEITE = "Mozilla/5.0 (compatible; ki-news.live; +https://ki-news.live)"
 X_HOSTS = ("x.com", "twitter.com", "t.co", "twimg.com")
+
+# Stufe 2 (20.11.26): Zugaenge fuer ki_news.py, Ablauf im Docstring Schritt 4.
+ZUGANG_AKTIV = True
+ZUGANG_TCO_MIN = 0.2       # og:title der t.co-Seite gegen HN-Titel. Messung 20.11.: passende
+                           # Seiten 0,44 bis 0,59, fremde Seiten 0 bis 0,16
+ZUGANG_SUCHE_MIN = 0.5     # Google-News-Treffer fuer einen Zugang (Schatten: SUCHE_MIN 0,3)
+ZUGANG_MAX_ALTER_H = 72    # HN-Storys erreichen 80 Tweets oft erst 1 bis 2 Tage nach dem Ereignis
+ZUGANG_JE_LAUF = 3
+ZUGANG_JE_TAG = 6          # je UTC-Tag des Feldes "ab"
+ZUGANG_HALTEN_H = 48       # so lange bietet die Datei den Zugang ki_news.py an
+ZUGANG_PRUEF_MAX = 8       # hoechstens so viele Pruefungen je Lauf
+ZUGANG_TEXT_MAX = 500      # Laenge des Anrisses aus og:description
+JEV_URL = "https://api.typesafe.ai/v1/systemone"
+JEV_SCHWELLE = 0.5         # ab hier dasselbe Ereignis, die Story ist schon bei uns
+JEV_VERGLEICHE = 6         # so viele unserer Titel fragt Jev hoechstens je Pruefung
+# Bekannte Verlage gehen bei der Suche vor (Messung 20.11.: viele Treffer kamen von
+# Sammelseiten wie Law Commentary, BigGo oder FourWeekMBA). Vergleich in Kleinbuchstaben
+# als Teilwort im Quellnamen von Google News.
+BEKANNTE_VERLAGE = ("reuters", "bloomberg", "cnbc", "associated press", "ap news", "apnews",
+                    "wall street journal", "wsj", "financial times", "new york times", "cnn",
+                    "bbc", "axios", "the verge", "techcrunch", "texas tribune", "washington post",
+                    "politico", "the guardian", "wired", "ars technica", "the information",
+                    "semafor", "fortune", "business insider", "the register", "nikkei",
+                    "south china morning post", "scmp", "the economist", "npr", "abc news",
+                    "cbs news", "nbc news", "forbes", "barron", "marketwatch", "siliconangle",
+                    "venturebeat", "zdnet", "engadget", "heise", "the decoder", "handelsblatt",
+                    "der spiegel", "faz", "sueddeutsche", "süddeutsche", "tagesschau")
+# Wortgleich mit _JEV_FRAGE_EREIGNIS in ki_news.py halten (Entdopplung der Cluster).
+_JEV_FRAGE_EREIGNIS = {
+    "type": "noul",
+    "instructions": "Berichten `meldung_a` und `meldung_b` über dasselbe konkrete Ereignis?",
+    "criteria": {
+        "true": "Ja: derselbe konkrete Vorgang (dieselbe Ankündigung, derselbe Deal, dieselbe Klage, "
+                "derselbe Vorfall, dieselbe Zahl), auch wenn Quelle, Formulierung, Detailtiefe oder "
+                "Blickwinkel sich unterscheiden.",
+        "false": "Nein: zwei verschiedene Vorgänge, auch wenn dieselbe Firma, dieselbe Person, dasselbe "
+                 "Produkt oder dasselbe Thema vorkommt (z. B. Klage vs. Produktstart, zwei verschiedene "
+                 "Deals, zwei verschiedene Personalien).",
+    },
+}
 
 STOP = set("""the a an and or for with from over after before says said say report reports
 reported new its it into about amid as at by in of on to is are was were be been will would
@@ -99,7 +161,7 @@ def _jetzt():
 
 
 def _iso(dt):
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _zeit(text):
@@ -217,32 +279,56 @@ class _KeinRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+_INHALT = r"""content=(?:"([^"]*)"|'([^']*)')"""
+
+
+def _meta(roh, name):
+    """Inhalt eines <meta property|name=...>, gleich in welcher Reihenfolge die Attribute stehen.
+    20.11.26: Doppelte und einfache Anfuehrungszeichen getrennt, sonst endete ein og:title wie
+    "China's ..." beim Apostroph."""
+    n = re.escape(name)
+    for muster in (r"<meta[^>]+(?:property|name)=[\"']%s[\"'][^>]*?%s" % (n, _INHALT),
+                   r"<meta[^>]+%s[^>]*?(?:property|name)=[\"']%s[\"']" % (_INHALT, n)):
+        m = re.search(muster, roh, re.I)
+        if m:
+            return re.sub(r"\s+", " ", html.unescape(m.group(1) or m.group(2) or "")).strip()
+    return ""
+
+
 def _seite(url):
-    """Zielseite laden (Weiterleitungen folgen). Liefert (endgueltige URL, HTTP-Code, og:title)."""
+    """Zielseite laden (Weiterleitungen folgen). Liefert (endgueltige URL, HTTP-Code, og:title,
+    mehr). mehr (Stufe 2): {"text": og:description, "zeit": Veroeffentlichung, "name": og:site_name}."""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": UA_SEITE, "Accept": "text/html"})
         with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
             ende, code = r.geturl(), r.status
             roh = r.read(400_000).decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
-        return e.geturl() or url, e.code, ""
+        return e.geturl() or url, e.code, "", {}
     except Exception:
-        return url, 0, ""
-    titel = ""
-    for muster in (r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)',
-                   r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:title',
-                   r"<title[^>]*>([^<]+)</title>"):
-        m = re.search(muster, roh, re.I)
-        if m:
-            titel = html.unescape(m.group(1)).strip()
+        return url, 0, "", {}
+    titel = _meta(roh, "og:title")
+    if not titel:
+        m = re.search(r"<title[^>]*>([^<]+)</title>", roh, re.I)
+        titel = html.unescape(m.group(1)).strip() if m else ""
+    zeit = None
+    for name in ("article:published_time", "og:article:published_time", "datePublished"):
+        zeit = _zeit(_meta(roh, name))
+        if zeit:
             break
-    return ende, code, titel[:200]
+    if not zeit:
+        m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', roh)
+        zeit = _zeit(m.group(1)) if m else None
+    mehr = {"text": _meta(roh, "og:description") or _meta(roh, "description"),
+            "zeit": zeit, "name": _meta(roh, "og:site_name")}
+    return ende, code, titel[:200], mehr
 
 
 def _gn_suche(titel, tage=3):
     """Google-News-RSS mit den Stichworten der Story, Zeitraum `tage` Tage.
-    Liefert (Liste (titel, quelle, link), Status). Der Status lautet "n Treffer", "HTTP 429",
-    "Fehler <Art>" oder "keine Suchwoerter", damit ein Fehlschlag nicht wie "keine Quelle" aussieht."""
+    Liefert (Liste (titel, quelle, link, zeit, verlag_url), Status). Der Status lautet "n Treffer",
+    "HTTP 429", "Fehler <Art>" oder "keine Suchwoerter", damit ein Fehlschlag nicht wie "keine
+    Quelle" aussieht. zeit (pubDate) und verlag_url (<source url>) braucht Stufe 2."""
     q = _suchwoerter(titel)
     if not q:
         return [], "keine Suchwoerter"
@@ -262,7 +348,14 @@ def _gn_suche(titel, tage=3):
         quelle = (item.findtext("source") or "").strip()
         if quelle and t.endswith(" - " + quelle):
             t = t[: -len(quelle) - 3].strip()
-        out.append((t, quelle, (item.findtext("link") or "").strip()))
+        try:
+            zeit = parsedate_to_datetime(item.findtext("pubDate") or "")
+            zeit = zeit if zeit.tzinfo else zeit.replace(tzinfo=timezone.utc)
+        except (TypeError, ValueError, IndexError):
+            zeit = None
+        quelle_el = item.find("source")
+        verlag_url = (quelle_el.get("url") or "") if quelle_el is not None else ""
+        out.append((t, quelle, (item.findtext("link") or "").strip(), zeit, verlag_url))
         if len(out) >= 10:
             break
     return out, "%d Treffer" % len(out)
@@ -290,7 +383,8 @@ def _nochmal_suchen(vorher, jetzt):
 
 
 def _eigene_daten(basis):
-    """Unsere Links (normalisiert) und englische Originaltitel mit Zeit."""
+    """Unsere Links (normalisiert), englische Originaltitel mit Zeit (als Wortmengen) und die
+    Originaltitel selbst je Link (fuer Jev in Stufe 2)."""
     cache = _lade(basis / "summary-cache.json", {})
     news = _lade(basis / "news.json", {})
     archiv = _lade(basis / "archive.json", [])
@@ -306,12 +400,13 @@ def _eigene_daten(basis):
         for gn_link, ziel in gn.items():
             if isinstance(ziel, str) and ziel.startswith("http"):
                 links.setdefault(_norm_link(ziel), gn_link)
-    titel = []
+    titel, roh = [], {}
     for link, e in (cache.items() if isinstance(cache, dict) else []):
         if isinstance(e, dict) and e.get("title_orig"):
             links.setdefault(_norm_link(link), link)
             titel.append((link, _woerter(e["title_orig"]), _zeit(e.get("generated_at"))))
-    return links, titel
+            roh[link] = str(e["title_orig"])
+    return links, titel, roh
 
 
 def _ketten(basis):
@@ -352,7 +447,7 @@ def _quelle_suchen(story, detail, links, titel, g, zeit):
             ziel = _tco_ziel(kurz)
             if not ziel or _ist_x(ziel):
                 continue
-            ende, code, og = _seite(ziel)
+            ende, code, og, _ = _seite(ziel)
             if urllib.parse.urlsplit(ende).path in ("", "/"):
                 continue   # Startseite (Messung 17.11.: ic3.gov), sagt nichts ueber die Story
             quelle = {"url": ende, "domain": _host(ende), "titel": og, "http": code,
@@ -370,7 +465,7 @@ def _quelle_suchen(story, detail, links, titel, g, zeit):
         hn_w = _woerter(story.get("title"))
         best = None
         treffer, status = _gn_suche(story.get("title"), tage)
-        for t, q, link in treffer:
+        for t, q, link, _, _ in treffer:
             d = _dice(hn_w, _woerter(t))
             if d >= SUCHE_MIN and (not best or d > best["wert"]):
                 best = {"titel": t[:200], "quelle": q, "link": link, "wert": d}
@@ -381,6 +476,175 @@ def _quelle_suchen(story, detail, links, titel, g, zeit):
         elif treffer:
             status += ", keiner ab %.1f" % SUCHE_MIN
     return quelle, suche, status
+
+
+# ---------------------------------------------------------------------------------------------
+# Stufe 2: Zugaenge (Docstring Schritt 4)
+# ---------------------------------------------------------------------------------------------
+# Diese Seiten sind keine Nachrichtenquelle, auch wenn ein source-Post dorthin verlinkt.
+ZUGANG_HOSTS_NEIN = ("youtube.com", "youtu.be", "linkedin.com", "facebook.com", "instagram.com",
+                     "tiktok.com", "reddit.com", "threads.net", "bsky.app", "news.google.com")
+
+
+def _bekannt(name):
+    n = str(name or "").lower()
+    return any(re.search(r"\b%s\b" % re.escape(v), n) for v in BEKANNTE_VERLAGE)
+
+
+def _zugang_quelle(b):
+    """Originalquelle fuer einen Zugang. Liefert (quelle oder None, Suchstatus).
+    Erst die t.co-Seite der Schattensuche (frisch geladen, wegen Anriss und Datum), sonst eine
+    frische Google-News-Suche ueber ZUGANG_MAX_ALTER_H, bekannte Verlage zuerst.
+    Die t.co-Seite zaehlt nur mit Veroeffentlichungsdatum. Probe 20.11.: Eine Modellseite bei
+    Hugging Face ("harness-hub/Qwen3.8-27B-hermes-adapted", Anriss "Download, explore files")
+    waere sonst eine Meldung geworden. CNN, Texas Tribune und Washington Sun haben ein Datum."""
+    hn_w = _woerter(b["s"].get("title"))
+    tq = b.get("quelle") or {}
+    if (tq.get("http") == 200 and tq.get("url")
+            and _dice(hn_w, _woerter(tq.get("titel"))) >= ZUGANG_TCO_MIN):
+        ende, code, og, mehr = _seite(tq["url"])
+        h = _host(ende)
+        wert = _dice(hn_w, _woerter(og))
+        if (code == 200 and og and wert >= ZUGANG_TCO_MIN and mehr.get("zeit") and not _ist_x(ende)
+                and not any(h == d or h.endswith("." + d) for d in ZUGANG_HOSTS_NEIN)
+                and urllib.parse.urlsplit(ende).path not in ("", "/")):
+            return {"link": ende, "titel": og, "text": (mehr.get("text") or "")[:ZUGANG_TEXT_MAX],
+                    "quelle": mehr.get("name") or h, "domain": h, "art": "tco",
+                    "zeit": mehr.get("zeit"), "wert": wert}, "t.co"
+    treffer, status = _gn_suche(b["s"].get("title"), max(1, ZUGANG_MAX_ALTER_H // 24))
+    kand = []
+    for t, q, link, zeit, verlag_url in treffer:
+        d = _dice(hn_w, _woerter(t))
+        if d >= ZUGANG_SUCHE_MIN and link and t:
+            kand.append((_bekannt(q), d, t, q, link, zeit, verlag_url))
+    if not kand:
+        return None, status
+    k = max(kand, key=lambda x: (x[0], x[1]))
+    return {"link": k[4], "titel": k[2][:200], "text": "", "quelle": k[3] or _host(k[6]),
+            "domain": _host(k[6]) or "news.google.com", "art": "suche", "zeit": k[5],
+            "wert": k[1]}, status
+
+
+def _jev_gleich(titel_a, titel_b, key):
+    """Wie _jev_gleich in ki_news.py: Wahrscheinlichkeit 0 bis 1, dass beide dasselbe Ereignis melden."""
+    body = json.dumps({"model": "jev-latest", "state": {"meldung_a": titel_a, "meldung_b": titel_b},
+                       "questions": {"gleich": _JEV_FRAGE_EREIGNIS}}).encode("utf-8")
+    req = urllib.request.Request(JEV_URL, data=body,
+                                 headers={"Authorization": "Bearer " + key,
+                                          "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return float(json.loads(r.read())["answers"]["gleich"]["noul"])
+
+
+def _zugang_jev(q, b, titel, roh, zugaenge, g, key, zstat):
+    """Doppel-Schutz: Jev vergleicht den Titel der Originalquelle mit den aehnlichsten unserer
+    Originaltitel (ab dem frueheren Zeitpunkt von Ereignis und Quelle minus VORLAUF_TAGE) und mit
+    den Titeln der Zugaenge. Die Auswahl nach gewichtetem Dice nutzt auch den HN-Titel, aber nur
+    im Speicher, Jev sieht ihn nie. Liefert (bei_uns, p_max, gegen). Jev-Fehler gehen als
+    Ausnahme an den Aufrufer."""
+    q_w, hn_w = _woerter(q["titel"]), _woerter(b["s"].get("title"))
+    zeiten = [t for t in (b["zeit"], q.get("zeit")) if t]
+    ab = min(zeiten) - timedelta(days=VORLAUF_TAGE) if zeiten else None
+    pool = [(link, w, roh.get(link) or "") for link, w, zeit in titel
+            if not (ab and zeit and zeit < ab)]
+    pool += [("zugang:" + s, _woerter(z.get("titel")), z.get("titel") or "")
+             for s, z in zugaenge.items()]
+    bewertet = []
+    for link, w, t in pool:
+        d = max(_dice(q_w, w, g), _dice(hn_w, w, g))
+        if d > 0 and t:
+            bewertet.append((d, link, t))
+    bewertet.sort(key=lambda x: -x[0])
+    p_max, gegen = 0.0, None
+    for _, link, t in bewertet[:JEV_VERGLEICHE]:
+        if _rest_s() < 10:
+            raise TimeoutError("Zeitbudget")
+        zstat["jev_aufrufe"] += 1
+        p = _jev_gleich(q["titel"], t, key)
+        if p > p_max:
+            p_max, gegen = round(p, 2), link
+        if p >= JEV_SCHWELLE:
+            return True, p_max, gegen
+    return False, p_max, gegen
+
+
+def _schon_geprueft(b, storys):
+    """Gruppe schon geprueft? "keine_quelle" gilt nur bis zur naechsten neuen Schattensuche."""
+    for slug, v in storys.items():
+        if (v.get("gruppe") or slug) != b["gruppe"]:
+            continue
+        zp = v.get("zugang_pruefung")
+        if zp and (zp.get("ergebnis") != "keine_quelle" or not b.get("neu_gesucht")):
+            return True
+    return False
+
+
+def _zugaenge_lauf(beste, storys, zugaenge, links, titel, roh, g, key, jetzt, zstat):
+    """Prueft fehlende Storys (die groessten zuerst) und legt Zugaenge an. Aendert storys
+    (Feld zugang_pruefung) und zugaenge."""
+    stempel = _iso(jetzt)
+    zugang_links = {_norm_link(z.get("link")): s for s, z in zugaenge.items()}
+    for b in sorted(beste.values(), key=lambda e: -(e["s"].get("tweetCount") or 0)):
+        if b["status"] not in ("fehlt", "unklar") or _schon_geprueft(b, storys):
+            continue
+        if zstat["neu"] >= ZUGANG_JE_LAUF or zstat["pruefungen"] >= ZUGANG_PRUEF_MAX:
+            break
+        heute = sum(1 for z in zugaenge.values() if str(z.get("ab") or "")[:10] == stempel[:10])
+        if heute >= ZUGANG_JE_TAG:
+            _log("Zugaenge: Tagesgrenze %d erreicht, Rest an einem spaeteren Tag" % ZUGANG_JE_TAG)
+            break
+        if _rest_s() < 25:
+            _log("Zugaenge: Zeitbudget leer, Rest im naechsten Lauf")
+            break
+        tweets = int(b["s"].get("tweetCount") or 0)
+        q, such_status = _zugang_quelle(b)
+        if q is None and _fehlschlag(such_status):
+            _log("Zugang offen: %d Tweets, Suche %s, naechster Lauf prueft noch einmal"
+                 % (tweets, such_status))
+            continue
+        pruefung = {"zeit": stempel, "ergebnis": "keine_quelle", "p_max": None, "gegen": None}
+        if q:
+            pruefung["quelle"] = q["link"]
+            veroeff = q.get("zeit") or b["zeit"]
+            nl = _norm_link(q["link"])
+            if veroeff and jetzt - veroeff > timedelta(hours=ZUGANG_MAX_ALTER_H):
+                pruefung["ergebnis"] = "zu_alt"
+            elif nl in links:
+                pruefung.update(ergebnis="bei_uns", gegen=links[nl])
+            elif nl in zugang_links:
+                pruefung.update(ergebnis="bei_uns", gegen="zugang:" + zugang_links[nl])
+            else:
+                try:
+                    bei_uns, p_max, gegen = _zugang_jev(q, b, titel, roh, zugaenge, g, key, zstat)
+                except Exception as ex:
+                    zstat["jev_fehler"] += 1
+                    _log("Zugaenge: Jev %s: %s, kein Zugang in diesem Lauf, der naechste prueft "
+                         "noch einmal" % (type(ex).__name__, str(ex)[:120]))
+                    break
+                pruefung.update(ergebnis="bei_uns" if bei_uns else "frei", p_max=p_max, gegen=gegen)
+                zstat["jev_bei_uns"] += int(bei_uns)
+        zstat["pruefungen"] += 1
+        storys[b["slug"]]["zugang_pruefung"] = pruefung
+        if pruefung["ergebnis"] == "frei":
+            zugaenge[b["slug"]] = {
+                "link": q["link"], "titel": q["titel"], "text": q["text"], "quelle": q["quelle"],
+                "domain": q["domain"], "art": q["art"], "ab": stempel,
+                "veroeffentlicht": _iso(q["zeit"]) if q.get("zeit") else None,
+                "ereignis": _iso(b["zeit"]) if b["zeit"] else None, "tweets": tweets,
+                "jev_p": pruefung["p_max"], "jev_gegen": pruefung["gegen"]}
+            zugang_links[_norm_link(q["link"])] = b["slug"]
+            zstat["neu"] += 1
+        alter = ""
+        if q and (q.get("zeit") or b["zeit"]):
+            alter = ", %.0f h alt" % ((jetzt - (q.get("zeit") or b["zeit"])).total_seconds() / 3600)
+        _log("Zugang %s: %d Tweets, %s%s%s"
+             % (pruefung["ergebnis"], tweets,
+                ("%s '%s' (%s, Wert %.2f%s)" % (q["quelle"], q["titel"][:80], q["art"], q["wert"], alter))
+                if q else "keine Quelle (Suche %s)" % such_status,
+                ", Jev p_max %.2f gegen %s" % (pruefung["p_max"], pruefung["gegen"])
+                if pruefung["p_max"] is not None else "",
+                ", gleicher Link wie %s" % pruefung["gegen"]
+                if pruefung["ergebnis"] == "bei_uns" and pruefung["p_max"] is None else ""))
 
 
 def lauf(basis, ausgabe):
@@ -399,7 +663,7 @@ def lauf(basis, ausgabe):
     with ThreadPoolExecutor(4) as pool:
         details = dict(pool.map(_detail, gross))
 
-    links, titel = _eigene_daten(basis)
+    links, titel, roh = _eigene_daten(basis)
     g_wort = _gewicht(titel)
     gruppe, eigen, je_gruppe = _ketten(basis)
     alt = _lade(ausgabe, {})
@@ -491,10 +755,28 @@ def lauf(basis, ausgabe):
                 for k in ("suche_status", "suche_versuche", "suche_zuletzt"):
                     if k in alt_e:
                         neu[k] = alt_e[k]
+        if alt_e.get("zugang_pruefung"):
+            neu["zugang_pruefung"] = alt_e["zugang_pruefung"]
         storys[e["slug"]] = neu
 
     grenze = _iso(jetzt - timedelta(days=HALTEN_TAGE))
     storys = {k: v for k, v in storys.items() if str(v.get("zuletzt") or "") >= grenze}
+
+    # Stufe 2: Zugaenge. Abgelaufene fallen raus, dann neue Pruefungen (nur mit Jev-Schluessel).
+    frist = jetzt - timedelta(hours=ZUGANG_HALTEN_H)
+    zugaenge = {k: v for k, v in (alt.get("zugaenge") or {}).items()
+                if isinstance(v, dict) and (_zeit(v.get("ab")) or frist) > frist}
+    zstat = {"pruefungen": 0, "neu": 0, "jev_aufrufe": 0, "jev_bei_uns": 0, "jev_fehler": 0}
+    jev_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not ZUGANG_AKTIV:
+        _log("Zugaenge aus (ZUGANG_AKTIV = False), %d laufen noch" % len(zugaenge))
+    elif not jev_key:
+        _log("Zugaenge: kein TYPESAFE_API_KEY, keine neuen Zugaenge, %d laufen noch" % len(zugaenge))
+    else:
+        try:
+            _zugaenge_lauf(beste, storys, zugaenge, links, titel, roh, g_wort, jev_key, jetzt, zstat)
+        except Exception as ex:
+            _log("Zugaenge uebersprungen: %s: %s" % (type(ex).__name__, ex))
 
     zaehl = {"bei_uns": 0, "unklar": 0, "fehlt": 0}
     wege = {}
@@ -510,21 +792,33 @@ def lauf(basis, ausgabe):
     zusammen = {"zeit": stempel, "feed": len(alle), "gross": len(ergebnis), "ereignisse": len(beste),
                 **zaehl, "wege": wege, "nicht_bei_uns_mit_quelle": fehlt_mit_quelle,
                 "suchen": len(gesucht), "suche_fehler": such_fehler,
+                "zugang_pruefungen": zstat["pruefungen"], "zugaenge_neu": zstat["neu"],
+                "zugaenge_offen": len(zugaenge), "jev_aufrufe": zstat["jev_aufrufe"],
+                "jev_bei_uns": zstat["jev_bei_uns"], "jev_fehler": zstat["jev_fehler"],
                 "dauer_s": round(time.monotonic() - _start, 1)}
     laeufe = (alt.get("laeufe") or []) + [zusammen]
 
     daten = {
-        "_hinweis": "SCHATTENBETRIEB, nur Beobachtung. Schreiber: hn_finder_shadow.py. "
-                    "Keine HN-Texte (use=reference), nur Slugs, Zahlen, unsere Links und "
-                    "Titel der Originalquellen.",
+        "_hinweis": "Schreiber: hn_finder_shadow.py. storys: Beobachtung (Schatten). zugaenge: "
+                    "Stufe 2, ki_news.py liest sie wie einen Feed (HN_ZUGANG_AKTIV). Keine "
+                    "HN-Texte (use=reference), nur Slugs, Zahlen, unsere Links sowie Titel und "
+                    "Anrisse der Originalquellen.",
         "stand": stempel,
         "einstellungen": {"min_tweets": MIN_TWEETS, "titel_sicher": TITEL_SICHER,
                           "titel_unklar": TITEL_UNKLAR, "suche_min": SUCHE_MIN,
                           "suche_versuche": SUCHE_VERSUCHE,
                           "suche_wiederholen_h": SUCHE_WIEDERHOLEN_H,
-                          "titelwert": "Dice nach Wortseltenheit gewichtet"},
+                          "titelwert": "Dice nach Wortseltenheit gewichtet",
+                          "zugang_aktiv": ZUGANG_AKTIV, "zugang_tco_min": ZUGANG_TCO_MIN,
+                          "zugang_suche_min": ZUGANG_SUCHE_MIN,
+                          "zugang_max_alter_h": ZUGANG_MAX_ALTER_H,
+                          "zugang_je_lauf": ZUGANG_JE_LAUF, "zugang_je_tag": ZUGANG_JE_TAG,
+                          "zugang_halten_h": ZUGANG_HALTEN_H, "jev_schwelle": JEV_SCHWELLE,
+                          "jev_vergleiche": JEV_VERGLEICHE},
         "laeufe": laeufe[-MAX_LAEUFE:],
         "storys": dict(sorted(storys.items(), key=lambda kv: -int(kv[1].get("tweets") or 0))),
+        "zugaenge": dict(sorted(zugaenge.items(), key=lambda kv: str(kv[1].get("ab") or ""),
+                                reverse=True)),
     }
     tmp = Path(str(ausgabe) + ".tmp")
     tmp.write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -536,6 +830,9 @@ def lauf(basis, ausgabe):
             ", ".join("%s %d" % kv for kv in sorted(wege.items())) or "-", zaehl["unklar"],
             zaehl["fehlt"], fehlt_mit_quelle, len(gesucht), such_fehler,
             time.monotonic() - _start))
+    _log("Zugaenge: %d geprueft, %d neu, %d offen, Jev %d Aufrufe, %d schon bei uns, %d Fehler"
+         % (zstat["pruefungen"], zstat["neu"], len(zugaenge), zstat["jev_aufrufe"],
+            zstat["jev_bei_uns"], zstat["jev_fehler"]))
     for b in sorted(beste.values(), key=lambda e: -(e["s"].get("tweetCount") or 0)):
         if b["status"] == "bei_uns":
             continue

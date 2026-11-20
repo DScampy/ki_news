@@ -276,15 +276,20 @@ jobs:
         timeout-minutes: 4
         continue-on-error: true
 
-      # HuggingNews-Finder (17.11.26, Daniel, Plan X1): SCHATTENBETRIEB, nur Beobachtung.
-      # Prueft je Lauf, welche grossen HN-Storys (ab 80 Tweets) uns fehlen, und sucht ihre
-      # Originalquelle (t.co-Ziel der Quell-Posts, sonst Google-News-Suche). Schreibt nur
-      # hn_finder_shadow.json und Logzeilen [HN-FINDER], keine HN-Texte (use=reference).
+      # HuggingNews-Finder (17.11.26, Daniel, Plan X1). Prueft je Lauf, welche grossen HN-Storys
+      # (ab 80 Tweets) uns fehlen, und sucht ihre Originalquelle (t.co-Ziel der Quell-Posts,
+      # sonst Google-News-Suche). Schreibt nur hn_finder_shadow.json und Logzeilen [HN-FINDER],
+      # keine HN-Texte (use=reference).
+      # Stufe 2 (20.11.26, Daniel): fehlende Storys werden "zugaenge" (Quelle nur aus dem
+      # Original, Doppel-Schutz per Jev, darum TYPESAFE_API_KEY). ki_news.py liest sie im
+      # naechsten Lauf wie einen Feed. Ohne Schluessel keine neuen Zugaenge, nur eine Logzeile.
       # Braucht themenketten.json und summary-cache.json aus diesem Lauf, darum nach ki_news.py.
       # Kill-Switch: AKTIV = False in hn_finder_shadow.py oder diesen Schritt entfernen.
-      - name: HuggingNews-Finder Schatten (hn_finder_shadow.py)
+      # Nur Zugaenge: ZUGANG_AKTIV = False dort oder HN_ZUGANG_AKTIV = False in ki_news.py.
+      - name: HuggingNews-Finder (hn_finder_shadow.py)
         env:
           HUGGINGNEWS_API_KEY: ${{ secrets.HUGGINGNEWS_API }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFEAI }}
         run: python3 hn_finder_shadow.py 2>&1 | tee -a ki_news.log
         timeout-minutes: 4
         continue-on-error: true
