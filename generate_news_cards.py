@@ -1207,6 +1207,66 @@ def _llm_call(url: str, headers: dict, model: str, headline: str, summary: str, 
         return None
 
 
+# 20.11.26: Gedankenstriche in der Einordnung. Der Prompt sagt "kein Gedankenstrich", aber
+# deepseek-v4-flash (15 von 15 Karten) und gpt-oss-120b (5 von 6) setzen ihn trotzdem (U+2013 mit Leerzeichen).
+# Messung an 741 Karten vom 25.10. bis 20.11.: 135 mit Strich oder Sonderzeichen, dazu
+# 15 mit " - " als Strich. Ein Komma liest sich an allen geprueften Stellen richtig.
+# Der Text wird nach dem Modell geglaettet, also fuer Karte, Ton, Telegram und cards.json.
+# Bereiche zwischen Zahlen (10 bis 20 mit Strich) bleiben ein Strich ohne Leerzeichen.
+# Dazu: geschuetzter Bindestrich U+2011 wird "-", schmales Leerzeichen U+202F wird " ".
+# Kill-Switch: EINORDNUNG_STRICH_GLAETTEN = False (Text bleibt wie vom Modell).
+EINORDNUNG_STRICH_GLAETTEN = True
+_STRICHE = "\u2013\u2014-"
+_STRICH_ZAHL = re.compile(r"(?<=\d)\s+[" + _STRICHE + r"]\s+(?=\d)")
+_STRICH_VOR_ZEICHEN = re.compile(r"\s*[\u2013\u2014]\s*(?=[.!?,;:])|\s+-\s*(?=[.!?,;:])")
+_STRICH_ANFANG = re.compile(r"(^|(?<=[.!?:]\s))[\u2013\u2014]\s*")
+_STRICH = re.compile(r"\s+[" + _STRICHE + r"]\s+|(?<=\w)\u2014(?=\w)")
+_KOMMA_DOPPELT = re.compile(r"([,:;])\s*,")
+
+
+def _einordnung_glaetten(text: str) -> str:
+    """Ersetzt Gedankenstriche durch Kommas, siehe EINORDNUNG_STRICH_GLAETTEN."""
+    if not EINORDNUNG_STRICH_GLAETTEN or not text:
+        return text
+    t = text.replace("\u2011", "-").replace("\u202f", " ")
+    t = _STRICH_ZAHL.sub("\u2013", t)
+    t = _STRICH_VOR_ZEICHEN.sub("", t)
+    t = _STRICH_ANFANG.sub(r"\1", t)
+    t = _STRICH.sub(", ", t)
+    return _KOMMA_DOPPELT.sub(r"\1", t)
+
+
+# 20.11.26: Firmen-Wir. Das Nutzer-Wir ist erwuenscht (EINORDNUNG_NUTZER_WIR), das Firmen-Wir
+# nicht: "wie wenn wir hier im Buero ...", "die wir auf der Arbeit nutzen", "wie bei uns im
+# Betrieb". Das Stilbild "Kollege auf Arbeit" rutscht dabei in den Text. Messung an 741 Karten:
+# 4 Treffer, alle echt (gemini-2.5-flash-lite und deepseek). Die Pruefung zaehlt nur Wir
+# zusammen mit einem Arbeitsort, "bei uns im Alltag" bleibt erlaubt.
+# Treffer: naechstes Modell. Besteht keins, nimmt groq_einordnung() den ersten Text mit
+# Firmen-Wir (Label "+firmen-wir"), nie eine leere Karte.
+# Kill-Switch: EINORDNUNG_FIRMEN_WIR_PRUEFEN = False (keine Pruefung, wie vorher).
+EINORDNUNG_FIRMEN_WIR_PRUEFEN = True
+_ARBEITSORT = (r"(?:im\s+B\u00fcro|im\s+Betrieb|in\s+der\s+Firma|in\s+der\s+Abteilung"
+               r"|auf\s+der\s+Arbeit|bei\s+der\s+Arbeit)")
+_FIRMEN_WIR = re.compile(
+    r"\bbei\s+uns\s+(?:im\s+(?:B\u00fcro|Betrieb|Unternehmen|Team|Job|Laden|Gesch\u00e4ft)"
+    r"|in\s+der\s+(?:Firma|Abteilung|Arbeit))\b"
+    r"|\b(?:wir|uns)\b[^.!?]{0,40}?" + _ARBEITSORT + r"\b"
+    r"|" + _ARBEITSORT + r"[^.!?]{0,40}?\b(?:wir|uns)\b"
+    r"|\bunser(?:e|em|en|er|es)?\s+(?:Firma|Unternehmen|Betrieb|B\u00fcro|Team|Abteilung|Chef\w*"
+    r"|Kunden|Kolleg\w*|Mitarbeiter\w*|Produkt\w*)\b"
+    r"|\bwir\s+als\s+(?:Firma|Unternehmen|Betrieb)\b"
+    r"|\bAbteilung\b[^.!?]{0,60}?\bwir\b",
+    re.I)
+
+
+def _firmen_wir(text: str) -> str:
+    """Gibt die Fundstelle zurueck, wenn die Einordnung aus Firmen-Sicht spricht, sonst ""."""
+    if not EINORDNUNG_FIRMEN_WIR_PRUEFEN or not text:
+        return ""
+    m = _FIRMEN_WIR.search(text)
+    return m.group(0) if m else ""
+
+
 def _looks_invalid(text: str) -> str | None:
     """Gibt einen Grund zurueck, wenn der Text offensichtlich kein brauchbares
     deutsches Einordnungs-Statement ist (Meta-Kommentar-Leak oder falsche Sprache).
@@ -1524,6 +1584,7 @@ def groq_einordnung(headline: str, summary: str, note: str = "", story: str = ""
     # 26.09.26: bester Kandidat, der zwar _looks_invalid() bestand, aber die
     # JEV-DECKUNG nicht (kleinstes p) - Rueckfallnetz, falls KEIN Modell besteht.
     bester_kandidat = None  # (p, result, "anbieter:model")
+    wir_kandidat = None     # 20.11.26: erster Text mit Firmen-Wir (result, "anbieter:model")
     for anbieter, model in EINORDNUNG_KETTE:
         if not key_je_anbieter[anbieter]:
             continue
@@ -1544,7 +1605,22 @@ def groq_einordnung(headline: str, summary: str, note: str = "", story: str = ""
                     continue
                 if p is not None:
                     print(f"  [INFO] JEV-DECKUNG ok {p:.2f}")
+            # 20.11.26: Firmen-Wir erst nach der Deckung pruefen, dann ist der Rueckfall-Text
+            # wenigstens inhaltlich geprueft (siehe EINORDNUNG_FIRMEN_WIR_PRUEFEN)
+            fw = _firmen_wir(result)
+            if fw:
+                print(f"  [WARN] {anbieter}/{model} verworfen (Firmen-Wir {fw!r}): {result[:100]!r}")
+                if wir_kandidat is None:
+                    wir_kandidat = (result, f"{anbieter}:{model}")
+                continue
             return result, f"{anbieter}:{model}"
+
+    # 20.11.26: Text mit Firmen-Wir, aber bestandener Deckung, vor einem Text mit
+    # vermutlich erfundenem Fakt. Ein falscher Ton schadet weniger als ein falscher Fakt.
+    if wir_kandidat is not None:
+        result, label = wir_kandidat
+        print(f"  [WARN] keine Einordnung ohne Firmen-Wir, nehme die erste: {label}")
+        return result, f"{label}+firmen-wir"
 
     if bester_kandidat is not None:
         p, result, label = bester_kandidat
@@ -2187,6 +2263,8 @@ def main() -> None:
         except Exception as e:  # noqa: BLE001
             print(f"  [WARN] X-ORIGINAL uebersprungen ({e.__class__.__name__}: {e})")
         einordnung, llm_used = groq_einordnung(headline, summary, force_note, story_kontext, x_original)
+        # 20.11.26: Gedankenstriche durch Kommas ersetzen (siehe EINORDNUNG_STRICH_GLAETTEN)
+        einordnung = _einordnung_glaetten(einordnung)
         # 05.07.26: satzsicherer Cut statt summary[:280] (siehe limit_chars_sentence_safe)
         kontext    = limit_chars_sentence_safe(summary, 320) if summary else "–"
 
