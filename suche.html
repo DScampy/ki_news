@@ -1475,6 +1475,12 @@
         }
       }
 
+      function formatMonat(value) {
+        const date = parseDate(value);
+        if (!date) return "ohne Datum";
+        return new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+      }
+
       function safeUrl(value) {
         const raw = text(value);
 
@@ -1841,6 +1847,8 @@
           family,
           type,
           status,
+          nurMonat: Boolean(record.monat),
+          linkText: text(record.link_text),
           search: normalize([
             name,
             source,
@@ -2567,11 +2575,13 @@
           return container;
         }
 
+        // 20.11.26: Zwischenstuecke als reiner Text. element() kuerzt Leerzeichen am Rand,
+        // aus "Pixtral Large" wurde sonst "PixtralLarge".
         let cursor = 0;
 
         merged.forEach(range => {
           if (range.start > cursor) {
-            container.append(element("span", "", raw.slice(cursor, range.start)));
+            container.append(document.createTextNode(raw.slice(cursor, range.start)));
           }
 
           container.append(
@@ -2581,7 +2591,7 @@
         });
 
         if (cursor < raw.length) {
-          container.append(element("span", "", raw.slice(cursor)));
+          container.append(document.createTextNode(raw.slice(cursor)));
         }
 
         return container;
@@ -2598,7 +2608,7 @@
           );
         }
 
-        const link = element("a", "px-original", "Original öffnen");
+        const link = element("a", "px-original", item.linkText || "Original öffnen");
 
         link.href = url;
         link.target = "_blank";
@@ -2649,7 +2659,7 @@
           meta.append(
             element("span", "px-card-kind", kind),
             element("span", "", item.source || "Quelle nicht angegeben"),
-            element("span", "", formatDate(item.date))
+            element("span", "", item.nurMonat ? formatMonat(item.date) : formatDate(item.date))
           );
 
           const headline = element("h3", "px-card-title");
@@ -2981,12 +2991,23 @@
         state.archive = mergeArchive(archiveResult.payload, FILES.archive);
         state.dossiers = extractDossiers(state.newsPayload);
         // Einbau 28.09.26: registry/registry.json nutzt Kurzschluessel (s, n, a, f, r, k, c)
+        // 20.11.26: dazu io ("ti>t"), i (Modell-ID bei OpenRouter) und rq "slug_monat" (nur Monat bekannt)
+        const IO_WORT = { t: "Text", i: "Bilder", f: "Dateien", a: "Audio", v: "Videos" };
+        const ioSatz = io => {
+          const treffer = /^([tifav]+)>([tifav]+)$/.exec(io || "");
+          if (!treffer) return "";
+          const liste = b => { const w = [...b].map(c => IO_WORT[c]); return w.length > 1 ? w.slice(0, -1).join(", ") + " und " + w[w.length - 1] : w[0]; };
+          return "Liest " + liste(treffer[1]) + ", " + (treffer[2] === "t" ? "antwortet mit Text." : "erzeugt " + liste(treffer[2]) + ".");
+        };
         const regRoh = registryResult.payload;
         const anbieterName = {};
         (regRoh && Array.isArray(regRoh.anbieter) ? regRoh.anbieter : []).forEach(x => { if (x && x.a) anbieterName[x.a] = x.n || x.a; });
         const regNorm = regRoh && Array.isArray(regRoh.modelle) && regRoh.modelle.length && regRoh.modelle[0].n !== undefined
           ? { modelle: regRoh.modelle.map(m => ({ name: m.n, model_id: m.s, anbieter: anbieterName[m.a] || m.a,
-              family: m.f, release_date: m.r, date: m.r, type: m.k, context_length: m.c })) }
+              family: m.f, release_date: m.r, date: m.r, type: m.k, context_length: m.c,
+              description: ioSatz(m.io), monat: m.rq === "slug_monat",
+              url: m.io && m.rq !== "meldung" ? "https://openrouter.ai/" + (m.i || m.s) : "",
+              link_text: m.io && m.rq !== "meldung" ? "Steckbrief bei OpenRouter" : "" })) }
           : regRoh;
         const regGesehen = new Set();
         state.models = extractRegistry(regNorm).filter(m => {

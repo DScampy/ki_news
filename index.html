@@ -8094,10 +8094,21 @@ window.addEventListener('resize',()=>{
       // (Daniel 28.09.); vorausgewaehlt bleibt der erste, der nicht doppelt ist.
       const neuestes = allReleases.length ? String(allReleases[0].datum || "") : "";
       const tag = d => { const t = Date.parse(String(d || "") + "T00:00:00Z"); return isNaN(t) ? null : t; };
-      freshReleases = allReleases.filter(r => {
+      const imFenster = allReleases.filter(r => {
         const a = tag(neuestes), b = tag(r.datum);
         return a !== null && b !== null && a - b <= 2 * 86400000;
-      }).slice(0, 4);
+      });
+      // 20.11.26: Microsoft stellte am 17.11. vier Modelle auf einmal vor, die vier Plaetze gingen an
+      // Google und Microsoft, GPT-6.2 Astra fehlte. Darum erst ein Release je Hersteller, dann
+      // auffuellen. Der vorausgewaehlte Release ist immer dabei, die Reihenfolge bleibt nach Datum.
+      const gewaehlt = frei[0] && imFenster.includes(frei[0]) ? [frei[0]] : [];
+      const schonDa = new Set(gewaehlt.map(r => cleanText(r.hersteller)));
+      imFenster.forEach(r => {
+        const h = cleanText(r.hersteller);
+        if (gewaehlt.length < 4 && !gewaehlt.includes(r) && !schonDa.has(h)) { gewaehlt.push(r); schonDa.add(h); }
+      });
+      imFenster.forEach(r => { if (gewaehlt.length < 4 && !gewaehlt.includes(r)) gewaehlt.push(r); });
+      freshReleases = gewaehlt.sort((x, y) => allReleases.indexOf(x) - allReleases.indexOf(y));
       if (!freshReleases.length && frei.length) freshReleases = [frei[0]];
       return frei[0] || null;
     };

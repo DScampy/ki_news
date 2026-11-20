@@ -31,6 +31,7 @@ import re
 import sys
 import time
 import urllib.request
+from datetime import date, timedelta
 from collections import Counter, defaultdict
 
 API_URL = "https://openrouter.ai/api/v1/models"
@@ -208,19 +209,46 @@ def zerlege_namen(klarname):
     return familie, variante, stufe, (" ".join(modi) or None)
 
 
+# Release als Monat (20.11.26, Daniel fand "Pixtral" als neuestes Modell). Mistral, Qwen und Reka
+# haengen Jahr und Monat an den Namen: pixtral-large-2502 ist vom Februar 2025. OpenRouter hat es erst
+# am 20.11.26 gelistet, und dieses Datum galt bisher als Release. Liegt die Listung mehr als
+# SLUG_MONAT_TAGE nach dem Monatsersten, gilt der Monat (release_quelle "slug_monat", Tag 01, die
+# Seiten zeigen nur den Monat). Sonst bleibt das genauere Listungsdatum. Vierstellige Enden aus Monat
+# und Tag (OpenAI 0613, DeepSeek 0528) beginnen nie mit 23 bis heute und zaehlen darum nicht.
+# Kill-Switch: SLUG_MONAT_TAGE = 0.
+SLUG_MONAT_TAGE = 60
+
+
+def slug_monat(eintrag):
+    """'2025-02-01' fuer ein Ende wie -2502 an canonical_slug oder id, sonst None."""
+    jahr = time.gmtime().tm_year % 100
+    for s in (eintrag.get("canonical_slug") or "", (eintrag.get("id") or "").split(":")[0]):
+        m = re.search(r"-(\d{2})(\d{2})$", s)
+        if m and 23 <= int(m.group(1)) <= jahr and 1 <= int(m.group(2)) <= 12:
+            return "20%s-%s-01" % m.groups()
+    return None
+
+
 def release_datum(eintrag):
     """
     canonical_slug traegt bei 151 von 331 Modellen ein exaktes Datum
     ('z-ai/glm-5.3-20260816'). Das ist der echte Release. 'created' ist nur
-    der Zeitpunkt, zu dem OpenRouter das Modell gelistet hat.
+    der Zeitpunkt, zu dem OpenRouter das Modell gelistet hat. Dazwischen
+    steht der Monat aus dem Namen (SLUG_MONAT_TAGE).
     """
     slug = eintrag.get("canonical_slug") or ""
     m = re.search(r"-(\d{4})(\d{2})(\d{2})$", slug)
     if m:
         return "%s-%s-%s" % m.groups(), "slug"
     ts = eintrag.get("created")
-    if ts:
-        return time.strftime("%Y-%m-%d", time.gmtime(ts)), "created"
+    gelistet = time.strftime("%Y-%m-%d", time.gmtime(ts)) if ts else None
+    monat = slug_monat(eintrag) if SLUG_MONAT_TAGE else None
+    if monat:
+        grenze = (date.fromisoformat(monat) + timedelta(days=SLUG_MONAT_TAGE)).isoformat()
+        if not gelistet or gelistet > grenze:
+            return monat, "slug_monat"
+    if gelistet:
+        return gelistet, "created"
     return None, None
 
 
@@ -529,6 +557,7 @@ def main(argv=None):
     log("  aus Meldungen        : %d (nicht bei OpenRouter)" % n_meld)
     log("  Release aus Slug     : %d" % sum(1 for m in modelle if m["release_quelle"] == "slug"))
     log("  Release aus created  : %d" % sum(1 for m in modelle if m["release_quelle"] == "created"))
+    log("  Release als Monat    : %d" % sum(1 for m in modelle if m["release_quelle"] == "slug_monat"))
     log("  mit Ausbaustufe      : %d" % sum(1 for m in modelle if m["ausbaustufe"]))
     log("  mit Variante         : %d" % sum(1 for m in modelle if m["variante"]))
     kat = Counter(m["kategorie"] for m in modelle)
