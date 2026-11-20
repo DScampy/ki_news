@@ -7528,6 +7528,64 @@ def _schlagzeilen_anrisse(news_list, alle_news, featured_links, post_cache):
                 _time.time() - start)
 
 
+# HuggingNews-Finder Stufe 2 (20.11.26, Daniel "Stufe 2 jetzt bauen"). Grosse HN-Storys, die uns
+# fehlen, legt hn_finder_shadow.py als "zugaenge" in hn_finder_shadow.json ab: Titel und Anriss
+# nur aus der Originalquelle (t.co-Seite oder Google-News-Treffer), nie aus HN- oder X-Texten,
+# vorher Doppel-Schutz per Jev, hoechstens 3 je Lauf und 6 je Tag. Hier werden sie wie
+# Feed-Eintraege gelesen. Danach laufen alle normalen Filter, Uebersetzung, Clustering und
+# blocked_links. Der Finder laeuft nach ki_news.py, ein Zugang kommt also im naechsten Lauf an.
+# Die Datei bietet ihn HN_ZUGANG_HALTEN_H Stunden an, weil alle_news in jedem Lauf frisch aus
+# den Feeds entsteht. Kein _is_ki_relevant: HuggingNews sammelt nur KI-Storys.
+# Nur lesen, einziger Schreiber der Datei ist hn_finder_shadow.py (Invariante I5).
+# Kill-Switch: HN_ZUGANG_AKTIV = False. Einzelne Zugaenge: blocked_links in dashboard_config.json.
+HN_ZUGANG_AKTIV = True
+HN_ZUGANG_DATEI = "hn_finder_shadow.json"
+HN_ZUGANG_HALTEN_H = 48
+
+
+def _hn_zugaenge(basis):
+    """Zugaenge aus hn_finder_shadow.json als Feed-Eintraege {title, link, source, feed_text}.
+    Leer bei jedem Fehler, die Pipeline laeuft dann wie vor Stufe 2."""
+    if not HN_ZUGANG_AKTIV:
+        return []
+    try:
+        daten = json.loads((Path(basis) / HN_ZUGANG_DATEI).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return []
+    except Exception as e:
+        logger.warning("[HN-ZUGANG] %s nicht lesbar (%s), keine Zugaenge", HN_ZUGANG_DATEI, e)
+        return []
+    zugaenge = daten.get("zugaenge") if isinstance(daten, dict) else None
+    if not isinstance(zugaenge, dict):
+        return []
+    grenze = datetime.now(timezone.utc) - timedelta(hours=HN_ZUGANG_HALTEN_H)
+    out = []
+    for slug, z in zugaenge.items():
+        if not isinstance(z, dict):
+            continue
+        titel = str(z.get("titel") or "").strip()
+        link = str(z.get("link") or "").strip()
+        quelle = str(z.get("quelle") or z.get("domain") or "").strip()
+        if not (titel and link.startswith("http") and quelle):
+            continue
+        try:
+            ab = datetime.fromisoformat(str(z.get("ab") or "").replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if ab.tzinfo is None:
+            ab = ab.replace(tzinfo=timezone.utc)
+        if ab < grenze:
+            continue
+        eintrag = {"title": titel, "link": link, "source": quelle}
+        text = re.sub(r"\s+", " ", str(z.get("text") or "")).strip()
+        if len(text) >= 40:       # wie _feed_anriss
+            eintrag["feed_text"] = text[:500]
+        out.append(eintrag)
+        logger.info("[HN-ZUGANG] %s | %s | %s (%s, %s Tweets, seit %s)", titel[:80], quelle,
+                    link[:100], z.get("art") or "?", z.get("tweets") or "?", z.get("ab"))
+    return out
+
+
 # -------------------------
 # Main
 # -------------------------
@@ -7542,6 +7600,16 @@ def main():
             logger.info("[%s] %d relevante News", name, len(items))
         except Exception as e:
             logger.exception("Fehler beim Feed %s: %s", name, e)
+    # HuggingNews-Finder Stufe 2: Zugaenge hinter den Feeds, damit bei gleichem Link der
+    # Feed-Eintrag gewinnt (Link-Dedup direkt darunter, der erste zaehlt).
+    try:
+        _hn_basis = Path.home() / "Documents" / "Projekte" / "ki-news"
+        _hn_items = _hn_zugaenge(_hn_basis if _hn_basis.exists() else Path("."))
+        if _hn_items:
+            alle_news.extend(_hn_items)
+            logger.info("[HN-ZUGANG] %d Zugaenge aus %s", len(_hn_items), HN_ZUGANG_DATEI)
+    except Exception as e:
+        logger.warning("[HN-ZUGANG] uebersprungen: %s", e)
 
     seen = set()
     unique_news = []
