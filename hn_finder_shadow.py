@@ -300,13 +300,20 @@ class _KeinRedirect(urllib.request.HTTPRedirectHandler):
 _INHALT = r"""content=(?:"([^"]*)"|'([^']*)')"""
 
 
+# 22.11.26: auch itemprop (Microdata). Die Seite "Introducing Inkling 2 Mini" von Thinking Machines
+# nennt ihr Datum nur als <meta itemprop="datePublished">. Ohne Datum gilt eine t.co-Seite nicht als
+# Quelle, und aus der Story mit 152 Tweets wurde am 20.11. kein Zugang. "property|name" = alter Stand.
+META_ATTRIBUTE = "property|name|itemprop"
+
+
 def _meta(roh, name):
-    """Inhalt eines <meta property|name=...>, gleich in welcher Reihenfolge die Attribute stehen.
-    20.11.26: Doppelte und einfache Anfuehrungszeichen getrennt, sonst endete ein og:title wie
-    "China's ..." beim Apostroph."""
+    """Inhalt eines <meta property|name|itemprop=...>, gleich in welcher Reihenfolge die Attribute
+    stehen. 20.11.26: Doppelte und einfache Anfuehrungszeichen getrennt, sonst endete ein og:title
+    wie "China's ..." beim Apostroph."""
     n = re.escape(name)
-    for muster in (r"<meta[^>]+(?:property|name)=[\"']%s[\"'][^>]*?%s" % (n, _INHALT),
-                   r"<meta[^>]+%s[^>]*?(?:property|name)=[\"']%s[\"']" % (_INHALT, n)):
+    a = META_ATTRIBUTE
+    for muster in (r"<meta[^>]+(?:%s)=[\"']%s[\"'][^>]*?%s" % (a, n, _INHALT),
+                   r"<meta[^>]+%s[^>]*?(?:%s)=[\"']%s[\"']" % (_INHALT, a, n)):
         m = re.search(muster, roh, re.I)
         if m:
             return re.sub(r"\s+", " ", html.unescape(m.group(1) or m.group(2) or "")).strip()
