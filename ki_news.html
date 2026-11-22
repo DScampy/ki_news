@@ -85,16 +85,38 @@
     <div class="header">
         <h1>KI News</h1>
         <div class="header-stats">
-            <div class="stat"><div class="stat-zahl">205</div><div class="stat-label">News</div></div>
+            <div class="stat"><div class="stat-zahl">203</div><div class="stat-label">News</div></div>
             <div class="stat"><div class="stat-zahl">5</div><div class="stat-label">Posts</div></div>
             <div class="stat"><div class="stat-zahl">33</div><div class="stat-label">Quellen</div></div>
         </div>
-        <span class="datum">Stand: 22.11.2026 10:04</span>
+        <span class="datum">Stand: 22.11.2026 12:04</span>
     </div>
     <div class="layout">
         <div class="panel panel-left">
             <div class="panel-title">Aktuelle KI-News</div>
             
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
+                <span class="news-title">Sicherheitsforscher schicken zwei Millionen KI-Anfragen mit gefälschten Zugangsdaten und decken gravierende Lücken auf.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Sicherheitsforscher von Dragos haben mit zwei Millionen gefälschten KI-Anfragen gravierende Schwachstellen in der KI-Lieferkette aufgedeckt, darunter mindestens drei kompromittierte Anbieter, Hunderte gestohlene AWS-Schlüssel und Marktplatz-Wiederverkäufer, die Kundenanfragen mitlasen.</p>
+                <a href="https://the-decoder.de/sicherheitsforscher-schicken-zwei-millionen-ki-anfragen-mit-gefaelschten-zugangsdaten-und-decken-gravierende-luecken-auf/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
+                <span class="news-title">OpenAIs GPT-6.2 antwortet kürzer und direkter, gesteht aber kaum noch Unsicherheit ein.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">OpenAIs GPT-6.2 Astra und Sol antworten laut Artificial Analysis rund 40 Prozent kürzer und kommen schneller auf den Punkt als ihre Vorgänger, gestehen aber deutlich seltener Unsicherheit ein, während Anthropics Claude-Modelle bei Transparenz und Informationsgehalt besser abschneiden.</p>
+                <a href="https://the-decoder.de/gpt-6-2-antwortet-bis-zu-40-prozent-kuerzer-und-gesteht-unsicherheit-seltener-ein/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
@@ -159,28 +181,6 @@
             <div class="news-expand">
                 <p class="news-summary">Bytedance und mehrere US-Universitäten stellen mit Axion 1.0 einen KI-Agenten vor, der mit nur drei Trainingsphasen in Benchmarks an kommerzielle Spitzenmodelle von OpenAI und Anthropic heranreicht.</p>
                 <a href="https://the-decoder.de/bytedance-forschende-hinterfragen-aufwendige-ki-trainingsverfahren-und-liefern-eine-schlanke-alternative/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
-                <span class="news-title">OpenAI verschärft Schutz interner Denkprozesse bei GPT-6.2 Astra und GPT-6.2 Sol massiv.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">OpenAI verschärft den Schutz interner Denkprozesse bei GPT-6.2 Astra und GPT-6.2 Sol massiv. In adaptiven Red-Teaming-Tests sank die Erfolgsquote für das Auslesen geschützter Gedankengänge von 54 auf 0,2 Prozent. Parallel sperrt das Unternehmen wöchentlich tausende bis zehntausende Konten, die an koordinierten Destillationskampagnen beteiligt sind.</p>
-                <a href="https://the-decoder.de/ki-datenklau-openai-macht-nachahmer-modellen-das-leben-schwer/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#1d9bf0">The Decoder</span>
-                <span class="news-title">Signal blockiert Screenshots, um KI-Agenten wie Apples Siri AI, Googles Gemini Intelligence oder Metas Muse am Mitlesen privater Chats zu hindern.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Signal blockiert Screenshots, um KI-Agenten wie Apples Siri AI, Googles Gemini Intelligence oder Metas Muse am Mitlesen privater Chats zu hindern. Der Messenger spricht von einer existenziellen Bedrohung für den Datenschutz, räumt aber ein, dass der Schutz etwa auf macOS lückenhaft bleibt. Apple, Google und Microsoft sollen nachziehen.</p>
-                <a href="https://the-decoder.de/signal-schraenkt-screenshots-ein-und-warnt-vor-existenzieller-bedrohung-durch-ki-agenten/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
@@ -306,79 +306,13 @@
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
-                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
-                <span class="news-title">Robotik und KI im Mittelstand: 6. Projektwerkstatt 2026 in Chemnitz</span>
+                <span class="source-badge" style="background:#555">Golem</span>
+                <span class="news-title">Bei UN-Verhandlungen wurde nur ein Minimalkompromiss gegen Killerroboter erreicht.</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
-                <p class="news-summary">Die 6. Projektwerkstatt 2026 zu Robotik und KI im Mittelstand findet in Chemnitz statt.</p>
-                <a href="https://news.google.com/rss/articles/CBMizgFBVV95cUxQblJYQjhyNnNfWkJPekxMbW5yRHJSVFNBVzMwS053TEVyMXNRZE5BeTdHQU4zdmxvYV9aWXEzRmFkYlBIU1BBcENXVVFrcVdaMUlad0JLNFdJVjdJcTlQejdmR0h4Q1ZiTmFseFdoMVlxUzUxUEFVWDdMa0x0c25YeURUUG1BUlVlcGlnWUNieG9zQmFJWGE1YVVNR2w2ODhYVy1SMFVkQzBiRVFscERZb2dKVEFIZDJvN0tOclpHUnVsQzF2MEdWVHV1Vl9qd9IB6gFBVV95cUxPYXRzc19lbC0yczR1ZklvSlJGRkpJU3NEMUZHdTdYQlNTellYYnB1WmROVnNhbU1JRnF0REZva0htOUhzT0Fna2FaU0xsZ191RXFJX2xEUlVQd0daMmpEcFZJQm1wZ0xkbjZ2Y05ZdHI4TVl4clBlVzFKRnBaT1BZaWhyMUVUT2FjZkNZTGVzOGZRZ0Z5eDFxbGk2azNicmtzbFhXc1lrVFhnTlBIXzg4clpNdjhTSmxUdlFRVWkwR2d3RExQZDZ1S2NDNXk1MlhjY0VMYTA4NXJZVVcwOUZ1cXVLTjl1WF90enc?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
-                <span class="news-title">KI im Mittelstand: Was Firmen in Sachsen heute schon nutzen</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Es geht um KI im Mittelstand und was Firmen in Sachsen heute schon nutzen.</p>
-                <a href="https://news.google.com/rss/articles/CBMixAFBVV95cUxPYzZfbUM4LVNKRTdPcEhwVUZUdkV1UUJielhuc0xDdkxXQlluV1FlM2ZIZjdRa1U1RHo1dWR4WlI5dWdXYWViR2NBR1hIWFA5UzNkY3FmeXZiLWItODdDQ1VtMXdCWi1jMXdHM0NQM0Rkdkp2SWVUR0F5R2pfYlRhWTRkSWR2VGx2SnI0MW9RYzBXY2tBNGtLZXp6RlBxMGpWY3ZKYVl2MWhXMDNiREt4alhCbU1wd1RTOHg4WUlRTVJaaXRm0gHgAUFVX3lxTE5TbjlhZk14UjFVZEVkQ1RzR0cwRGVkbE51WV9PTmtRVUV6TDBDekhpR1lINWJNTS01eFdDeGd5LUdZYUpGN3ZqS1Z1ZXc0RFNld21vVWI1clByZUdUcGExM0trRlNWcXlGX185MnZNSFQ0S0J1dGo1S3gtUjlOVllkWm1taEJGelItOHN5bWN3S1RTeGFtMWdPSTZ6bG5faGJDM2ZNUThRb0s4bDREcHAyUXZIX1RkdERWQUx1YVJfZXBrWHlENkdEU0YzdDdoRk1aWHJtZVY3QXhKT3MtUXZR?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
-                <span class="news-title">Stadt Coswig unterläuft KI-Patzer: „Pfei leben ohne Gewalt“.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Die Stadt Coswig hat einen KI-Patzer begangen, bei dem der Schriftzug "Pfei leben ohne Gewalt" entstand.</p>
-                <a href="https://news.google.com/rss/articles/CBMi2gFBVV95cUxOdUw4Y0NkalRabEFxV2d0UzRoU21sWWNfbmxwOE5WdE5DNnVEV1FEejE5UjVLZ1RORGFnQl9IeHczM3YxM19ZdzhUYlU0Q09vU3kzSXJMclJJbXZZY2t1aklWVHA3UnNDUVdxcEZud1k1czRpU2wzdnVRYW1NSFhibFp2WDNrclFGd1RsMktBb2g2SmFFaElycmZLM05KLUtXNV9qZGJrSzdHZkk4TWYwS1pFSUprZ3Z6YWgyR0JGSEcwYVRaT004QnpTRTMxUi00dWRMZ3AtdUZrZ9IB9gFBVV95cUxOY2ZDbVNJZ1FRVGtveUxMN0VNUXhfZVQwVVRNODg3WVAxYlFYWlZVWGh1bENTRHVCU2FkQ3lNRDE4a0JXZkRzVjF1YlR1UDNJNHlJTzZuWGpyd3BoaW8yYmU5MmplaTlPNGsxTWI4RGNEMkdJV214Sl8xbGtTXzhULU1FV2RQbHBxQlc4UHE4RUptT1F1MXNOVWQyVjA3UUR3X1EwanlrX2d6ckxKbDVHWHlxTnEzUmEwZFNWMzByV3FQdlZCclhrSzVMakM3aVQza2c2Tk9LY2dMaDFWbmUwN2ZBQjF3SS15NlFhN1ZyY214UHZ2S3c?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
-                <span class="news-title">Viele Beamte gehen vorzeitig in den Ruhestand, der Kultusminister gibt ein KI-Interview und Forscher äußern sich zu Gen-Z-Protesten.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Viele Beamte gehen vorzeitig in den Ruhestand, der Kultusminister gibt ein Interview zum Thema KI und Forscher äußern sich zu Protesten der Generation Z.</p>
-                <a href="https://news.google.com/rss/articles/CBMigAJBVV95cUxQOHFyTUxlaUZUWlVuazRCNjlEVnpnWGNmMjN4U1FtaDM0dzVSeFIza1p5a29acTNES1Fib2l2Vl96N2lOaTFxWVhhQ0N2LWM2aW9xdFFuUlM2NVNFYWhQVms4aC16aWxsd1Nvd0laa19aVU12R3dReTN6cGtTZHl0Zk43d3hyZDFnamtqWmRtVE5nT1pjOEQxNml6ekF0Z2c2S1E2aDkzaVNza3dNMWx6ZC1RYi1uX1RNaERSNlBXeEV3YzA0eWY2REozekRYOFRqSkd2ZEkzOWc0c1duOUdjWTl0bDRKZV9Yckc0anJGd252YTdrVHVtejJsN0doeGNN0gGcAkFVX3lxTE52SEhrZUhnemRwWHhCNEhLZlQwYUlWOFRzUVBfbzFQdFdTV2ppdnVtN1RWLS1aZENVTXRYblhkOFR4Y2RsRzJJRU9US01hWk9EaEZVbkFWWC1MNmpVb3AtelBVRi15SkdqVUFSUDN5OVpzNUNISS1UamxiaGlBTnl2Zmh2Y2daRmtscFNvN1NBTzVnVE5DVzRycHpIMU84ekxhUnpsbHRqS3JYNXVpWWxyZEpuY01ma2hwVzNMQU9QRDZkMnBrLUtVM1gwMEY4cGQ0N1pyUGtmZFU2OE44d1Zpb1ZwZElmOVRQaXZOd0UyN3BlUjRNT0tEd0Vmd29ONU50ZFo0TFpnUmJRWlRyVUJuWWF0clpfZktqZEp4?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
-                <span class="news-title">Kultusminister antwortet auf Frage nach KI und Hausaufgaben in Sachsen.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Ein Kultusminister beantwortet die Frage, ob KI Hausaufgaben in Sachsen überflüssig macht.</p>
-                <a href="https://news.google.com/rss/articles/CBMi4AFBVV95cUxORlRSd3AyUHp3ckVpVU8ySlJTZXNHSTJfLUhwLVB1ZUxYRE9IRHlLYlNaMHNnYUgwUU1OWEU4cC1TZlV0dzJUN0F3V2RmNHVjZzFjUy1lWDBRZDJ3aXRnMGJ4LUlKeEFEaTB3WjJQaERXX3RQb1FBRGg0a05BVnhmbklyZlBHMGR2amQza0lSNnJVYS1hZnVOdVR3MkdBTkVDUXhPRnU4eS1qbFhBQWRRc0hNVXVaNkdXT01ZR1lWSkFTWWM2emJCazNJQkh2MndIUlFRWmoyRW1hV05hRVlHaNIB_AFBVV95cUxOM1hNNl9Hc1c0OFRHZ2JxNGRhREJBSVBvdVNUc2NqSzhFS2M1OVpNdFdqVlVKV2FucHprQkI2NUJrMDU0UWNUSnRmQmN6Nk5XeVBDRHpSVlZ6YlhMZVIzUmVnNWEzZnJ6MnJPWk1IOU9WNk1pLWx0elBDUzctS1dhR3VCWTA5azNYbTd6R2VJZnBCalcwWTBSbkkzTEViSndRcm5wdVpHeXdQb2pzRTd2U0hEVjVySjNOZi1jb2pmMUpQNkdSZHVnbVA5RXJ1b3RTU1N1WWFMM1kwNWVJYW43WjQ2Qzg2UHlmUW0xOXQ1bHRWUGkwdHZCbzVyaEc?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
-                <span class="news-title">KI-Anfragen fluten sächsische Gerichte und Minister legt im Raser-Prozess Berufung ein.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">KI-Anfragen fluten sächsische Gerichte. Ein Minister legt im Raser-Prozess Berufung ein. Es gibt fünf Baustellen der Wirtschaft.</p>
-                <a href="https://news.google.com/rss/articles/CBMihwJBVV95cUxOMmstNWlFS3Y4a2xuR1k0OS1INGhaaGd1OWs3a05WamZmdlhxUGRzdHZ3a1VoQWxBTDRSNVp6aHRqeG1rX18zaHJ3dld0SXBleUlpemVlLXE0UEVXQnhXWlQwcWM3SzR5eDRHNnRUTWxBYVNRSFZraXF0OS1qY2cxRWhvbmdPS0pRQ1JldEFwa1Ntc3A3YzVqMm9DU1RpOWlId0x5MDF4X0ROc0xldlpVaEJYYlNoemNBMmdhU3Atcnk2U2p5YXhrbmo2aUg3VlRLXzFqR3AySk5xQnlUNVpvQ09LRlEwT1JCVW5adDlSbVM2c1lLN0xkZGd3TWtXLTFocGh4QUtYONIBowJBVV95cUxPa0xpUGRoVUY4VkZXQ3hCdDJDM2NxbjFmekNjMzdwYUZsbzBZeGlDUlZfR2k3MTV1NENEUzh6OUp3MkxmcW1QZnFYZXlNSEZXRzBtVi1qQ3pqcmJ5RnN3YzIyTHdKakhKYVhVSW1qalZXR1RRMlRCaUJYUDYxQ3paNGxwVTlOTnh6TW81YXJNZml1aHFsc2JvT1lkeDU0X3hSXzVMd2lYTkNiZ29vSXFvNTRTcV9kWFpWR2xNdHhWbDhKQS0tMTFCVXBncDhYU0UyT192TmhlT0JpUW53TGFuNC1rdi1jLUtVSDZOV3A0a0d0UHkzbzRPMHQtQVA3NjBZRk9nMVRhNnhYa0pVenV5TzBQZnYyWXhlZk9ZQ0lBUHI3Unc?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
-                <span class="news-title">KI-Klagen als Herausforderung: Ministerin schlägt Gebühren für Sozialgerichtsverfahren vor.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">KI-Klagen stellen eine Herausforderung dar. Eine Ministerin schlägt Gebühren für Sozialgerichtsverfahren vor.</p>
-                <a href="https://news.google.com/rss/articles/CBMi_AFBVV95cUxQUWNPWmRlS1BKY0p0Uk1WUnVGLWVDUm1GQlM0OTJiVWEtcmgtN0JMcTFiekVYQ3ZKQXJKaHhkVGsxRzRXNk5PTzNrMjEyMHVDRDBSVmRBR2ppdDQ4VUxpdzhfcEJnNURpTENDSzVfTy1Qb0xRYllBd3RJQW1xOW1Xd3BtZGNOS2ItYkFlbnhXYkd6b0U5clRiS0dYNl9DQXNBclJfYl9WTGV3cmVfa3RDT1BndzNicnRTckpSRjZRaVdKY1dQMno5dmkwZ21JM2RDQmlhVmQ1djYzSzR5STlPTXFLZ0o2ajlaWFB6M2hCU2pyUG1XZElhNEJxUmrSAZgCQVVfeXFMT2ZTNkVfQTBjN0FmSWpzVUg2WU1ESDlRbzZMS2RBUGhLYUxmaTJRZ0l1ZmVzUk5EY2xxelI5a2RJSXg2SGxCUno0YjZYN3UyWVlYOHlLbzJtaGprVjRLSk1sZzEzRXAyZ1lxVEdiY3VjWU1GclJuVnVzd2k0aU5LMXhtOFItNXVyWjJHRWR6N2JtbDRLMkRJZFdiMzVvdExVWWVrY3poY20yX2ZXMkliSkFIYXlsQ0dhRFV6eGZmWWRPQy1hTEh6SHdJQzFWOTFObzdBM2pkdnB3cnlGUWtydU80SlROdnNBYUx1Z0F5aU4yV3VpSFV6dWJMYmFZazBpbno3VUdKQzBndjg4aTI4TC1VbTFuWXVGVQ?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+                <p class="news-summary">In Genf einigten sich mehr als 120 Staaten im Hinblick auf sogenannte Killerroboter nur auf weitere unverbindliche Beratungen.</p>
+                <a href="https://www.golem.de/news/un-verhandlungen-nur-minimalkompromiss-gegen-killerroboter-erreicht-2611-215507.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
@@ -449,39 +383,6 @@
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
-                <span class="source-badge" style="background:#555">Golem</span>
-                <span class="news-title">Metas KI-Agent Muse liest Benachrichtigungen und verwechselt Nutzer.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Metas KI-Agent Muse soll Unterhaltungen verschiedener Nutzer vermischt haben, das Unternehmen spricht von Halluzinationen und Einzelfällen.</p>
-                <a href="https://www.golem.de/news/muse-metas-ki-agent-liest-benachrichtigungen-und-verwechselt-nutzer-2611-215480.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Golem</span>
-                <span class="news-title">Google baut Tausende Fake-Webseiten für Sicherheitstests des Browseragenten in Chrome</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">In der abgeschotteten Testumgebung wird Googles Browseragent in Chrome gezielt mit manipulierten Inhalten konfrontiert.</p>
-                <a href="https://www.golem.de/news/browseragent-fuer-chrome-google-baut-tausende-fake-webseiten-fuer-sicherheitstests-2611-215476.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Golem</span>
-                <span class="news-title">Die EU-Kommission nimmt ihre Personalplattform nach einem KI-gestützten Cyberangriff vom Netz.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Die EU-Kommission nimmt ihre Personalplattform aufgrund eines KI-gestützten Cyberangriffs vom Netz, wobei unklar ist, ob Daten abgeflossen sind.</p>
-                <a href="https://www.golem.de/news/vor-eu-uk-gipfel-ki-gestuetzter-cyberangriff-auf-eu-kommission-2611-215474.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
                 <span class="source-badge" style="background:#555">Caschy Blog</span>
                 <span class="news-title">Krieg mit künstlicher Intelligenz: Menschenrechtskommissar des Europarats äußert Bedenken</span>
                 <span class="news-arrow">&#9662;</span>
@@ -500,17 +401,6 @@
             <div class="news-expand">
                 <p class="news-summary">Nothing hat angekündigt, im Dezember ein KI-natives Produkt ohne neuen Bildschirm vorzustellen.</p>
                 <a href="https://stadt-bremerhaven.de/nothing-launch-event-fuer-das-ki-gadget-findet-am-8-dezember-statt/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Caschy Blog</span>
-                <span class="news-title">ChatGPT Space: Gemeinsame Dokumente jetzt auch für Plus-Nutzer.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">ChatGPT Space ersetzt die bisherige Bibliothek und vereint Dokumente und Dateien an einen gemeinsamen Ort.</p>
-                <a href="https://stadt-bremerhaven.de/chatgpt-space-gemeinsame-dokumente-jetzt-auch-fuer-plus-nutzer/" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
@@ -1198,17 +1088,6 @@
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#555">WSJ AI</span>
-                <span class="news-title">Die Schuldzuweisungen haben wegen Anthropics turbulenter Handelsdebüt begonnen.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Es haben Schuldzuweisungen wegen Anthropics turbulenter Handelsdebüt begonnen.</p>
-                <a href="https://news.google.com/rss/articles/CBMirAFBVV95cUxQd0p4QVlqUGxNcEQwUVJFWkU2cnBwOGRoMjk0ZDRSaFlNZzZMdmt5d3p0QzZzeDZXZks1TGhyN1JPNDI0clRKSHMtSWpOdHNMeUMyNHU5YlpJY0NITnJ4MUhJeTByWmtKdU9QdlZIZGtvYmJlZW1oTjVKZ25WRGowQVRXSWp1cDZYLTRONXRoVkRSc3ZjdDNvWE5jLUhnY2lHd202LXd5Umk3ZlQt?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">WSJ AI</span>
                 <span class="news-title">Der Nikkei steigt um 1,0 Prozent, angeführt von Chip- und KI-Aktien.</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
@@ -1220,23 +1099,23 @@
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#555">WSJ AI</span>
-                <span class="news-title">OpenAI arbeitet mit der NATO an Cyber-Abwehr zusammen.</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">OpenAI arbeitet mit der NATO an Cyber-Abwehr zusammen.</p>
-                <a href="https://news.google.com/rss/articles/CBMilgFBVV95cUxNWEI5LWhyZGJVZEowQWd5dGVJNkxNby1YMFJ3T0dFaDBtbW43MWoycDktXy1ULVpFMGpESDdyR1hMOHNQSXRQMUM0eHJidG5lSWdwLURHUE83UVVpeTBuWHBiaEJvQXNJM3FZbS12S3dzTnVRMmUwa00xWDBTRHk3bk1sVFlZc3RXbTZoUHFidWpoMkI0U0E?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">WSJ AI</span>
                 <span class="news-title">Die Gefahr von Jensen Huangs Handschlag-Deals bei Nvidia.</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
                 <p class="news-summary">Die Gefahr von Jensen Huangs Handschlag-Deals bei Nvidia.</p>
                 <a href="https://news.google.com/rss/articles/CBMicEFVX3lxTE1fdkZ5R1J5S3R5UjEzbTdiVW1OTl9RRkFkcFdyYTJNVHpOMVR0TTlQM0YxUUI3VFZwdVEzSFdKMmdCTDVla3VBY3dtOGVxTnEwWFdyeFJneFEwTkZTb3FQQkZveUdGNUI2allxaUNZcVI?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">WSJ AI</span>
+                <span class="news-title">Die Schuldzuweisungen haben wegen Anthropics turbulenter Handelsdebüt begonnen.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Es haben Schuldzuweisungen wegen Anthropics turbulenter Handelsdebüt begonnen.</p>
+                <a href="https://news.google.com/rss/articles/CBMirAFBVV95cUxQd0p4QVlqUGxNcEQwUVJFWkU2cnBwOGRoMjk0ZDRSaFlNZzZMdmt5d3p0QzZzeDZXZks1TGhyN1JPNDI0clRKSHMtSWpOdHNMeUMyNHU5YlpJY0NITnJ4MUhJeTByWmtKdU9QdlZIZGtvYmJlZW1oTjVKZ25WRGowQVRXSWp1cDZYLTRONXRoVkRSc3ZjdDNvWE5jLUhnY2lHd202LXd5Umk3ZlQt?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
@@ -1270,6 +1149,17 @@
             <div class="news-expand">
                 <p class="news-summary">US-Aktien fallen weiter, weil der KI-Boom in einen Bust umschlägt.</p>
                 <a href="https://news.google.com/rss/articles/CBMimAFBVV95cUxOY1h6VEhXUGRDcE9hX25QQllJOF9uSmhUNERBSVdBNjRkU0gyaGRySGN0MXVXZERzUmhmdXJIUms2cFJJU2ZvdkVjUlB0RjRxSTQ4RFBiYTV0T0MyUFB5cWw0RWtuZzZrQXFwLUJqb3VsZGhacHR0NF9wTVMwc0tYUW1obFhUNHNVX0JEQnFKX2pRc1RWRGsxVw?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">WSJ AI</span>
+                <span class="news-title">Anthropic-Mathematiker sagt, KI habe das bekannteste Problem der Mathematik gelöst</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Ein Anthropic-Mathematiker sagt, dass KI das bekannteste Problem der Mathematik gelöst habe.</p>
+                <a href="https://news.google.com/rss/articles/CBMitgFBVV95cUxQd2R1UU5HMEVNTGhtYWxQaTNBMjVRZnZxZjJVU0U1MVk0U2dIRHh6akhYNV9tNWxXYjNmeU16UzdqZDM3bUpDS1BxOEd2b3oySzVMako4Z25JMmNFUVd5ZlFWNTZ4WmJ6d2NXT0R5Z1JsNVNGMi04MGowVF9CQkl4dEEtXzJNYWRDeHA3Rk1hV250dEZWQjNRLW5RZHZPQ0ZMMlNLSDdkejFKTklvZW1ZNDZZalFOQQ?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
@@ -2001,17 +1891,6 @@
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#555">Digg AI</span>
-                <span class="news-title">Apple sucht bis zu 200.000 US-Teilnehmer für KI-Gesundheitsstudie, berichtet Engadget</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">Apple sucht bis zu 200.000 Teilnehmer in den USA für eine KI-Gesundheitsstudie.</p>
-                <a href="https://news.google.com/rss/articles/CBMiREFVX3lxTFBMQ1NJVmxEYWVTUDQwckZpWU9vVnNxZDYyWjBkWk43WlVqQXN6cVk4RlJuWGZaOE0tbXJ6eEZvM3BFZkJ2?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
-                <span class="source-badge" style="background:#555">Digg AI</span>
                 <span class="news-title">KI-Agenten handhaben Datensätze und Ansprüche in der Hospital-bench-Simulation fehlerhaft.</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
@@ -2073,6 +1952,28 @@
             <div class="news-expand">
                 <p class="news-summary">METRs aktualisierte KI-Tests zeigen, dass Programmierfähigkeiten die Forschungsurteilsfähigkeit übertreffen.</p>
                 <a href="https://news.google.com/rss/articles/CBMiREFVX3lxTE9KNzBUQXBTTkNhNU5uY0F4M2JkZm5kdlROeGwwcjY2RWh2eFBMa1pUdXZ4ZlRSQml0V09ZbXh6WjlvZmg4?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Digg AI</span>
+                <span class="news-title">Hugging Face: Thinking Machines Lab veröffentlicht Inkling 2 Mini mit sich wiederholenden KI-Schichten.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Thinking Machines Lab veröffentlicht auf Hugging Face das Modell Inkling 2 Mini mit sich wiederholenden KI-Schichten.</p>
+                <a href="https://news.google.com/rss/articles/CBMiREFVX3lxTE1hNS0xYWVJUnlsVDFLYmVpTnprLUs1SE9ILUt1TXBlSWZnX2JJcENrRUFBZkJySVFNdHpsZmhNRnhMU3JD?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">China AI Labs</span>
+                <span class="news-title">Ein Angebot vergleicht ChatGPT, Gemini, DeepSeek und andere KI-Modelle für 54,97 US-Dollar.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Ein Angebot ermöglicht den Vergleich von ChatGPT, Gemini, DeepSeek und anderen KI-Modellen für 54,97 US-Dollar.</p>
+                <a href="https://news.google.com/rss/articles/CBMikgFBVV95cUxPYnlVbThDM2xLeU5XUWtuXzJyNy1EUm9nVGx2N2ZTZnM3SEJKUlE0aU1UcE0xVVhnVFBCSnlhOTN4ZDBvUkJOaUJaQ1QxUWstUEc5SmF5ay1DLU5BSm9rQVFYZGYwaG9iQ0lPd19wVnFHZ1lxN3hDbjNtTzlvVk9teGRQQ0JzNXJwQ3JGeTh3bE5Hdw?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
@@ -2154,17 +2055,6 @@
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
-                <span class="source-badge" style="background:#555">China AI Labs</span>
-                <span class="news-title">DeepSeeks erster Gründer: Die öffentliche Enthüllung der Kernführung des KI-Labors</span>
-                <span class="news-arrow">&#9662;</span>
-            </div>
-            <div class="news-expand">
-                <p class="news-summary">DeepSeeks erster Gründer wird öffentlich als Kernführung des KI-Labors enthüllt.</p>
-                <a href="https://news.google.com/rss/articles/CBMiU0FVX3lxTE8zSGllWUV3Y3NIcEUzZzBQTjNsc0RYQVhaOXhZU3NHQmZlVHZGOGNDTlE3UndpV3FKY0tYVmF0Ri1CZmgtNGFaZUVuOHlvX2lUMGxJ?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
-            </div>
-        </div>
-        <div class="news-item" onclick="toggleNews(this)">
-            <div class="news-header">
                 <span class="source-badge" style="background:#555">Demokratis.co.id</span>
                 <span class="news-title">Kalifornien lädt Nvidia wegen China-Chip-Umleitungsuntersuchung vor</span>
                 <span class="news-arrow">&#9662;</span>
@@ -2221,12 +2111,45 @@
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
                 <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
+                <span class="news-title">KI im Mittelstand: Was Firmen in Sachsen heute schon nutzen</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Es geht um KI im Mittelstand und was Firmen in Sachsen heute schon nutzen.</p>
+                <a href="https://news.google.com/rss/articles/CBMixAFBVV95cUxPYzZfbUM4LVNKRTdPcEhwVUZUdkV1UUJielhuc0xDdkxXQlluV1FlM2ZIZjdRa1U1RHo1dWR4WlI5dWdXYWViR2NBR1hIWFA5UzNkY3FmeXZiLWItODdDQ1VtMXdCWi1jMXdHM0NQM0Rkdkp2SWVUR0F5R2pfYlRhWTRkSWR2VGx2SnI0MW9RYzBXY2tBNGtLZXp6RlBxMGpWY3ZKYVl2MWhXMDNiREt4alhCbU1wd1RTOHg4WUlRTVJaaXRm0gHgAUFVX3lxTE5TbjlhZk14UjFVZEVkQ1RzR0cwRGVkbE51WV9PTmtRVUV6TDBDekhpR1lINWJNTS01eFdDeGd5LUdZYUpGN3ZqS1Z1ZXc0RFNld21vVWI1clByZUdUcGExM0trRlNWcXlGX185MnZNSFQ0S0J1dGo1S3gtUjlOVllkWm1taEJGelItOHN5bWN3S1RTeGFtMWdPSTZ6bG5faGJDM2ZNUThRb0s4bDREcHAyUXZIX1RkdERWQUx1YVJfZXBrWHlENkdEU0YzdDdoRk1aWHJtZVY3QXhKT3MtUXZR?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
                 <span class="news-title">Robotik und KI im Mittelstand: 6. Projektwerkstatt 2026 in Chemnitz</span>
                 <span class="news-arrow">&#9662;</span>
             </div>
             <div class="news-expand">
                 <p class="news-summary">Die 6. Projektwerkstatt 2026 in Chemnitz thematisiert Robotik und KI im Mittelstand.</p>
                 <a href="https://news.google.com/rss/articles/CBMi6gFBVV95cUxPYXRzc19lbC0yczR1ZklvSlJGRkpJU3NEMUZHdTdYQlNTellYYnB1WmROVnNhbU1JRnF0REZva0htOUhzT0Fna2FaU0xsZ191RXFJX2xEUlVQd0daMmpEcFZJQm1wZ0xkbjZ2Y05ZdHI4TVl4clBlVzFKRnBaT1BZaWhyMUVUT2FjZkNZTGVzOGZRZ0Z5eDFxbGk2azNicmtzbFhXc1lrVFhnTlBIXzg4clpNdjhTSmxUdlFRVWkwR2d3RExQZDZ1S2NDNXk1MlhjY0VMYTA4NXJZVVcwOUZ1cXVLTjl1WF90enfSAeoBQVVfeXFMT2F0c3NfZWwtMnM0dWZJb0pSRkZKSVNzRDFGR3U3WEJTU3pZWGJwdVpkTlZzYW1NSUZxdERGb2tIbTlIc09BZ2thWlNMbGdfdUVxSV9sRFJVUHdHWjJqRHBWSUJtcGdMZG42dmNOWXRyOE1ZeHJQZVcxSkZwWk9QWWlocjFFVE9hY2ZDWUxlczhmUWdGeXgxcWxpNmszYnJrc2xYV3NZa1RYZ05QSF84OHJaTXY4U0psVHZRUVVpMEdnd0RMUGQ2dUtjQzV5NTJYY2NFTGEwODVyWVVXMDlGdXF1S045dVhfdHp3?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
+                <span class="news-title">Robotik und KI im Mittelstand: 6. Projektwerkstatt 2026 in Chemnitz</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Die 6. Projektwerkstatt 2026 zu Robotik und KI im Mittelstand findet in Chemnitz statt.</p>
+                <a href="https://news.google.com/rss/articles/CBMizgFBVV95cUxQblJYQjhyNnNfWkJPekxMbW5yRHJSVFNBVzMwS053TEVyMXNRZE5BeTdHQU4zdmxvYV9aWXEzRmFkYlBIU1BBcENXVVFrcVdaMUlad0JLNFdJVjdJcTlQejdmR0h4Q1ZiTmFseFdoMVlxUzUxUEFVWDdMa0x0c25YeURUUG1BUlVlcGlnWUNieG9zQmFJWGE1YVVNR2w2ODhYVy1SMFVkQzBiRVFscERZb2dKVEFIZDJvN0tOclpHUnVsQzF2MEdWVHV1Vl9qd9IB6gFBVV95cUxPYXRzc19lbC0yczR1ZklvSlJGRkpJU3NEMUZHdTdYQlNTellYYnB1WmROVnNhbU1JRnF0REZva0htOUhzT0Fna2FaU0xsZ191RXFJX2xEUlVQd0daMmpEcFZJQm1wZ0xkbjZ2Y05ZdHI4TVl4clBlVzFKRnBaT1BZaWhyMUVUT2FjZkNZTGVzOGZRZ0Z5eDFxbGk2azNicmtzbFhXc1lrVFhnTlBIXzg4clpNdjhTSmxUdlFRVWkwR2d3RExQZDZ1S2NDNXk1MlhjY0VMYTA4NXJZVVcwOUZ1cXVLTjl1WF90enc?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Golem</span>
+                <span class="news-title">Die EU-Kommission nimmt ihre Personalplattform nach einem KI-gestützten Cyberangriff vom Netz.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Die EU-Kommission nimmt ihre Personalplattform aufgrund eines KI-gestützten Cyberangriffs vom Netz, wobei unklar ist, ob Daten abgeflossen sind.</p>
+                <a href="https://www.golem.de/news/vor-eu-uk-gipfel-ki-gestuetzter-cyberangriff-auf-eu-kommission-2611-215474.html" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
         <div class="news-item" onclick="toggleNews(this)">
@@ -2308,6 +2231,17 @@
         </div>
         <div class="news-item" onclick="toggleNews(this)">
             <div class="news-header">
+                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
+                <span class="news-title">Kultusminister antwortet auf Frage nach KI und Hausaufgaben in Sachsen.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Ein Kultusminister beantwortet die Frage, ob KI Hausaufgaben in Sachsen überflüssig macht.</p>
+                <a href="https://news.google.com/rss/articles/CBMi4AFBVV95cUxORlRSd3AyUHp3ckVpVU8ySlJTZXNHSTJfLUhwLVB1ZUxYRE9IRHlLYlNaMHNnYUgwUU1OWEU4cC1TZlV0dzJUN0F3V2RmNHVjZzFjUy1lWDBRZDJ3aXRnMGJ4LUlKeEFEaTB3WjJQaERXX3RQb1FBRGg0a05BVnhmbklyZlBHMGR2amQza0lSNnJVYS1hZnVOdVR3MkdBTkVDUXhPRnU4eS1qbFhBQWRRc0hNVXVaNkdXT01ZR1lWSkFTWWM2emJCazNJQkh2MndIUlFRWmoyRW1hV05hRVlHaNIB_AFBVV95cUxOM1hNNl9Hc1c0OFRHZ2JxNGRhREJBSVBvdVNUc2NqSzhFS2M1OVpNdFdqVlVKV2FucHprQkI2NUJrMDU0UWNUSnRmQmN6Nk5XeVBDRHpSVlZ6YlhMZVIzUmVnNWEzZnJ6MnJPWk1IOU9WNk1pLWx0elBDUzctS1dhR3VCWTA5azNYbTd6R2VJZnBCalcwWTBSbkkzTEViSndRcm5wdVpHeXdQb2pzRTd2U0hEVjVySjNOZi1jb2pmMUpQNkdSZHVnbVA5RXJ1b3RTU1N1WWFMM1kwNWVJYW43WjQ2Qzg2UHlmUW0xOXQ1bHRWUGkwdHZCbzVyaEc?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
                 <span class="source-badge" style="background:#555">Reuters AI</span>
                 <span class="news-title">Nvidia-Verwaltungsrat beabsichtigt nicht, Jensen Huang als CEO wieder einzusetzen</span>
                 <span class="news-arrow">&#9662;</span>
@@ -2350,6 +2284,50 @@
                 <a href="https://news.google.com/rss/articles/CBMihwJBVV95cUxOMmstNWlFS3Y4a2xuR1k0OS1INGhaaGd1OWs3a05WamZmdlhxUGRzdHZ3a1VoQWxBTDRSNVp6aHRqeG1rX18zaHJ3dld0SXBleUlpemVlLXE0UEVXQnhXWlQwcWM3SzR5eDRHNnRUTWxBYVNRSFZraXF0OS1qY2cxRWhvbmdPS0pRQ1JldEFwa1Ntc3A3YzVqMm9DU1RpOWlId0x5MDF4X0ROc0xldlpVaEJYYlNoemNBMmdhU3Atcnk2U2p5YXhrbmo2aUg3VlRLXzFqR3AySk5xQnlUNVpvQ09LRlEwT1JCVW5adDlSbVM2c1lLN0xkZGd3TWtXLTFocGh4QUtYOA?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
             </div>
         </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
+                <span class="news-title">KI-Anfragen fluten sächsische Gerichte und Minister legt im Raser-Prozess Berufung ein.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">KI-Anfragen fluten sächsische Gerichte. Ein Minister legt im Raser-Prozess Berufung ein. Es gibt fünf Baustellen der Wirtschaft.</p>
+                <a href="https://news.google.com/rss/articles/CBMihwJBVV95cUxOMmstNWlFS3Y4a2xuR1k0OS1INGhaaGd1OWs3a05WamZmdlhxUGRzdHZ3a1VoQWxBTDRSNVp6aHRqeG1rX18zaHJ3dld0SXBleUlpemVlLXE0UEVXQnhXWlQwcWM3SzR5eDRHNnRUTWxBYVNRSFZraXF0OS1qY2cxRWhvbmdPS0pRQ1JldEFwa1Ntc3A3YzVqMm9DU1RpOWlId0x5MDF4X0ROc0xldlpVaEJYYlNoemNBMmdhU3Atcnk2U2p5YXhrbmo2aUg3VlRLXzFqR3AySk5xQnlUNVpvQ09LRlEwT1JCVW5adDlSbVM2c1lLN0xkZGd3TWtXLTFocGh4QUtYONIBowJBVV95cUxPa0xpUGRoVUY4VkZXQ3hCdDJDM2NxbjFmekNjMzdwYUZsbzBZeGlDUlZfR2k3MTV1NENEUzh6OUp3MkxmcW1QZnFYZXlNSEZXRzBtVi1qQ3pqcmJ5RnN3YzIyTHdKakhKYVhVSW1qalZXR1RRMlRCaUJYUDYxQ3paNGxwVTlOTnh6TW81YXJNZml1aHFsc2JvT1lkeDU0X3hSXzVMd2lYTkNiZ29vSXFvNTRTcV9kWFpWR2xNdHhWbDhKQS0tMTFCVXBncDhYU0UyT192TmhlT0JpUW53TGFuNC1rdi1jLUtVSDZOV3A0a0d0UHkzbzRPMHQtQVA3NjBZRk9nMVRhNnhYa0pVenV5TzBQZnYyWXhlZk9ZQ0lBUHI3Unc?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
+                <span class="news-title">Viele Beamte gehen vorzeitig in den Ruhestand, der Kultusminister gibt ein KI-Interview und Forscher äußern sich zu Gen-Z-Protesten.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Viele Beamte gehen vorzeitig in den Ruhestand, der Kultusminister gibt ein Interview zum Thema KI und Forscher äußern sich zu Protesten der Generation Z.</p>
+                <a href="https://news.google.com/rss/articles/CBMigAJBVV95cUxQOHFyTUxlaUZUWlVuazRCNjlEVnpnWGNmMjN4U1FtaDM0dzVSeFIza1p5a29acTNES1Fib2l2Vl96N2lOaTFxWVhhQ0N2LWM2aW9xdFFuUlM2NVNFYWhQVms4aC16aWxsd1Nvd0laa19aVU12R3dReTN6cGtTZHl0Zk43d3hyZDFnamtqWmRtVE5nT1pjOEQxNml6ekF0Z2c2S1E2aDkzaVNza3dNMWx6ZC1RYi1uX1RNaERSNlBXeEV3YzA0eWY2REozekRYOFRqSkd2ZEkzOWc0c1duOUdjWTl0bDRKZV9Yckc0anJGd252YTdrVHVtejJsN0doeGNN0gGcAkFVX3lxTE52SEhrZUhnemRwWHhCNEhLZlQwYUlWOFRzUVBfbzFQdFdTV2ppdnVtN1RWLS1aZENVTXRYblhkOFR4Y2RsRzJJRU9US01hWk9EaEZVbkFWWC1MNmpVb3AtelBVRi15SkdqVUFSUDN5OVpzNUNISS1UamxiaGlBTnl2Zmh2Y2daRmtscFNvN1NBTzVnVE5DVzRycHpIMU84ekxhUnpsbHRqS3JYNXVpWWxyZEpuY01ma2hwVzNMQU9QRDZkMnBrLUtVM1gwMEY4cGQ0N1pyUGtmZFU2OE44d1Zpb1ZwZElmOVRQaXZOd0UyN3BlUjRNT0tEd0Vmd29ONU50ZFo0TFpnUmJRWlRyVUJuWWF0clpfZktqZEp4?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
+                <span class="news-title">Stadt Coswig unterläuft KI-Patzer: „Pfei leben ohne Gewalt“.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">Die Stadt Coswig hat einen KI-Patzer begangen, bei dem der Schriftzug "Pfei leben ohne Gewalt" entstand.</p>
+                <a href="https://news.google.com/rss/articles/CBMi2gFBVV95cUxOdUw4Y0NkalRabEFxV2d0UzRoU21sWWNfbmxwOE5WdE5DNnVEV1FEejE5UjVLZ1RORGFnQl9IeHczM3YxM19ZdzhUYlU0Q09vU3kzSXJMclJJbXZZY2t1aklWVHA3UnNDUVdxcEZud1k1czRpU2wzdnVRYW1NSFhibFp2WDNrclFGd1RsMktBb2g2SmFFaElycmZLM05KLUtXNV9qZGJrSzdHZkk4TWYwS1pFSUprZ3Z6YWgyR0JGSEcwYVRaT004QnpTRTMxUi00dWRMZ3AtdUZrZ9IB9gFBVV95cUxOY2ZDbVNJZ1FRVGtveUxMN0VNUXhfZVQwVVRNODg3WVAxYlFYWlZVWGh1bENTRHVCU2FkQ3lNRDE4a0JXZkRzVjF1YlR1UDNJNHlJTzZuWGpyd3BoaW8yYmU5MmplaTlPNGsxTWI4RGNEMkdJV214Sl8xbGtTXzhULU1FV2RQbHBxQlc4UHE4RUptT1F1MXNOVWQyVjA3UUR3X1EwanlrX2d6ckxKbDVHWHlxTnEzUmEwZFNWMzByV3FQdlZCclhrSzVMakM3aVQza2c2Tk9LY2dMaDFWbmUwN2ZBQjF3SS15NlFhN1ZyY214UHZ2S3c?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
+        <div class="news-item" onclick="toggleNews(this)">
+            <div class="news-header">
+                <span class="source-badge" style="background:#555">Sächsische Zeitung KI</span>
+                <span class="news-title">KI-Klagen als Herausforderung: Ministerin schlägt Gebühren für Sozialgerichtsverfahren vor.</span>
+                <span class="news-arrow">&#9662;</span>
+            </div>
+            <div class="news-expand">
+                <p class="news-summary">KI-Klagen stellen eine Herausforderung dar. Eine Ministerin schlägt Gebühren für Sozialgerichtsverfahren vor.</p>
+                <a href="https://news.google.com/rss/articles/CBMi_AFBVV95cUxQUWNPWmRlS1BKY0p0Uk1WUnVGLWVDUm1GQlM0OTJiVWEtcmgtN0JMcTFiekVYQ3ZKQXJKaHhkVGsxRzRXNk5PTzNrMjEyMHVDRDBSVmRBR2ppdDQ4VUxpdzhfcEJnNURpTENDSzVfTy1Qb0xRYllBd3RJQW1xOW1Xd3BtZGNOS2ItYkFlbnhXYkd6b0U5clRiS0dYNl9DQXNBclJfYl9WTGV3cmVfa3RDT1BndzNicnRTckpSRjZRaVdKY1dQMno5dmkwZ21JM2RDQmlhVmQ1djYzSzR5STlPTXFLZ0o2ajlaWFB6M2hCU2pyUG1XZElhNEJxUmrSAZgCQVVfeXFMT2ZTNkVfQTBjN0FmSWpzVUg2WU1ESDlRbzZMS2RBUGhLYUxmaTJRZ0l1ZmVzUk5EY2xxelI5a2RJSXg2SGxCUno0YjZYN3UyWVlYOHlLbzJtaGprVjRLSk1sZzEzRXAyZ1lxVEdiY3VjWU1GclJuVnVzd2k0aU5LMXhtOFItNXVyWjJHRWR6N2JtbDRLMkRJZFdiMzVvdExVWWVrY3poY20yX2ZXMkliSkFIYXlsQ0dhRFV6eGZmWWRPQy1hTEh6SHdJQzFWOTFObzdBM2pkdnB3cnlGUWtydU80SlROdnNBYUx1Z0F5aU4yV3VpSFV6dWJMYmFZazBpbno3VUdKQzBndjg4aTI4TC1VbTFuWXVGVQ?oc=5" target="_blank" onclick="event.stopPropagation()">&#8594; Artikel lesen</a>
+            </div>
+        </div>
         </div>
         <div class="panel panel-right">
             <div class="panel-title">Post-Vorschlaege fuer @ScampyKI</div>
@@ -2357,11 +2335,11 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 1</span>
-                <span class="post-zeichen" style="color:#16a34a">216/265</span>
+                <span class="post-zeichen" style="color:#16a34a">214/265</span>
             </div>
-            <p class="post-text" id="teaser1">Das ist kein Problem der Intelligenz.. es ist ein Problem der Ordnung. Wenn KI-Agenten auf SQL-Datenbanken zugreifen, führen unsaubere Strukturen zu Halluzinationen. Ordnung ist die neue Basis für Fakten. (via Golem)</p>
-            <p class="post-erklaerung">Wenn die Datenbank unordentlich ist, rät die KI bei Fragen einfach, statt die Wahrheit zu finden. Das ist wie ein Mitarbeiter, der in einem völlig chaotischen Archiv nach Dokumenten sucht.</p>
-            <span class="post-quelle" style="background:#555">Golem</span>
+            <p class="post-text" id="teaser1">Die Sicherheit deiner Daten bei Behörden ist gerade ein Glücksspiel.. Ein Cyberangriff auf die EU-Kommission legte Personalsysteme tagelang lahm. Der Verdacht liegt auf dem Missbrauch des KI-Tools Artex (via Heise)</p>
+            <p class="post-erklaerung">Hacker haben ein KI-Tool genutzt, um die Systeme der EU-Kommission zu attackieren. Das hat dazu geführt, dass die Verwaltung von Personal tagelang nicht richtig arbeiten konnte.</p>
+            <span class="post-quelle" style="background:#ca8a04">Heise</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser1', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={}"
@@ -2375,49 +2353,49 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">171/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">142/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-1">KI-Agenten erfinden Dinge, wenn die Datenbank kein klares Design hat. Das ist kein Fehler der Logik, sondern ein strukturelles Problem bei der Abfrage von SQL-Datenbanken.</p>
+                    <p class="thread-text" id="thread1-1">Die Verwaltung wird durch Code verwundbar. Ein Angriff hat die internen Personalsysteme der EU-Kommission für mehrere Tage komplett blockiert.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">168/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">121/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-2">Ein strenges Datenbankdesign mit klaren Regeln ist die Voraussetzung. Ohne diese Struktur neigen die Agenten dazu, bei komplexen Abfragen einfach Fehler zu produzieren.</p>
+                    <p class="thread-text" id="thread1-2">Der Vorfall betrifft die Kernprozesse der Kommission. Dabei wurde der Missbrauch des KI-Tools Artex als Ursache vermutet.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">167/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">131/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-3">Erst wird das Design festgelegt. Dann folgen die Regeln für den Zugriff. Erst durch diese Ordnung werden die Halluzinationen der KI-Agenten bei den Abfragen vermieden.</p>
+                    <p class="thread-text" id="thread1-3">Das Werkzeug Artex wurde laut Warnung von CERT-EU für den Angriff genutzt. Erst die Identifikation des Tools zeigt die neue Gefahr.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">165/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">121/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-4">Es ist beunruhigend, wie sehr die Verlässlichkeit einer KI von der Ordnung der zugrunde liegenden Daten abhängt. Ein schlechtes Design macht die Intelligenz wertlos.</p>
+                    <p class="thread-text" id="thread1-4">Es ist faszinierend und beängstigend zugleich. Ein KI-Tool wird hier als Waffe gegen die Infrastruktur der EU eingesetzt.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">155/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">143/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-5">Für Unternehmen bedeutet das, dass sie nicht nur in bessere Modelle investieren müssen. Sie müssen ihre internen Datenstrukturen radikal sauberer aufbauen.</p>
+                    <p class="thread-text" id="thread1-5">Für die Mitarbeiter der Kommission bedeutet das Stillstand. Systeme, die für die Personalverwaltung wichtig sind, waren tagelang nicht nutzbar.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">165/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">135/265</span>
                     </div>
-                    <p class="thread-text" id="thread1-6">Wir vertrauen der KI blind, dabei ist sie nur so gut wie das Chaos, das wir ihr vorsetzen. Verstehst du, dass Ordnung hier wichtiger ist als Rechenpower? (via Golem)</p>
+                    <p class="thread-text" id="thread1-6">Wenn KI-Tools gezielt für Angriffe missbraucht werden, wie sicher sind dann unsere Behörden noch? Was denkst du über diese Entwicklung?</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread1-6', this)">Kopieren</button>
                 </div>
             </div>
@@ -2425,11 +2403,11 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 2</span>
-                <span class="post-zeichen" style="color:#16a34a">186/265</span>
+                <span class="post-zeichen" style="color:#16a34a">205/265</span>
             </div>
-            <p class="post-text" id="teaser2">Verstehst du die Schwere dieser Warnung.. Napoleon spricht zu Jensen Huang. Es geht um mehr als nur Technologie. Eine historische Perspektive trifft auf die Macht von Nvidia. (via FT AI)</p>
-            <p class="post-erklaerung">Hier wird ein Vergleich zwischen der Macht Napoleons und der Macht von Nvidia gezogen. Es zeigt, wie groß der Einfluss von Chip-Herstellern in der heutigen Welt ist.</p>
-            <span class="post-quelle" style="background:#555">FT AI</span>
+            <p class="post-text" id="teaser2">Deine Daten wandern einfach mit durch die ganze Kette.. Zwei Millionen Anfragen deckten riesige Lücken in der KI-Infrastruktur auf. Es geht um gestohlene Schlüssel und mitlesende Anbieter (via The Decoder)</p>
+            <p class="post-erklaerung">Wenn man KI nutzt, schickt man Daten oft durch viele verschiedene Firmen. Forscher haben gezeigt, dass diese Kette Lücken hat, durch die gestohlene Schlüssel oder Anfragen abfließen können.</p>
+            <span class="post-quelle" style="background:#1d9bf0">The Decoder</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser2', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={}"
@@ -2443,49 +2421,49 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">151/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">121/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-1">Napoleon sendet eine Warnung an Jensen Huang. Diese Begegnung zwischen Geschichte und der aktuellen KI-Macht ist eine seltsame, aber starke Verbindung.</p>
+                    <p class="thread-text" id="thread2-1">Die KI-Lieferkette ist voller Sicherheitslücken. Sicherheitsforscher von Dragos haben das mit massiven Tests offengelegt.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">150/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">140/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-2">Es geht um die Warnung Napoleons an den Chef von Nvidia. Die Details bleiben hinter der historischen Metapher verborgen, die hier als Vergleich dient.</p>
+                    <p class="thread-text" id="thread2-2">Zwei Millionen KI-Anfragen mit gefälschten Zugangsdaten wurden genutzt. Dabei wurden mindestens drei kompromittierte Anbieter identifiziert.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">165/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">116/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-3">Die Warnung wird formuliert. Die Verbindung zwischen dem historischen Imperium und dem heutigen Chip-Giganten wird hergestellt. Die Bedeutung liegt in der Botschaft.</p>
+                    <p class="thread-text" id="thread2-3">Hunderte gestohlene AWS-Schlüssel wurden gefunden. Marktplatz-Wiederverkäufer haben zudem Kundenanfragen mitgelesen.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">167/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">126/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-4">Es ist faszinierend, wie historische Figuren genutzt werden, um die Tragweite der heutigen technologischen Macht zu beschreiben. Eine fast schon unheimliche Parallele.</p>
+                    <p class="thread-text" id="thread2-4">Das ist eine enorme Zahl an Schwachstellen. Die Vorstellung, dass Anfragen einfach mitgelesen werden, ist extrem beunruhigend.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">163/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">129/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-5">Für Beobachter der Branche zeigt es, dass die Dominanz von Nvidia nicht nur technisch, sondern auch auf einer Ebene der Macht betrachtet wird, die wir kaum fassen.</p>
+                    <p class="thread-text" id="thread2-5">Wer KI-Dienste nutzt, gibt Informationen in eine Kette ab. Wenn Teile dieser Kette unsicher sind, landen deine Daten bei Fremden.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">161/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">135/265</span>
                     </div>
-                    <p class="thread-text" id="thread2-6">Wenn Geschichte die Gegenwart spiegelt, müssen wir genau hinsehen. Glaubst du, dass technologische Imperien die gleichen Fehler machen wie die alten? (via FT AI)</p>
+                    <p class="thread-text" id="thread2-6">Die Infrastruktur hinter der KI ist oft instabil. Vertraust du darauf, dass deine Daten auf dem Weg durch alle Anbieter sicher bleiben?</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread2-6', this)">Kopieren</button>
                 </div>
             </div>
@@ -2493,11 +2471,11 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 3</span>
-                <span class="post-zeichen" style="color:#16a34a">195/265</span>
+                <span class="post-zeichen" style="color:#16a34a">225/265</span>
             </div>
-            <p class="post-text" id="teaser3">36 GB im Leerlauf.. das ist kein normaler Betrieb. Nvidias Hotfix-Treiber 621.35 behebt das Problem der massiven SSD-Schreibzugriffe nicht. Dein Laufwerk leidet unter der Software. (via WCCFtech)</p>
-            <p class="post-erklaerung">Ein neuer Treiber von Nvidia sollte einen Fehler beheben, aber er schreibt trotzdem zu viel auf die Festplatte. Das ist so, als würde ein Auto im Stand ständig Vollgas geben.</p>
-            <span class="post-quelle" style="background:#555">WCCFtech</span>
+            <p class="post-text" id="teaser3">Die KI wird effizienter, aber auch viel arroganter.. OpenAIs neueste Modelle antworten 40 Prozent kürzer und geben kaum noch zu, wenn sie etwas nicht wissen. Die Antwort ist schnell, aber weniger transparent (via The Decoder)</p>
+            <p class="post-erklaerung">Die neuen Modelle von OpenAI antworten viel schneller und kürzer. Das Problem ist, dass sie seltener sagen, wenn sie etwas nicht genau wissen. Man bekommt also schnellere, aber weniger ehrliche Antworten.</p>
+            <span class="post-quelle" style="background:#1d9bf0">The Decoder</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser3', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={}"
@@ -2511,49 +2489,49 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">158/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">121/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-1">Der neue Hotfix-Treiber 621.35 von Nvidia löst das Problem nicht. Die SSD wird weiterhin massiv belastet, selbst wenn das System gar nicht aktiv genutzt wird.</p>
+                    <p class="thread-text" id="thread3-1">Antworten werden kürzer und schneller. Die neuen Modelle Astra und Sol von OpenAI kommen deutlich direkter auf den Punkt.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">163/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">126/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-2">Ein unabhängiger Test zeigt die Zahlen. Während das System über Nacht im Leerlauf war, wurden bereits 36 GB auf das NVMe-Laufwerk geschrieben. Das ist extrem viel.</p>
+                    <p class="thread-text" id="thread3-2">Laut Artificial Analysis sind die Antworten 40 Prozent kürzer als bei den Vorgängern. Der Fokus liegt auf der Geschwindigkeit.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">168/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">125/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-3">Der Treiber wird installiert. Die SSD schreibt im Hintergrund massiv Daten. Das System bleibt scheinbar ruhig, aber die Hardware wird im Verborgenen extrem beansprucht.</p>
+                    <p class="thread-text" id="thread3-3">Der Preis für die Schnelligkeit ist die Transparenz. Die Modelle gestehen deutlich seltener ein, wenn sie sich unsicher sind.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">160/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">130/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-4">Das ist beängstigend für die Hardware-Lebensdauer. Ein System im Leerlauf sollte keine Gigabytes an Daten auf das NVMe-Laufwerk ballern, ohne dass man es merkt.</p>
+                    <p class="thread-text" id="thread3-4">Es ist faszinierend, wie die Modelle ihre Unsicherheit unterdrücken. Sie wirken zwar kompetenter, geben aber weniger Wissen preis.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">151/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">130/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-5">Für Nutzer bedeutet das eine unnötige Abnutzung ihrer Hardware. Der versprochene Hotfix hat die übermäßigen Schreibzugriffe schlichtweg nicht gestoppt.</p>
+                    <p class="thread-text" id="thread3-5">Für Nutzer bedeutet das schnellere Antworten. Aber man muss vorsichtiger sein, weil die KI weniger offen mit Wissenslücken umgeht.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">162/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">138/265</span>
                     </div>
-                    <p class="thread-text" id="thread3-6">Ein Treiber sollte das System entlasten, nicht die Hardware unter Druck setzen. Wie oft prüfst du die Schreibzugriffe deiner SSD während der Nacht? (via WCCFtech)</p>
+                    <p class="thread-text" id="thread3-6">Die KI gibt keine Fehler mehr zu, sondern liefert einfach kurze Antworten. Glaubst du einer KI, die niemals zugibt, etwas nicht zu wissen?</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread3-6', this)">Kopieren</button>
                 </div>
             </div>
@@ -2561,11 +2539,11 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 4</span>
-                <span class="post-zeichen" style="color:#16a34a">184/265</span>
+                <span class="post-zeichen" style="color:#16a34a">193/265</span>
             </div>
-            <p class="post-text" id="teaser4">Das ist kein einfacher Vergleich.. es ist die Frage nach der Freiheit. Vier Modelle und vier Lizenzen trennen Open Weight von Open Source AI. Kenne den Unterschied. (via China AI Labs)</p>
-            <p class="post-erklaerung">Es geht darum, ob man bei einer KI alles einsehen und ändern darf oder nur das fertige Ergebnis nutzen kann. Das ist wie der Unterschied zwischen einem Rezept und einem fertigen Gericht.</p>
-            <span class="post-quelle" style="background:#555">China AI Labs</span>
+            <p class="post-text" id="teaser4">Diplomatie gegen Roboter endet mit einem leeren Versprechen.. Bei UN-Verhandlungen wurde nur ein Minimalkompromiss erreicht. Es gibt jetzt nur noch weitere unverbindliche Beratungen (via Golem)</p>
+            <p class="post-erklaerung">Die Vereinten Nationen wollten Regeln für autonome Roboter finden. Es kam aber nur zur Vereinbarung, dass man sich in Zukunft einfach wieder zusammensetzen will, ohne feste Regeln festzulegen.</p>
+            <span class="post-quelle" style="background:#555">Golem</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser4', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={}"
@@ -2579,49 +2557,49 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">142/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">126/265</span>
                     </div>
-                    <p class="thread-text" id="thread4-1">Open Weight und Open Source AI sind nicht dasselbe. Der Unterschied liegt in der Art der Lizenzierung und der Tiefe der Offenheit der Modelle.</p>
+                    <p class="thread-text" id="thread4-1">In Genf wurde über Killerroboter entschieden. Die Verhandlungen zwischen über 120 Staaten brachten jedoch keine harten Regeln.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread4-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">141/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">89/265</span>
                     </div>
-                    <p class="thread-text" id="thread4-2">Es werden vier Modelle und vier verschiedene Lizenzen gegenübergestellt. Diese Zahlen zeigen die Komplexität der aktuellen KI-Landschaft auf.</p>
+                    <p class="thread-text" id="thread4-2">Mehr als 120 Staaten saßen am Tisch. Am Ende steht jedoch nur ein Minimalkompromiss fest.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread4-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">143/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">124/265</span>
                     </div>
-                    <p class="thread-text" id="thread4-3">Zuerst betrachtet man das Modell. Dann prüft man die Lizenz. Schließlich entscheidet sich, ob es wirklich Open Source oder nur Open Weight ist.</p>
+                    <p class="thread-text" id="thread4-3">Die Staaten einigten sich lediglich auf weitere unverbindliche Beratungen. Es wurden keine verbindlichen Regeln beschlossen.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread4-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">149/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">131/265</span>
                     </div>
-                    <p class="thread-text" id="thread4-4">Es ist faszinierend, wie die Kontrolle über KI durch kleine rechtliche Details bestimmt wird. Ein Wort in der Lizenz verändert alles für die Nutzung.</p>
+                    <p class="thread-text" id="thread4-4">Dass bei diesem Thema nur über weitere Gespräche entschieden wurde, ist beunruhigend. Die Technologie wartet nicht auf die Politik.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread4-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">146/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">123/265</span>
                     </div>
-                    <p class="thread-text" id="thread4-5">Für Entwickler und Firmen ist das entscheidend. Die Wahl der Lizenz bestimmt, wie viel sie wirklich verändern und besitzen können, was sie nutzen.</p>
+                    <p class="thread-text" id="thread4-5">Für die internationale Sicherheit bleibt die Lage unklar. Es gibt keine Regeln für den Einsatz solcher Systeme in der Welt.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread4-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">171/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">131/265</span>
                     </div>
-                    <p class="thread-text" id="thread4-6">Die Grenze zwischen Freiheit und Kontrolle verläuft durch diese Lizenzen. Weißt du eigentlich, was du mit den Modellen, die du nutzt, rechtlich darfst? (via China AI Labs)</p>
+                    <p class="thread-text" id="thread4-6">Die Technik entwickelt sich, die Diplomatie verweilt bei Gesprächen. Sind unverbindliche Beratungen ein Schutz oder ein Versäumnis?</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread4-6', this)">Kopieren</button>
                 </div>
             </div>
@@ -2629,11 +2607,11 @@
         <div class="post-card">
             <div class="post-meta">
                 <span class="post-nr">Post 5</span>
-                <span class="post-zeichen" style="color:#16a34a">168/265</span>
+                <span class="post-zeichen" style="color:#16a34a">204/265</span>
             </div>
-            <p class="post-text" id="teaser5">Das ist kein gewöhnlicher Geburtstag.. das ist Mystery AI Hype Theater 3000. Timnit Gebru feiert das fünfte Jubiläum von DAIR mit einer ganz eigenen Show. (via Digg AI)</p>
-            <p class="post-erklaerung">Eine Forschungsorganisation feiert ihr 5-jähriges Bestehen mit einer speziellen Veranstaltung. Es ist ein Ereignis, um die Arbeit der letzten Jahre zu markieren.</p>
-            <span class="post-quelle" style="background:#555">Digg AI</span>
+            <p class="post-text" id="teaser5">Vergleiche die gesamte KI-Welt für einen festen Preis.. ChatGPT, Gemini und DeepSeek können jetzt für 54,97 US-Dollar gegeneinander getestet werden. Ein Preis für den vollen Durchblick (via China AI Labs)</p>
+            <p class="post-erklaerung">Es gibt jetzt ein Angebot, mit dem man für 54,97 Dollar verschiedene KIs wie ChatGPT oder Gemini direkt vergleichen kann. Das hilft dabei, die beste KI für den eigenen Bedarf zu finden.</p>
+            <span class="post-quelle" style="background:#555">China AI Labs</span>
             <div class="post-actions">
                 <button class="btn-copy" onclick="copyPost('teaser5', this)">Kopieren</button>
                 <a href="https://x.com/intent/tweet?text={}"
@@ -2647,49 +2625,49 @@
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">1/6 Hook</span>
-                        <span class="thread-zeichen" style="color:#16a34a">132/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">118/265</span>
                     </div>
-                    <p class="thread-text" id="thread5-1">Timnit Gebru kündigt die fünfte Geburtstagsfeier von DAIR an. Es wird kein normales Event, sondern ein Mystery AI Hype Theater 3000.</p>
+                    <p class="thread-text" id="thread5-1">Ein neues Angebot macht den Vergleich von KI-Modellen möglich. Man kann verschiedene Anbieter direkt gegenüberstellen.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread5-1', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">2/6 Kontext</span>
-                        <span class="thread-zeichen" style="color:#16a34a">135/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">107/265</span>
                     </div>
-                    <p class="thread-text" id="thread5-2">DAIR feiert sein fünftes Jahr. Die Ankündigung geschieht mit dem Titel Mystery AI Hype Theater 3000, was den Rahmen des Events vorgibt.</p>
+                    <p class="thread-text" id="thread5-2">Im Test sind unter anderem ChatGPT, Gemini und DeepSeek dabei. Das Angebot deckt viele wichtige Modelle ab.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread5-2', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">3/6 Kaskade</span>
-                        <span class="thread-zeichen" style="color:#16a34a">134/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">113/265</span>
                     </div>
-                    <p class="thread-text" id="thread5-3">Die Feier wird geplant. Das Thema wird mit dem Hype Theater verknüpft. Das Event markiert den fünften Meilenstein dieser Organisation.</p>
+                    <p class="thread-text" id="thread5-3">Für einen Preis von 54,97 US-Dollar wird der Vergleich ermöglicht. Das macht den Markt für Nutzer vergleichbarer.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread5-3', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">4/6 Gruselig</span>
-                        <span class="thread-zeichen" style="color:#16a34a">142/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">124/265</span>
                     </div>
-                    <p class="thread-text" id="thread5-4">Es ist faszinierend, wie die KI-Welt ihre Meilensteine feiert. Die Mischung aus Forschung und Theater-Konzept macht die Ankündigung besonders.</p>
+                    <p class="thread-text" id="thread5-4">Es ist faszinierend, wie man nun viele verschiedene Logiken vergleichen kann. Die Vielfalt wird durch diesen Preis greifbar.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread5-4', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">5/6 Konsequenz</span>
-                        <span class="thread-zeichen" style="color:#16a34a">142/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">126/265</span>
                     </div>
-                    <p class="thread-text" id="thread5-5">Für die Community bedeutet das eine Feier der Arbeit von DAIR. Es ist ein Moment, um auf die letzten fünf Jahre der Forschung zurückzublicken.</p>
+                    <p class="thread-text" id="thread5-5">Nutzer können entscheiden, welche KI wirklich die beste Leistung bringt. Man muss nicht mehr raten, welches Modell besser ist.</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread5-5', this)">Kopieren</button>
                 </div>
                 <div class="thread-part">
                     <div class="thread-meta">
                         <span class="thread-nr">6/6 Fazit</span>
-                        <span class="thread-zeichen" style="color:#16a34a">138/265</span>
+                        <span class="thread-zeichen" style="color:#16a34a">118/265</span>
                     </div>
-                    <p class="thread-text" id="thread5-6">Jubiläen in der Tech-Welt sind oft mehr als nur Partys. Sie sind Statements. Bist du bereit für das Mystery AI Hype Theater? (via Digg AI)</p>
+                    <p class="thread-text" id="thread5-6">Ein fester Preis für den Vergleich vieler Modelle. Welches KI-Modell nutzt du momentan am liebsten für deine Aufgaben?</p>
                     <button class="btn-copy-sm" onclick="copyPost('thread5-6', this)">Kopieren</button>
                 </div>
             </div>
