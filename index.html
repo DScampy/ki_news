@@ -5158,13 +5158,38 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         renderAnalysisList();
       }
 
+      // 22.11.26: Doppel-Meldungen (dub_von, gesetzt von _markiere_dubletten in ki_news.py) bekommen
+      // keine eigene Zeile mehr, sie zaehlen als weitere Quelle der Zeile ihres Ziels. Am 22.11. stand
+      // die Riemann-Meldung so zweimal oben (Golem s000, The Decoder und Heise s002 mit dub_von auf
+      // Golem). Altes Kartenraster, Wochen-Streifen und SSR blenden dub_von schon aus. Gemessen in
+      // 8 Laeufen 21./22.11.: je 7 bis 14 solche Zeilen. Nur wenn das Ziel in derselben news.json
+      // steht (wie beim Wochen-Streifen). Kill-Switch: DOPPEL_EINREIHEN = false.
+      const DOPPEL_EINREIHEN = true;
+
       function buildNewsModel(payload) {
         // 28.09.26: eine Zeile je Story (story_id), die staerkste Meldung vertritt sie.
         // Vorher standen 3x "OpenAI-Agent hackte australische Regierungswebsite" untereinander.
         const rohNews = extractNews(payload);
         const jeStory = new Map();
+        const zielJeLink = new Map();
+        if (DOPPEL_EINREIHEN) {
+          (Array.isArray(rohNews) ? rohNews : []).forEach((n) => {
+            if (n && n.link && !zielJeLink.has(n.link)) zielJeLink.set(n.link, n);
+          });
+        }
+        // Schluessel der Zeile: story_id, bei Doppel-Meldungen die des Ziels (hoechstens 3 Schritte).
+        const zeilenSchluessel = (n) => {
+          let ziel = n;
+          for (let schritt = 0; schritt < 3 && ziel && ziel.dub_von && zielJeLink.has(ziel.dub_von); schritt += 1) {
+            const naechstes = zielJeLink.get(ziel.dub_von);
+            if (naechstes === ziel) break;
+            ziel = naechstes;
+          }
+          if (!ziel) return "";
+          return ziel.story_id || (ziel.link ? "link:" + ziel.link : "");
+        };
         (Array.isArray(rohNews) ? rohNews : []).forEach((n) => {
-          const sid = n && n.story_id;
+          const sid = n && (DOPPEL_EINREIHEN ? zeilenSchluessel(n) : n.story_id);
           if (!sid) { jeStory.set(Symbol(), [n]); return; }
           if (!jeStory.has(sid)) jeStory.set(sid, []);
           jeStory.get(sid).push(n);
