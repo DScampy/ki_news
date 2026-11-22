@@ -2748,6 +2748,29 @@ CLUSTER_JEV_TEXT_VON = 0.5
 CLUSTER_JEV_TEXT_BIS = 0.9
 CLUSTER_JEV_TEXT_MAX = 6
 CLUSTER_JEV_TEXT_ZEICHEN = 400
+# 22.11.26 (Daniel "A und B bauen"): Die Paarauswahl kennt jetzt auch die Eltern aus entities.json
+# (gehoert_zu, z. B. Claude -> Anthropic, Grok -> xAI). Am 22.11. lag die Riemann-Meldung in zwei
+# Clustern: Golem "Ein Mathematiker will mit Claude die Riemann-Vermutung geloest haben" und The
+# Decoder "Anthropic-Forscher loest Riemannsche Vermutung mit KI". Die Titel teilten keinen Namen,
+# also wurde Jev nie gefragt. Simuliert auf 16 Laeufen (19.-22.11.): 114 statt 97 Paare, die
+# zusaetzlichen waren das Riemann-Paar und Riemann ~ Anthropic-IPO. Jev entscheidet weiter allein.
+# Nur hier, nicht im Morgenlage-Jev und nicht in _dub_entitaeten. Kill-Switch: False.
+CLUSTER_JEV_ELTERN = True
+
+
+def _jev_eltern(_cache={}):
+    """gehoert_zu aus entities.json (Claude -> Anthropic), einmal je Lauf."""
+    if "eltern" not in _cache:
+        eltern = {}
+        try:
+            p = Path(__file__).resolve().parent / "entities.json"
+            for e in json.loads(p.read_text(encoding="utf-8")).get("entities", []):
+                if e.get("id") and e.get("gehoert_zu"):
+                    eltern[e["id"]] = e["gehoert_zu"]
+        except Exception as ex:
+            logger.warning("Cluster-Jev: entities.json nicht lesbar (%s) - ohne Eltern", ex)
+        _cache["eltern"] = eltern
+    return _cache["eltern"]
 
 
 def _jev_meldung_text(n):
@@ -2770,7 +2793,12 @@ def _jev_cluster_schatten(news_list, base_dir=None):
         beste.setdefault((n.get("story_id") or "").strip() or n.get("link", ""), n)
     reps = list(beste.items())[:CLUSTER_JEV_TOP]
     ent = {sid: _jev_namen(n.get("title", "")) for sid, n in reps}
+    roh = ent
+    if CLUSTER_JEV_ELTERN:
+        eltern = _jev_eltern()
+        ent = {sid: e | {eltern[i] for i in e if i in eltern} for sid, e in roh.items()}
     paare = [(a, b) for i, a in enumerate(reps) for b in reps[i + 1:] if ent[a[0]] & ent[b[0]]]
+    nur_eltern = sum(1 for (sa, _), (sb, _) in paare if not roh[sa] & roh[sb])
     basis = base_dir or Path(".")
     jev = _JevPaarUrteile(basis, CLUSTER_JEV_MAX, CLUSTER_JEV_ZEIT_S, "CLUSTER-JEV")
     erg = jev.urteile([(a, b) for (_, a), (_, b) in paare])
@@ -2808,7 +2836,8 @@ def _jev_cluster_schatten(news_list, base_dir=None):
     if text:
         text.speichern()
     st = jev.stat
-    msg = (f"CLUSTER-JEV {CLUSTER_JEV_MODUS}: {len(paare)} Paare (Top {len(reps)} Storys), "
+    msg = (f"CLUSTER-JEV {CLUSTER_JEV_MODUS}: {len(paare)} Paare (Top {len(reps)} Storys, "
+           f"{nur_eltern} nur ueber Eltern), "
            f"{st['gefragt']} gefragt, {st['cache']} aus Cache, {st['fehler']} Fehler, "
            f"{st['ohne_budget']} ohne Budget, {len(treffer)} gleiche Ereignisse")
     if text:
