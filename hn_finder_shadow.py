@@ -34,7 +34,10 @@ wie einen Feed (siehe unten, Schritt 4). Je Lauf:
         ZUGANG_SUCHE_MIN, bekannte Verlage zuerst. Bei der Suche bleibt der Link bei
         news.google.com und es gibt keinen Text, wie bei unseren Google-News-Feeds.
      b) Alter: Datum der Quelle, sonst das Ereignis. Aelter als ZUGANG_MAX_ALTER_H, kein Zugang.
-     c) Doppel-Schutz: Link schon bei uns oder schon ein Zugang, kein Zugang. Dann fragt Jev
+     c) KI-Pruefung (22.11.26): Jev fragt, ob Titel und Anriss der Quelle von KI handeln. Unter
+        ZUGANG_KI_MIN kein Zugang, Ergebnis "kein_ki". Grund: am 20.11. wurde ein NSA-Ausfall
+        (CNN) ein Zugang, eine Meldung ganz ohne KI.
+        Doppel-Schutz: Link schon bei uns oder schon ein Zugang, kein Zugang. Dann fragt Jev
         den Quellentitel gegen die aehnlichsten JEV_VERGLEICHE unserer Originaltitel (und
         gegen die Titel der Zugaenge), dieselbe Frage wie die Entdopplung in ki_news.py.
         Ab JEV_SCHWELLE ist die Story schon bei uns. Jev-Fehler: dieser Lauf kein Zugang,
@@ -53,7 +56,8 @@ HN- oder X-Texten.
 
 Nie blockieren: jeder Fehler wird geloggt, der Exit-Code bleibt 0.
 Kill-Switches: AKTIV = False oder den Workflow-Schritt entfernen (alles aus). ZUGANG_AKTIV =
-False (keine neuen Zugaenge, vorhandene laufen nach ZUGANG_HALTEN_H aus). Sofort wirksam:
+False (keine neuen Zugaenge, vorhandene laufen nach ZUGANG_HALTEN_H aus). ZUGANG_KI_MIN = 0
+(keine KI-Pruefung). Sofort wirksam:
 HN_ZUGANG_AKTIV = False in ki_news.py. Einzelne Zugaenge sperrt Daniel ueber blocked_links.
 
 Aufruf: python3 hn_finder_shadow.py [--basis DIR] [--ausgabe DATEI]
@@ -110,6 +114,20 @@ ZUGANG_TEXT_MAX = 500      # Laenge des Anrisses aus og:description
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_SCHWELLE = 0.5         # ab hier dasselbe Ereignis, die Story ist schon bei uns
 JEV_VERGLEICHE = 6         # so viele unserer Titel fragt Jev hoechstens je Pruefung
+# 22.11.26: KI-Pruefung vor dem Doppel-Schutz (Docstring Schritt 4c). Messung mit 28 Meldungen:
+# zehn fremde Meldungen 0,01 bis 0,03, der NSA-Zugang 0,02, Grenzfaelle (Rechenzentren, Strom,
+# Chip-Exportregeln) 0,26 bis 0,54, unsere eigenen Meldungen 0,75 bis 0,99. Die Schwelle trifft
+# nur klar fremde Meldungen. 0 = aus, dann wie vor dem 22.11.
+ZUGANG_KI_MIN = 0.2
+_JEV_FRAGE_KI = {
+    "type": "noul",
+    "instructions": "Geht es in `meldung` um künstliche Intelligenz? Ja heißt: KI ist Kern oder ein "
+                    "wichtiger Teil der Meldung, etwa KI-Modelle, KI-Firmen und ihre Chefs, KI-Chips und "
+                    "ihre Hersteller, Rechenzentren für KI, Gesetze, Klagen, Exportregeln oder Geld rund "
+                    "um KI, Forschung mit KI. Nein heißt: Die Meldung handelt von etwas anderem, etwa "
+                    "Politik, Militär, Geheimdienste, Börse, Kriminalität, Sport oder Technik ohne KI, "
+                    "auch wenn eine Tech-Firma darin vorkommt.",
+}
 # Bekannte Verlage gehen bei der Suche vor (Messung 20.11.: viele Treffer kamen von
 # Sammelseiten wie Law Commentary, BigGo oder FourWeekMBA). Vergleich in Kleinbuchstaben
 # als Teilwort im Quellnamen von Google News.
@@ -536,6 +554,23 @@ def _jev_gleich(titel_a, titel_b, key):
         return float(json.loads(r.read())["answers"]["gleich"]["noul"])
 
 
+def _zugang_ki(q, key, zstat):
+    """KI-Pruefung: Wahrscheinlichkeit 0 bis 1, dass die Originalquelle von KI handelt. Jev sieht
+    Titel und Anriss der Quelle, nie HN-Texte. Jev-Fehler gehen als Ausnahme an den Aufrufer."""
+    if _rest_s() < 10:
+        raise TimeoutError("Zeitbudget")
+    t = q.get("titel") or ""
+    meldung = "%s. %s" % (t.rstrip(". "), q["text"]) if q.get("text") else t
+    body = json.dumps({"model": "jev-latest", "state": {"meldung": meldung},
+                       "questions": {"ki": _JEV_FRAGE_KI}}).encode("utf-8")
+    req = urllib.request.Request(JEV_URL, data=body,
+                                 headers={"Authorization": "Bearer " + key,
+                                          "Content-Type": "application/json"})
+    zstat["jev_aufrufe"] += 1
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return round(float(json.loads(r.read())["answers"]["ki"]["noul"]), 2)
+
+
 def _zugang_jev(q, b, titel, roh, zugaenge, g, key, zstat):
     """Doppel-Schutz: Jev vergleicht den Titel der Originalquelle mit den aehnlichsten unserer
     Originaltitel (ab dem frueheren Zeitpunkt von Ereignis und Quelle minus VORLAUF_TAGE) und mit
@@ -615,14 +650,23 @@ def _zugaenge_lauf(beste, storys, zugaenge, links, titel, roh, g, key, jetzt, zs
                 pruefung.update(ergebnis="bei_uns", gegen="zugang:" + zugang_links[nl])
             else:
                 try:
-                    bei_uns, p_max, gegen = _zugang_jev(q, b, titel, roh, zugaenge, g, key, zstat)
+                    p_ki = _zugang_ki(q, key, zstat) if ZUGANG_KI_MIN > 0 else None
+                    kein_ki = p_ki is not None and p_ki < ZUGANG_KI_MIN
+                    if not kein_ki:
+                        bei_uns, p_max, gegen = _zugang_jev(q, b, titel, roh, zugaenge, g, key, zstat)
                 except Exception as ex:
                     zstat["jev_fehler"] += 1
                     _log("Zugaenge: Jev %s: %s, kein Zugang in diesem Lauf, der naechste prueft "
                          "noch einmal" % (type(ex).__name__, str(ex)[:120]))
                     break
-                pruefung.update(ergebnis="bei_uns" if bei_uns else "frei", p_max=p_max, gegen=gegen)
-                zstat["jev_bei_uns"] += int(bei_uns)
+                if p_ki is not None:
+                    pruefung["p_ki"] = p_ki
+                if kein_ki:
+                    pruefung["ergebnis"] = "kein_ki"
+                    zstat["kein_ki"] += 1
+                else:
+                    pruefung.update(ergebnis="bei_uns" if bei_uns else "frei", p_max=p_max, gegen=gegen)
+                    zstat["jev_bei_uns"] += int(bei_uns)
         zstat["pruefungen"] += 1
         storys[b["slug"]]["zugang_pruefung"] = pruefung
         if pruefung["ergebnis"] == "frei":
@@ -637,10 +681,11 @@ def _zugaenge_lauf(beste, storys, zugaenge, links, titel, roh, g, key, jetzt, zs
         alter = ""
         if q and (q.get("zeit") or b["zeit"]):
             alter = ", %.0f h alt" % ((jetzt - (q.get("zeit") or b["zeit"])).total_seconds() / 3600)
-        _log("Zugang %s: %d Tweets, %s%s%s"
+        _log("Zugang %s: %d Tweets, %s%s%s%s"
              % (pruefung["ergebnis"], tweets,
                 ("%s '%s' (%s, Wert %.2f%s)" % (q["quelle"], q["titel"][:80], q["art"], q["wert"], alter))
                 if q else "keine Quelle (Suche %s)" % such_status,
+                ", KI p %.2f" % pruefung["p_ki"] if pruefung.get("p_ki") is not None else "",
                 ", Jev p_max %.2f gegen %s" % (pruefung["p_max"], pruefung["gegen"])
                 if pruefung["p_max"] is not None else "",
                 ", gleicher Link wie %s" % pruefung["gegen"]
@@ -766,7 +811,8 @@ def lauf(basis, ausgabe):
     frist = jetzt - timedelta(hours=ZUGANG_HALTEN_H)
     zugaenge = {k: v for k, v in (alt.get("zugaenge") or {}).items()
                 if isinstance(v, dict) and (_zeit(v.get("ab")) or frist) > frist}
-    zstat = {"pruefungen": 0, "neu": 0, "jev_aufrufe": 0, "jev_bei_uns": 0, "jev_fehler": 0}
+    zstat = {"pruefungen": 0, "neu": 0, "jev_aufrufe": 0, "jev_bei_uns": 0, "jev_fehler": 0,
+             "kein_ki": 0}
     jev_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     if not ZUGANG_AKTIV:
         _log("Zugaenge aus (ZUGANG_AKTIV = False), %d laufen noch" % len(zugaenge))
@@ -795,7 +841,7 @@ def lauf(basis, ausgabe):
                 "zugang_pruefungen": zstat["pruefungen"], "zugaenge_neu": zstat["neu"],
                 "zugaenge_offen": len(zugaenge), "jev_aufrufe": zstat["jev_aufrufe"],
                 "jev_bei_uns": zstat["jev_bei_uns"], "jev_fehler": zstat["jev_fehler"],
-                "dauer_s": round(time.monotonic() - _start, 1)}
+                "kein_ki": zstat["kein_ki"], "dauer_s": round(time.monotonic() - _start, 1)}
     laeufe = (alt.get("laeufe") or []) + [zusammen]
 
     daten = {
@@ -814,7 +860,7 @@ def lauf(basis, ausgabe):
                           "zugang_max_alter_h": ZUGANG_MAX_ALTER_H,
                           "zugang_je_lauf": ZUGANG_JE_LAUF, "zugang_je_tag": ZUGANG_JE_TAG,
                           "zugang_halten_h": ZUGANG_HALTEN_H, "jev_schwelle": JEV_SCHWELLE,
-                          "jev_vergleiche": JEV_VERGLEICHE},
+                          "jev_vergleiche": JEV_VERGLEICHE, "zugang_ki_min": ZUGANG_KI_MIN},
         "laeufe": laeufe[-MAX_LAEUFE:],
         "storys": dict(sorted(storys.items(), key=lambda kv: -int(kv[1].get("tweets") or 0))),
         "zugaenge": dict(sorted(zugaenge.items(), key=lambda kv: str(kv[1].get("ab") or ""),
@@ -830,9 +876,10 @@ def lauf(basis, ausgabe):
             ", ".join("%s %d" % kv for kv in sorted(wege.items())) or "-", zaehl["unklar"],
             zaehl["fehlt"], fehlt_mit_quelle, len(gesucht), such_fehler,
             time.monotonic() - _start))
-    _log("Zugaenge: %d geprueft, %d neu, %d offen, Jev %d Aufrufe, %d schon bei uns, %d Fehler"
+    _log("Zugaenge: %d geprueft, %d neu, %d offen, Jev %d Aufrufe, %d ohne KI, %d schon bei uns, "
+         "%d Fehler"
          % (zstat["pruefungen"], zstat["neu"], len(zugaenge), zstat["jev_aufrufe"],
-            zstat["jev_bei_uns"], zstat["jev_fehler"]))
+            zstat["kein_ki"], zstat["jev_bei_uns"], zstat["jev_fehler"]))
     for b in sorted(beste.values(), key=lambda e: -(e["s"].get("tweetCount") or 0)):
         if b["status"] == "bei_uns":
             continue
