@@ -4393,6 +4393,56 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         return title;
       }
 
+      // 22.11.26: Schrift kleiner statt Wortbruch, wie in linie.html seit 16.11. und 18.11.
+      // "Datenschutzversprechen" brach unter "Weitere Nachrichten" bei 360 und 375 px mitten im
+      // Wort. Neben dem Bild hat der Titel dort nur 178 bis 193 px. Silbentrennung bleibt in
+      // Überschriften aus (Daniel 27.10.). Die Schrift wird nur kleiner, wenn ein Wort sonst
+      // bricht, höchstens bis 75 Prozent. Ein noch längeres Wort darf wie bisher umbrechen.
+      // Wortgrenzen wie in tools/layout_check.py. Kill-Switch: TITEL_EINPASSEN = false.
+      const TITEL_EINPASSEN = true;
+      let titelGeplant = false;
+
+      function wortBricht(el) {
+        const lauf = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        while (lauf.nextNode()) {
+          const knoten = lauf.currentNode;
+          for (const treffer of knoten.nodeValue.matchAll(/[^\s\-\/|｜–—\p{Extended_Pictographic}]+/gu)) {
+            const bereich = document.createRange();
+            bereich.setStart(knoten, treffer.index);
+            bereich.setEnd(knoten, treffer.index + treffer[0].length);
+            const zeilen = new Set();
+            for (const rechteck of bereich.getClientRects()) {
+              if (rechteck.width > 1) zeilen.add(Math.round(rechteck.top));
+            }
+            if (zeilen.size > 1) return true;
+          }
+        }
+        return false;
+      }
+
+      function titelEinpassen() {
+        titelGeplant = false;
+        if (!TITEL_EINPASSEN) return;
+        const titel = [...root.querySelectorAll(".pxz-t")];
+        // Erst alle zurücksetzen, dann messen: so rechnet der Browser das Layout nur einmal neu.
+        titel.forEach((el) => { el.style.fontSize = ""; });
+        titel.forEach((el) => {
+          if (!el.clientWidth || !wortBricht(el)) return;
+          let groesse = parseFloat(window.getComputedStyle(el).fontSize) || 0;
+          const minimum = Math.max(12, Math.round(groesse * 0.75));
+          while (groesse > minimum && wortBricht(el)) {
+            groesse -= 1;
+            el.style.fontSize = groesse + "px";
+          }
+        });
+      }
+
+      function titelPlanen() {
+        if (titelGeplant) return;
+        titelGeplant = true;
+        requestAnimationFrame(titelEinpassen);
+      }
+
       function makeState(code, title, copy) {
         const state = create("div", "pxk-state");
         const inner = create("div", "pxk-state-inner");
@@ -4575,6 +4625,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
             ? "Themenliste schließen"
             : "Alle " + numberFormat.format(group.items.length) +
               " Meldungen zu " + group.theme.label;
+        titelPlanen();
       }
 
       function selectTheme(themeId, shouldScroll) {
@@ -4769,6 +4820,7 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
         refs.newsMore.querySelector(".pxk-button-label").textContent =
           numberFormat.format(hiddenCount) +
           " weitere Meldungen zeigen";
+        titelPlanen();
       }
 
       function extractLines(payload) {
@@ -5374,6 +5426,19 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
 
         activeControllers = [];
       });
+
+      // Neu einpassen, wenn sich die Breite ändert (Fenster, Seitenleiste) und wenn die Schriften da sind.
+      let titelBreite = root.clientWidth;
+      if (window.ResizeObserver) {
+        new ResizeObserver(() => {
+          if (root.clientWidth === titelBreite) return;
+          titelBreite = root.clientWidth;
+          titelPlanen();
+        }).observe(root);
+      } else {
+        window.addEventListener("resize", titelPlanen, { passive: true });
+      }
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(titelPlanen);
 
       void loadAll();
     })();
