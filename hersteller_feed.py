@@ -26,6 +26,7 @@ Regeln:
 Optional: OPENROUTER_KEY (Uebersetzung). Aufruf: python3 hersteller_feed.py [--dry-run] [--heute YYYY-MM-DD]
 """
 import argparse
+import gzip
 import html
 import json
 import os
@@ -49,6 +50,11 @@ RELEASE_TAGE = 14
 # 20.11.26: 12 auf 16. Microsoft stellte am 17.11. vier Modelle auf einmal vor, mit 12 Plaetzen fiel
 # Claude Fable 5.2 (09.11.) schon nach 11 von 14 Tagen heraus.
 MAX_EINTRAEGE = 16
+# 22.11.26: Rueckfall je Quelle statt je Hersteller. Am 20.11. um 22:09 UTC lieferte der
+# DeepMind-RSS kaputte Daten, eine andere Google-Quelle lief aber. Google galt darum als ok, und
+# vier Google-Releases fehlten drei Stunden lang. Jetzt traegt jeder Release seine Quelle im Feld
+# "quelle", und alte Eintraege einer ausgefallenen Quelle bleiben. False = alter Rueckfall je Hersteller.
+RUECKFALL_JE_QUELLE = True
 UA = "Mozilla/5.0 (compatible; ki-news.live hersteller-feed; +https://ki-news.live)"
 
 # (Hersteller, Art, URL). Spiegel-Feeds (Olshansk/rss-feeds) sind 1:1-Abzuege der
@@ -134,7 +140,13 @@ VERBOTEN_RE = re.compile(  # Kundenberichte, Fallstudien, Sicherheitsberichte
 def _get(url, timeout=20):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read().decode("utf-8", errors="replace")
+        roh = r.read()
+    # 22.11.26: deepmind.google schickt den RSS manchmal gzip-gepackt, obwohl wir kein
+    # Accept-Encoding senden (lokal am 22.11. bei 7 von 11 Abrufen). urllib packt das nicht aus, der RSS-Leser sah
+    # Binaerdaten ("ParseError: not well-formed, line 1, column 0" am 20.11. 22 UTC und 22.11. 01/06 UTC).
+    if roh[:2] == b"\x1f\x8b":
+        roh = gzip.decompress(roh)
+    return roh.decode("utf-8", errors="replace")
 
 
 def _text(s, maxlen=260):
@@ -540,6 +552,7 @@ def news_abgleich(eintrag, news):
 def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
     grenze = heute - timedelta(days=RELEASE_TAGE)
     kandidaten, ok_hersteller, fehl = {}, set(), []
+    aus_quellen = set()
     for hersteller, art, url in QUELLEN:
         try:
             roh = _get(url)
@@ -554,6 +567,7 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
             ok_hersteller.add(hersteller)
         except Exception as e:
             fehl.append(f"{hersteller} ({url}): {type(e).__name__}: {e}")
+            aus_quellen.add(url)
             continue
         n_rel = 0
         for it in items:
@@ -572,7 +586,7 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
                 "hersteller": hersteller, "modell": modell, "datum": it["datum"].strftime("%Y-%m-%d"),
                 "titel": _text(it["titel"], 140), "text": _text(it["text"]), "url": _nur_https(it["url"]),
                 "x_url": "", "video_url": _nur_https(it["video_url"]), "poster": _nur_https(it["poster"]),
-                "_dt": it["datum"],
+                "quelle": url, "_dt": it["datum"],
             }
         log(f"  {hersteller:<13} {len(items):>4} Eintraege, {n_rel} Release-Kandidaten  ({url})")
 
@@ -610,13 +624,38 @@ def baue(heute, alt, news, mit_og=True, log=print, uebersetzen=uebersetze):
             if treffer.get("story_id"):
                 r["story_id"] = treffer["story_id"]
 
-    # ausgefallene Hersteller: alte Eintraege im Zeitfenster behalten
+    # ausgefallene Quellen: alte Eintraege im Zeitfenster behalten
+    aus_hersteller = {h for h, _, u in QUELLEN if u in aus_quellen}
+    schon = {(r["hersteller"], r["modell"].lower()): i for i, r in enumerate(releases)}
+    behalten = 0
     for a in (alt or {}).get("releases", []):
-        if a.get("hersteller") in ok_hersteller:
+        if not RUECKFALL_JE_QUELLE:
+            ausgefallen = a.get("hersteller") not in ok_hersteller
+        elif a.get("quelle"):
+            ausgefallen = a["quelle"] in aus_quellen
+        else:
+            # Eintraege von vor dem 22.11.26 kennen ihre Quelle nicht: dann zaehlt jeder Ausfall
+            # beim Hersteller. Doppel mit frischen Eintraegen faengt "schon" ab.
+            ausgefallen = a.get("hersteller") in aus_hersteller
+        if not ausgefallen:
             continue
         d = _datum(a.get("datum"))
-        if d and d >= grenze:
-            releases.append(a)
+        if not d or d < grenze:
+            continue
+        key = (a.get("hersteller"), (a.get("modell") or "").lower())
+        if key in schon:
+            # Kennt eine laufende Quelle dasselbe Modell, gewinnt auch hier die frueheste Meldung.
+            # Gemini 4 Hydrogen: DeepMind am 12.11., der Google-Blog-Spiegel erst am 17.11.
+            i = schon[key]
+            if a.get("datum", "") < releases[i].get("datum", ""):
+                releases[i] = a
+                behalten += 1
+            continue
+        schon[key] = len(releases)
+        releases.append(a)
+        behalten += 1
+    if behalten:
+        log(f"  {behalten} alte Eintraege aus ausgefallenen Quellen behalten")
     releases.sort(key=lambda r: r.get("datum", ""), reverse=True)
     return releases[:MAX_EINTRAEGE], fehl
 
