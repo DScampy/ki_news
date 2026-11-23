@@ -6382,14 +6382,22 @@ Promise.all([
   function _anbieterZaehlen(n){
     (n.anbieter || []).forEach(function(a){ _anbieterTop[a] = (_anbieterTop[a] || 0) + 1; });
   }
+  // Fokus-Abstand (23.11.26, Daniel: "#fokus 1 und 5 sind die selben meldungen"): Zwei Storys zum
+  // fast gleichen Ereignis (Gruppenpruefung: Titel gleich, Kurztext nicht) stehen nicht beide oben.
+  // ki_news.py setzt dafuer n.fokus_nah (story_id der anderen Story), _top_auswahl() rechnet gleich.
+  // Ohne das Feld bleibt alles wie bisher. Kill-Switch: FOKUS_NAH = False in ki_news.py.
+  var _storysTop = {};
+  function _nahOben(n){ return (n.fokus_nah || []).some(function(s){ return _storysTop[s]; }); }
   var top = featured.slice(0,5), _linienTop = {};
-  top.forEach(function(n){ if (n.linie) _linienTop[n.linie] = 1; _anbieterZaehlen(n); });
+  top.forEach(function(n){ if (n.linie) _linienTop[n.linie] = 1; _anbieterZaehlen(n); if (n.story_id) _storysTop[n.story_id] = 1; });
   nonFeatured.forEach(function(n){
     if (top.length >= 5) return;
     if (n.linie && _linienTop[n.linie]) return;
     if (_anbieterVoll(n)) return;
+    if (_nahOben(n)) return;
     if (n.linie) _linienTop[n.linie] = 1;
     _anbieterZaehlen(n);
+    if (n.story_id) _storysTop[n.story_id] = 1;
     top.push(n);
   });
   // Aufmacher-Wechsel (16.11.26, Daniel): Steht dieselbe Story schon seit einigen Laeufen
