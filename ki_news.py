@@ -2772,6 +2772,14 @@ CLUSTER_JEV_TEXT_ZEICHEN = 400
 # zusaetzlichen waren das Riemann-Paar und Riemann ~ Anthropic-IPO. Jev entscheidet weiter allein.
 # Nur hier, nicht im Morgenlage-Jev und nicht in _dub_entitaeten. Kill-Switch: False.
 CLUSTER_JEV_ELTERN = True
+# 23.11.26 (Daniel "ja c einbauen"): Vertreter-Paare der Top 12 ohne gemeinsamen Namen kommen
+# dazu, wenn jev_urteile.json schon ein Titel-Urteil >= CLUSTER_JEV_TEXT_VON fuer genau dieses
+# Paar hat (meist von VERWANDT-JEV aus dem Lauf davor). Keine neue Titel-Frage, hoechstens die
+# Kurztext-Frage. Gemessen an 61 Laeufen (17.11. 14 UTC bis 23.11. 16 UTC): 3 Paare, alle
+# dasselbe Ereignis (Signal 21.11. und 23.11., Riemann 23.11.). Kurztext per jev ask: Signal
+# 0,91 und 0,92 (zusammen), Riemann 0,57 (bleibt getrennt). Mitglieder-Urteile statt Vertreter
+# wurden verworfen (49 Paare, etwa 7 echt, Schneeball-Gefahr I7). Kill-Switch: False.
+CLUSTER_JEV_CACHE_OHNE_NAMEN = True
 
 
 def _jev_eltern(_cache={}):
@@ -2818,6 +2826,15 @@ def _jev_cluster_schatten(news_list, base_dir=None):
     nur_eltern = sum(1 for (sa, _), (sb, _) in paare if not roh[sa] & roh[sb])
     basis = base_dir or Path(".")
     jev = _JevPaarUrteile(basis, CLUSTER_JEV_MAX, CLUSTER_JEV_ZEIT_S, "CLUSTER-JEV")
+    ohne_namen = 0
+    if CLUSTER_JEV_CACHE_OHNE_NAMEN:
+        drin = {(a[0], b[0]) for a, b in paare}
+        for i, a in enumerate(reps):
+            for b in reps[i + 1:]:
+                u = jev.cache.get(jev.schluessel(a[1], b[1])) or {}
+                if (a[0], b[0]) not in drin and (u.get("p") or 0) >= CLUSTER_JEV_TEXT_VON:
+                    paare.append((a, b))
+                    ohne_namen += 1
     erg = jev.urteile([(a, b) for (_, a), (_, b) in paare])
     text, erg_text, grau = None, {}, []
     if CLUSTER_JEV_TEXT_MODUS in ("scharf", "schatten"):
@@ -2856,7 +2873,7 @@ def _jev_cluster_schatten(news_list, base_dir=None):
         text.speichern()
     st = jev.stat
     msg = (f"CLUSTER-JEV {CLUSTER_JEV_MODUS}: {len(paare)} Paare (Top {len(reps)} Storys, "
-           f"{nur_eltern} nur ueber Eltern), "
+           f"{nur_eltern} nur ueber Eltern, {ohne_namen} ohne Namen aus Cache), "
            f"{st['gefragt']} gefragt, {st['cache']} aus Cache, {st['fehler']} Fehler, "
            f"{st['ohne_budget']} ohne Budget, {len(treffer)} gleiche Ereignisse")
     if text:
