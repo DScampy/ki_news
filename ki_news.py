@@ -770,6 +770,18 @@ SCHLAGZEILEN_AB = 3   # die ersten drei Storys stehen schon als Aufmacher und Se
 TOP_JE_ANBIETER = 2
 TOP_PLAETZE = 5       # wie index.html (Aufmacher plus Karussell)
 
+# Fokus-Abstand (23.11.26, Daniel: "#fokus 1 und 5 sind die selben meldungen"). Reuters und Digg
+# meldeten beide den OpenAI-Chefwissenschaftler mit KI-Grenzen. Die Gruppenpruefung sah im Titel
+# p=0,78 (gleich), im Kurztext 0,49. Im Modus "scharf" entscheidet der Kurztext, also blieben es
+# zwei Storys, und beide standen oben. Der Titel allein reicht fuers Zusammenlegen nicht: Seit
+# 17.11. gab es 7 solche Paare, 3 davon waren andere Ereignisse (Nasdaq-Futures zum Boersengang,
+# Moskovitz, Asien-Aktien nach Nvidia). Neu: Bei solchen Paaren (Titel >= CLUSTER_JEV_SCHWELLE,
+# Kurztext darunter) tragen beide Storys das Feld "fokus_nah" mit der story_id der anderen.
+# _top_auswahl() und index.html nehmen dann nur die staerkere auf die Top-Plaetze, die naechste
+# Story rueckt nach. Liste, Cluster und Karten bleiben unveraendert. Kill-Switch: FOKUS_NAH = False.
+FOKUS_NAH = True
+_FOKUS_NAH_PAARE = []   # (link_a, link_b) aus _jev_cluster_schatten(), je Lauf neu
+
 # Scampy-Post fuer jeden Top-Platz (17.11.26). Posts entstanden nur fuer pick_top_news(). Die Top-Plaetze
 # der Startseite waehlt aber _top_auswahl() erst am Ende, nach Cluster-Jev, Dubletten, Linien und
 # Anbieter-Grenze. Gemessen 14.11. 16 UTC bis 17.11. 14 UTC: 25 von 145 Top-Plaetzen ohne Post (heute 10
@@ -889,7 +901,7 @@ def _top_auswahl(news, anzahl=TOP_PLAETZE):
             beste[sid] = n
     sichtbar = [n for n in news if not n.get("dub_von")
                 and (not n.get("story_id") or beste.get(n["story_id"]) is n)]
-    top, linien, zahl = [], set(), {}
+    top, linien, zahl, storys = [], set(), {}, set()
     for n in sorted(sichtbar, key=lambda x: x.get("score") or 0, reverse=True):
         if len(top) >= anzahl:
             break
@@ -898,8 +910,12 @@ def _top_auswahl(news, anzahl=TOP_PLAETZE):
             continue
         if TOP_JE_ANBIETER and any(zahl.get(a, 0) >= TOP_JE_ANBIETER for a in anbieter):
             continue
+        if FOKUS_NAH and storys.intersection(n.get("fokus_nah") or []):
+            continue
         if linie:
             linien.add(linie)
+        if n.get("story_id"):
+            storys.add(n["story_id"])
         for a in anbieter:
             zahl[a] = zahl.get(a, 0) + 1
         top.append(n)
@@ -2785,6 +2801,7 @@ def _jev_gleich_text(a, b, key):
 
 
 def _jev_cluster_schatten(news_list, base_dir=None):
+    _FOKUS_NAH_PAARE.clear()
     key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     if CLUSTER_JEV_MODUS == "aus" or not key:
         return []
@@ -2826,6 +2843,8 @@ def _jev_cluster_schatten(news_list, base_dir=None):
                   f"{a.get('title', '')[:55]!r} ~ {sb} {b.get('title', '')[:55]!r}")
             logger.info("CLUSTER-JEV %s %s p=%.2f%s: %s %r ~ %s %r", CLUSTER_JEV_MODUS, stufe, p,
                         zusatz, sa, a.get("title", "")[:80], sb, b.get("title", "")[:80])
+        if pt is not None and p >= CLUSTER_JEV_SCHWELLE > p_ent:
+            _FOKUS_NAH_PAARE.append((a.get("link"), b.get("link")))
         if p_ent >= CLUSTER_JEV_SCHWELLE:
             t = {"a": sa, "b": sb, "p": round(p, 3),
                  "titel_a": a.get("title", ""), "titel_b": b.get("title", "")}
@@ -2847,6 +2866,33 @@ def _jev_cluster_schatten(news_list, base_dir=None):
     print(msg)
     logger.info(msg)
     return treffer
+
+
+def _fokus_nah_setzen(news_list):
+    """Fokus-Abstand, siehe FOKUS_NAH. Nach dem Zusammenlegen bekommen beide Storys eines knappen
+    Paars das Feld fokus_nah (story_id der anderen). Alte Werte (auch aus dem Archiv) fallen
+    vorher weg, story_id gilt nur fuer einen Lauf. Gibt die Zahl der Paare zurueck."""
+    for n in news_list:
+        n.pop("fokus_nah", None)
+    if not FOKUS_NAH or not _FOKUS_NAH_PAARE:
+        return 0
+    sid_je_link = {n.get("link"): n.get("story_id") for n in news_list
+                   if n.get("link") and n.get("story_id")}
+    nah = {}
+    for la, lb in _FOKUS_NAH_PAARE:
+        sa, sb = sid_je_link.get(la), sid_je_link.get(lb)
+        if sa and sb and sa != sb:
+            nah.setdefault(sa, set()).add(sb)
+            nah.setdefault(sb, set()).add(sa)
+    for n in news_list:
+        andere = nah.get(n.get("story_id"))
+        if andere:
+            n["fokus_nah"] = sorted(andere)
+    paare = sum(len(v) for v in nah.values()) // 2
+    if paare:
+        logger.info("FOKUS-NAH: %d Paare, nur eine Story davon auf die Top-Plaetze: %s", paare,
+                    ", ".join("%s~%s" % (a, b) for a in sorted(nah) for b in sorted(nah[a]) if a < b))
+    return paare
 
 
 def _jev_cluster_zusammenlegen(news_list, treffer):
@@ -8327,6 +8373,11 @@ def main():
     except Exception as e:
         _cluster_treffer = []
         logger.exception("CLUSTER-JEV uebersprungen (Pipeline unbeeinflusst): %s", e)
+    # Fokus-Abstand (23.11.26), siehe FOKUS_NAH. Nie blockierend.
+    try:
+        _fokus_nah_setzen(news_list)
+    except Exception as e:
+        logger.exception("FOKUS-NAH uebersprungen (Pipeline unbeeinflusst): %s", e)
     _dub_jev = _markiere_dubletten(news_list, proj_dir if proj_dir.exists() else Path("."))
     # 15.11.26: Jev-Hinweise fuer "Vermutlich verwandt" in belege.html, siehe VERWANDT_JEV_AKTIV.
     try:
