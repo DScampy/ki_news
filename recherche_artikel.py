@@ -164,6 +164,17 @@ NEUESTE_FOLIE = True
 BILD_AUS_ARCHIV = True
 UPDATE_MIN_NEUE_MEDIEN = 2       # so viele weitere Medien, dann wird ein Artikel erweitert
 MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_JE_QUELLE)
+# Grosslage (23.11.26, Daniel: "das müsste wohl gleich mal bearbeitet werden"). Die Huang-Rueckkehr (s017)
+# hatte ab 15:55 UTC 14 Medien und bekam keine Recherche. Das Tageslimit war seit 09:10 UTC voll, 2 der 4
+# Plaetze waren gescheiterte Versuche. Ohne Limit haette die Kette sie trotzdem fallen lassen: Ein
+# gescheiterter Versuch am Exportkontroll-Artikel sperrte die Linie "heute schon geschrieben (gleicher Fall)".
+# Auf der Startseite stand darum weiter der Artikel zum Kurssturz von 09:05 UTC.
+# Eine neue Story mit mindestens GROSSLAGE_MEDIEN Medien geht jetzt vor die Linien, bekommt bei vollem Limit
+# GROSSLAGE_EXTRA_PRO_TAG Platz dazu und bis zu GROSSLAGE_MAX_MEDIEN Quellen (Jev im Schatten kappt bei
+# JEV_MAX_QUELLTEXT, das entscheidet nichts). Kill-Switch: GROSSLAGE_MEDIEN = 0, dann wie vorher.
+GROSSLAGE_MEDIEN = 8
+GROSSLAGE_EXTRA_PRO_TAG = 1
+GROSSLAGE_MAX_MEDIEN = 10
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
 JEV_SCHWELLE = 0.8
 JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetze, real ~25-30)
@@ -273,6 +284,12 @@ def _release_zu(releases, sids, links):
 
 def _medien(glieder):
     return {(g.get("source") or "").strip() for g in glieder} - {""}
+
+
+def _grosslage(k):
+    """Neue Story (keine Erweiterung, keine Linie) mit mindestens GROSSLAGE_MEDIEN Medien."""
+    return (bool(GROSSLAGE_MEDIEN) and not k.get("update") and not k.get("linie")
+            and len({m.lower() for m in _medien(k["glieder"])}) >= GROSSLAGE_MEDIEN)
 
 
 def zitierte_links(slug, e):
@@ -620,9 +637,10 @@ def material(k, dp):
     reihe = sorted(k["glieder"], key=lambda x: (not set(ms._links(x)) & alt, -len(x.get("full_text") or "")))
     if k.get("linie"):
         reihe = _reihe_linie(k, reihe, alt, neu)
+    hoechstens = max(MAX_MEDIEN_JE_ARTIKEL, GROSSLAGE_MAX_MEDIEN) if _grosslage(k) else MAX_MEDIEN_JE_ARTIKEL
     for g in reihe:
         medium = (g.get("source") or "").strip()
-        if not medium or medium.lower() in gesehen or len(gesehen) >= MAX_MEDIEN_JE_ARTIKEL:
+        if not medium or medium.lower() in gesehen or len(gesehen) >= hoechstens:
             continue
         gesehen.add(medium.lower())
         text = _quelltext(g, dp)
@@ -1901,16 +1919,26 @@ def main():
         oeffentliche_listen(register)
     jetzt = datetime.now(timezone.utc).replace(microsecond=0)
     heute = jetzt.astimezone(BERLIN).strftime("%Y-%m-%d")
-    frei = MAX_PRO_TAG - heute_verbraucht(register, heute)
+    verbraucht = heute_verbraucht(register, heute)
+    frei = MAX_PRO_TAG - verbraucht
+    nur_gross = False                    # Limit voll, nur noch der Zusatzplatz fuer eine Grosslage
     if frei <= 0 and not args.story:
-        print(f"[RECHERCHE] Tageslimit {MAX_PRO_TAG} erreicht")
-        return 0
+        if GROSSLAGE_MEDIEN and verbraucht < MAX_PRO_TAG + GROSSLAGE_EXTRA_PRO_TAG:
+            nur_gross, frei = True, MAX_PRO_TAG + GROSSLAGE_EXTRA_PRO_TAG - verbraucht
+        else:
+            print(f"[RECHERCHE] Tageslimit {MAX_PRO_TAG} erreicht")
+            return 0
 
     dp = _deckung()
     kand = kandidaten(news, releases, register, args.story)
     erw = [] if args.story else erweiterungen(news, archiv if isinstance(archiv, list) else [],
                                                releases, register, heute)
-    if KETTEN in ("schatten", "an") and not args.story:
+    if nur_gross:
+        kand, erw = [k for k in kand if _grosslage(k)], []
+        if not kand:
+            print(f"[RECHERCHE] Tageslimit {MAX_PRO_TAG} erreicht, keine Grosslage (>= {GROSSLAGE_MEDIEN} Medien)")
+            return 0
+    if KETTEN in ("schatten", "an") and not args.story and not nur_gross:
         try:
             zug, familie = linien_zuordnung(news, linien, _lade(BASE / "themenketten.json", {}))
             plan = linien_plan(news, linien, releases, register, heute, zug, familie,
@@ -1928,8 +1956,15 @@ def main():
             lk = [p["kandidat"] for p in plan if p["kandidat"]]
             for zeile in ketten_logzeilen(plan, kand, erw, register, zug):
                 print(zeile.replace("Ketten-Schatten", "Kette").replace("wuerde ", ""))
-            kand = lk + [k for k in kand if not _in_linie(k, zug)]
+            # Grosslage bleibt drin, auch wenn sie zu einer Linie gehoert (Huang-Rueckkehr 23.11.)
+            kand = lk + [k for k in kand if not _in_linie(k, zug) or _grosslage(k)]
             erw = [k for k in erw if not _in_linie(k, zug) and k["update"] not in vergeben]
+    gross = sorted((k for k in kand if _grosslage(k)), key=lambda k: -len(_medien(k["glieder"])))
+    if gross:
+        kand = gross + [k for k in kand if not _grosslage(k)]
+        print(f"[RECHERCHE] GROSSLAGE: " + ", ".join(f"{k['sid']} {len(_medien(k['glieder']))} Medien "
+                                                      f"({ms._titel(k['rep'])[:60]})" for k in gross)
+              + (", Platz ueber dem Tageslimit" if nur_gross else ""))
     print(f"[RECHERCHE] {len(kand)} Kandidaten (>= {MIN_QUELLEN} Medien oder Herstellerseite + "
           f"{MIN_QUELLEN_MIT_HERSTELLER}), {len(erw)} Erweiterungen "
           f"({', '.join(k['update'][:40] + ' +' + '/'.join(k['neu']) for k in erw)}), frei heute: {frei}")
