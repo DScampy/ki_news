@@ -1,0 +1,63 @@
+name: Qualitaetswaechter
+
+# 23.11.26 (Daniel: "was können wir machen damit die qualtät endlich mal stimmmig ist"):
+# Nach jedem Lauf von "KI News" die Live-Seite so pruefen, wie Leser sie sehen. Fokus ohne
+# doppeltes Ereignis, Liste ohne Doppelzeilen, Modellatlas mit sichtbarem neuesten Modell,
+# Registry gegen OpenRouter, grosse HuggingNews-Storys. Details: tools/qualitaets_waechter.py
+#
+# Meldet nur neue Funde per Telegram. Ein Fund macht den Lauf nie rot, rot heisst: der
+# Waechter selbst ist kaputt. Er schreibt nichts ins Repo (nur Lesen, Zustand im Actions-Cache).
+# Kill-Switch: im Actions-Tab "Disable workflow". Nur Telegram aus: TELEGRAM_MELDEN = False
+# in tools/qualitaets_waechter.py.
+
+on:
+  workflow_run:
+    workflows: ["KI News"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualitaetswaechter
+  cancel-in-progress: false
+
+jobs:
+  pruefen:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.conclusion != 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Browser installieren
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Schon gemeldete Funde laden
+        uses: actions/cache/restore@v4
+        with:
+          path: .waechter
+          key: qualitaetswaechter-${{ github.run_id }}
+          restore-keys: qualitaetswaechter-
+
+      - name: Live-Seite pruefen
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          LAUF_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python tools/qualitaets_waechter.py --zustand .waechter/zustand.json --telegram --warten 900
+
+      - name: Gemeldete Funde sichern
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .waechter
+          key: qualitaetswaechter-${{ github.run_id }}
