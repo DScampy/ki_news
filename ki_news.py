@@ -2127,6 +2127,18 @@ SCORE_LABELS = [
     (0,  "📰 normal"),
 ]
 
+# Breite-Boden (23.11.26, Daniel "Ja, bauen"): Eine Story mit mindestens BREITE_BODEN_QUELLEN
+# verschiedenen Quellen bekommt mindestens BREITE_BODEN_PUNKTE, egal ob der Score vom LLM oder
+# aus dem Legacy-Fallback kommt. Anlass: "Nvidia setzt Jensen Huang wieder als CEO ein" hatte
+# 20 Meldungen aus 15 Quellen, das LLM gab 5 und 0 von 65 Punkten (Score 37 und 32, Legacy 65),
+# die Story fiel auf Platz 17. Die Quellen zaehlen im LLM-Score nur bis 4 (min(Quellen,4)*8),
+# 15 Quellen wogen so viel wie 4. HuggingNews hatte sie mit 170 Tweets auf Platz 7.
+# Simuliert auf 61 Laeufen (17.11. 14 UTC bis 23.11. 16 UTC): 7 Anhebungen, alle grosse Themen
+# (OpenAI-Klage Kalifornien, Nvidia-Board, Anthropic-IPO), nur 2 Wechsel in den Top 5, beide die
+# Huang-Rueckkehr. Kill-Switch: BREITE_BODEN_QUELLEN = 0.
+BREITE_BODEN_QUELLEN = 8
+BREITE_BODEN_PUNKTE = 60
+
 # Firmen-Namensvarianten, die im Cluster-Matching als zwei verschiedene
 # Firmen erscheinen, obwohl es dieselbe ist (Kurzname vs. offizieller Name).
 # Fund 26.06.: "ON Semiconductor" (CNBC) und "Onsemi" (SiliconAngle) teilten
@@ -4072,6 +4084,13 @@ def pick_top_news(alle_news, n=3, history=None, featured_links=None, existing_ar
             score, label, score_source = llm_score, llm_label, "llm"
         else:
             score, label, score_source = legacy_score, legacy_label, "legacy_fallback"
+        # Breite-Boden (23.11.26), siehe BREITE_BODEN_QUELLEN
+        n_quellen = len({i.get("source") for i in cluster})
+        if BREITE_BODEN_QUELLEN and n_quellen >= BREITE_BODEN_QUELLEN and score < BREITE_BODEN_PUNKTE:
+            logger.info("BREITE-BODEN: %d Quellen, Score %d (%s) -> %d | %s", n_quellen, score,
+                        score_source, BREITE_BODEN_PUNKTE, (cluster[0].get("title") or "")[:70])
+            score = BREITE_BODEN_PUNKTE
+            label = next((lbl for t, lbl in SCORE_LABELS if score >= t), "📰 normal")
 
         # Anzeige-Score eines Artikels – GENAU wie news_list/Frontend ihn berechnen
         # (decay_score auf base_score + History-Heilung), damit der für eine Story
