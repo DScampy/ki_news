@@ -1563,6 +1563,16 @@
       font: 700 10.5px/1.5 ui-monospace, monospace;
       cursor: help;
     }
+    .px-stufe-neu { border-color: rgba(var(--px-neon-rgb), .75); color: var(--px-text); }
+    .px-neu {
+      padding: 0 5px;
+      border-radius: 999px;
+      background: rgba(var(--px-neon-rgb), .2);
+      color: var(--px-text);
+      font: 700 9px/1.5 ui-monospace, monospace;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
     .px-gen-news a {
       padding: 3px 7px;
       border: 1px solid rgba(var(--px-neon-rgb), .3);
@@ -1875,6 +1885,15 @@
       const PX_TIMEOUT = 12000;
       const PX_INDEX_SIZE = 8;
       const PX_NUMBER = new Intl.NumberFormat("de-DE");
+      // 23.11.26 (Daniel: "Hier sehe ich zum Beispiel fehlt das neuste Modell", Thinking Machines):
+      // Inkling 2 Mini (20.11.) stand im Katalog, aber nur als Schild "Mini" an der Karte
+      // "Inkling 2" vom 07.11., das Datum nur im Tooltip (am Handy unsichtbar). 18 Schilder waren
+      // neuer als ihre Karte. Neu: Schilder zeigen ihr Datum, eine Generation ohne Grundmodell
+      // (nur Small und Mini) zeigt alle Modelle als Schild und das neueste Datum auf der Karte,
+      // der Herstellerkopf nennt das neueste Modell, das neueste Modell der letzten 14 Tage
+      // traegt "neu". Kill-Switch: false stellt die alte Anzeige her.
+      const ATLAS_NEUESTE_SICHTBAR = true;
+      const ATLAS_NEU_TAGE = 14;
       const PX_DATE = new Intl.DateTimeFormat("de-DE", {
         day: "2-digit",
         month: "2-digit",
@@ -2630,16 +2649,29 @@
         return [...linien.entries()].map(([name, gens]) => {
           const generationen = [...gens.values()].map(ms => {
             const sortiert = ms.slice().sort(compareModelsNewest).reverse();
-            const basis = sortiert.find(m => !m.stufe) || sortiert[0];
+            // 23.11.26: Ohne Grundmodell (z. B. nur "Inkling 2 Small" und "Inkling 2 Mini") steht
+            // das neueste Modell fuer die Karte, alle Modelle erscheinen als Schild.
+            const ohneBasis = ATLAS_NEUESTE_SICHTBAR && !ms.some(m => !m.stufe);
+            const basis = ohneBasis ? sortiert[sortiert.length - 1] : (sortiert.find(m => !m.stufe) || sortiert[0]);
             const stamps = ms.map(m => m.dateInfo ? m.dateInfo.stamp : null).filter(v => v !== null);
-            return { basis, modelle: sortiert, stamp: stamps.length ? Math.min(...stamps) : null };
+            return {
+              basis, ohneBasis, modelle: sortiert,
+              stamp: stamps.length ? Math.min(...stamps) : null,
+              juengste: stamps.length ? Math.max(...stamps) : null
+            };
           }).sort((a, b) => (a.stamp ?? Infinity) - (b.stamp ?? Infinity));
-          const neueste = Math.max(...generationen.map(g => g.stamp ?? -Infinity));
+          const neueste = Math.max(...generationen.map(g => (ATLAS_NEUESTE_SICHTBAR ? g.juengste : g.stamp) ?? -Infinity));
           return { name, generationen, neueste, anzahl: generationen.reduce((n, g) => n + g.modelle.length, 0) };
         }).sort((a, b) => b.neueste - a.neueste || b.anzahl - a.anzahl);
       }
 
-      function createGeneration(gen, provider, linie) {
+      function neuZeichen() {
+        const zeichen = create("b", "px-neu", "neu");
+        zeichen.title = `neuestes Modell dieses Herstellers, juenger als ${ATLAS_NEU_TAGE} Tage`;
+        return zeichen;
+      }
+
+      function createGeneration(gen, provider, linie, neuStamp) {
         const basis = gen.basis;
         const news = meldungenVon(gen.modelle);
         const groesse = news.length >= 5 ? " px-gen-gross" : news.length >= 1 ? " px-gen-mittel" : "";
@@ -2651,6 +2683,8 @@
         const datum = create("time", "px-gen-date", formatDate(basis.dateInfo));
         if (basis.dateInfo) datum.dateTime = basis.dateInfo.nurMonat ? basis.dateInfo.key.slice(0, 7) : basis.dateInfo.key;
         if (basis.dateInfo && basis.dateInfo.nurMonat) datum.title = "Monat aus dem Modellnamen, der genaue Tag ist nicht bekannt";
+        else if (gen.ohneBasis && gen.modelle.length > 1) datum.title = "Datum des neuesten Modells dieser Generation";
+        if (!gen.ohneBasis && neuStamp != null && basis.dateInfo && basis.dateInfo.stamp === neuStamp) datum.append(" ", neuZeichen());
         const name = create("h3", "px-gen-name", ohneStufe(basis));
         const meta = create("p", "px-gen-meta", [
           kindLabel(basis.kind) !== "Sprachmodell" ? kindLabel(basis.kind) : "",
@@ -2692,12 +2726,18 @@
           knoten.appendChild(leiste);
         }
 
-        const stufen = gen.modelle.filter(m => m !== basis);
+        const stufen = gen.ohneBasis ? gen.modelle : gen.modelle.filter(m => m !== basis);
         if (stufen.length) {
           const leiste = create("div", "px-gen-stufen");
           stufen.forEach(m => {
             const chip = create("span", "px-stufe", m.stufe || m.name.replace(ohneStufe(basis), "").trim() || m.name);
             chip.title = m.name + (m.dateInfo ? " · " + formatDate(m.dateInfo) : "") + (kontextText(m) ? " · " + kontextText(m) : "");
+            // 23.11.26: Datum sichtbar statt nur im Tooltip (am Handy gibt es keinen Tooltip)
+            if (ATLAS_NEUESTE_SICHTBAR && m.dateInfo) chip.append(" · " + formatDate(m.dateInfo));
+            if (neuStamp != null && m.dateInfo && m.dateInfo.stamp === neuStamp) {
+              chip.classList.add("px-stufe-neu");
+              chip.append(" ", neuZeichen());
+            }
             leiste.appendChild(chip);
           });
           knoten.appendChild(leiste);
@@ -2719,6 +2759,8 @@
 
       function createStammbaum(provider, models) {
         const baum = create("div", "px-stammbaum");
+        const juengstes = ATLAS_NEUESTE_SICHTBAR ? newestDate(models) : null;
+        const neuStamp = juengstes && Date.now() - juengstes.stamp <= ATLAS_NEU_TAGE * 864e5 ? juengstes.stamp : null;
         baueLinien(models).forEach(linie => {
           const zeile = create("div", "px-linie");
           const kopf = create("div", "px-linie-kopf");
@@ -2738,7 +2780,7 @@
               pfeil.title = "Nachfolger links";
               spur.appendChild(pfeil);
             }
-            spur.appendChild(createGeneration(gen, provider, linie.name));
+            spur.appendChild(createGeneration(gen, provider, linie.name, neuStamp));
           });
           zeile.append(kopf, spur);
           baum.appendChild(zeile);
@@ -2817,6 +2859,14 @@
         mehr.focus();
       });
 
+      // 23.11.26: Name des neuesten Modells im Herstellerkopf ("20.11.2026 · Inkling 2 Mini")
+      function neuesteNamen(models, latest) {
+        if (!ATLAS_NEUESTE_SICHTBAR || !latest) return "";
+        const namen = models.filter(m => m.dateInfo && m.dateInfo.stamp === latest.stamp).map(m => m.name);
+        if (!namen.length) return "";
+        return " · " + namen[0] + (namen.length > 1 ? ` +${namen.length - 1}` : "");
+      }
+
       function createMakerSection(provider, models, startIndex, sectionIndex) {
         const section = create("section", "px-maker");
         const headingId = `px-maker-heading-${sectionIndex}`;
@@ -2858,7 +2908,7 @@
             "span",
             "px-maker-latest",
             latest
-              ? `Neuester Stand\n${formatDate(latest)}`
+              ? `Neuester Stand\n${formatDate(latest)}` + neuesteNamen(models, latest)
               : "Neuester Stand\nDatum offen"
           )
         );
