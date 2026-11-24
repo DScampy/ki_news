@@ -197,6 +197,16 @@ PRUEFUNG_VERSION = 7             # 3: Fundstelle (29.10.), 4: Pruefer statt Jev,
 # Rueckweg: alte Liste ["anthropic/claude-sonnet-5.5", "google/gemini-3.8-flash", "deepseek/deepseek-v4.1-flash"]
 MODELLE = ["deepseek/deepseek-v4.1-flash", "anthropic/claude-sonnet-5.5"]
 MAX_SCHREIBVERSUCHE = 2
+# Pruefer-Zweitversuch (24.11.26, Daniel "A bauen"): Bisher lief der Pruefer nur einmal nach der
+# Schreibschleife. Hielt DeepSeek alle Regeln ein und der Pruefer fand etwas, wurde der Text sofort
+# Entwurf und Sonnet kam nie dran. Fall 24.11. 04 UTC: Huang-Rueckkehr (Grosslage, 19 Medien), ein
+# einziger Fund ("republikanischer Senator Jack Reed", Reed ist Demokrat). Register 10.11. bis 24.11.:
+# 11 von 25 Entwuerfen scheiterten so (9 mit 1 Fund), beim Pruefer kam Sonnet 5 von 7, DeepSeek
+# 10 von 21 durch. Jetzt schreibt nach einem Pruefer-Fund das naechste Modell neu, der Pruefer
+# prueft erneut. Scheitert auch das, bleibt der Text mit weniger Problemen (Fallback: der erste).
+# Kein Zweitversuch, wenn der Pruefer selbst ausfiel (kein Urteil). Kosten etwa 0,03 bis 0,05 $ je
+# Fall. Log: PRUEFER-ZWEITVERSUCH, Register: pruefer.zweitversuch. Kill-Switch: False.
+PRUEFER_ZWEITVERSUCH = True
 
 VERBOTEN = ["revolutionär", "bahnbrechend", "game-changer", "gamechanger", "disruptiv",
             "paradigmenwechsel", "nie dagewesen", "synergie", "nahtlos", "tiefgreifend",
@@ -1989,7 +1999,10 @@ def main():
         p = prompt(quellen, alt.get("artikel") if alt and alt.get("status") == "veroeffentlicht" else None,
                    fall=bool(k.get("linie")))
         artikel, fehler, modell, jev_werte, pinfo = None, ["kein Modell lieferte Text"], "", [], {}
-        for modell in MODELLE[:MAX_SCHREIBVERSUCHE]:
+        schreiber = MODELLE[:MAX_SCHREIBVERSUCHE]
+        gemerkt = None                   # Pruefer-Zweitversuch: erster Text, der nur am Pruefer scheiterte
+        for nr, modell in enumerate(schreiber, 1):
+            pinfo = {}
             try:
                 artikel = schreibe(p, modell, key)
             except Exception as e:
@@ -2002,15 +2015,30 @@ def main():
             if kasten:                   # R4: nur der Kasten faellt weg
                 artikel["blick"] = []
                 print(f"[RECHERCHE] {modell}: Kasten Auf einen Blick faellt weg {kasten[:4]}")
-            if not fehler:
-                break
-        if artikel and not fehler:
+            if fehler:
+                continue
             fehler, pinfo = pruefe_llm(artikel, quellen, dp, key)
             print(f"[RECHERCHE] Prüfer {pinfo.get('modell')} ({pinfo.get('sekunden')} s, {pinfo.get('kosten')} $) -> "
                   f"{'bestanden' if not fehler else fehler}")
-            if jev_key:                   # Jev nur noch zum Vergleich, entscheidet nicht (30.10.)
-                jev_fehler, jev_werte = pruefe_jev(artikel, quellen, jev_key, dp)
-                print(f"[RECHERCHE] Jev (Schatten) {jev_werte}: {len(jev_fehler)} Saetze unter {JEV_SCHWELLE}")
+            if not (fehler and PRUEFER_ZWEITVERSUCH and pinfo.get("modell") and nr < len(schreiber)):
+                break
+            gemerkt = (artikel, fehler, modell, pinfo)
+            print(f"[RECHERCHE] PRUEFER-ZWEITVERSUCH: {modell} hat {len(fehler)} Prüfer-Fund(e), "
+                  f"{schreiber[nr]} schreibt neu")
+        if gemerkt:
+            # Behalten wird der neue Text, wenn er bestand oder der Pruefer ihm hoechstens so viele
+            # Funde gab wie dem ersten. Ohne Pruefer-Urteil (Ausnahme, Regelverstoss, Pruefer aus)
+            # gilt der erste Text, er hielt wenigstens alle Regeln ein.
+            erst_artikel, erst_fehler, erst_modell, erst_pinfo = gemerkt
+            if fehler and not (pinfo.get("modell") and len(fehler) <= len(erst_fehler)):
+                artikel, fehler, modell, pinfo = erst_artikel, erst_fehler, erst_modell, erst_pinfo
+            pinfo = dict(pinfo, zweitversuch={"erst": erst_modell, "erst_funde": erst_fehler[:5],
+                                               "behalten": modell, "bestanden": not fehler})
+            print(f"[RECHERCHE] PRUEFER-ZWEITVERSUCH: {'bestanden' if not fehler else 'nicht bestanden'}, "
+                  f"Text von {modell}")
+        if artikel and pinfo and jev_key:  # Jev nur noch zum Vergleich, entscheidet nicht (30.10.)
+            jev_fehler, jev_werte = pruefe_jev(artikel, quellen, jev_key, dp)
+            print(f"[RECHERCHE] Jev (Schatten) {jev_werte}: {len(jev_fehler)} Saetze unter {JEV_SCHWELLE}")
         if not artikel or not artikel["titel"]:
             print(f"[RECHERCHE] {k['sid']}: kein verwertbarer Text, {fehler}")
             if alt and not args.dry_run:
