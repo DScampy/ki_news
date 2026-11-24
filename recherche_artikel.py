@@ -175,6 +175,26 @@ MAX_MEDIEN_JE_ARTIKEL = 7        # passt zu JEV_MAX_QUELLTEXT (7 Quellen a TEXT_
 GROSSLAGE_MEDIEN = 8
 GROSSLAGE_EXTRA_PRO_TAG = 1
 GROSSLAGE_MAX_MEDIEN = 10
+# B (24.11.26, Daniel: "b bauen"). Die Huang-Rueckkehr (s002, 17 Medien) fiel am 23.11. um 19 UTC aus den
+# Kandidaten, weil ein einziger Google-News-Link schon im Kurssturz-Artikel von 09:05 UTC stand. kandidaten()
+# warf jede Story mit irgendeinem Register-Link raus. Eine Grosslage faellt jetzt nur noch raus, wenn sie mit
+# einem Registereintrag mindestens ANKER_MIN_LINKS Links teilt (alle Links des Eintrags). Dann ist es derselbe
+# Fall, und er laeuft ueber Erweiterung oder Linie. False = Kill-Switch, wie vorher.
+GROSSLAGE_EINZELLINK = True
+# Je-Lauf-Takt (24.11.26, Daniel: "wäre es nicht praktischer bei jedem Lauf eine Recherche anstoßen zu können
+# und nur überspringen wenn nichts neues dazu kommt"). Bisher hoechstens MAX_PRO_TAG Versuche am Tag, und ein
+# Artikel oder eine Linie, die heute schon dran war, blieb bis zum naechsten Tag gesperrt. Ein Entwurf ohne
+# Linie bekam nie einen zweiten Versuch (Huang-Rueckkehr 24.11. 04 UTC, Amazon-Decart 06 UTC).
+# JE_LAUF = True: Jeder Lauf darf einen Versuch machen (MAX_PRO_LAUF). Ein Artikel oder Entwurf kommt wieder
+# dran, sobald seit dem letzten Versuch UPDATE_MIN_NEUE_MEDIEN weitere Medien dazukamen, auch am selben Tag.
+# Ohne neue Medien wird er uebersprungen. MAX_PRO_TAG_JE_LAUF ist nur noch der Kostendeckel (8 Laeufe am Tag).
+# Jeder Versuch steht mit seinem Tag in "versuche" (Tageszaehler), weil ein Eintrag jetzt mehrmals am Tag
+# dran sein kann. False = Kill-Switch, Verhalten wie vorher.
+JE_LAUF = True
+MAX_PRO_TAG_JE_LAUF = 8
+# Ein Artikel oder Entwurf hoechstens so oft am Tag, damit eine heisse Lage nicht alle Plaetze nimmt
+# (Folge-Simulation 17. bis 24.11.: Anthropic-Boersengang sonst 6 Mal am 19.11., Huang-Linie 5 Mal am 17.11.).
+MAX_JE_EINTRAG_TAG = 3
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
 JEV_SCHWELLE = 0.8
 JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetze, real ~25-30)
@@ -262,23 +282,35 @@ def _sauber(s):
 
 # ── Auswahl ──────────────────────────────────────────────────────────────────
 
+def _alte_pruefung(e):
+    """Entwurf, der nur an einer aelteren Jev-/Pruefer-/Entitaeten-Pruefung scheiterte: gilt nicht als erledigt."""
+    return (e.get("status") == "entwurf" and e.get("pruefung", 1) < PRUEFUNG_VERSION
+            and e.get("gruende") and all(g.startswith(("Jev", "Prüfer", "Entität")) for g in e["gruende"]))
+
+
 def kandidaten(news, releases, register, nur_story=None):
-    # Entwuerfe, die nur an einer aelteren Jev-/Pruefer-/Entitaeten-Pruefung scheiterten, zaehlen nicht als erledigt
-    erledigt = {l for e in register.values() for l in e.get("links", [])
-                if not (e.get("status") == "entwurf" and e.get("pruefung", 1) < PRUEFUNG_VERSION
-                        and e.get("gruende") and all(g.startswith(("Jev", "Prüfer", "Entität")) for g in e["gruende"]))}
+    erledigt = {l for e in register.values() for l in e.get("links", []) if not _alte_pruefung(e)}
     storys = {}
     for n in news:
         if n.get("link") and n.get("story_id"):
             storys.setdefault(n["story_id"], []).append(n)
-    out = []
+    out, anker = [], None
     for sid, glieder in storys.items():
         if nur_story and sid != nur_story:
             continue
         links = {l for g in glieder for l in ms._links(g)}
-        if links & erledigt:
-            continue
         medien = {(g.get("source") or "").strip().lower() for g in glieder} - {""}
+        if links & erledigt:
+            # B: Eine Grosslage mit einzelnen alten Links ist ein neuer Fall, erst ab ANKER_MIN_LINKS
+            # gemeinsamen Links mit einem Eintrag derselbe (dann Erweiterung oder Linie)
+            if not (GROSSLAGE_EINZELLINK and GROSSLAGE_MEDIEN and len(medien) >= GROSSLAGE_MEDIEN):
+                continue
+            if anker is None:            # alle Links des Clusters, nicht nur die zitierten: sonst kaeme eine
+                # Grosslage derselben Linie als zweiter Artikel (Nachspielung 18.11.: "Verwaltungsrat plant keinen
+                # neuen Einsatz" teilte 2 Links mit dem Sicherheitsausschuss-Artikel, aber nur 1 zitierten)
+                anker = [a for a in (set(e.get("links") or []) for e in register.values() if not _alte_pruefung(e)) if a]
+            if any(len(a & links) >= _mind_links(a) for a in anker):
+                continue
         rel = _release_zu(releases, {sid}, links)
         if not (len(medien) >= MIN_QUELLEN or (rel and len(medien) >= MIN_QUELLEN_MIT_HERSTELLER)):
             continue
@@ -297,8 +329,10 @@ def _medien(glieder):
 
 
 def _grosslage(k):
-    """Neue Story (keine Erweiterung, keine Linie) mit mindestens GROSSLAGE_MEDIEN Medien."""
-    return (bool(GROSSLAGE_MEDIEN) and not k.get("update") and not k.get("linie")
+    """Neue Story (keine Erweiterung, keine Linie) mit mindestens GROSSLAGE_MEDIEN Medien. Mit JE_LAUF auch
+    der neue Versuch an einem Entwurf ohne Linie (Huang-Rueckkehr 24.11.: Entwurf mit 11 Quellen)."""
+    neu_oder_entwurf = not k.get("update") or (JE_LAUF and k.get("entwurf"))
+    return (bool(GROSSLAGE_MEDIEN) and neu_oder_entwurf and not k.get("linie")
             and len({m.lower() for m in _medien(k["glieder"])}) >= GROSSLAGE_MEDIEN)
 
 
@@ -347,7 +381,16 @@ def erweiterungen(news, archiv, releases, register, heute):
     out = []
     for slug, e in register.items():
         fv = e.get("fehlversuch") or {}
-        if e.get("status") != "veroeffentlicht" or heute in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
+        # JE_LAUF: auch Entwuerfe (neuer Versuch mit allen Quellen), und kein Tagesriegel. Ob genug neu ist,
+        # entscheiden die Medien seit dem letzten Versuch (unten).
+        entwurf = JE_LAUF and e.get("status") == "entwurf" and not _alte_pruefung(e)
+        if e.get("status") != "veroeffentlicht" and not entwurf:
+            continue
+        if entwurf and _tage(e.get("datum"), heute) > KETTE_MAX_TAGE:
+            continue                     # alter Entwurf: die Lage ist vorbei
+        if not JE_LAUF and heute in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
+            continue
+        if JE_LAUF and _versuche_heute(e, heute) >= MAX_JE_EINTRAG_TAG:
             continue
         alt = zitierte_links(slug, e)
         mind = _mind_links(alt)
@@ -364,23 +407,43 @@ def erweiterungen(news, archiv, releases, register, heute):
         medien_alt = {m.lower() for m in (e.get("medien") or
                                           _medien(g for g in glieder if set(ms._links(g)) & alt))}
         medien_alt |= _cluster_medien(e, nach_link)
+        if entwurf:                      # alles, was beim letzten Versuch schon im Cluster war, ist nicht neu
+            medien_alt |= {m.lower() for m in e.get("medien_linie") or []}
+            medien_alt |= {m.lower() for m in _medien(nach_link[l] for l in e.get("links") or [] if l in nach_link)}
         neu = sorted(m for m in _medien(glieder) if m.lower() not in medien_alt)
         versucht = {m.lower() for m in fv.get("medien") or []}   # nach Fehlversuch: weitere Medien noetig
         if sum(m.lower() not in versucht for m in neu) < UPDATE_MIN_NEUE_MEDIEN:
             continue
         links = {l for g in glieder for l in ms._links(g)}
         rep = max((g for g in glieder if g.get("story_id") in sids) or glieder, key=lambda x: _zahl(x.get("score")))
-        out.append({"sid": rep.get("story_id") or e.get("story_id"), "rep": rep, "glieder": glieder,
-                    "links": sorted(links), "release": _release_zu(releases, sids, links),
-                    "update": slug, "alt_links": alt, "neu": neu})
+        k = {"sid": rep.get("story_id") or e.get("story_id"), "rep": rep, "glieder": glieder,
+             "links": sorted(links), "release": _release_zu(releases, sids, links),
+             "update": slug, "alt_links": alt, "neu": neu}
+        if entwurf:                      # wie R3: frisch schreiben, ohne "neu"-Marken und alte Quellen vorn
+            k.update(alt_links=set(), entwurf=True)
+        out.append(k)
     out.sort(key=lambda k: -len(k["neu"]))
     return out
 
 
+def _versuche_heute(e, heute):
+    """Versuche an einem Eintrag heute. Mit JE_LAUF kann ein Eintrag mehrmals am Tag dran sein, dann zaehlt
+    "versuche" (ein Tag je Versuch), falls das mehr ist."""
+    alt = ((e.get("datum") == heute) + (e.get("aktualisiert") == heute)
+           + ((e.get("fehlversuch") or {}).get("datum") == heute))
+    return max(alt, (e.get("versuche") or []).count(heute)) if JE_LAUF else alt
+
+
 def heute_verbraucht(register, heute):
     """Neue Artikel, Entwuerfe, Erweiterungen und gescheiterte Erweiterungen von heute."""
-    return sum((e.get("datum") == heute) + (e.get("aktualisiert") == heute)
-               + ((e.get("fehlversuch") or {}).get("datum") == heute) for e in register.values())
+    return sum(_versuche_heute(e, heute) for e in register.values())
+
+
+def _versuch(e, heute, vorher):
+    """JE_LAUF: Versuch mit Tag vermerken (fuer heute_verbraucht und MAX_JE_EINTRAG_TAG). vorher = Versuche
+    heute vor diesem, so zaehlen auch Versuche von vor der Umstellung (ohne "versuche"). 20 Eintraege reichen."""
+    if JE_LAUF:
+        e["versuche"] = ([d for d in e.get("versuche") or [] if d != heute] + [heute] * (vorher + 1))[-20:]
 
 
 # ── Laufende Faelle (Plan R3) ────────────────────────────────────────────────
@@ -495,12 +558,15 @@ def linien_plan(news, linien, releases, register, heute, zug, familie, archiv=()
         plan.append(p)
         k = {"sid": "Linie " + lid, "rep": rep, "glieder": glieder, "links": sorted(links), "release": rel,
              "linie": lid, "zeitleiste": zeitleiste(linie), "medien_linie": sorted(medien)}
+        heute_fall = None
         if KETTEN_UEBER_IDS:
             heute_fall = _heute_gleicher_fall(register, bekannte, heute, vergeben)
-            if heute_fall:
+            # JE_LAUF: Der Fall von heute wird fortgeschrieben, wenn genug neue Medien kamen (unten).
+            # In diesem Lauf schon vergeben bleibt gesperrt.
+            if heute_fall and (not JE_LAUF or heute_fall in vergeben):
                 p["slug"], p["grund"] = heute_fall, "heute schon geschrieben (gleicher Fall)"
                 continue
-        slug = _eintrag_zur_linie(register, lid, bekannte, vergeben)
+        slug = heute_fall or _eintrag_zur_linie(register, lid, bekannte, vergeben)
         e = register.get(slug) if slug else None
         if e and _tage(e.get("datum"), heute) > KETTE_MAX_TAGE:
             vergeben.add(slug)
@@ -513,8 +579,11 @@ def linien_plan(news, linien, releases, register, heute, zug, familie, archiv=()
             vergeben.add(slug)
             p["slug"] = slug
             fv = e.get("fehlversuch") or {}
-            if heute in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
+            if not JE_LAUF and heute in (e.get("datum"), e.get("aktualisiert"), fv.get("datum")):
                 p["grund"] = "heute schon geschrieben"
+                continue
+            if JE_LAUF and _versuche_heute(e, heute) >= MAX_JE_EINTRAG_TAG:
+                p["grund"] = f"heute schon {MAX_JE_EINTRAG_TAG} Versuche"
                 continue
             bekannt = {m.lower() for m in (e.get("medien") or []) + (e.get("medien_linie") or [])}
             bekannt |= _cluster_medien(e, nach_link)
@@ -647,6 +716,16 @@ def material(k, dp):
     reihe = sorted(k["glieder"], key=lambda x: (not set(ms._links(x)) & alt, -len(x.get("full_text") or "")))
     if k.get("linie"):
         reihe = _reihe_linie(k, reihe, alt, neu)
+    elif k.get("entwurf") and neu:
+        # JE_LAUF: neuer Versuch an einem Entwurf ohne Linie. Bis zu KETTE_NEUE_QUELLEN neue Medien kommen nach
+        # vorn, sonst fielen sie bei grossen Faellen aus dem Prompt (Test 24.11.: Huang-Entwurf als Grosslage
+        # mit 21 Medien, die 10 laengsten Texte waren alle schon im Entwurf, +0 neue Medien)
+        vorn = []
+        for g in reihe:
+            m = (g.get("source") or "").strip().lower()
+            if m in neu and m not in vorn and len(vorn) < KETTE_NEUE_QUELLEN:
+                vorn.append(m)
+        reihe = sorted(reihe, key=lambda x: (x.get("source") or "").strip().lower() not in vorn)
     hoechstens = max(MAX_MEDIEN_JE_ARTIKEL, GROSSLAGE_MAX_MEDIEN) if _grosslage(k) else MAX_MEDIEN_JE_ARTIKEL
     for g in reihe:
         medium = (g.get("source") or "").strip()
@@ -1930,13 +2009,14 @@ def main():
     jetzt = datetime.now(timezone.utc).replace(microsecond=0)
     heute = jetzt.astimezone(BERLIN).strftime("%Y-%m-%d")
     verbraucht = heute_verbraucht(register, heute)
-    frei = MAX_PRO_TAG - verbraucht
+    limit = MAX_PRO_TAG_JE_LAUF if JE_LAUF else MAX_PRO_TAG
+    frei = limit - verbraucht
     nur_gross = False                    # Limit voll, nur noch der Zusatzplatz fuer eine Grosslage
     if frei <= 0 and not args.story:
-        if GROSSLAGE_MEDIEN and verbraucht < MAX_PRO_TAG + GROSSLAGE_EXTRA_PRO_TAG:
-            nur_gross, frei = True, MAX_PRO_TAG + GROSSLAGE_EXTRA_PRO_TAG - verbraucht
+        if GROSSLAGE_MEDIEN and verbraucht < limit + GROSSLAGE_EXTRA_PRO_TAG:
+            nur_gross, frei = True, limit + GROSSLAGE_EXTRA_PRO_TAG - verbraucht
         else:
-            print(f"[RECHERCHE] Tageslimit {MAX_PRO_TAG} erreicht")
+            print(f"[RECHERCHE] Tageslimit {limit} erreicht")
             return 0
 
     dp = _deckung()
@@ -1944,9 +2024,9 @@ def main():
     erw = [] if args.story else erweiterungen(news, archiv if isinstance(archiv, list) else [],
                                                releases, register, heute)
     if nur_gross:
-        kand, erw = [k for k in kand if _grosslage(k)], []
-        if not kand:
-            print(f"[RECHERCHE] Tageslimit {MAX_PRO_TAG} erreicht, keine Grosslage (>= {GROSSLAGE_MEDIEN} Medien)")
+        kand, erw = [k for k in kand if _grosslage(k)], [k for k in erw if _grosslage(k)]
+        if not kand and not erw:
+            print(f"[RECHERCHE] Tageslimit {limit} erreicht, keine Grosslage (>= {GROSSLAGE_MEDIEN} Medien)")
             return 0
     if KETTEN in ("schatten", "an") and not args.story and not nur_gross:
         try:
@@ -1969,11 +2049,14 @@ def main():
             # Grosslage bleibt drin, auch wenn sie zu einer Linie gehoert (Huang-Rueckkehr 23.11.)
             kand = lk + [k for k in kand if not _in_linie(k, zug) or _grosslage(k)]
             erw = [k for k in erw if not _in_linie(k, zug) and k["update"] not in vergeben]
-    gross = sorted((k for k in kand if _grosslage(k)), key=lambda k: -len(_medien(k["glieder"])))
+    gross = sorted((k for k in kand + erw if _grosslage(k)), key=lambda k: -len(_medien(k["glieder"])))
     if gross:
         kand = gross + [k for k in kand if not _grosslage(k)]
+        erw = [k for k in erw if not _grosslage(k)]
         print(f"[RECHERCHE] GROSSLAGE: " + ", ".join(f"{k['sid']} {len(_medien(k['glieder']))} Medien "
-                                                      f"({ms._titel(k['rep'])[:60]})" for k in gross)
+                                                      f"({ms._titel(k['rep'])[:60]})"
+                                                      + (f" neuer Versuch an {k['update'][:40]}" if k.get("update") else "")
+                                                      for k in gross)
               + (", Platz ueber dem Tageslimit" if nur_gross else ""))
     print(f"[RECHERCHE] {len(kand)} Kandidaten (>= {MIN_QUELLEN} Medien oder Herstellerseite + "
           f"{MIN_QUELLEN_MIT_HERSTELLER}), {len(erw)} Erweiterungen "
@@ -1995,6 +2078,7 @@ def main():
             continue
         versucht += 1
         alt = register[k["update"]] if k.get("update") else None
+        vorher = _versuche_heute(alt, heute) if alt else 0
         # Ein Entwurf (R3) wird frisch geschrieben: Sein Text hat die Pruefung nicht bestanden.
         p = prompt(quellen, alt.get("artikel") if alt and alt.get("status") == "veroeffentlicht" else None,
                    fall=bool(k.get("linie")))
@@ -2043,6 +2127,7 @@ def main():
             print(f"[RECHERCHE] {k['sid']}: kein verwertbarer Text, {fehler}")
             if alt and not args.dry_run:
                 alt["fehlversuch"] = {"datum": heute, "medien": k["neu"], "gruende": fehler}
+                _versuch(alt, heute, vorher)
             continue
 
         bestanden = not fehler and not args.nur_entwurf
@@ -2051,6 +2136,8 @@ def main():
             weiter = erweitere if alt.get("status") == "veroeffentlicht" else entwurf_fortschreiben
             weiter(alt, k, artikel, quellen, fehler, bestanden, modell, pinfo, jev_werte, stand, heute,
                    args.dry_run)
+            if not args.dry_run:
+                _versuch(alt, heute, vorher)
             continue
         slug = ms._slug(artikel["titel"])
         while slug in register:
@@ -2075,6 +2162,7 @@ def main():
             print(json.dumps(artikel, ensure_ascii=False, indent=1))
             continue
         ms._schreiben_wenn_neu(ziel, seite)
+        _versuch(eintrag, heute, 0)
         register[slug] = eintrag
 
     if not args.dry_run and versucht:
