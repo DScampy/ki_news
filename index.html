@@ -2378,6 +2378,24 @@ html.light .ki-card:not(:has(img)){--map-opacity:0.35;--flag-opacity:0.32;}
     #px-hero .px-sz-liste li:nth-child(2){border-top:1px solid var(--pz-linie)}
   }
 </style>
+<!-- 25.11.26 (Daniel: "nicht ganz hundertprozentig grad"): eine Kante für Aufmacher, Hauptteil
+     und Themen-Kästen. Vorher bei 1920 px links 210, 276 und 292 px, bei 1440 px 16, 36 und 52 px,
+     auf dem Handy 12, 16 und 32 px. Jetzt gilt überall die Kante des Aufmachers.
+     Kill-Switch: media="all" auf media="not all" stellen, dann gilt alles wie vorher. -->
+<style id="px-eine-kante" media="all">
+  /* Hauptteil so breit wie der Aufmacher: 1500 px Inhalt plus 2 x 16 px Innenrand (p-gutter) */
+  main .max-w-\[1400px\] { max-width: 1532px; }
+  /* Themen-Kästen ohne eigenen Rand, sie sitzen schon im Hauptteil */
+  main #pxk-kompakt .pxk-main { width: 100%; max-width: none; }
+  /* Handy: Aufmacher mit 16 px Rand wie der Hauptteil (vorher 12 px, bei 541 bis 760 px höchstens 680 px breit) */
+  @media (max-width: 760px) {
+    .px-hero-shell { width: calc(100% - 32px); }
+  }
+  /* Ab 2000 px wächst der Aufmacher bis 1840 px, der Hauptteil wächst mit */
+  @media (min-width: 2000px) {
+    main .max-w-\[1400px\] { max-width: calc(min(92vw, 1840px) + 32px); }
+  }
+</style>
 </head>
 <body class="font-body-lg">
 <script src="assets/ki-layout.js"></script>
