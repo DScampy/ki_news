@@ -753,8 +753,8 @@
       font-size: 20px;
     }
 
-    /* 25.11.26: Silbentrennung in Überschriften aus (Daniel 27.10.), siehe TITEL_EINPASSEN im Skript. */
-    html.px-titel-ganz :is(.px-focus-title, .px-side-title, .px-story-title) {
+    /* 25.11.26: Nur zum Messen ohne Silbentrennung, siehe TITEL_EINPASSEN im Skript. */
+    html.px-titel-messen :is(.px-focus-title, .px-side-title, .px-story-title) {
       hyphens: manual;
     }
 
@@ -3502,9 +3502,12 @@
       // 25.11.26: "Vorstandsentscheidung" brach in der Seitenspalte der Top-Storys bei 768 px und bei
       // 1024 px mit offener Leiste mitten im Wort (Layout-Prüfung an PR 190). Der Titel hat dort nur
       // 178 bis 180 px, das Wort braucht 199 px. Wie auf der Startseite (22.11.) und in linie.html wird
-      // die Schrift kleiner statt das Wort zu brechen, höchstens bis 75 Prozent. Ein noch längeres Wort
-      // darf wie bisher umbrechen. Silbentrennung bleibt in Überschriften aus (Daniel 27.10.).
-      // Wortgrenzen wie in tools/layout_check.py. Kill-Switch: TITEL_EINPASSEN = false.
+      // die Schrift kleiner statt das Wort zu brechen, höchstens bis 75 Prozent. Gemessen wird ohne
+      // Silbentrennung wie in tools/layout_check.py. Passt das Wort danach, bleibt die Silbentrennung
+      // in diesem Titel aus (Daniel 27.10.: keine Silbentrennung in Überschriften). In allen anderen
+      // Titeln bleibt sie wie seit 03.11. an. Ganz aus würde sie 1 bis 3 Titel je Breite um eine Zeile
+      // verlängern und einzelne abschneiden. Ein noch längeres Wort darf wie bisher umbrechen.
+      // Kill-Switch: TITEL_EINPASSEN = false.
       const TITEL_EINPASSEN = true;
       let titelGeplant = false;
 
@@ -3530,8 +3533,14 @@
         titelGeplant = false;
         if (!TITEL_EINPASSEN) return;
         const titel = [...document.querySelectorAll(".px-focus-title, .px-side-title, .px-story-title")];
+        const wurzel = document.documentElement;
+        const passend = [];
         // Erst alle zurücksetzen, dann messen: so rechnet der Browser das Layout nur einmal neu.
-        titel.forEach((el) => { el.style.fontSize = ""; });
+        wurzel.classList.add("px-titel-messen");
+        titel.forEach((el) => {
+          el.style.fontSize = "";
+          el.style.hyphens = "";
+        });
         titel.forEach((el) => {
           if (!el.clientWidth || !wortBricht(el)) return;
           let groesse = parseFloat(window.getComputedStyle(el).fontSize) || 0;
@@ -3540,7 +3549,10 @@
             groesse -= 1;
             el.style.fontSize = groesse + "px";
           }
+          if (!wortBricht(el)) passend.push(el);
         });
+        wurzel.classList.remove("px-titel-messen");
+        passend.forEach((el) => { el.style.hyphens = "manual"; });
       }
 
       function titelPlanen() {
@@ -3551,7 +3563,6 @@
 
       function titelBeobachten() {
         if (!TITEL_EINPASSEN) return;
-        document.documentElement.classList.add("px-titel-ganz");
         // Neu einpassen bei neuem Inhalt (Wochenwechsel, Logos vor den Titeln), bei anderer Breite
         // (Fenster, Seitenleiste) und wenn die Schriften da sind.
         if (window.MutationObserver) {
