@@ -753,6 +753,11 @@
       font-size: 20px;
     }
 
+    /* 25.11.26: Nur zum Messen ohne Silbentrennung, siehe TITEL_EINPASSEN im Skript. */
+    html.px-titel-messen :is(.px-focus-title, .px-side-title, .px-story-title) {
+      hyphens: manual;
+    }
+
     .px-focus-summary,
     .px-side-summary,
     .px-story-summary {
@@ -3491,6 +3496,93 @@
         renderStats(week);
         renderTop(week);
         renderDays(week);
+        titelPlanen();
+      }
+
+      // 25.11.26: "Vorstandsentscheidung" brach in der Seitenspalte der Top-Storys bei 768 px und bei
+      // 1024 px mit offener Leiste mitten im Wort (Layout-Prüfung an PR 190). Der Titel hat dort nur
+      // 178 bis 180 px, das Wort braucht 199 px. Wie auf der Startseite (22.11.) und in linie.html wird
+      // die Schrift kleiner statt das Wort zu brechen, höchstens bis 75 Prozent. Gemessen wird ohne
+      // Silbentrennung wie in tools/layout_check.py. Passt das Wort danach, bleibt die Silbentrennung
+      // in diesem Titel aus (Daniel 27.10.: keine Silbentrennung in Überschriften). In allen anderen
+      // Titeln bleibt sie wie seit 03.11. an. Ganz aus würde sie 1 bis 3 Titel je Breite um eine Zeile
+      // verlängern und einzelne abschneiden. Ein noch längeres Wort darf wie bisher umbrechen.
+      // Kill-Switch: TITEL_EINPASSEN = false.
+      const TITEL_EINPASSEN = true;
+      let titelGeplant = false;
+
+      function wortBricht(el) {
+        const lauf = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        while (lauf.nextNode()) {
+          const knoten = lauf.currentNode;
+          for (const treffer of knoten.nodeValue.matchAll(/[^\s\-\/|｜–—\p{Extended_Pictographic}]+/gu)) {
+            const bereich = document.createRange();
+            bereich.setStart(knoten, treffer.index);
+            bereich.setEnd(knoten, treffer.index + treffer[0].length);
+            const zeilen = new Set();
+            for (const rechteck of bereich.getClientRects()) {
+              if (rechteck.width > 1) zeilen.add(Math.round(rechteck.top));
+            }
+            if (zeilen.size > 1) return true;
+          }
+        }
+        return false;
+      }
+
+      function titelEinpassen() {
+        titelGeplant = false;
+        if (!TITEL_EINPASSEN) return;
+        const titel = [...document.querySelectorAll(".px-focus-title, .px-side-title, .px-story-title")];
+        const wurzel = document.documentElement;
+        const passend = [];
+        // Erst alle zurücksetzen, dann messen: so rechnet der Browser das Layout nur einmal neu.
+        wurzel.classList.add("px-titel-messen");
+        titel.forEach((el) => {
+          el.style.fontSize = "";
+          el.style.hyphens = "";
+        });
+        titel.forEach((el) => {
+          if (!el.clientWidth || !wortBricht(el)) return;
+          let groesse = parseFloat(window.getComputedStyle(el).fontSize) || 0;
+          const minimum = Math.max(12, Math.round(groesse * 0.75));
+          while (groesse > minimum && wortBricht(el)) {
+            groesse -= 1;
+            el.style.fontSize = groesse + "px";
+          }
+          if (!wortBricht(el)) passend.push(el);
+        });
+        wurzel.classList.remove("px-titel-messen");
+        passend.forEach((el) => { el.style.hyphens = "manual"; });
+      }
+
+      function titelPlanen() {
+        if (!TITEL_EINPASSEN || titelGeplant) return;
+        titelGeplant = true;
+        requestAnimationFrame(titelEinpassen);
+      }
+
+      function titelBeobachten() {
+        if (!TITEL_EINPASSEN) return;
+        // Neu einpassen bei neuem Inhalt (Wochenwechsel, Logos vor den Titeln), bei anderer Breite
+        // (Fenster, Seitenleiste) und wenn die Schriften da sind.
+        if (window.MutationObserver) {
+          const beobachter = new MutationObserver(titelPlanen);
+          [nodes.topLayout, nodes.days].forEach((knoten) => {
+            if (knoten) beobachter.observe(knoten, { childList: true, subtree: true });
+          });
+        }
+        const haupt = document.getElementById("px-main");
+        let titelBreite = haupt ? haupt.clientWidth : 0;
+        if (window.ResizeObserver && haupt) {
+          new ResizeObserver(() => {
+            if (haupt.clientWidth === titelBreite) return;
+            titelBreite = haupt.clientWidth;
+            titelPlanen();
+          }).observe(haupt);
+        } else {
+          window.addEventListener("resize", titelPlanen, { passive: true });
+        }
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(titelPlanen);
       }
 
       function showMessage(message) {
@@ -3761,6 +3853,7 @@
       function init() {
         initTheme();
         ensureSharedLayout();
+        titelBeobachten();
         bindWeekControls();
         initData();
 
