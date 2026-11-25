@@ -195,6 +195,16 @@ MAX_PRO_TAG_JE_LAUF = 8
 # Ein Artikel oder Entwurf hoechstens so oft am Tag, damit eine heisse Lage nicht alle Plaetze nimmt
 # (Folge-Simulation 17. bis 24.11.: Anthropic-Boersengang sonst 6 Mal am 19.11., Huang-Linie 5 Mal am 17.11.).
 MAX_JE_EINTRAG_TAG = 3
+# Linien-Doppel (25.11.26, Daniel: "Ja, bauen"). Um 14 UTC schrieb die Linie aa3a6a45 ("Jensen Huang kehrt zu
+# Nvidia zurueck") einen neuen Artikel zum Kursrueckgang. Alle 5 Links ihrer Meldungen standen schon im
+# Huang-Artikel von 11 UTC (Linie a4cc4eae), der Inhalt war grossteils gleich. Die Linien-Zuordnung verglich nur
+# die zitierten Links des Artikels (0 gemeinsam). Findet eine Linie ueber ID und zitierte Links keinen Eintrag,
+# zaehlt jetzt: Stecken mindestens ANKER_MIN_LINKS Links ihrer heutigen Meldungen schon in einem Eintrag (alle
+# Links), ist es derselbe Fall. Was vorher gefunden wurde, bleibt gleich. Verglichen werden nur die heutigen
+# Meldungen, nicht die Familien-Links, sonst haengt sich jede Folge-Lage an den ersten Artikel des Themas
+# (Nachspielung 17. bis 25.11.: Anthropic-Aktie unter Ausgabepreis an den Boersengang-Artikel).
+# False = Kill-Switch, Verhalten wie vorher.
+LINIE_ALLE_LINKS = True
 TEXT_JE_QUELLE = 3000            # Zeichen Quelltext je Quelle im Prompt
 JEV_SCHWELLE = 0.8
 JEV_MAX_AUFRUFE = 60             # Saetze je Artikel (Titel/Anriss + 4-6 Absaetze, real ~25-30)
@@ -498,6 +508,21 @@ def _heute_gleicher_fall(register, links, heute, vergeben):
     return None
 
 
+def _gleicher_fall_alle_links(register, links, vergeben):
+    """LINIE_ALLE_LINKS: Eintrag, in dessen Links (alle, auch nicht zitierte) mindestens ANKER_MIN_LINKS der
+    heutigen Meldungen einer Linie stecken. Zuerst einer, der in diesem Lauf schon vergeben ist, dann
+    veroeffentlichte vor Entwuerfen, dann die meisten gemeinsamen Links, dann der neueste."""
+    treffer = []
+    for s, e in register.items():
+        alle = set(e.get("links") or [])
+        if not alle or (e.get("linie") and not KETTEN_UEBER_IDS):
+            continue
+        gemeinsam = len(alle & links)
+        if gemeinsam >= min(ANKER_MIN_LINKS, len(alle)):
+            treffer.append(((s in vergeben, e.get("status") == "veroeffentlicht", gemeinsam, e.get("datum") or ""), s))
+    return max(treffer)[1] if treffer else None
+
+
 def linien_zuordnung(news, linien, themen):
     """Welche Meldung gehoert zu welcher Linie: {link: lid} und je Linie alle Links ihrer Kettenfamilie.
     n["linie"] kennt nur Ereignis-Zuordnungen und deren Cluster-Geschwister. Am 10.11. fehlte so die
@@ -567,6 +592,13 @@ def linien_plan(news, linien, releases, register, heute, zug, familie, archiv=()
                 p["slug"], p["grund"] = heute_fall, "heute schon geschrieben (gleicher Fall)"
                 continue
         slug = heute_fall or _eintrag_zur_linie(register, lid, bekannte, vergeben)
+        if not slug and LINIE_ALLE_LINKS:
+            slug = _gleicher_fall_alle_links(register, links, vergeben)
+            if slug:
+                p["alle_links"] = True
+                if slug in vergeben:
+                    p["slug"], p["grund"] = slug, "gleicher Fall schon in diesem Lauf"
+                    continue
         e = register.get(slug) if slug else None
         if e and _tage(e.get("datum"), heute) > KETTE_MAX_TAGE:
             vergeben.add(slug)
@@ -622,7 +654,8 @@ def ketten_logzeilen(plan, kand, erw, register, zug):
                 f"{len(p['medien'])} Medien -> ")
         e = register.get(p["slug"]) if p["slug"] else {}
         wer = (f"{p['slug'][:50]} ({'Entwurf' if e.get('status') == 'entwurf' else 'Artikel'} vom "
-               f"{ms._datum_de(e.get('datum') or '')})") if p["slug"] else ""
+               f"{ms._datum_de(e.get('datum') or '')}{', ueber alle Links' if p.get('alle_links') else ''})"
+               ) if p["slug"] else ""
         if p["aktion"] == "fortschreiben":
             was = f"wuerde fortschreiben: {wer}, +{len(p['neu'])} Medien ({', '.join(p['neu'][:6])})"
         elif p["aktion"] == "neuer Teil" and p["kandidat"]:
