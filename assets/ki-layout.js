@@ -109,6 +109,14 @@
   applyAll(); /* sofort — verhindert Theme-Flackern */
   if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { if (getContrast() === 'auto') applyAll(); }); } catch (e) {} }
 
+  /* Schmaler Leisten-Griff (27.11.26, Daniel: "Griff beheben"). Mit 20 px lag der Griff über den
+     linken 4 px des Inhalts, der ab 1024 px bei 16 px beginnt (offen bei 256 px, Griff bei 240 px).
+     Mit 12 px bleiben 4 px Luft, die Kanten der Seiten bleiben, wie sie sind. padding:0, weil
+     Seiten ohne Tailwind sonst 6 px Innenabstand je Seite haben und der Griff 13 px breit wird. Nur mit Maus
+     (pointer:fine), auf Tablets mit Touch bleibt der Griff 20 px breit zum Antippen.
+     Kill-Switch: GRIFF_SCHMAL = false. */
+  var GRIFF_SCHMAL = true;
+
   /* ── Chrome-CSS (Tailwind-unabhängig — funktioniert überall) ── */
   var CSS = [
     '/* Nachrichten-Look (01.11.26): dieselben Werte wie meldungsseiten.py _CSS */',
@@ -203,6 +211,7 @@
     '#sidebar-toggle:hover{color:var(--z-akzent);box-shadow:none;filter:none;background:var(--z-papier);}',
     '@media(min-width:1024px){#sidebar-toggle{display:flex;}}',
     '#sidebar-toggle .material-symbols-outlined{font-size:14px;font-weight:700;}',
+    GRIFF_SCHMAL ? '@media(pointer:fine){#sidebar-toggle{width:12px;padding:0;}#sidebar-toggle .material-symbols-outlined{font-size:12px;}}' : '',
     '#sidebar-backdrop{position:fixed;inset:0;z-index:48;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease;}',
     '#sidebar-backdrop.open{opacity:1;visibility:visible;}',
     '@media(min-width:1024px){#sidebar-backdrop{display:none !important;}}',
