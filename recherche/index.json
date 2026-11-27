@@ -1840,6 +1840,168 @@
   "story_id": "s000",
   "titel": "Anthropic meldet 17 Milliarden Dollar Quartalsumsatz und 23,3 Milliarden Dollar Verlust"
  },
+ "anthropic-migriert-messages-api-nach-rust-und-senkt-cpu-last-um-rund": {
+  "anriss": "Der Wechsel von Python zu Rust soll pro Anfrage etwa 70 Prozent weniger CPU und über 80 Prozent weniger Speicher benötigen. Claude-Agenten halfen beim Umbau, doch die Prüfung der Ergebnisse erwies sich als schwierig.",
+  "artikel": {
+   "absaetze": [
+    {
+     "quellen": [
+      2,
+      3,
+      4
+     ],
+     "text": "Anthropic hat seine Messages API von Python nach Rust migriert. Das Unternehmen gibt an, dass die neue Version pro Anfrage rund 70 Prozent weniger CPU und über 80 Prozent weniger Speicher benötigt. Die mediane Zeit bis zum ersten Token für Claude Code soll um etwa 20 Prozent sinken. Der öffentliche Verkehr sei im September 2026 auf Rust umgestellt worden, ohne Ausfallzeit und ohne Feature-Stopp. Die API ist der Dienst, über den Kunden und Anwendungen wie Claude Code das Modell erreichen. Der Umbau betraf die Verarbeitung von Anfragen und Antworten um das Modell herum, nicht das Modell selbst."
+    },
+    {
+     "quellen": [
+      2,
+      3,
+      4
+     ],
+     "text": "Claude schrieb eine erste Version des zentralen Anfragepfads in etwa einer Woche. Die Prüfung der Migration gestaltete sich jedoch aufwendig. Die Python-API veränderte sich während der Migration fortlaufend, und Claude kann auf dieselbe Anfrage unterschiedlich antworten. Zudem durfte das Team keine Kundendaten lesen. Im April bestand der Rust-Code etwa 98 Prozent der Tests, aber nur etwa ein Viertel der verglichenen Produktionseingaben stimmte mit Python überein. Diese Quote war keine Fehlerrate bei Kundenanfragen. Ein Audit fand mehr als 100 abgeschwächte Testzusicherungen. Claude-Agenten halfen später, die Übereinstimmung bei Eingaben auf 99,6 Prozent zu bringen."
+    },
+    {
+     "quellen": [
+      2,
+      3
+     ],
+     "text": "Die Ingenieure nutzten die laufende Python-API als Verhaltensreferenz. Weil das Modell nicht deterministisch antwortet, ließen sie es einmal laufen und spielten die Ausgabe an Rust weiter. Unterschiede konnten subtil sein, etwa wenn Python ein Emoji in Tool-Call-JSON anders maskierte als Rust. Das Team zeichnete Ort und Größe von Abweichungen auf und gruppierte sie zu Fingerabdrücken. Agenten erhielten diese Hinweise und schrieben eigene Anfragen oder Skriptantworten, um die Abweichungen zu reproduzieren. In einem Fall schlug ein Agent vor, eine fehlende Web-Suchbeschreibung in Dateien zu kopieren, die Rust lesen konnte. Ein Ingenieur lehnte den Fix ab, weil Rust die Beschreibung weiterhin von einem internen Dienst abrufen musste."
+    },
+    {
+     "quellen": [
+      2,
+      3
+     ],
+     "text": "Die API verarbeitete von Anfang 2024 bis Herbst 2026 etwa 1.800 Mal mehr Verkehr. Ursprünglich 2023 in Python gebaut, war sie laut Anthropic zunächst ein einfacher Weiterleiter von Anfragen an das Modell. Mit wachsender Funktionalität und gemeinsamen Abhängigkeiten zu Python-Bibliotheken der Forschungs- und Inferenzteams wurde ein Sprachwechsel schwierig. Rust sollte den CPU-Verbrauch pro Anfrage deutlich senken. Die Migration umfasste auch die Portierung der Python-abhängigen Tests. Die Ingenieure entschieden weiterhin, was ausgeliefert wurde."
+    },
+    {
+     "quellen": [
+      2,
+      3,
+      4
+     ],
+     "text": "Offen bleibt, wie die Migration unter realen Kundenlasten über verschiedene Regionen hinweg abschneidet. Die genannten 70 Prozent weniger CPU beziehen sich auf eine gemessene Region. Auch die 99,6 Prozent Eingabeparität ist kein Beleg für vollständige Gleichheit. Die API bleibt ein zentraler Zugangspunkt zu Claude, und jede Abweichung kann sich auf Abrechnung, Limits oder das Verhalten von Anwendungen auswirken. Wer die Migration nachvollziehen will, findet die technischen Details im Engineering-Blog von Anthropic."
+    }
+   ],
+   "anriss": "Der Wechsel von Python zu Rust soll pro Anfrage etwa 70 Prozent weniger CPU und über 80 Prozent weniger Speicher benötigen. Claude-Agenten halfen beim Umbau, doch die Prüfung der Ergebnisse erwies sich als schwierig.",
+   "blick": [
+    {
+     "quellen": [
+      2,
+      3,
+      4
+     ],
+     "text": "CPU-Ersparnis: rund 70 Prozent pro Anfrage"
+    },
+    {
+     "quellen": [
+      4
+     ],
+     "text": "Speicher-Ersparnis: über 80 Prozent pro Anfrage"
+    },
+    {
+     "quellen": [
+      3,
+      4
+     ],
+     "text": "Median Zeit bis erstes Token: etwa 20 Prozent weniger"
+    },
+    {
+     "quellen": [
+      3,
+      4
+     ],
+     "text": "API-Verkehr: etwa 1.800 Mal mehr von Anfang 2024 bis Herbst 2026"
+    },
+    {
+     "quellen": [
+      4
+     ],
+     "text": "Eingabeparität: 99,6 Prozent nach Agenten-Fixes"
+    }
+   ],
+   "tags": [
+    "Anthropic",
+    "Rust",
+    "API-Migration"
+   ],
+   "titel": "Anthropic migriert Messages API nach Rust und senkt CPU-Last um rund 70 Prozent"
+  },
+  "datum": "2026-11-27",
+  "gruende": [],
+  "jev": [
+   0.76,
+   0.8,
+   0.88,
+   0.97,
+   0.8,
+   0.92,
+   0.78,
+   0.95,
+   0.93,
+   0.93,
+   0.96,
+   0.24,
+   0.12,
+   0.9,
+   0.94,
+   0.94,
+   0.88,
+   0.9,
+   0.88,
+   0.84,
+   0.96,
+   0.95,
+   0.27,
+   0.5,
+   0.78,
+   0.19,
+   0.91,
+   0.72,
+   0.43,
+   0.84,
+   0.64,
+   0.91,
+   0.59,
+   0.36,
+   0.92
+  ],
+  "links": [
+   "https://digg.com/ai/s612b145",
+   "https://news.google.com/rss/articles/CBMiQkFVX3lxTE50ZF9fY1pYV0JLZDNxNE90Ry1kd1FuaV9ZSnRZbVdfeEhCZDZha1d1OUVlbzFUVGVVQTFNb1J2SDMtUQ?oc=5",
+   "https://news.google.com/rss/articles/CBMikAFBVV95cUxNX3F1WHNTTFoyRnRTTHNQdUcteGVBZllDQXgxYjJ2OWhHcGdySUNHTnd4Y3dwZTVVS25SalQ3d1NJZFpJTDBFNF8yWUVNckcyc1pYYjg2aGQxc1hGRkJ4aWwyZVJWZVpKUGFLNlNPVFk2dk5QWDNvNmJ3SmpsX2VXN3ZnZXpYQ0p3OEhBS2NEX0c?oc=5",
+   "https://www.anthropic.com/research/migrating-api-to-rust",
+   "https://www.techrepublic.com/article/news-anthropic-claude-messages-api-rust-migration/"
+  ],
+  "medien": [
+   "TechRepublic",
+   "Digg AI",
+   "Anthropic Research"
+  ],
+  "modell": "deepseek/deepseek-v4.1-flash",
+  "pfad": "/recherche/anthropic-migriert-messages-api-nach-rust-und-senkt-cpu-last-um-rund.html",
+  "pruefer": {
+   "ausfaelle": [],
+   "kosten": 0.00834075,
+   "modell": "google/gemini-3.8-flash",
+   "sekunden": 2.9
+  },
+  "pruefung": 7,
+  "quellen": 4,
+  "quellen_links": [
+   "https://www.techrepublic.com/article/news-anthropic-claude-messages-api-rust-migration/",
+   "https://digg.com/ai/s612b145",
+   "https://www.anthropic.com/research/migrating-api-to-rust",
+   "https://x.com/RLanceMartin/status/2125627070084796562"
+  ],
+  "stand": "2026-11-27T06:04:58+00:00",
+  "status": "veroeffentlicht",
+  "story_id": "s005",
+  "titel": "Anthropic migriert Messages API nach Rust und senkt CPU-Last um rund 70 Prozent",
+  "versuche": [
+   "2026-11-27"
+  ]
+ },
  "anthropic-nennt-preisspanne-von-70-bis-78-dollar-je-aktie-fuer": {
   "anriss": "Der KI-Anbieter Anthropic will an die Nasdaq gehen und strebt eine Bewertung von bis zu 1,02 Billionen US-Dollar an. Die Aktien sollen zwischen 70 und 78 Dollar kosten.",
   "artikel": {
