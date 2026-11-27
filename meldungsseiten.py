@@ -10,6 +10,9 @@ Regeln:
 - Die Adresse bleibt stabil: Das Register merkt sich alle Links einer Story. Taucht
   einer davon spaeter wieder auf, wird dieselbe Seite aktualisiert statt neu angelegt.
 - Seiten werden nie geloescht. Neu geschrieben wird nur, wenn sich der Inhalt aendert.
+- Doppel (27.11.26): Eine Story ohne freie Seite nimmt eine gleich betitelte statt einer neuen,
+  und indexierbare Seiten mit gleichem Titel zeigen per canonical auf eine Hauptseite
+  (DOPPEL_TITEL_WIEDER, DOPPEL_KANONISCH).
 - Substanz-Regel: index nur mit Einordnung, Linie, Anriss oder >= 300 Zeichen Text,
   sonst noindex,follow (Seite bleibt erreichbar, Google listet sie nicht).
 - "Weitere Meldungen" wird beim Anlegen festgehalten und spaeter nicht umgebaut,
@@ -49,6 +52,24 @@ VIDEO_FRISCH_TAGE = 2           # wie --min-tage in medien_aufraeumen.py: juenge
 VIDEO_TOT_MAX_ANTEIL = 0.7      # mehr Tote deuten auf einen Ausfall, dann nichts aendern
 LEISTEN_NACHZIEHEN = True       # Kill-Switch fuer _leisten_nachziehen
 PLAYER_NACHTRAGEN = True        # Kill-Switch fuer _player_nachtragen
+# 27.11.26, Doppel-Seiten. Die Google Search Console meldete "Duplikat, Google hat eine andere Seite
+# als der Nutzer als kanonische Seite bestimmt". Messung auf main 56789d65: 144 Titel standen auf
+# mehr als einer Seite (332 Seiten), in 62 Faellen waren zwei oder mehr davon indexierbar. Eine neue
+# Seite entsteht, wenn keiner der Links einer Story zu einer freien Seite fuehrt: Der
+# Google-News-Link wird spaeter zum Verlagslink, oder die Links wandern zu einer anderen Story. Die
+# alte Seite bleibt mit gleichem Titel und Text eingefroren stehen.
+# A, DOPPEL_TITEL_WIEDER: Findet eine Story ueber ihre Links keine freie Seite, nimmt sie eine Seite
+#    mit genau gleichem Titel, deren Datum hoechstens DOPPEL_TAGE entfernt ist und von deren Links
+#    keiner im Lauf vorkommt. Dann entsteht keine neue Seite.
+# B, DOPPEL_KANONISCH: Stehen zwei oder mehr indexierbare Seiten mit gleichem Titel hoechstens
+#    DOPPEL_TAGE auseinander, zeigen canonical, og:url und mainEntityOfPage der anderen auf eine
+#    Hauptseite (mit Links vor ohne, dann die zuletzt geaenderte). Die anderen fehlen in den
+#    Sitemaps. Seiten mit noindex behalten ihre eigene Adresse. Eingefrorene Seiten zieht
+#    _kanonisch_nachziehen nach, Hash und dateModified bleiben. Ist der Schalter aus, bekommen die
+#    Seiten im naechsten Lauf ihre eigene Adresse zurueck.
+DOPPEL_TITEL_WIEDER = True
+DOPPEL_KANONISCH = True
+DOPPEL_TAGE = 7
 # 15.11.26: X-Beitrag als Fundstelle (AlignedNews), siehe x_ursprung.py
 _X_POST_RE = re.compile(r"^https?://(?:www\.|mobile\.)?(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/\d+")
 
@@ -226,6 +247,7 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
     video = (karte or {}).get("mp4_url") or ""
     poster = (karte or {}).get("poster_url") or ""
     robots = "index, follow, max-image-preview:large" if e["index"] else "noindex, follow"
+    kanon = SITE + (e.get("kanonisch") or e["pfad"])   # Doppel zeigen auf die Hauptseite (B)
 
     ld = {
         "@context": "https://schema.org",
@@ -235,7 +257,7 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
         "inLanguage": "de",
         "datePublished": e["veroeffentlicht"],
         "dateModified": e["geaendert"],
-        "mainEntityOfPage": url,
+        "mainEntityOfPage": kanon,
         "author": {"@type": "Person", "name": "Daniel S.", "alternateName": "Scampy",
                    "url": SITE + "/", "sameAs": ["https://twitter.com/ScampyKI"]},
         "publisher": {"@type": "Organization", "name": "KI News", "url": SITE + "/",
@@ -258,12 +280,12 @@ def _seite(e, n, karte, linie, weitere, recherche=None):
         f"<title>{esc(titel)} · KI News</title>",
         f'<meta name="description" content="{esc(desc)}"/>',
         f'<meta name="robots" content="{robots}"/>',
-        f'<link rel="canonical" href="{url}"/>',
+        f'<link rel="canonical" href="{kanon}"/>',
         '<link rel="icon" type="image/png" href="/s-logo.png"/>',
         '<meta property="og:type" content="article"/>',
         f'<meta property="og:title" content="{esc(titel)}"/>',
         f'<meta property="og:description" content="{esc(desc)}"/>',
-        f'<meta property="og:url" content="{url}"/>',
+        f'<meta property="og:url" content="{kanon}"/>',
         '<meta property="og:site_name" content="KI News"/>',
         '<meta property="og:locale" content="de_DE"/>',
         f'<meta property="article:published_time" content="{e["veroeffentlicht"]}"/>',
@@ -353,11 +375,103 @@ def _inhalt_hash(n, karte, linie, titel, index, recherche=None):
     return hashlib.sha1("\x1f".join(teile).encode("utf-8")).hexdigest()[:12]
 
 
+def _tage_abstand(a, b):
+    try:
+        return abs((date.fromisoformat((a or "")[:10]) - date.fromisoformat((b or "")[:10])).days)
+    except ValueError:
+        return 10 ** 6
+
+
+def _haupt_rang(e):
+    """Je groesser, desto eher Hauptseite: indexierbar, mit Links, zuletzt geaendert."""
+    return (bool(e.get("index")), bool(e.get("links")), e.get("geaendert") or "", e["pfad"])
+
+
+def _titel_treffer(register, kandidaten, titel, datum, vergeben, lauf_links):
+    """A, siehe DOPPEL_TITEL_WIEDER: (monat, slug) einer freien Seite mit gleichem Titel, sonst None."""
+    passend = []
+    for m, s in kandidaten:
+        e = register[m][s]
+        if ((m, s) in vergeben or e.get("titel") != titel
+                or _tage_abstand(e.get("datum"), datum) > DOPPEL_TAGE
+                or lauf_links.intersection(e.get("links") or [])):
+            continue
+        passend.append((_haupt_rang(e), m, s))
+    return max(passend)[1:] if passend else None
+
+
+def _kanonisch_setzen(register):
+    """B, siehe DOPPEL_KANONISCH: setzt im Register "kanonisch" (Pfad der Hauptseite) bei
+    indexierbaren Doppeln und entfernt es sonst. Eine Gruppe sind Seiten mit gleichem Titel, deren
+    Datum hoechstens DOPPEL_TAGE nach der ersten Seite der Gruppe liegt. So bleibt ein Titel, der
+    jede Woche wiederkommt, je Woche eine eigene Gruppe. Gibt die Zahl der Seiten zurueck, die auf
+    eine Hauptseite zeigen."""
+    nach_titel = {}
+    for reg in register.values():
+        for e in reg.values():
+            nach_titel.setdefault(e.get("titel") or "", []).append(e)
+    zahl = 0
+    for titel, glieder in nach_titel.items():
+        gruppen = []
+        for e in sorted(glieder, key=lambda x: (x.get("datum") or "", x["pfad"])):
+            if (DOPPEL_KANONISCH and titel and gruppen
+                    and _tage_abstand(gruppen[-1][0].get("datum"), e.get("datum")) <= DOPPEL_TAGE):
+                gruppen[-1].append(e)
+            else:
+                gruppen.append([e])
+        for gruppe in gruppen:
+            haupt = None
+            if sum(1 for e in gruppe if e.get("index")) >= 2:
+                haupt = max(gruppe, key=_haupt_rang)
+            for e in gruppe:
+                if haupt is not None and e is not haupt and e.get("index"):
+                    e["kanonisch"] = haupt["pfad"]
+                    zahl += 1
+                else:
+                    e.pop("kanonisch", None)
+    return zahl
+
+
+# Stellen, die auf die Hauptseite zeigen. Jede muss in der Seite genau einmal vorkommen.
+_KANON_STELLEN = [
+    (re.compile(r'<link rel="canonical" href="[^"]*"/>'), '<link rel="canonical" href="{}"/>'),
+    (re.compile(r'<meta property="og:url" content="[^"]*"/>'), '<meta property="og:url" content="{}"/>'),
+    (re.compile(r'"mainEntityOfPage": "[^"]*"'), '"mainEntityOfPage": "{}"'),
+]
+
+
+def _kanonisch_nachziehen(base, register, vorher, im_lauf):
+    """B fuer eingefrorene Seiten: canonical, og:url und mainEntityOfPage auf den Stand im Register
+    bringen. Gelesen werden nur Seiten, die eine Hauptseite haben oder bis zu diesem Lauf hatten.
+    Seiten im Lauf schreibt _seite selbst. Register, Hash und dateModified bleiben."""
+    geaendert = unbekannt = 0
+    for reg in register.values():
+        for e in reg.values():
+            ziel = e.get("kanonisch")
+            if e["pfad"] in im_lauf or not (ziel or vorher.get(e["pfad"])):
+                continue
+            pfad = base / e["pfad"].lstrip("/")
+            if not pfad.exists():
+                continue
+            text = pfad.read_text(encoding="utf-8")
+            if any(len(muster.findall(text)) != 1 for muster, _ in _KANON_STELLEN):
+                unbekannt += 1
+                logger.warning("Doppel: canonical nicht nachgezogen, unbekannter Aufbau: %s", pfad)
+                continue
+            url = SITE + (ziel or e["pfad"])
+            neu = text
+            for muster, vorlage in _KANON_STELLEN:
+                neu = muster.sub(lambda _m, v=vorlage: v.format(url), neu)
+            if _schreiben_wenn_neu(pfad, neu):
+                geaendert += 1
+    return geaendert, unbekannt
+
+
 def _sitemaps(base, register, jetzt):
     xmlns = 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
     monate = sorted(register)
     for m in monate:
-        urls = [e for e in register[m].values() if e.get("index")]
+        urls = [e for e in register[m].values() if e.get("index") and not e.get("kanonisch")]
         zeilen = ['<?xml version="1.0" encoding="UTF-8"?>', f"<urlset {xmlns}>"]
         for e in sorted(urls, key=lambda x: x["pfad"]):
             zeilen.append(f"  <url><loc>{SITE}{e['pfad']}</loc>"
@@ -375,7 +489,7 @@ def _sitemaps(base, register, jetzt):
 
     grenze = (datetime.fromisoformat(jetzt) - timedelta(hours=NEWS_SITEMAP_STUNDEN)).isoformat()
     frisch = [e for m in monate for e in register[m].values()
-              if e.get("index") and e["veroeffentlicht"] >= grenze]
+              if e.get("index") and not e.get("kanonisch") and e["veroeffentlicht"] >= grenze]
     news = ['<?xml version="1.0" encoding="UTF-8"?>',
             f'<urlset {xmlns} xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">']
     for e in sorted(frisch, key=lambda x: x["veroeffentlicht"], reverse=True)[:1000]:
@@ -594,6 +708,12 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
                 register[d.name] = _json_lesen(d / "index.json", {})
     nach_link = {l: (m, s) for m, reg in register.items() for s, e in reg.items()
                  for l in e.get("links", [])}
+    nach_titel = {}                       # A, siehe DOPPEL_TITEL_WIEDER
+    for m, reg in register.items():
+        for s, e in reg.items():
+            nach_titel.setdefault(e.get("titel") or "", []).append((m, s))
+    vorher_kanonisch = {e["pfad"]: e["kanonisch"] for reg in register.values()
+                        for e in reg.values() if e.get("kanonisch")}
 
     # Storys des Laufs: Vertreter = hoechster Score, alle Links der Story merken.
     storys = {}
@@ -607,8 +727,9 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         recherche = next((recherchen[l] for l in links if l in recherchen), None)
         reihe.append((rep, links, karte, glieder, recherche))
     reihe.sort(key=lambda t: _zahl(t[0].get("score")), reverse=True)
+    lauf_links = {l for _, links, *_ in reihe for l in links}
 
-    neu = geaendert = 0
+    neu = geaendert = wieder = 0
     eintraege = []
     # Eine Seite gehoert je Lauf genau einer Story (29.10.26). Vorher landeten ueber einen alten
     # gemeinsamen Link drei Storys auf der Gemini-4-Carbon-Seite, die schwaechste (Score 18)
@@ -620,6 +741,11 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         linie = _linie_info(rep, linien)
         index = _substanz(rep, karte, linie, recherche)
         treffer = next((nach_link[l] for l in links if l in nach_link and nach_link[l] not in vergeben), None)
+        if not treffer and DOPPEL_TITEL_WIEDER and titel:
+            treffer = _titel_treffer(register, nach_titel.get(titel, ()), titel,
+                                     (rep.get("first_seen") or rep.get("date") or heute)[:10],
+                                     vergeben, lauf_links)
+            wieder += bool(treffer)
         if treffer:
             monat, slug = treffer
             e = register[monat][slug]
@@ -662,11 +788,14 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         e["titel"], e["index"] = titel, index
         eintraege.append((e, rep, karte, linie, recherche))
 
+    doppel = _kanonisch_setzen(register)  # B, vor dem Schreiben, damit _seite es kennt
+
     # "Weitere Meldungen": beim ersten Anlegen festschreiben (indexierbare Storys des Laufs).
     indexierbar = [e for e, *_ in eintraege if e["index"]]
+    weitere_ziele = [e for e in indexierbar if not e.get("kanonisch")]
     for e, *_ in eintraege:
         if e["weitere"] is None:
-            e["weitere"] = [w["pfad"] for w in indexierbar if w is not e][:WEITERE_MAX]
+            e["weitere"] = [w["pfad"] for w in weitere_ziele if w is not e][:WEITERE_MAX]
     nach_pfad = {e["pfad"]: e for reg in register.values() for e in reg.values()}
 
     geschrieben = 0
@@ -680,6 +809,17 @@ def erzeuge(base_dir, news_json_data, jetzt=None):
         _schreiben_wenn_neu(ordner / m / "index.json",
                             json.dumps(reg, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
     frisch = _sitemaps(base, register, jetzt)
+    if wieder or doppel or vorher_kanonisch:
+        try:
+            nachgezogen, unbekannt = _kanonisch_nachziehen(
+                base, register, vorher_kanonisch, {e["pfad"] for e, *_ in eintraege})
+        except Exception:
+            logger.exception("Doppel: canonical nachziehen fehlgeschlagen")
+            nachgezogen = unbekannt = 0
+        logger.info("Doppel: %d Storys auf gleich betitelte Seite statt neuer, %d Seiten zeigen auf "
+                    "eine Hauptseite (%d davon im Lauf), %d eingefrorene nachgezogen, "
+                    "%d mit unbekanntem Aufbau", wieder, doppel,
+                    sum(1 for e, *_ in eintraege if e.get("kanonisch")), nachgezogen, unbekannt)
     logger.info("Meldungsseiten: %d Storys, %d neu, %d geaendert, %d Dateien geschrieben, "
                 "%d indexierbar, %d in der News-Sitemap",
                 len(eintraege), neu, geaendert, geschrieben, len(indexierbar), frisch)
